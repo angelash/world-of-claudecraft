@@ -450,7 +450,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "a3_danger_door_vow",
+                "key": "a3_vow_taken",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "a3_vow_kept_reed_bridge",
                 "value": true
               }
             ]
@@ -462,7 +467,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "a3_danger_door_vow",
+                "key": "a3_vow_taken",
                 "value": false
               }
             ]
@@ -670,7 +675,7 @@
             "effects": [
               {
                 "type": "add",
-                "key": "emperor_respect",
+                "key": "npc.emperor.respect",
                 "amount": 2
               }
             ]
@@ -682,7 +687,7 @@
             "effects": [
               {
                 "type": "add",
-                "key": "emperor_respect",
+                "key": "npc.emperor.respect",
                 "amount": 1
               }
             ]
@@ -751,7 +756,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "hart_state",
+                "key": "npc.hart.relation",
                 "value": "rival"
               }
             ]
@@ -759,14 +764,7 @@
           {
             "id": "later",
             "label": "以后再说。",
-            "to": "scholars",
-            "effects": [
-              {
-                "type": "flag",
-                "key": "hart_state",
-                "value": "pending"
-              }
-            ]
+            "to": "scholars"
           }
         ]
       },
@@ -850,7 +848,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "eluen_page",
+                "key": "a4_eluen_page",
                 "value": false
               }
             ]
@@ -862,7 +860,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "eluen_page_considered",
+                "key": "a4_eluen_page_considered",
                 "value": true
               }
             ]
@@ -1075,11 +1073,6 @@
         "effects": [
           {
             "type": "flag",
-            "key": "a4_lies_exposed",
-            "value": 5
-          },
-          {
-            "type": "flag",
             "key": "lie_exposed.eluen",
             "value": true
           },
@@ -1125,16 +1118,9 @@
     "nodes": [
       {
         "id": "open",
-        "effects": [
-          {
-            "type": "flag",
-            "key": "a4_conclave_scene_done",
-            "value": true
-          }
-        ],
         "branch": [
           {
-            "when": "slg.conclave_done",
+            "when": "a4_conclave_done",
             "to": "already"
           }
         ],
@@ -1160,8 +1146,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "a4_alliance",
-                "value": "broad"
+                "key": "a4_summit_result",
+                "value": "league"
               },
               {
                 "type": "add",
@@ -1178,8 +1164,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "a4_alliance",
-                "value": "narrow"
+                "key": "a4_summit_result",
+                "value": "accord"
               }
             ]
           },
@@ -1190,12 +1176,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "slg.summit_bloodshed",
+                "key": "a4_summit_bloodshed",
                 "value": true
               },
               {
                 "type": "flag",
-                "key": "a4_alliance",
+                "key": "a4_summit_result",
                 "value": "broken"
               },
               {
@@ -1219,9 +1205,9 @@
         "effects": [
           {
             "type": "flag",
-            "key": "a4_alliance",
-            "value": "broad",
-            "when": "slg.summit_result"
+            "key": "a4_summit_result",
+            "value": "league",
+            "when": "a4_summit_result"
           }
         ],
         "next": "selene"
@@ -1242,11 +1228,6 @@
           {
             "type": "item",
             "item": "evidence_e15"
-          },
-          {
-            "type": "flag",
-            "key": "a3_selene_tremble_told",
-            "value": true
           }
         ]
       }
@@ -1379,7 +1360,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "eska_consent",
+                "key": "a5_eska_consent",
                 "value": true
               },
               {
@@ -1482,12 +1463,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "purge_route",
+                "key": "a5_purge_route",
                 "value": "god"
               },
               {
                 "type": "flag",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "value": 0
               }
             ]
@@ -1499,48 +1480,48 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "purge_route",
+                "key": "a5_purge_route",
                 "value": "people"
               },
               {
                 "type": "flag",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "value": 3
               },
               {
                 "type": "add",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "amount": 1,
                 "max": 7,
-                "when": "a4_alliance == broad"
+                "when": "a4_summit_result == league"
               },
               {
                 "type": "add",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "amount": 1,
                 "max": 7,
                 "when": "a4_sanctuary_found"
               },
               {
                 "type": "add",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "amount": 1,
                 "max": 7,
-                "when": "city.village_founded"
+                "when": "a2_village_founded"
               },
               {
                 "type": "add",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "amount": 1,
                 "max": 7,
                 "when": "a4_nation_founded"
               },
               {
                 "type": "add",
-                "key": "gate_ring",
+                "key": "a5_gate_ring",
                 "amount": 1,
                 "max": 7,
-                "when": "eska_consent"
+                "when": "a5_eska_consent"
               }
             ]
           }
@@ -1585,7 +1566,7 @@
         "lines": [
           {
             "speaker": "narrator",
-            "text": "你在地图上画下了众门环：{flag:gate_ring} 个节点。"
+            "text": "你在地图上画下了众门环：{flag:a5_gate_ring} 个节点。"
           },
           {
             "speaker": "ron",
@@ -1612,7 +1593,7 @@
         ],
         "branch": [
           {
-            "when": "purge_route == god",
+            "when": "a5_purge_route == god",
             "to": "final_light"
           }
         ],
@@ -1620,12 +1601,12 @@
           {
             "id": "redeem",
             "label": "（伸出手）你叫什么名字？",
-            "when": "gate_ring >= 4 AND seal_looseness >= 40 AND a5_ash_drawer",
+            "when": "a5_gate_ring >= 4 AND seal_looseness >= 40 AND a5_ash_drawer",
             "to": "redeemed",
             "effects": [
               {
                 "type": "flag",
-                "key": "faceless_end",
+                "key": "a5_faceless_end",
                 "value": "redeemed"
               },
               {
@@ -1641,7 +1622,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "faceless_end",
+                "key": "a5_faceless_end",
                 "value": "destroyed"
               }
             ]
@@ -1653,7 +1634,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "faceless_end",
+            "key": "a5_faceless_end",
             "value": "final_light"
           }
         ],
@@ -1741,21 +1722,21 @@
           {
             "speaker": "narrator",
             "text": "她只接住了你。裂口，由执钥人和众门环一起合拢了。",
-            "when": "janu_act == receive"
+            "when": "a5_janu_act == receive"
           },
           {
             "speaker": "narrator",
             "text": "她的脚边留下了一小滩澱。一千年来，她产生的第一滩澱。她低头看着它，脸上有一种你说不清的表情。",
-            "when": "janu_act == receive"
+            "when": "a5_janu_act == receive"
           },
           {
             "speaker": "narrator",
             "text": "她半身显形，以门框之躯堵住了裂口。所有人都看见了：无名之神，救了世界。",
-            "when": "janu_act == seal"
+            "when": "a5_janu_act == seal"
           },
           {
             "speaker": "narrator",
-            "text": "（守住的战线：{flag:held_unaided}。大陆存续：{flag:continent}。）"
+            "text": "（守住的战线：{flag:a5_held_unaided}。大陆存续：{flag:continent}。）"
           }
         ]
       }

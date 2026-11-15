@@ -42,6 +42,8 @@ export type KeyCond =
   | { type: 'visit'; mapId: string; location?: string; label: string }
   /** another door is open */
   | { type: 'door'; doorId: string; label: string }
+  /** a companion's bond (party state) has reached `min` */
+  | { type: 'bond'; companion: string; min: number; label: string }
   /** at least `need` (default 1) of the listed keys */
   | { type: 'any'; of: KeyCond[]; need?: number; label: string };
 

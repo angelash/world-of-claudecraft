@@ -1,10 +1,10 @@
 // Story acts (quests_and_events.md 7): the `act` flag (a string: prologue, act1..act6,
-// epilogue) with its numeric mirror `act_index`, the act.changed event, and the act
-// entry (teleport, intro scene, entry effects). Quests own the act.
+// epilogue; conditions compare it with numbers by index, world_state_registry.md 3), the
+// act.changed event, and the act entry (teleport, intro scene, entry effects). Quests own
+// the act.
 
 import type { SystemContext } from '../../core/system';
 import { currentActId } from './act_order';
-import { actIndex } from './conditions';
 import { applyEffects, teleportPlayer } from './effects';
 import type { ActDef } from './types';
 
@@ -20,8 +20,6 @@ export function setAct(ctx: SystemContext, to: string): void {
   if (from === to && ctx.flag('act') !== undefined) return;
   const def = actDef(ctx.content, to);
   ctx.setFlag('act', to);
-  const idx = def?.index ?? actIndex(to);
-  if (!Number.isNaN(idx)) ctx.setFlag('act_index', idx);
   ctx.world.slices.quests.lastBeatTick = ctx.tick;
   ctx.world.slices.quests.dirty = true;
   ctx.emit('act.changed', { from, to });

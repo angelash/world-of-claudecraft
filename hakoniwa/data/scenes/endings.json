@@ -115,43 +115,43 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "艾琉恩第一个开口。她背后的光环已经停了，齿轮一格也没有再动。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "eluen",
             "kind": "divine",
             "text": "加护会在一个季节里退去。慢慢地，不是一下子。孩子们要有时间学会自己点灯。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "eluen",
             "kind": "divine",
             "text": "召唤大阵，今日封闭。名额制度，作废。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "eluen",
             "kind": "divine",
             "text": "光不会说谎。……可我会。剩下的这一年，我想去学怎么不说。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "莫伊拉念出交接令，艾琉恩才站起来。她没有看你。",
-            "when": "verdict_eluen != voluntary"
+            "when": "verdict.eluen != voluntary"
           },
           {
             "speaker": "eluen",
             "kind": "divine",
             "text": "加护在一个季节内退去。召唤大阵封闭，名额作废。",
-            "when": "verdict_eluen != voluntary"
+            "when": "verdict.eluen != voluntary"
           },
           {
             "speaker": "eluen",
             "kind": "divine",
             "text": "……如庭所令。",
-            "when": "verdict_eluen != voluntary"
+            "when": "verdict.eluen != voluntary"
           }
         ],
         "next": "handover_valda"
@@ -188,13 +188,13 @@
             "speaker": "valda",
             "kind": "divine",
             "text": "送行之战打完了，痛快。外面总有更硬的。",
-            "when": "verdict_valda == voluntary"
+            "when": "verdict.valda == voluntary"
           },
           {
             "speaker": "valda",
             "kind": "divine",
             "text": "打得好。我输得服气。",
-            "when": "verdict_valda != voluntary"
+            "when": "verdict.valda != voluntary"
           }
         ],
         "next": "handover_merca"
@@ -216,37 +216,37 @@
             "speaker": "merca",
             "kind": "divine",
             "text": "这笔买卖，我认。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "她的手指在账册封面上多停了一下，才松开。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "merca",
             "kind": "divine",
             "text": "……对了，金湾的摊位要押金。谁能先借我一点？我按凡人的利息算。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "merca",
             "kind": "divine",
             "text": "我宣布，破产。",
-            "when": "verdict_merca != voluntary"
+            "when": "verdict.merca != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "她眨了眨眼，起身就走，什么也没有留下。",
-            "when": "verdict_merca != voluntary"
+            "when": "verdict.merca != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你摸了摸口袋。她留在这座庭里的唯一一枚硬币，是候见厅里赊给你的那一枚。",
-            "when": "verdict_merca != voluntary"
+            "when": "verdict.merca != voluntary"
           }
         ],
         "next": "handover_sylvie"
@@ -258,19 +258,19 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "希尔薇把手伸进庭镜的水里。再拿出来时，她手心里捧着一小团光，像一段很旧的记忆。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           },
           {
             "speaker": "sylvie",
             "kind": "divine",
             "text": "灵泉的记忆。……交给你们。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "希尔薇没有说话。她把手伸进庭镜的水里，再拿出来时，手里什么也没有了。",
-            "when": "verdict_sylvie != voluntary"
+            "when": "verdict.sylvie != voluntary"
           },
           {
             "speaker": "narrator",
@@ -281,7 +281,7 @@
             "speaker": "sylvie",
             "kind": "divine",
             "text": "……他们长大了。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           }
         ],
         "next": "handover_moira"
@@ -298,25 +298,25 @@
             "speaker": "moira",
             "kind": "divine",
             "text": "最后的记录，我来写。写到倒数第二行。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "铭录从今天起无主。它会接着自己记，鉴定照常能用，只是不再承载神赐。也再没有谁能改它一页，包括我。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "铭录交出。从今天起，它是无主之录，谁都能读，谁也改不了。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "……如庭所令。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           },
           {
             "speaker": "narrator",
@@ -338,13 +338,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "莫伊拉把另一支笔放在书记桌的那一头，还没有递过去。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "莫伊拉把笔放在书记桌上，没有递给任何人。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           }
         ],
         "next": "handover_janu"
@@ -403,7 +403,7 @@
             "name": "无貌者",
             "kind": "say",
             "text": "门外是一个站台。我想不起来，是哪一站了。",
-            "when": "faceless_end == redeemed"
+            "when": "a5_faceless_end == redeemed"
           },
           {
             "speaker": "narrator",
@@ -423,7 +423,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "player_returned",
+                "key": "ep_player_returned",
                 "value": true
               }
             ],
@@ -435,7 +435,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "player_returned",
+                "key": "ep_player_returned",
                 "value": false
               }
             ],
@@ -495,7 +495,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "returned_doors",
+                "key": "a6_returned_doors",
                 "value": "all"
               }
             ],
@@ -507,7 +507,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "returned_doors",
+                "key": "a6_returned_doors",
                 "value": "some"
               }
             ],
@@ -537,7 +537,7 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
-            "text": "园门口，{flag:courtyard.first_object}还在原处。"
+            "text": "园门口，{flag:p_courtyard_object}还在原处。"
           }
         ],
         "next": "last_push"
@@ -606,25 +606,25 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "庭镜里，边石镇有个孩子先看见了碑，喊了一声。很多人跟着抬起了头。",
-            "when": "release_tone == gentle"
+            "when": "a6_release_tone == gentle"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "真好看的一章。",
-            "when": "release_tone == gentle"
+            "when": "a6_release_tone == gentle"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "庭镜里，大陆还在冒烟。碑亮起来的时候，有人在废墟上停下手里的活，看了一眼，又接着搬砖。",
-            "when": "release_tone != gentle"
+            "when": "a6_release_tone != gentle"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "不好看。可是是真的。",
-            "when": "release_tone != gentle"
+            "when": "a6_release_tone != gentle"
           }
         ],
         "next": "departures"
@@ -641,67 +641,67 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "希尔薇第一个起身。经过你身边时，她的眼睛是睁着的。门外吹进来一阵风，分不清是哪个季节的。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "希尔薇无声地走了。门外吹进来一阵风，有枯花的气味，也有新花的。",
-            "when": "verdict_sylvie != voluntary"
+            "when": "verdict.sylvie != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "艾琉恩走的是通往箱庭的那扇门。她换了一身很普通的衣服，还是穿得过分整齐。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "艾琉恩最后看了一眼庭镜里的城市，没有说话。天穹上，一道光熄灭了。",
-            "when": "verdict_eluen != voluntary"
+            "when": "verdict.eluen != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "瓦尔妲扛着接好的剑，在门口回头，咧嘴一笑。",
-            "when": "verdict_valda == voluntary"
+            "when": "verdict.valda == voluntary"
           },
           {
             "speaker": "valda",
             "kind": "divine",
             "text": "下次见面，记得变硬一点，新肉。",
-            "when": "verdict_valda == voluntary"
+            "when": "verdict.valda == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "瓦尔妲扛着接好的剑走了，没有回头。",
-            "when": "verdict_valda != voluntary"
+            "when": "verdict.valda != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡蹦下椅子，朝通往箱庭的那扇门走去，边走边数口袋里的零钱。数到一半，她叹了口气。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡的椅子早就空了。",
-            "when": "verdict_merca != voluntary"
+            "when": "verdict.merca != voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "莫伊拉合上书，夹在腋下，又抽出一本空白的书。她说，这一本她要自己慢慢读。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "莫伊拉空着手走了。笔还留在书记桌上。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           }
         ],
         "next": "janu_leaves"
@@ -737,7 +737,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "yeyu_stayed",
+            "key": "ep_yeyu_stayed",
             "value": false
           }
         ],
@@ -758,7 +758,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "yeyu_stayed",
+            "key": "ep_yeyu_stayed",
             "value": true
           }
         ],
@@ -834,25 +834,25 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "候见厅里只剩你一个人。墙边那扇只开一次的门还开着，门外是很亮的早晨。",
-            "when": "player_returned"
+            "when": "ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你走了进去。",
-            "when": "player_returned"
+            "when": "ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "候见厅里只剩你一个人。墙边那扇只开一次的门慢慢合上，不见了。",
-            "when": "NOT player_returned"
+            "when": "NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你转过身，看向庭镜。庭镜里，天快亮了。",
-            "when": "NOT player_returned"
+            "when": "NOT ep_player_returned"
           }
         ],
         "next": "record_intro"
@@ -869,13 +869,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它写到倒数第二行就停了。最后一行的字迹不一样，笔画有点抖，写得很慢。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它没有写完。后面的部分换了一种字迹，笔画有点抖，写得很慢。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           }
         ],
         "next": "epilogue"
@@ -889,19 +889,19 @@
         "id": "after_record",
         "branch": [
           {
-            "when": "player_returned AND prologue.earth_opening == A",
+            "when": "ep_player_returned AND p_earth_opening == a",
             "to": "earth_a"
           },
           {
-            "when": "player_returned AND prologue.earth_opening == B",
+            "when": "ep_player_returned AND p_earth_opening == b",
             "to": "earth_b"
           },
           {
-            "when": "player_returned AND prologue.earth_opening == C",
+            "when": "ep_player_returned AND p_earth_opening == c",
             "to": "earth_c"
           },
           {
-            "when": "player_returned AND prologue.earth_opening == D",
+            "when": "ep_player_returned AND p_earth_opening == d",
             "to": "earth_d"
           }
         ],
@@ -938,7 +938,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "earth_message_replied",
+                "key": "ep_earth_message_replied",
                 "value": true
               },
               {
@@ -1061,66 +1061,66 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "后来，你又回到了千门回廊。回廊已经空了，每一扇门都交了出去。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "可是尽头，多了一扇门。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它的样子，是末班车到站时打开的那扇车门。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == A"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned AND p_earth_opening == a"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它的样子，是便利店冰柜玻璃里映出来的那扇门。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == B"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned AND p_earth_opening == b"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它的样子，是医院走廊尽头，安全出口绿灯底下的那扇门。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == C"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned AND p_earth_opening == c"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "它的样子，是老宅衣柜里的那扇门。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == D"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned AND p_earth_opening == d"
           },
           {
             "speaker": "yeyu",
             "kind": "say",
             "text": "……这扇不是她的。",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND yeyu_stayed"
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned AND ep_yeyu_stayed"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "那天夜里，你在自己的房间里醒来。",
-            "when": "returned_doors == all AND mysteries_all AND player_returned"
+            "when": "a6_returned_doors == all AND mysteries_all AND ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "墙上多了一扇门。一扇本不该在这里的门。",
-            "when": "returned_doors == all AND mysteries_all AND player_returned"
+            "when": "a6_returned_doors == all AND mysteries_all AND ep_player_returned"
           }
         ],
         "choices": [
           {
             "id": "maker_door",
             "label": "推开回廊尽头的那扇门",
-            "when": "returned_doors == all AND mysteries_all AND NOT player_returned",
+            "when": "a6_returned_doors == all AND mysteries_all AND NOT ep_player_returned",
             "effects": [
               {
                 "type": "flag",
-                "key": "hidden_ending",
+                "key": "ep_hidden_ending",
                 "value": true
               },
               {
@@ -1133,11 +1133,11 @@
           {
             "id": "maker_door_home",
             "label": "推开墙上那扇门",
-            "when": "returned_doors == all AND mysteries_all AND player_returned",
+            "when": "a6_returned_doors == all AND mysteries_all AND ep_player_returned",
             "effects": [
               {
                 "type": "flag",
-                "key": "hidden_ending",
+                "key": "ep_hidden_ending",
                 "value": true
               },
               {
@@ -1286,31 +1286,31 @@
             "speaker": "moira",
             "kind": "divine",
             "text": "澱还是靠诸神的办法消化的。众生自己，还没有学会。",
-            "when": "purge_route != people"
+            "when": "a5_purge_route != people"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "众门环还没有连够。离了我们，澱就无处可去。",
-            "when": "gate_ring < 5"
+            "when": "a5_gate_ring < 5"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "灰烬决战里，没有你在场的战线，守住的还太少。",
-            "when": "held_unaided < 3"
+            "when": "a5_held_unaided < 3"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "决战那天，雅努替他们封了隙。那一下，是我们替他们做完的。",
-            "when": "janu_act != receive"
+            "when": "a5_janu_act != receive"
           },
           {
             "speaker": "moira",
             "kind": "divine",
             "text": "审期那半年，我们不在，庭没有撑住。",
-            "when": "review_score < 0.6"
+            "when": "a6_review_score < 0.6"
           },
           {
             "speaker": "moira",
@@ -1399,7 +1399,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "court_keeper",
+                "key": "ep_court_keeper",
                 "value": true
               }
             ],
@@ -1411,7 +1411,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "court_keeper",
+                "key": "ep_court_keeper",
                 "value": false
               }
             ],
@@ -1556,7 +1556,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "new_god_disposal",
+                "key": "ep_new_god_disposal",
                 "value": "exile"
               }
             ],
@@ -1568,7 +1568,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "new_god_disposal",
+                "key": "ep_new_god_disposal",
                 "value": "seal"
               }
             ],
@@ -1580,7 +1580,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "new_god_disposal",
+                "key": "ep_new_god_disposal",
                 "value": "vassal"
               }
             ],
@@ -1786,8 +1786,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "epilogue.ruler",
-            "value": "艾琉恩"
+            "key": "ep_ruler",
+            "value": "eluen"
           }
         ],
         "lines": [
@@ -1795,13 +1795,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "代理之战结束了。萨莎的刀插在地上，门徒会的残部散了，雅努留下的最后一点残光，也熄了。",
-            "when": "patron == eluen"
+            "when": "a6_patron == eluen"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "其余诸司都愿意离开了。只有她不肯，也没有人拦得住她。",
-            "when": "patron != eluen"
+            "when": "a6_patron != eluen"
           },
           {
             "speaker": "narrator",
@@ -1972,8 +1972,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "epilogue.ruler",
-            "value": "瓦尔妲"
+            "key": "ep_ruler",
+            "value": "valda"
           }
         ],
         "lines": [
@@ -1981,13 +1981,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "代理之战结束了。艾琉恩的勇者倒在场边，哈特的佣兵军团卷着旗子撤了。你站在瓦尔妲身边，不是对面。",
-            "when": "patron == valda"
+            "when": "a6_patron == valda"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "其余诸司都愿意离开了。只有她不肯，扛着断剑，站在长桌上。",
-            "when": "patron != valda"
+            "when": "a6_patron != valda"
           },
           {
             "speaker": "narrator",
@@ -2138,8 +2138,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "epilogue.ruler",
-            "value": "梅尔卡"
+            "key": "ep_ruler",
+            "value": "merca"
           }
         ],
         "lines": [
@@ -2147,13 +2147,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "代理之战结束了。帝国拒绝被收购，夜境也是。现在，两边都签了字。",
-            "when": "patron == merca"
+            "when": "a6_patron == merca"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "其余诸司都愿意离开了。只有她不肯，账本摊在长桌上，一页也没合。",
-            "when": "patron != merca"
+            "when": "a6_patron != merca"
           },
           {
             "speaker": "narrator",
@@ -2304,8 +2304,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "epilogue.ruler",
-            "value": "希尔薇"
+            "key": "ep_ruler",
+            "value": "sylvie"
           }
         ],
         "lines": [
@@ -2313,13 +2313,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "代理之战结束了。帝国和教国的扩张派，退回了各自的城墙里。",
-            "when": "patron == sylvie"
+            "when": "a6_patron == sylvie"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "其余诸司都愿意离开了。只有她不肯。她闭着眼睛，抓着什么不肯松手。",
-            "when": "patron != sylvie"
+            "when": "a6_patron != sylvie"
           },
           {
             "speaker": "narrator",
@@ -2480,8 +2480,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "epilogue.ruler",
-            "value": "莫伊拉"
+            "key": "ep_ruler",
+            "value": "moira"
           }
         ],
         "lines": [
@@ -2489,13 +2489,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "代理之战结束了。雅努到最后都想要那扇后门。现在，后门是莫伊拉的了。",
-            "when": "patron == moira"
+            "when": "a6_patron == moira"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "其余诸司都愿意离开了。只有她不肯。她的笔，一直没有放下。",
-            "when": "patron != moira"
+            "when": "a6_patron != moira"
           },
           {
             "speaker": "narrator",
@@ -2838,13 +2838,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "诸神违约了。神庭在你脚下裂开，庭镜里的大陆跟着碎了。",
-            "when": "god_war"
+            "when": "a6_god_war"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "庭镜里，大陆已经撑不住了。",
-            "when": "NOT god_war"
+            "when": "NOT a6_god_war"
           },
           {
             "speaker": "narrator",
@@ -2876,7 +2876,7 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你伸出手，像那一次一样。",
-            "when": "prologue.reached_out"
+            "when": "p_reached_out"
           },
           {
             "speaker": "narrator",
@@ -2928,8 +2928,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "next_cycle",
-            "value": true
+            "key": "cycle",
+            "value": 2
           }
         ],
         "lines": [
@@ -2982,13 +2982,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你推开了回廊尽头的那扇门。",
-            "when": "NOT player_returned"
+            "when": "NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你推开了墙上的那扇门。",
-            "when": "player_returned"
+            "when": "ep_player_returned"
           },
           {
             "speaker": "narrator",
@@ -3185,13 +3185,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "千门回廊也跟着不见了。",
-            "when": "NOT player_returned"
+            "when": "NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "墙上，只剩下一面墙。",
-            "when": "player_returned"
+            "when": "ep_player_returned"
           }
         ],
         "next": "sky"
@@ -3203,13 +3203,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "箱庭的夜空很干净。终雾退得很远，星星散得不太整齐。",
-            "when": "NOT player_returned"
+            "when": "NOT ep_player_returned"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "窗外是地球的夜空。城市的光，把星星冲得很淡。",
-            "when": "player_returned"
+            "when": "ep_player_returned"
           },
           {
             "speaker": "narrator",
@@ -3223,7 +3223,7 @@
     "onEnd": [
       {
         "type": "flag",
-        "key": "maker_room_seen",
+        "key": "ep_maker_room_seen",
         "value": true
       }
     ]

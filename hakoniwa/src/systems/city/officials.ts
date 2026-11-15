@@ -131,7 +131,7 @@ export function assignOffice(
   let offices: Partial<Record<Domain, OfficeState>>;
   let allowed: Domain[];
   if (d.siteId === 'nation') {
-    if (!ctx.flag('slg.nation_founded')) return reject('no_nation', '还没有立国');
+    if (!ctx.flag('a4_nation_founded')) return reject('no_nation', '还没有立国');
     offices = city.nation.offices;
     allowed = ALL_DOMAINS;
   } else {

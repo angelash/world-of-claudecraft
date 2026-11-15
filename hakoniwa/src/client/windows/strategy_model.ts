@@ -722,7 +722,7 @@ export function canConvene(
   return (
     !view.conference &&
     !view.summit &&
-    !flagOn(flags['slg.conclave_done']) &&
+    !flagOn(flags['a4_conclave_done']) &&
     flagOn(flags['feature.slg'])
   );
 }
@@ -770,8 +770,7 @@ export function foundingState(
   const S = T.strategy;
   if (nation?.alive) return { show: false, can: false, reason: '' };
   if (nation) return { show: true, can: false, reason: S.nationFallen };
-  if (flagOn(flags['slg.nation_founded']))
-    return { show: true, can: false, reason: S.foundAlready };
+  if (flagOn(flags['a4_nation_founded'])) return { show: true, can: false, reason: S.foundAlready };
   if (!flagOn(flags['feature.slg'])) return { show: true, can: false, reason: S.foundLocked };
   const autonomy = Number(flags.territory_autonomy ?? 0);
   if (!(autonomy >= FOUNDING_AUTONOMY)) {

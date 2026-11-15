@@ -37,7 +37,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "abacus",
         "label": "那一页上，你做案头工作"
       }
@@ -59,7 +59,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "nightlight",
         "label": "那一页上，你上夜班"
       }
@@ -81,7 +81,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "whitecoat",
         "label": "那一页上，你照顾病人"
       }
@@ -103,7 +103,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "wrench",
         "label": "那一页上，你动手修东西"
       }
@@ -125,7 +125,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "notes",
         "label": "那一页上，你读书写字"
       }
@@ -147,7 +147,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "hearth",
         "label": "那一页上，你做饭"
       }
@@ -169,7 +169,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "signpost",
         "label": "那一页上，你一直在路上"
       }
@@ -194,7 +194,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "prologue.past_life_door",
+        "key": "p_past_life_door",
         "equals": "podium",
         "label": "那一页上，你站在人前说话"
       }
@@ -269,7 +269,7 @@
             "key": "boss.crystal_mother.defeated",
             "label": "矿道二次塌方里，有人下意识地指挥众人躲避"
           },
-          { "type": "flag", "key": "bond.shiya.40", "label": "看见希雅的猎王时刻" },
+          { "type": "bond", "companion": "shiya", "min": 40, "label": "看见希雅的猎王时刻" },
           { "type": "flag", "key": "a1_beast_tide_cleared", "label": "兽潮之夜过后，全镇替你担保" }
         ]
       }
@@ -339,7 +339,7 @@
     "hint": "兽。",
     "desc": "猎人技能族的基础部分：追踪与射术。",
     "keys": [
-      { "type": "flag", "key": "bond.shiya.20", "label": "与希雅同猎" },
+      { "type": "bond", "companion": "shiya", "min": 20, "label": "与希雅同猎" },
       { "type": "item", "itemId": "split_ear_fang", "label": "裂耳的獠牙" },
       { "type": "visit", "mapId": "forest_edge", "location": "pact_oak", "label": "站到约树下" }
     ],
@@ -608,7 +608,7 @@
     "desc": "夜羽恢复信使之力的一部分：远距传讯、感知门址。",
     "keys": [
       { "type": "flag", "key": "yeyu_letters", "min": 1, "label": "寻回夜羽的记忆碎片" },
-      { "type": "flag", "key": "bond.yeyu.40", "label": "与夜羽的羁绊足够深" }
+      { "type": "bond", "companion": "yeyu", "min": 40, "label": "与夜羽的羁绊足够深" }
     ],
     "effects": [{ "type": "feature", "feature": "messenger" }],
     "sealLooseness": 1,
@@ -624,11 +624,11 @@
     "desc": "为他人开门：把底页的潜质写进其录侧（罗恩的统帅）。",
     "keys": [
       { "type": "door", "doorId": "talent_sight", "label": "识才之门已开" },
-      { "type": "flag", "key": "bond.ron.60", "label": "与罗恩的羁绊足够深" }
+      { "type": "bond", "companion": "ron", "min": 60, "label": "与罗恩的羁绊足够深" }
     ],
     "effects": [
       { "type": "feature", "feature": "awaken_talent" },
-      { "type": "flag", "key": "ron.commander_awakened", "value": true }
+      { "type": "flag", "key": "npc.ron.awakened", "value": true }
     ],
     "sealLooseness": 3,
     "sealUnrest": 3
@@ -692,7 +692,7 @@
     "keys": [
       {
         "type": "flag",
-        "key": "a3_danger_door_vow",
+        "key": "a3_vow_kept_reed_bridge",
         "label": "在无人为你祈祷的地方以自己的名义立誓守护，并且守住"
       }
     ],
@@ -827,7 +827,7 @@
     "keys": [
       { "type": "flag", "key": "a3_eluen_speaks", "label": "无主之地（王国崩解，边境领无人认领）" },
       { "type": "flag", "key": "a2_remnants_settled", "label": "众愿（遗民与难民立下同住誓）" },
-      { "type": "flag", "key": "act_index", "min": 4, "label": "界石（第四幕开篇垒成）" },
+      { "type": "flag", "key": "act", "min": 4, "label": "界石（第四幕开篇垒成）" },
       { "type": "flag", "key": "territory_autonomy", "min": 40, "label": "领地自治度不低于 40" }
     ],
     "effects": [{ "type": "feature", "feature": "slg" }],
@@ -843,7 +843,7 @@
     "hint": "门那边是泉畔。",
     "desc": "越过希尔薇的许可，把逝者从泉畔拉回。与希尔薇交恶。",
     "keys": [
-      { "type": "flag", "key": "a4.refused_to_let_go", "label": "在泉畔失去一位同伴，并拒绝放手" }
+      { "type": "flag", "key": "a4_refused_to_let_go", "label": "在泉畔失去一位同伴，并拒绝放手" }
     ],
     "effects": [{ "type": "feature", "feature": "soul_ferry" }],
     "danger": true,
@@ -861,7 +861,7 @@
     "keys": [
       { "type": "door", "doorId": "wayfaring_advanced", "label": "行路之门进阶已开" },
       { "type": "door", "doorId": "resonance", "label": "遗民的门纹已被唤醒" },
-      { "type": "flag", "key": "a4_alliance", "equals": "broad", "label": "诸族的协力" }
+      { "type": "flag", "key": "a4_summit_result", "equals": "league", "label": "诸族的协力" }
     ],
     "effects": [{ "type": "feature", "feature": "thousand_paths" }],
     "sealLooseness": 12,
@@ -875,7 +875,7 @@
     "act": 5,
     "hint": "这扇门没有锁孔。",
     "desc": "无钥强开其他门。淤塞急剧加重，通向无貌者的路。",
-    "keys": [{ "type": "flag", "key": "a5.blood_for_key", "label": "以澱或血代替钥匙" }],
+    "keys": [{ "type": "flag", "key": "a5_blood_for_key", "label": "以澱或血代替钥匙" }],
     "effects": [{ "type": "feature", "feature": "breach" }],
     "danger": true,
     "closable": true,

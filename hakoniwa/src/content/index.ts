@@ -2,7 +2,9 @@
 // different packs are concatenated; ids must stay unique (checked by validateContent).
 
 import type { ContentMap } from '../core/contracts';
+import { defaultRegistry } from '../core/registry';
 import type { ContentPack, TableSchema } from './pack';
+import { canonicalTable } from './registry_canon';
 
 export type { ContentPack, FieldSchema, TableSchema } from './pack';
 
@@ -15,10 +17,29 @@ export function allPacks(): ContentPack[] {
     .filter((p): p is ContentPack => !!p);
 }
 
+/** Pack tables at canonical variable spelling, computed once per table object. */
+const canonical = new WeakMap<object, unknown>();
+
+/**
+ * The registry loader (world_state_registry.md 9.4): a table written with aliases loads
+ * with the canonical names and values. Shipped data is already canonical (the registry
+ * guard in tests/registry.test.ts), so its tables load as they are.
+ */
+function loadTable(table: string, value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  let out = canonical.get(value);
+  if (out === undefined) {
+    out = canonicalTable(table, value, defaultRegistry());
+    canonical.set(value, out);
+  }
+  return out;
+}
+
 export function buildContent(packs: ContentPack[] = allPacks()): ContentMap {
   const out: Record<string, unknown> = {};
   for (const pack of packs) {
-    for (const [table, value] of Object.entries(pack.tables)) {
+    for (const [table, raw] of Object.entries(pack.tables)) {
+      const value = loadTable(table, raw);
       const prev = out[table];
       if (Array.isArray(prev) && Array.isArray(value)) out[table] = [...prev, ...value];
       else if (prev && typeof prev === 'object' && value && typeof value === 'object') {

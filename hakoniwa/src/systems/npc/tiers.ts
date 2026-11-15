@@ -35,7 +35,7 @@ function plotWeight(ctx: SystemContext, st: NpcState, playerMap: string): number
 export function relevanceScore(ctx: SystemContext, st: NpcState): number {
   if (st.resident) return 0;
   const slice = ctx.world.slices.npc;
-  const named = ctx.flag(`npc.focus.${st.id}`) ? 1 : 0;
+  const named = ctx.flag(`ai.focus.${st.id}`) ? 1 : 0;
   const r = slice.minds[st.id]?.rel.player;
   const relStrength = r
     ? Math.min(1, (Math.abs(r.like) + Math.abs(r.trust - 50) + r.awe + Math.abs(r.interest)) / 160)
@@ -74,8 +74,8 @@ export function recomputeTiers(ctx: SystemContext): void {
     }
     const s = relevanceScore(ctx, st);
     const p = personaById(ctx.content, id);
-    // named by a quest or a written beat (flag npc.focus.<id>): L1 on stage, L2 offstage
-    const named = !!ctx.flag(`npc.focus.${id}`);
+    // named by a quest or a written beat (flag ai.focus.<id>): L1 on stage, L2 offstage
+    const named = !!ctx.flag(`ai.focus.${id}`);
     let t: Tier;
     if (st.mapId === playerMap) {
       const e = getEntity(ctx.world, st.entityId);

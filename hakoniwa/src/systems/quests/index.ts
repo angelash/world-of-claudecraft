@@ -141,7 +141,6 @@ export const system: GameSystem = {
     const opening = openingAct(ctx.content);
     if (ctx.flag('act') === undefined && opening) {
       ctx.setFlag('act', opening.id);
-      ctx.setFlag('act_index', opening.index);
     }
   },
 

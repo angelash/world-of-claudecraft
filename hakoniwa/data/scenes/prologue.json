@@ -10,23 +10,8 @@
         "effects": [
           {
             "type": "flag",
-            "key": "prologue.door_attempts_refused",
+            "key": "p_door_attempts_refused",
             "value": 0
-          },
-          {
-            "type": "flag",
-            "key": "prologue.heard_neighbors",
-            "value": false
-          },
-          {
-            "type": "flag",
-            "key": "prologue.mirror_done",
-            "value": false
-          },
-          {
-            "type": "flag",
-            "key": "prologue.asked_sixth_chair",
-            "value": false
           }
         ],
         "lines": [
@@ -48,12 +33,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_opening",
-                "value": "A"
+                "key": "p_earth_opening",
+                "value": "a"
               },
               {
                 "type": "flag",
-                "key": "prologue.earth_relic",
+                "key": "p_earth_relic",
                 "value": "relic_badge"
               },
               {
@@ -66,12 +51,12 @@
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一盏台灯"
+                "key": "p_courtyard_object",
+                "value": "lamp"
               },
               {
                 "type": "flag",
-                "key": "prologue.default_past_life",
+                "key": "p_default_past_life",
                 "value": "abacus"
               }
             ],
@@ -83,12 +68,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_opening",
-                "value": "B"
+                "key": "p_earth_opening",
+                "value": "b"
               },
               {
                 "type": "flag",
-                "key": "prologue.earth_relic",
+                "key": "p_earth_relic",
                 "value": "relic_receipt"
               },
               {
@@ -101,12 +86,12 @@
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一只空食盆"
+                "key": "p_courtyard_object",
+                "value": "empty_bowl"
               },
               {
                 "type": "flag",
-                "key": "prologue.default_past_life",
+                "key": "p_default_past_life",
                 "value": "nightlight"
               }
             ],
@@ -118,12 +103,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_opening",
-                "value": "C"
+                "key": "p_earth_opening",
+                "value": "c"
               },
               {
                 "type": "flag",
-                "key": "prologue.earth_relic",
+                "key": "p_earth_relic",
                 "value": "relic_mint"
               },
               {
@@ -136,12 +121,12 @@
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一把等候椅"
+                "key": "p_courtyard_object",
+                "value": "waiting_chair"
               },
               {
                 "type": "flag",
-                "key": "prologue.default_past_life",
+                "key": "p_default_past_life",
                 "value": "whitecoat"
               }
             ],
@@ -153,12 +138,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_opening",
-                "value": "D"
+                "key": "p_earth_opening",
+                "value": "d"
               },
               {
                 "type": "flag",
-                "key": "prologue.earth_relic",
+                "key": "p_earth_relic",
                 "value": "relic_key"
               },
               {
@@ -171,12 +156,12 @@
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "那把旧椅子"
+                "key": "p_courtyard_object",
+                "value": "old_chair"
               },
               {
                 "type": "flag",
-                "key": "prologue.default_past_life",
+                "key": "p_default_past_life",
                 "value": "wrench"
               }
             ],
@@ -355,7 +340,7 @@
             "effects": [
               {
                 "type": "add",
-                "key": "prologue.door_attempts_refused",
+                "key": "p_door_attempts_refused",
                 "amount": 1
               }
             ],
@@ -384,7 +369,7 @@
             "effects": [
               {
                 "type": "add",
-                "key": "prologue.door_attempts_refused",
+                "key": "p_door_attempts_refused",
                 "amount": 1
               }
             ],
@@ -413,7 +398,7 @@
             "effects": [
               {
                 "type": "add",
-                "key": "prologue.door_attempts_refused",
+                "key": "p_door_attempts_refused",
                 "amount": 1
               }
             ],
@@ -492,13 +477,13 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "隔壁隐约有人在说话。",
-            "when": "NOT prologue.heard_neighbors"
+            "when": "NOT p_heard_neighbors"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "候见厅里很安静。",
-            "when": "prologue.heard_neighbors"
+            "when": "p_heard_neighbors"
           }
         ],
         "choices": [
@@ -506,14 +491,14 @@
             "id": "mirror",
             "label": "照一照墙上的镜子",
             "once": true,
-            "when": "NOT prologue.mirror_done",
+            "when": "NOT p_mirror_done",
             "to": "n3_mirror"
           },
           {
             "id": "listen",
             "label": "贴着墙，听隔壁",
             "once": true,
-            "when": "NOT prologue.heard_neighbors",
+            "when": "NOT p_heard_neighbors",
             "to": "n3_listen"
           },
           {
@@ -557,7 +542,7 @@
           {
             "id": "wait",
             "label": "（坐下来，等着叫号）",
-            "when": "prologue.mirror_done",
+            "when": "p_mirror_done",
             "to": "n3_check"
           }
         ]
@@ -588,7 +573,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -605,7 +590,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -622,7 +607,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -639,7 +624,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -656,7 +641,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -673,7 +658,7 @@
               },
               {
                 "type": "flag",
-                "key": "prologue.mirror_done",
+                "key": "p_mirror_done",
                 "value": true
               }
             ],
@@ -697,7 +682,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "prologue.heard_neighbors",
+            "key": "p_heard_neighbors",
             "value": true
           }
         ],
@@ -774,7 +759,7 @@
         "id": "n3_check",
         "branch": [
           {
-            "when": "NOT prologue.heard_neighbors",
+            "when": "NOT p_heard_neighbors",
             "to": "n3_faint"
           }
         ],
@@ -785,7 +770,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "prologue.heard_neighbors",
+            "key": "p_heard_neighbors",
             "value": true
           }
         ],
@@ -847,7 +832,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.eavesdrop_level",
+                "key": "p_eavesdrop_level",
                 "value": 0
               }
             ],
@@ -859,7 +844,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.eavesdrop_level",
+                "key": "p_eavesdrop_level",
                 "value": 2
               }
             ],
@@ -871,7 +856,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.eavesdrop_level",
+                "key": "p_eavesdrop_level",
                 "value": 3
               }
             ],
@@ -883,7 +868,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.eavesdrop_level",
+                "key": "p_eavesdrop_level",
                 "value": 1
               }
             ],
@@ -898,50 +883,50 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "四个。亲爱的，你一口气要了四个名额。按信仰份额算，你这次可是把账做得满满的。",
-            "when": "prologue.eavesdrop_level >= 1"
+            "when": "p_eavesdrop_level >= 1"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "份额就是份额。四个，合规格，每一个都经过挑选。",
-            "when": "prologue.eavesdrop_level >= 1"
+            "when": "p_eavesdrop_level >= 1"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "挑选？你挑的是哪种？听话的那种吧。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "勇者需要的是秩序，不是你那种只会咬人的野狗。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "哈！我那一个，一个人顶你四个。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "两位，请注意措辞。我在记。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "你什么时候不在记？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "curtain_voices",
             "name": "帘幕后的声音",
             "kind": "say",
             "text": "四个……（听不清）……名额……按份额……（笑声）……野狗……",
-            "when": "prologue.eavesdrop_level == 0"
+            "when": "p_eavesdrop_level == 0"
           }
         ],
         "next": "n4_s1_check"
@@ -950,7 +935,7 @@
         "id": "n4_s1_check",
         "branch": [
           {
-            "when": "prologue.eavesdrop_level == 1",
+            "when": "p_eavesdrop_level == 1",
             "to": "n4_cough"
           }
         ],
@@ -989,80 +974,80 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "话说回来，外面候见厅坐着的那位，是第几号？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（停顿）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "名单上只有四个。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "可号码牌发出去五张。我对数字很敏感的，亲爱的，尤其是多出来的数字。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "召唤网偶尔会带进杂质。处理掉就是了。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "sylvie",
             "name": "很轻的女声",
             "text": "……杂质，也是一条命。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "那就请生命之司亲自照顾它？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（那个很轻的声音没有回答。）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "先别急着处理嘛。多出来的东西，有时候比账上的还值钱。那它算谁的名额？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "不算任何人的。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（翻书声）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "不算任何人的……嗯，这一行我先空着。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "curtain_voices",
             "name": "帘幕后的声音",
             "kind": "say",
             "text": "……第几号……名单上只有四个……杂质……处理掉……算谁的名额？",
-            "when": "prologue.eavesdrop_level < 2"
+            "when": "p_eavesdrop_level < 2"
           }
         ],
         "next": "n4_s3"
@@ -1074,86 +1059,86 @@
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "审定之前，名单上不能留来路不明的东西。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "急什么，两年而已。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "两年。只剩两年。你们没有一个人觉得这很短吗？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "觉得呀，所以我才要把每一笔都算清楚。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "一千年前那块碑上写了个「未」，你到现在还没睡好吧？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "这一次不会是「未」。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "说得真笃定。上一次，你也是这么说的。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（翻书声）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "「未」，就是「尚未」。我一直想知道，尚未什么。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "尚未有人把你们几个都揍趴下。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "sylvie",
             "name": "很轻的女声",
             "text": "……也许是，尚未学会。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（短暂的沉默）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "生命之司今天的话，真多。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "curtain_voices",
             "name": "帘幕后的声音",
             "kind": "say",
             "text": "……审定……两年……只剩两年……碑上……「未」……尚未什么……",
-            "when": "prologue.eavesdrop_level < 2"
+            "when": "p_eavesdrop_level < 2"
           }
         ],
         "next": "n4_s4"
@@ -1165,68 +1150,68 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "说起来，上一次咱们五个这么整整齐齐坐在一张桌子边上，是什么时候来着？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "那件事之后。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（有人很快地接了一句）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "神约。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "神约哪一条不许提「那件事」了？我又没说名字。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "我们说好了，不提。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "说好的是不提名字。至于那件事，我的书里写得清清楚楚，只是一直没人来借阅。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "sylvie",
             "name": "很轻的女声",
             "text": "……别说了。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（很长的沉默。帘幕后很远的一角，有什么东西轻轻响了一下，像钥匙碰到钥匙。没有人走过去看。）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "帘幕的缝隙里透出一线光。你看见两道影子：一本悬在半空、自己翻动的书，和一枚不停旋转的硬币。",
-            "when": "prologue.eavesdrop_level == 3"
+            "when": "p_eavesdrop_level == 3"
           },
           {
             "speaker": "curtain_voices",
             "name": "帘幕后的声音",
             "kind": "say",
             "text": "……那件事之后……神约……没说名字……（沉默）",
-            "when": "prologue.eavesdrop_level < 2"
+            "when": "p_eavesdrop_level < 2"
           }
         ],
         "next": "n4_s5"
@@ -1238,56 +1223,56 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "你们说，上面那位这一千年，到底在看什么？",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "上面不会看我们吵架。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "一千年一句话都没有，说不定早睡着了。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "或者在等一个好结尾。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "sylvie",
             "name": "很轻的女声",
             "text": "……或者在等我们自己停下来。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "够了。把那个「杂质」叫进来，看一眼，结束。",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（铃响。候见厅墙上的号码板凭空多出一个格子，「伍」亮起。）",
-            "when": "prologue.eavesdrop_level >= 2"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "curtain_voices",
             "name": "帘幕后的声音",
             "kind": "say",
             "text": "……上面那位……在看什么……睡着了……（铃声）",
-            "when": "prologue.eavesdrop_level < 2"
+            "when": "p_eavesdrop_level < 2"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "墙上的号码板凭空多出一个格子，「伍」亮了起来。",
-            "when": "prologue.eavesdrop_level < 2"
+            "when": "p_eavesdrop_level < 2"
           }
         ],
         "next": "n5_call"
@@ -1304,7 +1289,7 @@
             "speaker": "moira",
             "name": "兜帽的身影",
             "text": "偷听是个好习惯，我也有。",
-            "when": "prologue.eavesdrop_level == 3"
+            "when": "p_eavesdrop_level == 3"
           },
           {
             "speaker": "moira",
@@ -1325,7 +1310,7 @@
         ],
         "input": {
           "prompt": "报上你的名字",
-          "storeAs": "prologue.player_name",
+          "storeAs": "player.name",
           "maxLength": 12,
           "empty": "无名氏",
           "to": "n5_named"
@@ -1336,7 +1321,7 @@
         "effects": [
           {
             "type": "name",
-            "from": "prologue.player_name"
+            "from": "player.name"
           }
         ],
         "lines": [
@@ -1344,31 +1329,31 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你没有回答。",
-            "when": "prologue.player_name == '无名氏'"
+            "when": "player.name == '无名氏'"
           },
           {
             "speaker": "moira",
             "name": "兜帽的身影",
             "text": "那我先这么写。",
-            "when": "prologue.player_name == '无名氏'"
+            "when": "player.name == '无名氏'"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "她在卷轴上写下三个字：无名氏。",
-            "when": "prologue.player_name == '无名氏'"
+            "when": "player.name == '无名氏'"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "她把你的名字写在卷轴上，笔画落得很慢。",
-            "when": "prologue.player_name != '无名氏'"
+            "when": "player.name != '无名氏'"
           },
           {
             "speaker": "moira",
             "name": "兜帽的身影",
             "text": "记下了。",
-            "when": "prologue.player_name != '无名氏'"
+            "when": "player.name != '无名氏'"
           },
           {
             "speaker": "narrator",
@@ -1487,7 +1472,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.asked_sixth_chair",
+                "key": "p_asked_sixth_chair",
                 "value": true
               }
             ],
@@ -1694,7 +1679,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E1"
               }
             ],
@@ -1725,7 +1710,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E2"
               }
             ],
@@ -1761,7 +1746,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E3"
               }
             ],
@@ -1787,7 +1772,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E4"
               }
             ],
@@ -1823,7 +1808,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E5"
               }
             ],
@@ -1854,12 +1839,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "E6"
               },
               {
                 "type": "flag",
-                "key": "prologue.earth_anchor_trigger",
+                "key": "p_earth_anchor_trigger",
                 "value": "player"
               }
             ],
@@ -1951,7 +1936,7 @@
         "id": "n6_eluen_free",
         "input": {
           "prompt": "回答艾琉恩：你凭什么值得被选中？",
-          "storeAs": "prologue.free.eluen",
+          "storeAs": "p_free.eluen",
           "maxLength": 200,
           "agentId": "eluen",
           "role": "goddess.dialogue",
@@ -2014,7 +1999,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V1"
               }
             ],
@@ -2040,7 +2025,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V2"
               }
             ],
@@ -2071,7 +2056,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V3"
               }
             ],
@@ -2097,7 +2082,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V4"
               }
             ],
@@ -2133,7 +2118,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V5"
               }
             ],
@@ -2150,7 +2135,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "V6"
               }
             ],
@@ -2247,7 +2232,7 @@
         "id": "n7_valda_free",
         "input": {
           "prompt": "回答瓦尔妲：你打过架吗？输过吗？",
-          "storeAs": "prologue.free.valda",
+          "storeAs": "p_free.valda",
           "maxLength": 200,
           "agentId": "valda",
           "role": "goddess.dialogue",
@@ -2314,12 +2299,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M1"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "high"
               }
             ],
@@ -2354,12 +2339,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M2"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "high"
               }
             ],
@@ -2385,12 +2370,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M3"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "mid"
               }
             ],
@@ -2412,12 +2397,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M4"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "low"
               }
             ],
@@ -2438,12 +2423,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M5"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "mid"
               }
             ],
@@ -2474,12 +2459,12 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "M6"
               },
               {
                 "type": "flag",
-                "key": "prologue.merca_valuation",
+                "key": "p_merca_valuation",
                 "value": "high"
               }
             ],
@@ -2525,25 +2510,25 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你把胸前的工牌摘下来，递了过去。",
-            "when": "prologue.earth_relic == relic_badge"
+            "when": "p_earth_relic == relic_badge"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你从口袋里掏出那张小票和那颗糖，递了过去。",
-            "when": "prologue.earth_relic == relic_receipt"
+            "when": "p_earth_relic == relic_receipt"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你把探视证和那半盒薄荷糖递了过去。",
-            "when": "prologue.earth_relic == relic_mint"
+            "when": "p_earth_relic == relic_mint"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你摊开手心，把那把老钥匙递了过去。",
-            "when": "prologue.earth_relic == relic_key"
+            "when": "p_earth_relic == relic_key"
           },
           {
             "speaker": "narrator",
@@ -2596,7 +2581,7 @@
         "id": "n8_merca_free",
         "input": {
           "prompt": "回答梅尔卡：你能带来什么？",
-          "storeAs": "prologue.free.merca",
+          "storeAs": "p_free.merca",
           "maxLength": 200,
           "agentId": "merca",
           "role": "goddess.dialogue",
@@ -2658,7 +2643,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S1"
               }
             ],
@@ -2684,7 +2669,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S2"
               }
             ],
@@ -2710,13 +2695,13 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S3"
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "空院，只有一棵没开花的树"
+                "key": "p_courtyard_object",
+                "value": "bare_tree"
               }
             ],
             "to": "n9_sylvie_s3"
@@ -2746,13 +2731,13 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S4"
               },
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一扇开着的窗"
+                "key": "p_courtyard_object",
+                "value": "open_window"
               }
             ],
             "to": "n9_sylvie_s4"
@@ -2773,7 +2758,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S5"
               }
             ],
@@ -2799,7 +2784,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "S6"
               }
             ],
@@ -2881,7 +2866,7 @@
         "id": "n9_sylvie_free",
         "input": {
           "prompt": "回答希尔薇：你想念什么？",
-          "storeAs": "prologue.free.sylvie",
+          "storeAs": "p_free.sylvie",
           "maxLength": 200,
           "agentId": "sylvie",
           "role": "goddess.dialogue",
@@ -2909,8 +2894,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一只旧茶杯"
+                "key": "p_courtyard_object",
+                "value": "old_cup"
               }
             ],
             "to": "n9_s1_done"
@@ -2921,8 +2906,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一条旧围巾"
+                "key": "p_courtyard_object",
+                "value": "old_scarf"
               }
             ],
             "to": "n9_s1_done"
@@ -2933,8 +2918,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一封没寄出的信"
+                "key": "p_courtyard_object",
+                "value": "unsent_letter"
               }
             ],
             "to": "n9_s1_done"
@@ -2945,8 +2930,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "courtyard.first_object",
-                "value": "一张空白信纸"
+                "key": "p_courtyard_object",
+                "value": "blank_paper"
               }
             ],
             "to": "n9_s1_done"
@@ -3003,7 +2988,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O1"
               }
             ],
@@ -3034,7 +3019,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O2"
               }
             ],
@@ -3065,7 +3050,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O3"
               }
             ],
@@ -3082,7 +3067,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O4"
               }
             ],
@@ -3113,7 +3098,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O5"
               }
             ],
@@ -3139,7 +3124,7 @@
               },
               {
                 "type": "append",
-                "key": "prologue.answers",
+                "key": "p_answers",
                 "value": "O6"
               }
             ],
@@ -3217,7 +3202,7 @@
         "id": "n10_moira_free",
         "input": {
           "prompt": "回答莫伊拉：你的故事，是从哪一页开始的？",
-          "storeAs": "prologue.free.moira",
+          "storeAs": "p_free.moira",
           "maxLength": 200,
           "agentId": "moira",
           "role": "goddess.dialogue",
@@ -3250,7 +3235,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "abacus"
               }
             ],
@@ -3262,7 +3247,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "nightlight"
               }
             ],
@@ -3274,7 +3259,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "whitecoat"
               }
             ],
@@ -3286,7 +3271,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "wrench"
               }
             ],
@@ -3298,7 +3283,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "notes"
               }
             ],
@@ -3310,7 +3295,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "hearth"
               }
             ],
@@ -3322,7 +3307,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "signpost"
               }
             ],
@@ -3334,7 +3319,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.past_life_door",
+                "key": "p_past_life_door",
                 "value": "podium"
               }
             ],
@@ -3346,8 +3331,8 @@
             "effects": [
               {
                 "type": "copy",
-                "key": "prologue.past_life_door",
-                "from": "prologue.default_past_life"
+                "key": "p_past_life_door",
+                "from": "p_default_past_life"
               },
               {
                 "type": "memory",
@@ -3369,7 +3354,7 @@
         "id": "n10_past_free",
         "input": {
           "prompt": "回答莫伊拉：那一页上，你是做什么的？",
-          "storeAs": "prologue.free.past_life",
+          "storeAs": "p_free.past_life",
           "maxLength": 200,
           "agentId": "moira",
           "role": "goddess.dialogue",
@@ -3427,7 +3412,7 @@
         "id": "n10_earth_check",
         "branch": [
           {
-            "when": "NOT prologue.earth_anchor_trigger",
+            "when": "NOT p_earth_anchor_trigger",
             "to": "n10_where"
           }
         ],
@@ -3448,7 +3433,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_anchor_trigger",
+                "key": "p_earth_anchor_trigger",
                 "value": "moira"
               }
             ],
@@ -3460,7 +3445,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.earth_anchor_trigger",
+                "key": "p_earth_anchor_trigger",
                 "value": "relic"
               }
             ],
@@ -3475,25 +3460,25 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡探过身，从你胸前勾起那张工牌，眯着眼看上面印的字。",
-            "when": "prologue.earth_relic == relic_badge"
+            "when": "p_earth_relic == relic_badge"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡探过身，从你口袋里抽出那张小票，眯着眼看上面印的字。",
-            "when": "prologue.earth_relic == relic_receipt"
+            "when": "p_earth_relic == relic_receipt"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡探过身，捏起你手里那张探视证，眯着眼看上面印的字。",
-            "when": "prologue.earth_relic == relic_mint"
+            "when": "p_earth_relic == relic_mint"
           },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "梅尔卡探过身，勾起那把老钥匙上挂着的旧塑料牌，眯着眼看上面写的字。",
-            "when": "prologue.earth_relic == relic_key"
+            "when": "p_earth_relic == relic_key"
           },
           {
             "speaker": "merca",
@@ -3537,7 +3522,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "moira.page_anomaly_noted",
+            "key": "p_moira_page_anomaly",
             "value": true
           }
         ],
@@ -3675,8 +3660,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.rejection_response",
-                "value": "R1"
+                "key": "p_rejection_response",
+                "value": "r1"
               },
               {
                 "type": "interest",
@@ -3697,8 +3682,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.rejection_response",
-                "value": "R2"
+                "key": "p_rejection_response",
+                "value": "r2"
               },
               {
                 "type": "interest",
@@ -3719,8 +3704,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.rejection_response",
-                "value": "R3"
+                "key": "p_rejection_response",
+                "value": "r3"
               },
               {
                 "type": "interest",
@@ -3741,8 +3726,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.rejection_response",
-                "value": "R4"
+                "key": "p_rejection_response",
+                "value": "r4"
               },
               {
                 "type": "impression",
@@ -3768,8 +3753,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.rejection_response",
-                "value": "R5"
+                "key": "p_rejection_response",
+                "value": "r5"
               },
               {
                 "type": "interest",
@@ -3857,7 +3842,7 @@
         "id": "n11_free",
         "input": {
           "prompt": "回应她们的判决",
-          "storeAs": "prologue.free.rejection",
+          "storeAs": "p_free.rejection",
           "maxLength": 200,
           "classify": {
             "node": "n11_response",
@@ -3876,21 +3861,21 @@
           },
           {
             "type": "flag",
-            "key": "merca_coin.terms",
+            "key": "p_coin_terms",
             "value": "interest_free",
-            "when": "prologue.merca_valuation == high"
+            "when": "p_merca_valuation == high"
           },
           {
             "type": "flag",
-            "key": "merca_coin.terms",
+            "key": "p_coin_terms",
             "value": "three_percent",
-            "when": "prologue.merca_valuation == mid"
+            "when": "p_merca_valuation == mid"
           },
           {
             "type": "flag",
-            "key": "merca_coin.terms",
+            "key": "p_coin_terms",
             "value": "first_free",
-            "when": "NOT prologue.merca_valuation IN (high, mid)"
+            "when": "NOT p_merca_valuation IN (high, mid)"
           }
         ],
         "lines": [
@@ -3927,17 +3912,17 @@
           {
             "speaker": "merca",
             "text": "不要利息，什么时候还都行，我信你。",
-            "when": "prologue.merca_valuation == high"
+            "when": "p_merca_valuation == high"
           },
           {
             "speaker": "merca",
             "text": "三分利，下次见面再算。",
-            "when": "prologue.merca_valuation == mid"
+            "when": "p_merca_valuation == mid"
           },
           {
             "speaker": "merca",
             "text": "利息照算，不过第一次见面免息，算我请客。",
-            "when": "NOT prologue.merca_valuation IN (high, mid)"
+            "when": "NOT p_merca_valuation IN (high, mid)"
           }
         ],
         "next": "n12_last"
@@ -3963,8 +3948,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.last_words",
-                "value": "我会回来的。"
+                "key": "p_last_words",
+                "value": "back"
               }
             ],
             "to": "n12_drop"
@@ -3975,8 +3960,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.last_words",
-                "value": "你们会后悔的。"
+                "key": "p_last_words",
+                "value": "regret"
               }
             ],
             "to": "n12_drop"
@@ -3987,8 +3972,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.last_words",
-                "value": "……谢谢你的硬币。"
+                "key": "p_last_words",
+                "value": "thanks"
               }
             ],
             "to": "n12_drop"
@@ -3999,8 +3984,8 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.last_words",
-                "value": "（什么都不说）"
+                "key": "p_last_words",
+                "value": "silent"
               }
             ],
             "to": "n12_drop"
@@ -4017,7 +4002,7 @@
         "id": "n12_free",
         "input": {
           "prompt": "最后一句话",
-          "storeAs": "prologue.last_words",
+          "storeAs": "p_last_words",
           "maxLength": 60,
           "empty": "（什么都不说）",
           "to": "n12_drop"
@@ -4089,7 +4074,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "prologue.reached_out",
+                "key": "p_reached_out",
                 "value": true
               }
             ],
@@ -4098,13 +4083,6 @@
           {
             "id": "still",
             "label": "（什么也不做）",
-            "effects": [
-              {
-                "type": "flag",
-                "key": "prologue.reached_out",
-                "value": false
-              }
-            ],
             "to": "n13_caught"
           }
         ]
@@ -4140,7 +4118,7 @@
           },
           {
             "type": "flag",
-            "key": "eluen.believes_player_dead",
+            "key": "p_eluen_believes_dead",
             "value": true
           },
           {

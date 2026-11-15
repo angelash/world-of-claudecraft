@@ -114,7 +114,7 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       addMemoryTag(ctx, e.goddess, e.tag);
       return;
     case 'hint': {
-      const key = `prologue.hint.${e.door}`;
+      const key = `p_hint.${e.door}`;
       ctx.setFlag(key, num(ctx.flag(key)) + (e.amount ?? 1));
       return;
     }
@@ -162,11 +162,11 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       return;
     case 'appearance':
       setAppearance(ctx, playerId, { base: e.base, colors: [...e.colors] });
-      ctx.setFlag('prologue.appearance', `${e.base}:${e.colors.join(',')}`);
+      ctx.setFlag('p_appearance', `${e.base}:${e.colors.join(',')}`);
       return;
     case 'name': {
       const name = String(ctx.flag(e.from) ?? '').trim() || '无名氏';
-      ctx.setFlag('prologue.player_name', name);
+      ctx.setFlag('player.name', name);
       ctx.setFlag('player.name', name);
       return;
     }

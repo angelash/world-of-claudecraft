@@ -5,6 +5,7 @@
 import type { SystemContext } from '../../core/system';
 import { calendarAt } from '../../core/time';
 import { addMoney } from '../inventory';
+import { evaluate, flagResolver } from '../quests/conditions';
 import { getEntity, mapById, removeEntity, spawnEntity } from '../world';
 import { initialNeeds } from './needs';
 import {
@@ -47,10 +48,9 @@ function newState(card: CardView): NpcState {
   };
 }
 
+/** A hideWhen entry is a reveal-ledger condition (world_state_registry.md 11). */
 function matches(ctx: SystemContext, cond: string): boolean {
-  const eq = cond.indexOf('=');
-  if (eq < 0) return !!ctx.flag(cond);
-  return String(ctx.flag(cond.slice(0, eq)) ?? '') === cond.slice(eq + 1);
+  return evaluate(cond, flagResolver(ctx.world.meta.flags));
 }
 
 /** Why a persona should currently be absent from the world, or null when present. */

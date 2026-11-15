@@ -227,7 +227,7 @@ export function makeOffering(
   const done = Number(ctx.flag('merca_offerings') ?? 0);
   const earth = (item.tags ?? []).includes('earth');
   const points = Math.round(
-    Math.max(10, item.value) * (earth ? 3 : 1) * offeringRate(ctx.flag('merca_coin.terms'), done),
+    Math.max(10, item.value) * (earth ? 3 : 1) * offeringRate(ctx.flag('p_coin_terms'), done),
   );
   removeItem(ctx, playerId, d.itemId, 1, 'offering');
   ctx.setFlag('merca_offerings', done + 1);

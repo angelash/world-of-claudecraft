@@ -103,14 +103,14 @@ describe('prologue', () => {
     expect(f.p_discarded).toBe(true);
     expect(f.p_caught).toBe(true);
     expect(f.seal_unrest).toBe(10);
-    expect(String(f['prologue.door_hints']).split(',').length).toBe(2);
+    expect(String(f['p_door_hints']).split(',').length).toBe(2);
     expect(f.act).toBe('act1');
     expect(countItem(g.world, 'player', 'merca_coin')).toBe(1);
-    expect(f['prologue.player_name']).toBe('无名氏');
+    expect(f['player.name']).toBe('无名氏');
     // act 1 entry: teleported to the wake point of the sealed ruins
     expect(playerEntity(g.world)?.mapId).toBe('seal_ruins');
     // answers were recorded for all five interviews
-    expect(String(f['prologue.answers']).split(',').length).toBe(5);
+    expect(String(f['p_answers']).split(',').length).toBe(5);
   });
 
   it('remembers interview answers as goddess impressions and memory tags', () => {
@@ -138,7 +138,7 @@ describe('prologue', () => {
       g.step(1);
     }
     expect(named).toBe(true);
-    expect(g.world.meta.flags['prologue.player_name']).toBe('阿门');
+    expect(g.world.meta.flags['player.name']).toBe('阿门');
     expect(g.world.recent.some((e) => e.kind === 'player.said' && e.data.text === '阿门')).toBe(
       true,
     );
@@ -333,7 +333,7 @@ describe('scene engine', () => {
     const replay = Engine.replay(seed, original.content, original.systems, original.world.log);
     replay.step(original.tick);
     expect(worldHash(replay.world)).toBe(worldHash(original.world));
-    expect(original.world.meta.flags['prologue.free.eluen']).toBe('我想想。');
+    expect(original.world.meta.flags['p_free.eluen']).toBe('我想想。');
   });
 
   it('plays scenes requested through scene.pending in order', () => {
@@ -420,7 +420,7 @@ describe('court and endings', () => {
   it('assembles the epilogue per ending with required entries and style', () => {
     const content = narrativeContent();
     const flags = {
-      'prologue.player_name': '阿门',
+      'player.name': '阿门',
       a4_nation_founded: true,
       verdict_eluen: 'voluntary',
     };
@@ -448,28 +448,28 @@ describe('court and endings', () => {
     const f = g.world.meta.flags;
     expect(f.act).toBe('epilogue');
     for (const k of [
-      'verdict_eluen',
-      'verdict_valda',
-      'verdict_merca',
-      'verdict_sylvie',
-      'verdict_moira',
+      'verdict.eluen',
+      'verdict.valda',
+      'verdict.merca',
+      'verdict.sylvie',
+      'verdict.moira',
     ]) {
       expect(['voluntary', 'judged']).toContain(f[k]);
     }
-    expect(f.janu_release).toBe(true);
+    expect(f.a6_janu_release).toBe(true);
     expect(f.ending).toBe('release');
     expect(f.mysteries_all).toBe(true);
     // Yeyu hands over the seventh letter on the eve of the review (court open node)
     expect(f.a6_letter7_delivered).toBe(true);
-    expect(f.yeyu_stayed).toBe(true);
+    expect(f.ep_yeyu_stayed).toBe(true);
     expect(g.world.slices.scenes.seen).toContain('ending_release');
-    expect(f['epilogue.shown']).toBe('release');
+    expect(f['ep_shown']).toBe('release');
     // Moira writes to the second-to-last line; a mortal historian writes the last one
     const record = lines.filter((l) => l.text.startsWith('【'));
     expect(record.length).toBeGreaterThan(5);
     expect(record[record.length - 1]?.speakerId).toBe('historian');
-    expect(f.hidden_ending).toBe(true);
-    expect(f.maker_room_seen).toBe(true);
+    expect(f.ep_hidden_ending).toBe(true);
+    expect(f.ep_maker_room_seen).toBe(true);
     expect(
       lines.some(
         (l) =>
@@ -561,10 +561,10 @@ describe('court and endings', () => {
     g.queue('dialogue.talk', { npcId: bron.id });
     g.step(1);
     const options = g.world.slices.dialogue.session?.options.map((o) => o.id) ?? [];
-    expect(options).toContain('quests:accept:a1_m05_hunt');
-    g.queue('dialogue.choose', { optionId: 'quests:accept:a1_m05_hunt' });
+    expect(options).toContain('quests:accept:q_a1_m04_hunt');
+    g.queue('dialogue.choose', { optionId: 'quests:accept:q_a1_m04_hunt' });
     g.step(2);
-    expect(g.world.slices.quests.quests.a1_m05_hunt?.status).toBe('active');
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.status).toBe('active');
     expect(otherTeamsStub.id).toBe('zz_other_teams');
   });
 });

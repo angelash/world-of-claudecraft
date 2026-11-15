@@ -1,6 +1,6 @@
 [
   {
-    "id": "a1_m01_fall",
+    "id": "q_a1_m01_fall",
     "act": "act1",
     "kind": "main",
     "order": 1,
@@ -47,13 +47,13 @@
     ]
   },
   {
-    "id": "a1_m02_raven",
+    "id": "q_a1_m02_raven",
     "act": "act1",
     "kind": "main",
     "order": 2,
     "title": "巢中之鸦",
     "desc": "巢井上方盘踞着被灰气侵蚀的守护巨鸦。击败它，再伸出手。",
-    "trigger": "quest.a1_m01_fall == done",
+    "trigger": "quest.q_a1_m01_fall == done",
     "stages": [
       {
         "id": "raven",
@@ -116,13 +116,13 @@
     ]
   },
   {
-    "id": "a1_m03_town",
+    "id": "q_a1_m03_town",
     "act": "act1",
     "kind": "main",
     "order": 3,
     "title": "出口在北边",
     "desc": "夜羽说，往北出了遗迹，下面就是一座镇子。",
-    "trigger": "quest.a1_m02_raven == done",
+    "trigger": "quest.q_a1_m02_raven == done",
     "onStart": [
       {
         "type": "line",
@@ -152,13 +152,13 @@
     ]
   },
   {
-    "id": "a1_m04_register",
+    "id": "q_a1_m03_register",
     "act": "act1",
     "kind": "main",
     "order": 4,
     "title": "无记载",
     "desc": "要在这里活下去，先得有一张公会卡。冒险者公会的分部长叫老布伦。",
-    "trigger": "quest.a1_m03_town == done",
+    "trigger": "quest.q_a1_m03_town == done",
     "stages": [
       {
         "id": "register",
@@ -194,7 +194,7 @@
     ]
   },
   {
-    "id": "a1_m05_hunt",
+    "id": "q_a1_m04_hunt",
     "act": "act1",
     "kind": "main",
     "order": 5,
@@ -202,7 +202,7 @@
     "giver": "bron",
     "turnIn": "bron",
     "desc": "布伦把一张 F 级委托拍在柜台上：林缘的魔物多起来了，去清一清，活着回来。",
-    "trigger": "quest.a1_m04_register == done",
+    "trigger": "quest.q_a1_m03_register == done",
     "stages": [
       {
         "id": "hunt",
@@ -241,7 +241,7 @@
     ]
   },
   {
-    "id": "a1_m06_grey_wolf",
+    "id": "q_a1_m05_grey_wolf",
     "act": "act1",
     "kind": "main",
     "order": 6,
@@ -249,7 +249,7 @@
     "giver": "shiya",
     "turnIn": "shiya",
     "desc": "兽人猎户希雅在追查伐区北部的灰色的狼。她不太信任外人，但她更不信任伐木工。",
-    "trigger": "quest.a1_m04_register == done",
+    "trigger": "quest.q_a1_m03_register == done",
     "stages": [
       {
         "id": "wolves",
@@ -302,7 +302,7 @@
     ]
   },
   {
-    "id": "a1_m07_mine",
+    "id": "q_a1_m06_mine",
     "act": "act1",
     "kind": "main",
     "order": 7,
@@ -310,7 +310,7 @@
     "giver": "ron",
     "turnIn": "ron",
     "desc": "矿工罗恩接了委托板上没人要的活：清理旧矿上层的掘穴虫。塌方后面好像有风。",
-    "trigger": "quest.a1_m04_register == done",
+    "trigger": "quest.q_a1_m03_register == done",
     "stages": [
       {
         "id": "mine",
@@ -359,7 +359,7 @@
     ]
   },
   {
-    "id": "a1_s01_spring",
+    "id": "q_a1_m07_spring",
     "act": "act1",
     "kind": "side",
     "order": 8,
@@ -367,7 +367,7 @@
     "giver": "oola",
     "turnIn": "oola",
     "desc": "欧拉婆婆说，病倒的孩子都喝过北泉的水。她想知道水里有什么。",
-    "trigger": "quest.a1_m04_register == done",
+    "trigger": "quest.q_a1_m03_register == done",
     "stages": [
       {
         "id": "spring",
@@ -411,7 +411,7 @@
     ]
   },
   {
-    "id": "a1_s02_coin",
+    "id": "q_a1_s09_coin",
     "act": "act1",
     "kind": "side",
     "order": 9,
@@ -419,7 +419,7 @@
     "giver": "nera",
     "turnIn": "nera",
     "desc": "商人奈拉盯着你的硬币看了很久：这种成色，她只在一个地方见过。",
-    "trigger": "quest.a1_m04_register == done",
+    "trigger": "quest.q_a1_m03_register == done",
     "stages": [
       {
         "id": "offer",
@@ -447,7 +447,7 @@
       },
       {
         "type": "flag",
-        "key": "nera.stance",
+        "key": "npc.nera.stance",
         "value": "partner"
       },
       {
@@ -463,13 +463,13 @@
     ]
   },
   {
-    "id": "a1_m08_trial",
+    "id": "q_a1_m09_trial",
     "act": "act1",
     "kind": "main",
     "order": 10,
     "title": "光之鉴",
     "desc": "第二个孩子倒下了。卡西安神父指控药草婆婆欧拉以巫术害人，三日后受光之鉴。",
-    "trigger": "quest.a1_m05_hunt == done AND quest.a1_m06_grey_wolf == done AND quest.a1_m07_mine == done",
+    "trigger": "quest.q_a1_m04_hunt == done AND quest.q_a1_m05_grey_wolf == done AND quest.q_a1_m06_mine == done",
     "onStart": [
       {
         "type": "flag",
@@ -533,13 +533,13 @@
     ]
   },
   {
-    "id": "a1_m09_tide",
+    "id": "q_a1_m12_tide",
     "act": "act1",
     "kind": "main",
     "order": 11,
     "title": "兽潮之夜",
     "desc": "封门遗迹的灰涌了出来。暗月之夜，兽潮会扑向小镇。",
-    "trigger": "quest.a1_m08_trial == done",
+    "trigger": "quest.q_a1_m09_trial == done",
     "onStart": [
       {
         "type": "flag",
@@ -669,13 +669,13 @@
     ]
   },
   {
-    "id": "a1_m10_dream",
+    "id": "q_a1_m13_dream",
     "act": "act1",
     "kind": "main",
     "order": 12,
     "title": "门口的女人",
     "desc": "兽潮的次夜，你在醉月亭的客房里睡下了。",
-    "trigger": "quest.a1_m09_tide == done",
+    "trigger": "quest.q_a1_m12_tide == done",
     "stages": [
       {
         "id": "sleep",
@@ -715,13 +715,13 @@
     ]
   },
   {
-    "id": "a1_m11_letter",
+    "id": "q_a1_m13_letter",
     "act": "act1",
     "kind": "main",
     "order": 13,
     "title": "伯爵来信",
     "desc": "去公会交兽潮的讨伐凭证。布伦亲自坐在柜台后面。",
-    "trigger": "quest.a1_m10_dream == done",
+    "trigger": "quest.q_a1_m13_dream == done",
     "stages": [
       {
         "id": "guild",
@@ -748,7 +748,7 @@
     ]
   },
   {
-    "id": "a2_m01_city",
+    "id": "q_a2_m01_city",
     "act": "act2",
     "kind": "main",
     "order": 1,
@@ -791,7 +791,7 @@
     ]
   },
   {
-    "id": "a2_m02_exam",
+    "id": "q_a2_m02_exam",
     "act": "act2",
     "kind": "main",
     "order": 2,
@@ -799,7 +799,7 @@
     "giver": "liese",
     "turnIn": "liese",
     "desc": "想要正式的认可，就得通过 B 级晋升考核。鉴定又一次失败，只能靠实战证明：讨伐排水廊的百尾鼠王。",
-    "trigger": "quest.a2_m01_city == done",
+    "trigger": "quest.q_a2_m01_city == done",
     "onStart": [
       {
         "type": "flag",
@@ -852,14 +852,14 @@
     ]
   },
   {
-    "id": "a2_m03_company",
+    "id": "q_a2_m03_company",
     "act": "act2",
     "kind": "main",
     "order": 3,
     "title": "门扉商会",
     "giver": "nera",
     "desc": "奈拉想和你合伙做生意：你的地球点子，加上她的门路。",
-    "trigger": "quest.a2_m02_exam == done",
+    "trigger": "quest.q_a2_m02_exam == done",
     "onStart": [
       {
         "type": "feature",
@@ -867,9 +867,9 @@
       },
       {
         "type": "flag",
-        "key": "nera.stance",
+        "key": "npc.nera.stance",
         "value": "neutral",
-        "when": "NOT nera.stance"
+        "when": "NOT npc.nera.stance"
       },
       {
         "type": "line",
@@ -910,13 +910,13 @@
     ]
   },
   {
-    "id": "a2_m04_village",
+    "id": "q_a2_m03_village",
     "act": "act2",
     "kind": "main",
     "order": 4,
     "title": "门扉与旧哨",
     "desc": "边石镇外的废村旧哨村，收容着无处可去的难民，和手背上有纹的人。",
-    "trigger": "quest.a2_m02_exam == done",
+    "trigger": "quest.q_a2_m02_exam == done",
     "onStart": [
       {
         "type": "feature",
@@ -941,7 +941,7 @@
         "objectives": [
           {
             "type": "flag",
-            "when": "city.village_founded",
+            "when": "a2_village_founded",
             "label": "建立旧哨村"
           }
         ]
@@ -975,13 +975,13 @@
     ]
   },
   {
-    "id": "a2_m05_defense",
+    "id": "q_a2_m12_defense",
     "act": "act2",
     "kind": "main",
     "order": 5,
     "title": "城下潮",
     "desc": "伯爵死了。葬礼上，门徒会动手了；城下的水道里，涌出一整夜的潮。",
-    "trigger": "quest.a2_m03_company == done AND quest.a2_m04_village == done",
+    "trigger": "quest.q_a2_m03_company == done AND quest.q_a2_m03_village == done",
     "onStart": [
       {
         "type": "scene",
@@ -1018,9 +1018,9 @@
     "rewards": [
       {
         "type": "flag",
-        "key": "wb_ruler",
+        "key": "a2_wb_ruler",
         "value": "edric",
-        "when": "NOT wb_ruler"
+        "when": "NOT a2_wb_ruler"
       },
       {
         "type": "xp",
@@ -1034,7 +1034,7 @@
     ]
   },
   {
-    "id": "a3_m01_territory",
+    "id": "q_a3_m01_territory",
     "act": "act3",
     "kind": "main",
     "order": 1,
@@ -1048,7 +1048,7 @@
       },
       {
         "type": "flag",
-        "key": "city.territory_granted",
+        "key": "a3_territory_granted",
         "value": true
       }
     ],
@@ -1079,13 +1079,13 @@
     ]
   },
   {
-    "id": "a3_m02_build",
+    "id": "q_a3_m01_build",
     "act": "act3",
     "kind": "main",
     "order": 2,
     "title": "一砖一瓦",
     "desc": "领地要活下去，先得有房子、粮仓和墙。",
-    "trigger": "quest.a3_m01_territory == done",
+    "trigger": "quest.q_a3_m01_territory == done",
     "stages": [
       {
         "id": "build",
@@ -1112,13 +1112,13 @@
     ]
   },
   {
-    "id": "a3_m03_thousand",
+    "id": "q_a3_m02_thousand",
     "act": "act3",
     "kind": "main",
     "order": 3,
     "title": "千军",
     "desc": "骨原的夜袭来了。罗恩带着民兵守北坡。",
-    "trigger": "quest.a3_m01_territory == done",
+    "trigger": "quest.q_a3_m01_territory == done",
     "onStart": [
       {
         "type": "feature",
@@ -1165,13 +1165,13 @@
     ]
   },
   {
-    "id": "a3_m04_ash",
+    "id": "q_a3_m09_ash",
     "act": "act3",
     "kind": "main",
     "order": 4,
     "title": "灰烬深处",
     "desc": "夜羽说，遗迹最深处那个坐在灰里的人，等你很久了。",
-    "trigger": "quest.a3_m03_thousand == done",
+    "trigger": "quest.q_a3_m02_thousand == done",
     "stages": [
       {
         "id": "descend",
@@ -1218,13 +1218,13 @@
     ]
   },
   {
-    "id": "a3_m05_ashline",
+    "id": "q_a3_m11_ashline",
     "act": "act3",
     "kind": "main",
     "order": 5,
     "title": "灰烬防线",
     "desc": "圣战军压向领地，勇者团就在军中。苇桥是最后一道线。",
-    "trigger": "quest.a3_m04_ash == done AND quest.a3_m02_build == done",
+    "trigger": "quest.q_a3_m09_ash == done AND quest.q_a3_m01_build == done",
     "stages": [
       {
         "id": "battle",
@@ -1265,7 +1265,7 @@
     ]
   },
   {
-    "id": "a4_m01_nation",
+    "id": "q_a4_m01_nation",
     "act": "act4",
     "kind": "main",
     "order": 1,
@@ -1279,7 +1279,7 @@
         "objectives": [
           {
             "type": "flag",
-            "when": "slg.nation_founded",
+            "when": "a4_nation_founded",
             "label": "建立庭外之国"
           }
         ]
@@ -1308,13 +1308,13 @@
     ]
   },
   {
-    "id": "a4_m02_feast",
+    "id": "q_a4_m02_feast",
     "act": "act4",
     "kind": "main",
     "order": 2,
     "title": "强者之宴",
     "desc": "剑帝的请柬：剑帝、夜后、长老艾尔温、金冠哈特同席。",
-    "trigger": "quest.a4_m01_nation == done",
+    "trigger": "quest.q_a4_m01_nation == done",
     "stages": [
       {
         "id": "feast",
@@ -1343,13 +1343,13 @@
     ]
   },
   {
-    "id": "a4_m03_versions",
+    "id": "q_a4_m03_versions",
     "act": "act4",
     "kind": "main",
     "order": 3,
     "title": "诸神的版本",
     "desc": "每一位女神都来招揽你，各讲一个历史的版本，彼此矛盾。",
-    "trigger": "quest.a4_m02_feast == done",
+    "trigger": "quest.q_a4_m02_feast == done",
     "stages": [
       {
         "id": "versions",
@@ -1378,13 +1378,13 @@
     ]
   },
   {
-    "id": "a4_m04_conclave",
+    "id": "q_a4_m13_conclave",
     "act": "act4",
     "kind": "main",
     "order": 4,
     "title": "七国会盟",
     "desc": "圣艾琉恩教国宣布你的国家为异端之国。组建反圣战联盟，或分化圣战联军。",
-    "trigger": "quest.a4_m03_versions == done",
+    "trigger": "quest.q_a4_m03_versions == done",
     "stages": [
       {
         "id": "summit",
@@ -1393,7 +1393,7 @@
         "objectives": [
           {
             "type": "flag",
-            "when": "slg.conclave_done",
+            "when": "a4_conclave_done",
             "label": "完成七国会盟"
           },
           {
@@ -1430,13 +1430,13 @@
     ]
   },
   {
-    "id": "a4_m05_revelation",
+    "id": "q_a4_m14_revelation",
     "act": "act4",
     "kind": "main",
     "order": 5,
     "title": "荒原之澱满",
     "desc": "一千年来第一次，七座天启碑同时亮起。",
-    "trigger": "quest.a4_m04_conclave == done",
+    "trigger": "quest.q_a4_m13_conclave == done",
     "stages": [
       {
         "id": "stele",
@@ -1469,7 +1469,7 @@
     ]
   },
   {
-    "id": "a5_m01_born",
+    "id": "q_a5_m03_born",
     "act": "act5",
     "kind": "main",
     "order": 1,
@@ -1504,13 +1504,13 @@
     ]
   },
   {
-    "id": "a5_m02_route",
+    "id": "q_a5_m08_route",
     "act": "act5",
     "kind": "main",
     "order": 2,
     "title": "神的办法与众生的办法",
     "desc": "用勇者的一击斩杀魔王，让循环继续；或者联合各族，重建一个小小的门网，把澱分散、净化。",
-    "trigger": "quest.a5_m01_born == done",
+    "trigger": "quest.q_a5_m03_born == done",
     "stages": [
       {
         "id": "route",
@@ -1524,7 +1524,7 @@
         "objectives": [
           {
             "type": "flag",
-            "when": "purge_route",
+            "when": "a5_purge_route",
             "label": "选择澱的处理方式"
           }
         ]
@@ -1539,13 +1539,13 @@
     ]
   },
   {
-    "id": "a5_m03_final",
+    "id": "q_a5_m11_final",
     "act": "act5",
     "kind": "main",
     "order": 3,
     "title": "灰烬决战",
     "desc": "所有战线都在燃烧。你必须身处魔王战，其余的战线只能交给他们自己。",
-    "trigger": "quest.a5_m02_route == done",
+    "trigger": "quest.q_a5_m08_route == done",
     "stages": [
       {
         "id": "war",
@@ -1605,13 +1605,13 @@
     ]
   },
   {
-    "id": "a5_m04_trial",
+    "id": "q_a5_m12_trial",
     "act": "act5",
     "kind": "main",
     "order": 4,
     "title": "审期至",
     "desc": "魔王倒下的同时，七座天启碑再一次亮起。",
-    "trigger": "quest.a5_m03_final == done",
+    "trigger": "quest.q_a5_m11_final == done",
     "stages": [
       {
         "id": "stele",
@@ -1644,7 +1644,7 @@
     ]
   },
   {
-    "id": "a6_m01_court",
+    "id": "q_a6_m12_court",
     "act": "act6",
     "kind": "main",
     "order": 1,
@@ -1672,7 +1672,7 @@
     ]
   },
   {
-    "id": "gq_merca_caravan",
+    "id": "q_gl_merca_01",
     "act": "act1",
     "kind": "side",
     "order": 50,
@@ -1711,7 +1711,7 @@
     ]
   },
   {
-    "id": "gq_eluen_purge",
+    "id": "q_gl_eluen_01",
     "act": "act1",
     "kind": "side",
     "order": 51,
@@ -1751,14 +1751,14 @@
     ]
   },
   {
-    "id": "a2_s01_archivist",
+    "id": "q_a2_s07_archivist",
     "act": "act2",
     "kind": "side",
     "order": 11,
     "title": "星笔塔的史官",
     "giver": "jonas",
     "desc": "魔导学院分院的年轻史官约纳斯在翻一本缺了五十年的年表。他想找个不怕麻烦的人聊聊。",
-    "trigger": "quest.a2_m01_city == done",
+    "trigger": "quest.q_a2_m01_city == done",
     "stages": [
       {
         "id": "listen",
@@ -1792,14 +1792,14 @@
     ]
   },
   {
-    "id": "a3_s01_sealed_room",
+    "id": "q_a3_s04_sealed_room",
     "act": "act3",
     "kind": "side",
     "order": 11,
     "title": "七锁库",
     "giver": "jonas",
     "desc": "约纳斯打听到王国档案馆有一间封存室，七把锁分在七个人手里。他说他知道怎么进去，只差一个敢陪他去的人。",
-    "trigger": "act_index >= 3 AND quest.a2_s01_archivist == done",
+    "trigger": "act >= 3 AND quest.q_a2_s07_archivist == done",
     "stages": [
       {
         "id": "vault",

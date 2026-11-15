@@ -243,12 +243,12 @@
     "knowledge": "K2",
     "knowledgeNotes": ["荒原病就是灰病，北区的孩子最先倒下"],
     "attitude": 40,
-    "trustKey": "trust.ola",
+    "trustKey": "trust.oola",
     "map": "borderstone",
     "home": "herb_hut",
     "work": "herb_hut",
     "schedule": "herbalist",
-    "hideWhen": ["a1_oola_fate=convicted", "a1_oola_fate=fled", "a1_oola_fate=executed"],
+    "hideWhen": ["a1_oola_fate IN (convicted, fled, executed)"],
     "voice": {
       "rules": [
         "说话慢，带俚语和草药比喻",

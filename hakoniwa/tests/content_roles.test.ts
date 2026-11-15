@@ -164,7 +164,7 @@ describe('the goddess roster', () => {
     expect(verdictFor('aster', ['fact'], court, {}, roster)).toBe('judged');
     expect(verdictFor('aster', ['fact'], court, { aster_yields: true }, roster)).toBe('voluntary');
     expect(verdictFor('aster', [], court, { aster_yields: true }, roster)).toBe('refuse');
-    expect(verdictFor('aster', [], court, { patron: 'aster' }, roster)).toBe('contend');
+    expect(verdictFor('aster', [], court, { a6_patron: 'aster' }, roster)).toBe('contend');
     expect(
       seatedGoddesses(roster)
         .map((g) => g.id)
@@ -179,8 +179,8 @@ describe('the editor flag index sees the goddess data', () => {
     const writes = refs.filter((r) => r.kind === 'write').map((r) => `${r.key}:${r.via}`);
     expect(writes).toEqual(
       expect.arrayContaining([
-        'eluen_awareness:gazeFlag',
-        'moira_sight:gazeFlag',
+        'goddess.eluen.gaze:gazeFlag',
+        'goddess.moira.gaze:gazeFlag',
         'a6_spring_memory:yieldFlag',
       ]),
     );

@@ -88,11 +88,11 @@
         "id": "seat",
         "branch": [
           {
-            "when": "purge_route == people OR gate_ring >= 4",
+            "when": "a5_purge_route == people OR a5_gate_ring >= 4",
             "to": "seat_grows"
           },
           {
-            "when": "gate_ring < 4",
+            "when": "a5_gate_ring < 4",
             "to": "seat_witness"
           }
         ],
@@ -103,7 +103,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "court_seat",
+            "key": "a6_court_seat",
             "value": "seated"
           }
         ],
@@ -124,7 +124,7 @@
         "effects": [
           {
             "type": "flag",
-            "key": "court_seat",
+            "key": "a6_court_seat",
             "value": "witness"
           }
         ],
@@ -149,8 +149,8 @@
           },
           {
             "speaker": "moira",
-            "text": "你最后说的是：{flag:prologue.last_words}",
-            "when": "prologue.last_words"
+            "text": "你最后说的是：{flag:p_last_words}",
+            "when": "p_last_words"
           },
           {
             "speaker": "moira",
@@ -736,7 +736,7 @@
           {
             "speaker": "eska",
             "text": "我是被放下的。那一位种下之后，就松开了手。我们，是那只手松开时落下的东西。",
-            "when": "eska_consent"
+            "when": "a5_eska_consent"
           },
           {
             "speaker": "narrator",
@@ -819,12 +819,12 @@
           {
             "speaker": "eluen",
             "text": "……我不必被选中。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "eluen",
             "text": "因为我是光。",
-            "when": "verdict_eluen != voluntary"
+            "when": "verdict.eluen != voluntary"
           },
           {
             "speaker": "player",
@@ -833,12 +833,12 @@
           {
             "speaker": "valda",
             "text": "输过。输给她，也输给你们。……输了还能站起来，这才叫打架。",
-            "when": "verdict_valda == voluntary"
+            "when": "verdict.valda == voluntary"
           },
           {
             "speaker": "valda",
             "text": "我没输过。",
-            "when": "verdict_valda != voluntary"
+            "when": "verdict.valda != voluntary"
           },
           {
             "speaker": "player",
@@ -847,12 +847,12 @@
           {
             "speaker": "merca",
             "text": "……我能把我自己带走。这笔买卖，我认。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "merca",
             "text": "一切。",
-            "when": "verdict_merca != voluntary"
+            "when": "verdict.merca != voluntary"
           },
           {
             "speaker": "player",
@@ -861,12 +861,12 @@
           {
             "speaker": "sylvie",
             "text": "想念他们小时候。……可他们已经长大了。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           },
           {
             "speaker": "narrator",
             "text": "（她没有回答。）",
-            "when": "verdict_sylvie != voluntary"
+            "when": "verdict.sylvie != voluntary"
           },
           {
             "speaker": "player",
@@ -875,12 +875,12 @@
           {
             "speaker": "moira",
             "text": "从我把笔放下的那一页。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "moira",
             "text": "从第一页。我一直在第一页。",
-            "when": "verdict_moira != voluntary"
+            "when": "verdict.moira != voluntary"
           }
         ],
         "next": "janu_ask"
@@ -892,7 +892,7 @@
             "type": "flag",
             "key": "court.janu.e32",
             "value": true,
-            "when": "janu_act == seal"
+            "when": "a5_janu_act == seal"
           }
         ],
         "lines": [
@@ -977,7 +977,7 @@
         ],
         "branch": [
           {
-            "when": "janu_release",
+            "when": "a6_janu_release",
             "to": "janu_lets_go"
           }
         ],
@@ -1017,7 +1017,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "janu_restore_chosen",
+                "key": "a6_janu_restore_chosen",
                 "value": true
               }
             ]
@@ -1034,7 +1034,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "player_absorb",
+                "key": "a6_player_absorb",
                 "value": true
               }
             ]
@@ -1061,12 +1061,12 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "janu_release",
+                "key": "a6_janu_release",
                 "value": true
               },
               {
                 "type": "flag",
-                "key": "returned_doors_pre",
+                "key": "a6_returned_doors_pre",
                 "value": "all"
               }
             ]
@@ -1078,7 +1078,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "player_absorb",
+                "key": "a6_player_absorb",
                 "value": true
               }
             ]
@@ -1130,7 +1130,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "patron",
+                "key": "a6_patron",
                 "value": "eluen"
               }
             ]
@@ -1142,7 +1142,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "patron",
+                "key": "a6_patron",
                 "value": "valda"
               }
             ]
@@ -1154,7 +1154,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "patron",
+                "key": "a6_patron",
                 "value": "merca"
               }
             ]
@@ -1166,7 +1166,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "patron",
+                "key": "a6_patron",
                 "value": "sylvie"
               }
             ]
@@ -1178,7 +1178,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "patron",
+                "key": "a6_patron",
                 "value": "moira"
               }
             ]
@@ -1201,102 +1201,102 @@
           {
             "speaker": "eluen",
             "text": "我不必被选中。……让我以无名者的身份，在他们中间走一年。然后我离开。",
-            "when": "verdict_eluen == voluntary"
+            "when": "verdict.eluen == voluntary"
           },
           {
             "speaker": "narrator",
             "text": "艾琉恩被判离手。她最后一个起身，在门槛上回头看了一眼庭镜里的城市。",
-            "when": "verdict_eluen == judged"
+            "when": "verdict.eluen == judged"
           },
           {
             "speaker": "eluen",
             "text": "规格就是规格。这座庭离不开光。",
-            "when": "verdict_eluen == refuse"
+            "when": "verdict.eluen == refuse"
           },
           {
             "speaker": "eluen",
             "text": "唯一之光，只能有一道。",
-            "when": "verdict_eluen == contend"
+            "when": "verdict.eluen == contend"
           },
           {
             "speaker": "valda",
             "text": "外面总有更硬的。",
-            "when": "verdict_valda == voluntary"
+            "when": "verdict.valda == voluntary"
           },
           {
             "speaker": "valda",
             "text": "打得好。",
-            "when": "verdict_valda == judged"
+            "when": "verdict.valda == judged"
           },
           {
             "speaker": "valda",
             "text": "我哪儿也不去。",
-            "when": "verdict_valda == refuse"
+            "when": "verdict.valda == refuse"
           },
           {
             "speaker": "valda",
             "text": "这座庭要的是最强的那个。",
-            "when": "verdict_valda == contend"
+            "when": "verdict.valda == contend"
           },
           {
             "speaker": "merca",
             "text": "给我在金湾留个小摊位。",
-            "when": "verdict_merca == voluntary"
+            "when": "verdict.merca == voluntary"
           },
           {
             "speaker": "merca",
             "text": "我宣布破产。（她眨眨眼）",
-            "when": "verdict_merca == judged"
+            "when": "verdict.merca == judged"
           },
           {
             "speaker": "merca",
             "text": "生意还没做完呢，客人。",
-            "when": "verdict_merca == refuse"
+            "when": "verdict.merca == refuse"
           },
           {
             "speaker": "merca",
             "text": "这座庭，我出最高价。",
-            "when": "verdict_merca == contend"
+            "when": "verdict.merca == contend"
           },
           {
             "speaker": "sylvie",
             "text": "……他们长大了。我先走。",
-            "when": "verdict_sylvie == voluntary"
+            "when": "verdict.sylvie == voluntary"
           },
           {
             "speaker": "narrator",
             "text": "希尔薇没有说话，像一阵季风那样，化入了四季。",
-            "when": "verdict_sylvie == judged"
+            "when": "verdict.sylvie == judged"
           },
           {
             "speaker": "sylvie",
             "text": "……孩子们还小。",
-            "when": "verdict_sylvie == refuse"
+            "when": "verdict.sylvie == refuse"
           },
           {
             "speaker": "sylvie",
             "text": "……让他们慢一点长大吧。",
-            "when": "verdict_sylvie == contend"
+            "when": "verdict.sylvie == contend"
           },
           {
             "speaker": "moira",
             "text": "让我写完最后的记录，再把笔交给一个凡人。",
-            "when": "verdict_moira == voluntary"
+            "when": "verdict.moira == voluntary"
           },
           {
             "speaker": "narrator",
             "text": "莫伊拉合上了书。",
-            "when": "verdict_moira == judged"
+            "when": "verdict.moira == judged"
           },
           {
             "speaker": "moira",
             "text": "从第一页。我一直在第一页。",
-            "when": "verdict_moira == refuse"
+            "when": "verdict.moira == refuse"
           },
           {
             "speaker": "moira",
             "text": "这个故事需要一位作者。我来写。",
-            "when": "verdict_moira == contend"
+            "when": "verdict.moira == contend"
           },
           {
             "speaker": "narrator",

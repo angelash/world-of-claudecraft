@@ -6,6 +6,7 @@ import type { ContentMap, FlagValue } from '../../core/contracts';
 import type { World } from '../../core/world';
 import { xpProgress } from '../combat';
 import { countItem } from '../inventory';
+import { bondReached } from '../party/bond';
 import { actIndex } from '../quests/conditions';
 import type { DoorDef, KeyCond } from './types';
 
@@ -18,7 +19,11 @@ export interface KeyProgress {
 
 function flagMet(v: FlagValue | undefined, k: Extract<KeyCond, { type: 'flag' }>): boolean {
   if (k.equals !== undefined) return v === k.equals;
-  if (k.min !== undefined) return typeof v === 'number' && v >= k.min;
+  // the act flag holds an act name; it compares by its index (act4 is 4)
+  if (k.min !== undefined) {
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? actIndex(v) : Number.NaN;
+    return !Number.isNaN(n) && n >= k.min;
+  }
   return !!v;
 }
 
@@ -48,6 +53,8 @@ export function evalKey(world: World, door: DoorDef, k: KeyCond, path: string): 
     }
     case 'door':
       return { label: k.label, met: world.slices.doors.doors[k.doorId]?.state === 'opened' };
+    case 'bond':
+      return { label: k.label, met: bondReached(world, k.companion, k.min) };
     case 'any': {
       const need = k.need ?? 1;
       let cur = 0;

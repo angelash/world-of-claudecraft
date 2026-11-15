@@ -59,7 +59,7 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
       vacantDays: 0,
     };
   }
-  ctx.setFlag('city.village_founded', true);
+  ctx.setFlag('a2_village_founded', true);
   writeFlags(ctx);
   ctx.emit('city.stage_changed', { siteId, from: 'outpost', to: 'village' });
   ctx.emit('dialogue.line', {

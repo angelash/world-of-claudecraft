@@ -16,8 +16,8 @@ describe('no-model playthrough: the true ending', () => {
     expect(engine.world.slices.scenes.seen).toContain('ending_release');
     // the true ending's world conditions were earned in play, not set
     expect(Number(f.autonomy)).toBeGreaterThanOrEqual(60);
-    expect(f.purge_route).toBe('people');
-    expect(f['slg.nation_founded']).toBe(true);
+    expect(f.a5_purge_route).toBe('people');
+    expect(f['a4_nation_founded']).toBe(true);
     // every main quest was completed along the way
     const main = engine.content.quests.filter((q) => q.kind === 'main').map((q) => q.id);
     for (const id of main) expect(result.questsDone, id).toContain(id);

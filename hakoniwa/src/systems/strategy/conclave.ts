@@ -79,7 +79,7 @@ export function stanceToward(ctx: SystemContext, id: NationId): number {
 }
 
 function decide(ctx: SystemContext, stances: Record<NationId, number>): SummitResult {
-  if (ctx.flag('slg.summit_bloodshed')) return 'broken';
+  if (ctx.flag('a4_summit_bloodshed')) return 'broken';
   const ids = Object.keys(stances);
   const forCrusade = ids.filter((k) => (stances[k] ?? 0) < -20).length;
   if (forCrusade >= 4) return 'crusade';
@@ -120,8 +120,12 @@ function resolve(ctx: SystemContext): void {
     }
   }
   log(s, `七国会盟落幕：${RESULT_NAME[result]}`);
-  ctx.setFlag('slg.summit_result', result);
-  ctx.setFlag('slg.conclave_done', true);
+  // the summit's registry value (league, accord, crusade, broken) comes from the config;
+  // a conclave scene that already settled the summit keeps its result
+  if (ctx.flag('a4_summit_result') === undefined) {
+    ctx.setFlag('a4_summit_result', ctx.content.slg_config?.summitFlagValues?.[result] ?? result);
+  }
+  ctx.setFlag('a4_conclave_done', true);
   ctx.emit('slg.conclave_result', { result, stances });
 }
 

@@ -120,7 +120,7 @@ describe('client adapters on the real game', () => {
     // quest log: the first main quest of act 1
     const log = r.a.quests?.log(r.view);
     expect(log?.act).toBe('act1');
-    expect(log?.active.some((q) => q.id === 'a1_m01_fall')).toBe(true);
+    expect(log?.active.some((q) => q.id === 'q_a1_m01_fall')).toBe(true);
 
     // doors, goddesses, rumors, party, company, territory, battle and continent all answer
     expect(Array.isArray(r.a.doors?.doors(r.view))).toBe(true);

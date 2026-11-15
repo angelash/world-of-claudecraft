@@ -175,7 +175,7 @@ describe('npc content and maps', () => {
     // yeyu and ash belong to other systems
     expect(personaById(CONTENT, 'yeyu')).toBeUndefined();
     expect(personaById(CONTENT, 'ash')).toBeUndefined();
-    expect(personaById(CONTENT, 'oola')?.trustKey).toBe('trust.ola');
+    expect(personaById(CONTENT, 'oola')?.trustKey).toBe('trust.oola');
     expect(personaById(CONTENT, 'ron')?.potential).toBe('统帅');
   });
 
@@ -221,7 +221,7 @@ describe('npc presence', () => {
     expect(residents.every((r) => !personaById(CONTENT, r.id))).toBe(true);
     expect(getEntity(g.world, npcEntityId(residents[0]?.id ?? ''))?.tags).toContain('resident');
     // trust mirrors the reveal-ledger flag names
-    expect(g.world.meta.flags['trust.ola']).toBe(40);
+    expect(g.world.meta.flags['trust.oola']).toBe(40);
     expect(g.world.meta.flags['trust.shiya']).toBe(45);
   });
 
@@ -336,7 +336,7 @@ describe('tiers (D-009)', () => {
     const g = game();
     toBorderstone(g);
     expect(g.world.slices.npc.npcs.selene?.tier).toBe(3);
-    g.queue('flag.set', { key: 'npc.focus.selene', value: true });
+    g.queue('flag.set', { key: 'ai.focus.selene', value: true });
     g.step(1);
     expect(g.world.slices.npc.npcs.selene?.tier).toBe(2);
   });

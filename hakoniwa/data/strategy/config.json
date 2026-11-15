@@ -65,12 +65,18 @@
     "adminBase": 4
   },
   "evidenceFlags": [
-    "evidence.oracle_text",
-    "evidence.great_severance",
-    "evidence.demon_cycle",
-    "evidence.remnant_truth",
-    "eluen_violation_evidence"
+    "evidence.E15",
+    "evidence.E01",
+    "evidence.E10",
+    "evidence.E04",
+    "a3_eluen_violation"
   ],
+  "summitFlagValues": {
+    "alliance": "league",
+    "divided": "accord",
+    "crusade": "crusade",
+    "broken": "broken"
+  },
   "conclaveStages": [
     {
       "stage": "invite",

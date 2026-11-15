@@ -29,7 +29,7 @@
     "appearance": { "base": "human", "colors": ["#3f5a3a", "#8a6a4a", "#e6c8a8", "#b8bcc0"] },
     "likes": { "kinds": ["material"], "items": ["wolf_pelt", "spring_herb"] },
     "bondFlags": [
-      { "flag": "quest.a1_m05", "equals": "done", "amount": 15 },
+      { "flag": "quest.q_a1_m04_hunt", "equals": "done", "amount": 15 },
       { "flag": "boss.dian_colossus.defeated", "amount": 10 }
     ]
   },
@@ -60,7 +60,7 @@
     "personality": ["精明", "圆滑", "重利", "藏着话"],
     "appearance": { "base": "human", "colors": ["#2e4a3a", "#c8a24a", "#f0d0b0", "#d8642a"] },
     "likes": { "kinds": ["goods", "trinket"], "items": ["drake_scale", "ash_essence"] },
-    "bondFlags": [{ "flag": "a2.nera_partner", "amount": 15 }]
+    "bondFlags": [{ "flag": "a2_company_partner", "amount": 15 }]
   },
   {
     "id": "oola",

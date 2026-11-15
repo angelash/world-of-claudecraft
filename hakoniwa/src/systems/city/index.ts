@@ -123,8 +123,8 @@ export const system: GameSystem = {
     },
     'flag.changed'(ctx, ev) {
       const { key, value } = ev.data;
-      if (key === 'city.territory_granted' && value) grantTerritory(ctx);
-      else if (key === 'slg.nation_founded' && value) foundNation(ctx);
+      if (key === 'a3_territory_granted' && value) grantTerritory(ctx);
+      else if (key === 'a4_nation_founded' && value) foundNation(ctx);
       if (ctx.content.city_sites.some((s) => s.requiresFlags?.includes(key))) refreshActive(ctx);
     },
   },

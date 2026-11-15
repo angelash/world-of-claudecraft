@@ -16,6 +16,8 @@
     "refs": "node tools/refs/fetch_refs.ts",
     "prompts": "node tools/prompts/build.ts",
     "prompts:check": "node tools/prompts/build.ts --check",
+    "registry": "node tools/registry/build.ts",
+    "registry:check": "node tools/registry/build.ts --check",
     "assets:register": "node ../node_modules/tsx/dist/cli.mjs tools/assets/register.ts",
     "assets:import": "node ../node_modules/tsx/dist/cli.mjs tools/assets/import.ts",
     "assets:atlas": "node ../node_modules/tsx/dist/cli.mjs tools/assets/atlas.ts",

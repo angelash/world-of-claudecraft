@@ -145,11 +145,11 @@ export const otherTeamsStub: GameSystem = {
       if (wave && value === 'go') ctx.setFlag(`combat.wave.${wave[1]}.state`, 'cleared');
       // domain milestones that follow a feature unlock
       if (key === 'feature.company' && value) ctx.setFlag('econ.company_founded', true);
-      if (key === 'feature.village' && value) ctx.setFlag('city.village_founded', true);
+      if (key === 'feature.village' && value) ctx.setFlag('a2_village_founded', true);
       if (key === 'feature.slg' && value) {
         ctx.setFlag('territory_autonomy', 70);
         ctx.setFlag('autonomy', 70);
-        ctx.setFlag('slg.nation_founded', true);
+        ctx.setFlag('a4_nation_founded', true);
       }
     },
   },

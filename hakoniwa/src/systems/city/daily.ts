@@ -248,7 +248,7 @@ export function grantTerritory(ctx: SystemContext): void {
     const village = site.autonomy.value;
     site.stage = 'territory';
     // act3 7.2: territory_autonomy = 10 + village_autonomy x 0.4 (+10 under the citizens' council)
-    const seed = 10 + village * 0.4 + (ctx.flag('wb_ruler') === 'citizen_council' ? 10 : 0);
+    const seed = 10 + village * 0.4 + (ctx.flag('a2_wb_ruler') === 'citizen_council' ? 10 : 0);
     site.autonomy.value = clamp(seed, 0, 100);
     site.autonomy.history.push(Math.round(site.autonomy.value * 10) / 10);
     for (const domain of domainsFor('territory')) {

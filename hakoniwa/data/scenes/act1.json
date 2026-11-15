@@ -27,7 +27,7 @@
           {
             "speaker": "player",
             "text": "（那把椅子……）",
-            "when": "prologue.asked_sixth_chair",
+            "when": "p_asked_sixth_chair",
             "kind": "think"
           }
         ],
@@ -39,25 +39,25 @@
           {
             "speaker": "player",
             "text": "（口袋里，工牌还在。照片上的人看起来很累。）",
-            "when": "prologue.earth_opening == A",
+            "when": "p_earth_opening == a",
             "kind": "think"
           },
           {
             "speaker": "player",
             "text": "（口袋里，那张小票和那颗糖还在。）",
-            "when": "prologue.earth_opening == B",
+            "when": "p_earth_opening == b",
             "kind": "think"
           },
           {
             "speaker": "player",
             "text": "（口袋里，探视证和半盒薄荷糖还在。那个结果，还是没有听到。）",
-            "when": "prologue.earth_opening == C",
+            "when": "p_earth_opening == c",
             "kind": "think"
           },
           {
             "speaker": "player",
             "text": "（口袋里，那把老钥匙还在。）",
-            "when": "prologue.earth_opening == D",
+            "when": "p_earth_opening == d",
             "kind": "think"
           },
           {
@@ -228,7 +228,7 @@
           {
             "speaker": "narrator",
             "text": "就像坠落的时候那样。",
-            "when": "prologue.reached_out"
+            "when": "p_reached_out"
           },
           {
             "speaker": "narrator",
@@ -439,7 +439,7 @@
           {
             "id": "debunk",
             "label": "那道光，只照得出神父想照的东西。",
-            "when": "prologue.past_life_door IN (notes, podium)",
+            "when": "p_past_life_door IN (notes, podium)",
             "to": "debunked",
             "effects": [
               {
@@ -686,27 +686,27 @@
           {
             "speaker": "janu",
             "text": "你来了。这次没有错过末班车。",
-            "when": "prologue.earth_opening == A"
+            "when": "p_earth_opening == a"
           },
           {
             "speaker": "janu",
             "text": "你来了。雨停了。",
-            "when": "prologue.earth_opening == B"
+            "when": "p_earth_opening == b"
           },
           {
             "speaker": "janu",
             "text": "你来了。那边的结果，我也不知道，对不起。",
-            "when": "prologue.earth_opening == C"
+            "when": "p_earth_opening == c"
           },
           {
             "speaker": "janu",
             "text": "你来了。钥匙还在吧？",
-            "when": "prologue.earth_opening == D"
+            "when": "p_earth_opening == d"
           },
           {
             "speaker": "janu",
             "text": "你来了。",
-            "when": "NOT prologue.earth_opening IN (A, B, C, D)"
+            "when": "NOT p_earth_opening IN (a, b, c, d)"
           }
         ],
         "next": "ask"
@@ -778,12 +778,12 @@
           {
             "speaker": "janu",
             "text": "你那时候伸手了，所以我抓得住。",
-            "when": "prologue.reached_out"
+            "when": "p_reached_out"
           },
           {
             "speaker": "janu",
             "text": "你那时候没伸手。没关系，我抓得住。",
-            "when": "NOT prologue.reached_out"
+            "when": "NOT p_reached_out"
           },
           {
             "speaker": "narrator",
@@ -856,7 +856,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "janu.first_dream_answer",
+                "key": "a1_janu_dream_answer",
                 "value": "like"
               }
             ]
@@ -868,7 +868,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "janu.first_dream_answer",
+                "key": "a1_janu_dream_answer",
                 "value": "unsure"
               }
             ]
@@ -880,7 +880,7 @@
             "effects": [
               {
                 "type": "flag",
-                "key": "janu.first_dream_answer",
+                "key": "a1_janu_dream_answer",
                 "value": "dislike"
               }
             ]
@@ -921,12 +921,12 @@
           },
           {
             "speaker": "narrator",
-            "text": "院子里放着一件东西：{flag:courtyard.first_object}。"
+            "text": "院子里放着一件东西：{flag:p_courtyard_object}。"
           },
           {
             "speaker": "narrator",
             "text": "小屋的门锁，和你口袋里那把老钥匙一模一样。",
-            "when": "prologue.earth_opening == D"
+            "when": "p_earth_opening == d"
           },
           {
             "speaker": "janu",
@@ -1012,7 +1012,7 @@
           },
           {
             "type": "flag",
-            "key": "brun.secret_kept",
+            "key": "npc.bron.secret_kept",
             "value": true,
             "when": "trust.bron >= 40"
           }

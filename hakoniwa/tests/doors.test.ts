@@ -17,9 +17,10 @@ import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { SystemContext } from '../src/core/system';
 import { abilityBar, system as combat } from '../src/systems/combat';
 import { corridorView, doorState, system as doors, sealState } from '../src/systems/doors';
+import { evalKey } from '../src/systems/doors/keys';
 import { addItem, countItem, system as inventory } from '../src/systems/inventory';
 import { system as modifiers } from '../src/systems/modifiers';
-import { system as party } from '../src/systems/party';
+import { addBond, system as party } from '../src/systems/party';
 import { system as world } from '../src/systems/world';
 
 function merge(packs: ContentPack[]): ContentMap {
@@ -156,11 +157,11 @@ describe('story doors', () => {
 
   it('opens the chosen past-life door and locks the others', () => {
     const g = makeGame();
-    setFlags(g, { 'prologue.past_life_door': 'whitecoat' });
+    setFlags(g, { p_past_life_door: 'whitecoat' });
     expect(doorState(g.world, 'past_life_whitecoat')).toBe('opened');
     expect(doorState(g.world, 'past_life_hearth')).toBe('locked');
     expect(abilityBar(g.world, g.content).map((s) => s.id)).toContain('first_aid');
-    setFlags(g, { 'prologue.past_life_door': 'hearth' });
+    setFlags(g, { p_past_life_door: 'hearth' });
     expect(doorState(g.world, 'past_life_hearth')).toBe('locked');
   });
 
@@ -210,7 +211,7 @@ describe('chosen doors', () => {
       all.includes(`setFlag('${key}'`) ||
       all.includes(`"${key}": `) ||
       /^(boss|bond|trust|companion|feature|door|quest|war|econ|city|slg)\./.test(key) ||
-      ['act_index', 'territory_autonomy', 'yeyu_letters', 'remnants', 'ending'].includes(key);
+      ['territory_autonomy', 'yeyu_letters', 'remnants', 'ending'].includes(key);
     const keys: { door: string; key: string; danger: boolean }[] = [];
     const visit = (
       door: { id: string; danger?: boolean },
@@ -271,7 +272,7 @@ describe('chosen doors', () => {
 
   it('closes a closable door: powers revoked, seal partly settles, never reopens', () => {
     const g = makeGame();
-    setFlags(g, { 'a5.blood_for_key': true });
+    setFlags(g, { a5_blood_for_key: true });
     g.queue('doors.open', { doorId: 'breach' });
     g.step(1);
     expect(flags(g)['feature.breach']).toBe(true);
@@ -292,7 +293,6 @@ describe('chosen doors', () => {
     const g = makeGame();
     setFlags(g, {
       act: 'act4',
-      act_index: 4,
       a3_eluen_speaks: true,
       a2_remnants_settled: true,
       territory_autonomy: 39,
@@ -321,12 +321,34 @@ describe('chosen doors', () => {
     expect(flags(g)['feature.tide_sight']).toBe(true);
   });
 
+  it('reads companion bonds from the party and compares the act flag by its index', () => {
+    const g = makeGame();
+    const hunter = g.content.doors.find((d) => d.id === 'vocation_hunter');
+    const bond = hunter?.keys.find((k) => k.type === 'bond');
+    if (!hunter || !bond) throw new Error('no bond key on vocation_hunter');
+    expect(bond).toMatchObject({ type: 'bond', companion: 'shiya', min: 20 });
+    expect(evalKey(g.world, hunter, bond, '0').met).toBe(false);
+    setFlags(g, { 'companion.shiya.recruited': true });
+    withCtx(g, (ctx) => {
+      const m = ctx.world.slices.party.members.shiya;
+      if (m) addBond(ctx, m, 25, 'test');
+    });
+    expect(evalKey(g.world, hunter, bond, '0').met).toBe(true);
+    // no bond.* world flags: the bond is party state
+    expect(Object.keys(flags(g)).some((k) => k.startsWith('bond.'))).toBe(false);
+    const actKey = { type: 'flag', key: 'act', min: 4, label: 'act' } as const;
+    setFlags(g, { act: 'act3' });
+    expect(evalKey(g.world, hunter, actKey, 'x').met).toBe(false);
+    setFlags(g, { act: 'act4' });
+    expect(evalKey(g.world, hunter, actKey, 'x').met).toBe(true);
+  });
+
   it('rejects unknown, already open and closed-for-good doors with readable reasons', () => {
     const g = makeGame();
     g.queue('doors.open', { doorId: 'nowhere' });
     g.step(1);
     expect(lastResult(g, 'doors.open')?.code).toBe('no_door');
-    setFlags(g, { 'prologue.past_life_door': 'notes' });
+    setFlags(g, { p_past_life_door: 'notes' });
     g.queue('doors.open', { doorId: 'past_life_notes' });
     g.step(1);
     expect(lastResult(g, 'doors.open')?.code).toBe('already_open');

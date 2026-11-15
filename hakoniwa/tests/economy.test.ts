@@ -138,7 +138,7 @@ describe('markets', () => {
     });
     engine.step(1);
     expect(portResults.at(-1)?.code).toBe('market_closed');
-    engine.queue('flag.set', { key: 'city.village_founded', value: true });
+    engine.queue('flag.set', { key: 'a2_village_founded', value: true });
     engine.queue('econtest.port', {
       side: 'sell',
       marketId: 'old_outpost',

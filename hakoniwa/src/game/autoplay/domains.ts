@@ -84,7 +84,7 @@ export class DomainPlanner {
    */
   private staffNation(): number | null {
     const bot = this.bot;
-    if (!bot.flags['slg.nation_founded']) return null;
+    if (!bot.flags['a4_nation_founded']) return null;
     const day = this.today();
     if (this.lastNationCheck === day) return null;
     const offices = bot.world.slices.city.nation.offices;
@@ -133,7 +133,7 @@ export class DomainPlanner {
       };
       return bot.wait(TICKS_PER_GAME_HOUR);
     }
-    if (bot.flags['quest.a2_m04_village'] === 'active' && v.stage === 'outpost') {
+    if (bot.flags['quest.q_a2_m03_village'] === 'active' && v.stage === 'outpost') {
       if (!here) return this.goToSettlement('wait at the outpost');
       bot.intent = {
         what: `wait for settlers (${v.population.total} people, food ${Math.floor(v.foodDays)} days)`,
@@ -470,7 +470,7 @@ export class DomainPlanner {
   private nation(): number | null {
     const bot = this.bot;
     const f = bot.flags;
-    if (f['feature.slg'] && !f['slg.nation_founded']) {
+    if (f['feature.slg'] && !f['a4_nation_founded']) {
       if (Number(f.territory_autonomy ?? 0) >= 40) {
         bot.intent = { what: 'found the nation' };
         bot.send({ kind: 'slg.found_nation', data: {} });
@@ -479,9 +479,9 @@ export class DomainPlanner {
       return null;
     }
     if (
-      f['slg.nation_founded'] &&
-      f['quest.a4_m04_conclave'] === 'active' &&
-      !f['slg.conclave_done'] &&
+      f['a4_nation_founded'] &&
+      f['quest.q_a4_m13_conclave'] === 'active' &&
+      !f['a4_conclave_done'] &&
       !bot.world.slices.strategy?.conference &&
       !bot.world.slices.strategy?.summit
     ) {

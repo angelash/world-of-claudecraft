@@ -74,8 +74,8 @@ function foundedNation(seed: number) {
   owners[OWNER] = h;
   h.items.grain = (h.items.grain ?? 0) + 300;
   expect(run(engine, 'city.found', { siteId: SITE }, events).ok).toBe(true);
-  run(engine, 'flag.set', { key: 'city.territory_granted', value: true }, events);
-  run(engine, 'flag.set', { key: 'slg.nation_founded', value: true }, events);
+  run(engine, 'flag.set', { key: 'a3_territory_granted', value: true }, events);
+  run(engine, 'flag.set', { key: 'a4_nation_founded', value: true }, events);
   stepDays(engine, 1);
   return { engine, events };
 }

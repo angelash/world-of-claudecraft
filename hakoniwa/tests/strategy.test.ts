@@ -181,7 +181,7 @@ describe('founding and diplomacy', () => {
     g.queue('slg.found_nation', { name: '门之国' });
     g.step(1);
     expect(lastResult(g, 'slg.found_nation')?.ok).toBe(true);
-    expect(g.world.meta.flags['slg.nation_founded']).toBe(true);
+    expect(g.world.meta.flags['a4_nation_founded']).toBe(true);
     expect(events(g, 'slg.nation_founded')[0]?.data.provinces).toContain('ash_border');
     const v = nationView(g.world, content, 'player');
     expect(v?.name).toBe('门之国');
@@ -317,20 +317,23 @@ describe('war on the continent', () => {
 });
 
 describe('conclave', () => {
-  it('runs the staged conclave from the narrative flag and writes its result', () => {
+  it('runs the staged conclave from the convene command and writes its result', () => {
     const g = founded();
     g.queue('slg.diplomacy', { to: 'league', action: 'trade' });
-    flags(g, { 'slg.convene': true });
+    g.queue('slg.convene', {});
+    g.step(1);
     expect(g.world.slices.strategy.conference?.stage).toBe('invite');
     g.queue('slg.convene', {});
     g.step(1);
     expect(lastResult(g, 'slg.convene')).toMatchObject({ ok: false, code: 'ongoing' });
     nextDay(g, 12);
-    expect(g.world.meta.flags['slg.conclave_done']).toBe(true);
-    const result = g.world.meta.flags['slg.summit_result'];
-    expect(['alliance', 'divided', 'crusade', 'broken']).toContain(result);
+    expect(g.world.meta.flags['a4_conclave_done']).toBe(true);
+    const result = g.world.meta.flags['a4_summit_result'];
+    // the flag holds the registry value of the summit result (world_state_registry.md 7.6)
+    expect(['league', 'accord', 'crusade', 'broken']).toContain(result);
     const ev = events(g, 'slg.conclave_result')[0]?.data;
-    expect(ev?.result).toBe(result);
+    const values = g.content.slg_config.summitFlagValues ?? {};
+    expect(ev && values[ev.result]).toBe(result);
     expect(Object.keys(ev?.stances ?? {})).toHaveLength(7);
     g.queue('slg.convene', {});
     g.step(1);

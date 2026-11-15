@@ -269,7 +269,7 @@ function showEpilogue(ctx: SystemContext, run: SceneRun): void {
       text: `${recordHeading(l, ending)}${l.text}`,
     });
   });
-  ctx.setFlag('epilogue.shown', ending);
+  ctx.setFlag('ep_shown', ending);
 }
 
 function moveOn(

@@ -50,7 +50,7 @@ export function targetStrength(
     return r === 'self' ? 3 : r === 'barely' ? 2 : r === 'descend' ? 1 : 0;
   }
   if (t.dynamic === 'held_unaided') {
-    return Number(flags.held_unaided ?? 0) >= 3 ? 3 : 1;
+    return Number(flags.a5_held_unaided ?? 0) >= 3 ? 3 : 1;
   }
   return t.strength;
 }
@@ -160,7 +160,7 @@ export function verdictFor(
   flags: Flags,
   roster: Roster,
 ): Verdict {
-  if (flags.patron === goddess) return 'contend';
+  if (flags.a6_patron === goddess) return 'contend';
   const rule = seatOf(roster, goddess)?.verdict;
   if (!rule) return 'refuse';
   const shown = court.presented[goddess] ?? [];
@@ -183,12 +183,14 @@ export function computeVerdicts(ctx: SystemContext): Record<string, Verdict> {
     if (broken.length === 3) collapsed++;
     out[g] = verdictFor(g, broken, court, flags, ctx.content);
   }
-  for (const g of seated) ctx.setFlag(`verdict_${g}`, out[g] as Verdict);
+  for (const g of seated) ctx.setFlag(`verdict.${g}`, out[g] as Verdict);
   ctx.setFlag('court.collapsed', collapsed);
   // Two seated goddesses both claiming the garden is a breach of the covenant: the gods' war.
-  if (seated.filter((g) => out[g] === 'contend').length >= 2) ctx.setFlag('god_war', true);
+  if (seated.filter((g) => out[g] === 'contend').length >= 2) ctx.setFlag('a6_god_war', true);
   const exposed = seated.filter((g) => out[g] === 'voluntary' || out[g] === 'judged').length;
-  ctx.setFlag('a4_lies_exposed', Math.max(Number(flags.a4_lies_exposed ?? 0), exposed));
+  // a4_lies_exposed is derived (registry 2.8): unwritten, it reads its formula
+  const lies = Number(flagResolver(flags)('a4_lies_exposed') ?? 0);
+  ctx.setFlag('a4_lies_exposed', Math.max(lies, exposed));
   return out;
 }
 
@@ -196,16 +198,16 @@ export function computeVerdicts(ctx: SystemContext): Record<string, Verdict> {
 export function januReleases(flags: Flags): { release: boolean; supports: number } {
   const required =
     truthy(flags.a6_charter_read) &&
-    (flags.janu_act === 'receive' ||
-      (flags.janu_act === 'seal' && truthy(flags['court.janu.e32']))) &&
+    (flags.a5_janu_act === 'receive' ||
+      (flags.a5_janu_act === 'seal' && truthy(flags['court.janu.e32']))) &&
     truthy(flags['court.player_lets_go']);
   const supports = [
-    Number(flags.gate_ring ?? 0) >= 5,
-    flags.faceless_end === 'redeemed',
+    Number(flags.a5_gate_ring ?? 0) >= 5,
+    flags.a5_faceless_end === 'redeemed',
     Number(flags.remnants ?? 0) >= 40 || truthy(flags['court.tavi_called']),
-    flags.verdict_sylvie === 'voluntary',
+    flags['verdict.sylvie'] === 'voluntary',
     truthy(flags['companion.yeyu.recruited']) && Number(flags.yeyu_letters ?? 0) >= 5,
-    !truthy(flags.ash_dead) && truthy(flags.a3_ash_tells_sundering),
+    !truthy(flags['npc.ash.dead']) && truthy(flags.a3_ash_tells_sundering),
   ].filter(Boolean).length;
   return { release: required && supports >= 3, supports };
 }
@@ -229,6 +231,6 @@ registerCompute('court_verdicts', (ctx) => {
 
 registerCompute('janu_release', (ctx) => {
   const r = januReleases(ctx.world.meta.flags);
-  ctx.setFlag('janu_supports', r.supports);
-  ctx.setFlag('janu_release', r.release);
+  ctx.setFlag('a6_janu_supports', r.supports);
+  ctx.setFlag('a6_janu_release', r.release);
 });

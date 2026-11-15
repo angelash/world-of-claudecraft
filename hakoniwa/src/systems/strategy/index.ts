@@ -13,7 +13,7 @@ import {
   rulerPolicy,
   setBattleMode,
 } from './commands';
-import { advanceConclave, startConclave } from './conclave';
+import { advanceConclave } from './conclave';
 import { marchArmies, resolveBattles, runSieges, settlePending } from './military';
 import { runNationDay } from './nations';
 import { releaseIndex } from './release';
@@ -73,10 +73,7 @@ export const system: GameSystem = {
       runStrategyDay(ctx, e.data.dayIndex);
     },
     'flag.changed'(ctx, e) {
-      const s = strat(ctx);
-      if (e.data.key === 'slg.convene' && e.data.value && !s.conference && !s.summit)
-        startConclave(ctx);
-      if (e.data.key === 'feature.slg') s.active = !!e.data.value;
+      if (e.data.key === 'feature.slg') strat(ctx).active = !!e.data.value;
     },
     'war.battle_report'(ctx, e) {
       const p = strat(ctx).pendingBattle;

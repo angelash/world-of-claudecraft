@@ -83,7 +83,7 @@ export function foundCompany(ctx: SystemContext): CommandResult {
   spendMoney(ctx, player, config.company.foundCost, 'company_founding');
   addMoney(ctx, owner, config.company.foundCost, 'company_founding');
   const c = ctx.world.slices.economy.company;
-  const stance = ctx.flag('nera.stance');
+  const stance = ctx.flag('npc.nera.stance');
   c.founded = true;
   c.foundedDay = today(ctx);
   c.partnerShare =

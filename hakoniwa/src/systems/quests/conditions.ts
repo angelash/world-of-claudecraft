@@ -5,6 +5,7 @@
 // right is an enum literal (for example `a1_oola_fate == cleared`).
 
 import type { FlagValue } from '../../core/contracts';
+import { defaultRegistry, type FlagRegistry } from '../../core/registry';
 
 export type Resolver = (name: string) => FlagValue | undefined;
 
@@ -22,6 +23,8 @@ type Node =
 interface Token {
   k: 'id' | 'num' | 'str' | 'op' | 'lp' | 'rp' | 'comma';
   v: string;
+  /** start offset in the source */
+  s: number;
 }
 
 const ACT_INDEX: Record<string, number> = {
@@ -52,47 +55,47 @@ function tokenize(src: string): Token[] {
       continue;
     }
     if (c === '(') {
-      out.push({ k: 'lp', v: c });
+      out.push({ k: 'lp', v: c, s: i });
       i++;
       continue;
     }
     if (c === ')') {
-      out.push({ k: 'rp', v: c });
+      out.push({ k: 'rp', v: c, s: i });
       i++;
       continue;
     }
     if (c === ',') {
-      out.push({ k: 'comma', v: c });
+      out.push({ k: 'comma', v: c, s: i });
       i++;
       continue;
     }
     const two = src.slice(i, i + 2);
     if (two === '==' || two === '!=' || two === '>=' || two === '<=') {
-      out.push({ k: 'op', v: two });
+      out.push({ k: 'op', v: two, s: i });
       i += 2;
       continue;
     }
     if (c === '>' || c === '<') {
-      out.push({ k: 'op', v: c });
+      out.push({ k: 'op', v: c, s: i });
       i++;
       continue;
     }
     if (c === "'" || c === '"') {
       const end = src.indexOf(c, i + 1);
       if (end < 0) throw new Error(`unterminated string in condition: ${src}`);
-      out.push({ k: 'str', v: src.slice(i + 1, end) });
+      out.push({ k: 'str', v: src.slice(i + 1, end), s: i });
       i = end + 1;
       continue;
     }
     const num = /^-?\d+(\.\d+)?/.exec(src.slice(i));
     if (num && (c === '-' || /\d/.test(c))) {
-      out.push({ k: 'num', v: num[0] });
+      out.push({ k: 'num', v: num[0], s: i });
       i += num[0].length;
       continue;
     }
     const id = /^[A-Za-z_][A-Za-z0-9_.:-]*/.exec(src.slice(i));
     if (id) {
-      out.push({ k: 'id', v: id[0] });
+      out.push({ k: 'id', v: id[0], s: i });
       i += id[0].length;
       continue;
     }
@@ -340,6 +343,11 @@ export function evaluate(src: string | undefined, resolve: Resolver): boolean {
   return evalNode(compile(src), resolve);
 }
 
+/** The value of an expression (a variable, a literal or COUNT, MIN, MAX), for derived quantities. */
+export function evaluateValue(src: string, resolve: Resolver): FlagValue | undefined {
+  return value(compile(src), resolve);
+}
+
 /** Every variable name an expression references (for editor dependency graphs). */
 export function referencedVars(src: string): string[] {
   const out = new Set<string>();
@@ -376,16 +384,146 @@ export function referencedVars(src: string): string[] {
   return [...out];
 }
 
+/** One comparison of a condition: a variable against literals (rule 4 of registry 9.3). */
+export interface Comparison {
+  name: string;
+  /** a comparison operator, 'IN', 'HAS', or 'truthy' for a bare variable used as a test */
+  op: string;
+  literals: FlagValue[];
+}
+
+/** Every variable-against-literal comparison of an expression (content validation). */
+export function comparisons(src: string): Comparison[] {
+  const out: Comparison[] = [];
+  const lits = (ns: Node[]): FlagValue[] => ns.flatMap((x) => (x.t === 'lit' ? [x.v] : []));
+  const walk = (n: Node, test: boolean): void => {
+    switch (n.t) {
+      case 'var':
+        if (test) out.push({ name: n.name, op: 'truthy', literals: [] });
+        return;
+      case 'not':
+        walk(n.e, true);
+        return;
+      case 'and':
+      case 'or':
+        walk(n.a, true);
+        walk(n.b, true);
+        return;
+      case 'cmp':
+        if (n.a.t === 'var') out.push({ name: n.a.name, op: n.op, literals: lits([n.b]) });
+        else walk(n.a, false);
+        if (n.b.t !== 'lit') walk(n.b, false);
+        return;
+      case 'in':
+        if (n.a.t === 'var') out.push({ name: n.a.name, op: 'IN', literals: lits(n.items) });
+        else walk(n.a, false);
+        return;
+      case 'has':
+        if (n.a.t === 'var') out.push({ name: n.a.name, op: 'HAS', literals: lits([n.b]) });
+        else walk(n.a, false);
+        return;
+      case 'fn':
+        for (const a of n.args) walk(a, true);
+        return;
+      default:
+        return;
+    }
+  };
+  walk(compile(src), true);
+  return out;
+}
+
 /**
- * Standard resolver over world flags plus a few built-ins: `act` (numeric when compared
- * with numbers through actIndex), `ai_enabled`, `day`.
+ * Standard resolver over world flags plus a few built-ins (`act` compares numerically
+ * through actIndex; callers pass `ai_enabled` and the like in `extra`). Names go through
+ * the variable registry (world_state_registry.md 9.4): an alias reads its canonical flag
+ * (converted back for a numeric alias), a `bond.<npc>.<n>` style alias reads its
+ * condition, and an unwritten name reads the registry default.
  */
 export function flagResolver(
   flags: Record<string, FlagValue>,
   extra?: Record<string, FlagValue>,
+  registry: FlagRegistry = defaultRegistry(),
 ): Resolver {
-  return (name) => {
+  const resolve: Resolver = (name) => {
     if (extra && name in extra) return extra[name];
-    return flags[name];
+    const own = flags[name];
+    if (own !== undefined) return own;
+    const r = registry.resolve(name);
+    if (!r) return undefined;
+    if (r.condition !== null) return evaluate(r.condition, resolve);
+    const v = flags[r.name];
+    if (v !== undefined) return registry.aliasView(r, v);
+    // a derived quantity nobody froze yet reads its formula (registry 2.8)
+    const derive = r.family ? null : r.def.derive;
+    if (derive && checkCondition(derive) === null) return evaluateValue(derive, resolve);
+    return registry.defaultOf(r.name);
   };
+  return resolve;
+}
+
+const KEYWORDS = new Set(['AND', 'OR', 'NOT', 'IN', 'HAS', 'COUNT', 'MIN', 'MAX', 'true', 'false']);
+
+/**
+ * Rewrite the variable names and the literals of a condition in place, keeping its text
+ * otherwise unchanged (the registry loader and the alias migration, world_state_registry.md
+ * 9.4 and 10). `name` maps a variable; `literal` maps a literal compared with a variable
+ * (an enum value alias). Unparsable text is returned as it is.
+ */
+export function rewriteCondition(
+  src: string,
+  name: (v: string) => string,
+  literal: (v: string, value: string) => string,
+): string {
+  if (checkCondition(src) !== null) return src;
+  const toks = tokenize(src);
+  const edits: { s: number; e: number; text: string }[] = [];
+  let lastVar = '';
+  let mode: 'var' | 'lit' | 'list' = 'var';
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i] as Token;
+    if (t.k === 'op') {
+      mode = 'lit';
+      continue;
+    }
+    if (t.k === 'id' && t.v === 'IN') {
+      mode = 'list';
+      continue;
+    }
+    if (t.k === 'id' && t.v === 'HAS') {
+      mode = 'lit';
+      continue;
+    }
+    if (t.k === 'rp' && mode === 'list') {
+      mode = 'var';
+      continue;
+    }
+    if (t.k === 'lp' || t.k === 'comma') continue;
+    if (t.k === 'rp') continue;
+    if (t.k === 'id' && KEYWORDS.has(t.v)) {
+      if (t.v !== 'true' && t.v !== 'false') mode = 'var';
+      else if (mode === 'lit') mode = 'var';
+      continue;
+    }
+    const isLiteral = mode === 'lit' || mode === 'list';
+    if (t.k === 'id' && !isLiteral) {
+      const next = name(t.v);
+      lastVar = next;
+      if (next !== t.v) edits.push({ s: t.s, e: t.s + t.v.length, text: next });
+      continue;
+    }
+    if ((t.k === 'id' || t.k === 'str') && isLiteral && lastVar) {
+      const next = literal(lastVar, t.v);
+      if (next !== t.v) {
+        const len = t.k === 'str' ? t.v.length + 2 : t.v.length;
+        const q = t.k === 'str' ? (src[t.s] as string) : '';
+        edits.push({ s: t.s, e: t.s + len, text: `${q}${next}${q}` });
+      }
+    }
+    if (mode === 'lit') mode = 'var';
+  }
+  let out = src;
+  for (const e of edits.sort((x, y) => y.s - x.s))
+    out = out.slice(0, e.s) + e.text + out.slice(e.e);
+  return out;
 }

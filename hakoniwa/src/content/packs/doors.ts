@@ -42,7 +42,7 @@ export const pack: ContentPack = {
           key: 'keys',
           label: '钥',
           type: 'json',
-          help: 'flag、count、item、level、visit、door、any（三取二用 need）',
+          help: 'flag、count、item、level、visit、door、bond（同伴羁绊）、any（三取二用 need）',
         },
         { key: 'reveal', label: '显影条件', type: 'json' },
         {
@@ -70,6 +70,7 @@ export function validateDoors(content: ContentMap): string[] {
   const abilityIds = new Set((content.abilities ?? []).map((a) => a.id));
   const auraIds = new Set((content.auras ?? []).map((a) => a.id));
   const itemIds = new Set((content.items ?? []).map((i) => i.id));
+  const companionIds = new Set((content.companions ?? []).map((c) => c.id));
   const maps = new Map((content.maps ?? []).map((m) => [m.id, m]));
   const checkKeys = (door: DoorDef, keys: KeyCond[]) => {
     for (const k of keys) {
@@ -78,6 +79,8 @@ export function validateDoors(content: ContentMap): string[] {
         problems.push(`door ${door.id}: unknown item ${k.itemId}`);
       if (k.type === 'door' && !doorIds.has(k.doorId))
         problems.push(`door ${door.id}: unknown door ${k.doorId}`);
+      if (k.type === 'bond' && !companionIds.has(k.companion))
+        problems.push(`door ${door.id}: unknown companion ${k.companion}`);
       if (k.type === 'count' && k.count < 1) problems.push(`door ${door.id}: count below 1`);
       if (k.type === 'visit' && k.location) {
         const map = maps.get(k.mapId);

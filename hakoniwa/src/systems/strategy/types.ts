@@ -128,6 +128,8 @@ export interface StrategyConfig {
   evidenceFlags: string[];
   /** days of each conclave stage */
   conclaveStages: { stage: ConclaveStage; days: number }[];
+  /** the registry value of a4_summit_result written for each summit result (registry 7.6) */
+  summitFlagValues?: Partial<Record<SummitResult, string>>;
 }
 
 export type TreatyType =

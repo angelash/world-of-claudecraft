@@ -1,8 +1,9 @@
 // Bonds (羁绊), 0 to 100 per companion. Shared kills, gifts and story flags deepen them;
-// crossing a threshold sets flag bond.<id>.<threshold> = true (door keys read these),
-// and the integer bond is mirrored in flag bond.<id>.
+// crossing a threshold records it on the member (door keys of type bond read the record
+// through bondReached; the bond is party state, not a world-state variable).
 
 import type { SystemContext } from '../../core/system';
+import type { World } from '../../core/world';
 import type { ItemDef } from '../inventory';
 import type { CompanionDef, Member } from './types';
 
@@ -13,15 +14,16 @@ export function addBond(ctx: SystemContext, m: Member, delta: number, reason: st
   const before = m.bond;
   m.bond = Math.max(0, Math.min(100, m.bond + delta));
   if (m.bond === before) return;
-  const whole = Math.floor(m.bond);
-  if (whole !== Math.floor(before)) ctx.setFlag(`bond.${m.id}`, whole);
   for (const t of BOND_THRESHOLDS) {
-    if (m.bond >= t && !m.reached.includes(t)) {
-      m.reached.push(t);
-      ctx.setFlag(`bond.${m.id}.${t}`, true);
-    }
+    if (m.bond >= t && !m.reached.includes(t)) m.reached.push(t);
   }
   ctx.emit('party.bond', { companionId: m.id, bond: Math.floor(m.bond), delta, reason });
+}
+
+/** Has the companion's bond ever reached `min` (a door key of type bond)? */
+export function bondReached(world: World, companionId: string, min: number): boolean {
+  const m = world.slices.party?.members[companionId];
+  return !!m && (m.bond >= min || m.reached.some((t) => t >= min));
 }
 
 /** Bond from a gift: 2 plus twice the quality, doubled for liked kinds or items. */

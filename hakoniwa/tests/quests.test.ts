@@ -36,8 +36,8 @@ describe('conditions (reveal-ledger syntax)', () => {
     expect(ev('trust.selene >= 50 OR a3_selene_tremble_told', { 'trust.selene': 50 })).toBe(true);
     expect(ev('a1_oola_fate == cleared', { a1_oola_fate: 'cleared' })).toBe(true);
     expect(ev('a1_oola_fate != cleared', {})).toBe(true);
-    expect(ev('wb_ruler IN (edric, cecilia)', { wb_ruler: 'cecilia' })).toBe(true);
-    expect(ev('prologue.answers HAS E6', { 'prologue.answers': 'E6,V1' })).toBe(true);
+    expect(ev('a2_wb_ruler IN (edric, cecilia)', { a2_wb_ruler: 'cecilia' })).toBe(true);
+    expect(ev('p_answers HAS E6', { p_answers: 'E6,V1' })).toBe(true);
     expect(ev('COUNT(a, b, c) >= 2', { a: true, c: 1 })).toBe(true);
     expect(ev('MAX(x, y) > 3', { x: 2, y: 4 })).toBe(true);
     expect(ev('act >= 3', { act: 'act4' })).toBe(true);
@@ -61,16 +61,16 @@ describe('acts and the main line', () => {
         (e) => e.kind === 'act.changed' && e.data.from === 'prologue' && e.data.to === 'act1',
       ),
     ).toBe(true);
-    expect(g.world.meta.flags.act_index).toBe(1);
-    expect(g.world.slices.quests.quests.a1_m01_fall?.status).toBe('active');
+    expect(g.world.meta.flags.act).toBe('act1');
+    expect(g.world.slices.quests.quests.q_a1_m01_fall?.status).toBe('active');
     const log = questLog(g.world, g.content);
     expect(log.actTitle).toBe('第一幕：边石镇');
-    expect(log.active.map((q) => q.id)).toContain('a1_m01_fall');
+    expect(log.active.map((q) => q.id)).toContain('q_a1_m01_fall');
   });
 
   it('offers giver quests in the dialogue menu and accepts through option_chosen', () => {
     const g = narrativeGame();
-    g.queue('flag.set', { key: 'quest.a1_m04_register', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g.step(2);
     g.queue('stub.talk', { npc: 'bron' });
     g.step(1);
@@ -79,7 +79,7 @@ describe('acts and the main line', () => {
     );
     expect(
       offer?.kind === 'dialogue.options_offered' && offer.data.options.map((o) => o.id),
-    ).toContain('accept:a1_m05_hunt');
+    ).toContain('accept:q_a1_m04_hunt');
     // the dialogue system reports the choice back
     const probe: GameSystem = {
       id: 'zz_probe',
@@ -89,57 +89,57 @@ describe('acts and the main line', () => {
           ctx.emit('dialogue.option_chosen', {
             npcId: 'npc_bron',
             system: 'quests',
-            optionId: 'accept:a1_m05_hunt',
+            optionId: 'accept:q_a1_m04_hunt',
           });
           return ok();
         },
       },
     };
     const g2 = Engine.create(1, narrativeContent(), [...NARRATIVE_SYSTEMS, probe], {});
-    g2.queue('flag.set', { key: 'quest.a1_m04_register', value: 'done' });
+    g2.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g2.step(2);
     g2.queue('stub.feat', { tier: 0 });
     g2.step(1);
-    expect(g2.world.slices.quests.quests.a1_m05_hunt?.status).toBe('active');
+    expect(g2.world.slices.quests.quests.q_a1_m04_hunt?.status).toBe('active');
   });
 
   it('counts only kills by the player side, on the right map, then turns in for rewards', () => {
     const g = narrativeGame();
-    g.queue('flag.set', { key: 'quest.a1_m04_register', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g.step(2);
-    g.queue('quests.accept', { questId: 'a1_m05_hunt' });
+    g.queue('quests.accept', { questId: 'q_a1_m04_hunt' });
     g.step(1);
     g.queue('stub.kill', { kind: 'monster', mapId: 'seal_ruins' });
     g.step(1);
-    expect(g.world.slices.quests.quests.a1_m05_hunt?.counts[0]).toBe(0);
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.counts[0]).toBe(0);
     for (let i = 0; i < 5; i++) g.queue('stub.kill', { kind: 'monster', mapId: 'forest_edge' });
     g.step(1);
-    expect(g.world.slices.quests.quests.a1_m05_hunt?.status).toBe('ready');
-    g.queue('quests.turn_in', { questId: 'a1_m05_hunt' });
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.status).toBe('ready');
+    g.queue('quests.turn_in', { questId: 'q_a1_m04_hunt' });
     g.step(1);
-    expect(g.world.meta.flags['quest.a1_m05_hunt']).toBe('done');
+    expect(g.world.meta.flags['quest.q_a1_m04_hunt']).toBe('done');
     expect(g.world.slices.inventory.owners.player?.money).toBe(300);
     expect(g.world.recent.some((e) => e.kind === 'xp.awarded' && e.data.amount === 250)).toBe(true);
   });
 
   it('completes a boss objective through the combat flag (orWhen) and recruits the companion', () => {
     const g = narrativeGame();
-    g.queue('flag.set', { key: 'quest.a1_m01_fall', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a1_m01_fall', value: 'done' });
     g.step(2);
-    expect(g.world.slices.quests.quests.a1_m02_raven?.status).toBe('active');
+    expect(g.world.slices.quests.quests.q_a1_m02_raven?.status).toBe('active');
     g.queue('flag.set', { key: 'boss.guardian_raven.yielded', value: true });
     g.step(2);
-    expect(g.world.meta.flags['quest.a1_m02_raven']).toBe('done');
+    expect(g.world.meta.flags['quest.q_a1_m02_raven']).toBe('done');
     expect(g.world.meta.flags['companion.yeyu.recruited']).toBe(true);
     expect(countItem(g.world, 'player', 'old_guild_badge')).toBe(1);
   });
 
   it('sets waves for the beast tide and retries a lost battle', () => {
     const g = narrativeGame({ stub: false });
-    g.queue('flag.set', { key: 'quest.a1_m08_trial', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a1_m09_trial', value: 'done' });
     g.step(2);
     g.queue('flag.set', { key: 'a1_beast_tide_started', value: false });
-    const q = g.world.slices.quests.quests.a1_m09_tide;
+    const q = g.world.slices.quests.quests.q_a1_m12_tide;
     expect(q?.status).toBe('active');
     g.step(6 * 1200 + 20);
     expect(g.world.meta.flags['combat.wave.tide_first']).toBe('go');
@@ -154,8 +154,8 @@ describe('acts and the main line', () => {
     expect(g.world.meta.flags.a1_beast_tide_cleared).toBe(true);
     // a battle objective: a loss costs the continent and re-arms war.pending
     const g2 = Engine.create(1, narrativeContent(), [...NARRATIVE_SYSTEMS, otherTeamsStub], {});
-    g2.queue('flag.set', { key: 'quest.a2_m03_company', value: 'done' });
-    g2.queue('flag.set', { key: 'quest.a2_m04_village', value: 'done' });
+    g2.queue('flag.set', { key: 'quest.q_a2_m03_company', value: 'done' });
+    g2.queue('flag.set', { key: 'quest.q_a2_m03_village', value: 'done' });
     g2.queue('flag.set', { key: 'continent', value: 70 });
     g2.step(2);
     expect(g2.world.meta.flags['war.pending']).toBe('act2_city_defense');
@@ -166,23 +166,23 @@ describe('acts and the main line', () => {
     expect(g2.world.meta.flags.continent).toBe(67);
     g2.queue('stub.battle', { scenario: 'act2_city_defense', victor: 'player' });
     g2.step(1);
-    expect(g2.world.meta.flags['quest.a2_m05_defense']).toBe('done');
+    expect(g2.world.meta.flags['quest.q_a2_m12_defense']).toBe('done');
   });
 
   it('counts buildings and waits on any-of stages', () => {
     const g = narrativeGame();
-    g.queue('flag.set', { key: 'quest.a3_m01_territory', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a3_m01_territory', value: 'done' });
     g.step(2);
     for (let i = 0; i < 3; i++) g.queue('stub.build', { defId: 'house' });
     g.step(1);
-    expect(g.world.meta.flags['quest.a3_m02_build']).toBe('done');
+    expect(g.world.meta.flags['quest.q_a3_m01_build']).toBe('done');
     // conclave: either the domain milestone or one day of waiting
     const g2 = narrativeGame({ stub: false });
-    g2.queue('flag.set', { key: 'quest.a4_m03_versions', value: 'done' });
+    g2.queue('flag.set', { key: 'quest.q_a4_m03_versions', value: 'done' });
     g2.step(2);
-    expect(g2.world.slices.quests.quests.a4_m04_conclave?.stage).toBe(0);
+    expect(g2.world.slices.quests.quests.q_a4_m13_conclave?.stage).toBe(0);
     g2.step(TICKS_PER_GAME_DAY + 20);
-    expect(g2.world.slices.quests.quests.a4_m04_conclave?.stage).toBe(1);
+    expect(g2.world.slices.quests.quests.q_a4_m13_conclave?.stage).toBe(1);
     // the prologue is still playing in this bare run, so the conclave scene waits in the queue
     expect([g2.world.slices.scenes.current?.sceneId, ...g2.world.slices.scenes.queue]).toContain(
       'a4_conclave',
@@ -193,7 +193,7 @@ describe('acts and the main line', () => {
     const g = narrativeGame({ stub: false });
     g.queue('flag.set', { key: 'request.merca.safe_caravan', value: '护送北路商队' });
     g.step(2);
-    expect(g.world.slices.quests.quests.gq_merca_caravan?.status).toBe('active');
+    expect(g.world.slices.quests.quests.q_gl_merca_01?.status).toBe('active');
   });
 
   it('every quest is reachable through the content (no dangling triggers)', () => {
@@ -242,54 +242,59 @@ describe('reveal ledger', () => {
 describe('endings and settlements', () => {
   const roster = narrativeContent();
   const left = {
-    verdict_eluen: 'voluntary',
-    verdict_valda: 'judged',
-    verdict_merca: 'voluntary',
-    verdict_sylvie: 'voluntary',
-    verdict_moira: 'voluntary',
+    'verdict.eluen': 'voluntary',
+    'verdict.valda': 'judged',
+    'verdict.merca': 'voluntary',
+    'verdict.sylvie': 'voluntary',
+    'verdict.moira': 'voluntary',
   };
   const world = {
-    purge_route: 'people',
-    gate_ring: 5,
-    held_unaided: 3,
-    janu_act: 'receive',
+    a5_purge_route: 'people',
+    a5_gate_ring: 5,
+    a5_held_unaided: 3,
+    a5_janu_act: 'receive',
     continent: 60,
-    review_score: 0.8,
+    a6_review_score: 0.8,
     autonomy: 65,
   };
 
   it('judges endings in the order of act6 11.0', () => {
-    expect(judgeEnding({ ...left, ...world, janu_release: true }, roster)).toBe('release');
-    expect(judgeEnding({ ...left, ...world, autonomy: 50, janu_release: true }, roster)).toBe(
+    expect(judgeEnding({ ...left, ...world, a6_janu_release: true }, roster)).toBe('release');
+    expect(judgeEnding({ ...left, ...world, autonomy: 50, a6_janu_release: true }, roster)).toBe(
       'release_unfinished',
     );
     expect(
-      judgeEnding({ ...left, ...world, janu_release: true, player_absorb: true }, roster),
+      judgeEnding({ ...left, ...world, a6_janu_release: true, a6_player_absorb: true }, roster),
     ).toBe('new_god');
-    expect(judgeEnding({ ...left, ...world, janu_release: true, continent: 10 }, roster)).toBe(
-      'reclaim',
-    );
-    expect(judgeEnding({ ...left, ...world, janu_release: true, god_war: true }, roster)).toBe(
+    expect(judgeEnding({ ...left, ...world, a6_janu_release: true, continent: 10 }, roster)).toBe(
       'reclaim',
     );
     expect(
-      judgeEnding({ ...left, ...world, janu_release: false, janu_restore_chosen: true }, roster),
+      judgeEnding({ ...left, ...world, a6_janu_release: true, a6_god_war: true }, roster),
+    ).toBe('reclaim');
+    expect(
+      judgeEnding(
+        { ...left, ...world, a6_janu_release: false, a6_janu_restore_chosen: true },
+        roster,
+      ),
     ).toBe('janu_restored');
-    expect(judgeEnding({ ...left, ...world, janu_release: false }, roster)).toBe('janu_restored');
-    expect(judgeEnding({ ...left, ...world, janu_release: true, patron: 'moira' }, roster)).toBe(
-      'rule_moira',
+    expect(judgeEnding({ ...left, ...world, a6_janu_release: false }, roster)).toBe(
+      'janu_restored',
     );
     expect(
-      judgeEnding({ ...left, ...world, janu_release: true, verdict_valda: 'refuse' }, roster),
+      judgeEnding({ ...left, ...world, a6_janu_release: true, a6_patron: 'moira' }, roster),
+    ).toBe('rule_moira');
+    expect(
+      judgeEnding({ ...left, ...world, a6_janu_release: true, 'verdict.valda': 'refuse' }, roster),
     ).toBe('rule_valda');
     expect(
       judgeEnding(
         {
           ...left,
           ...world,
-          janu_release: true,
-          verdict_valda: 'contend',
-          verdict_eluen: 'contend',
+          a6_janu_release: true,
+          'verdict.valda': 'contend',
+          'verdict.eluen': 'contend',
         },
         roster,
       ),
@@ -299,21 +304,21 @@ describe('endings and settlements', () => {
   it('settles act 5 fronts from autonomy and the gate ring', () => {
     const strong = act5Outcome({
       autonomy: 80,
-      purge_route: 'people',
-      gate_ring: 5,
+      a5_purge_route: 'people',
+      a5_gate_ring: 5,
       'companion.ron.recruited': true,
     });
-    expect(strong.held_unaided).toBe(5);
-    expect(strong.janu_act).toBe('receive');
+    expect(strong.a5_held_unaided).toBe(5);
+    expect(strong.a5_janu_act).toBe('receive');
     expect(strong.a5_purify_success).toBe(true);
     const weak = act5Outcome({
       autonomy: 0,
-      purge_route: 'people',
-      gate_ring: 3,
-      faceless_end: 'destroyed',
+      a5_purge_route: 'people',
+      a5_gate_ring: 3,
+      a5_faceless_end: 'destroyed',
       continent: 70,
     });
-    expect(weak.janu_act).toBe('seal');
+    expect(weak.a5_janu_act).toBe('seal');
     expect(Number(weak.continent)).toBeLessThan(40);
   });
 
@@ -321,17 +326,17 @@ describe('endings and settlements', () => {
     const r = reviewOutcome({ autonomy: 70, 'review.no_light.descend': true }, roster);
     expect(r['review.no_light']).toBe('descend');
     expect(r['review.residue_tide']).toBe('self');
-    expect(r.descents).toBe(1);
-    expect(r.review_score).toBe(0.9);
-    expect(reviewOutcome({ autonomy: 0 }, roster).review_score).toBe(0);
+    expect(r.a6_descents).toBe(1);
+    expect(r.a6_review_score).toBe(0.9);
+    expect(reviewOutcome({ autonomy: 0 }, roster).a6_review_score).toBe(0);
   });
 
   it('ranks prologue door hints with the fixed tie order', () => {
     expect(
       topDoorHints({
-        'prologue.hint.pact': 2,
-        'prologue.hint.blade': 2,
-        'prologue.hint.spirit': 1,
+        'p_hint.pact': 2,
+        'p_hint.blade': 2,
+        'p_hint.spirit': 1,
       }),
     ).toEqual(['blade', 'pact']);
   });
@@ -356,38 +361,38 @@ describe('story flags read by other systems have writers at their beats', () => 
     const g = narrativeGame();
     g.queue('flag.set', { key: 'act', value: 'act2' });
     g.step(2);
-    expect(g.world.slices.quests.quests.a2_m01_city?.status).toBe('active');
+    expect(g.world.slices.quests.quests.q_a2_m01_city?.status).toBe('active');
     g.queue('world.teleport', { entityId: 'player', mapId: 'wallenburg', x: 12, y: 6 });
     g.step(12);
     // the hero party comes to the city with the player (npc personas require this flag)
     expect(g.world.meta.flags.a2_heroes_arrived).toBe(true);
-    g.queue('flag.set', { key: 'quest.a2_m02_exam', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a2_m02_exam', value: 'done' });
     g.step(2);
     g.queue('stub.talk', { npc: 'nera' });
-    g.queue('quests.accept', { questId: 'a2_m03_company' });
+    g.queue('quests.accept', { questId: 'q_a2_m03_company' });
     g.step(2);
     // the company's partner share reads this when the company is founded
-    expect(g.world.meta.flags['nera.stance']).toBe('neutral');
-    g.queue('flag.set', { key: 'quest.a2_m04_village', value: 'done' });
+    expect(g.world.meta.flags['npc.nera.stance']).toBe('neutral');
+    g.queue('flag.set', { key: 'quest.q_a2_m03_village', value: 'done' });
     g.step(12);
     expect(g.world.meta.flags['war.pending']).toBe('act2_city_defense');
     g.queue('stub.battle', { scenario: 'act2_city_defense', victor: 'player' });
     g.step(2);
     // city/daily.ts reads the succession outcome when the territory is granted
-    expect(g.world.meta.flags.wb_ruler).toBe('edric');
+    expect(g.world.meta.flags.a2_wb_ruler).toBe('edric');
   });
 
   it('keeps a partner stance won in act 1 and exposes Nera when Merca tells her version', () => {
     const g = narrativeGame();
-    g.queue('flag.set', { key: 'nera.stance', value: 'partner' });
-    g.queue('flag.set', { key: 'quest.a2_m02_exam', value: 'done' });
+    g.queue('flag.set', { key: 'npc.nera.stance', value: 'partner' });
+    g.queue('flag.set', { key: 'quest.q_a2_m02_exam', value: 'done' });
     g.step(2);
     g.queue('stub.talk', { npc: 'nera' });
-    g.queue('quests.accept', { questId: 'a2_m03_company' });
+    g.queue('quests.accept', { questId: 'q_a2_m03_company' });
     g.step(2);
-    expect(g.world.meta.flags['nera.stance']).toBe('partner');
+    expect(g.world.meta.flags['npc.nera.stance']).toBe('partner');
     g.queue('flag.set', { key: 'econ.company_founded', value: true });
-    g.queue('flag.set', { key: 'quest.a4_m02_feast', value: 'done' });
+    g.queue('flag.set', { key: 'quest.q_a4_m02_feast', value: 'done' });
     g.step(3);
     playScene(g);
     while (g.world.slices.scenes.current) playScene(g);
@@ -411,10 +416,10 @@ describe('story flags read by other systems have writers at their beats', () => 
     const all = files.join('\n');
     for (const key of [
       'a2_heroes_arrived',
-      'wb_ruler',
-      'nera.stance',
-      'slg.summit_bloodshed',
-      'god_war',
+      'a2_wb_ruler',
+      'npc.nera.stance',
+      'a4_summit_bloodshed',
+      'a6_god_war',
       'a2_archivist_met',
       'a3_archive_sealed_room',
       'a4_nera_exposed',

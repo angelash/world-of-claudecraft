@@ -57,7 +57,7 @@
     "id": "enemy_slip",
     "kind": "coincidence",
     "label": "敌方的疏漏",
-    "requires": "act_index >= 2",
+    "requires": "act >= 2",
     "narration": "有人说漏了嘴。一个不该被知道的计划，露出了一角。",
     "flag": { "key": "director.enemy_slip", "value": true },
     "cooldownHours": 96,

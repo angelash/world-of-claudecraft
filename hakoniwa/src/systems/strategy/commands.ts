@@ -95,21 +95,21 @@ export function recruit(
 
 export function foundNation(ctx: SystemContext, d: CommandMap['slg.found_nation']): CommandResult {
   const s = strat(ctx);
-  if (s.nations[PLAYER] || ctx.flag('slg.nation_founded')) return reject('already', '你已经立国');
+  if (s.nations[PLAYER] || ctx.flag('a4_nation_founded')) return reject('already', '你已经立国');
   if (!ctx.flag('feature.slg')) return reject('locked', '立国之门尚未显现');
   const autonomy = Number(ctx.flag('territory_autonomy') ?? 0);
   if (!(autonomy >= FOUNDING_AUTONOMY)) {
     return reject('autonomy', `领地自治度不足 ${FOUNDING_AUTONOMY}，界石堆起来了，门却没有开`);
   }
   const provinces = foundPlayerNation(ctx, d.name);
-  ctx.setFlag('slg.nation_founded', true);
+  ctx.setFlag('a4_nation_founded', true);
   ctx.emit('slg.nation_founded', { nationId: PLAYER, name: s.playerNationName ?? '', provinces });
   return ok(`${s.playerNationName}立国`);
 }
 
 export function convene(ctx: SystemContext, source: CommandSource): CommandResult {
   const s = strat(ctx);
-  if (ctx.flag('slg.conclave_done') || s.summit) return reject('done', '七国会盟已经开过');
+  if (ctx.flag('a4_conclave_done') || s.summit) return reject('done', '七国会盟已经开过');
   if (s.conference) return reject('ongoing', '会盟正在进行');
   if (isPlayer(source) && !ctx.flag('feature.slg')) return reject('locked', '大陆棋局尚未展开');
   startConclave(ctx);

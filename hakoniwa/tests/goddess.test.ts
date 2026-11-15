@@ -192,7 +192,7 @@ describe('goddess arbiter', () => {
       ),
     ).toBe('ok');
     expect(g.world.meta.flags['request.merca.safe_caravan']).toBe('护送北路商队');
-    expect(g.world.slices.quests.quests.gq_merca_caravan).toBeDefined();
+    expect(g.world.slices.quests.quests.q_gl_merca_01).toBeDefined();
   });
 
   it('lets each goddess breach once per act and spends the hostility budget', () => {
@@ -338,7 +338,7 @@ describe('planning, sight and wake-ups', () => {
     g2.step(60);
     const eluen = g2.world.slices.goddess.goddesses.eluen;
     expect(eluen?.gaze).toBe(15);
-    expect(g2.world.meta.flags.eluen_awareness).toBe(15);
+    expect(g2.world.meta.flags['goddess.eluen.gaze']).toBe(15);
     g2.queue('flag.set', { key: 'act', value: 'act3' });
     g2.step(1);
     expect(g2.world.slices.goddess.goddesses.eluen?.gaze).toBeGreaterThan(15);
@@ -356,7 +356,7 @@ describe('offerings, revelations and views', () => {
       .find((e) => e.kind === 'command.result' && e.data.kind === 'goddess.offer');
     expect(noCoin?.kind === 'command.result' && noCoin.data.code).toBe('no_coin');
     g.queue('probe.give', { item: 'merca_coin' });
-    g.queue('flag.set', { key: 'merca_coin.terms', value: 'interest_free' });
+    g.queue('flag.set', { key: 'p_coin_terms', value: 'interest_free' });
     g.queue('goddess.offer', { itemId: 'relic_receipt', want: 'blessing' });
     g.step(1);
     expect(countItem(g.world, 'player', 'relic_receipt')).toBe(0);

@@ -128,10 +128,10 @@
     "courtSeat": {
       "seat": 1,
       "crisis": { "id": "no_light", "bonus": "a1_oola_fate == cleared" },
-      "thicken": [{ "line": "need", "when": "purge_route == god", "add": 2 }],
+      "thicken": [{ "line": "need", "when": "a5_purge_route == god", "add": 2 }],
       "verdict": { "judgedAt": 3, "voluntary": { "any": [{ "shown": ["E27", "E28"] }] } }
     },
-    "gazeFlag": "eluen_awareness",
+    "gazeFlag": "goddess.eluen.gaze",
     "replies": {
       "honorific": "光听见了，孩子。说吧，简洁一些，并且合乎规格。",
       "revelation": "上面降下了新的字句。光只有一种正确的解读，孩子们静候教会宣读即可。"
@@ -251,8 +251,8 @@
     "breachTendency": "high",
     "courtSeat": {
       "seat": 2,
-      "crisis": { "id": "residue_tide", "bonus": "held_unaided >= 3" },
-      "thicken": [{ "line": "need", "when": "purge_route == god", "add": 2 }],
+      "crisis": { "id": "residue_tide", "bonus": "a5_held_unaided >= 3" },
+      "thicken": [{ "line": "need", "when": "a5_purge_route == god", "add": 2 }],
       "verdict": {
         "judgedAt": 2,
         "voluntary": {
@@ -515,7 +515,7 @@
     "breachTendency": "none",
     "courtSeat": {
       "seat": 4,
-      "crisis": { "id": "winter_famine", "bonus": "city.village_founded" },
+      "crisis": { "id": "winter_famine", "bonus": "a2_village_founded" },
       "verdict": {
         "judgedAt": 2,
         "mitigationJudges": true,
@@ -650,7 +650,7 @@
       "crisis": { "id": "record_silence", "bonus": "a4_nation_founded" },
       "verdict": { "judgedAt": 3, "voluntary": { "any": [{ "when": "a6_charter_read" }] } }
     },
-    "gazeFlag": "moira_sight",
+    "gazeFlag": "goddess.moira.gaze",
     "roles": ["fate_director"],
     "record": { "kind": "narrate" },
     "replies": {

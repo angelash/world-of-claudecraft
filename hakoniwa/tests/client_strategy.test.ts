@@ -581,7 +581,7 @@ describe('strategy window: action gates', () => {
       reason: '领地自治度 39，立国需要 40',
     });
     expect(foundingState({ 'feature.slg': true }, null).reason).toBe('领地自治度 0，立国需要 40');
-    expect(foundingState({ ...on, 'slg.nation_founded': true }, null).can).toBe(false);
+    expect(foundingState({ ...on, a4_nation_founded: true }, null).can).toBe(false);
     expect(foundingState(on, { alive: true }).show).toBe(false);
     expect(foundingState(on, { alive: false })).toEqual({
       show: true,
@@ -594,7 +594,7 @@ describe('strategy window: action gates', () => {
     const idle = { conference: null, summit: null };
     expect(canConvene(idle, { 'feature.slg': true })).toBe(true);
     expect(canConvene(idle, {})).toBe(false);
-    expect(canConvene(idle, { 'feature.slg': true, 'slg.conclave_done': true })).toBe(false);
+    expect(canConvene(idle, { 'feature.slg': true, a4_conclave_done: true })).toBe(false);
     expect(
       canConvene(
         { conference: { stage: 'invite', stageName: '邀请', endsDay: 3 }, summit: null },

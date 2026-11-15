@@ -18,7 +18,7 @@ import { deriveStats } from '../src/systems/combat/stats';
 import { system as doors } from '../src/systems/doors';
 import { addItem, system as inventory } from '../src/systems/inventory';
 import { system as modifiers } from '../src/systems/modifiers';
-import { bondOf, isInParty, system as party, partyView } from '../src/systems/party';
+import { bondOf, bondReached, isInParty, system as party, partyView } from '../src/systems/party';
 import { system as world } from '../src/systems/world';
 
 function merge(packs: ContentPack[]): ContentMap {
@@ -253,8 +253,10 @@ describe('bonds', () => {
     g.queue('party.gift', { companionId: 'yeyu', itemId: 'raven_quill_charm' });
     g.step(1);
     expect(bondOf(g.world, 'yeyu')).toBe(start + 4 + 16);
-    expect(g.world.meta.flags['bond.yeyu.20']).toBe(true);
-    expect(g.world.meta.flags['bond.yeyu']).toBe(start + 20);
+    // the bond is party state (door keys of type bond read it), not a world flag
+    expect(bondReached(g.world, 'yeyu', 20)).toBe(true);
+    expect(bondReached(g.world, 'yeyu', 40)).toBe(false);
+    expect(Object.keys(g.world.meta.flags).some((k) => k.startsWith('bond.'))).toBe(false);
   });
 
   it('rejects gifts that are missing or not giftable', () => {

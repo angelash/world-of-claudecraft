@@ -19,6 +19,7 @@
 | `goddess/` | 六司人格卡（含神庭席位 `courtSeat`、剧情职能 `roles`、信物、触及方式）、造主、神权动作、天启、导演菜单 |
 | `quests/` | 任务、幕次、剧情物品与证据、揭示台账知识、名词 |
 | `scenes/` | 神庭地图、序章、各幕过场、神庭审判、结局与后日谈 |
+| `registry/` | 世界状态变量注册表 `vars.json`：规范名、族、别名、值别名、换算与旧任务编号，由 `npm run registry` 从 `../docs/40_design/world_state_registry.md` 生成，不手改；`npm run registry:check` 核对它是最新的且数据与代码只用规范名 |
 | `autoplay/` | 无模型通关的自动玩家路线表（`routes.json`：各结局路线的场景选择、猎场、商店、保留物资、城建与政策计划），随内容批次维护，由 `tests/content_id_guard.test.ts` 对照内容校验 |
 
 地图文件除逻辑层（地点、出口、刷新点）与空间层（格子与图例）外，可带外观层：`style`（风格包）、`looks`（逐地点建筑外观）、

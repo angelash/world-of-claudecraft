@@ -334,7 +334,7 @@ describe('settlement chain', () => {
       .map((e) => e.kind === 'building.completed' && e.data.defId);
     expect(done).toContain('communal_stove');
     expect(done).toContain('farm');
-    expect(engine.world.meta.flags['city.village_founded']).toBe(true);
+    expect(engine.world.meta.flags['a2_village_founded']).toBe(true);
     const site = engine.world.slices.city.sites[SITE];
     expect(site?.stage).toBe('village');
     // stove 10 stone + 10 wood, 4 shacks 40 wood, farm 5 wood from the 80 wood / 40 stone ruin stock
@@ -612,13 +612,13 @@ describe('officials and autonomy', () => {
     stepDays(engine, 1);
     expect(typeof engine.world.meta.flags.village_autonomy).toBe('number');
     const village = engine.world.slices.city.sites[SITE]?.autonomy.value ?? 0;
-    run(engine, 'flag.set', { key: 'city.territory_granted', value: true }, events);
+    run(engine, 'flag.set', { key: 'a3_territory_granted', value: true }, events);
     expect(engine.world.slices.city.sites[SITE]?.stage).toBe('territory');
     expect(engine.world.meta.flags.territory_autonomy).toBe(Math.round(10 + village * 0.4));
     // the territory zones east of the creek open up
     expect(previewPlacement(engine.world, engine.content, SITE, 'shack', 41, 12).ok).toBe(true);
     expect(engine.world.meta.flags.autonomy).toBeUndefined();
-    run(engine, 'flag.set', { key: 'slg.nation_founded', value: true }, events);
+    run(engine, 'flag.set', { key: 'a4_nation_founded', value: true }, events);
     expect(typeof engine.world.meta.flags.autonomy).toBe('number');
     expect(
       run(engine, 'city.assign', { siteId: 'nation', domain: 'research', npcId: 'maeve' }, events)

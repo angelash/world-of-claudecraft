@@ -7,6 +7,7 @@ import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
+import { referencedVars } from '../quests/conditions';
 import { playerEntity } from '../world';
 import { applyDecision, decideHour, passHour, settleMoney } from './actions';
 import { runChats } from './chat';
@@ -40,7 +41,7 @@ function presenceFlags(ctx: SystemContext): Set<string> {
     set = new Set<string>();
     for (const p of ctx.content.npcs ?? []) {
       for (const f of p.requiresFlags ?? []) set.add(f);
-      for (const c of p.hideWhen ?? []) set.add(c.split('=')[0] as string);
+      for (const c of p.hideWhen ?? []) for (const v of referencedVars(c)) set.add(v);
     }
     relevantFlagCache.set(ctx.content, set);
   }
@@ -125,7 +126,7 @@ export const system: GameSystem = {
     'flag.changed'(ctx, e) {
       const k = e.data.key;
       if (k.startsWith('companion.') || presenceFlags(ctx).has(k)) syncPresence(ctx);
-      if (k.startsWith('npc.focus.')) recomputeTiers(ctx);
+      if (k.startsWith('ai.focus.')) recomputeTiers(ctx);
     },
     'entity.died'(ctx, e) {
       const ref = e.data.ref;

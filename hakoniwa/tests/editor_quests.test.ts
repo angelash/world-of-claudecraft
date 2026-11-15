@@ -89,11 +89,11 @@ describe('data index', () => {
 
   it('records scene storeAs answers and { flag: { key } } items as writes', () => {
     const refs = indexData('scenes/p.json', [
-      { type: 'input', storeAs: 'prologue.player_name' },
+      { type: 'input', storeAs: 'player.name' },
       { id: 'm', flag: { key: 'director.lost_item', value: true } },
     ]);
     expect(refs.map((r) => `${r.kind}:${r.key}:${String(r.value)}`)).toEqual([
-      'write:prologue.player_name:undefined',
+      'write:player.name:undefined',
       'write:director.lost_item:true',
     ]);
   });
