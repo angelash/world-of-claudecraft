@@ -5,6 +5,7 @@
 // nothing here touches the file system.
 
 import { join } from 'node:path';
+import { isRunId, isSha256, isSlotId } from '../src/core/save/header';
 
 /**
  * The user data directory name. Fixed: it never follows the product display name or the
@@ -31,36 +32,11 @@ export const TMP_SUFFIX = '.tmp';
 export const PREV_SUFFIX = '.prev';
 export const BAD_SUFFIX = '.bad';
 
-/**
- * Slot ids (5.1): three rotating autosaves, one quick save, twenty manual saves and the
- * ironman save. The slot id is a file name, so only these are ever accepted.
- */
-export const SLOT_IDS: readonly string[] = Object.freeze([
-  'quick',
-  'auto_1',
-  'auto_2',
-  'auto_3',
-  ...Array.from({ length: 20 }, (_, i) => `manual_${String(i + 1).padStart(2, '0')}`),
-  'ironman',
-]);
+// Slot ids (5.1), run ids and hashes follow the save header's rules (one copy, shared with
+// the save container): the slot id is a file name, so only the listed ids are accepted.
+export { isRunId, isSha256, isSlotId, SLOT_IDS } from '../src/core/save/header';
 
-const SLOT_SET: ReadonlySet<string> = new Set(SLOT_IDS);
-const RUN_ID = /^r-[0-9a-f]{8,32}$/;
-const SHA256 = /^[0-9a-f]{64}$/;
 const SAVE_FILE = /^([0-9a-f]{64})\.(hks|hkg)$/;
-
-export function isSlotId(value: unknown): value is string {
-  return typeof value === 'string' && SLOT_SET.has(value);
-}
-
-/** Run ids are generated at new game: `r-` and 8 to 32 lowercase hex digits. */
-export function isRunId(value: unknown): value is string {
-  return typeof value === 'string' && RUN_ID.test(value);
-}
-
-export function isSha256(value: unknown): value is string {
-  return typeof value === 'string' && SHA256.test(value);
-}
 
 /** Content-addressed file name: 64 lowercase hex digits plus the kind's fixed suffix. */
 export function saveFileName(sha256: string, kind: SaveFileKind): string {

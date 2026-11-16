@@ -99,9 +99,21 @@ export interface PlatformWindow {
   onEvent(listener: (event: HkEvent) => void): () => void;
 }
 
+/** Whether saves and settings outlive this page (the web host may fall back to memory). */
+export interface PlatformDurability {
+  saves: boolean;
+  settings: boolean;
+}
+
 export interface PlatformHost {
   readonly kind: PlatformKind;
   info(): Promise<PlatformInfo>;
+  /**
+   * Where saves and settings live: the desktop always on disk; the web host in IndexedDB
+   * and local storage when the browser allows them, otherwise in memory until the page
+   * closes (the title screen says so). Opens the save store when it is not open yet.
+   */
+  durability(): Promise<PlatformDurability>;
   /** The only way the game reads and writes saves (5.2). */
   readonly saves: SaveBackend;
   readonly settings: SettingsBackend;

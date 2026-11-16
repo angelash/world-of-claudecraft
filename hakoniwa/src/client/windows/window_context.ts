@@ -37,7 +37,10 @@ export interface AiStatusView {
   available: boolean;
   /** whether this running world uses the model (aiMode external) */
   active: boolean;
-  /** degrade level 0..4 */
+  /**
+   * The settings window's five-step display band 0..4 (normal, throttled, saving, key
+   * requests only, rules): the runner's 0..9 degrade ladder through displayLevel (ai_bridge.ts).
+   */
   level: number;
   budgetUsed?: number;
   budgetCap?: number;

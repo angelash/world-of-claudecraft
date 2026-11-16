@@ -68,6 +68,7 @@ import type { ClientSettings, DisplayView } from '../windows/window_context';
 import { FixedStepClock, type Speed } from './clock';
 import { EventRouter } from './event_router';
 import { PlayerInput, type PlayerInputHost } from './player_input';
+import type { LocalSettings, StoredView } from './settings_schema';
 
 export interface SessionHooks {
   /** after every simulation tick */
@@ -81,6 +82,8 @@ export interface SessionOptions {
   adapters: ClientAdapters;
   saves: ClientSaves;
   settings: ClientSettings;
+  /** The quality tier and camera view, kept in the local settings part (SettingsStore). */
+  prefs: SessionPrefs;
   hooks?: SessionHooks;
   /** first message-log line (for example "loaded slot 2") */
   greeting?: string;
@@ -89,26 +92,13 @@ export interface SessionOptions {
   toTitle(): void;
 }
 
+/** The slice of the settings store a session reads and writes. */
+export interface SessionPrefs {
+  readonly local: Readonly<Pick<LocalSettings, 'quality' | 'view'>>;
+  updateLocal(patch: { quality?: QualityId; view?: StoredView | null }): boolean;
+}
+
 const HUD_INTERVAL_MS = 250;
-const VIEW_KEY = 'hk.view';
-const QUALITY_KEY = 'hk.quality';
-
-function readPref(key: string): unknown {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writePref(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage full or blocked: preferences simply do not persist.
-  }
-}
 
 function isTouch(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -177,7 +167,7 @@ export class GameSession implements PlayerInputHost {
     this.adapters = opts.adapters;
     this.view = createGameView(opts.engine);
     this.commands = createGameCommands(opts.engine);
-    const q = readPref(QUALITY_KEY);
+    const q = opts.prefs.local.quality;
     this.quality = isQualityId(q) ? q : 'auto';
     const quality = resolveQuality(this.quality, { touch: isTouch(), webgl: this.webgl });
     this.grain = quality.grain;
@@ -322,7 +312,7 @@ export class GameSession implements PlayerInputHost {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     clearTimeout(this.prefsTimer);
-    if (this.viewPrefs) writePref(VIEW_KEY, this.viewPrefs);
+    if (this.viewPrefs) this.storeView();
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibility);
     document.removeEventListener('webglcontextrestored', this.onContextRestored, true);
@@ -358,8 +348,16 @@ export class GameSession implements PlayerInputHost {
   // Camera view and quality (art_pipeline.md 1.2 and 2.11)
 
   private prefs(): ViewPrefs {
-    if (!this.viewPrefs) this.viewPrefs = sanitizePrefs(readPref(VIEW_KEY), this.renderer.deviceH);
+    if (!this.viewPrefs) {
+      this.viewPrefs = sanitizePrefs(this.opts.prefs.local.view, this.renderer.deviceH);
+    }
     return this.viewPrefs;
+  }
+
+  private storeView(): void {
+    const p = this.viewPrefs;
+    if (p)
+      this.opts.prefs.updateLocal({ view: { stepIndex: p.stepIndex, pitch: p.pitch, yaw: p.yaw } });
   }
 
   private setPrefs(p: ViewPrefs): void {
@@ -367,7 +365,7 @@ export class GameSession implements PlayerInputHost {
     this.viewPrefs = p;
     // Orbiting changes the prefs on every pointer move; store them once it settles.
     clearTimeout(this.prefsTimer);
-    this.prefsTimer = setTimeout(() => writePref(VIEW_KEY, this.viewPrefs), 400);
+    this.prefsTimer = setTimeout(() => this.storeView(), 400);
     if (turned) this.actions.viewTurned();
   }
 
@@ -407,7 +405,7 @@ export class GameSession implements PlayerInputHost {
 
   setQuality(id: QualityId): void {
     this.quality = id;
-    writePref(QUALITY_KEY, id);
+    this.opts.prefs.updateLocal({ quality: id });
     const q = resolveQuality(id, { touch: isTouch(), webgl: this.webgl });
     this.grain = q.grain;
     const want = q.tier === 'flat' ? 'flat' : 'hd2d';

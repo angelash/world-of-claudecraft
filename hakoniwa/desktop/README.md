@@ -19,7 +19,10 @@ Electron 用仓库根目录安装的版本（`../node_modules/electron`），不
 | `shell.ts` | 生命周期、用户数据目录、单实例、`app://` 协议、权限与导航封锁、游戏窗口、通道注册、密钥录入窗、网关 | 注入 Electron，测试用假实现驱动 |
 | `security.ts` | 第 2.6 节安全清单：协议权限、`webPreferences`、内容安全策略、权限白名单、导航与新窗口规则、发送方核对、外链白名单、构建通道、熔断位 | 是 |
 | `app_protocol.ts` | `app://hakoniwa`（游戏）与 `app://key-entry`（录入窗）到文件的映射，无回退页，每个响应带内容安全策略 | 是 |
-| `paths.ts` | 用户数据目录 `HakoniwaChronicle` 与其下的设置、密钥、台账、日志、存档路径；槽位、局编号、哈希与文件名规则（供存档容器与设置存储使用） | 是 |
+| `paths.ts` | 用户数据目录 `HakoniwaChronicle` 与其下的设置、密钥、台账、日志、存档路径；文件名规则；槽位、局编号与哈希的规则直接取自存档头 `src/core/save/header.ts`（只有一份） | 是 |
+| `settings.ts` | 设置文件 `settings.sync.json`、`settings.local.json`：启动时同步读入并缓存，按分区排队写临时文件、落盘后改名；损坏的文件改名为 `.bad` 后按默认值；更新版本写的文件只读不写；逐字段校验用渲染进程同一份 `src/client/app/settings_schema.ts`，`llm` 分区用 `src/ai/llm_config/migrate.ts`；窗口与安装 ID 两个字段只由壳写（页面写入时保留壳的值）；页面送来的"更新版本"`llm` 分区不被信任 | 是（文件读写可注入） |
+| `saves.ts` | 文件存档：`ContainerBackend` 跑在 `NodeFsStorage(<userData>/saves)` 上，每个操作都记账，退出时可等在途存档提交 | 是 |
+| `window_state.ts` | 窗口的记忆：首次启动打包版全屏、开发运行窗口；之后用玩家上次选的模式，窗口模式记位置与大小，显示器不在时回到主显示器 | 是 |
 | `logging.ts` | 日志脱敏与 5MB 轮转 | 是 |
 | `rate_limit.ts` | 通道频率上限 | 是 |
 | `ipc/names.ts`、`ipc/channels.ts` | `hk:*` 通道白名单：方向、载荷校验、体积与频率上限 | 是 |
@@ -32,13 +35,21 @@ Electron 用仓库根目录安装的版本（`../node_modules/electron`），不
 | `pack_config.ts` | `pack:win` 的 electron-builder 配置、暂存包的 `package.json`、`hkBuild` 盖章、熔断位读回比对 | 是 |
 | `build.ts`、`launch.ts`、`pack.ts` | 构建、启动与打包脚本（Node 直接运行；`pack.ts` 经 Vite 模块运行器加载 `pack_config.ts`） | 否 |
 
-## 骨架的边界
+## 已接通与未接通
 
-本目录目前是骨架（PK-M0-21）。以下通道已有白名单与载荷校验，处理器先回答 `not_implemented`，由后续包填入：
-存档 `hk:save.*`（PK-M0-16）、设置 `hk:settings.*`（PK-M0-20）、Steam `hk:steam.*`（PK-M2-02）、诊断与崩溃 `hk:diag.*`、`hk:crash.send`（PK-M2-03）。
+- 设置 `hk:settings.*`（PK-M0-20）：`settings.ts`；读不了的文件（不是缺失也不是损坏）回答 `unavailable`，页面不会写它。壳另把窗口位置、大小、
+  全屏选择（F11、Alt+Enter、`hk:window.mode`）写进本机份，启动时据此开窗；本机份的 `gpu` 为 `system` 时不加高性能显卡开关（救援仍可用 `HK_DISABLE_GPU_FORCE=1`）。
+  帧率上限只有页面一个写入方（经 `hk:settings.set` 存进本机份）；`hk:window.frameCap` 只让壳按它运行，壳启动时从存下的值开始。
+  退出前等在途存档提交与设置写完（至多 10 秒，2.7）。
+- 存档 `hk:save.*`：主进程里的 `ContainerBackend` 跑在 `NodeFsStorage(<userData>/saves)` 上，写入方编号是 `w-` 加本机份的安装 ID（首次启动生成），写入方名称是主机名；
+  返回值就是容器自己的结果（失败也作为值返回），与 `src/platform/desktop_host.ts` 的解析一致。`hk:save.importDemo`（试玩存档导入，4.9）仍回答 `not_implemented`。
+- 大模型请求的连接核对（7.4 第 3 项）读本机份的 `llm` 分区：连接存在且至少有一个启用的模型才转给网关。
+
+以下通道已有白名单与载荷校验，处理器先回答 `not_implemented`，由后续包填入：
+Steam `hk:steam.*`（PK-M2-02）、诊断与崩溃 `hk:diag.*`、`hk:crash.send`（PK-M2-03）、`hk:save.importDemo`。
 大模型网关只有通道与两级守卫：主进程核对来源、形状与体积、连接编号；网关复核信封与规格并在内存中保存本次运行录入的密钥。
 提供方适配、守卫第 4 到 6 项、记账簿、`safeStorage` 落盘与台账属于 PK-M1-01。
-渲染进程侧的平台接口 `PlatformHost` 在 `src/platform/`（桌面实现包装 `window.hk`，类型取自 `bridge.ts`）；把它接进客户端属于 PK-M0-20，在那之前游戏代码不知道自己运行在桌面壳里。
+渲染进程侧的平台接口 `PlatformHost` 在 `src/platform/`（桌面实现包装 `window.hk`，类型取自 `bridge.ts`）；客户端入口 `src/client/app/main.ts` 用 `selectPlatformHost` 选实现，存档、设置与大模型都经它走。
 签名、图标与夜间流水线的打包冒烟属于 PK-M1-09。
 
-测试：`tests/desktop_security.test.ts`、`tests/desktop_ipc.test.ts`、`tests/desktop_storage_layout.test.ts`、`tests/desktop_pack.test.ts`（假 Electron 在 `tests/desktop_fakes.ts`）。
+测试：`tests/desktop_security.test.ts`、`tests/desktop_ipc.test.ts`、`tests/desktop_storage_layout.test.ts`、`tests/desktop_pack.test.ts`、`tests/desktop_settings.test.ts`（设置文件、窗口记忆、存档处理器；假 Electron 在 `tests/desktop_fakes.ts`）。

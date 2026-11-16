@@ -178,6 +178,8 @@ export function createMemoryHost(opts: MemoryHostOptions = {}): MemoryHost {
       contentVersion: 'unknown',
       platform: 'memory',
     }),
+    // Nothing here outlives the test.
+    durability: async () => ({ saves: false, settings: false }),
     saves,
     settings: {
       get: async (part) => {

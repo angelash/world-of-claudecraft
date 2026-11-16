@@ -70,8 +70,11 @@ export const WEB_KEYS = Object.freeze({
   badSuffix: '.bad',
 });
 
-/** hk:settings.set caps a part at 256 KiB; the web host keeps the same cap. */
-export const SETTINGS_MAX_CHARS = 256 * 1024;
+/**
+ * A part is at most 256 KiB (D-088), counted as hk:settings.set counts it: UTF-16, so 128 Ki
+ * characters of JSON. The desktop settings files keep the same cap.
+ */
+export const SETTINGS_MAX_CHARS = 128 * 1024;
 
 const FRAME_CAPS: readonly FrameCap[] = [30, 60, 'display'];
 
@@ -177,7 +180,9 @@ export function webSettings(kv: KeyValueLike): SettingsBackend {
         kv.setItem(key + WEB_KEYS.badSuffix, raw);
         kv.removeItem(key);
       } catch {
-        // Left in place; the next read lands here again.
+        // No copy could be kept (quota): leave the original and refuse, so nothing writes over
+        // it this visit; the next read lands here again.
+        return refused('unavailable');
       }
       return accepted(null);
     },
@@ -210,19 +215,24 @@ export function createWebHost(opts: WebHostOptions): PlatformHost {
   const randomBytes = opts.randomBytes ?? defaultRandomBytes;
   const factory = opts.indexedDB ?? null;
 
+  let savesDurable = false;
   const saves = new LazySaveBackend(async () => {
     let storage: SaveStorage;
     try {
       storage = factory ? await IdbStorage.open(factory, { now }) : new MemoryStorage({ now });
+      savesDurable = factory !== null;
       if (!factory) out?.warn('[platform] no IndexedDB; saves last until the page closes');
     } catch (err) {
       out?.warn('[platform] IndexedDB unavailable; saves last until the page closes', err);
       storage = new MemoryStorage({ now });
     }
+    const writer = { id: webWriterId(kv, randomBytes), name: opts.writerName };
     return new ContainerBackend(storage, {
       now,
-      writer: { id: webWriterId(kv, randomBytes), name: opts.writerName },
+      writer,
       versions: opts.versions,
+      // Another tab of the game may share the database: never share its temp files.
+      tmpTag: hex(randomBytes(4)),
     });
   });
 
@@ -243,6 +253,11 @@ export function createWebHost(opts: WebHostOptions): PlatformHost {
       contentVersion: 'unknown',
       platform: 'web',
     }),
+    durability: async () => {
+      // Listing opens the save store, which decides between IndexedDB and memory.
+      await saves.list().catch(() => []);
+      return { saves: savesDurable, settings: opts.storage != null };
+    },
     saves,
     settings: webSettings(kv),
     llm: { route: 'loopback', endpointAllowed: isLoopbackEndpoint },

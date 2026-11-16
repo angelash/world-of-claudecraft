@@ -254,6 +254,10 @@ export const T = {
     unreadable: '这个存档已损坏，无法读取',
     memoryOnly: '浏览器存储不可用：这次的存档在关闭页面后会丢失',
   },
+  prefs: {
+    newerVersion: '设置来自更新版本的游戏：这次对设置的改动不会保存',
+    memoryOnly: '浏览器本地存储不可用：这次对设置的改动在关闭页面后会丢失',
+  },
   menu: {
     resume: '继续游戏',
     saves: '存档与读档',

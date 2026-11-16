@@ -5,7 +5,9 @@
 // gateway utility process. Electron is injected (desktop/main.ts passes the real module),
 // so tests/desktop_security.test.ts drives all of it with fakes and never starts Electron.
 
+import { randomBytes as nodeRandomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { hostname } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import type { BrowserWindowConstructorOptions, CustomScheme } from 'electron';
 import { parseCallSpec } from '../src/ai/providers/call_spec';
@@ -19,6 +21,7 @@ import { failedResult } from './llm_gateway/protocol';
 import { createRotatingLog, type LogFs, type RotatingLog } from './logging';
 import { type StorageLayout, storageLayout, userDataDir } from './paths';
 import { RateLimiter } from './rate_limit';
+import { type DesktopSaves, EXIT_SAVE_WAIT_MS, openDesktopSaves } from './saves';
 import {
   APP_SCHEMES,
   type BuildInfo,
@@ -40,6 +43,14 @@ import {
   type SenderFrameLike,
   windowOpenResponse,
 } from './security';
+import { type DesktopSettings, openDesktopSettings } from './settings';
+import {
+  initialPlacement,
+  nextWindowSettings,
+  type Rect,
+  sameWindowSettings,
+  type WindowObservation,
+} from './window_state';
 
 // ---------------------------------------------------------------------------
 // The slice of Electron the shell uses (structural, so fakes can stand in).
@@ -72,6 +83,11 @@ export interface BrowserWindowLike extends KeyWindowLike {
   isMinimized(): boolean;
   setFullScreen(flag: boolean): void;
   isFullScreen(): boolean;
+  /** Bounds of the normal (restored) state, also while maximized or fullscreen. */
+  getNormalBounds?(): Rect;
+  getBounds?(): Rect;
+  isMaximized?(): boolean;
+  maximize?(): void;
 }
 
 export interface IpcEventLike {
@@ -120,6 +136,8 @@ export interface ShellElectron {
   Menu: { setApplicationMenu(menu: null): void };
   clipboard: { readText(): string };
   powerMonitor: { on(event: 'suspend' | 'resume', listener: () => void): unknown };
+  /** Display work areas for the remembered window position (2.7); usable once ready. */
+  screen?: { getAllDisplays(): readonly { workArea: Rect }[] };
   utilityProcess: {
     fork(modulePath: string, args?: string[], options?: { serviceName?: string }): UtilityChild;
   };
@@ -143,6 +161,10 @@ export interface ShellOptions {
   /** Mirror logs to the console (development runs). */
   echo?: boolean;
   now?: () => number;
+  /** Random bytes for the install id; default node:crypto. */
+  randomBytes?: (n: number) => Uint8Array;
+  /** How long window moves and resizes settle before they are written; default 500 ms. */
+  windowSaveDelayMs?: number;
   fs?: LogFs & {
     mkdirSync(path: string, opts: { recursive: true }): unknown;
     isFile(path: string): boolean;
@@ -157,6 +179,8 @@ export interface ShellHandle {
   readonly ready: Promise<void>;
   layout(): StorageLayout | null;
   mainWindow(): BrowserWindowLike | null;
+  /** The settings files (null when the shell refused to start). */
+  settings(): DesktopSettings | null;
 }
 
 const nodeFs = {
@@ -186,6 +210,7 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     env: opts.env,
   });
   let layout: StorageLayout | null = null;
+  let saves: DesktopSaves | null = null;
   let mainLog: RotatingLog | null = null;
   let win: BrowserWindowLike | null = null;
   const early: string[] = [];
@@ -200,6 +225,7 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     ready: Promise.resolve(),
     layout: () => null,
     mainWindow: () => null,
+    settings: () => null,
   });
 
   // 2.6 remote debugging: only the e2e channel may be started with a debugging port.
@@ -217,7 +243,15 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     return refused();
   }
 
-  for (const name of gpuSwitches(opts.env)) app.commandLine.appendSwitch(name);
+  // 13.10: both settings parts are read now, so the GPU preference and the window can use them.
+  const settings = openDesktopSettings({
+    path: (part) => storageLayout(app.getPath('userData')).settings(part),
+    log,
+    internalBuild: build.channel === 'internal' || build.channel === 'e2e',
+  });
+  for (const name of gpuSwitches(opts.env, settings.local().gpu)) {
+    app.commandLine.appendSwitch(name);
+  }
   electron.protocol.registerSchemesAsPrivileged(APP_SCHEMES);
   if (opts.platform === 'win32' || opts.platform === 'linux') {
     electron.Menu.setApplicationMenu(null);
@@ -229,6 +263,23 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     win.focus();
   });
   app.on('window-all-closed', () => app.quit());
+  // 2.7: a save in progress commits and the last settings writes (window bounds) land before
+  // the process ends, for at most EXIT_SAVE_WAIT_MS.
+  let flushedForQuit = false;
+  app.on('will-quit', ((event?: { preventDefault?: () => void }) => {
+    if (flushedForQuit) return;
+    flushedForQuit = true;
+    event?.preventDefault?.();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<void>((r) => {
+      timer = setTimeout(r, EXIT_SAVE_WAIT_MS);
+    });
+    const pending = Promise.all([saves?.idle(), settings.flush()]);
+    void Promise.race([pending, limit]).finally(() => {
+      clearTimeout(timer);
+      app.quit();
+    });
+  }) as never);
 
   // 2.6 navigation and new windows, for every web contents the app ever creates.
   app.on('web-contents-created', ((_event: unknown, contents: WebContentsLike) => {
@@ -308,19 +359,40 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
       }),
     );
 
+    // 5.3: this machine's writer id comes from the install id (13.10), made once.
+    let installId = settings.local().installId;
+    if (!installId) {
+      installId = Buffer.from((opts.randomBytes ?? nodeRandomBytes)(8)).toString('hex');
+      void settings.patchLocal({ installId });
+    }
+    // 5.2: the save container over <userData>/saves, behind hk:save.*.
+    saves = openDesktopSaves(layout.savesDir, {
+      now: () => Date.now(),
+      writer: { id: `w-${installId}`, name: hostname() },
+      // renameVersion 0 until PK-M0-18 lands RENAME_VERSION, as in the page (0 applies every
+      // rename on load, which leaves a current world as it is).
+      versions: { gameVersion: build.version, renameVersion: 0, build: build.build },
+    });
+
     registerGameChannels({
       electron,
       limiter,
       log,
+      connectionConfigured: (id) => settings.connectionConfigured(id),
       handlers: createHandlers({
         build,
         platform: opts.platform,
         gateway,
         enterKey: (connectionId, target) => keyEntry.open(connectionId, target),
         openExternal: (url) => electron.shell.openExternal(url),
-        setFullScreen: (on) => win?.setFullScreen(on),
+        setFullScreen: (on) => {
+          win?.setFullScreen(on);
+          windowState?.modeChanged();
+        },
         isFullScreen: () => win?.isFullScreen() ?? false,
         rendererLog,
+        saves: saves.backend,
+        settings,
       }),
       forwardRequest: (spec, port) => {
         try {
@@ -335,8 +407,13 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     electron.powerMonitor.on('suspend', () => push({ kind: 'suspend' }));
     electron.powerMonitor.on('resume', () => push({ kind: 'resume' }));
 
-    win = createGameWindow(electron, build, opts, log, push);
+    win = createGameWindow(electron, build, opts, log, push, settings, () =>
+      windowState?.modeChanged(),
+    );
+    windowState = trackWindow(win, settings, opts.windowSaveDelayMs ?? 500);
   });
+
+  let windowState: WindowTracker | null = null;
 
   return {
     build,
@@ -344,7 +421,56 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     ready: ready.then(() => undefined),
     layout: () => layout,
     mainWindow: () => win,
+    settings: () => settings,
   };
+}
+
+interface WindowTracker {
+  /** The player toggled fullscreen: record the mode now. */
+  modeChanged(): void;
+}
+
+/** Keep the window's mode, position and size in the local settings part (2.7). */
+function trackWindow(
+  win: BrowserWindowLike,
+  settings: DesktopSettings,
+  delayMs: number,
+): WindowTracker {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const observe = (): WindowObservation => {
+    const fullscreen = win.isFullScreen();
+    const maximized = win.isMaximized?.() ?? false;
+    const minimized = win.isMinimized();
+    const normal = win.getNormalBounds?.() ?? (maximized ? null : (win.getBounds?.() ?? null));
+    return { fullscreen, maximized, minimized, normalBounds: normal };
+  };
+  // What was last asked to be stored: writes land later, and each one replaces the whole field.
+  let last = settings.local().window;
+  const record = (modeChanged: boolean) => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (win.isDestroyed()) return;
+    const next = nextWindowSettings(last, observe(), modeChanged);
+    if (sameWindowSettings(last, next)) return;
+    const before = last;
+    last = next;
+    void settings.patchLocal({ window: next }).then((r) => {
+      // Not stored: the next change compares against what is really on disk.
+      if (!r.ok && last === next) last = before;
+    });
+  };
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => record(false), delayMs);
+  };
+  for (const event of ['resize', 'move']) win.on(event, later);
+  for (const event of ['maximize', 'unmaximize']) win.on(event, () => record(false));
+  // Fullscreen also changes from the page (hk:window.mode) and from the system's own controls.
+  for (const event of ['enter-full-screen', 'leave-full-screen']) {
+    win.on(event, () => record(true));
+  }
+  win.on('close', () => record(false));
+  return { modeChanged: () => record(true) };
 }
 
 function answerPort(port: unknown, result: ReturnType<typeof failedResult>): void {
@@ -363,16 +489,38 @@ function createGameWindow(
   opts: ShellOptions,
   log: (level: 'error' | 'warn' | 'info', m: string) => void,
   push: (event: Record<string, unknown>) => void,
+  settings: DesktopSettings,
+  onFullscreenToggle: () => void,
 ): BrowserWindowLike {
-  const win = new electron.BrowserWindow(
-    gameWindowOptions({
-      preload: opts.preload,
-      channel: build.channel,
-      fullscreen: build.packaged,
-    }),
-  );
+  let workAreas: Rect[] | null = null;
+  try {
+    workAreas = electron.screen ? electron.screen.getAllDisplays().map((d) => d.workArea) : null;
+  } catch {
+    workAreas = null;
+  }
+  const base = gameWindowOptions({
+    preload: opts.preload,
+    channel: build.channel,
+    fullscreen: build.packaged,
+  });
+  // 2.7: the remembered mode, position and size (first start: packaged builds fullscreen).
+  const place = initialPlacement(settings.local().window, {
+    packaged: build.packaged,
+    workAreas,
+    minWidth: base.minWidth ?? 0,
+    minHeight: base.minHeight ?? 0,
+  });
+  const win = new electron.BrowserWindow({
+    ...base,
+    ...(place.bounds ?? {}),
+    fullscreen: place.fullscreen,
+  });
+  // Maximizing shows a hidden window, so it waits for the first paint.
   const tools = devToolsAllowed(build.channel);
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => {
+    if (place.maximize && !place.fullscreen) win.maximize?.();
+    win.show();
+  });
   win.webContents.on('before-input-event', ((
     event: InputEventLike,
     input: Parameters<typeof isFullscreenToggle>[0],
@@ -380,6 +528,7 @@ function createGameWindow(
     if (isFullscreenToggle(input)) {
       event.preventDefault();
       win.setFullScreen(!win.isFullScreen());
+      onFullscreenToggle();
     } else if (tools && isDevToolsToggle(input)) {
       event.preventDefault();
       if (win.webContents.isDevToolsOpened()) win.webContents.closeDevTools();
@@ -410,6 +559,8 @@ function registerGameChannels(ctx: {
   electron: ShellElectron;
   limiter: RateLimiter;
   log: (level: 'error' | 'warn' | 'info', m: string) => void;
+  /** A saved connection with enabled models (7.4 item 3), from the local settings part. */
+  connectionConfigured: (connectionId: string) => boolean;
   handlers: ReturnType<typeof createHandlers>;
   forwardRequest: (spec: unknown, port: unknown) => void;
 }): void {
@@ -478,7 +629,7 @@ function registerGameChannels(ctx: {
           answerPort(port, failedResult('bad_request', spec.error));
           return;
         }
-        if (!connectionConfigured(spec.value.connectionId)) {
+        if (!ctx.connectionConfigured(spec.value.connectionId)) {
           answerPort(
             port,
             failedResult('bad_request', 'connection not configured', 'not_configured'),
@@ -489,15 +640,6 @@ function registerGameChannels(ctx: {
       });
     }
   }
-}
-
-/**
- * Saved and enabled connections (7.4 item 3). None exist until the settings store
- * (PK-M0-20) and the model settings screens (PK-M1-01, PK-M1-02) land, so every request is
- * answered not_configured here and the world falls back to its rules (D-010).
- */
-function connectionConfigured(_connectionId: string): boolean {
-  return false;
 }
 
 function registerKeyEntryChannels(ctx: {

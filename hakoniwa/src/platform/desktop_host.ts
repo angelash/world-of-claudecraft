@@ -125,6 +125,8 @@ export function createDesktopHost(hk: HkBridge): PlatformHost {
       }
       return { kind: 'desktop', ...r.value };
     },
+    // Saves and settings are files in the user data directory (5.2).
+    durability: async () => ({ saves: true, settings: true }),
     saves: desktopSaves(hk),
     settings: {
       get: async (part) => settingsAnswer(await hk.settings.get({ part }), true),

@@ -234,9 +234,16 @@ export function resolveBuildInfo(input: {
 /** Rescue switches the shell honours in every build (2.6, 2.7). */
 export const RESCUE_ENV: readonly string[] = ['HK_DISABLE_GPU_FORCE'];
 
-/** Chromium switches for the GPU preference (2.7): high performance unless rescued. */
-export function gpuSwitches(env: Readonly<Record<string, string | undefined>>): string[] {
-  return env.HK_DISABLE_GPU_FORCE === '1' ? [] : ['force_high_performance_gpu'];
+/**
+ * Chromium switches for the GPU preference (2.7): high performance unless the player chose
+ * "let the system choose" (`gpu` in settings.local.json) or the rescue switch is set.
+ */
+export function gpuSwitches(
+  env: Readonly<Record<string, string | undefined>>,
+  preference: 'high_performance' | 'system' = 'high_performance',
+): string[] {
+  if (env.HK_DISABLE_GPU_FORCE === '1' || preference === 'system') return [];
+  return ['force_high_performance_gpu'];
 }
 
 /**
