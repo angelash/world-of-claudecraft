@@ -91,7 +91,10 @@ describe('gate step table', () => {
       'typecheck',
       'test',
       'prompts_check',
+      'registry_check',
+      'content_validate',
       'build',
+      'build_release',
       'playthrough',
     ]);
     expect(new Set(GATE_STEPS.map((s) => s.id)).size).toBe(GATE_STEPS.length);
@@ -102,7 +105,10 @@ describe('gate step table', () => {
     expect(runs.typecheck).toEqual({ kind: 'npm', script: 'typecheck' });
     expect(runs.test).toEqual({ kind: 'npm', script: 'test' });
     expect(runs.prompts_check).toEqual({ kind: 'npm', script: 'prompts:check' });
+    expect(runs.registry_check).toEqual({ kind: 'npm', script: 'registry:check' });
+    expect(runs.content_validate).toEqual({ kind: 'node', args: ['tools/content/validate.ts'] });
     expect(runs.build).toEqual({ kind: 'npm', script: 'build' });
+    expect(runs.build_release).toEqual({ kind: 'npm', script: 'build:release' });
     expect(runs.playthrough).toEqual({ kind: 'npm', script: 'playthrough' });
   });
 

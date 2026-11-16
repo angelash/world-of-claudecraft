@@ -65,9 +65,24 @@ export const GATE_STEPS: readonly GateStep[] = [
     prepare: { unlessExists: 'assets/prompts/out', run: { kind: 'npm', script: 'prompts' } },
   },
   {
+    id: 'registry_check',
+    title: 'variable registry current and data, code free of aliases',
+    run: { kind: 'npm', script: 'registry:check' },
+  },
+  {
+    id: 'content_validate',
+    title: 'content validators V1 to V10 on data/',
+    run: { kind: 'node', args: ['tools/content/validate.ts'] },
+  },
+  {
     id: 'build',
     title: 'game and editor build',
     run: { kind: 'npm', script: 'build' },
+  },
+  {
+    id: 'build_release',
+    title: 'release build (game entry only) with the bundle leak scan',
+    run: { kind: 'npm', script: 'build:release' },
   },
   {
     id: 'playthrough',
