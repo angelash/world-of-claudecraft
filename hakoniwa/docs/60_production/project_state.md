@@ -22,7 +22,7 @@
 
 ## 1. 当前里程碑
 
-**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-28、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
+**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-14、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-28、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
@@ -37,7 +37,7 @@
 | MA-09 存档迁移 | PASS | 存档容器（PK-M0-16）加迁移链、重命名表、切片校验与四级恢复（PK-M0-18）：发行工程第 10.4 节的迁移链、重命名表、损坏注入、向前不兼容全部有测试；客户端改走恢复流程与铁人界面在 PK-M1-22 |
 | MA-10 节奏与平衡 | 未开始 | 任务经验与首领倍率未按成长文档重标（PK-M0-29） |
 | MA-11 素材闸门 | 部分 | 导入管线已建（`npm run assets:*`，PK-M0-08、PK-M0-09）；PT-07 样板未生成（PK-M0-11），`ART_GATE=M0` 列出 51 条缺失 |
-| MA-12 界面与输入 | 未开始 | 文本键与字符串表未建（PK-M0-14、PK-M0-15） |
+| MA-12 界面与输入 | 部分 | 内核与系统文字已全部是文本键、字符串表在 `locales/zh-Hans/`（PK-M0-14）；界面字符串表、窗口编号、键位核心与伪本地化在 PK-M0-15 |
 | MA-14 质量门 | PASS | `npm run gate`（`tools/gate.ts`）依次运行禁用字符扫描、改动文件的 Biome、类型检查、默认测试、提示词库检查、构建，`--full` 加无模型通关；仓库根 `.github/workflows/hakoniwa-ci.yml` 在推送时运行（PK-M0-22） |
 
 ---
@@ -63,7 +63,7 @@
 
 | 层 | 完成度 | 已有实现（稳定路径） | 已知缺口 | 下一步 |
 | --- | --- | --- | --- | --- |
-| 确定性内核 | 80% | `src/core/`：20Hz 固定步长、命名随机流、世界切片与事件、命令队列、AI 请求端口、架构守卫；存档容器 `src/core/save/` 与命令日志分段回放；变量注册表解析器 `src/core/registry/` | 内核与系统里约 1050 行中文字面量；加速档每 tick 全量运行；历法每季 28 日 | PK-M0-14、PK-M0-29、PK-M2-01 |
+| 确定性内核 | 80% | `src/core/`：20Hz 固定步长、命名随机流、世界切片与事件、命令队列、AI 请求端口、架构守卫；存档容器 `src/core/save/` 与命令日志分段回放；变量注册表解析器 `src/core/registry/` | 加速档每 tick 全量运行；历法每季 28 日 | PK-M0-29、PK-M2-01 |
 | 架构债 | 75% | 实体字段只经 `src/systems/world/ports.ts` 写（PK-M0-12）；系统代码不写内容 ID，守卫 `tests/content_id_guard.test.ts`（PK-M0-13）；按需重画（PK-M0-19） | 设置存 localStorage | PK-M0-20 |
 | 战斗 | 45% | `src/systems/combat/`：九职能与编外者伪职业、技能、光环、仇恨、经典公式与位阶威压、魔物 AI、四种首领机制、波次、掉落、退回门内 | 资源池按门授予与技架；首领机制库；物品实例与耐久；死亡五项代价；自有技能编号；组队经验不摊薄；首领同步规则 | PK-M0-29、PK-M1-11 到 PK-M1-13、PK-M1-26 |
 | 千门 | 40% | `src/systems/doors/`：钥、提示、开启关闭、功能解锁、封印松动与躁动 | 门阶曲线；封印三量与按幕封顶；淤塞与门疲；15 个钥原语；19 种未接读取方的功能；危险门仪式；受页之门；诸神之战路径 | PK-M1-14、PK-M2-13、PK-M3-13 |
@@ -80,7 +80,7 @@
 | HD-2D 渲染 | 65% | `src/client/hd2d/` 与 `src/client/render/`：正交斜俯视、像素地面、立体房屋与掀顶（含穹顶、圆锥帐顶、尖塔）、立牌、光照图与动态光、天气、后期链、覆盖层、16 个风格包；平面降级档；素材解析器 `src/client/assets/`（通过的 AI 位图优先，其余退回占位） | 纸娃娃组装器；别名物种换色；地面分块；4 向；远景天幕；战场进 HD-2D；自动降档与超高档开放 | PK-M1-03、PK-M1-24、PK-M2-09、PK-M3-01 |
 | 编辑器与审核工作台 | 60% | `src/editor/`：内容编辑器、地图编辑器、世界检视器、内容检查台、AI 审计台、角色检视、任务与剧情图、平衡实验室 | 批次视图、注册表视图、台词包编辑、HD-2D 内嵌预览、素材浏览、行为树与意图试句台 | PK-M0-28、PK-M1-25、PK-M2-18 |
 | 自动玩家与测试 | 35% | `src/game/autoplay/`；50 个测试文件；`tests/playthrough/` 三项（两条结局路线与回放） | 11 条结局路线；20 种子乘三种条件矩阵；节奏三条路线；基准、端到端、截图、性能回归；存档与模型路径测试 | PK-M1-05、PK-M1-08、PK-M1-10、PK-M3-05 |
-| 本地化 | 5% | 界面文本集中在 `src/shared_ui/text*.ts` | `TextRef`、字符串表、伪本地化、文本检查 | PK-M0-14、PK-M0-15 |
+| 本地化 | 30% | 内核与系统的 `TextRef` 与 `tr`、客户端渲染器 `t`、`locales/zh-Hans/` 的系统字符串表与棘轮守卫 | 界面字符串表 `ui.json`、内容文本表与 `tc`、键类型生成、伪本地化、文本检查 | PK-M0-15 |
 | 音频 | 15% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架 | 播放引擎、五总线实装、环境层、声部池、空间化、分轨 | PK-M1-06 |
 | 工具链 | 70% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/registry/`（`npm run registry`、`registry:check`）、`tools/replay/`、`tools/content/`（目录导入七步与 V1 到 V10 校验）、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取；后续内容批次 | PK-M1-04，内容批次见开发计划第 5 节 |
 | 发行 | 30% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`、未签名的 `npm run pack:win`）；平台接口 `src/platform/` 的三种实现，客户端经它存档与读写设置；桌面主进程的设置与存档处理器 | 打包签名、Steam、崩溃与遥测（含遥测开关）、夜间流水线、网关台账 | PK-M1-01、PK-M1-09，后续见发行工程第 17 节 |
@@ -126,7 +126,6 @@
 | PK-M0-03 任务目录（后）续写 | 第 0 到 1.6 节已写 | 无 |
 | PK-M0-04 设计对账与回写收尾 | 回写、美术裁定与文档换成规范名已提交；决策日志第 3 节的 B 项待关闭 | PK-M0-01 到 PK-M0-03 |
 | PK-M0-07 提示词库收尾 | 生成脚本、规格文件、`promptHash` 与规格后处理已提交；技能、天赋、光环图标未做 | PK-M0-02 |
-| PK-M0-14 内核文本键迁移 | 代理实施中 | 无 |
 | PK-M0-29 历法与成长重标 | 代理实施中 | 无 |
 
 ---
