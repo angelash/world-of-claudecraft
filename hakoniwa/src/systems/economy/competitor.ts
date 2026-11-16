@@ -5,6 +5,7 @@
 // 3.6 ("竞争者守同一规则").
 
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { addItem, itemDef, spendMoney } from '../inventory';
 import { goodDef, isMarketOpen, itemClass, targetStock } from './market';
 import type { CompetitorAction } from './types';
@@ -39,7 +40,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
       kind: 'imitate',
       marketId: first.marketId,
       itemId: recipe.product,
-      note: `金冠商行开始仿制${name}`,
+      note: tr('sys.economy.competitor.imitate', { item: name }),
     });
   }
   for (const market of ctx.content.markets) {
@@ -73,7 +74,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
           kind: 'undercut',
           marketId: market.id,
           itemId: good.itemId,
-          note: `金冠商行在${market.name}抛售${name}压价`,
+          note: tr('sys.economy.competitor.undercut', { market: market.name, item: name }),
         });
       } else if (s.stock < T * rules.hoardBelow && rng.chance(0.3)) {
         const qty = Math.floor(s.stock * rules.hoardShare);
@@ -87,7 +88,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
           kind: 'hoard',
           marketId: market.id,
           itemId: good.itemId,
-          note: `金冠商行在${market.name}囤积${name}`,
+          note: tr('sys.economy.competitor.hoard', { market: market.name, item: name }),
         });
       }
     }
@@ -100,7 +101,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
       day,
       kind: 'offer',
       marketId: rules.marketId,
-      note: '西里尔带着金契上门，报价收购门扉商会三成股份',
+      note: tr('sys.economy.competitor.offer'),
     });
   }
 }

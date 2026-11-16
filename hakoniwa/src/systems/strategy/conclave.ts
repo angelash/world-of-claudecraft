@@ -3,6 +3,7 @@
 // power's stance toward the player decides the summit result, which is written as flags.
 
 import type { SystemContext } from '../../core/system';
+import { type KeyText, tr } from '../../core/text';
 import { declareWar } from './diplomacy';
 import {
   addTreaty,
@@ -28,20 +29,30 @@ const DEFAULT_STAGES: { stage: ConclaveStage; days: number }[] = [
   { stage: 'signing', days: 1 },
 ];
 
-export const STAGE_NAME: Record<ConclaveStage, string> = {
-  invite: '邀请',
-  talks: '游说',
-  summit: '会盟',
-  signing: '签署',
-  done: '结束',
+const STAGE_NAME: Record<ConclaveStage, () => KeyText> = {
+  invite: () => tr('sys.strategy.stage.invite'),
+  talks: () => tr('sys.strategy.stage.talks'),
+  summit: () => tr('sys.strategy.stage.summit'),
+  signing: () => tr('sys.strategy.stage.signing'),
+  done: () => tr('sys.strategy.stage.done'),
 };
 
-export const RESULT_NAME: Record<SummitResult, string> = {
-  alliance: '眠鳞同盟',
-  divided: '分化（眠鳞公约）',
-  crusade: '圣战联军',
-  broken: '破裂',
+const RESULT_NAME: Record<SummitResult, () => KeyText> = {
+  alliance: () => tr('sys.strategy.summit.alliance'),
+  divided: () => tr('sys.strategy.summit.divided'),
+  crusade: () => tr('sys.strategy.summit.crusade'),
+  broken: () => tr('sys.strategy.summit.broken'),
 };
+
+/** Display name of a conclave stage (a fresh text key). */
+export function stageName(stage: ConclaveStage): KeyText {
+  return STAGE_NAME[stage]();
+}
+
+/** Display name of a summit result (a fresh text key). */
+export function resultName(result: SummitResult): KeyText {
+  return RESULT_NAME[result]();
+}
 
 function stages(ctx: SystemContext) {
   return ctx.content.slg_config?.conclaveStages ?? DEFAULT_STAGES;
@@ -57,7 +68,7 @@ export function startConclave(ctx: SystemContext): boolean {
     startDay: s.day,
     stances: {},
   };
-  log(s, '七国会盟的邀请送往各国');
+  log(s, tr('sys.strategy.log.conclave_invited'));
   return true;
 }
 
@@ -105,12 +116,13 @@ function resolve(ctx: SystemContext): void {
     if (result === 'alliance') {
       for (const [k, v] of Object.entries(stances)) {
         if (v >= 30) {
-          addTreaty(s, k, PLAYER, 'alliance', '眠鳞同盟');
+          addTreaty(s, k, PLAYER, 'alliance', tr('sys.strategy.treaty.league'));
           ctx.emit('slg.treaty', { a: k, b: PLAYER, type: 'alliance', signed: true });
         }
       }
     } else if (result === 'divided') {
-      for (const k of Object.keys(stances)) addTreaty(s, k, PLAYER, 'pact', '眠鳞公约');
+      for (const k of Object.keys(stances))
+        addTreaty(s, k, PLAYER, 'pact', tr('sys.strategy.treaty.accord'));
     } else if (result === 'crusade') {
       for (const [k, v] of Object.entries(stances)) if (v < -20) shiftRelation(s, k, PLAYER, -10);
       const church = nationByRole(ctx, 'church');
@@ -119,7 +131,7 @@ function resolve(ctx: SystemContext): void {
       for (const k of Object.keys(stances)) shiftRelation(s, k, PLAYER, -20);
     }
   }
-  log(s, `七国会盟落幕：${RESULT_NAME[result]}`);
+  log(s, tr('sys.strategy.log.conclave_result', { result: resultName(result) }));
   // the summit's registry value (league, accord, crusade, broken) comes from the config;
   // a conclave scene that already settled the summit keeps its result
   if (ctx.flag('a4_summit_result') === undefined) {
@@ -143,5 +155,5 @@ export function advanceConclave(ctx: SystemContext): void {
   }
   conf.stage = next.stage;
   conf.stageEndsDay = s.day + next.days;
-  log(s, `七国会盟进入${STAGE_NAME[next.stage]}阶段`);
+  log(s, tr('sys.strategy.log.conclave_stage', { stage: stageName(next.stage) }));
 }

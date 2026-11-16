@@ -2,7 +2,8 @@
 // scenario list and recent results.
 
 import type { ContentMap } from '../../core/contracts';
-import { PLAN_NAMES } from './ai';
+import { type TextParam, tr } from '../../core/text';
+import { planName } from './ai';
 import { isRanged, regimentRadius } from './combat_math';
 import { kernelData, unitOf } from './data';
 import type {
@@ -28,9 +29,9 @@ export interface RegimentView {
   team: Team;
   controller: 'player' | 'ai';
   typeId: string;
-  typeName: string;
+  typeName: TextParam;
   role: UnitRole;
-  name: string;
+  name: TextParam;
   count: number;
   maxCount: number;
   x: number;
@@ -74,7 +75,7 @@ export interface HeroView {
 export interface BattleView {
   id: string;
   scenarioId: string;
-  name: string;
+  name: TextParam;
   mode: 'manual' | 'auto';
   time: number;
   timeLimit: number;
@@ -88,7 +89,7 @@ export interface BattleView {
     id: string;
     team: Team;
     kind: ObjectiveKind;
-    label: string;
+    label: TextParam;
     progress: number;
     seconds?: number;
     status: 'active' | 'done' | 'failed';
@@ -96,11 +97,11 @@ export interface BattleView {
     /** the hero a kill_hero objective names */
     heroId?: string;
   }[];
-  plans: Partial<Record<Team, { planId: PlanId; name: string }>>;
+  plans: Partial<Record<Team, { planId: PlanId; name: TextParam }>>;
   zones: { id: string; name: string; rect: Rect }[];
   retreat: Record<Team, { x: number; y: number }>;
   log: BattleLogEntry[];
-  outcome: { victor: Victor; reason: string } | null;
+  outcome: { victor: Victor; reason: TextParam } | null;
 }
 
 /**
@@ -114,7 +115,7 @@ export function battleView(world: WorldWithWarfare, content: ContentMap): Battle
   const plans: BattleView['plans'] = {};
   for (const team of ['player', 'enemy'] as Team[]) {
     const p = b.plans[team];
-    if (p) plans[team] = { planId: p.planId, name: PLAN_NAMES[p.planId] };
+    if (p) plans[team] = { planId: p.planId, name: planName(p.planId) };
   }
   return {
     id: b.id,
@@ -214,13 +215,20 @@ export function scenarioList(
 export function pendingScenario(
   world: WorldWithWarfare & { meta: { flags: Record<string, unknown> } },
   content: ContentMap,
-): { id: string; name: string; desc: string; scale: string } | null {
+): { id: string; name: TextParam; desc: TextParam; scale: string } | null {
   const id = String(world.meta.flags['war.pending'] ?? '');
   if (!id) return null;
   const s = content.battle_scenarios?.find((x) => x.id === id);
   if (s) return { id, name: s.name, desc: s.desc, scale: s.scale };
   const custom = world.slices.warfare.custom[id];
-  if (custom) return { id, name: custom.name, desc: '大陆上的一场会战', scale: 'legion' };
+  if (custom) {
+    return {
+      id,
+      name: custom.name,
+      desc: tr('sys.warfare.scenario.continental_desc'),
+      scale: 'legion',
+    };
+  }
   return null;
 }
 

@@ -2,6 +2,7 @@
 // player can do (choices, free text, evidence, or just continue).
 
 import type { ContentMap } from '../../core/contracts';
+import { type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { evaluate, flagResolver } from '../quests/conditions';
 import { presentable } from './court';
@@ -14,7 +15,7 @@ export interface SceneView {
   nodeId: string;
   waiting: SceneWait;
   lines: ShownLine[];
-  choices: { id: string; label: string; hint?: string }[];
+  choices: { id: string; label: TextParam; hint?: string }[];
   input: { prompt: string; maxLength: number } | null;
   court: { goddess: string; presented: string[]; limit: number } | null;
   /** scenes waiting to play after this one */
@@ -45,9 +46,9 @@ export function sceneView(
         ? []
         : presentable(world, content, spec.goddess).map((e) => ({
             id: `${EVIDENCE_PREFIX}${e.id}`,
-            label: `出示：${e.name}`,
+            label: tr('sys.scenes.court.present', { name: e.name }),
           }))),
-      { id: COURT_END, label: '结束质证' },
+      { id: COURT_END, label: tr('sys.scenes.court.end') },
     ];
   }
   return {
@@ -71,7 +72,7 @@ export function sceneView(
 /** The last assembled epilogue (for a credits view). */
 export function epilogueView(
   world: World,
-): { subject: string; year: number; text: string; layer: string }[] {
+): { subject: string; year: number; text: TextParam; layer: string }[] {
   return world.slices.scenes.epilogue.map((e) => ({ ...e }));
 }
 

@@ -1,8 +1,9 @@
 // Read-only views: belief impressions, the player's rumor book, circulating rumors,
 // regional and faction reputation (reputation_and_cognition.md 5 and 11). Everything is
-// banded text; raw numbers are only for the editor workbench.
+// banded text (TextRefs or content strings); raw numbers are only for the editor workbench.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { personaById, personaIndex } from '../npc/personas';
 import { relationOf } from '../npc/relations';
@@ -10,9 +11,9 @@ import { mapById } from '../world';
 import {
   explanationDef,
   isAccepted,
-  STATE_NAMES,
+  stateName,
   subjectName,
-  TIER_LABELS,
+  tierLabel,
   tierOfApparent,
 } from './params';
 import { HEAT_FLOOR } from './rumor';
@@ -29,34 +30,39 @@ export interface BeliefView {
   observerId: string;
   subjectId: string;
   state: BeliefState;
-  stateName: string;
+  stateName: TextParam;
   publicState: BeliefState;
-  publicStateName: string;
+  publicStateName: TextParam;
   /** what this person takes the subject for */
-  identity: string;
+  identity: TextParam;
   explanation: string | null;
   category: ExplainCategory | null;
-  lastFeat: { kind: string; explanation: string } | null;
+  lastFeat: { kind: string; explanation: TextParam } | null;
   /** estimated strength as a tier name */
-  estimate: string;
-  credence: string;
-  log: string[];
+  estimate: TextParam;
+  credence: TextParam;
+  log: TextParam[];
 }
 
-const CATEGORY_NAMES: Record<ExplainCategory, string> = {
-  luck: '运气',
-  cheat: '作弊',
-  gadget: '魔道具',
-  miracle: '神迹',
-  monster: '魔物作祟',
-  conspiracy: '阴谋',
-  real: '真实',
+const CATEGORY_NAMES: Record<ExplainCategory, () => KeyText> = {
+  luck: () => tr('sys.cognition.category.luck'),
+  cheat: () => tr('sys.cognition.category.cheat'),
+  gadget: () => tr('sys.cognition.category.gadget'),
+  miracle: () => tr('sys.cognition.category.miracle'),
+  monster: () => tr('sys.cognition.category.monster'),
+  conspiracy: () => tr('sys.cognition.category.conspiracy'),
+  real: () => tr('sys.cognition.category.real'),
 };
 
-export function credBand(c: number): string {
-  if (c >= 0.8) return '可信';
-  if (c >= 0.5) return '半信半疑';
-  return '不太可信';
+export function credBand(c: number): KeyText {
+  if (c >= 0.8) return tr('sys.cognition.cred.trusted');
+  if (c >= 0.5) return tr('sys.cognition.cred.unsure');
+  return tr('sys.cognition.cred.doubtful');
+}
+
+/** Grouping and tie-break key of a text value (content strings as written, TextRefs as JSON). */
+function textKey(v: TextParam): string {
+  return typeof v === 'string' ? v : JSON.stringify(v);
 }
 
 export function beliefRaw(
@@ -82,9 +88,9 @@ export function beliefView(
     observerId: observer,
     subjectId: subject,
     state: b.state,
-    stateName: STATE_NAMES[b.state] ?? b.state,
+    stateName: stateName(b.state),
     publicState: b.publicState,
-    publicStateName: STATE_NAMES[b.publicState] ?? b.publicState,
+    publicStateName: stateName(b.publicState),
     identity: b.identity,
     explanation: def?.label ?? null,
     category: isAccepted(b.state) ? 'real' : (def?.category ?? null),
@@ -93,13 +99,13 @@ export function beliefView(
           kind: b.lastFeat.kind,
           explanation:
             lastExpl === 'real'
-              ? CATEGORY_NAMES.real
+              ? CATEGORY_NAMES.real()
               : lastDef
-                ? CATEGORY_NAMES[lastDef.category]
-                : '还说不好',
+                ? CATEGORY_NAMES[lastDef.category]()
+                : tr('sys.cognition.category.unclear'),
         }
       : null,
-    estimate: TIER_LABELS[tierOfApparent(b.est)] ?? '',
+    estimate: tierLabel(tierOfApparent(b.est)),
     credence: credBand(b.credence),
     log: [...b.log],
   };
@@ -107,10 +113,10 @@ export function beliefView(
 
 export interface RumorBookEntry {
   rumorId: string;
-  text: string;
+  text: TextParam;
   fromId: string;
-  fromName: string;
-  credibility: string;
+  fromName: TextParam;
+  credibility: TextParam;
   tick: number;
   aboutPlayer: boolean;
 }
@@ -124,7 +130,7 @@ export function rumorBook(world: World, content: ContentMap): RumorBookEntry[] {
       rumorId: h.rumor,
       text: rumorText(content, h.v, r?.topic ?? ''),
       fromId: h.from,
-      fromName: personaById(content, h.from)?.name ?? '街坊们',
+      fromName: personaById(content, h.from)?.name ?? tr('sys.cognition.teller.neighbors'),
       credibility: credBand(h.cred),
       tick: h.tick,
       aboutPlayer: r?.subject === 'player',
@@ -138,7 +144,7 @@ export interface CirculatingRumor {
   subject: string;
   heat: number;
   tellings: number;
-  versions: { text: string; holders: number; distortion: number; v: RumorVersion }[];
+  versions: { text: TextParam; holders: number; distortion: number; v: RumorVersion }[];
 }
 
 /** Rumors in circulation (workbench, and "rumors about the player" with subject 'player'). */
@@ -155,16 +161,17 @@ export function circulatingRumors(
     if (subject && r.subject !== subject) continue;
     const byText = new Map<
       string,
-      { text: string; holders: number; distortion: number; v: RumorVersion }
+      { text: TextParam; holders: number; distortion: number; v: RumorVersion }
     >();
     for (const holder of Object.keys(slice.holdings).sort()) {
       if (holder === 'player') continue;
       for (const h of slice.holdings[holder] ?? []) {
         if (h.rumor !== r.id) continue;
         const text = rumorText(content, h.v, r.topic);
-        const cur = byText.get(text);
+        const key = textKey(text);
+        const cur = byText.get(key);
         if (cur) cur.holders++;
-        else byText.set(text, { text, holders: 1, distortion: h.v.distortion, v: h.v });
+        else byText.set(key, { text, holders: 1, distortion: h.v.distortion, v: h.v });
       }
     }
     out.push({
@@ -181,35 +188,35 @@ export function circulatingRumors(
 
 export interface Reputation {
   id: string;
-  name: string;
+  name: TextParam;
   fame: number;
-  fameBand: string;
+  fameBand: TextParam;
   opinion: number;
-  opinionBand: string;
-  estimate: string;
-  label: string;
-  mainstream: string[];
+  opinionBand: TextParam;
+  estimate: TextParam;
+  label: TextParam;
+  mainstream: TextParam[];
 }
 
-function fameBand(f: number): string {
-  if (f < 0.1) return '无人知晓';
-  if (f < 0.35) return '有人听说';
-  if (f < 0.7) return '小有名气';
-  return '家喻户晓';
+function fameBand(f: number): KeyText {
+  if (f < 0.1) return tr('sys.cognition.fame.unknown');
+  if (f < 0.35) return tr('sys.cognition.fame.heard_of');
+  if (f < 0.7) return tr('sys.cognition.fame.known');
+  return tr('sys.cognition.fame.famous');
 }
 
-function opinionBand(o: number): string {
-  if (o <= -40) return '厌恶';
-  if (o <= -10) return '冷淡';
-  if (o < 15) return '一般';
-  if (o < 40) return '友善';
-  return '敬重';
+function opinionBand(o: number): KeyText {
+  if (o <= -40) return tr('sys.cognition.opinion.hate');
+  if (o <= -10) return tr('sys.cognition.opinion.cold');
+  if (o < 15) return tr('sys.cognition.opinion.neutral');
+  if (o < 40) return tr('sys.cognition.opinion.friendly');
+  return tr('sys.cognition.opinion.respect');
 }
 
 function aggregate(
   world: World,
   id: string,
-  name: string,
+  name: TextParam,
   members: string[],
   crowdShare: number,
 ): Reputation {
@@ -217,7 +224,7 @@ function aggregate(
   let aware = 0;
   let opinion = 0;
   const ests: number[] = [];
-  const identities = new Map<string, number>();
+  const identities = new Map<string, { text: TextParam; n: number }>();
   for (const m of members) {
     const b = slice.beliefs[m]?.player;
     const heard = (slice.holdings[m] ?? []).some(
@@ -228,7 +235,10 @@ function aggregate(
     opinion += relationOf(world.slices.npc, m, 'player').like;
     if (b) {
       ests.push(b.est);
-      identities.set(b.identity, (identities.get(b.identity) ?? 0) + 1);
+      const key = textKey(b.identity);
+      const cur = identities.get(key);
+      if (cur) cur.n++;
+      else identities.set(key, { text: b.identity, n: 1 });
     }
   }
   const n = members.length || 1;
@@ -236,8 +246,8 @@ function aggregate(
   ests.sort((a, b) => a - b);
   const median = ests.length ? (ests[Math.floor(ests.length / 2)] as number) : 3;
   const label =
-    [...identities.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ??
-    '没人认识的外乡人';
+    [...identities.entries()].sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))[0]?.[1]
+      .text ?? tr('sys.cognition.reputation.unknown');
   return {
     id,
     name,
@@ -245,25 +255,25 @@ function aggregate(
     fameBand: fameBand(fame),
     opinion: aware ? Math.round(opinion / aware) : 0,
     opinionBand: opinionBand(aware ? opinion / aware : 0),
-    estimate: TIER_LABELS[tierOfApparent(median)] ?? '',
+    estimate: tierLabel(tierOfApparent(median)),
     label,
     mainstream: [],
   };
 }
 
-const FACTION_NAMES: Record<string, string> = {
-  guild: '冒险者公会',
-  church: '圣教会',
-  inquisition: '异端审判庭',
-  mercator: '梅尔卡托商会联合',
-  magistrate: '代官府',
-  town_guard: '镇卫队',
-  east_slope: '东坡猎户',
-  lumberyard: '伐木场',
-  count: '伯爵府',
-  heroes: '勇者团',
-  academy: '学院',
-  city_guard: '城防军',
+const FACTION_NAMES: Record<string, () => KeyText> = {
+  guild: () => tr('sys.cognition.faction.guild'),
+  church: () => tr('sys.cognition.faction.church'),
+  inquisition: () => tr('sys.cognition.faction.inquisition'),
+  mercator: () => tr('sys.cognition.faction.mercator'),
+  magistrate: () => tr('sys.cognition.faction.magistrate'),
+  town_guard: () => tr('sys.cognition.faction.town_guard'),
+  east_slope: () => tr('sys.cognition.faction.east_slope'),
+  lumberyard: () => tr('sys.cognition.faction.lumberyard'),
+  count: () => tr('sys.cognition.faction.count'),
+  heroes: () => tr('sys.cognition.faction.heroes'),
+  academy: () => tr('sys.cognition.faction.academy'),
+  city_guard: () => tr('sys.cognition.faction.city_guard'),
 };
 
 /** Reputation of the player by region (map) and by faction. */
@@ -295,34 +305,41 @@ export function reputationOf(
       share,
     );
     // mainstream versions: the most held texts about the player on this map
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { text: TextParam; n: number }>();
     for (const m of byMap.get(mapId) ?? []) {
       for (const h of slice.holdings[m] ?? []) {
         const r = slice.rumors[h.rumor];
         if (r?.subject !== 'player' || r.heat < HEAT_FLOOR) continue;
         const t = rumorText(content, h.v, r.topic);
-        counts.set(t, (counts.get(t) ?? 0) + 1);
+        const key = textKey(t);
+        const cur = counts.get(key);
+        if (cur) cur.n++;
+        else counts.set(key, { text: t, n: 1 });
       }
     }
     rep.mainstream = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))
       .slice(0, 3)
-      .map(([t]) => t);
+      .map(([, c]) => c.text);
     regions.push(rep);
   }
   const factions: Reputation[] = [];
   const suspicion = Number(world.meta.flags.church_suspicion ?? 0) || 0;
   for (const f of [...byFaction.keys()].sort()) {
-    if (!FACTION_NAMES[f]) continue;
+    const factionName = FACTION_NAMES[f];
+    if (!factionName) continue;
     const members = byFaction.get(f) ?? [];
-    const rep = aggregate(world, f, FACTION_NAMES[f] as string, members, 0);
+    const rep = aggregate(world, f, factionName(), members, 0);
     if (
       f === 'guild' &&
       members.some((m) => slice.beliefs[m]?.player?.evidence.some((e) => e.kind === 'appraisal'))
     )
-      rep.label = '水晶故障的那个人';
+      rep.label = tr('sys.cognition.reputation.crystal_glitch');
     if ((f === 'church' || f === 'inquisition') && suspicion >= 20)
-      rep.label = suspicion >= 50 ? '异端嫌疑人' : '规格外者';
+      rep.label =
+        suspicion >= 50
+          ? tr('sys.cognition.reputation.heretic')
+          : tr('sys.cognition.reputation.anomaly');
     factions.push(rep);
   }
   return { regions, factions };

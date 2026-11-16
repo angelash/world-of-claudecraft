@@ -3,6 +3,7 @@
 // `war.pending`), sieges and capture with aggressive expansion, garrison recovery.
 
 import type { SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { autoResolve, buildFieldSetup } from '../warfare/autoresolve';
 import { registerCustomBattle } from '../warfare/ports';
 import type { AutoResolveResult, BattleTerrain, ForceSpec, Team } from '../warfare/types';
@@ -172,12 +173,24 @@ function settleBattle(
       a.progress = 0;
     } else {
       delete s.armies[a.id];
-      log(s, `${a.name}在${provinceDef(ctx.content, province)?.name ?? province}被击溃`);
+      log(
+        s,
+        tr('sys.strategy.log.army_routed', {
+          army: a.name,
+          province: provinceDef(ctx.content, province)?.name ?? province,
+        }),
+      );
     }
   }
   log(
     s,
-    `${provinceDef(ctx.content, province)?.name ?? province}之战：${victor === 'draw' ? '不分胜负' : `${nationName(ctx.content, s, victor)}获胜`}`,
+    tr('sys.strategy.log.battle', {
+      province: provinceDef(ctx.content, province)?.name ?? province,
+      outcome:
+        victor === 'draw'
+          ? tr('sys.strategy.log.battle_draw')
+          : tr('sys.strategy.log.battle_won', { nation: nationName(ctx.content, s, victor) }),
+    }),
   );
   ctx.emit('slg.battle', {
     provinceId: province,
@@ -198,7 +211,7 @@ function fieldSetup(
 ) {
   const def = provinceDef(ctx.content, province);
   return buildFieldSetup({
-    name: `${def?.name ?? province}野战`,
+    name: tr('sys.strategy.battle.field_name', { province: def?.name ?? province }),
     teams: { player: mergeForce(sideA, 'p', scale), enemy: mergeForce(sideB, 'e', scale) },
     terrain: FIELD_TERRAIN[def?.terrain ?? 'plain'],
   });
@@ -266,7 +279,12 @@ export function resolveBattles(ctx: SystemContext): void {
             createdDay: s.day,
           };
           ctx.setFlag('war.pending', scenarioId);
-          log(s, `${provinceDef(ctx.content, province)?.name ?? province}爆发会战，等待你亲自指挥`);
+          log(
+            s,
+            tr('sys.strategy.log.battle_pending', {
+              province: provinceDef(ctx.content, province)?.name ?? province,
+            }),
+          );
           continue;
         }
         runAuto(ctx, province, sideA, sideB);
@@ -376,7 +394,13 @@ export function capture(ctx: SystemContext, pid: string, to: NationId): void {
       loser.alive = false;
     }
   }
-  log(s, `${nationName(ctx.content, s, to)}攻占了${provinceDef(ctx.content, pid)?.name ?? pid}`);
+  log(
+    s,
+    tr('sys.strategy.log.captured', {
+      nation: nationName(ctx.content, s, to),
+      province: provinceDef(ctx.content, pid)?.name ?? pid,
+    }),
+  );
   ctx.emit('slg.province_captured', { provinceId: pid, from, to });
 }
 
@@ -385,7 +409,7 @@ export function addRegiments(
   owner: NationId,
   province: string,
   regs: Regiment[],
-  name: string,
+  name: TextParam,
 ): ArmyState {
   let army = Object.values(s.armies)
     .filter((a) => a.owner === owner && a.province === province && !a.frozen)

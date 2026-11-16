@@ -1,6 +1,7 @@
 // Party window view: each companion's frame, order, bond and the next bond threshold.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { unitView } from '../combat';
 import type { UnitView } from '../combat/queries';
@@ -8,12 +9,10 @@ import type { PartyOrder } from './types';
 
 const THRESHOLDS = [20, 40, 60, 80, 100];
 
-export const ORDER_NAMES: Record<PartyOrder, string> = {
-  follow: '跟随',
-  assist: '协助',
-  passive: '被动',
-  stay: '原地',
-};
+/** Display name of a party order, as a fresh text key. */
+export function orderName(order: PartyOrder): KeyText {
+  return tr(`sys.party.order.${order}`);
+}
 
 export interface CompanionView {
   id: string;
@@ -24,7 +23,7 @@ export interface CompanionView {
   role: string;
   personality: string[];
   order: PartyOrder;
-  orderName: string;
+  orderName: KeyText;
   bond: number;
   nextThreshold: number | null;
   downed: boolean;
@@ -49,7 +48,7 @@ export function partyView(world: World, content: ContentMap): CompanionView[] {
       role: def.role,
       personality: def.personality,
       order: m.order,
-      orderName: ORDER_NAMES[m.order],
+      orderName: orderName(m.order),
       bond: Math.floor(m.bond),
       nextThreshold: THRESHOLDS.find((t) => t > m.bond) ?? null,
       downed: !!unit && !unit.alive,

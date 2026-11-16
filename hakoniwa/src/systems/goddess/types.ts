@@ -4,6 +4,7 @@
 // Which goddesses exist, who sits at the court and who plays which part all come from
 // data/goddess/goddesses.json (release_engineering.md 13.2); code never names one.
 
+import type { TextParam } from '../../core/text';
 import type { ModifierTarget } from '../modifiers';
 import type { DefenseLine } from '../scenes/types';
 
@@ -235,7 +236,8 @@ export interface MiracleEntry {
   /** visible to mortals (enters the public record) */
   public: boolean;
   breach: boolean;
-  note: string;
+  /** what happened, as text (a TextRef from the arbiter, or written text from a port) */
+  note: TextParam;
 }
 
 export interface Breach {
@@ -246,7 +248,7 @@ export interface Breach {
   action: string;
   mapId: string;
   /** the corrosion trace left behind (D-047) */
-  trace: string;
+  trace: TextParam;
 }
 
 export interface GoddessState {

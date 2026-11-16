@@ -6,6 +6,7 @@
 
 import { type CommandResult, type CommandSource, type FlagValue, ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
+import { type KeyText, type TextRef, tr } from '../../core/text';
 import { calendarAt, isNight, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { countItem } from '../inventory';
 import { registerModifier } from '../modifiers';
@@ -125,61 +126,70 @@ export function validateAct(
   ctx: SystemContext,
   d: GoddessActCommand,
   source: CommandSource,
-): { code: string; reason: string } | null {
+): { code: string; reason: KeyText } | null {
   const def = goddessDef(ctx.content, d.goddessId);
   const s = ctx.world.slices.goddess.goddesses[d.goddessId];
-  if (!def || !s) return { code: 'no_goddess', reason: '没有这位司掌者' };
-  if (!toolsActive(ctx, def, s)) return { code: 'inactive', reason: '她此刻无法向箱庭伸手' };
-  if (!def.menu.includes(d.action)) return { code: 'not_on_menu', reason: '这不在她的神权之内' };
+  if (!def || !s) return { code: 'no_goddess', reason: tr('sys.goddess.reject.no_goddess.act') };
+  if (!toolsActive(ctx, def, s))
+    return { code: 'inactive', reason: tr('sys.goddess.reject.inactive.act') };
+  if (!def.menu.includes(d.action))
+    return { code: 'not_on_menu', reason: tr('sys.goddess.reject.not_on_menu') };
   const a = actionDef(ctx.content, d.action);
-  if (!a) return { code: 'no_action', reason: '没有这种神权动作' };
+  if (!a) return { code: 'no_action', reason: tr('sys.goddess.reject.no_action') };
   const idx = actIndex(currentAct(ctx));
-  if (idx < a.minAct) return { code: 'too_early', reason: '这一幕还轮不到这种干预' };
+  if (idx < a.minAct) return { code: 'too_early', reason: tr('sys.goddess.reject.too_early') };
   if (source.type === 'ai' && d.revision !== s.revision) {
-    return { code: 'stale', reason: '局势已经变了，请重新观察后再提议' };
+    return { code: 'stale', reason: tr('sys.goddess.reject.stale.act') };
   }
   if (!mayAct(ctx, def)) {
-    return { code: 'sealed', reason: '封印还太紧，她够不着' };
+    return { code: 'sealed', reason: tr('sys.goddess.reject.sealed') };
   }
   const p = d.params ?? {};
   const mapId = p.mapId ?? defaultMap(ctx, def, s);
-  if (!mapById(ctx.content, mapId)) return { code: 'no_map', reason: '那片土地不在箱庭里' };
+  if (!mapById(ctx.content, mapId))
+    return { code: 'no_map', reason: tr('sys.goddess.reject.no_map') };
   if (def.reach !== 'player' && d.action !== 'request' && reach(s, mapId) < 0.05) {
-    return { code: 'out_of_reach', reason: '那里没有足够的信徒，她看不清也够不着' };
+    return { code: 'out_of_reach', reason: tr('sys.goddess.reject.out_of_reach') };
   }
   const breach = !!d.breach;
   if (breach) {
-    if (!a.breachable) return { code: 'not_breachable', reason: '这个动作不存在越约的做法' };
+    if (!a.breachable)
+      return { code: 'not_breachable', reason: tr('sys.goddess.reject.not_breachable') };
     if (s.breachActs.includes(currentAct(ctx))) {
-      return { code: 'breach_used', reason: '本幕已经越约过一次，神约不容第二次' };
+      return { code: 'breach_used', reason: tr('sys.goddess.reject.breach_used') };
     }
   }
   const cost = actionCost(a, breach);
-  if (s.power < cost) return { code: 'no_power', reason: `神力不足（需要 ${cost}）` };
-  if ((s.cooldowns[a.id] ?? 0) > ctx.tick) return { code: 'cooldown', reason: '这项神权还在冷却' };
+  if (s.power < cost)
+    return { code: 'no_power', reason: tr('sys.goddess.reject.no_power', { cost }) };
+  if ((s.cooldowns[a.id] ?? 0) > ctx.tick)
+    return { code: 'cooldown', reason: tr('sys.goddess.reject.cooldown') };
   if (a.hostile && mapId === playerMap(ctx.world)) {
     const used = s.hostility[currentAct(ctx)] ?? 0;
     if (used >= ctx.world.slices.goddess.hostilityBudget) {
-      return { code: 'hostility_budget', reason: '本幕对那个人的敌对已经用尽了份额' };
+      return { code: 'hostility_budget', reason: tr('sys.goddess.reject.hostility_budget') };
     }
   }
   if (a.id === 'dream' && !isNight(calendarAt(ctx.tick))) {
-    return { code: 'not_night', reason: '托梦只能在夜里' };
+    return { code: 'not_night', reason: tr('sys.goddess.reject.not_night') };
   }
   if (a.id === 'blessing') {
     const token = p.item ?? def.token;
     if (!token || countItem(ctx.world, ctx.world.slices.world.playerId, token) <= 0) {
-      return { code: 'no_token', reason: '那个人身上没有她的信物，加护无处可附' };
+      return { code: 'no_token', reason: tr('sys.goddess.reject.no_token') };
     }
   }
   if ((a.id === 'oracle' || a.id === 'dream' || a.id === 'omen') && !p.text?.trim()) {
-    return { code: 'no_text', reason: '神谕需要内容' };
+    return { code: 'no_text', reason: tr('sys.goddess.reject.no_text.act') };
   }
   if (a.id === 'request' && !(p.key && /^[a-z0-9_]{1,32}$/.test(p.key))) {
-    return { code: 'bad_key', reason: '请托需要一个小写英文键' };
+    return { code: 'bad_key', reason: tr('sys.goddess.reject.bad_key') };
   }
   if (p.flag && !p.flag.startsWith(`oracle.${d.goddessId}.`)) {
-    return { code: 'bad_flag', reason: `神谕只能写 oracle.${d.goddessId}. 开头的标记` };
+    return {
+      code: 'bad_flag',
+      reason: tr('sys.goddess.reject.bad_flag', { goddess: d.goddessId }),
+    };
   }
   return null;
 }
@@ -215,7 +225,7 @@ export function executeAct(
   const breach = !!d.breach;
   const cost = actionCost(a, breach);
   const playerId = ctx.world.slices.world.playerId;
-  let note = a.label;
+  let note: TextRef | string = a.label;
   let isPublic = a.visibility === 'public';
 
   const addMods = (dur: number) => {
@@ -228,7 +238,7 @@ export function executeAct(
         untilTick: ctx.tick + Math.max(1, Math.round(dur)),
         source: def.id,
         visibility: isPublic ? 'public' : 'hidden',
-        note: `${def.name}：${a.label}`,
+        note: tr('sys.goddess.modifier.action', { goddess: def.name, action: a.label }),
       });
     }
   };
@@ -238,12 +248,14 @@ export function executeAct(
       const target = p.targetId ? ctx.world.slices.world.entities[p.targetId] : undefined;
       line(ctx, def, p.text as string, target?.id);
       if (p.flag) ctx.setFlag(p.flag, p.value ?? true);
-      note = target ? `向${target.name}降下神谕` : '降下神谕';
+      note = target
+        ? tr('sys.goddess.note.oracle_to', { who: target.name })
+        : tr('sys.goddess.note.oracle');
       break;
     }
     case 'dream': {
       line(ctx, def, p.text as string, playerId);
-      note = '入梦';
+      note = tr('sys.goddess.note.dream');
       isPublic = false;
       break;
     }
@@ -255,12 +267,12 @@ export function executeAct(
         kind: 'narrate',
       });
       ctx.setFlag(`omen.${mapId}`, ctx.tick);
-      note = '借兽示警';
+      note = tr('sys.goddess.note.omen');
       break;
     }
     case 'blessing': {
       addMods(days(p, 7, 3) * TICKS_PER_GAME_DAY);
-      note = '附物加护';
+      note = tr('sys.goddess.note.blessing');
       break;
     }
     case 'miracle': {
@@ -268,10 +280,10 @@ export function executeAct(
       ctx.emit('dialogue.line', {
         speakerId: 'narrator',
         speakerName: '',
-        text: `${mapById(ctx.content, mapId)?.name ?? ''}上空落下一道光，有人说那是神迹。`,
+        text: tr('sys.goddess.narrate.miracle', { place: mapById(ctx.content, mapId)?.name ?? '' }),
         kind: 'narrate',
       });
-      note = '小神迹';
+      note = tr('sys.goddess.note.miracle');
       break;
     }
     case 'calamity':
@@ -295,9 +307,12 @@ export function executeAct(
         untilTick: ctx.tick + dur,
         source: def.id,
         visibility: 'public',
-        note: `${def.name}：物价波动`,
+        note: tr('sys.goddess.modifier.price', { goddess: def.name }),
       });
-      note = `物价波动（${p.goods ?? '全部'} ${Math.round(factor * 100)}%）`;
+      note = tr('sys.goddess.note.price', {
+        goods: p.goods ?? tr('sys.goddess.note.price_all'),
+        pct: Math.round(factor * 100),
+      });
       break;
     }
     case 'request': {
@@ -305,11 +320,11 @@ export function executeAct(
         `request.${def.id}.${p.key}`,
         sanitizeText(p.text ?? p.key ?? '', ctx.world, ctx.content),
       );
-      note = '任务请托';
+      note = tr('sys.goddess.note.request');
       break;
     }
     default:
-      return reject('no_action', '没有这种神权动作');
+      return reject('no_action', tr('sys.goddess.reject.no_action'));
   }
 
   s.power -= cost;
@@ -325,11 +340,14 @@ export function executeAct(
     sediment: Math.round(cost * a.sedimentRate * 100) / 100,
     public: isPublic,
     breach,
-    note: `${def.name}${note}`,
+    note: tr('sys.goddess.note.entry', { goddess: def.name, note }),
   });
   if (breach) {
     s.breachActs.push(act);
-    const trace = `${mapById(ctx.content, mapId)?.name ?? mapId}留下一道带着${def.name}气息的蚀痕`;
+    const trace = tr('sys.goddess.breach.trace', {
+      place: mapById(ctx.content, mapId)?.name ?? mapId,
+      goddess: def.name,
+    });
     ctx.world.slices.goddess.breaches.push({
       id: recordId(ctx, 'breach'),
       goddess: def.id,

@@ -7,6 +7,7 @@
 
 import './battle.css';
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type { BattleView, Formation, HeroView, RegimentView } from '../../systems/warfare';
 import { ctx2d, ensureSize, makeCanvas } from '../render/canvas_util';
@@ -388,7 +389,7 @@ class BattlePanel {
   }
 
   private renderActive(b: BattleView): void {
-    setText(this.headName, b.name);
+    setText(this.headName, t(b.name));
     setText(this.headTime, timeLine(b));
     setText(this.headPlans, planLines(b).join('  '));
     this.renderSelection(b);
@@ -749,7 +750,7 @@ class BattlePanel {
       c.strokeRect(x + 1, y + 1, w - 2, h - 2);
       c.setLineDash([]);
       c.globalAlpha = 1;
-      if (cell >= 8) label(c, o.label, x + 4, y + h - fs - 3, color, 'left');
+      if (cell >= 8) label(c, t(o.label), x + 4, y + h - fs - 3, color, 'left');
     }
 
     // retreat points

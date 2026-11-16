@@ -10,7 +10,9 @@ import { pack as warfarePack } from '../src/content/packs/warfare';
 import { pack as worldPack } from '../src/content/packs/world';
 import type { AnyWorldEvent, CommandKind } from '../src/core/contracts';
 import type { Engine } from '../src/core/engine';
+import { tr } from '../src/core/text';
 import { createGame } from '../src/game/create';
+import { t } from '../src/shared_ui/i18n';
 import { system as inventory } from '../src/systems/inventory';
 import { system as modifiers } from '../src/systems/modifiers';
 import {
@@ -22,7 +24,7 @@ import {
   system as warfare,
 } from '../src/systems/warfare';
 import { chaseStalled, MAX_FOCUS, runTeamAi, STUCK_ROUNDS } from '../src/systems/warfare/ai';
-import { kernelData } from '../src/systems/warfare/data';
+import { kernelData, unitOf } from '../src/systems/warfare/data';
 import { AURA_CAP, auraSums } from '../src/systems/warfare/engage';
 import { CAST_KILL_CAP, castAbility, heroFromSpec } from '../src/systems/warfare/heroes';
 import { createBattleState, stepBattle } from '../src/systems/warfare/kernel';
@@ -181,7 +183,10 @@ describe('battle lifecycle', () => {
     const after = battleView(g.world, g.content);
     expect(after?.scenarioId).toBe('act3_bone_field');
     expect(after?.outcome?.victor).toBe(events(g, 'battle.ended')[0]?.data.victor);
-    expect(after?.outcome?.reason.length).toBeGreaterThan(0);
+    expect(after?.outcome?.reason).toMatchObject({
+      key: expect.stringMatching(/^sys\.warfare\.outcome\./),
+    });
+    expect(t(after?.outcome?.reason).length).toBeGreaterThan(0);
     g.step(5);
     expect(battleView(g.world, g.content)?.outcome).not.toBeNull();
     // the next battle replaces it
@@ -566,5 +571,62 @@ describe('battle sync hash', () => {
     if (!r) throw new Error('setup');
     r.x += 0.0001;
     expect(battleHash(a)).toBe(battleHash(b));
+  });
+});
+
+describe('warfare text keys (D-077)', () => {
+  const data = kernelData(content.regiment_types, content.hero_abilities);
+
+  it('rejects with text keys and notes results with params', () => {
+    const g = game();
+    g.queue('war.order', { unitId: 'x', kind: 'move', x: 1, y: 1 });
+    g.queue('war.start', { scenarioId: '' });
+    g.step(1);
+    expect(lastResult(g, 'war.order')?.reason).toEqual(tr('sys.warfare.reject.no_battle'));
+    expect(lastResult(g, 'war.start')?.reason).toEqual(
+      tr('sys.warfare.reject.no_scenario.unnamed'),
+    );
+    pend(g, 'act2_city_defense');
+    g.queue('war.start', { scenarioId: 'act2_city_defense' });
+    g.step(1);
+    const name = g.content.battle_scenarios.find((s) => s.id === 'act2_city_defense')?.name ?? '';
+    expect(lastResult(g, 'war.start')?.reason).toEqual(tr('sys.warfare.info.started', { name }));
+    g.queue('war.retreat', {});
+    g.step(1);
+    expect(lastResult(g, 'war.retreat')?.reason).toEqual(tr('sys.warfare.info.withdraw'));
+    expect(battleView(g.world, g.content)?.outcome?.reason).toEqual(
+      tr('sys.warfare.outcome.withdrew'),
+    );
+  });
+
+  it('logs a generated field battle by name and labels its objectives with keys', () => {
+    const name = tr('sys.strategy.battle.field_name', { province: 'P' });
+    const setup = buildFieldSetup({
+      name,
+      teams: {
+        player: { regiments: [{ typeId: 'militia', count: 10 }] },
+        enemy: { regiments: [{ typeId: 'levy', count: 10 }] },
+      },
+    });
+    expect(setup.objectives.map((o) => o.label)).toEqual([
+      tr('sys.warfare.objective.annihilate'),
+      tr('sys.warfare.objective.annihilate'),
+    ]);
+    const state = createBattleState(setup, {
+      id: 'b',
+      scenarioId: 'field',
+      seed: 1,
+      data,
+      mode: 'manual',
+    });
+    expect(state.log[0]?.text).toEqual(tr('sys.warfare.log.begin', { name }));
+    expect(t(state.log[0]?.text)).toBe(`${t(name)}开战`);
+  });
+
+  it('names unknown unit types with a fresh key', () => {
+    const a = unitOf(data, 'no_such_unit');
+    const b = unitOf(data, 'no_such_unit');
+    expect(a.name).toEqual(tr('sys.warfare.name.unknown_unit'));
+    expect(a.name).not.toBe(b.name);
   });
 });

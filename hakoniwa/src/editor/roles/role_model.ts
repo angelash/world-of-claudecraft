@@ -6,6 +6,7 @@
 
 import type { ContentMap } from '../../core/contracts';
 import type { World } from '../../core/world';
+import { renderTextDeep } from '../../shared_ui/i18n';
 import { appraise, beliefView, circulatingRumors } from '../../systems/cognition';
 import { divineRecord, goddessView } from '../../systems/goddess';
 import { npcDiary, npcMemories, npcMemoryLines, npcRelations, npcView } from '../../systems/npc';
@@ -29,7 +30,8 @@ export interface RoleEntry {
 
 function section(title: string, fn: () => unknown): RoleSection {
   try {
-    const value = fn();
+    // kernel text (TextRefs) shown as source-language strings
+    const value = renderTextDeep(fn());
     return { title, value: value === undefined ? null : value };
   } catch (e) {
     return { title, error: errorMessage(e) };

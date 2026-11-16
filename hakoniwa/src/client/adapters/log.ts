@@ -2,6 +2,7 @@
 // doors, party, cognition, economy, city, warfare, strategy, the goddesses). Pure.
 
 import type { AnyWorldEvent } from '../../core/contracts';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type { BannerAdapter, BannerView, LogAdapter } from '../view/adapters';
 import type { GameView } from '../view/game_view';
@@ -99,14 +100,14 @@ export function formatSystemEvent(view: GameView, ev: AnyWorldEvent): Line {
         ? {
             text: fmt(L.appraised, {
               name: nameOf(view, ev.data.targetId),
-              display: ev.data.display,
-              note: ev.data.note,
+              display: t(ev.data.display),
+              note: t(ev.data.note),
             }),
             category: 'system',
           }
         : null;
     case 'cognition.rumor_heard':
-      return { text: fmt(L.rumorHeard, { text: ev.data.text }), category: 'world' };
+      return { text: fmt(L.rumorHeard, { text: t(ev.data.text) }), category: 'world' };
     case 'economy.company_founded':
       return { text: L.companyFounded, category: 'story' };
     case 'economy.caravan_arrived':
@@ -118,7 +119,10 @@ export function formatSystemEvent(view: GameView, ev: AnyWorldEvent): Line {
     case 'city.stage_changed':
       return { text: L.stageChanged, category: 'story' };
     case 'city.event':
-      return { text: ev.data.text, category: ev.data.severity === 'severe' ? 'warning' : 'world' };
+      return {
+        text: t(ev.data.text),
+        category: ev.data.severity === 'severe' ? 'warning' : 'world',
+      };
     case 'war.battle_started':
       return {
         text: fmt(L.battleStarted, { name: scenarioName(view, ev.data.scenario) }),

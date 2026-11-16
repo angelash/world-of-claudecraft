@@ -1,6 +1,8 @@
 // Dialogue system types: the open conversation, line templates, and the module
 // augmentation for its slice, content table, events and commands.
 
+import type { TextParam } from '../../core/text';
+
 export interface DialogueTemplate {
   /** dotted key, for example greet.unaware or opinion.explaining.luck */
   id: string;
@@ -9,16 +11,16 @@ export interface DialogueTemplate {
 
 export interface SessionLine {
   speakerId: string;
-  speakerName: string;
-  text: string;
+  speakerName: TextParam;
+  text: TextParam;
   kind: 'say' | 'think' | 'narrate' | 'divine';
   tick: number;
 }
 
 export interface SessionOption {
   id: string;
-  label: string;
-  hint?: string;
+  label: TextParam;
+  hint?: TextParam;
   /** offering system; 'dialogue' for the built-in options */
   system: string;
 }
@@ -69,6 +71,6 @@ declare module '../../core/contracts' {
     'dialogue.choose': { optionId: string };
     'dialogue.close': Record<string, never>;
     /** The NPC's answer: the npc.dialogue proposal or its rule fallback. */
-    'dialogue.reply': { sessionId: string; npcId: string; text: string; revision: number };
+    'dialogue.reply': { sessionId: string; npcId: string; text: TextParam; revision: number };
   }
 }

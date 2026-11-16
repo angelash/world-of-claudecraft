@@ -3,6 +3,7 @@
 // official rounds and settler sync. Also site creation and stage transitions.
 
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { addItem, addMoney } from '../inventory';
 import { addDependency, computeTerms, type DomainInput, newLedger, stepLedger } from './autonomy';
 import {
@@ -120,7 +121,7 @@ function domainInputs(
 
 function updateAutonomy(ctx: SystemContext, site: SiteState, day: number): void {
   const vacancyDep = tickVacancies(site);
-  if (vacancyDep > 0) addDependency(site.autonomy, day, '职务长期空缺', vacancyDep);
+  if (vacancyDep > 0) addDependency(site.autonomy, day, tr('sys.city.dep.vacancy'), vacancyDep);
   const terms = computeTerms({
     domains: domainInputs(ctx, domainsFor(site.stage), site.offices, site.policies),
     talentBonus: sumEffect(site, ctx.content, 'talent'),

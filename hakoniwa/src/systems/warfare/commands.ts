@@ -4,6 +4,7 @@
 import { type CommandResult, ok, reject } from '../../core';
 import type { CommandMap, CommandSource } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { runToEnd } from './autoresolve';
 import { regimentRadius } from './combat_math';
 import { heroById, onField, regimentById, unitOf } from './data';
@@ -23,10 +24,12 @@ const PLANS: ReadonlySet<string> = new Set<PlanId>([
 ]);
 
 function checkPending(ctx: SystemContext, scenarioId: string): CommandResult | null {
-  if (warfare(ctx).battle) return reject('battle_active', '已有一场战斗正在进行');
-  if (!scenarioId) return reject('no_scenario', '没有指定战役');
-  if (ctx.flag('war.pending') !== scenarioId) return reject('not_pending', '这场战役还没有到来');
-  if (!resolveSetup(ctx, scenarioId)) return reject('no_scenario', '没有这场战役的资料');
+  if (warfare(ctx).battle) return reject('battle_active', tr('sys.warfare.reject.battle_active'));
+  if (!scenarioId) return reject('no_scenario', tr('sys.warfare.reject.no_scenario.unnamed'));
+  if (ctx.flag('war.pending') !== scenarioId)
+    return reject('not_pending', tr('sys.warfare.reject.not_pending'));
+  if (!resolveSetup(ctx, scenarioId))
+    return reject('no_scenario', tr('sys.warfare.reject.no_scenario.missing'));
   return null;
 }
 
@@ -34,14 +37,14 @@ export function startBattle(ctx: SystemContext, d: CommandMap['war.start']): Com
   const bad = checkPending(ctx, d.scenarioId);
   if (bad) return bad;
   const setup = resolveSetup(ctx, d.scenarioId);
-  if (!setup) return reject('no_scenario', '没有这场战役的资料');
+  if (!setup) return reject('no_scenario', tr('sys.warfare.reject.no_scenario.missing'));
   beginBattle(ctx, d.scenarioId, setup, 'manual');
-  return ok(`${setup.name}开始`);
+  return ok(tr('sys.warfare.info.started', { name: setup.name }));
 }
 
 export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): CommandResult {
   const b = warfare(ctx).battle;
-  if (!b) return reject('no_battle', '现在没有战斗');
+  if (!b) return reject('no_battle', tr('sys.warfare.reject.no_battle'));
   const data = dataOf(ctx);
   const point = () => {
     if (d.x === undefined || d.y === undefined) return null;
@@ -51,14 +54,14 @@ export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): Comma
   const r = regimentById(b, d.unitId);
   if (r) {
     if (r.team !== 'player' || r.controller !== 'player')
-      return reject('not_yours', '这支部队不听你的号令');
-    if (!onField(r)) return reject('gone', '这支部队已不在战场上');
-    if (r.state === 'rout') return reject('routing', '溃退中的部队不听号令');
+      return reject('not_yours', tr('sys.warfare.reject.not_yours.regiment'));
+    if (!onField(r)) return reject('gone', tr('sys.warfare.reject.gone'));
+    if (r.state === 'rout') return reject('routing', tr('sys.warfare.reject.routing'));
     switch (d.kind) {
       case 'move':
       case 'hold': {
         const p = point() ?? (d.kind === 'hold' ? { x: r.x, y: r.y } : null);
-        if (!p) return reject('bad_target', '目标位置不在战场内');
+        if (!p) return reject('bad_target', tr('sys.warfare.reject.bad_target.point'));
         r.order = { kind: d.kind, x: p.x, y: p.y };
         r.path = [];
         return ok();
@@ -71,7 +74,7 @@ export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): Comma
         } else if (h && h.team !== r.team && !h.down) {
           r.order = { kind: 'attack', targetId: h.id };
         } else {
-          return reject('bad_target', '没有这个敌人');
+          return reject('bad_target', tr('sys.warfare.reject.bad_target.enemy'));
         }
         r.path = [];
         return ok();
@@ -83,21 +86,21 @@ export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): Comma
       case 'formation': {
         const u = unitOf(data, r.typeId);
         if (!d.formation || !u.formations.includes(d.formation))
-          return reject('bad_formation', `${u.name}不会这种阵型`);
+          return reject('bad_formation', tr('sys.warfare.reject.bad_formation', { unit: u.name }));
         r.formation = d.formation;
         return ok();
       }
     }
-    return reject('bad_order', '无法理解的命令');
+    return reject('bad_order', tr('sys.warfare.reject.bad_order.unknown'));
   }
   const h = heroById(b, d.unitId);
-  if (!h) return reject('no_unit', '没有这支部队');
+  if (!h) return reject('no_unit', tr('sys.warfare.reject.no_unit'));
   if (h.team !== 'player' || h.controller !== 'player')
-    return reject('not_yours', '这位英雄不听你的号令');
-  if (h.down) return reject('down', '英雄已经倒下');
+    return reject('not_yours', tr('sys.warfare.reject.not_yours.hero'));
+  if (h.down) return reject('down', tr('sys.warfare.reject.down'));
   if (d.kind === 'move') {
     const p = point();
-    if (!p) return reject('bad_target', '目标位置不在战场内');
+    if (!p) return reject('bad_target', tr('sys.warfare.reject.bad_target.point'));
     h.order = { kind: 'move', x: p.x, y: p.y };
     h.path = [];
     return ok();
@@ -111,7 +114,7 @@ export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): Comma
         : th && !th.down
           ? { x: th.x, y: th.y, r: 0.4 }
           : null;
-    if (!pos) return reject('bad_target', '没有这个敌人');
+    if (!pos) return reject('bad_target', tr('sys.warfare.reject.bad_target.enemy'));
     const ang = Math.atan2(h.y - pos.y, h.x - pos.x);
     h.order = {
       kind: 'move',
@@ -131,28 +134,28 @@ export function orderUnit(ctx: SystemContext, d: CommandMap['war.order']): Comma
     h.path = [];
     return ok();
   }
-  return reject('bad_order', '英雄不需要阵型');
+  return reject('bad_order', tr('sys.warfare.reject.bad_order.hero'));
 }
 
 export function heroAbility(ctx: SystemContext, d: CommandMap['war.hero_ability']): CommandResult {
   const b = warfare(ctx).battle;
-  if (!b) return reject('no_battle', '现在没有战斗');
+  if (!b) return reject('no_battle', tr('sys.warfare.reject.no_battle'));
   const h = heroById(b, d.heroId);
-  if (!h) return reject('no_hero', '没有这位英雄');
+  if (!h) return reject('no_hero', tr('sys.warfare.reject.no_hero'));
   if (h.team !== 'player' || h.controller !== 'player')
-    return reject('not_yours', '这位英雄不听你的号令');
+    return reject('not_yours', tr('sys.warfare.reject.not_yours.hero'));
   const res = castAbility(b, dataOf(ctx), h, d.abilityId, { targetId: d.targetId, x: d.x, y: d.y });
-  if (!res.ok) return reject('cannot_cast', res.reason ?? '无法施放');
+  if (!res.ok) return reject('cannot_cast', res.reason ?? tr('sys.warfare.reject.cannot_cast'));
   emitFlashes(ctx, b);
-  return ok(res.felled > 0 ? `倒下 ${res.felled} 人` : undefined);
+  return ok(res.felled > 0 ? tr('sys.warfare.info.felled', { n: res.felled }) : undefined);
 }
 
 export function withdraw(ctx: SystemContext): CommandResult {
   const b = warfare(ctx).battle;
-  if (!b) return reject('no_battle', '现在没有战斗');
-  b.outcome = { victor: 'enemy', reason: '我军撤出战场' };
+  if (!b) return reject('no_battle', tr('sys.warfare.reject.no_battle'));
+  b.outcome = { victor: 'enemy', reason: tr('sys.warfare.outcome.withdrew') };
   finishBattle(ctx);
-  return ok('全军撤退');
+  return ok(tr('sys.warfare.info.withdraw'));
 }
 
 export function autoResolveCommand(
@@ -166,13 +169,13 @@ export function autoResolveCommand(
     const bad = checkPending(ctx, id);
     if (bad) return bad;
     const setup = resolveSetup(ctx, id);
-    if (!setup) return reject('no_scenario', '没有这场战役的资料');
+    if (!setup) return reject('no_scenario', tr('sys.warfare.reject.no_scenario.missing'));
     b = beginBattle(ctx, id, setup, 'auto');
   }
   b.mode = 'auto';
   runToEnd(b, dataOf(ctx));
   const rec = finishBattle(ctx);
-  return ok(rec ? `交由将领指挥：${rec.reason}` : undefined);
+  return ok(rec ? tr('sys.warfare.info.auto_resolved', { reason: rec.reason }) : undefined);
 }
 
 export function generalPlan(
@@ -181,11 +184,12 @@ export function generalPlan(
   source: CommandSource,
 ): CommandResult {
   const b = warfare(ctx).battle;
-  if (!b || b.id !== d.battleId) return reject('stale', '那场战斗已经结束');
-  if (d.revision !== b.revision) return reject('stale', '战况已变，方案过时');
-  if (!PLANS.has(d.planId)) return reject('bad_plan', '作战方案不在菜单中');
+  if (!b || b.id !== d.battleId) return reject('stale', tr('sys.warfare.reject.stale.ended'));
+  if (d.revision !== b.revision) return reject('stale', tr('sys.warfare.reject.stale.revision'));
+  if (!PLANS.has(d.planId)) return reject('bad_plan', tr('sys.warfare.reject.bad_plan'));
   const general = b.generals[d.team];
-  if (!general || general.id !== d.generalId) return reject('not_general', '这位将领不在指挥位上');
+  if (!general || general.id !== d.generalId)
+    return reject('not_general', tr('sys.warfare.reject.not_general'));
   setPlan(b, d.team, d.planId, source.type === 'ai' ? 'ai' : 'rule');
   return ok();
 }

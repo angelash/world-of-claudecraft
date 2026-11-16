@@ -5,9 +5,10 @@
 import { systemSource } from '../../core';
 import type { AiContextV1 } from '../../core/ai_port';
 import type { SystemContext } from '../../core/system';
+import { joinText, tr } from '../../core/text';
 import { applyModifiers } from '../modifiers';
 import { playerEntity } from '../world';
-import { chooseUtilityPlan, PLAN_NAMES } from './ai';
+import { chooseUtilityPlan, PLAN_IDS, planName } from './ai';
 import { summarize } from './autoresolve';
 import { kernelData } from './data';
 import { createBattleState } from './kernel';
@@ -83,16 +84,29 @@ function planContext(
 ): AiContextV1 {
   const mine = battle.regiments.filter((r) => r.team === team && r.state !== 'gone');
   const theirs = battle.regiments.filter((r) => r.team !== team && r.state !== 'gone');
-  const plans = Object.entries(PLAN_NAMES)
-    .map(([id, name]) => `${id}（${name}）`)
-    .join('、');
+  const plans = joinText(
+    'list',
+    PLAN_IDS.map((id) => tr('sys.warfare.prompt.plan_item', { id, name: planName(id) })),
+  );
   return {
     v: 1,
-    persona: `${generalName}，指挥${team === 'enemy' ? '敌方' : '友军'}的将领`,
-    situation: `${battle.name}，战斗第 ${Math.round(battle.time)} 秒。我方 ${mine.length} 个兵团共 ${mine.reduce((s, r) => s + r.count, 0)} 人，对面 ${theirs.length} 个兵团共 ${theirs.reduce((s, r) => s + r.count, 0)} 人。当前方案：${PLAN_NAMES[plan]}。`,
+    persona: tr('sys.warfare.prompt.persona', {
+      name: generalName,
+      side:
+        team === 'enemy' ? tr('sys.warfare.prompt.side.enemy') : tr('sys.warfare.prompt.side.ally'),
+    }),
+    situation: tr('sys.warfare.prompt.situation', {
+      battle: battle.name,
+      time: Math.round(battle.time),
+      mine: mine.length,
+      mine_men: mine.reduce((s, r) => s + r.count, 0),
+      theirs: theirs.length,
+      theirs_men: theirs.reduce((s, r) => s + r.count, 0),
+      plan: planName(plan),
+    }),
     goals: battle.objectives.filter((o) => o.team === team).map((o) => o.label),
     commands: {
-      'war.general_plan': `从作战方案菜单中选择一个：${plans}。数据字段 battleId、team、generalId、planId、revision 原样填写，只改 planId。`,
+      'war.general_plan': tr('sys.warfare.prompt.command', { plans }),
     },
     speakAs: generalName,
   };
@@ -152,7 +166,8 @@ export function finishBattle(ctx: SystemContext): BattleResultRecord | undefined
   const slice = warfare(ctx);
   const battle = slice.battle;
   if (!battle) return undefined;
-  if (!battle.outcome) battle.outcome = { victor: 'draw', reason: '战斗中止' };
+  if (!battle.outcome)
+    battle.outcome = { victor: 'draw', reason: tr('sys.warfare.outcome.aborted') };
   const sum = summarize(battle);
   const record: BattleResultRecord = {
     battleId: battle.id,

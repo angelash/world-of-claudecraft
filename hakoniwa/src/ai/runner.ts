@@ -15,6 +15,7 @@
 
 import type { AiRequest, AiResolution } from '../core/ai_port';
 import type { AnyCommand, AnyWorldEvent } from '../core/contracts';
+import { renderTextDeep } from '../shared_ui/i18n';
 import { AuditLog, type AuditRecord } from './audit';
 import {
   Budget,
@@ -1002,7 +1003,8 @@ export class AiRunner {
     }
 
     const raw = recoverJson(outcome.json, outcome.text);
-    const speakAs = (req.context as { speakAs?: unknown } | null)?.speakAs;
+    // kernel text is TextRefs; prompts are written in the source language (D-077)
+    const speakAs = renderTextDeep((req.context as { speakAs?: unknown } | null)?.speakAs);
     const v = validateProposal(raw, req.allowed, {
       maxCommands: pack.maxCommands,
       speechMaxChars: pack.speechMaxChars,

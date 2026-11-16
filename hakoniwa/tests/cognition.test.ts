@@ -13,7 +13,9 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine, type EngineOptions, ok } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { GameSystem, SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
 import { TICKS_PER_GAME_DAY, tickAtDay } from '../src/core/time';
+import { t } from '../src/shared_ui/i18n';
 import {
   appraise,
   beliefView,
@@ -118,7 +120,7 @@ function lines(g: Engine): { who: string; text: string; kind: string }[] {
     .filter(
       (e): e is Extract<AnyWorldEvent, { kind: 'dialogue.line' }> => e.kind === 'dialogue.line',
     )
-    .map((e) => ({ who: e.data.speakerName, text: e.data.text, kind: e.data.kind }));
+    .map((e) => ({ who: t(e.data.speakerName), text: t(e.data.text), kind: e.data.kind }));
 }
 
 function results(g: Engine, kind: string) {
@@ -212,7 +214,9 @@ describe('witnessing and the mortals-do-not-believe machine', () => {
     expect(b()?.value).toBeGreaterThanOrEqual(16);
     expect(b()?.state).toBe('worship');
     expect(lines(g).some((l) => l.who === '罗恩' && l.text === '……好吧，可能。')).toBe(true);
-    expect(beliefView(g.world, g.content, 'ron', 'player')?.lastFeat?.explanation).toBe('真实');
+    expect(beliefView(g.world, g.content, 'ron', 'player')?.lastFeat?.explanation).toEqual(
+      tr('sys.cognition.category.real'),
+    );
     expect(b()?.log.length).toBeGreaterThan(3);
   });
 
@@ -275,7 +279,9 @@ describe('rumors', () => {
     expect(r.heat).toBeLessThan(0.55);
     const rep = reputationOf(g.world, g.content);
     expect(rep.regions.find((x) => x.id === 'borderstone')?.fame).toBeGreaterThan(0.3);
-    expect(rep.regions.find((x) => x.id === 'wallenburg')?.fameBand).toBe('无人知晓');
+    expect(rep.regions.find((x) => x.id === 'wallenburg')?.fameBand).toEqual(
+      tr('sys.cognition.fame.unknown'),
+    );
     expect(rep.regions.find((x) => x.id === 'borderstone')?.mainstream.length).toBeGreaterThan(0);
   });
 
@@ -317,9 +323,16 @@ describe('rumors', () => {
     expect(told).toBe(true);
     const dora = g.world.slices.cognition.holdings.dora?.[0];
     expect(dora?.v.subject).toBe('player');
-    expect(lines(g).some((l) => l.who === '罗恩' && l.text.startsWith('不对，我亲眼看见的'))).toBe(
-      true,
-    );
+    expect(
+      g.world.recent.some(
+        (e) =>
+          e.kind === 'dialogue.line' &&
+          t(e.data.speakerName) === '罗恩' &&
+          typeof e.data.text === 'object' &&
+          'key' in e.data.text &&
+          e.data.text.key === 'sys.cognition.line.correct',
+      ),
+    ).toBe(true);
   });
 
   it('anchors versions with a public fact and refuses player-made facts', () => {
@@ -368,9 +381,11 @@ describe('appraisal (D-029) and pressure', () => {
     const w = g.world;
     expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'crystal')?.display).toBe('34+');
     expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'guild')?.display).toBe('Lv43');
-    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'skill')?.display).toBe('？');
-    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'sense')?.display).toBe(
-      '一片平静',
+    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'skill')?.display).toEqual(
+      tr('sys.cognition.appraise.unknown'),
+    );
+    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'sense')?.display).toEqual(
+      tr('sys.cognition.appraise.calm'),
     );
     const ron = appraise(w, CONTENT, 'player', npcEntityId('ron'), 'skill');
     expect(ron?.display).toBe('Lv11');
@@ -394,7 +409,9 @@ describe('appraisal (D-029) and pressure', () => {
       }),
     );
     const wolf = appraise(g.world, CONTENT, 'player', 'wolf_t', 'crystal');
-    expect(wolf?.display).toBe('残页：灰狼 Lv5');
+    expect(wolf?.display).toEqual(
+      tr('sys.cognition.appraise.fragment', { name: '灰狼', display: 'Lv5' }),
+    );
     expect(wolf?.kind).toBe('fragment');
   });
 
@@ -408,13 +425,15 @@ describe('appraisal (D-029) and pressure', () => {
     );
     g.step(1);
     const ev = g.world.recent.filter((e) => e.kind === 'cognition.appraised').at(-1);
-    expect(ev?.kind === 'cognition.appraised' && ev.data.display).toBe('无记载');
+    expect(ev?.kind === 'cognition.appraised' && ev.data.display).toEqual(
+      tr('sys.cognition.appraise.no_record'),
+    );
     expect(lines(g).some((l) => l.who === '莉娜' && l.text.includes('又坏了'))).toBe(true);
     expect(
       g.world.slices.cognition.beliefs.ron?.player?.evidence.some((e) => e.kind === 'appraisal'),
     ).toBe(true);
-    expect(reputationOf(g.world, g.content).factions.find((f) => f.id === 'guild')?.label).toBe(
-      '水晶故障的那个人',
+    expect(reputationOf(g.world, g.content).factions.find((f) => f.id === 'guild')?.label).toEqual(
+      tr('sys.cognition.reputation.crystal_glitch'),
     );
     // the same joke twice on one day is not told twice
     const before = lines(g).filter((l) => l.who === '莉娜').length;
@@ -472,7 +491,8 @@ describe('appraisal (D-029) and pressure', () => {
     g.step(1);
     const press = pressureSense(g.world, CONTENT, lina.id, bron.id);
     expect(press?.band).toBe('press');
-    expect(press?.text).not.toMatch(/\d/);
+    expect(press?.text).toEqual(tr('sys.cognition.pressure.press'));
+    expect(t(press?.text)).not.toMatch(/\d/);
   });
 });
 
@@ -489,6 +509,9 @@ describe('regression and public stance', () => {
     });
     stepTo(g, 1, 0, 5);
     expect(g.world.slices.cognition.beliefs.ron?.player?.state).toBe('doubt');
-    expect(g.world.slices.cognition.beliefs.ron?.player?.log.at(-1)).toContain('运气');
+    expect(g.world.slices.cognition.beliefs.ron?.player?.log.at(-1)).toMatchObject({
+      key: 'sys.cognition.belief.log',
+      params: { text: tr('sys.cognition.belief.regress') },
+    });
   });
 });

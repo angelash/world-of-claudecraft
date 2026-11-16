@@ -4,8 +4,8 @@
 // drawn by the renderer from previewPlacement), toggle policies, enter or leave the court.
 
 import { clear, el } from '../../shared_ui/dom';
+import { formatMoney } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
-import { formatMoney } from '../../systems/inventory';
 import { actionButton, badge, empty, kv, rebuilder } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';

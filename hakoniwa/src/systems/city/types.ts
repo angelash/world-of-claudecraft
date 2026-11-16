@@ -3,6 +3,8 @@
 // See docs/40_design/systems/city_building.md (scale ladder 1, court 2, placement 3.4,
 // buildings 4, population 5, production 6, officials 7.4, autonomy 8, events 10).
 
+import { type KeyText, type TextParam, type TextRef, tr } from '../../core/text';
+
 export type SiteKind = 'settlement' | 'court';
 /** Scale ladder (D-045 for battles; city 1.1): outpost, village, territory. Court is separate. */
 export type Stage = 'outpost' | 'village' | 'territory' | 'court';
@@ -12,6 +14,18 @@ export const STAGE_ORDER: Record<Stage, number> = {
   territory: 2,
   court: 0,
 };
+
+const STAGE_LABELS: Record<Stage, () => KeyText> = {
+  outpost: () => tr('sys.city.stage.outpost'),
+  village: () => tr('sys.city.stage.village'),
+  territory: () => tr('sys.city.stage.territory'),
+  court: () => tr('sys.city.stage.court'),
+};
+
+/** Display name of a scale stage (a fresh TextRef). */
+export function stageLabel(stage: Stage): KeyText {
+  return STAGE_LABELS[stage]();
+}
 
 export type Domain =
   | 'food'
@@ -23,16 +37,21 @@ export type Domain =
   | 'culture'
   | 'research';
 
-export const DOMAIN_LABELS: Record<Domain, string> = {
-  food: '粮务',
-  works: '工务',
-  security: '治安',
-  civil: '民政',
-  commerce: '商务',
-  military: '军务',
-  culture: '教化',
-  research: '研究',
+const DOMAIN_LABELS: Record<Domain, () => KeyText> = {
+  food: () => tr('sys.city.domain.food'),
+  works: () => tr('sys.city.domain.works'),
+  security: () => tr('sys.city.domain.security'),
+  civil: () => tr('sys.city.domain.civil'),
+  commerce: () => tr('sys.city.domain.commerce'),
+  military: () => tr('sys.city.domain.military'),
+  culture: () => tr('sys.city.domain.culture'),
+  research: () => tr('sys.city.domain.research'),
 };
+
+/** Display name of an office domain (a fresh TextRef); unknown ids pass through as text. */
+export function domainLabel(domain: Domain | string): TextRef | string {
+  return DOMAIN_LABELS[domain as Domain]?.() ?? domain;
+}
 
 export type BuildingCategory =
   | 'residential'
@@ -228,10 +247,10 @@ export interface PolicyDef {
 // Runtime state
 
 export type PopGroup = 'refugees' | 'remnants' | 'migrants';
-export const POP_GROUP_LABELS: Record<PopGroup, string> = {
-  refugees: '难民',
-  remnants: '遗民',
-  migrants: '移民',
+export const POP_GROUP_LABELS: Record<PopGroup, () => KeyText> = {
+  refugees: () => tr('sys.city.pop_group.refugees'),
+  remnants: () => tr('sys.city.pop_group.remnants'),
+  migrants: () => tr('sys.city.pop_group.migrants'),
 };
 
 export interface BuildingInstance {
@@ -248,7 +267,7 @@ export interface BuildingInstance {
   condition: number;
   workers: number;
   /** readable status shown in the client (warehouse full, missing inputs, ...) */
-  note?: string;
+  note?: TextRef;
   boostUntilDay?: number;
   placedDay: number;
   placedBy: 'player' | 'official';
@@ -257,17 +276,19 @@ export interface BuildingInstance {
 }
 
 export interface HappinessFactor {
-  source: string;
-  label: string;
+  /** factor code, or the readable id of the temporary effect behind it */
+  source: TextParam;
+  label: TextRef;
   value: number;
 }
 
 export interface TempEffect {
-  id: string;
+  /** readable id: the kind and the label (display only, never looked up) */
+  id: TextParam;
   kind: 'happiness' | 'security' | 'health' | 'production' | 'ration' | 'militia';
   value: number;
   untilDay: number;
-  label: string;
+  label: TextRef;
 }
 
 export interface DecisionRecord {
@@ -284,7 +305,7 @@ export interface TrialRecord {
 
 export interface DependencyEntry {
   day: number;
-  action: string;
+  action: TextRef;
   delta: number;
 }
 
@@ -316,7 +337,7 @@ export interface CityEventRecord {
   day: number;
   kind: CityEventKind;
   severity: 'minor' | 'severe';
-  text: string;
+  text: TextRef;
 }
 
 export type CityEventKind = 'fire' | 'plague' | 'raid';
@@ -352,7 +373,7 @@ export interface SiteState {
   sediment: number;
   sedimentModifier: { id: string; untilTick: number } | null;
   /** readable status lines for the client */
-  status: string[];
+  status: TextRef[];
   workersTotal: number;
   laborTotal: number;
   /** spoilage carry */
@@ -404,12 +425,17 @@ declare module '../../core/contracts' {
     'city.building_placed': { siteId: string; buildingId: string; defId: string; by: string };
     'city.building_cancelled': { siteId: string; buildingId: string; defId: string };
     'city.stage_changed': { siteId: string; from: Stage; to: Stage };
-    'city.population_changed': { siteId: string; total: number; delta: number; reason: string };
+    'city.population_changed': {
+      siteId: string;
+      total: number;
+      delta: number;
+      reason: TextParam;
+    };
     'city.event': {
       siteId: string;
       kind: CityEventKind;
       severity: 'minor' | 'severe';
-      text: string;
+      text: TextRef;
       ok: boolean;
     };
     'city.official_decided': {
@@ -418,7 +444,7 @@ declare module '../../core/contracts' {
       officialId: string;
       action: OfficialActionId;
       ok: boolean;
-      note: string;
+      note: TextRef | string;
     };
     'city.autonomy_changed': { siteId: string; value: number; raw: number };
   }

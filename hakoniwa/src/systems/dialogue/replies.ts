@@ -3,6 +3,7 @@
 // its belief about the player (public stance) and its relation toward the player.
 
 import type { SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { beliefRaw } from '../cognition/queries';
 import { holdingOf } from '../inventory';
 import { personaById } from '../npc/personas';
@@ -10,37 +11,46 @@ import { locationById } from '../npc/places';
 import { relationOf } from '../npc/relations';
 import type { PersonaCard } from '../npc/types';
 import { currentWeather } from '../world';
+import INPUT_LEXICON from './input_lexicon.json';
 import { pickLine } from './templates';
 
+// Player-input vocabulary for the rule answer (keywords of the player's own typed words).
+// Data, not display text: it belongs in data/ with the content pipeline (follow-up).
+const INPUT = {
+  thanks: new RegExp(INPUT_LEXICON.thanks),
+  hello: new RegExp(INPUT_LEXICON.hello),
+  question: new RegExp(INPUT_LEXICON.question),
+};
+
 export interface ReplyVars {
-  player: string;
-  place: string;
-  [k: string]: string;
+  player: TextParam;
+  place: TextParam;
+  [k: string]: TextParam;
 }
 
-/** How the NPC addresses the player right now (Cassian turns cold: 这位旅人 to 阁下). */
-export function addressOf(ctx: SystemContext, npcRef: string): string {
+/** How the NPC addresses the player right now (Cassian turns cold: the persona's form to "sir"). */
+export function addressOf(ctx: SystemContext, npcRef: string): TextParam {
   const p = personaById(ctx.content, npcRef);
-  if (!p) return '你';
+  if (!p) return tr('sys.dialogue.address.you');
   const b = beliefRaw(ctx.world, npcRef, 'player');
   if (p.class === 'clergy' && b && (b.explanation === 'sorcery' || b.state === 'hostile'))
-    return '阁下';
-  if (b?.state === 'worship') return '大人';
+    return tr('sys.dialogue.address.sir');
+  if (b?.state === 'worship') return tr('sys.dialogue.address.lord');
   return p.voice.address;
 }
 
 export function varsFor(ctx: SystemContext, npcRef: string): ReplyVars {
   const st = ctx.world.slices.npc.npcs[npcRef];
   const loc = st ? locationById(ctx.content, st.mapId, st.locId) : undefined;
-  return { player: addressOf(ctx, npcRef), place: loc?.name ?? '这儿' };
+  return { player: addressOf(ctx, npcRef), place: loc?.name ?? tr('sys.dialogue.place.here') };
 }
 
 function line(
   ctx: SystemContext,
   key: string,
   npcRef: string,
-  extra: Record<string, string> = {},
-): string {
+  extra: Record<string, TextParam> = {},
+): TextParam {
   const p = personaById(ctx.content, npcRef);
   const text = pickLine(
     ctx.content,
@@ -56,7 +66,7 @@ function persona(ctx: SystemContext, npcRef: string): PersonaCard | undefined {
   return personaById(ctx.content, npcRef);
 }
 
-export function greeting(ctx: SystemContext, npcRef: string, first: boolean): string {
+export function greeting(ctx: SystemContext, npcRef: string, first: boolean): TextParam {
   const st = ctx.world.slices.npc.npcs[npcRef];
   if (st?.activity === 'sleep') return line(ctx, 'greet.sleep', npcRef);
   if (first) return line(ctx, 'greet.first', npcRef);
@@ -68,7 +78,7 @@ export function greeting(ctx: SystemContext, npcRef: string, first: boolean): st
   return line(ctx, state === 'unaware' ? 'greet' : `greet.${state}`, npcRef);
 }
 
-export function smallTalk(ctx: SystemContext, npcRef: string): string {
+export function smallTalk(ctx: SystemContext, npcRef: string): TextParam {
   const st = ctx.world.slices.npc.npcs[npcRef];
   if (!st) return line(ctx, 'chat', npcRef);
   if (st.activity === 'sleep') return line(ctx, 'chat.sleep', npcRef);
@@ -82,7 +92,7 @@ export function smallTalk(ctx: SystemContext, npcRef: string): string {
 }
 
 /** "What do you think of me": the public stance, worded by state and explanation. */
-export function opinion(ctx: SystemContext, npcRef: string): string {
+export function opinion(ctx: SystemContext, npcRef: string): TextParam {
   const b = beliefRaw(ctx.world, npcRef, 'player');
   if (!b) return line(ctx, 'opinion.unaware', npcRef);
   const state = b.publicState;
@@ -91,21 +101,21 @@ export function opinion(ctx: SystemContext, npcRef: string): string {
   return line(ctx, `opinion.${state}`, npcRef);
 }
 
-export function rumorLine(ctx: SystemContext, npcRef: string, rumor: string | null): string {
+export function rumorLine(ctx: SystemContext, npcRef: string, rumor: TextParam | null): TextParam {
   return rumor ? line(ctx, 'rumor.tell', npcRef, { rumor }) : line(ctx, 'rumor.none', npcRef);
 }
 
-export function farewell(ctx: SystemContext, npcRef: string): string {
+export function farewell(ctx: SystemContext, npcRef: string): TextParam {
   return line(ctx, 'bye', npcRef);
 }
 
 /** Rule answer to free text: a light keyword read plus the relation (text is data only). */
-export function answer(ctx: SystemContext, npcRef: string, text: string): string {
+export function answer(ctx: SystemContext, npcRef: string, text: string): TextParam {
   const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
-  if (/谢/.test(text)) return line(ctx, 'say.thanks', npcRef);
-  if (/你好|您好|早上好|晚上好/.test(text)) return line(ctx, 'say.hello', npcRef);
+  if (INPUT.thanks.test(text)) return line(ctx, 'say.thanks', npcRef);
+  if (INPUT.hello.test(text)) return line(ctx, 'say.hello', npcRef);
   if (rel.like <= -15) return line(ctx, 'say.cold', npcRef);
-  if (/[？?]$|吗/.test(text)) return line(ctx, 'say.question', npcRef);
+  if (INPUT.question.test(text)) return line(ctx, 'say.question', npcRef);
   if (rel.like >= 30) return line(ctx, 'say.warm', npcRef);
   return line(ctx, 'say', npcRef);
 }

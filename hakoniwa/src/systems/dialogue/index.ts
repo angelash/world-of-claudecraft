@@ -5,6 +5,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { commandText, type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
 import type { World } from '../../core/world';
 import { tellPlayer } from '../cognition/rumor';
@@ -17,6 +18,7 @@ import { answer, farewell, greeting, opinion, rumorLine, smallTalk } from './rep
 import {
   addOffered,
   BUILTIN_OPTIONS,
+  builtinOptions,
   closeSession,
   KEEP_RANGE,
   npcSays,
@@ -41,7 +43,13 @@ export interface ConversationView {
   npcId: string;
   npcRef: string;
   name: string;
-  lines: { speakerId: string; speakerName: string; text: string; kind: string; tick: number }[];
+  lines: {
+    speakerId: string;
+    speakerName: TextParam;
+    text: TextParam;
+    kind: string;
+    tick: number;
+  }[];
   options: SessionOption[];
   /** waiting for the NPC's answer (show "思考中" after a moment) */
   pending: boolean;
@@ -119,19 +127,19 @@ export const system: GameSystem = {
   commands: {
     'dialogue.talk'(ctx, d, src) {
       if (src.type !== 'player' && src.type !== 'script')
-        return reject('not_allowed', '只有玩家能发起交谈');
+        return reject('not_allowed', tr('sys.dialogue.reject.not_allowed.talk'));
       const p = playerEntity(ctx.world);
       const e = getEntity(ctx.world, d.npcId);
-      if (!p) return reject('no_player', '找不到玩家');
-      if (!e) return reject('no_npc', '找不到这个人');
+      if (!p) return reject('no_player', tr('sys.dialogue.reject.no_player'));
+      if (!e) return reject('no_npc', tr('sys.dialogue.reject.no_npc'));
       const npcRef = e.ref;
       if (e.kind !== 'npc' || !npcRef || !ctx.world.slices.npc.npcs[npcRef])
-        return reject('not_npc', '没法和它说话');
-      if (!e.alive || e.hidden) return reject('gone', '对方不在这里');
+        return reject('not_npc', tr('sys.dialogue.reject.not_npc'));
+      if (!e.alive || e.hidden) return reject('gone', tr('sys.dialogue.reject.gone'));
       if (e.mapId !== p.mapId || distance(p, e) > TALK_RANGE)
-        return reject('too_far', '离得太远了，走近些再说');
+        return reject('too_far', tr('sys.dialogue.reject.too_far.talk'));
       const prev = session(ctx);
-      if (prev?.npcId === e.id) return ok('已经在说话了');
+      if (prev?.npcId === e.id) return ok(tr('sys.dialogue.info.already_talking'));
       if (prev) closeSession(ctx, 'switched');
       const slice = ctx.world.slices.dialogue;
       const first = slice.met[npcRef] === undefined;
@@ -146,7 +154,7 @@ export const system: GameSystem = {
         lastTick: ctx.tick,
         rev: 1,
         lines: [],
-        options: BUILTIN_OPTIONS.map((o) => ({ ...o })),
+        options: builtinOptions(),
         pending: false,
       };
       slice.session = s;
@@ -155,7 +163,9 @@ export const system: GameSystem = {
       ctx.emit('player.talked', { npcId: e.id, npcRef });
       npcSays(ctx, s, greeting(ctx, npcRef, first));
       addMemory(ctx, npcRef, {
-        text: first ? '那个新来的头一回来找我说话' : '那个新来的来找我说话',
+        text: tr(
+          first ? 'sys.dialogue.memory.player_first_talk' : 'sys.dialogue.memory.player_talk',
+        ),
         src: 'self',
         about: 'player',
         imp: first ? 0.4 : 0.15,
@@ -166,27 +176,32 @@ export const system: GameSystem = {
 
     'dialogue.say'(ctx, d, src) {
       if (src.type !== 'player' && src.type !== 'script')
-        return reject('not_allowed', '只有玩家能这样说话');
+        return reject('not_allowed', tr('sys.dialogue.reject.not_allowed.say'));
       const s = session(ctx);
-      if (!s) return reject('no_session', '现在没有在和谁说话');
+      if (!s) return reject('no_session', tr('sys.dialogue.reject.no_session'));
       if (!stillInReach(ctx, s)) {
         closeSession(ctx, 'walked_away');
-        return reject('too_far', '对方已经听不见了');
+        return reject('too_far', tr('sys.dialogue.reject.too_far.earshot'));
       }
       const text = typeof d.text === 'string' ? d.text.replace(/\s+/g, ' ').trim() : '';
-      if (!text) return reject('empty', '要说点什么');
+      if (!text) return reject('empty', tr('sys.dialogue.reject.empty.say'));
       if (text.length > MAX_TEXT)
-        return reject('too_long', `一次说的话太长了（至多 ${MAX_TEXT} 字）`);
+        return reject('too_long', tr('sys.dialogue.reject.too_long', { max: MAX_TEXT }));
       s.rev += 1;
       pushLine(
         ctx,
         s,
-        { speakerId: ctx.world.slices.world.playerId, speakerName: '你', text, kind: 'say' },
+        {
+          speakerId: ctx.world.slices.world.playerId,
+          speakerName: tr('sys.dialogue.name.you'),
+          text,
+          kind: 'say',
+        },
         s.npcId,
       );
       ctx.emit('player.said', { text, toId: s.npcId, mapId: s.mapId });
       addMemory(ctx, s.npcRef, {
-        text: `对方对我说：「${text.slice(0, 60)}」`,
+        text: tr('sys.dialogue.memory.player_said', { text: text.slice(0, 60) }),
         src: 'heard',
         cred: 1,
         about: 'player',
@@ -198,7 +213,7 @@ export const system: GameSystem = {
         s,
         'player_text',
         answer(ctx, s.npcRef, text),
-        '回应对方刚才说的话。',
+        tr('sys.dialogue.prompt.reply_player'),
         text,
       );
       return ok();
@@ -206,21 +221,21 @@ export const system: GameSystem = {
 
     'dialogue.choose'(ctx, d, src) {
       if (src.type !== 'player' && src.type !== 'script')
-        return reject('not_allowed', '只有玩家能选择');
+        return reject('not_allowed', tr('sys.dialogue.reject.not_allowed.choose'));
       const s = session(ctx);
-      if (!s) return reject('no_session', '现在没有在和谁说话');
+      if (!s) return reject('no_session', tr('sys.dialogue.reject.no_session'));
       const opt = s.options.find((o) => o.id === d.optionId);
-      if (!opt) return reject('no_option', '没有这个选项');
+      if (!opt) return reject('no_option', tr('sys.dialogue.reject.no_option'));
       if (!stillInReach(ctx, s)) {
         closeSession(ctx, 'walked_away');
-        return reject('too_far', '对方已经听不见了');
+        return reject('too_far', tr('sys.dialogue.reject.too_far.earshot'));
       }
       pushLine(
         ctx,
         s,
         {
           speakerId: ctx.world.slices.world.playerId,
-          speakerName: '你',
+          speakerName: tr('sys.dialogue.name.you'),
           text: opt.label,
           kind: 'say',
         },
@@ -248,9 +263,21 @@ export const system: GameSystem = {
         const slice = ctx.world.slices.dialogue;
         if (slice.chatDay[s.npcRef] !== day && personaById(ctx.content, s.npcRef)) {
           slice.chatDay[s.npcRef] = day;
-          adjustRelation(ctx, s.npcRef, 'player', { like: 1.5, trust: 0.5 }, '和对方闲聊');
+          adjustRelation(
+            ctx,
+            s.npcRef,
+            'player',
+            { like: 1.5, trust: 0.5 },
+            tr('sys.dialogue.reason.chat'),
+          );
         }
-        requestReply(ctx, s, 'small_talk', smallTalk(ctx, s.npcRef), '对方想和你闲聊几句。');
+        requestReply(
+          ctx,
+          s,
+          'small_talk',
+          smallTalk(ctx, s.npcRef),
+          tr('sys.dialogue.prompt.small_talk'),
+        );
         return ok();
       }
       if (opt.id === 'rumors') {
@@ -261,39 +288,40 @@ export const system: GameSystem = {
           'tell_rumor',
           rumorLine(ctx, s.npcRef, told?.text ?? null),
           told
-            ? `对方向你打听传闻，你决定把听来的这件事讲给他：${told.text}（这是听来的说法，不一定是真的。）`
-            : '对方向你打听传闻，但你最近没听到什么。',
+            ? tr('sys.dialogue.prompt.tell_rumor', { rumor: told.text })
+            : tr('sys.dialogue.prompt.no_rumor'),
         );
         return ok();
       }
       if (opt.id === 'opinion') {
-        requestReply(
-          ctx,
-          s,
-          'opinion',
-          opinion(ctx, s.npcRef),
-          '对方问你怎么看他。照你嘴上的态度回答。',
-        );
+        requestReply(ctx, s, 'opinion', opinion(ctx, s.npcRef), tr('sys.dialogue.prompt.opinion'));
         return ok();
       }
-      return reject('no_option', '没有这个选项');
+      return reject('no_option', tr('sys.dialogue.reject.no_option'));
     },
 
     'dialogue.close'(ctx) {
-      if (!session(ctx)) return reject('no_session', '现在没有在和谁说话');
+      if (!session(ctx)) return reject('no_session', tr('sys.dialogue.reject.no_session'));
       closeSession(ctx, 'closed');
       return ok();
     },
 
     'dialogue.reply'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能替对方回答');
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.dialogue.reject.not_allowed.reply'));
       const s = session(ctx);
       if (!s || s.id !== d.sessionId || s.npcId !== d.npcId)
-        return reject('stale', '那场对话已经结束了');
-      if (d.revision !== s.rev) return reject('stale', '对话已经往下走了');
-      const text =
-        typeof d.text === 'string' ? d.text.replace(/\s+/g, ' ').trim().slice(0, 120) : '';
-      if (!text) return reject('empty', '回答是空的');
+        return reject('stale', tr('sys.dialogue.reject.stale.closed'));
+      if (d.revision !== s.rev) return reject('stale', tr('sys.dialogue.reject.stale.moved_on'));
+      // model words: a string, normalised, capped and kept as raw text; the rule fallback may
+      // also be a TextRef, capped the same way
+      const text = commandText(
+        d.text,
+        src.type === 'ai',
+        (s) => s.replace(/\s+/g, ' ').trim().slice(0, 120),
+        120,
+      );
+      if (!text) return reject('empty', tr('sys.dialogue.reject.empty.reply'));
       s.pending = false;
       npcSays(ctx, s, text);
       return ok();

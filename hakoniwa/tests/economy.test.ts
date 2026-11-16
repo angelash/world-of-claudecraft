@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
 import { pack as economyPack } from '../src/content/packs/economy';
-import { type Engine, ok, worldHash } from '../src/core';
+import { type Engine, ok, type TextRef, tr, worldHash } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
 import type { GameSystem } from '../src/core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../src/core/time';
 import { createGame } from '../src/game/create';
 import { allSystems } from '../src/game/registry';
+import { t } from '../src/shared_ui/i18n';
 import {
   buyFromMarket,
   companyView,
@@ -31,7 +32,7 @@ declare module '../src/core/contracts' {
   }
 }
 
-const portResults: { ok: boolean; code?: string; reason?: string; total?: number }[] = [];
+const portResults: { ok: boolean; code?: string; reason?: TextRef; total?: number }[] = [];
 
 /** Test-only helper: grants items and money, and calls the economy ports. */
 const probe: GameSystem = {
@@ -114,7 +115,7 @@ describe('markets', () => {
     ) as number;
     expect(ingotAfter / ingotBefore).toBeCloseTo(1.5, 1);
     const q = priceQuote(engine.world, engine.content, 'borderstone', 'iron_ingot', 'buy', 1);
-    expect(q?.lines.some((l) => l.kind === 'modifier' && l.label.includes('梅尔卡'))).toBe(true);
+    expect(q?.lines.some((l) => l.kind === 'modifier' && t(l.label).includes('梅尔卡'))).toBe(true);
     // the same item at another market is untouched
     const wb = marketPrice(engine.world, engine.content, 'wallenburg', 'iron_ingot') as number;
     expect(wb).toBeLessThan(ingotAfter);
@@ -165,7 +166,7 @@ describe('markets', () => {
     const res = portResults.at(-1);
     expect(res?.ok).toBe(false);
     expect(res?.code).toBe('illegal_goods');
-    expect(res?.reason).toContain('灰晶');
+    expect(res?.reason).toEqual(tr('sys.economy.reject.illegal_goods', { item: '灰晶' }));
     expect(countItem(engine.world, 'player', 'grey_crystal')).toBe(3);
   });
 });
@@ -247,7 +248,11 @@ describe('trading with a merchant', () => {
     engine.step(1);
     const res = lastResult(engine, 'economy.found_company');
     expect(res?.ok).toBe(false);
-    expect(res?.reason).toContain('出资');
+    expect(res?.reason).toEqual(
+      tr('sys.economy.reject.no_money.found', {
+        cost: engine.content.economy_config.company.foundCost,
+      }),
+    );
     expect(engine.world.meta.flags['econ.company_founded']).toBeUndefined();
   });
 });

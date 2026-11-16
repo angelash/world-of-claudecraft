@@ -2,7 +2,7 @@
 // role counters, formations, the classic armor reduction and hit formulas, aspect
 // (front, flank, rear) and the expected-damage product. Pure functions.
 
-import type { ArmorType, DamageType, Formation, UnitRole, UnitTypeDef } from './types';
+import type { ArmorType, DamageType, Formation, KernelUnit, UnitRole, UnitTypeDef } from './types';
 
 /** Damage type vs armor type multipliers (warfare_rts.md 3.2). */
 export const DAMAGE_VS_ARMOR: Record<DamageType, Record<ArmorType, number>> = {
@@ -162,7 +162,7 @@ export const HERO_CONTACT_SLOTS = 6;
 export const CAVALRY: ReadonlySet<UnitRole> = new Set<UnitRole>(['light_cav', 'heavy_cav']);
 export const BACKLINE: ReadonlySet<UnitRole> = new Set<UnitRole>(['archer', 'mage', 'healer']);
 
-export function isRanged(u: UnitTypeDef): boolean {
+export function isRanged(u: KernelUnit): boolean {
   return u.range >= 3;
 }
 
@@ -173,7 +173,7 @@ export function armorReduction(armor: number, attackerLevel: number): number {
   return Math.min(0.75, Math.max(0, dr));
 }
 
-export function hitChance(attacker: UnitTypeDef, defenderDodge: number): number {
+export function hitChance(attacker: KernelUnit, defenderDodge: number): number {
   return Math.min(0.98, Math.max(0.3, attacker.hitBase - defenderDodge));
 }
 
@@ -218,8 +218,8 @@ export function fatigueSpeedFactor(fatigue: number): number {
 }
 
 export interface RoleCounterInput {
-  attacker: UnitTypeDef;
-  defender: UnitTypeDef;
+  attacker: KernelUnit;
+  defender: KernelUnit;
   attackerFormation: Formation;
   defenderFormation: Formation;
   aspect: Aspect;
@@ -253,8 +253,8 @@ export function aspectFactor(aspect: Aspect, formation: Formation): number {
 }
 
 export interface ExpectedDamageInput {
-  attacker: UnitTypeDef;
-  defender: UnitTypeDef;
+  attacker: KernelUnit;
+  defender: KernelUnit;
   engaged: number;
   interval: number;
   attackerFormation: Formation;
@@ -303,13 +303,13 @@ export function expectedDamage(e: ExpectedDamageInput): number {
 }
 
 /** Per-soldier expected damage per second against a neutral target (C-layer power). */
-export function soldierDps(u: UnitTypeDef): number {
+export function soldierDps(u: KernelUnit): number {
   const avg = (u.dmgMin + u.dmgMax) / 2;
   return (avg / Math.max(0.5, u.attackInterval)) * Math.min(0.98, Math.max(0.3, u.hitBase - 0.05));
 }
 
 /** Effective hit points of one soldier against an average attacker (level 15). */
-export function soldierEhp(u: UnitTypeDef): number {
+export function soldierEhp(u: KernelUnit): number {
   return u.hp / (1 - armorReduction(u.armor, 15)) / Math.max(0.5, 1 - u.dodgeBase);
 }
 

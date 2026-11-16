@@ -7,6 +7,7 @@
 import type { ContentMap, FlagValue } from '../../core/contracts';
 import { Engine } from '../../core/engine';
 import type { GameSystem } from '../../core/system';
+import { t as renderText } from '../../shared_ui/i18n';
 import { system as cityModule } from '../../systems/city';
 import { system as economySystem } from '../../systems/economy';
 import { system as inventorySystem } from '../../systems/inventory';
@@ -510,7 +511,7 @@ export class BalanceTool implements EditorTool {
           h('td', { text: num(r.seconds) }),
           h('td', { text: loss('player') }),
           h('td', { text: loss('enemy') }),
-          h('td', { text: r.reason }),
+          h('td', { text: renderText(r.reason) }),
         ),
       );
     });

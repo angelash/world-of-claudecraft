@@ -9,6 +9,7 @@ import { worldHash } from '../../core/save';
 import type { GameSystem } from '../../core/system';
 import { type Calendar, TICK_HZ } from '../../core/time';
 import type { LoggedCommand } from '../../core/world';
+import { renderTextDeep } from '../../shared_ui/i18n';
 import type { Entity } from '../../systems/world/types';
 import { fmt, SEASONS, T } from '../text';
 
@@ -92,7 +93,8 @@ export function eventMatches(ev: AnyWorldEvent, kind: string, text: string): boo
   if (kind && ev.kind !== kind) return false;
   const q = text.trim().toLowerCase();
   if (!q) return true;
-  return `${ev.kind} ${JSON.stringify(ev.data)}`.toLowerCase().includes(q);
+  // kernel text is TextRefs: search the rendered words, as the event list shows them
+  return `${ev.kind} ${JSON.stringify(renderTextDeep(ev.data))}`.toLowerCase().includes(q);
 }
 
 /** Newest-first events matching a filter, at most `limit`. */

@@ -3,6 +3,7 @@
 // one kind is downgraded to background chatter. Lines come from rule templates.
 
 import type { SystemContext } from '../../core/system';
+import type { TextParam } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { pickLine } from '../dialogue/templates';
 import { npcEntityId, personaById } from '../npc/personas';
@@ -50,7 +51,7 @@ export function speakReaction(
   observerId: string,
   o: ObserveOutcome,
   mapId: string,
-  vars: Record<string, string>,
+  vars: Record<string, TextParam>,
 ): boolean {
   const p = personaById(ctx.content, observerId);
   if (!p) return false;

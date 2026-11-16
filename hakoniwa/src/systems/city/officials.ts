@@ -6,9 +6,10 @@ import { type CommandResult, ok, reject } from '../../core';
 import type { AiContextV1 } from '../../core/ai_port';
 import type { CommandSource } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { joinText, type KeyText, type TextRef, tr } from '../../core/text';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { buyFromMarket, marketPrice, sellToMarket } from '../economy/ports';
-import { formatMoney, spendMoney } from '../inventory';
+import { spendMoney } from '../inventory';
 import { actingLevel, DECISION_WEIGHT, recordDecision } from './autonomy';
 import {
   ALL_DOMAINS,
@@ -28,8 +29,8 @@ import { findSpot } from './placement';
 import { addPopulation } from './population';
 import { repairOne } from './production';
 import {
-  DOMAIN_LABELS,
   type Domain,
+  domainLabel,
   type OfficeState,
   type OfficialActionId,
   type OfficialDef,
@@ -40,67 +41,98 @@ import {
 export interface OfficialActionDef {
   domains: Domain[];
   level: number;
-  name: string;
-  desc: string;
 }
 
 export const OFFICIAL_ACTIONS: Record<OfficialActionId, OfficialActionDef> = {
-  idle: { domains: [...ALL_DOMAINS], level: 1, name: '按兵不动', desc: '本周不做额外安排' },
-  ration: { domains: ['food'], level: 1, name: '定量配给', desc: '口粮减一成，持续七天，民心略降' },
+  idle: { domains: [...ALL_DOMAINS], level: 1 },
+  ration: { domains: ['food'], level: 1 },
+  prioritize_food: { domains: ['food'], level: 1 },
+  buy_food: { domains: ['food', 'commerce'], level: 2 },
+  repair: { domains: ['works'], level: 1 },
+  build_housing: { domains: ['works', 'civil'], level: 2 },
+  build_storage: { domains: ['works'], level: 2 },
+  patrol: { domains: ['security', 'military'], level: 1 },
+  curfew: { domains: ['security'], level: 2 },
+  settle: { domains: ['civil', 'culture'], level: 1 },
+  welcome_refugees: { domains: ['civil'], level: 2 },
+  festival: { domains: ['civil', 'culture'], level: 2 },
+  sell_surplus: { domains: ['commerce'], level: 2 },
+  drill: { domains: ['military', 'security'], level: 1 },
+  study: { domains: ['research', 'culture'], level: 1 },
+};
+
+const ACTION_TEXT: Record<OfficialActionId, { name: () => KeyText; desc: () => KeyText }> = {
+  idle: {
+    name: () => tr('sys.city.action.idle.name'),
+    desc: () => tr('sys.city.action.idle.desc'),
+  },
+  ration: {
+    name: () => tr('sys.city.action.ration.name'),
+    desc: () => tr('sys.city.action.ration.desc'),
+  },
   prioritize_food: {
-    domains: ['food'],
-    level: 1,
-    name: '先保粮食',
-    desc: '催促田间与渔猎，七天内产出略增',
+    name: () => tr('sys.city.action.prioritize_food.name'),
+    desc: () => tr('sys.city.action.prioritize_food.desc'),
   },
   buy_food: {
-    domains: ['food', 'commerce'],
-    level: 2,
-    name: '采购口粮',
-    desc: '用金库的钱从集市买粮',
+    name: () => tr('sys.city.action.buy_food.name'),
+    desc: () => tr('sys.city.action.buy_food.desc'),
   },
-  repair: { domains: ['works'], level: 1, name: '修缮', desc: '用库存材料修好最破的一座建筑' },
+  repair: {
+    name: () => tr('sys.city.action.repair.name'),
+    desc: () => tr('sys.city.action.repair.desc'),
+  },
   build_housing: {
-    domains: ['works', 'civil'],
-    level: 2,
-    name: '加盖住房',
-    desc: '在空地上加盖一座住房',
+    name: () => tr('sys.city.action.build_housing.name'),
+    desc: () => tr('sys.city.action.build_housing.desc'),
   },
-  build_storage: { domains: ['works'], level: 2, name: '加盖仓房', desc: '在空地上加盖一座仓房' },
-  patrol: { domains: ['security', 'military'], level: 1, name: '加强巡逻', desc: '七天内治安提高' },
-  curfew: { domains: ['security'], level: 2, name: '宵禁', desc: '七天内治安大幅提高，民心下降' },
+  build_storage: {
+    name: () => tr('sys.city.action.build_storage.name'),
+    desc: () => tr('sys.city.action.build_storage.desc'),
+  },
+  patrol: {
+    name: () => tr('sys.city.action.patrol.name'),
+    desc: () => tr('sys.city.action.patrol.desc'),
+  },
+  curfew: {
+    name: () => tr('sys.city.action.curfew.name'),
+    desc: () => tr('sys.city.action.curfew.desc'),
+  },
   settle: {
-    domains: ['civil', 'culture'],
-    level: 1,
-    name: '安抚人心',
-    desc: '走访居民，七天内民心提高',
+    name: () => tr('sys.city.action.settle.name'),
+    desc: () => tr('sys.city.action.settle.desc'),
   },
   welcome_refugees: {
-    domains: ['civil'],
-    level: 2,
-    name: '收留难民',
-    desc: '把等在路边的难民接进村',
+    name: () => tr('sys.city.action.welcome_refugees.name'),
+    desc: () => tr('sys.city.action.welcome_refugees.desc'),
   },
   festival: {
-    domains: ['civil', 'culture'],
-    level: 2,
-    name: '办节庆',
-    desc: '花一笔钱办节庆，民心大涨',
+    name: () => tr('sys.city.action.festival.name'),
+    desc: () => tr('sys.city.action.festival.desc'),
   },
   sell_surplus: {
-    domains: ['commerce'],
-    level: 2,
-    name: '出售余货',
-    desc: '把积压的材料拉去集市卖掉',
+    name: () => tr('sys.city.action.sell_surplus.name'),
+    desc: () => tr('sys.city.action.sell_surplus.desc'),
   },
   drill: {
-    domains: ['military', 'security'],
-    level: 1,
-    name: '操练民兵',
-    desc: '七天内可用民兵增加',
+    name: () => tr('sys.city.action.drill.name'),
+    desc: () => tr('sys.city.action.drill.desc'),
   },
-  study: { domains: ['research', 'culture'], level: 1, name: '钻研', desc: '整理记录，培养后进' },
+  study: {
+    name: () => tr('sys.city.action.study.name'),
+    desc: () => tr('sys.city.action.study.desc'),
+  },
 };
+
+/** Display name of an official action (a fresh TextRef). */
+export function actionName(id: OfficialActionId): KeyText {
+  return ACTION_TEXT[id].name();
+}
+
+/** One-line description of an official action (a fresh TextRef). */
+export function actionDesc(id: OfficialActionId): KeyText {
+  return ACTION_TEXT[id].desc();
+}
 
 export function officialDef(
   ctx: { content: { city_officials: OfficialDef[] } },
@@ -131,18 +163,22 @@ export function assignOffice(
   let offices: Partial<Record<Domain, OfficeState>>;
   let allowed: Domain[];
   if (d.siteId === 'nation') {
-    if (!ctx.flag('a4_nation_founded')) return reject('no_nation', '还没有立国');
+    if (!ctx.flag('a4_nation_founded')) return reject('no_nation', tr('sys.city.reject.no_nation'));
     offices = city.nation.offices;
     allowed = ALL_DOMAINS;
   } else {
     const site = city.sites[d.siteId];
     const sdef = siteDef(ctx.content, d.siteId);
-    if (!site || !sdef || sdef.kind !== 'settlement') return reject('unknown_site', '没有这个聚落');
+    if (!site || !sdef || sdef.kind !== 'settlement')
+      return reject('unknown_site', tr('sys.city.reject.unknown_site'));
     offices = site.offices;
     allowed = domainsFor(site.stage);
   }
   if (!allowed.includes(d.domain))
-    return reject('domain_locked', `现在还没有设${DOMAIN_LABELS[d.domain] ?? d.domain}这个职务`);
+    return reject(
+      'domain_locked',
+      tr('sys.city.reject.domain_locked', { domain: domainLabel(d.domain) }),
+    );
   const office = offices[d.domain] ?? newOffice(d.domain);
   offices[d.domain] = office;
   const rank = d.rank ?? 'head';
@@ -151,26 +187,39 @@ export function assignOffice(
     if (rank === 'head') office.holderId = undefined;
     else office.deputyId = undefined;
     office.revision += 1;
-    return ok(`${DOMAIN_LABELS[d.domain]}${rank === 'head' ? '主官' : '副手'}空缺了`);
+    return ok(
+      tr('sys.city.info.office_vacated', { domain: domainLabel(d.domain), rank: rankLabel(rank) }),
+    );
   }
   const off = officialDef(ctx, d.npcId);
   if (!off || !flagsOk(ctx.world.meta.flags, off.requiresFlags))
-    return reject('unknown_official', '这个人现在不能任命');
+    return reject('unknown_official', tr('sys.city.reject.unknown_official'));
   for (const o of Object.values(offices)) {
     if (!o || o.domain === d.domain) continue;
     if (o.holderId === d.npcId || o.deputyId === d.npcId)
-      return reject('busy', `${off.name}已经在管别的事了`);
+      return reject('busy', tr('sys.city.reject.busy_other', { name: off.name }));
   }
   if (rank === 'head') {
     office.holderId = d.npcId;
     if (office.deputyId === d.npcId) office.deputyId = undefined;
   } else {
-    if (office.holderId === d.npcId) return reject('busy', `${off.name}已经是主官了`);
+    if (office.holderId === d.npcId)
+      return reject('busy', tr('sys.city.reject.busy_head', { name: off.name }));
     office.deputyId = d.npcId;
   }
   office.vacantDays = 0;
   office.revision += 1;
-  return ok(`任命${off.name}为${DOMAIN_LABELS[d.domain]}${rank === 'head' ? '主官' : '副手'}`);
+  return ok(
+    tr('sys.city.info.appointed', {
+      name: off.name,
+      domain: domainLabel(d.domain),
+      rank: rankLabel(rank),
+    }),
+  );
+}
+
+function rankLabel(rank: 'head' | 'deputy'): KeyText {
+  return rank === 'head' ? tr('sys.city.rank.head') : tr('sys.city.rank.deputy');
 }
 
 /** Utility fallback: the action an official picks without a model. */
@@ -221,9 +270,11 @@ function addTemp(
   kind: SiteState['effects'][number]['kind'],
   value: number,
   day: number,
-  label: string,
+  label: KeyText,
 ): void {
-  site.effects.push({ id: `${kind}:${label}`, kind, value, untilDay: day + 7, label });
+  // the readable id renders as before: '<kind>:<label>'
+  const id = joinText('none', [`${kind}:`, label]);
+  site.effects.push({ id, kind, value, untilDay: day + 7, label: { ...label } });
 }
 
 /** Run an action; returns a readable note and whether it did something. */
@@ -234,7 +285,7 @@ export function executeAction(
   domain: Domain,
   action: OfficialActionId,
   off: OfficialDef | undefined,
-): { ok: boolean; note: string } {
+): { ok: true; note: TextRef | string } | { ok: false; note: TextRef } {
   const day = today(ctx.tick);
   const f = 0.5 + competence(off, domain) / 100;
   const owner = sdef.stockOwner;
@@ -242,37 +293,41 @@ export function executeAction(
   switch (action) {
     case 'idle':
     case 'study':
-      return { ok: true, note: '本周照常' };
+      return { ok: true, note: tr('sys.city.note.idle') };
     case 'ration':
-      addTemp(site, 'ration', 0.1, day, '定量配给');
-      addTemp(site, 'happiness', -1, day, '定量配给');
-      return { ok: true, note: '口粮减一成' };
+      addTemp(site, 'ration', 0.1, day, tr('sys.city.effect.ration'));
+      addTemp(site, 'happiness', -1, day, tr('sys.city.effect.ration'));
+      return { ok: true, note: tr('sys.city.note.ration') };
     case 'prioritize_food':
-      addTemp(site, 'production', 0.05 * f, day, '先保粮食');
-      return { ok: true, note: '田间与渔猎加紧' };
+      addTemp(site, 'production', 0.05 * f, day, tr('sys.city.effect.prioritize_food'));
+      return { ok: true, note: tr('sys.city.note.prioritize_food') };
     case 'buy_food': {
       const market = sdef.tradeMarket;
-      if (!market) return { ok: false, note: '附近没有能买粮的集市' };
+      if (!market) return { ok: false, note: tr('sys.city.note.no_food_market') };
       const staple = ctx.content.city_config.staple;
       const price = marketPrice(ctx.world, ctx.content, market, staple);
-      if (!price || price <= 0) return { ok: false, note: '集市上买不到粮' };
+      if (!price || price <= 0) return { ok: false, note: tr('sys.city.note.no_grain') };
       const budget = Math.floor(treasuryOf(ctx.world, owner) * 0.5);
       const qty = Math.min(totalPop(site) * 7, Math.floor(budget / (price * 1.2)));
-      if (qty <= 0) return { ok: false, note: '金库没钱买粮' };
+      if (qty <= 0) return { ok: false, note: tr('sys.city.note.no_funds_food') };
       const res = buyFromMarket(ctx, market, owner, staple, qty, 'city.buy_food');
       if (!res.ok) return { ok: false, note: res.reason };
       const lost = Math.floor(res.total * leak);
       if (lost > 0) spendMoney(ctx, owner, Math.min(lost, treasuryOf(ctx.world, owner)), 'graft');
       return {
         ok: true,
-        note: `买进 ${qty} 份粮，花了 ${formatMoney(res.total)}${lost > 0 ? `（账上另少了 ${formatMoney(lost)}）` : ''}`,
+        note: tr('sys.city.note.bought_food', {
+          qty,
+          total: res.total,
+          graft: lost > 0 ? tr('sys.city.note.graft', { lost }) : '',
+        }),
       };
     }
     case 'repair': {
       const name = repairOne(ctx, site, sdef, 70);
       return name
-        ? { ok: true, note: `修好了${name}` }
-        : { ok: false, note: '没有可修的，或材料不够' };
+        ? { ok: true, note: tr('sys.city.note.repaired', { building: name }) }
+        : { ok: false, note: tr('sys.city.note.no_repair') };
     }
     case 'build_housing':
     case 'build_storage': {
@@ -286,38 +341,49 @@ export function executeAction(
         const spot = findSpot(ctx.world, ctx.content, site.id, defId);
         if (!spot) continue;
         const res = placeBuilding(ctx, site.id, defId, spot.x, spot.y, 'official');
-        if (res.result.ok) return { ok: true, note: res.result.info ?? '开工了' };
+        if (res.result.ok)
+          return { ok: true, note: res.result.info ?? tr('sys.city.note.build_started') };
       }
-      return { ok: false, note: '找不到合适的空地或材料不够' };
+      return { ok: false, note: tr('sys.city.note.no_spot') };
     }
     case 'patrol':
-      addTemp(site, 'security', 10 * f, day, '加强巡逻');
-      return { ok: true, note: '巡逻加密' };
+      addTemp(site, 'security', 10 * f, day, tr('sys.city.effect.patrol'));
+      return { ok: true, note: tr('sys.city.note.patrol') };
     case 'curfew':
-      addTemp(site, 'security', 15 * f, day, '宵禁');
-      addTemp(site, 'happiness', -2, day, '宵禁');
-      return { ok: true, note: '实行宵禁' };
+      addTemp(site, 'security', 15 * f, day, tr('sys.city.effect.curfew'));
+      addTemp(site, 'happiness', -2, day, tr('sys.city.effect.curfew'));
+      return { ok: true, note: tr('sys.city.note.curfew') };
     case 'settle':
-      addTemp(site, 'happiness', Math.round(2 * f), day, '官员安抚');
-      return { ok: true, note: '走访安抚' };
+      addTemp(site, 'happiness', Math.round(2 * f), day, tr('sys.city.effect.settle'));
+      return { ok: true, note: tr('sys.city.note.settle') };
     case 'welcome_refugees': {
       const room = Math.min(
         site.housing - totalPop(site),
         stageCaps(sdef, site.stage).population - totalPop(site),
       );
-      const n = addPopulation(ctx, site, sdef, 'refugees', Math.min(5, room), '官员收留难民');
-      return n > 0 ? { ok: true, note: `收留了 ${n} 名难民` } : { ok: false, note: '没有住处了' };
+      const n = addPopulation(
+        ctx,
+        site,
+        sdef,
+        'refugees',
+        Math.min(5, room),
+        tr('sys.city.reason.official_refugees'),
+      );
+      return n > 0
+        ? { ok: true, note: tr('sys.city.note.welcomed', { n }) }
+        : { ok: false, note: tr('sys.city.note.no_housing') };
     }
     case 'festival': {
       const cost = 200;
-      if (treasuryOf(ctx.world, owner) < cost) return { ok: false, note: '金库没钱办节庆' };
+      if (treasuryOf(ctx.world, owner) < cost)
+        return { ok: false, note: tr('sys.city.note.no_funds_festival') };
       spendMoney(ctx, owner, cost, 'festival');
-      addTemp(site, 'happiness', Math.round(4 * f), day, '节庆');
-      return { ok: true, note: '办了一场节庆' };
+      addTemp(site, 'happiness', Math.round(4 * f), day, tr('sys.city.effect.festival'));
+      return { ok: true, note: tr('sys.city.note.festival') };
     }
     case 'sell_surplus': {
       const market = sdef.tradeMarket;
-      if (!market) return { ok: false, note: '附近没有集市' };
+      if (!market) return { ok: false, note: tr('sys.city.note.no_market') };
       const stock = stockOf(ctx.world, owner);
       let total = 0;
       const sold: string[] = [];
@@ -331,15 +397,15 @@ export function executeAction(
         }
       }
       return sold.length > 0
-        ? { ok: true, note: `卖掉余货，进账 ${formatMoney(total)}` }
-        : { ok: false, note: '没卖出去' };
+        ? { ok: true, note: tr('sys.city.note.sold', { total }) }
+        : { ok: false, note: tr('sys.city.note.not_sold') };
     }
     case 'drill':
-      addTemp(site, 'militia', Math.round(3 * f), day, '操练民兵');
-      addTemp(site, 'security', 3, day, '操练民兵');
-      return { ok: true, note: '民兵操练' };
+      addTemp(site, 'militia', Math.round(3 * f), day, tr('sys.city.effect.drill'));
+      addTemp(site, 'security', 3, day, tr('sys.city.effect.drill'));
+      return { ok: true, note: tr('sys.city.note.drill') };
   }
-  return { ok: false, note: '不认识的安排' };
+  return { ok: false, note: tr('sys.city.note.unknown_action') };
 }
 
 /** Weekly planning round: one official.decide request per appointed head. */
@@ -355,7 +421,7 @@ export function requestDecisions(ctx: SystemContext, site: SiteState, sdef: Site
       .filter((id) => OFFICIAL_ACTIONS[id].domains.includes(domain))
       .map((id) => ({ id, ...OFFICIAL_ACTIONS[id] }))
       .filter((a) => a.level <= level)
-      .map((a) => ({ id: a.id, name: a.name, level: a.level, desc: a.desc }));
+      .map((a) => ({ id: a.id, name: actionName(a.id), level: a.level, desc: actionDesc(a.id) }));
     const fallbackAction = utilityAction(ctx, site, sdef, domain);
     const action = menu.some((m) => m.id === fallbackAction) ? fallbackAction : 'idle';
     const data = {
@@ -367,15 +433,27 @@ export function requestDecisions(ctx: SystemContext, site: SiteState, sdef: Site
     };
     const context: AiContextV1 = {
       v: 1,
-      persona: off ? `${off.name}：${off.desc}` : office.holderId,
-      situation:
-        `${sdef.name}人口 ${pop}，存粮约 ${site.foodDays} 天，幸福 ${Math.round(site.happiness)}，` +
-        `治安 ${Math.round(site.security)}，库房 ${site.storageUsed}/${site.storageCap}，` +
-        `金库 ${formatMoney(treasuryOf(ctx.world, sdef.stockOwner))}。你主管${DOMAIN_LABELS[domain]}，本周能自行决定的最高等级是 ${level}。`,
-      goals: ['让聚落不靠领主也能运转', `把${DOMAIN_LABELS[domain]}的事办好`],
+      persona: off
+        ? tr('sys.city.prompt.persona', { name: off.name, desc: off.desc })
+        : office.holderId,
+      situation: tr('sys.city.prompt.situation', {
+        site: sdef.name,
+        pop,
+        food: site.foodDays,
+        happiness: Math.round(site.happiness),
+        security: Math.round(site.security),
+        used: site.storageUsed,
+        cap: site.storageCap,
+        treasury: treasuryOf(ctx.world, sdef.stockOwner),
+        domain: domainLabel(domain),
+        level,
+      }),
+      goals: [
+        tr('sys.city.prompt.goal_autonomy'),
+        tr('sys.city.prompt.goal_domain', { domain: domainLabel(domain) }),
+      ],
       commands: {
-        'city.official_act':
-          '数据 {siteId, domain, officialId, action, revision}，action 从 extra.menu 里选一个 id，其余字段照抄 extra。',
+        'city.official_act': tr('sys.city.prompt.command_act'),
       },
       extra: {
         menu,
@@ -416,23 +494,30 @@ export function officialAct(
   },
   source: CommandSource,
 ): CommandResult {
-  if (source.type === 'player') return reject('not_official', '这是官员自己的决定，不能代为下达');
+  if (source.type === 'player') return reject('not_official', tr('sys.city.reject.not_official'));
   const site = ctx.world.slices.city.sites[d.siteId];
   const sdef = siteDef(ctx.content, d.siteId);
-  if (!site || !sdef) return reject('unknown_site', '没有这个聚落');
+  if (!site || !sdef) return reject('unknown_site', tr('sys.city.reject.unknown_site'));
   const office = site.offices[d.domain];
   if (!office || office.holderId !== d.officialId)
-    return reject('not_holder', '这个人现在不管这件事');
-  if (office.revision !== d.revision) return reject('stale', '情况已经变了，这个安排作废');
+    return reject('not_holder', tr('sys.city.reject.not_holder'));
+  if (office.revision !== d.revision) return reject('stale', tr('sys.city.reject.stale'));
   const def = OFFICIAL_ACTIONS[d.action];
-  if (!def?.domains.includes(d.domain)) return reject('bad_action', '这不是这个职务能做的安排');
+  if (!def?.domains.includes(d.domain))
+    return reject('bad_action', tr('sys.city.reject.bad_action'));
   const level = actingLevel(office.authority, site.autonomy.value);
   office.revision += 1;
   if (def.level > level) {
     site.status.push(
-      `${officialDef(ctx, d.officialId)?.name ?? d.officialId}想要${def.name}，但职权不够，等你批示`,
+      tr('sys.city.status.no_authority', {
+        name: officialDef(ctx, d.officialId)?.name ?? d.officialId,
+        action: actionName(d.action),
+      }),
     );
-    return reject('no_authority', `${def.name}超出了职权（目前最多能自行决定等级 ${level} 的事）`);
+    return reject(
+      'no_authority',
+      tr('sys.city.reject.no_authority', { action: actionName(d.action), level }),
+    );
   }
   const off = officialDef(ctx, d.officialId);
   const res = executeAction(ctx, site, sdef, d.domain, d.action, off);

@@ -4,6 +4,7 @@
 import { type CommandResult, ok, reject } from '../../core';
 import type { CommandMap, CommandSource } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { joinText, tr } from '../../core/text';
 import { kernelData } from '../warfare/data';
 import { executeIntent } from './ai';
 import { startConclave } from './conclave';
@@ -27,11 +28,13 @@ export function diplomacy(
 ): CommandResult {
   const s = strat(ctx);
   const from = d.from ?? PLAYER;
-  if (isPlayer(source) && from !== PLAYER) return reject('not_yours', '你只能代表自己的国家交涉');
-  if (from === PLAYER && !s.nations[PLAYER]) return reject('no_nation', '你还没有建立国家');
-  if (!s.active && from !== PLAYER) return reject('dormant', '大陆棋局尚未展开');
+  if (isPlayer(source) && from !== PLAYER)
+    return reject('not_yours', tr('sys.strategy.reject.not_yours.diplomacy'));
+  if (from === PLAYER && !s.nations[PLAYER])
+    return reject('no_nation', tr('sys.strategy.reject.no_nation.player'));
+  if (!s.active && from !== PLAYER) return reject('dormant', tr('sys.strategy.reject.dormant'));
   if (d.revision !== undefined && s.nations[from] && d.revision !== s.nations[from]?.revision) {
-    return reject('stale', '局势已变，提议过时');
+    return reject('stale', tr('sys.strategy.reject.stale'));
   }
   return performDiplomacy(ctx, from, d.to, d.action, d.treaty);
 }
@@ -42,20 +45,27 @@ export function moveArmy(
   source: CommandSource,
 ): CommandResult {
   const s = strat(ctx);
-  if (!s.active) return reject('dormant', '大陆棋局尚未展开');
+  if (!s.active) return reject('dormant', tr('sys.strategy.reject.dormant'));
   const a = s.armies[d.armyId];
-  if (!a) return reject('no_army', '没有这支军队');
-  if (isPlayer(source) && a.owner !== PLAYER) return reject('not_yours', '这支军队不归你指挥');
-  if (a.frozen) return reject('engaged', '这支军队正在会战');
-  if (!provinceDef(ctx.content, d.to)) return reject('no_province', '没有这个地方');
+  if (!a) return reject('no_army', tr('sys.strategy.reject.no_army'));
+  if (isPlayer(source) && a.owner !== PLAYER)
+    return reject('not_yours', tr('sys.strategy.reject.not_yours.army'));
+  if (a.frozen) return reject('engaged', tr('sys.strategy.reject.engaged'));
+  if (!provinceDef(ctx.content, d.to))
+    return reject('no_province', tr('sys.strategy.reject.no_province'));
   const route = findRoute(ctx.content, s, a.owner, a.province, d.to);
-  if (!route) return reject('no_path', '没有可走的路线（需要通行权或交战状态）');
+  if (!route) return reject('no_path', tr('sys.strategy.reject.no_path'));
   a.path = route;
   a.progress = 0;
   return ok(
     route.length === 0
-      ? '军队已在当地'
-      : `行军路线：${route.map((p) => provinceDef(ctx.content, p)?.name ?? p).join('、')}`,
+      ? tr('sys.strategy.info.army_in_place')
+      : tr('sys.strategy.info.route', {
+          route: joinText(
+            'list',
+            route.map((p) => provinceDef(ctx.content, p)?.name ?? p),
+          ),
+        }),
   );
 }
 
@@ -66,54 +76,71 @@ export function recruit(
 ): CommandResult {
   const s = strat(ctx);
   const nationId = d.nationId ?? PLAYER;
-  if (isPlayer(source) && nationId !== PLAYER) return reject('not_yours', '你只能为自己的国家征兵');
+  if (isPlayer(source) && nationId !== PLAYER)
+    return reject('not_yours', tr('sys.strategy.reject.not_yours.recruit'));
   const n = s.nations[nationId];
-  if (!n?.alive) return reject('no_nation', '你还没有建立国家');
+  if (!n?.alive) return reject('no_nation', tr('sys.strategy.reject.no_nation.player'));
   if (s.provinces[d.provinceId]?.owner !== nationId)
-    return reject('not_owned', '只能在自己的领土上征兵');
+    return reject('not_owned', tr('sys.strategy.reject.not_owned'));
   const def =
     nationId === PLAYER
       ? ctx.content.slg_config?.playerNation
       : ctx.content.slg_nations?.find((x) => x.id === nationId);
-  if (!def?.recruits.includes(d.typeId)) return reject('bad_unit', '这里招不到这种兵');
+  if (!def?.recruits.includes(d.typeId))
+    return reject('bad_unit', tr('sys.strategy.reject.bad_unit'));
   const count = Math.floor(d.count);
-  if (count <= 0 || count > 5000) return reject('bad_count', '人数不对');
+  if (count <= 0 || count > 5000) return reject('bad_count', tr('sys.strategy.reject.bad_count'));
   const prov = s.provinces[d.provinceId];
-  if (prov && count > prov.population * 0.05) return reject('no_people', '这里没有那么多可征的人');
+  if (prov && count > prov.population * 0.05)
+    return reject('no_people', tr('sys.strategy.reject.no_people'));
   const unit = kernelData(ctx.content.regiment_types ?? []).units.get(d.typeId);
   const cost = ((unit?.cost ?? 100) * count) / COPPER_PER_GOLD;
-  if (n.treasury < cost) return reject('no_funds', '国库不足');
+  if (n.treasury < cost) return reject('no_funds', tr('sys.strategy.reject.no_funds.recruit'));
   n.treasury -= cost;
   if (prov) prov.population -= count;
-  const army = addRegiments(s, nationId, d.provinceId, [{ typeId: d.typeId, count }], '新编军');
+  const army = addRegiments(
+    s,
+    nationId,
+    d.provinceId,
+    [{ typeId: d.typeId, count }],
+    tr('sys.strategy.army.new'),
+  );
   log(
     s,
-    `${provinceDef(ctx.content, d.provinceId)?.name ?? d.provinceId}征募 ${count} 名${unit?.name ?? d.typeId}`,
+    tr('sys.strategy.log.recruited', {
+      province: provinceDef(ctx.content, d.provinceId)?.name ?? d.provinceId,
+      count,
+      unit: unit?.name ?? d.typeId,
+    }),
   );
-  return ok(`编入 ${army.name}`);
+  return ok(tr('sys.strategy.info.enlisted', { army: army.name }));
 }
 
 export function foundNation(ctx: SystemContext, d: CommandMap['slg.found_nation']): CommandResult {
   const s = strat(ctx);
-  if (s.nations[PLAYER] || ctx.flag('a4_nation_founded')) return reject('already', '你已经立国');
-  if (!ctx.flag('feature.slg')) return reject('locked', '立国之门尚未显现');
+  if (s.nations[PLAYER] || ctx.flag('a4_nation_founded'))
+    return reject('already', tr('sys.strategy.reject.already.nation'));
+  if (!ctx.flag('feature.slg')) return reject('locked', tr('sys.strategy.reject.locked.founding'));
   const autonomy = Number(ctx.flag('territory_autonomy') ?? 0);
   if (!(autonomy >= FOUNDING_AUTONOMY)) {
-    return reject('autonomy', `领地自治度不足 ${FOUNDING_AUTONOMY}，界石堆起来了，门却没有开`);
+    return reject('autonomy', tr('sys.strategy.reject.autonomy', { need: FOUNDING_AUTONOMY }));
   }
   const provinces = foundPlayerNation(ctx, d.name);
   ctx.setFlag('a4_nation_founded', true);
   ctx.emit('slg.nation_founded', { nationId: PLAYER, name: s.playerNationName ?? '', provinces });
-  return ok(`${s.playerNationName}立国`);
+  // String() keeps the old text when no name was set ('null')
+  return ok(tr('sys.strategy.info.founded', { nation: String(s.playerNationName) }));
 }
 
 export function convene(ctx: SystemContext, source: CommandSource): CommandResult {
   const s = strat(ctx);
-  if (ctx.flag('a4_conclave_done') || s.summit) return reject('done', '七国会盟已经开过');
-  if (s.conference) return reject('ongoing', '会盟正在进行');
-  if (isPlayer(source) && !ctx.flag('feature.slg')) return reject('locked', '大陆棋局尚未展开');
+  if (ctx.flag('a4_conclave_done') || s.summit)
+    return reject('done', tr('sys.strategy.reject.done'));
+  if (s.conference) return reject('ongoing', tr('sys.strategy.reject.ongoing'));
+  if (isPlayer(source) && !ctx.flag('feature.slg'))
+    return reject('locked', tr('sys.strategy.reject.dormant'));
   startConclave(ctx);
-  return ok('会盟邀请已经送出');
+  return ok(tr('sys.strategy.info.convened'));
 }
 
 export function rulerPolicy(
@@ -121,7 +148,7 @@ export function rulerPolicy(
   d: CommandMap['slg.ruler_policy'],
   source: CommandSource,
 ): CommandResult {
-  if (isPlayer(source)) return reject('not_yours', '这是 AI 统治者的决策通道');
+  if (isPlayer(source)) return reject('not_yours', tr('sys.strategy.reject.not_yours.ai_channel'));
   return executeIntent(ctx, d.nationId, d.intent, d.target, d.revision);
 }
 
@@ -129,7 +156,10 @@ export function setBattleMode(
   ctx: SystemContext,
   d: CommandMap['slg.set_battle_mode'],
 ): CommandResult {
-  if (d.mode !== 'auto' && d.mode !== 'manual') return reject('bad_mode', '只有自动与手动两种');
+  if (d.mode !== 'auto' && d.mode !== 'manual')
+    return reject('bad_mode', tr('sys.strategy.reject.bad_mode'));
   strat(ctx).battleMode = d.mode;
-  return ok(d.mode === 'manual' ? '你的会战将由你亲自指挥' : '你的会战将交给将领');
+  return ok(
+    d.mode === 'manual' ? tr('sys.strategy.info.mode_manual') : tr('sys.strategy.info.mode_auto'),
+  );
 }

@@ -2,6 +2,7 @@
 // with the hard single-cast cap (a cast fells at most 20 percent of the target
 // regiment's current count, overflow never carries), and morale pressure.
 
+import { type KeyText, tr } from '../../core/text';
 import { FORMATIONS, regimentRadius } from './combat_math';
 import {
   active,
@@ -67,7 +68,7 @@ export function applyLosses(state: BattleState, r: RegimentState, fallen: number
     r.state = 'gone';
     r.order = null;
     r.path = [];
-    pushLog(state, `${r.name}全军覆没`);
+    pushLog(state, tr('sys.warfare.log.annihilated', { name: r.name }));
   }
 }
 
@@ -112,7 +113,7 @@ export interface CastTarget {
 
 export interface CastResult {
   ok: boolean;
-  reason?: string;
+  reason?: KeyText;
   felled: number;
 }
 
@@ -123,11 +124,12 @@ export function castAbility(
   abilityId: string,
   target: CastTarget,
 ): CastResult {
-  if (hero.down) return { ok: false, reason: '英雄已倒下', felled: 0 };
+  if (hero.down) return { ok: false, reason: tr('sys.warfare.cast.hero_down'), felled: 0 };
   const slot = hero.abilities.find((a) => a.id === abilityId);
   const def = data.abilities.get(abilityId);
-  if (!slot || !def) return { ok: false, reason: '没有这个技能', felled: 0 };
-  if (slot.readyAt > state.time) return { ok: false, reason: '技能还在冷却', felled: 0 };
+  if (!slot || !def) return { ok: false, reason: tr('sys.warfare.cast.no_ability'), felled: 0 };
+  if (slot.readyAt > state.time)
+    return { ok: false, reason: tr('sys.warfare.cast.cooldown'), felled: 0 };
   const foe = other(hero.team);
   let felled = 0;
   switch (def.kind) {
@@ -138,7 +140,7 @@ export function castAbility(
           r.morale = Math.min(100, r.morale + def.power);
         }
       }
-      pushLog(state, `${hero.name}施放${def.name}，周围兵团士气大振`);
+      pushLog(state, tr('sys.warfare.log.inspire', { hero: hero.name, ability: def.name }));
       break;
     }
     case 'rally': {
@@ -153,16 +155,16 @@ export function castAbility(
           n++;
         }
       }
-      if (n === 0) return { ok: false, reason: '附近没有溃退的兵团', felled: 0 };
-      pushLog(state, `${hero.name}重整了 ${n} 个溃退的兵团`);
+      if (n === 0) return { ok: false, reason: tr('sys.warfare.cast.no_routed'), felled: 0 };
+      pushLog(state, tr('sys.warfare.log.rally', { hero: hero.name, n }));
       break;
     }
     case 'charge': {
       const r = target.targetId ? regimentById(state, target.targetId) : undefined;
       if (!r || r.team !== foe || !onField(r))
-        return { ok: false, reason: '没有可冲锋的目标', felled: 0 };
+        return { ok: false, reason: tr('sys.warfare.cast.no_charge_target'), felled: 0 };
       if (dist(r, hero) > def.range + regimentRadius(r.count)) {
-        return { ok: false, reason: '目标太远', felled: 0 };
+        return { ok: false, reason: tr('sys.warfare.cast.too_far'), felled: 0 };
       }
       const ang = Math.atan2(hero.y - r.y, hero.x - r.x);
       const rr = regimentRadius(r.count) + 0.6;
@@ -173,19 +175,20 @@ export function castAbility(
       r.brokenUntil = state.time + 10;
       r.morale = Math.max(0, r.morale - 15 * FORMATIONS[r.formation].chargeShock);
       pressure(state, foe, r.x, r.y);
-      pushLog(state, `${hero.name}冲锋，${r.name}阵型被冲散，倒下 ${felled} 人`);
+      pushLog(state, tr('sys.warfare.log.charge', { hero: hero.name, target: r.name, n: felled }));
       break;
     }
     case 'aoe': {
       const anchor = target.targetId ? regimentById(state, target.targetId) : undefined;
       const px = anchor ? anchor.x : target.x;
       const py = anchor ? anchor.y : target.y;
-      if (px === undefined || py === undefined) return { ok: false, reason: '没有目标', felled: 0 };
+      if (px === undefined || py === undefined)
+        return { ok: false, reason: tr('sys.warfare.cast.no_target'), felled: 0 };
       if (
         Math.hypot(px - hero.x, py - hero.y) >
         def.range + (anchor ? regimentRadius(anchor.count) : 0)
       ) {
-        return { ok: false, reason: '目标太远', felled: 0 };
+        return { ok: false, reason: tr('sys.warfare.cast.too_far'), felled: 0 };
       }
       const radius = def.radius ?? 2;
       for (const r of state.regiments) {
@@ -204,23 +207,24 @@ export function castAbility(
         if (r === anchor) r.morale = Math.max(0, r.morale - 5);
       }
       pressure(state, foe, px, py);
-      pushLog(state, `${hero.name}施放${def.name}，倒下 ${felled} 人`);
+      pushLog(state, tr('sys.warfare.log.aoe', { hero: hero.name, ability: def.name, n: felled }));
       break;
     }
     case 'strike': {
       const id = target.targetId ?? '';
       const h = heroById(state, id);
       if (h && h.team === foe && !h.down) {
-        if (dist(h, hero) > def.range + 0.8) return { ok: false, reason: '目标太远', felled: 0 };
+        if (dist(h, hero) > def.range + 0.8)
+          return { ok: false, reason: tr('sys.warfare.cast.too_far'), felled: 0 };
         damageHero(state, h, def.power);
-        pushLog(state, `${hero.name}斩向${h.name}`);
+        pushLog(state, tr('sys.warfare.log.strike', { hero: hero.name, target: h.name }));
         break;
       }
       const r = regimentById(state, id);
       if (!r || r.team !== foe || !onField(r))
-        return { ok: false, reason: '没有可斩的目标', felled: 0 };
+        return { ok: false, reason: tr('sys.warfare.cast.no_strike_target'), felled: 0 };
       if (dist(r, hero) > def.range + regimentRadius(r.count))
-        return { ok: false, reason: '目标太远', felled: 0 };
+        return { ok: false, reason: tr('sys.warfare.cast.too_far'), felled: 0 };
       // single target: hits one soldier, overflow does not carry
       felled = castFell(state, data, r, def.power, 1);
       break;
@@ -239,7 +243,7 @@ export function damageHero(state: BattleState, h: HeroState, amount: number): vo
   h.down = true;
   h.order = null;
   h.path = [];
-  pushLog(state, `${h.name}倒下了`);
+  pushLog(state, tr('sys.warfare.log.hero_down', { name: h.name }));
   flash(state, 'hero_down', h.id, h.team);
   for (const r of state.regiments) {
     if (r.team !== h.team || !onField(r)) continue;

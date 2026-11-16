@@ -5,6 +5,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { pickLine } from '../dialogue/templates';
 import { addMemory } from '../npc/memory';
 import { npcEntityId, personaById } from '../npc/personas';
@@ -68,10 +69,10 @@ function onPlayerAppraised(ctx: SystemContext, result: AppraisalResult): void {
     topic: 'appraise',
     subject: 'player',
     mapId: target.mapId,
-    place: '公会柜台前',
+    place: tr('sys.cognition.place.guild_counter'),
     apparent: 0,
     count: 1,
-    details: ['水晶一点光都没有'],
+    details: [tr('sys.cognition.detail.crystal_dark')],
     famous: [],
     tier: 0,
   });
@@ -83,7 +84,7 @@ function onPlayerAppraised(ctx: SystemContext, result: AppraisalResult): void {
       apparent: 0,
       kinds: [{ kind: 'appraisal', weight: DEFAULT_WEIGHT.appraisal }],
       direct: false,
-      what: '鉴定读不出这个人',
+      what: tr('sys.cognition.appraise.what'),
     });
     addHolding(ctx.world.slices.cognition, id, {
       rumor: rumor.id,
@@ -97,7 +98,7 @@ function onPlayerAppraised(ctx: SystemContext, result: AppraisalResult): void {
       told: 0,
     });
     addMemory(ctx, id, {
-      text: '看见鉴定水晶对那个新来的毫无反应',
+      text: tr('sys.cognition.memory.appraise_seen'),
       src: 'seen',
       about: 'player',
       imp: 0.45,
@@ -189,17 +190,19 @@ export const system: GameSystem = {
     'cognition.appraise'(ctx, d, src) {
       const ws = ctx.world.slices.world;
       if (src.type === 'player' && d.observerId !== ws.playerId)
-        return reject('not_allowed', '只能以自己的身份去鉴定');
+        return reject('not_allowed', tr('sys.cognition.reject.appraise_not_self'));
       const o = getEntity(ctx.world, d.observerId);
       const t = getEntity(ctx.world, d.targetId);
-      if (!o || !t?.alive || t.hidden) return reject('no_target', '找不到鉴定对象');
-      if (o.id === t.id) return reject('self', '鉴定不了自己');
+      if (!o || !t?.alive || t.hidden)
+        return reject('no_target', tr('sys.cognition.reject.no_target'));
+      if (o.id === t.id) return reject('self', tr('sys.cognition.reject.self'));
       if (o.mapId !== t.mapId || distance(o, t) > APPRAISE_RANGE)
-        return reject('too_far', '离得太远，看不清');
+        return reject('too_far', tr('sys.cognition.reject.too_far'));
       const devices = ['crystal', 'guild', 'academy', 'skill', 'sense'];
-      if (d.device && !devices.includes(d.device)) return reject('bad_device', '没有这种鉴定方式');
+      if (d.device && !devices.includes(d.device))
+        return reject('bad_device', tr('sys.cognition.reject.bad_device'));
       const result = appraise(ctx.world, ctx.content, d.observerId, d.targetId, d.device);
-      if (!result) return reject('no_target', '找不到鉴定对象');
+      if (!result) return reject('no_target', tr('sys.cognition.reject.no_target'));
       const log = ctx.world.slices.cognition.appraisals;
       log.push(result);
       if (log.length > APPRAISAL_LOG) log.splice(0, log.length - APPRAISAL_LOG);
@@ -208,9 +211,12 @@ export const system: GameSystem = {
       return ok(result.display);
     },
     'cognition.evidence'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能直接改变别人的看法');
-      if (!personaById(ctx.content, d.observerId)) return reject('no_npc', '没有这个人');
-      if (!EVIDENCE_KINDS.includes(d.kind)) return reject('bad_kind', '不认识这种证据');
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.cognition.reject.evidence_not_allowed'));
+      if (!personaById(ctx.content, d.observerId))
+        return reject('no_npc', tr('sys.cognition.reject.no_npc'));
+      if (!EVIDENCE_KINDS.includes(d.kind))
+        return reject('bad_kind', tr('sys.cognition.reject.bad_kind'));
       const weight = typeof d.weight === 'number' ? d.weight : DEFAULT_WEIGHT[d.kind];
       const o = observe(ctx, d.observerId, d.subjectId, {
         key: `script:${ctx.tick}:${d.kind}`,
@@ -218,14 +224,15 @@ export const system: GameSystem = {
         apparent: 0,
         kinds: [{ kind: d.kind, weight }],
         direct: d.kind === 'benefit' || d.kind === 'seen' || d.kind === 'seen_close',
-        what: d.note ?? '有了新的证据',
+        what: d.note ?? tr('sys.cognition.belief.what.evidence'),
       });
-      return o ? ok() : reject('no_belief', '这个人现在顾不上这件事');
+      return o ? ok() : reject('no_belief', tr('sys.cognition.reject.no_belief'));
     },
     'cognition.publish'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能直接发布告示');
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.cognition.reject.publish_not_allowed'));
       const n = publishFact(ctx, d.mapId, d.subjectId);
-      return ok(`${n} 个说法被告示压了下去`);
+      return ok(tr('sys.cognition.info.published', { n }));
     },
   },
 };

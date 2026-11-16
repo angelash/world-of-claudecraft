@@ -2,6 +2,7 @@
 // relations, plus the module augmentation that registers the slice, content tables,
 // events and commands. See docs/40_design/systems/npc_society_ai.md.
 
+import type { TextParam } from '../../core/text';
 import type { Appearance } from '../world/types';
 
 /** The seven everyday activities a resident can be doing. */
@@ -59,8 +60,8 @@ export interface ScheduleSegment {
   /** location id on the persona's map, or '@home', '@work', '@<location kind>' */
   at: string;
   act: Activity;
-  /** short display note, for example 晨祷 */
-  note?: string;
+  /** short display note (content text, or a text key for rule and need notes) */
+  note?: TextParam;
 }
 
 export interface ScheduleTemplate {
@@ -217,7 +218,7 @@ export type MemorySource = 'seen' | 'heard' | 'inferred' | 'self';
 export interface MemoryEntry {
   tick: number;
   day: number;
-  text: string;
+  text: TextParam;
   src: MemorySource;
   /** credibility 0..1 */
   cred: number;
@@ -232,7 +233,7 @@ export interface RelationRecord {
   tick: number;
   to: string;
   delta: Partial<RelationDims>;
-  reason: string;
+  reason: TextParam;
 }
 
 export interface Mind {
@@ -240,7 +241,7 @@ export interface Mind {
   /** how many memories were folded away by consolidation */
   folded: number;
   /** one line per folded day */
-  digest: string[];
+  digest: TextParam[];
   rel: Record<string, RelationDims>;
   /** baseline relations the daily decay returns to */
   base: Record<string, RelationDims>;
@@ -251,8 +252,8 @@ export interface PlanState {
   day: number;
   slots: ScheduleSegment[];
   source: 'rule' | 'ai' | 'fallback' | 'script';
-  goal?: string;
-  note?: string;
+  goal?: TextParam;
+  note?: TextParam;
 }
 
 /** Things the NPC did today, the raw material of the batch diary. */
@@ -308,7 +309,7 @@ export interface NpcState {
   tier: Tier;
   activity: Activity;
   locId: string;
-  note?: string;
+  note?: TextParam;
   needs: Needs;
   plan: PlanState | null;
   planRev: number;
@@ -328,7 +329,7 @@ export interface NpcState {
   lastSayTick: number;
   /** recent heat for the tier score (decays daily) */
   heat: number;
-  diary: { day: number; kind: DiaryKind; text: string }[];
+  diary: { day: number; kind: DiaryKind; text: TextParam }[];
 }
 
 /** Generated L4 resident card (kept in the slice because it comes from the world seed). */
@@ -370,13 +371,14 @@ export interface PlanSlotData {
   to: number;
   at: string;
   act: Activity;
-  note?: string;
+  note?: TextParam;
 }
 
 export interface DiaryEntryData {
   npcId: string;
   kind: DiaryKind;
-  text: string;
+  /** the model's line, or a rule diary text key */
+  text: TextParam;
 }
 
 declare module '../../core/contracts' {
@@ -397,7 +399,7 @@ declare module '../../core/contracts' {
       activity: Activity;
       locationId: string;
       mapId: string;
-      note?: string;
+      note?: TextParam;
     };
     /** Two residents talked; cognition exchanges rumors on this. */
     'npc.conversed': {
@@ -415,7 +417,7 @@ declare module '../../core/contracts' {
       from: string;
       to: string;
       delta: Partial<RelationDims>;
-      reason: string;
+      reason: TextParam;
     };
     'npc.plan_set': { npcId: string; day: number; source: PlanState['source'] };
     /** One batch diary landed for a map (entries live in each NPC's diary). */
@@ -430,11 +432,11 @@ declare module '../../core/contracts' {
       revision: number;
       day: number;
       slots: PlanSlotData[];
-      goal?: string;
-      note?: string;
+      goal?: TextParam;
+      note?: TextParam;
     };
     /** A spoken line in an NPC-to-NPC chat (rule template or the model's wording). */
-    'npc.say': { npcId: string; toId?: string; text: string; revision: number };
+    'npc.say': { npcId: string; toId?: string; text: TextParam; revision: number };
     /** Batch diary of offstage (L3) residents of one map for one day. */
     'npc.diary_batch': {
       mapId: string;

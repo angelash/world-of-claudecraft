@@ -6,6 +6,7 @@
 import { ok, reject } from '../../core';
 import type { EventKind } from '../../core/contracts';
 import type { EventHandler, GameSystem, SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
 import { removeItem } from '../inventory';
 import { getEntity, mapById } from '../world';
@@ -151,20 +152,20 @@ export const system: GameSystem = {
     'doors.open'(ctx, d) {
       const door = doorDef(ctx, d.doorId);
       const rt = ctx.world.slices.doors.doors[d.doorId];
-      if (!door || !rt) return reject('no_door', '回廊里没有这扇门');
-      if (rt.state === 'opened') return reject('already_open', '这扇门已经开了');
-      if (rt.state === 'locked') return reject('locked', '这扇门已经锁闭，再也打不开了');
-      if (rt.state === 'closed') return reject('closed', '这扇门关上了，钥已经用尽');
-      if (!keysMet(ctx.world, door)) return reject('no_key', '钥还不齐');
+      if (!door || !rt) return reject('no_door', tr('sys.doors.reject.no_door'));
+      if (rt.state === 'opened') return reject('already_open', tr('sys.doors.reject.already_open'));
+      if (rt.state === 'locked') return reject('locked', tr('sys.doors.reject.locked'));
+      if (rt.state === 'closed') return reject('closed', tr('sys.doors.reject.closed'));
+      if (!keysMet(ctx.world, door)) return reject('no_key', tr('sys.doors.reject.no_key'));
       openDoor(ctx, door);
       return ok();
     },
     'doors.close'(ctx, d) {
       const door = doorDef(ctx, d.doorId);
       const rt = ctx.world.slices.doors.doors[d.doorId];
-      if (!door || !rt) return reject('no_door', '回廊里没有这扇门');
-      if (rt.state !== 'opened') return reject('not_open', '这扇门没有开着');
-      if (!door.closable) return reject('not_closable', '这扇门关不上');
+      if (!door || !rt) return reject('no_door', tr('sys.doors.reject.no_door'));
+      if (rt.state !== 'opened') return reject('not_open', tr('sys.doors.reject.not_open'));
+      if (!door.closable) return reject('not_closable', tr('sys.doors.reject.not_closable'));
       revertDoorEffects(ctx, door);
       ctx.setFlag(`door.${door.id}`, false);
       const back = Math.floor(door.sealLooseness / 2);

@@ -5,6 +5,7 @@ import '../src/systems/inventory';
 import '../src/systems/world';
 import { formatDate, formatTime, timeOfDayLabel, weatherLabel } from '../src/client/hud/format';
 import { formatEvent, type LogContext } from '../src/client/hud/log_format';
+import { tr } from '../src/core/text';
 import { calendarAt, tickAtDay } from '../src/core/time';
 
 function ev<K extends EventKind>(kind: K, data: EventMap[K], tick = 10): AnyWorldEvent {
@@ -34,7 +35,13 @@ describe('client message log formatting', () => {
 
   it('shows rejection reasons only for the player own commands', () => {
     const rejected = (source: EventMap['command.result']['source'], kind = 'world.use_exit') =>
-      ev('command.result', { kind, ok: false, code: 'too_far', reason: '离出口太远', source });
+      ev('command.result', {
+        kind,
+        ok: false,
+        code: 'too_far',
+        reason: tr('sys.world.reject.too_far'),
+        source,
+      });
     expect(text(rejected({ type: 'player' }))).toBe('无法执行：离出口太远');
     expect(formatEvent(rejected({ type: 'player' }), ctx)?.category).toBe('warning');
     expect(text(rejected({ type: 'system', system: 'npc' }))).toBeNull();

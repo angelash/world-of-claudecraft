@@ -14,7 +14,9 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine, worldHash } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
 import { TICKS_PER_GAME_MINUTE } from '../src/core/time';
+import { t } from '../src/shared_ui/i18n';
 import {
   abilityBar,
   armorReduction,
@@ -30,10 +32,12 @@ import {
   strengthReading,
   targetInfo,
   tierForLevel,
+  tierName,
   unitView,
   xpForLevel,
   xpProgress,
 } from '../src/systems/combat';
+import { resourceName } from '../src/systems/combat/abilities';
 import { deriveStats } from '../src/systems/combat/stats';
 import { system as doors } from '../src/systems/doors';
 import { addItem, system as inventory } from '../src/systems/inventory';
@@ -394,7 +398,7 @@ describe('combat chain', () => {
       const r = lastResult(g, kind);
       expect(r?.ok, `${kind} ${code}`).toBe(false);
       expect(r?.code).toBe(code);
-      expect(r?.reason?.length ?? 0).toBeGreaterThan(0);
+      expect(t(r?.reason).length).toBeGreaterThan(0);
     }
   });
 
@@ -408,11 +412,18 @@ describe('combat chain', () => {
     g.queue('combat.cast', { abilityId: 'heroic_strike', targetId: id });
     g.step(1);
     expect(lastResult(g, 'combat.cast')?.code).toBe('no_pool');
+    expect(lastResult(g, 'combat.cast')?.reason).toEqual(
+      tr('sys.combat.reject.no_pool', { resource: tr('sys.combat.resource.rage') }),
+    );
+    expect(t(lastResult(g, 'combat.cast')?.reason)).toBe('没有战意可用');
     withCtx(g, (ctx) => grantPool(ctx, 'player', 'door:test', 'rage', 100));
     expect(units(g).player?.res.rage ?? 99).toBeLessThan(15);
     g.queue('combat.cast', { abilityId: 'heroic_strike', targetId: id });
     g.step(1);
     expect(lastResult(g, 'combat.cast')?.code).toBe('no_resource');
+    expect(lastResult(g, 'combat.cast')?.reason).toEqual(
+      tr('sys.combat.reject.no_resource', { resource: tr('sys.combat.resource.rage') }),
+    );
     g.queue('combat.cast', { abilityId: 'door_strike', targetId: id });
     g.step(31);
     g.queue('combat.cast', { abilityId: 'door_strike', targetId: id });
@@ -567,11 +578,10 @@ describe('bosses, yielding and waves', () => {
     expect(g.world.meta.flags['boss.guardian_raven.yielded']).toBe(true);
     expect(ents(g)[raven.id]?.alive).toBe(true);
     expect(units(g)[raven.id]?.ai?.state).toBe('yielded');
-    expect(
-      events(g, 'feat.performed').some(
-        (e) => e.data.kind === 'boss_kill' && e.data.targetId === raven.id,
-      ),
-    ).toBe(true);
+    const feat = events(g, 'feat.performed').find(
+      (e) => e.data.kind === 'boss_kill' && e.data.targetId === raven.id,
+    );
+    expect(feat?.data.note).toMatchObject({ key: 'sys.combat.feat.yielded' });
     expect(g.world.slices.inventory.owners.player?.items.raven_quill_charm).toBe(1);
     g.queue('flag.set', { key: 'companion.yeyu.recruited', value: true });
     g.step(2);
@@ -595,7 +605,7 @@ describe('bosses, yielding and waves', () => {
     beat(g, id, 0.2005);
     fight(g, 200, () => !!g.world.meta.flags['boss.sasha.defeated']);
     expect(g.world.meta.flags['boss.sasha.yielded']).toBe(true);
-    expect(events(g, 'dialogue.line').some((e) => e.data.text.includes('看走眼'))).toBe(true);
+    expect(events(g, 'dialogue.line').some((e) => t(e.data.text).includes('看走眼'))).toBe(true);
     g.step(20 * 8);
     expect(ents(g)[id]).toBeUndefined();
   });
@@ -749,10 +759,31 @@ describe('presence, guards, queries, determinism', () => {
     expect(view).toMatchObject({
       level: 1,
       tier: 0,
-      tierName: '凡阶·初',
+      tierName: tr('sys.combat.tier.0'),
       side: 'ally',
       alive: true,
     });
+  });
+
+  it('names ranks, pools, level ranges and spawns with text keys', () => {
+    const g = makeGame();
+    isolate(g);
+    const id = spawnNear(g, 'dian_dreg', 1, 2);
+    expect(lastResult(g, 'combat.spawn')?.reason).toEqual(tr('sys.combat.info.spawned', { n: 1 }));
+    expect(t(tr('sys.combat.info.spawned', { n: 3 }))).toBe('生成了 3 只');
+    g.queue('flag.set', { key: 'feature.tide_sight', value: true });
+    g.queue('combat.target', { targetId: id });
+    g.step(1);
+    const info = targetInfo(g.world, g.content);
+    expect(info?.levelText).toEqual(tr('sys.combat.level_range', { lo: 1, hi: 3 }));
+    expect(t(info?.levelText)).toBe('Lv 1 到 3');
+    expect(t(tierName(7))).toBe('超越');
+    expect(tierName(8)).toBe('');
+    expect(t(resourceName('energy'))).toBe('气息');
+    const a = tierName(1);
+    const b = tierName(1);
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
   });
 
   it('is deterministic for the same seed and inputs', () => {

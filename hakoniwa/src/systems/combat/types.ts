@@ -3,6 +3,7 @@
 // registers on the kernel contracts. Units hang off world entities by entity id.
 // See docs/50_tech/architecture.md 4.6 (phase 20) and docs/20_world/power_system.md 3 to 5.
 
+import type { TextParam } from '../../core/text';
 import type { Appearance } from '../world/types';
 
 export type ResourceKind = 'mana' | 'rage' | 'energy';
@@ -529,7 +530,13 @@ declare module '../../core/contracts' {
       items: { itemId: string; count: number }[];
       money: number;
     };
-    'combat.xp': { entityId: string; amount: number; reason: string; level: number; xp: number };
+    'combat.xp': {
+      entityId: string;
+      amount: number;
+      reason: TextParam;
+      level: number;
+      xp: number;
+    };
     'combat.level_up': { entityId: string; level: number; tier: number };
     'combat.boss_phase': { entityId: string; bossId: string; phase: number; name: string };
     'combat.boss_defeated': { entityId: string; bossId: string; yielded: boolean };

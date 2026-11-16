@@ -4,6 +4,7 @@
 // time, advanced with Space or a click.
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
+import { t } from '../../shared_ui/i18n';
 import { T } from '../../shared_ui/text';
 import type { ConversationView } from '../view/adapters';
 import type { DialogueLine } from './dialogue_queue';
@@ -148,7 +149,8 @@ export class ConversationBox {
   }
 
   private renderLoose(line: DialogueLine): void {
-    const sig = `l|${line.speakerId}|${line.text}`;
+    const text = t(line.text);
+    const sig = `l|${line.speakerId}|${text}`;
     this.el.hidden = false;
     this.mode = 'loose';
     if (sig === this.sig) return;
@@ -158,9 +160,9 @@ export class ConversationBox {
     setClass(this.el, 'narrate', line.kind === 'narrate');
     setClass(this.el, 'think', line.kind === 'think');
     this.header.hidden = line.kind === 'narrate';
-    setText(this.speaker, line.speakerName);
+    setText(this.speaker, t(line.speakerName));
     clear(this.lines);
-    this.lines.append(el('div', { className: 'hk-dlg-text', text: line.text }));
+    this.lines.append(el('div', { className: 'hk-dlg-text', text }));
     this.pending.hidden = true;
     clear(this.options);
     this.sayRow.hidden = true;

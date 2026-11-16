@@ -3,8 +3,10 @@
 // toward the player are mirrored to the reveal-ledger flag trust.<role>.
 
 import type { SystemContext } from '../../core/system';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { RELATION_LOG_CAP } from './constants';
 import { personaById, trustFlagKey } from './personas';
+import TRAIT_WORDS from './trait_words.json';
 import type { Mind, NpcSlice, PersonaCard, RelationDims } from './types';
 
 export function neutralRelation(): RelationDims {
@@ -54,13 +56,17 @@ export function relationOf(slice: NpcSlice, from: string, to: string): RelationD
   return slice.minds[from]?.rel[to] ?? neutralRelation();
 }
 
-/** Personality scaling of a change (固执, 记仇, 宽容; design 6.2). */
+/**
+ * Personality scaling of a change (stubborn, grudging, forgiving; design 6.2). The trait
+ * words are content vocabulary matched against the persona cards' trait text; they live in
+ * trait_words.json until the cards carry trait codes (data/, content pipeline follow-up).
+ */
 function scale(p: PersonaCard | undefined, v: number): number {
   if (!p) return v;
   let f = 1;
-  if (p.traits.includes('固执')) f *= 0.7;
-  if (v < 0 && p.traits.includes('记仇')) f *= 1.5;
-  if (v < 0 && p.traits.includes('宽容')) f *= 0.6;
+  if (p.traits.includes(TRAIT_WORDS.stubborn)) f *= 0.7;
+  if (v < 0 && p.traits.includes(TRAIT_WORDS.grudging)) f *= 1.5;
+  if (v < 0 && p.traits.includes(TRAIT_WORDS.forgiving)) f *= 0.6;
   return v * f;
 }
 
@@ -70,7 +76,7 @@ export function adjustRelation(
   from: string,
   to: string,
   delta: Partial<RelationDims>,
-  reason: string,
+  reason: TextParam,
 ): void {
   const slice = ctx.world.slices.npc;
   const mind = slice.minds[from];
@@ -116,10 +122,10 @@ export function decayRelations(mind: Mind): void {
 }
 
 /** Display band for a relation toward the player (never raw numbers in UI). */
-export function relationBand(r: RelationDims): string {
-  if (r.like >= 50 && r.trust >= 70) return '亲近';
-  if (r.like >= 20) return '友善';
-  if (r.like <= -40) return '厌恶';
-  if (r.like <= -15 || r.trust < 35) return '戒备';
-  return '一般';
+export function relationBand(r: RelationDims): KeyText {
+  if (r.like >= 50 && r.trust >= 70) return tr('sys.npc.relation.close');
+  if (r.like >= 20) return tr('sys.npc.relation.friendly');
+  if (r.like <= -40) return tr('sys.npc.relation.loathing');
+  if (r.like <= -15 || r.trust < 35) return tr('sys.npc.relation.wary');
+  return tr('sys.npc.relation.neutral');
 }

@@ -7,6 +7,7 @@ import './shared_events';
 
 export * from './save';
 export * from './system';
+export * from './text';
 export * from './time';
 export * from './world';
 

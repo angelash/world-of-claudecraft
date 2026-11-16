@@ -36,7 +36,7 @@ export function playthrough(
   const bot = new Autoplayer(engine, {
     route,
     log: (line) => {
-      if (!line.includes('倒下')) console.log(`[${route}] ${line}`);
+      if (!line.includes('player down')) console.log(`[${route}] ${line}`);
     },
   });
   const result = bot.run({ maxTicks: opts.maxTicks ?? 6_000_000, until: opts.stop });

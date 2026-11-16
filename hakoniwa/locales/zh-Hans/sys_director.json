@@ -1,0 +1,6 @@
+{
+  "sys.director.note.fate": "命运：{label}",
+  "sys.director.note.arranged": "{fate}安排的{move}：{label}",
+  "sys.director.move.coincidence": "巧合",
+  "sys.director.move.respite": "喘息"
+}

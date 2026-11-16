@@ -6,6 +6,7 @@
 
 import type { AuditRecord } from '../../ai/audit';
 import type { AnyWorldEvent, ContentMap, FlagValue } from '../../core/contracts';
+import { renderTextDeep } from '../../shared_ui/i18n';
 import type { LoreDef, TermDef } from '../../systems/goddess/types';
 import {
   findLeaks,
@@ -101,8 +102,10 @@ export function reviewEvents(
   if (!lore) return [];
   const out: LeakHit[] = [];
   for (const ev of events) {
-    if (scanForLeaks(ev.data, world, lore).length === 0) continue;
-    walkStrings(ev.data, (text, path) => {
+    // kernel text is TextRefs: review what the player reads, rendered
+    const data = renderTextDeep(ev.data);
+    if (scanForLeaks(data, world, lore).length === 0) continue;
+    walkStrings(data, (text, path) => {
       const terms = findLeaks(text, world, lore);
       if (terms.length) out.push(hitFor(`${ev.kind}#${ev.seq}`, path, text, terms));
     });

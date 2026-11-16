@@ -3,6 +3,7 @@
 // Concealed experts and the pageless player out of combat feel like nothing at all.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { personaById } from '../npc/personas';
 import { distance, getEntity } from '../world';
@@ -12,17 +13,17 @@ export type PressureBand = 'none' | 'calm' | 'press' | 'stiff' | 'faint';
 
 export interface PressureSense {
   band: PressureBand;
-  text: string;
+  text: KeyText;
   /** direction from observer to target in radians (for screen-edge cues) */
   direction: number;
 }
 
-const TEXT: Record<PressureBand, string> = {
-  none: '没什么特别的感觉',
-  calm: '一片平静，什么都感觉不到',
-  press: '空气有点沉，心跳快了几拍',
-  stiff: '手脚发僵，很难先动手',
-  faint: '眼前发灰，喘不过气',
+const TEXT: Record<PressureBand, () => KeyText> = {
+  none: () => tr('sys.cognition.pressure.none'),
+  calm: () => tr('sys.cognition.pressure.calm'),
+  press: () => tr('sys.cognition.pressure.press'),
+  stiff: () => tr('sys.cognition.pressure.stiff'),
+  faint: () => tr('sys.cognition.pressure.faint'),
 };
 
 export function pressureSense(
@@ -38,7 +39,7 @@ export function pressureSense(
   const fighting = t.tags.includes('in_combat');
   const concealed = !!(t.ref && personaById(content, t.ref)?.concealed);
   if (!fighting && (concealed || t.kind === 'player'))
-    return { band: 'calm', text: TEXT.calm, direction };
+    return { band: 'calm', text: TEXT.calm(), direction };
   const diff = tierOf(t) - tierOf(o);
   const far = distance(o, t) > 12;
   let band: PressureBand = 'none';
@@ -46,5 +47,5 @@ export function pressureSense(
   else if (diff === 2) band = 'stiff';
   else if (diff === 1) band = 'press';
   if (far && band !== 'none') band = band === 'faint' ? 'stiff' : 'press';
-  return { band, text: TEXT[band], direction };
+  return { band, text: TEXT[band](), direction };
 }

@@ -25,6 +25,7 @@ import type {
 } from './contracts';
 import { hashSeed, Rng } from './rng';
 import type { GameSystem, SystemContext } from './system';
+import { rawText } from './text';
 import { createWorld, type LoggedCommand, type World } from './world';
 
 export interface EngineOptions {
@@ -342,7 +343,12 @@ export class Engine {
       ctx.setFlag(data.key, data.value);
       result = { ok: true };
     } else {
-      result = { ok: false, code: 'no_handler', reason: `no handler for ${cmd.kind}` };
+      result = {
+        ok: false,
+        code: 'no_handler',
+        // an internal error: English developer text, kept out of the string tables (D-077)
+        reason: rawText(`no handler for ${cmd.kind}`, 'en'),
+      };
       for (const s of this.systems) {
         const handler = s.commands?.[cmd.kind as CommandKind] as
           | ((c: SystemContext, d: unknown, src: CommandSource) => CommandResult)

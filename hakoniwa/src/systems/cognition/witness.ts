@@ -4,6 +4,7 @@
 // the crowd share instead.
 
 import type { SystemContext } from '../../core/system';
+import { clipText, type TextParam, tr } from '../../core/text';
 import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
 import { locationAt } from '../npc/places';
@@ -33,7 +34,7 @@ export interface FeatInput {
   x: number;
   y: number;
   targetId?: string;
-  note?: string;
+  note?: TextParam;
 }
 
 const MAX_SPOKEN = 2;
@@ -79,12 +80,12 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
   const residents = watchers.filter((e) => npcSlice.npcs[e.ref as string]?.resident);
   const loc = locationAt(ctx.content, d.mapId, d.x, d.y);
   const map = mapById(ctx.content, d.mapId);
-  const place = loc?.name ?? map?.name ?? '野外';
+  const place: TextParam = loc?.name ?? map?.name ?? tr('sys.cognition.place.wild');
   const famous = named
     .map((e) => e.ref as string)
     .filter((id) => (personaById(ctx.content, id)?.fame ?? 0) >= 0.5 && id !== subject);
-  const details = ['一个人'];
-  if (d.note) details.push(d.note.slice(0, 12));
+  const details: TextParam[] = [tr('sys.cognition.detail.alone')];
+  if (d.note) details.push(clipText(d.note, 12));
   const rumor = seedRumor(ctx, {
     anchor: d.key,
     topic: d.kind,
@@ -104,7 +105,7 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
   if (d.kind === 'build' || d.kind === 'destroy') bonus.gadget = 1.5;
   const visible = d.mapId === npcSlice.playerMap;
   const who = subjectName(ctx.content, subject);
-  const what = `亲眼看见${who}${featPhrase(ctx.content, d.kind)}`;
+  const what = tr('sys.cognition.witness.saw', { who, feat: featPhrase(ctx.content, d.kind) });
   const reactions: { id: string; o: ObserveOutcome; rank: number }[] = [];
   for (const e of named) {
     const id = e.ref as string;
@@ -133,7 +134,7 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
       what,
     });
     addMemory(ctx, id, {
-      text: `${what}（在${place}）`,
+      text: tr('sys.cognition.witness.memory', { what, place }),
       src: 'seen',
       about: subject,
       imp: Math.min(1, 0.4 + 0.1 * d.tier),
@@ -160,7 +161,7 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
   let spoken = 0;
   for (const r of reactions.sort((a, b) => b.rank - a.rank)) {
     if (spoken >= MAX_SPOKEN) break;
-    const addr = personaById(ctx.content, r.id)?.voice.address ?? '你';
+    const addr = personaById(ctx.content, r.id)?.voice.address ?? tr('sys.cognition.address.you');
     if (
       speakReaction(ctx, r.id, r.o, d.mapId, { player: subject === 'player' ? addr : who, place })
     )

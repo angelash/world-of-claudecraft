@@ -8,9 +8,11 @@ import type {
 } from '../src/core';
 import { worldHash } from '../src/core';
 import type { Engine } from '../src/core/engine';
+import { tr } from '../src/core/text';
 import { calendarAt, tickAtDay } from '../src/core/time';
 import { createGame as createFullGame } from '../src/game/create';
 import { allSystems } from '../src/game/registry';
+import { t } from '../src/shared_ui/i18n';
 import {
   type BuildingDef,
   computeTerms,
@@ -107,7 +109,7 @@ function foundedVillage(seed = 7) {
   ];
   for (const [defId, x, y] of places) {
     const r = run(engine, 'city.place', { siteId: SITE, defId, x, y }, events);
-    expect(r.ok, `${defId} at ${x},${y}: ${r.reason}`).toBe(true);
+    expect(r.ok, `${defId} at ${x},${y}: ${t(r.reason)}`).toBe(true);
   }
   const added = run(
     engine,
@@ -119,7 +121,7 @@ function foundedVillage(seed = 7) {
   stepDays(engine, 2);
   give(engine, OWNER, { grain: 300 });
   const founded = run(engine, 'city.found', { siteId: SITE }, events);
-  expect(founded.ok, founded.reason).toBe(true);
+  expect(founded.ok, t(founded.reason)).toBe(true);
   return { engine, events };
 }
 
@@ -181,7 +183,7 @@ describe('placement validator', () => {
     expect(code('fishing_hut', 15, 14)).toBe('terrain');
     expect(code('shack', 21, 18)).toBe('reach'); // covers the village centre
     const r = previewPlacement(w, c, SITE, 'shack', 2, 2);
-    expect(!r.ok && r.reason).toBe('超出了可建设用地');
+    expect(!r.ok && r.reason).toEqual(tr('sys.city.reject.bounds'));
   });
 
   it('rejects a building that would cut off another entrance or the exit (keep_reach)', () => {
@@ -252,10 +254,13 @@ describe('placement validator', () => {
     };
     const code = (x: number, y: number) => {
       const r = previewPlacement(world, content, 's', 'block', x, y);
-      return r.ok ? 'ok' : `${r.code}:${r.reason}`;
+      return r.ok ? 'ok' : { code: r.code, reason: r.reason };
     };
     // Corridor block with its entrance on the centre side cuts off the exit in the north room.
-    expect(code(2, 4)).toBe('keep_reach:会堵住通往外面的路');
+    expect(code(2, 4)).toEqual({
+      code: 'keep_reach',
+      reason: tr('sys.city.reject.keep_reach_exit'),
+    });
     // With a building in the north room, its entrance is reported first.
     site.buildings.push({
       id: 'b1',
@@ -271,7 +276,10 @@ describe('placement validator', () => {
       placedDay: 0,
       placedBy: 'player',
     });
-    expect(code(2, 4)).toBe('keep_reach:会挡住石墩的出入口');
+    expect(code(2, 4)).toEqual({
+      code: 'keep_reach',
+      reason: tr('sys.city.reject.keep_reach_building', { building: '石墩' }),
+    });
     // Once the corridor is taken, the north room cannot be reached at all.
     site.buildings.push({
       id: 'b2',
@@ -287,7 +295,7 @@ describe('placement validator', () => {
       placedDay: 0,
       placedBy: 'player',
     });
-    expect(code(1, 1)).toBe('reach:门口和聚落中心走不通');
+    expect(code(1, 1)).toEqual({ code: 'reach', reason: tr('sys.city.reject.reach') });
     expect(code(1, 6)).toBe('ok');
     // findSpot reuses one "before" flood fill for every candidate; its answer must match
     // the first spot the plain validator accepts, scanning the same zones row by row.
@@ -354,7 +362,7 @@ describe('settlement chain', () => {
     ).toBe(true);
     const view = settlementView(engine.world, engine.content, SITE);
     expect(view?.population.total).toBe(pop);
-    expect(view?.stageName).toBe('村落');
+    expect(view?.stageName).toEqual(tr('sys.city.stage.village'));
     expect(view?.buildings.find((b) => b.defId === 'farm')?.workers).toBe(4);
   });
 
@@ -365,6 +373,10 @@ describe('settlement chain', () => {
     let r = run(engine, 'city.found', { siteId: SITE }, events);
     expect(r.ok).toBe(false);
     expect(r.code).toBe('population');
+    expect(r.reason).toMatchObject({
+      key: 'sys.city.reject.found_population',
+      params: { need: 30 },
+    });
     run(engine, 'city.add_population', { siteId: SITE, group: 'migrants', count: 30 }, events);
     r = run(engine, 'city.found', { siteId: SITE }, events);
     expect(r.code).toBe('stove');
@@ -420,9 +432,9 @@ describe('settlement chain', () => {
     const site = engine.world.slices.city.sites[SITE];
     give(engine, OWNER, { stone: 2000 });
     stepDays(engine, 1);
-    expect(site?.status.some((s) => s.includes('仓库已满'))).toBe(true);
+    expect(site?.status).toContainEqual(tr('sys.city.status.storage_full'));
     const farm = site?.buildings.find((b) => b.defId === 'farm');
-    expect(farm?.note).toBe('仓库已满，停产');
+    expect(farm?.note).toEqual(tr('sys.city.building_note.full'));
   });
 
   it('takes no input and discards no output while storage is full, then resumes', () => {
@@ -474,7 +486,7 @@ describe('settlement chain', () => {
     let mark = moves.length;
     stepDays(engine, 1);
     const mill = site.buildings.find((x) => x.id === 'mill_test');
-    expect(mill?.note).toBe('仓库已满，停产');
+    expect(mill?.note).toEqual(tr('sys.city.building_note.full'));
     // Only the mill takes grain for production, and only the mill makes bread.
     expect(moved(mark, 'grain', -1)).toBe(0);
     expect(moved(mark, 'bread', 1)).toBe(0);
@@ -607,6 +619,18 @@ describe('officials and autonomy', () => {
     expect(delegated?.value ?? 0).toBeGreaterThanOrEqual(hands?.value ?? 0);
   });
 
+  it('records micro-management as keyed dependency and effect text', () => {
+    const { engine, events } = foundedVillage(19);
+    const r = run(engine, 'city.micro', { siteId: SITE, action: 'handle_dispute' }, events);
+    expect(r.reason).toEqual(tr('sys.city.info.dispute'));
+    const site = engine.world.slices.city.sites[SITE];
+    expect(site?.autonomy.dependency.at(-1)?.action).toEqual(tr('sys.city.dep.dispute'));
+    const effect = site?.effects.at(-1);
+    expect(effect?.label).toEqual(tr('sys.city.effect.dispute'));
+    // the readable effect id still renders as '<kind>:<label>'
+    expect(t(effect?.id)).toBe(`happiness:${t(tr('sys.city.effect.dispute'))}`);
+  });
+
   it('seeds territory autonomy on the grant and writes the nation autonomy after founding', () => {
     const { engine, events } = foundedVillage(23);
     stepDays(engine, 1);
@@ -695,7 +719,7 @@ describe('inner court', () => {
       { siteId: 'inner_court', defId: 'court_garden', x: 3, y: 12 },
       events,
     );
-    expect(placed.ok, placed.reason).toBe(true);
+    expect(placed.ok, t(placed.reason)).toBe(true);
     expect(
       run(engine, 'city.place', { siteId: 'inner_court', defId: 'shack', x: 8, y: 12 }, events)
         .code,
@@ -721,7 +745,7 @@ describe('door node', () => {
       { siteId: SITE, defId: 'door_node', x: 15, y: 26 },
       events,
     );
-    expect(placed.ok, placed.reason).toBe(true);
+    expect(placed.ok, t(placed.reason)).toBe(true);
     expect(run(engine, 'city.enter_court', {}, events).ok).toBe(true);
     // not linked yet: the order cannot reach the outpost from the court
     expect(

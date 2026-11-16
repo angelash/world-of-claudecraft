@@ -3,8 +3,9 @@
 // the goddesses. Pure functions of GameView plus each system's exported queries.
 
 import type { SystemContext } from '../../core/system';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
-import { reputationOf, rumorBook } from '../../systems/cognition';
+import { type Reputation, reputationOf, rumorBook } from '../../systems/cognition';
 import { isHostile, unitOf } from '../../systems/combat';
 import { canTalkTo, currentConversation, TALK_RANGE } from '../../systems/dialogue';
 import { corridorView } from '../../systems/doors';
@@ -80,14 +81,14 @@ export function createConversationAdapter(): ConversationAdapter {
         name: c.name,
         lines: c.lines.map((l) => ({
           speakerId: l.speakerId,
-          speakerName: l.speakerName,
-          text: l.text,
+          speakerName: t(l.speakerName),
+          text: t(l.text),
           kind: l.kind,
         })),
         options: c.options.map((o) => ({
           id: o.id,
-          label: o.label,
-          hint: o.hint,
+          label: t(o.label),
+          hint: o.hint === undefined ? undefined : t(o.hint),
           system: o.system,
         })),
         pending: c.pending,
@@ -205,8 +206,26 @@ export function createQuestsAdapter(): QuestsAdapter {
 
 export function createRumorsAdapter(): RumorsAdapter {
   return {
-    rumors: (view) => rumorBook(view.world as never, view.content as never),
-    reputation: (view) => reputationOf(view.world as never, view.content as never),
+    rumors: (view) =>
+      rumorBook(view.world as never, view.content as never).map((r) => ({
+        ...r,
+        text: t(r.text),
+        fromName: t(r.fromName),
+        credibility: t(r.credibility),
+      })),
+    reputation: (view) => {
+      const rep = reputationOf(view.world as never, view.content as never);
+      const line = (r: Reputation) => ({
+        ...r,
+        name: t(r.name),
+        fameBand: t(r.fameBand),
+        opinionBand: t(r.opinionBand),
+        estimate: t(r.estimate),
+        label: t(r.label),
+        mainstream: r.mainstream.map((s) => t(s)),
+      });
+      return { regions: rep.regions.map(line), factions: rep.factions.map(line) };
+    },
   };
 }
 
@@ -219,7 +238,12 @@ export function createPartyAdapter(): PartyAdapter {
 
 export function createDoorsAdapter(): DoorsAdapter {
   return {
-    doors: (view) => corridorView(view.world as never, view.content as never),
+    doors: (view) =>
+      corridorView(view.world as never, view.content as never).map((d) => ({
+        ...d,
+        categoryName: t(d.categoryName),
+        stateName: t(d.stateName),
+      })),
     open: (_view, doorId) => [{ kind: 'doors.open', data: { doorId } }],
     close: (_view, doorId) => [{ kind: 'doors.close', data: { doorId } }],
   };
@@ -227,8 +251,14 @@ export function createDoorsAdapter(): DoorsAdapter {
 
 export function createGoddessAdapter(): GoddessAdapter {
   return {
-    goddesses: (view) => goddessView(view.world as never, view.content as never),
-    record: (view) => divineRecord(view.world as never),
+    goddesses: (view) =>
+      goddessView(view.world as never, view.content as never).map((g) => ({
+        ...g,
+        gazeBand: t(g.gazeBand),
+        relationBand: t(g.relationBand),
+        knownActions: g.knownActions.map((a) => ({ ...a, note: t(a.note) })),
+      })),
+    record: (view) => divineRecord(view.world as never).map((e) => ({ ...e, note: t(e.note) })),
     revelations: (view) => revelationsShown(view.world as never),
     canOffer: (view) => countItem(view.world as never, view.playerId(), 'merca_coin') > 0,
     offer: (_view, itemId, want) => [{ kind: 'goddess.offer', data: { itemId, want } }],

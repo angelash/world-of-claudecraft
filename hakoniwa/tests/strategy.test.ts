@@ -12,6 +12,7 @@ import { pack as worldPack } from '../src/content/packs/world';
 import type { AnyWorldEvent, CommandKind, FlagValue } from '../src/core/contracts';
 import type { Engine } from '../src/core/engine';
 import { worldHash } from '../src/core/save';
+import { tr } from '../src/core/text';
 import { calendarAt, tickAtDay } from '../src/core/time';
 import { createGame } from '../src/game/create';
 import { system as inventory } from '../src/systems/inventory';
@@ -199,13 +200,37 @@ describe('founding and diplomacy', () => {
     g.step(1);
     const r = lastResult(g, 'slg.diplomacy');
     expect(r).toMatchObject({ ok: false, code: 'refused' });
-    // the reason carries the relation it has and the one it needs
-    expect(r?.reason).toContain('关系 12，需要 50');
-    expect(r?.reason).toContain('30');
+    // the reason carries the relation it has and the one it needs, plus the lower bars
+    expect(r?.reason).toMatchObject({
+      key: 'sys.strategy.reject.refused',
+      params: {
+        action: tr('sys.strategy.action.alliance'),
+        why: {
+          key: 'sys.strategy.refuse.alliance',
+          params: { rel: tr('sys.strategy.refuse.rel_need', { rel: '12', need: 50 }) },
+        },
+      },
+    });
+    type Refusal = {
+      params: { why: { params: { alt: { params: Record<string, { key: string }> } } } };
+    };
+    const alt = (r && !r.ok ? (r.reason as unknown as Refusal) : undefined)?.params.why.params.alt
+      .params;
+    expect(alt).toBeDefined();
+    expect(alt?.['0']?.key).toMatch(/^sys\.strategy\.refuse\.enemy_(need|could)$/);
+    expect(alt?.['1']?.key).toMatch(/^sys\.strategy\.refuse\.threat_(need|could)$/);
     g.queue('slg.diplomacy', { to: 'holy_see', action: 'passage' });
     g.step(1);
     // each refusal costs the asker 2 points of the receiver's regard
-    expect(lastResult(g, 'slg.diplomacy')?.reason).toContain('关系 10，需要 20');
+    expect(lastResult(g, 'slg.diplomacy')?.reason).toMatchObject({
+      key: 'sys.strategy.reject.refused',
+      params: {
+        why: {
+          key: 'sys.strategy.refuse.passage',
+          params: { rel: tr('sys.strategy.refuse.rel_need', { rel: '10', need: 20 }) },
+        },
+      },
+    });
   });
 
   it('lets AI powers accept or refuse by utility', () => {

@@ -5,6 +5,7 @@
 import { ok, reject } from '../../core';
 import type { CommandResult } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { distance, type Entity, getEntity, playerEntity } from '../world';
 import { isMarketOpen } from './market';
 import { settleTrade } from './ports';
@@ -30,15 +31,19 @@ export function merchantMarket(
 export function openTrade(ctx: SystemContext, npcId: string, npcRef?: string): CommandResult {
   const npc = getEntity(ctx.world, npcId);
   const market = merchantMarket(ctx, npc, npcRef);
-  if (!npc || !market) return reject('not_merchant', '对方不做买卖');
-  if (!isMarketOpen(ctx.world, market)) return reject('market_closed', `${market.name}还没有集市`);
+  if (!npc || !market) return reject('not_merchant', tr('sys.economy.reject.not_merchant'));
+  if (!isMarketOpen(ctx.world, market))
+    return reject(
+      'market_closed',
+      tr('sys.economy.reject.market_closed.trade', { market: market.name }),
+    );
   const slice = ctx.world.slices.economy;
   slice.session = { npcId, npcRef: npcRef ?? npc.ref, marketId: market.id, openedTick: ctx.tick };
   ctx.emit('economy.trade_opened', { npcId, marketId: market.id });
   ctx.emit('dialogue.line', {
     speakerId: npc.id,
     speakerName: npc.name,
-    text: '要看看货吗？价钱都写在板子上。',
+    text: tr('sys.economy.say.trade_open'),
     listenerId: ctx.world.slices.world.playerId,
     kind: 'say',
   });
@@ -80,12 +85,12 @@ export function tradeCommand(
   ownerId?: string,
 ): CommandResult {
   const s = liveSession(ctx);
-  if (!s) return reject('no_session', '现在没有在和商人交易');
+  if (!s) return reject('no_session', tr('sys.economy.reject.no_session.trade'));
   const owner = ownerId ?? ctx.world.slices.world.playerId;
   const config = ctx.content.economy_config;
   const companyOk = owner === config.company.ownerId && ctx.world.slices.economy.company.founded;
   if (owner !== ctx.world.slices.world.playerId && !companyOk) {
-    return reject('bad_owner', '只能替自己或自己的商会交易');
+    return reject('bad_owner', tr('sys.economy.reject.bad_owner'));
   }
   const res = settleTrade(
     ctx,

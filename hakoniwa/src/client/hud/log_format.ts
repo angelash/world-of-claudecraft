@@ -1,12 +1,13 @@
-// World events to Chinese message-log lines. Covers the core and shared events plus the
-// finished world and inventory systems; later systems add lines through LogAdapter.
+// World events to message-log lines; kernel text (TextRefs) is rendered with t(). Covers
+// the core and shared events plus the finished world and inventory systems; later systems
+// add lines through LogAdapter.
 // Command rejections are shown only for the player's own commands. Experience lines come
 // from combat.xp in the system log adapter (combat applies xp.awarded). Pure; Node-tested.
 
 import type { AnyWorldEvent } from '../../core/contracts';
 import { calendarAt } from '../../core/time';
+import { formatMoney, t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
-import { formatMoney } from '../../systems/inventory';
 import { actLabel, featureLabel, formatDate, weatherLabel } from './format';
 
 export type LogCategory =
@@ -42,27 +43,30 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
     case 'dialogue.line': {
       const d = ev.data;
       if (d.kind === 'narrate')
-        return { text: fmt(T.log.narrate, { text: d.text }), category: 'narrate' };
+        return { text: fmt(T.log.narrate, { text: t(d.text) }), category: 'narrate' };
       if (d.kind === 'divine') {
         return {
-          text: fmt(T.log.divine, { name: d.speakerName, text: d.text }),
+          text: fmt(T.log.divine, { name: t(d.speakerName), text: t(d.text) }),
           category: 'divine',
         };
       }
       if (d.kind === 'think') {
         return {
-          text: fmt(T.log.think, { name: d.speakerName, text: d.text }),
+          text: fmt(T.log.think, { name: t(d.speakerName), text: t(d.text) }),
           category: 'dialogue',
         };
       }
-      return { text: fmt(T.log.say, { name: d.speakerName, text: d.text }), category: 'dialogue' };
+      return {
+        text: fmt(T.log.say, { name: t(d.speakerName), text: t(d.text) }),
+        category: 'dialogue',
+      };
     }
     case 'command.result': {
       const d = ev.data;
       if (d.ok || d.source.type !== 'player' || QUIET_REJECTIONS.has(d.kind)) return null;
       return {
         text: d.reason
-          ? fmt(T.log.rejected, { reason: d.reason })
+          ? fmt(T.log.rejected, { reason: t(d.reason) })
           : fmt(T.log.rejectedNoReason, { kind: d.kind }),
         category: 'warning',
       };
@@ -117,7 +121,7 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
     case 'world.move_failed': {
       const d = ev.data;
       if (d.id !== me) return null;
-      return { text: fmt(T.log.moveFailed, { reason: d.reason }), category: 'warning' };
+      return { text: fmt(T.log.moveFailed, { reason: t(d.reason) }), category: 'warning' };
     }
     case 'feature.unlocked':
       return {

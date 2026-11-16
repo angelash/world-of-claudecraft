@@ -9,6 +9,7 @@ import type { ContentMap } from '../../core/contracts';
 import type { Engine } from '../../core/engine';
 import { TICKS_PER_GAME_DAY } from '../../core/time';
 import type { World } from '../../core/world';
+import { t } from '../../shared_ui/i18n';
 import { marketList, priceQuote } from '../../systems/economy';
 import { mean, percentile, rate } from '../util/stats';
 
@@ -58,7 +59,7 @@ export function sampleProduction(world: World, content: ContentMap): EconomySamp
       active++;
       if (b.note) {
         blocked++;
-        const key = b.note.replace(/：.*$/, '');
+        const key = t(b.note).replace(/：.*$/, '');
         reasons[key] = (reasons[key] ?? 0) + 1;
       }
     }

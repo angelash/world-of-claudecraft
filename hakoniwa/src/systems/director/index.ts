@@ -6,6 +6,7 @@
 // and each leaves a fate thread in the miracle ledger as Moira's quiet work.
 
 import type { GameSystem, SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { goddessByRole } from '../goddess/roster';
 import { recordIntervention } from '../goddess/state';
@@ -110,7 +111,7 @@ export function applyMove(
       untilTick: until,
       source: 'director',
       visibility: 'hidden',
-      note: `命运：${item.label}`,
+      note: tr('sys.director.note.fate', { label: item.label }),
     });
   }
   if (item.weather) forceWeather(ctx, item.weather, until, 'director');
@@ -137,7 +138,13 @@ export function applyMove(
     sediment: Math.round(item.power * 0.01 * 100) / 100,
     public: false,
     breach: false,
-    note: `${fate?.name ?? ''}安排的${move === 'coincidence' ? '巧合' : '喘息'}：${item.label}`,
+    note: tr('sys.director.note.arranged', {
+      fate: fate?.name ?? '',
+      move: tr(
+        move === 'coincidence' ? 'sys.director.move.coincidence' : 'sys.director.move.respite',
+      ),
+      label: item.label,
+    }),
   });
   ctx.emit('director.move', { move, itemId: item.id, tension: slice.tension });
 }

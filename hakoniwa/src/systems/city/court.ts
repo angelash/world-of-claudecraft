@@ -8,6 +8,7 @@
 
 import { type CommandResult, ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
+import { type TextRef, tr } from '../../core/text';
 import { addItem, addMoney, countItem, holdingOf, removeItem, spendMoney } from '../inventory';
 import { mapById, playerEntity, teleportEntity } from '../world';
 import { addDependency } from './autonomy';
@@ -22,10 +23,11 @@ import {
 } from './common';
 import type { SiteDef, SiteState } from './types';
 
-export type Presence = { ok: true; remote: boolean } | { ok: false; code: string; reason: string };
+export type Presence = { ok: true; remote: boolean } | { ok: false; code: string; reason: TextRef };
 
 export function presence(ctx: SystemContext, site: SiteState, sdef: SiteDef): Presence {
-  if (!site.active) return { ok: false, code: 'site_closed', reason: '这里现在还去不了' };
+  if (!site.active)
+    return { ok: false, code: 'site_closed', reason: tr('sys.city.reject.site_closed') };
   const p = playerEntity(ctx.world);
   if (p && p.mapId === sdef.mapId) return { ok: true, remote: false };
   if (sdef.kind === 'settlement' && sumEffect(site, ctx.content, 'gateThroughput') > 0)
@@ -33,7 +35,8 @@ export function presence(ctx: SystemContext, site: SiteState, sdef: SiteDef): Pr
   return {
     ok: false,
     code: 'not_here',
-    reason: sdef.kind === 'court' ? '要先回到门内庭院' : '你不在这个聚落，命令送不到',
+    reason:
+      sdef.kind === 'court' ? tr('sys.city.reject.not_here_court') : tr('sys.city.reject.not_here'),
   };
 }
 
@@ -47,30 +50,30 @@ export function deposit(
 ): CommandResult {
   const site = ctx.world.slices.city.sites[d.siteId];
   const sdef = siteDef(ctx.content, d.siteId);
-  if (!site || !sdef) return reject('unknown_site', '没有这个地方');
+  if (!site || !sdef) return reject('unknown_site', tr('sys.city.reject.unknown_place'));
   const pres = presence(ctx, site, sdef);
   if (!pres.ok) return reject(pres.code, pres.reason);
   const count = Math.floor(d.count);
-  if (count <= 0) return reject('bad_count', '数量不对');
+  if (count <= 0) return reject('bad_count', tr('sys.city.reject.bad_count'));
   if (d.itemId === 'money') {
     if (!spendMoney(ctx, 'player', count, `deposit:${d.siteId}`))
-      return reject('no_money', '钱不够');
+      return reject('no_money', tr('sys.city.reject.no_money'));
     addMoney(ctx, sdef.stockOwner, count, 'deposit');
     return ok();
   }
   if (countItem(ctx.world, 'player', d.itemId) < count)
-    return reject('missing', '背包里没有这么多');
+    return reject('missing', tr('sys.city.reject.missing_pack'));
   if (storageUsed(ctx.world, sdef.stockOwner) + count > storageCap(site, sdef, ctx.content))
-    return reject('storage_full', '库房放不下了');
+    return reject('storage_full', tr('sys.city.reject.storage_full'));
   if (pres.remote) {
-    if (gateRoom(ctx, site) < count) return reject('gate_cap', '门扉今天能通过的物资已到上限');
+    if (gateRoom(ctx, site) < count) return reject('gate_cap', tr('sys.city.reject.gate_cap'));
     site.gateUsed += count;
   }
   removeItem(ctx, 'player', d.itemId, count, `deposit:${d.siteId}`);
   addItem(ctx, sdef.stockOwner, d.itemId, count, 'deposit');
   // Direct injection by the player feeds dependency (8.2: 1 point per 100 units).
   if (sdef.kind === 'settlement')
-    addDependency(site.autonomy, today(ctx.tick), '直接调入物资', count / 100);
+    addDependency(site.autonomy, today(ctx.tick), tr('sys.city.dep.deposit'), count / 100);
   return ok();
 }
 
@@ -80,22 +83,22 @@ export function withdraw(
 ): CommandResult {
   const site = ctx.world.slices.city.sites[d.siteId];
   const sdef = siteDef(ctx.content, d.siteId);
-  if (!site || !sdef) return reject('unknown_site', '没有这个地方');
+  if (!site || !sdef) return reject('unknown_site', tr('sys.city.reject.unknown_place'));
   const pres = presence(ctx, site, sdef);
   if (!pres.ok) return reject(pres.code, pres.reason);
   const count = Math.floor(d.count);
-  if (count <= 0) return reject('bad_count', '数量不对');
+  if (count <= 0) return reject('bad_count', tr('sys.city.reject.bad_count'));
   if (d.itemId === 'money') {
     if (holdingOf(ctx.world, sdef.stockOwner).money < count)
-      return reject('no_money', '库里没有这么多钱');
+      return reject('no_money', tr('sys.city.reject.no_money_stock'));
     spendMoney(ctx, sdef.stockOwner, count, 'withdraw');
     addMoney(ctx, 'player', count, `withdraw:${d.siteId}`);
     return ok();
   }
   if (countItem(ctx.world, sdef.stockOwner, d.itemId) < count)
-    return reject('missing', '库里没有这么多');
+    return reject('missing', tr('sys.city.reject.missing_stock'));
   if (pres.remote) {
-    if (gateRoom(ctx, site) < count) return reject('gate_cap', '门扉今天能通过的物资已到上限');
+    if (gateRoom(ctx, site) < count) return reject('gate_cap', tr('sys.city.reject.gate_cap'));
     site.gateUsed += count;
   }
   removeItem(ctx, sdef.stockOwner, d.itemId, count, 'withdraw');
@@ -104,38 +107,40 @@ export function withdraw(
 }
 
 export function enterCourt(ctx: SystemContext): CommandResult {
-  if (!ctx.flag('feature.inner_court')) return reject('locked', '还没有通往门内庭院的门');
+  if (!ctx.flag('feature.inner_court')) return reject('locked', tr('sys.city.reject.court_locked'));
   const p = playerEntity(ctx.world);
-  if (!p) return reject('no_player', '找不到玩家');
+  if (!p) return reject('no_player', tr('sys.city.reject.no_player'));
   const court = courtSite(ctx.content);
-  if (court && p.mapId === court.mapId) return reject('already', '已经在庭院里了');
+  if (court && p.mapId === court.mapId)
+    return reject('already', tr('sys.city.reject.already_in_court'));
   const map = court ? mapById(ctx.content, court.mapId) : undefined;
   const arrival =
     map?.locations.find((l) => l.id === court?.arrivalLocation) ??
     map?.locations.find((l) => l.kind === 'safe');
-  if (!map || !arrival) return reject('no_court', '庭院不存在');
+  if (!map || !arrival) return reject('no_court', tr('sys.city.reject.no_court'));
   ctx.world.slices.city.court.returnTo = { mapId: p.mapId, x: p.x, y: p.y };
   return teleportEntity(ctx, p.id, map.id, arrival.x + arrival.w / 2, arrival.y + arrival.h / 2)
-    ? ok('穿过门扉，回到了庭院')
-    : reject('blocked', '门打不开');
+    ? ok(tr('sys.city.info.entered_court'))
+    : reject('blocked', tr('sys.city.reject.blocked'));
 }
 
 export function leaveCourt(ctx: SystemContext): CommandResult {
   const p = playerEntity(ctx.world);
-  if (!p) return reject('no_player', '找不到玩家');
+  if (!p) return reject('no_player', tr('sys.city.reject.no_player'));
   const courtDef = courtSite(ctx.content);
-  if (!courtDef || p.mapId !== courtDef.mapId) return reject('not_in_court', '你不在庭院里');
+  if (!courtDef || p.mapId !== courtDef.mapId)
+    return reject('not_in_court', tr('sys.city.reject.not_in_court'));
   const court = ctx.world.slices.city.court;
   let target = court.returnTo;
   if (!target || !mapById(ctx.content, target.mapId)) {
     const sdef = siteByRole(ctx.content, 'village_core');
     const map = sdef ? mapById(ctx.content, sdef.mapId) : undefined;
     const c = map?.locations.find((l) => l.id === sdef?.centerLocation);
-    if (!map || !c) return reject('nowhere', '门的另一头无处可去');
+    if (!map || !c) return reject('nowhere', tr('sys.city.reject.nowhere'));
     target = { mapId: map.id, x: c.x + c.w / 2, y: c.y + c.h / 2 };
   }
   court.returnTo = null;
   return teleportEntity(ctx, p.id, target.mapId, target.x, target.y)
-    ? ok('穿过门扉回到了外面')
-    : reject('blocked', '门打不开');
+    ? ok(tr('sys.city.info.left_court'))
+    : reject('blocked', tr('sys.city.reject.blocked'));
 }

@@ -2,6 +2,7 @@
 // validation for model proposals, and the rule-based daily plan used as fallback.
 
 import type { ContentMap } from '../../core/contracts';
+import { isTextRef, joinText, type KeyText, tr } from '../../core/text';
 import type { CardView } from './personas';
 import { resolvePlace } from './places';
 import {
@@ -66,30 +67,31 @@ const PRIVATE_KINDS = new Set([
   'office',
 ]);
 
-export const ACT_NAMES: Record<Activity, string> = {
-  work: '劳作',
-  eat: '吃饭',
-  sleep: '睡觉',
-  pray: '祈祷',
-  chat: '闲聊',
-  shop: '买东西',
-  wander: '闲逛',
+export const ACT_NAMES: Record<Activity, KeyText> = {
+  work: tr('sys.npc.act.work'),
+  eat: tr('sys.npc.act.eat'),
+  sleep: tr('sys.npc.act.sleep'),
+  pray: tr('sys.npc.act.pray'),
+  chat: tr('sys.npc.act.chat'),
+  shop: tr('sys.npc.act.shop'),
+  wander: tr('sys.npc.act.wander'),
 };
 
-/** Validate a proposed plan; returns a readable Chinese reason or null when valid. */
+/** Validate a proposed plan; returns a readable reason or null when valid. */
 export function validatePlan(
   content: Pick<ContentMap, 'maps' | 'npcSchedules'>,
   card: CardView,
   slots: readonly PlanSlotData[],
-): string | null {
-  if (!Array.isArray(slots) || slots.length === 0) return '计划是空的';
+  fromModel = false,
+): KeyText | null {
+  if (!Array.isArray(slots) || slots.length === 0) return tr('sys.npc.plan.reject.empty');
   // places of the person's own schedule template are pre-approved (the replacement table)
   const usual = new Set<string>();
   for (const seg of scheduleOf(content, card)) {
     const loc = resolvePlace(content, card, seg.at);
     if (loc) usual.add(loc.id);
   }
-  if (slots.length > 12) return '计划的时段太多（至多 12 段）';
+  if (slots.length > 12) return tr('sys.npc.plan.reject.too_many');
   for (let i = 0; i < slots.length; i++) {
     const s = slots[i] as PlanSlotData;
     const n = i + 1;
@@ -101,16 +103,22 @@ export function validatePlan(
       s.to < 1 ||
       s.to > 24
     )
-      return `第 ${n} 段的时刻不对`;
-    if (!ACTIVITIES.includes(s.act)) return `第 ${n} 段的活动"${String(s.act)}"不在可选范围内`;
+      return tr('sys.npc.plan.reject.bad_time', { n });
+    if (!ACTIVITIES.includes(s.act))
+      return tr('sys.npc.plan.reject.bad_act', { n, act: String(s.act) });
     const loc = resolvePlace(content, card, s.at);
-    if (!loc) return `第 ${n} 段的地点"${s.at}"在这张地图上不存在`;
+    if (!loc) return tr('sys.npc.plan.reject.bad_place', { n, at: String(s.at) });
     const own = loc.id === card.home || loc.id === card.work;
     if (!own && !usual.has(loc.id) && PRIVATE_KINDS.has(loc.kind))
-      return `第 ${n} 段：${loc.name}不是可以随便进的地方`;
-    if (s.act === 'sleep' && !own) return `第 ${n} 段：只能在自己家或干活的地方睡觉`;
-    if (s.note !== undefined && (typeof s.note !== 'string' || s.note.length > 16))
-      return `第 ${n} 段的备注太长`;
+      return tr('sys.npc.plan.reject.private', { n, place: loc.name });
+    if (s.act === 'sleep' && !own) return tr('sys.npc.plan.reject.sleep_away', { n });
+    // a rule plan's own note is a text key; a proposed (model) note is a short string
+    if (
+      s.note !== undefined &&
+      (fromModel || !isTextRef(s.note)) &&
+      (typeof s.note !== 'string' || s.note.length > 16)
+    )
+      return tr('sys.npc.plan.reject.note_long', { n });
   }
   return null;
 }
@@ -125,10 +133,10 @@ export function ruleDayPlan(
   needs: Needs,
   moneyNeed: number,
   devotion: number,
-): { slots: PlanSlotData[]; note: string } {
+): { slots: PlanSlotData[]; note: KeyText } {
   const slots: PlanSlotData[] = scheduleOf(content, card).map((s) => ({ ...s }));
-  const notes: string[] = [];
-  const swap = (pred: (s: PlanSlotData) => boolean, patch: Partial<PlanSlotData>, why: string) => {
+  const notes: KeyText[] = [];
+  const swap = (pred: (s: PlanSlotData) => boolean, patch: Partial<PlanSlotData>, why: KeyText) => {
     const s = slots.find(pred);
     if (!s) return;
     Object.assign(s, patch);
@@ -138,20 +146,23 @@ export function ruleDayPlan(
   if (moneyNeed < 35)
     swap(
       (s) => free(s) && s.from >= 8 && s.from < 18,
-      { act: 'work', at: '@work', note: '多干点活' },
-      '手头紧，多干点活',
+      { act: 'work', at: '@work', note: tr('sys.npc.plan.note.work_more') },
+      tr('sys.npc.plan.why.work_more'),
     );
   if (devotion >= 0.5 && needs.faith < 45)
     swap(
       (s) => free(s) && s.act !== 'work',
-      { act: 'pray', at: '@church', note: '去祷告' },
-      '心里不安，去祷告',
+      { act: 'pray', at: '@church', note: tr('sys.npc.plan.note.pray') },
+      tr('sys.npc.plan.why.pray'),
     );
   if (needs.social < 40)
     swap(
       (s) => s.act === 'wander' && s.from >= 16,
-      { act: 'chat', at: '@tavern', note: '找人说说话' },
-      '想找人说说话',
+      { act: 'chat', at: '@tavern', note: tr('sys.npc.plan.note.chat') },
+      tr('sys.npc.plan.why.chat'),
     );
-  return { slots, note: notes.join('；') || '照常过日子' };
+  return {
+    slots,
+    note: notes.length > 0 ? joinText('semicolon', notes) : tr('sys.npc.plan.why.usual'),
+  };
 }

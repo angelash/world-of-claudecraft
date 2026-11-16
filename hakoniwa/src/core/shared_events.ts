@@ -2,6 +2,10 @@
 // and subscribe without importing each other's modules. A system that owns the fact
 // emits it; any system may subscribe. Milestones are additionally mirrored as world
 // flags (ctx.setFlag) so quests and the reveal ledger can test them as conditions.
+// Text fields carry a TextParam (src/core/text.ts): a TextRef for text the kernel
+// composes, a plain string for content display names and the player's own words.
+
+import type { TextParam } from './text';
 
 declare module './contracts' {
   interface EventMap {
@@ -17,7 +21,7 @@ declare module './contracts' {
       y: number;
       targetId?: string;
       targetRef?: string;
-      note?: string;
+      note?: TextParam;
     };
     /** Any entity died (combat owns the fact). */
     'entity.died': {
@@ -32,12 +36,12 @@ declare module './contracts' {
       y: number;
     };
     /** The player spoke free text or chose a line (dialogue and scenes own the fact). */
-    'player.said': { text: string; toId?: string; mapId: string };
+    'player.said': { text: TextParam; toId?: string; mapId: string };
     /** The player started talking to an NPC. */
     'player.talked': { npcId: string; npcRef?: string };
     'player.level_up': { level: number };
     /** Experience granted by any system (quests, discoveries); combat applies it. */
-    'xp.awarded': { entityId: string; amount: number; reason: string };
+    'xp.awarded': { entityId: string; amount: number; reason: TextParam };
     /** A door of the Thousand Doors opened (doors owns the fact). */
     'door.opened': { doorId: string; sealDelta: number };
     /** A gameplay feature became available (flag feature.<name> is set as well). */
@@ -53,14 +57,14 @@ declare module './contracts' {
     'dialogue.options_offered': {
       npcId: string;
       system: string;
-      options: { id: string; label: string; hint?: string }[];
+      options: { id: string; label: TextParam; hint?: TextParam }[];
     };
     'dialogue.option_chosen': { npcId: string; system: string; optionId: string };
     /** A line to show in the conversation box and the log (any system may emit). */
     'dialogue.line': {
       speakerId: string;
-      speakerName: string;
-      text: string;
+      speakerName: TextParam;
+      text: TextParam;
       listenerId?: string;
       kind: 'say' | 'think' | 'narrate' | 'divine';
     };
@@ -68,5 +72,3 @@ declare module './contracts' {
     'battle.ended': { battleId: string; victor: 'player' | 'enemy' | 'draw'; scenario?: string };
   }
 }
-
-export {};

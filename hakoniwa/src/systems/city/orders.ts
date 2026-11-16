@@ -4,6 +4,7 @@
 
 import { type CommandResult, ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
+import { joinText, type KeyText, tr } from '../../core/text';
 import { playerEntity } from '../world';
 import { addDependency, DECISION_WEIGHT, recordDecision } from './autonomy';
 import {
@@ -36,19 +37,27 @@ export function policySlots(ctx: SystemContext, site: SiteState): number {
 export function foundVillage(ctx: SystemContext, siteId: string): CommandResult {
   const site = ctx.world.slices.city.sites[siteId];
   const sdef = siteDef(ctx.content, siteId);
-  if (!site || !sdef || sdef.kind !== 'settlement') return reject('unknown_site', '没有这个聚落');
-  if (site.stage !== 'outpost') return reject('already', '这里已经是村落了');
+  if (!site || !sdef || sdef.kind !== 'settlement')
+    return reject('unknown_site', tr('sys.city.reject.unknown_site'));
+  if (site.stage !== 'outpost') return reject('already', tr('sys.city.reject.already_village'));
   const pres = presence(ctx, site, sdef);
   if (!pres.ok) return reject(pres.code, pres.reason);
   const pop = totalPop(site);
   if (pop < FOUND_MIN_POP)
-    return reject('population', `立村需要 ${FOUND_MIN_POP} 位立誓的居民，现在只有 ${pop} 位`);
-  if (!hasActive(site, 'communal_stove')) return reject('stove', '要先建好公灶');
+    return reject(
+      'population',
+      tr('sys.city.reject.found_population', { need: FOUND_MIN_POP, pop }),
+    );
+  if (!hasActive(site, 'communal_stove')) return reject('stove', tr('sys.city.reject.found_stove'));
   const food = foodValue(stockOf(ctx.world, sdef.stockOwner), ctx.content.city_config);
   if (food < pop * FOUND_FOOD_DAYS)
     return reject(
       'food',
-      `存粮不够 ${FOUND_FOOD_DAYS} 天（需要 ${pop * FOUND_FOOD_DAYS} 份，现有 ${Math.floor(food)} 份）`,
+      tr('sys.city.reject.found_food', {
+        days: FOUND_FOOD_DAYS,
+        need: pop * FOUND_FOOD_DAYS,
+        have: Math.floor(food),
+      }),
     );
   site.stage = 'village';
   for (const domain of domainsFor('village')) {
@@ -65,7 +74,7 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
   ctx.emit('dialogue.line', {
     speakerId: 'narrator',
     speakerName: '',
-    text: `${pop} 人立下同住誓，${sdef.name}的第一口公灶点燃了。`,
+    text: tr('sys.city.log.village_founded', { pop, site: sdef.name }),
     kind: 'narrate',
   });
   const p = playerEntity(ctx.world);
@@ -77,10 +86,10 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
       mapId: p.mapId,
       x: p.x,
       y: p.y,
-      note: `${sdef.name}立村`,
+      note: tr('sys.city.feat.village_founded', { site: sdef.name }),
     });
   }
-  return ok(`${sdef.name}成为了村落`);
+  return ok(tr('sys.city.info.village_founded', { site: sdef.name }));
 }
 
 export function setPolicy(
@@ -89,25 +98,32 @@ export function setPolicy(
 ): CommandResult {
   const site = ctx.world.slices.city.sites[d.siteId];
   const sdef = siteDef(ctx.content, d.siteId);
-  if (!site || !sdef || sdef.kind !== 'settlement') return reject('unknown_site', '没有这个聚落');
+  if (!site || !sdef || sdef.kind !== 'settlement')
+    return reject('unknown_site', tr('sys.city.reject.unknown_site'));
   const pres = presence(ctx, site, sdef);
   if (!pres.ok) return reject(pres.code, pres.reason);
   const def = policyDef(ctx.content, d.policyId);
-  if (!def) return reject('unknown_policy', '没有这条政策');
+  if (!def) return reject('unknown_policy', tr('sys.city.reject.unknown_policy'));
   const has = site.policies.includes(def.id);
   if (!d.enabled) {
-    if (!has) return reject('not_enabled', '这条政策本来就没有施行');
+    if (!has) return reject('not_enabled', tr('sys.city.reject.policy_inactive'));
     site.policies = site.policies.filter((p) => p !== def.id);
-    return ok(`废止了${def.name}`);
+    return ok(tr('sys.city.info.policy_revoked', { policy: def.name }));
   }
-  if (has) return reject('already', '这条政策已经在施行');
-  if (!stageAtLeast(site.stage, def.minStage)) return reject('stage', '聚落规模还不够施行这条政策');
+  if (has) return reject('already', tr('sys.city.reject.policy_active'));
+  if (!stageAtLeast(site.stage, def.minStage))
+    return reject('stage', tr('sys.city.reject.policy_stage'));
   const clash = site.policies.find((p) => def.exclusive?.includes(p));
-  if (clash) return reject('exclusive', `和${policyDef(ctx.content, clash)?.name ?? clash}冲突`);
+  if (clash)
+    return reject(
+      'exclusive',
+      tr('sys.city.reject.policy_clash', { policy: policyDef(ctx.content, clash)?.name ?? clash }),
+    );
   const slots = policySlots(ctx, site);
-  if (site.policies.length >= slots) return reject('slots', `政策槽已满（最多 ${slots} 条）`);
+  if (site.policies.length >= slots)
+    return reject('slots', tr('sys.city.reject.policy_slots', { n: slots }));
   site.policies.push(def.id);
-  return ok(`施行${def.name}`);
+  return ok(tr('sys.city.info.policy_enacted', { policy: def.name }));
 }
 
 export function micro(
@@ -116,11 +132,12 @@ export function micro(
 ): CommandResult {
   const site = ctx.world.slices.city.sites[d.siteId];
   const sdef = siteDef(ctx.content, d.siteId);
-  if (!site || !sdef || sdef.kind !== 'settlement') return reject('unknown_site', '没有这个聚落');
+  if (!site || !sdef || sdef.kind !== 'settlement')
+    return reject('unknown_site', tr('sys.city.reject.unknown_site'));
   const pres = presence(ctx, site, sdef);
   if (!pres.ok) return reject(pres.code, pres.reason);
   const day = today(ctx.tick);
-  const done = (label: string, dep: number, weight: number, info: string): CommandResult => {
+  const done = (label: KeyText, dep: number, weight: number, info: KeyText): CommandResult => {
     addDependency(site.autonomy, day, label, dep);
     recordDecision(site.decisions, day, 'player', weight);
     return ok(info);
@@ -130,32 +147,53 @@ export function micro(
       const targets = d.target
         ? site.buildings.filter((b) => b.id === d.target && b.status === 'active')
         : site.buildings.filter((b) => b.status === 'active');
-      if (targets.length === 0) return reject('no_building', '没有可以督工的建筑');
+      if (targets.length === 0) return reject('no_building', tr('sys.city.reject.no_boost_target'));
       for (const b of targets) b.boostUntilDay = day + 3;
-      return done('亲自督工', 0.2, DECISION_WEIGHT[2] as number, '亲自督工，三天内产出提高');
+      return done(
+        tr('sys.city.dep.boost'),
+        0.2,
+        DECISION_WEIGHT[2] as number,
+        tr('sys.city.info.boost'),
+      );
     }
     case 'rush':
       if (!d.target || !rushBuilding(ctx, site, d.target))
-        return reject('no_building', '没有正在建造的这座建筑');
-      return done('亲自赶工', 0.3, DECISION_WEIGHT[2] as number, '亲自赶工，工期缩短一天');
+        return reject('no_building', tr('sys.city.reject.no_rush_target'));
+      return done(
+        tr('sys.city.dep.rush'),
+        0.3,
+        DECISION_WEIGHT[2] as number,
+        tr('sys.city.info.rush'),
+      );
     case 'handle_dispute':
       site.effects.push({
-        id: 'happiness:亲自调解',
+        // the readable id renders as before: '<kind>:<label>'
+        id: joinText('none', ['happiness:', tr('sys.city.effect.dispute')]),
         kind: 'happiness',
         value: 2,
         untilDay: day + 3,
-        label: '亲自调解',
+        label: tr('sys.city.effect.dispute'),
       });
-      return done('越过官员处理纠纷', 0.5, DECISION_WEIGHT[2] as number, '亲自调解了纠纷');
+      return done(
+        tr('sys.city.dep.dispute'),
+        0.5,
+        DECISION_WEIGHT[2] as number,
+        tr('sys.city.info.dispute'),
+      );
     case 'personal_defense':
       site.effects.push({
-        id: 'security:亲自坐镇',
+        id: joinText('none', ['security:', tr('sys.city.effect.defense')]),
         kind: 'security',
         value: 20,
         untilDay: day + 3,
-        label: '亲自坐镇',
+        label: tr('sys.city.effect.defense'),
       });
-      return done('亲自出手解决危机', 3, DECISION_WEIGHT[4] as number, '亲自坐镇，三天内治安大增');
+      return done(
+        tr('sys.city.dep.defense'),
+        3,
+        DECISION_WEIGHT[4] as number,
+        tr('sys.city.info.defense'),
+      );
   }
-  return reject('bad_action', '不认识的安排');
+  return reject('bad_action', tr('sys.city.reject.unknown_action'));
 }

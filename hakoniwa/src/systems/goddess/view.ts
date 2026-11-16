@@ -3,38 +3,40 @@
 // public entries of the miracle ledger ("神之记录").
 
 import type { FlagValue } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { evaluate, flagResolver } from '../quests/conditions';
 import type { GoddessDef, GoddessSlice, MiracleEntry } from './types';
 
-export interface GoddessView {
+/** Text fields are TextParam in the kernel; the client renders them (GoddessView<string>). */
+export interface GoddessView<Text = TextParam> {
   id: string;
   name: string;
   title: string;
   /** the honorific is known to the player once a goddess introduced herself (all sitting ones) */
   honorific: string | null;
-  gazeBand: string;
-  relationBand: string;
+  gazeBand: Text;
+  relationBand: Text;
   impression: number;
   memoryTags: string[];
   departed: boolean;
-  knownActions: { tick: number; note: string; mapId: string }[];
+  knownActions: { tick: number; note: Text; mapId: string }[];
 }
 
 type ViewWorld = { slices: { goddess: GoddessSlice }; meta: { flags: Record<string, FlagValue> } };
 
-export function gazeBandLabel(g: number): string {
-  if (g >= 80) return '盯紧';
-  if (g >= 50) return '关注';
-  if (g >= 20) return '有印象';
-  return '不知其存在或只当传闻';
+export function gazeBandLabel(g: number): KeyText {
+  if (g >= 80) return tr('sys.goddess.gaze.watching');
+  if (g >= 50) return tr('sys.goddess.gaze.noticed');
+  if (g >= 20) return tr('sys.goddess.gaze.aware');
+  return tr('sys.goddess.gaze.unknown');
 }
 
-export function relationBandLabel(r: number): string {
-  if (r >= 50) return '亲近';
-  if (r >= 15) return '有好感';
-  if (r > -15) return '平淡';
-  if (r > -50) return '不快';
-  return '敌视';
+export function relationBandLabel(r: number): KeyText {
+  if (r >= 50) return tr('sys.goddess.relation.close');
+  if (r >= 15) return tr('sys.goddess.relation.fond');
+  if (r > -15) return tr('sys.goddess.relation.neutral');
+  if (r > -50) return tr('sys.goddess.relation.displeased');
+  return tr('sys.goddess.relation.hostile');
 }
 
 /** The goddesses as the player knows them; one with appearsWhen (Janu: the first dream) shows once it holds. */

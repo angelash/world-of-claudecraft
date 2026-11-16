@@ -4,6 +4,7 @@
 // painter in battle_window.ts only draws what this module decides.
 
 import type { AnyWorldEvent, EventMap } from '../../core/contracts';
+import { t as renderText, type TextParam } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type {
   BattleTerrain,
@@ -543,7 +544,11 @@ export function planLines(b: Pick<BattleView, 'plans'>): string[] {
   const out: string[] = [];
   for (const team of ['player', 'enemy'] as Team[]) {
     const p = b.plans[team];
-    if (p) out.push(fmt(T.battle.plan, { team: T.battle.sides[team] ?? team, plan: p.name }));
+    if (p) {
+      out.push(
+        fmt(T.battle.plan, { team: T.battle.sides[team] ?? team, plan: renderText(p.name) }),
+      );
+    }
   }
   return out;
 }
@@ -561,7 +566,7 @@ export function objectiveSummaries(b: Pick<BattleView, 'objectives'>): Objective
   return b.objectives.map((o) => {
     const head = fmt(T.battle.objectiveLine, {
       team: T.battle.objectiveTeams[o.team] ?? o.team,
-      label: o.label,
+      label: renderText(o.label),
     });
     const timed = (o.kind === 'hold' || o.kind === 'survive') && (o.seconds ?? 0) > 0;
     const seconds = o.seconds ?? 0;
@@ -583,15 +588,18 @@ export function victorText(victor: Victor): string {
   return T.battle.victors[victor] ?? victor;
 }
 
-export function outcomeText(outcome: { victor: Victor; reason: string } | null): string {
+export function outcomeText(outcome: { victor: Victor; reason: TextParam } | null): string {
   if (!outcome) return '';
-  return fmt(T.battle.outcome, { result: victorText(outcome.victor), reason: outcome.reason });
+  return fmt(T.battle.outcome, {
+    result: victorText(outcome.victor),
+    reason: renderText(outcome.reason),
+  });
 }
 
 export function logLines(b: Pick<BattleView, 'log'>, n = 5): string[] {
   return b.log
     .slice(-n)
-    .map((e) => fmt(T.battle.logLine, { time: formatClock(e.t), text: e.text }));
+    .map((e) => fmt(T.battle.logLine, { time: formatClock(e.t), text: renderText(e.text) }));
 }
 
 export type BattleReport = EventMap['war.battle_report'];
@@ -607,7 +615,7 @@ export function lastReport(events: readonly AnyWorldEvent[]): BattleReport | nul
 
 export function reportLines(r: BattleReport): string[] {
   return [
-    fmt(T.battle.lastResult, { result: victorText(r.victor), reason: r.reason }),
+    fmt(T.battle.lastResult, { result: victorText(r.victor), reason: renderText(r.reason) }),
     fmt(T.battle.casualties, { player: r.casualties.player, enemy: r.casualties.enemy }),
   ];
 }
@@ -634,7 +642,9 @@ function orderText(
       return fmt(T.battle.orders.move, { x: Math.round(order.x), y: Math.round(order.y) });
     case 'attack': {
       const t = findUnit(b, order.targetId);
-      return fmt(T.battle.orders.attack, { target: t ? t.unit.name : T.battle.unknownTarget });
+      return fmt(T.battle.orders.attack, {
+        target: t ? renderText(t.unit.name) : T.battle.unknownTarget,
+      });
     }
     case 'hold':
       return T.battle.orders.hold;
@@ -649,7 +659,9 @@ export function unitDetail(b: BattleView, u: UnitRef): string[] {
   const lines: string[] = [];
   if (u.kind === 'regiment') {
     const r = u.unit;
-    lines.push(fmt(T.battle.regimentTitle, { name: r.name, type: r.typeName }));
+    lines.push(
+      fmt(T.battle.regimentTitle, { name: renderText(r.name), type: renderText(r.typeName) }),
+    );
     lines.push(
       fmt(T.battle.regimentStats, {
         count: r.count,
@@ -686,7 +698,7 @@ export function unitDetail(b: BattleView, u: UnitRef): string[] {
 export function unitSummary(u: UnitRef): string {
   if (u.kind === 'regiment') {
     const r = u.unit;
-    return `${fmt(T.battle.regimentTitle, { name: r.name, type: r.typeName })} ${fmt(
+    return `${fmt(T.battle.regimentTitle, { name: renderText(r.name), type: renderText(r.typeName) })} ${fmt(
       T.battle.regimentStats,
       {
         count: r.count,

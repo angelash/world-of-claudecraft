@@ -15,6 +15,8 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
+import { t } from '../src/shared_ui/i18n';
 import { abilityBar, system as combat } from '../src/systems/combat';
 import { corridorView, doorState, system as doors, sealState } from '../src/systems/doors';
 import { evalKey } from '../src/systems/doors/keys';
@@ -348,16 +350,20 @@ describe('chosen doors', () => {
     g.queue('doors.open', { doorId: 'nowhere' });
     g.step(1);
     expect(lastResult(g, 'doors.open')?.code).toBe('no_door');
+    expect(lastResult(g, 'doors.open')?.reason).toEqual(tr('sys.doors.reject.no_door'));
     setFlags(g, { p_past_life_door: 'notes' });
     g.queue('doors.open', { doorId: 'past_life_notes' });
     g.step(1);
     expect(lastResult(g, 'doors.open')?.code).toBe('already_open');
+    expect(lastResult(g, 'doors.open')?.reason).toEqual(tr('sys.doors.reject.already_open'));
     g.queue('doors.close', { doorId: 'past_life_notes' });
     g.step(1);
     expect(lastResult(g, 'doors.close')?.code).toBe('not_closable');
+    expect(lastResult(g, 'doors.close')?.reason).toEqual(tr('sys.doors.reject.not_closable'));
     g.queue('doors.close', { doorId: 'breach' });
     g.step(1);
     expect(lastResult(g, 'doors.close')?.code).toBe('not_open');
+    expect(lastResult(g, 'doors.close')?.reason).toEqual(tr('sys.doors.reject.not_open'));
   });
 });
 
@@ -372,7 +378,15 @@ describe('corridor view', () => {
     setFlags(g, { 'door_hint.talent_sight': true });
     const view = corridorView(g.world, g.content);
     const door = view.find((d) => d.id === 'talent_sight');
-    expect(door).toMatchObject({ state: 'hinted', stateName: '显影', categoryName: '识见' });
+    expect(door).toMatchObject({
+      state: 'hinted',
+      stateName: tr('sys.doors.status.hinted'),
+      categoryName: tr('sys.doors.category.insight'),
+    });
+    // the labels render as the corridor always showed them
+    expect([t(door?.stateName), t(door?.categoryName)]).toEqual(['显影', '识见']);
+    // each view gets fresh label objects (they never alias module state)
+    expect(corridorView(g.world, g.content)[0]?.stateName).not.toBe(door?.stateName);
     expect(door?.desc).toBeUndefined();
     expect(door?.keys[0]).toMatchObject({ met: false, cur: 0, need: 2 });
     setFlags(g, { 'boss.crystal_mother.defeated': true });

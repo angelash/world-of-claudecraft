@@ -2,6 +2,7 @@
 // shock, fatigue drain, the Dian-zone drain, rout below 15 with the nearby-rout penalty,
 // and rallying near a hero or a living general.
 
+import { tr } from '../../core/text';
 import { active, dist, flash, type KernelData, pushLog, unitOf } from './data';
 import { TERRAIN, terrainAt } from './terrain';
 import type { BattleState, RegimentState } from './types';
@@ -18,7 +19,7 @@ function rout(state: BattleState, r: RegimentState): void {
   r.state = 'rout';
   r.order = { kind: 'retreat' };
   r.path = [];
-  pushLog(state, `${r.name}溃退了`);
+  pushLog(state, tr('sys.warfare.log.routed', { name: r.name }));
   flash(state, 'rout', r.id, r.team);
   for (const o of state.regiments) {
     if (o !== r && o.team === r.team && active(o) && dist(o, r) <= 5) {
@@ -88,7 +89,7 @@ export function updateMorale(
           r.state = 'idle';
           r.order = null;
           r.path = [];
-          pushLog(state, `${r.name}重整完毕`);
+          pushLog(state, tr('sys.warfare.log.rallied', { name: r.name }));
         }
       }
     }

@@ -2,10 +2,11 @@
 // to 3.7): evidence accumulates into a cognitive value; deeds beyond the observer's
 // ceiling are explained away by the class's explanation order until refuting evidence
 // knocks the explanations down; acceptance needs the threshold, a direct experience
-// and two independent sources ("支持中需两次独立经历").
+// and two independent sources (two independent experiences are needed).
 
 import { hashSeed, Rng } from '../../core/rng';
 import type { SystemContext } from '../../core/system';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY } from '../../core/time';
 import { personaById } from '../npc/personas';
 import { adjustRelation, relationOf } from '../npc/relations';
@@ -16,7 +17,7 @@ import {
   explanationDef,
   isAccepted,
   priorOf,
-  STATE_NAMES,
+  stateName,
   stateRank,
   subjectName,
   thresholdFor,
@@ -55,8 +56,8 @@ export interface ObserveInput {
   bonus?: Partial<Record<ExplanationId, number>>;
   /** explanation carried by a rumor version (contagion) */
   suggested?: ExplanationId | 'real' | null;
-  /** short Chinese description for the reasoning log */
-  what: string;
+  /** short description of what was observed, for the reasoning log */
+  what: TextParam;
 }
 
 export interface ObserveOutcome {
@@ -90,7 +91,7 @@ export function newBelief(prior: number, subject: string): BeliefProfile {
     explanation: null,
     stick: 0,
     refuted: [],
-    identity: subject === 'player' ? '刚登记的 F 级新人' : '',
+    identity: subject === 'player' ? tr('sys.cognition.identity.newcomer') : '',
     credence: 0.5,
     lastFeat: null,
     evidence: [],
@@ -121,9 +122,9 @@ export function ensureBelief(
   return b;
 }
 
-function pushLog(ctx: SystemContext, b: BeliefProfile, text: string): void {
+function pushLog(ctx: SystemContext, b: BeliefProfile, text: TextParam): void {
   const day = calendarAt(ctx.tick).dayIndex;
-  b.log.push(`第 ${day} 日：${text}`);
+  b.log.push(tr('sys.cognition.belief.log', { day, text }));
   if (b.log.length > MAX_LOG) b.log.splice(0, b.log.length - MAX_LOG);
 }
 
@@ -136,15 +137,15 @@ function labelOf(ctx: SystemContext, e: ExplanationId): string {
   return explanationDef(ctx.content, e)?.label ?? e;
 }
 
-const KIND_NAMES: Partial<Record<EvidenceKind, string>> = {
-  seen: '亲眼所见',
-  seen_close: '近处亲见',
-  repeat: '又一次同样的事',
-  repeat_close: '当面又做了一次',
-  physical: '物证',
-  multi: '好几个人说法一致',
-  benefit: '切身的好处',
-  authority: '权威背书',
+const KIND_NAMES: Partial<Record<EvidenceKind, () => KeyText>> = {
+  seen: () => tr('sys.cognition.evidence.seen'),
+  seen_close: () => tr('sys.cognition.evidence.seen_close'),
+  repeat: () => tr('sys.cognition.evidence.repeat'),
+  repeat_close: () => tr('sys.cognition.evidence.repeat_close'),
+  physical: () => tr('sys.cognition.evidence.physical'),
+  multi: () => tr('sys.cognition.evidence.multi'),
+  benefit: () => tr('sys.cognition.evidence.benefit'),
+  authority: () => tr('sys.cognition.evidence.authority'),
 };
 
 /** Explanations the current evidence already rules out. */
@@ -170,24 +171,25 @@ function forkOf(ctx: SystemContext, p: PersonaCard, b: BeliefProfile): BeliefSta
   return 'accepted';
 }
 
-function identityFor(ctx: SystemContext, b: BeliefProfile): string {
+function identityFor(ctx: SystemContext, b: BeliefProfile): TextParam {
   switch (b.state) {
     case 'worship':
-      return '深藏不露的大人物';
+      return tr('sys.cognition.identity.worship');
     case 'hostile':
-      return '怪物';
+      return tr('sys.cognition.identity.hostile');
     case 'exploit':
-      return '可用的怪人';
+      return tr('sys.cognition.identity.exploit');
     case 'accepted':
-      return '真正的强者';
+      return tr('sys.cognition.identity.accepted');
     case 'wavering':
-      return '看不透的人';
+      return tr('sys.cognition.identity.wavering');
     case 'explaining':
       return b.explanation
-        ? (explanationDef(ctx.content, b.explanation)?.identity ?? '怪人')
-        : '怪人';
+        ? (explanationDef(ctx.content, b.explanation)?.identity ??
+            tr('sys.cognition.identity.oddball'))
+        : tr('sys.cognition.identity.oddball');
     default:
-      return b.identity || '怪人';
+      return b.identity || tr('sys.cognition.identity.oddball');
   }
 }
 
@@ -236,7 +238,7 @@ export function observe(
   if (input.feat) b.lastFeatTick = ctx.tick;
   if (kinds.has('appraisal') && p.class === 'clergy' && !b.refuted.includes('miracle')) {
     b.refuted.push('miracle');
-    pushLog(ctx, b, '光照不出这个人：光不会赐福给没有记载的人');
+    pushLog(ctx, b, tr('sys.cognition.belief.log_light'));
   }
 
   // 2. no deed, or a deed within common sense: take it at face value
@@ -250,7 +252,7 @@ export function observe(
     b.est = Math.max(b.est, F);
     b.prior = Math.max(b.prior, F);
     b.lastFeat = { kind: input.feat ?? 'rumor', apparent: F, explanation: 'real', tick: ctx.tick };
-    pushLog(ctx, b, `${input.what}，这没什么稀奇`);
+    pushLog(ctx, b, tr('sys.cognition.belief.plain', { what: input.what }));
     if (b.est > before && subject === 'player')
       adjustRelation(
         ctx,
@@ -270,7 +272,7 @@ export function observe(
     if (b.threshold === 0) b.threshold = thresholdFor(ctx.content, p, 0, rel);
     if (b.state === 'unaware') {
       b.state = 'doubt';
-      pushLog(ctx, b, `${input.what}：不可能`);
+      pushLog(ctx, b, tr('sys.cognition.belief.impossible', { what: input.what }));
     }
     if (
       cls.direct &&
@@ -280,7 +282,7 @@ export function observe(
     ) {
       b.state = forkOf(ctx, p, b);
       b.explanation = null;
-      pushLog(ctx, b, `${input.what}。看见了就信`);
+      pushLog(ctx, b, tr('sys.cognition.belief.direct', { what: input.what }));
     }
     const rng = new Rng({ s: hashSeed(ctx.world.meta.seed, `${observer}:${input.key}`) });
     for (let guard = 0; guard < 8; guard++) {
@@ -291,10 +293,14 @@ export function observe(
           b.explanation = next;
           b.stick = 0;
           adopted.push(next);
-          pushLog(ctx, b, `${input.what}，用"${labelOf(ctx, next)}"解释`);
+          pushLog(
+            ctx,
+            b,
+            tr('sys.cognition.belief.explain', { what: input.what, label: labelOf(ctx, next) }),
+          );
         } else {
           b.state = 'wavering';
-          pushLog(ctx, b, '怎么解释都说不通');
+          pushLog(ctx, b, tr('sys.cognition.belief.no_explanation'));
         }
         continue;
       }
@@ -303,17 +309,24 @@ export function observe(
         if (by) {
           refuted.push(b.explanation);
           b.refuted.push(b.explanation);
-          pushLog(ctx, b, `"${labelOf(ctx, b.explanation)}"被${KIND_NAMES[by] ?? by}推翻`);
+          pushLog(
+            ctx,
+            b,
+            tr('sys.cognition.belief.refuted', {
+              label: labelOf(ctx, b.explanation),
+              by: KIND_NAMES[by]?.() ?? by,
+            }),
+          );
           const next = chooseExplanation(ctx, p, b, rng, input);
           if (next) {
             b.explanation = next;
             b.stick = 0;
             adopted.push(next);
-            pushLog(ctx, b, `改用"${labelOf(ctx, next)}"解释`);
+            pushLog(ctx, b, tr('sys.cognition.belief.switch', { label: labelOf(ctx, next) }));
           } else {
             b.explanation = null;
             b.state = 'wavering';
-            pushLog(ctx, b, '也许……不，不可能');
+            pushLog(ctx, b, tr('sys.cognition.belief.maybe_not'));
           }
           continue;
         }
@@ -328,7 +341,11 @@ export function observe(
         if (b.value >= b.threshold && direct && sources >= 2) {
           const rebound = (p.oldOrder ?? 0) >= 0.6 && rng.chance((p.oldOrder ?? 0) * 0.8);
           b.state = rebound ? 'hostile' : forkOf(ctx, p, b);
-          pushLog(ctx, b, rebound ? '被逼着承认，反倒更恨了' : '证据够了：他确实很强');
+          pushLog(
+            ctx,
+            b,
+            rebound ? tr('sys.cognition.belief.rebound') : tr('sys.cognition.belief.accepted'),
+          );
         }
         break;
       }
@@ -359,7 +376,13 @@ export function observe(
       );
   }
   if (isAccepted(b.state) && !isAccepted(from) && subject === 'player')
-    adjustRelation(ctx, observer, subject, { trust: 3 }, `承认了${who}的本事`);
+    adjustRelation(
+      ctx,
+      observer,
+      subject,
+      { trust: 3 },
+      tr('sys.cognition.reason.acknowledged', { who }),
+    );
 
   b.identity = identityFor(ctx, b);
   const trust = relationOf(ctx.world.slices.npc, observer, subject).trust / 100;
@@ -376,7 +399,11 @@ export function observe(
       from,
       to: b.state,
       explanation: b.explanation,
-      reason: `${STATE_NAMES[from]}到${STATE_NAMES[b.state]}：${input.what}`,
+      reason: tr('sys.cognition.belief.reason', {
+        from: stateName(from),
+        to: stateName(b.state),
+        what: input.what,
+      }),
     });
   }
   return { from, to: b.state, adopted, refuted, over, credited, belief: b };
@@ -423,14 +450,14 @@ export function regressBeliefs(ctx: SystemContext): void {
       else if (b.state === 'explaining') b.state = 'doubt';
       else continue;
       b.lastFeatTick = ctx.tick;
-      pushLog(ctx, b, '那次可能真是运气');
+      pushLog(ctx, b, tr('sys.cognition.belief.regress'));
       ctx.emit('cognition.belief_changed', {
         observerId: observer,
         subjectId: subject,
         from,
         to: b.state,
         explanation: b.explanation,
-        reason: '很久没见到新的事迹，看法回落',
+        reason: tr('sys.cognition.belief.regress_reason'),
       });
     }
   }

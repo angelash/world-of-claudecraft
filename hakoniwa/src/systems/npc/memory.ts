@@ -3,12 +3,13 @@
 // important and the recent and folds the rest into a one-line digest.
 
 import type { SystemContext } from '../../core/system';
+import { clipText, joinText, type KeyText, type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { DIGEST_CAP, MEMORY_CAP, MEMORY_KEEP_IMPORTANT, MEMORY_KEEP_RECENT } from './constants';
 import type { MemoryEntry, MemorySource, Mind } from './types';
 
 export interface MemoryInput {
-  text: string;
+  text: TextParam;
   src: MemorySource;
   cred?: number;
   about?: string;
@@ -30,7 +31,7 @@ export function addMemory(ctx: SystemContext, npcId: string, input: MemoryInput)
   pushMemory(mind, {
     tick: ctx.tick,
     day: calendarAt(ctx.tick).dayIndex,
-    text: input.text.slice(0, 120),
+    text: clipText(input.text, 120),
     src: input.src,
     cred: Math.max(0, Math.min(1, input.cred ?? DEFAULT_CRED[input.src])),
     about: input.about,
@@ -53,12 +54,19 @@ export function pushMemory(mind: Mind, entry: MemoryEntry): void {
   mind.folded += 1;
 }
 
-const SRC_NAME: Record<MemorySource, string> = {
-  seen: '亲见',
-  heard: '听说',
-  inferred: '推测',
-  self: '自己',
-};
+/** Display name of a memory source (a fresh TextRef each call: it ends up in world state). */
+function srcName(src: MemorySource): KeyText {
+  switch (src) {
+    case 'seen':
+      return tr('sys.npc.memory.src.seen');
+    case 'heard':
+      return tr('sys.npc.memory.src.heard');
+    case 'inferred':
+      return tr('sys.npc.memory.src.inferred');
+    default:
+      return tr('sys.npc.memory.src.self');
+  }
+}
 
 /**
  * Daily consolidation: keep the most important entries and the most recent ones, fold
@@ -76,30 +84,36 @@ export function consolidateMemory(mind: Mind, day: number): void {
   if (dropped.length === 0) return;
   const bySrc: Partial<Record<MemorySource, number>> = {};
   for (const m of dropped) bySrc[m.src] = (bySrc[m.src] ?? 0) + 1;
-  const parts = (Object.keys(bySrc) as MemorySource[]).map((s) => `${SRC_NAME[s]} ${bySrc[s]} 条`);
+  const parts = (Object.keys(bySrc) as MemorySource[]).map((s) =>
+    tr('sys.npc.memory.digest_part', { src: srcName(s), n: bySrc[s] as number }),
+  );
   mind.digest.push(
-    `第 ${day} 日前的琐事 ${dropped.length} 条（${parts.join('，')}），省略不等于没发生`,
+    tr('sys.npc.memory.digest', {
+      day,
+      count: dropped.length,
+      parts: joinText('comma', parts),
+    }),
   );
   if (mind.digest.length > DIGEST_CAP) mind.digest.splice(0, mind.digest.length - DIGEST_CAP);
   mind.folded += dropped.length;
   mind.mem = mind.mem.filter((m) => keep.has(m) || recent.has(m));
 }
 
-/** Human-readable time like "998 年春 第 3 日 08:40". */
-export function timeLabel(tick: number): string {
-  const c = calendarAt(tick);
-  const season = ['春', '夏', '秋', '冬'][c.season] ?? '春';
-  const hh = String(c.hour).padStart(2, '0');
-  const mm = String(c.minute).padStart(2, '0');
-  return `${c.year} 年${season} 第 ${c.day} 日 ${hh}:${mm}`;
+/** Human-readable time (year, season, day, hh:mm), rendered from the tick by the client. */
+export function timeLabel(tick: number): KeyText {
+  return tr('sys.npc.time.at', { tick });
 }
 
 /** Recent memories as prompt or UI lines, newest last, optionally about one subject. */
-export function memoryLines(mind: Mind | undefined, limit = 6, about?: string): string[] {
+export function memoryLines(mind: Mind | undefined, limit = 6, about?: string): KeyText[] {
   if (!mind) return [];
   const list = about ? mind.mem.filter((m) => m.about === about) : mind.mem;
-  return list.slice(-limit).map((m) => {
-    const credNote = m.src === 'heard' && m.cred < 0.5 ? '，不太可信' : '';
-    return `${timeLabel(m.tick)}（${SRC_NAME[m.src]}${credNote}）${m.text}`;
-  });
+  return list.slice(-limit).map((m) =>
+    tr('sys.npc.memory.line', {
+      time: timeLabel(m.tick),
+      src: srcName(m.src),
+      cred: m.src === 'heard' && m.cred < 0.5 ? tr('sys.npc.memory.low_cred') : '',
+      text: m.text,
+    }),
+  );
 }

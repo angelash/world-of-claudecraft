@@ -5,6 +5,7 @@
 // for passes straight on to `next`. See docs/40_design/systems/quests_and_events.md
 // and docs/30_story/arcs/prologue_antechamber.md 7 (the no-model dialogue tree).
 
+import type { TextParam } from '../../core/text';
 import type { Effect, LineKind } from '../quests/effect_types';
 
 export interface SceneLine {
@@ -204,8 +205,8 @@ export type SceneWait = 'advance' | 'choice' | 'input' | 'resolve' | 'court';
 /** A line as shown (speaker name already resolved). */
 export interface ShownLine {
   speakerId: string;
-  speakerName: string;
-  text: string;
+  speakerName: TextParam;
+  text: TextParam;
   kind: LineKind;
 }
 
@@ -245,5 +246,5 @@ export interface ScenesSlice {
   seen: string[];
   court: CourtState;
   /** last epilogue assembled, for the client's credits view */
-  epilogue: { subject: string; year: number; text: string; layer: EpilogueLayer }[];
+  epilogue: { subject: string; year: number; text: TextParam; layer: EpilogueLayer }[];
 }

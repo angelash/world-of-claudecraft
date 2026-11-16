@@ -4,6 +4,7 @@
 
 import { ok, reject, systemSource } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt, DT } from '../../core/time';
 import { findPath, isWalkable, nearestWalkable } from './grid';
 import type {
@@ -44,7 +45,7 @@ declare module '../../core/contracts' {
     'world.entity_spawned': { id: string; kind: EntityKind; ref?: string; mapId: string };
     'world.entity_removed': { id: string; kind: EntityKind; ref?: string };
     'world.arrived': { id: string; x: number; y: number };
-    'world.move_failed': { id: string; reason: string };
+    'world.move_failed': { id: string; reason: TextParam };
     'world.map_changed': { id: string; from: string; to: string };
     'world.hour': { hour: number; dayIndex: number };
     'world.day': { dayIndex: number; season: number; year: number };
@@ -378,35 +379,38 @@ export const system: GameSystem = {
   commands: {
     'world.move_to'(ctx, d) {
       const e = ctx.world.slices.world.entities[d.entityId];
-      if (!e) return reject('no_entity', '找不到这个对象');
-      if (d.mapId && d.mapId !== e.mapId) return reject('wrong_map', '目标不在当前地图');
-      return orderMove(ctx, d.entityId, d.x, d.y) ? ok() : reject('unreachable', '那里走不过去');
+      if (!e) return reject('no_entity', tr('sys.world.reject.no_entity'));
+      if (d.mapId && d.mapId !== e.mapId)
+        return reject('wrong_map', tr('sys.world.reject.wrong_map'));
+      return orderMove(ctx, d.entityId, d.x, d.y)
+        ? ok()
+        : reject('unreachable', tr('sys.world.reject.unreachable'));
     },
     'world.set_intent'(ctx, d) {
       const e = ctx.world.slices.world.entities[d.entityId];
-      if (!e) return reject('no_entity', '找不到这个对象');
+      if (!e) return reject('no_entity', tr('sys.world.reject.no_entity'));
       e.move = null;
       e.intent = { dx: d.dx, dy: d.dy };
       return ok();
     },
     'world.stop'(ctx, d) {
       const e = ctx.world.slices.world.entities[d.entityId];
-      if (!e) return reject('no_entity', '找不到这个对象');
+      if (!e) return reject('no_entity', tr('sys.world.reject.no_entity'));
       e.move = null;
       e.intent = null;
       return ok();
     },
     'world.use_exit'(ctx, d) {
       const e = ctx.world.slices.world.entities[d.entityId];
-      if (!e) return reject('no_entity', '找不到这个对象');
+      if (!e) return reject('no_entity', tr('sys.world.reject.no_entity'));
       const map = mapById(ctx.content, e.mapId);
       const exit = map?.exits.find((x) => x.id === d.exitId);
-      if (!exit) return reject('no_exit', '这里没有出口');
+      if (!exit) return reject('no_exit', tr('sys.world.reject.no_exit'));
       if (Math.hypot(exit.x + 0.5 - e.x, exit.y + 0.5 - e.y) > 1.8) {
-        return reject('too_far', '离出口太远');
+        return reject('too_far', tr('sys.world.reject.too_far'));
       }
       if (exit.requiresFlags?.some((f) => !ctx.flag(f))) {
-        return reject('locked', '现在还不能从这里离开');
+        return reject('locked', tr('sys.world.reject.locked'));
       }
       const target = mapById(ctx.content, exit.toMap);
       const arrival = exit.toLocation
@@ -416,12 +420,12 @@ export const system: GameSystem = {
       const ty = arrival ? arrival.y + arrival.h / 2 : exit.toY;
       return teleportEntity(ctx, e.id, exit.toMap, tx, ty)
         ? ok()
-        : reject('bad_exit', '出口通向的地方不存在');
+        : reject('bad_exit', tr('sys.world.reject.bad_exit'));
     },
     'world.teleport'(ctx, d) {
       return teleportEntity(ctx, d.entityId, d.mapId, d.x, d.y)
         ? ok()
-        : reject('bad_target', '无法传送到那里');
+        : reject('bad_target', tr('sys.world.reject.bad_target'));
     },
   },
 };

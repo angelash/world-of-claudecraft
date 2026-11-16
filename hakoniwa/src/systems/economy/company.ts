@@ -6,12 +6,12 @@
 import { ok, reject } from '../../core';
 import type { CommandResult } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY } from '../../core/time';
 import {
   addItem,
   addMoney,
   countItem,
-  formatMoney,
   holdingOf,
   itemDef,
   removeItem,
@@ -64,12 +64,15 @@ export function companyOwner(config: EconomyConfig): string {
 export function canFoundCompany(ctx: SystemContext): CommandResult {
   const config = ctx.content.economy_config;
   const c = ctx.world.slices.economy.company;
-  if (c.founded) return reject('already', '门扉商会已经成立了');
+  if (c.founded) return reject('already', tr('sys.economy.reject.already'));
   const missing = config.company.requiresFlags?.find((f) => !ctx.flag(f));
-  if (missing) return reject('not_yet', '时机还没到，奈拉还在观望');
+  if (missing) return reject('not_yet', tr('sys.economy.reject.not_yet'));
   const player = ctx.world.slices.world.playerId;
   if (holdingOf(ctx.world, player).money < config.company.foundCost) {
-    return reject('no_money', `合伙需要出资 ${formatMoney(config.company.foundCost)}`);
+    return reject(
+      'no_money',
+      tr('sys.economy.reject.no_money.found', { cost: config.company.foundCost }),
+    );
   }
   return ok();
 }
@@ -109,28 +112,32 @@ export function foundCompany(ctx: SystemContext): CommandResult {
       mapId: p.mapId,
       x: p.x,
       y: p.y,
-      note: `与奈拉合伙创立${config.company.name}`,
+      note: tr('sys.economy.feat.company_founded', { company: config.company.name }),
     });
   }
-  return ok(`${config.company.name}成立了`);
+  return ok(tr('sys.economy.info.company_founded', { company: config.company.name }));
 }
 
 export function requireCompany(ctx: SystemContext): CommandResult | null {
-  return ctx.world.slices.economy.company.founded ? null : reject('no_company', '还没有成立商会');
+  return ctx.world.slices.economy.company.founded
+    ? null
+    : reject('no_company', tr('sys.economy.reject.no_company'));
 }
 
 export function companyFunds(ctx: SystemContext, amount: number): CommandResult {
   const need = requireCompany(ctx);
   if (need) return need;
-  if (!Number.isInteger(amount) || amount === 0) return reject('bad_amount', '金额不对');
+  if (!Number.isInteger(amount) || amount === 0)
+    return reject('bad_amount', tr('sys.economy.reject.bad_amount'));
   const owner = companyOwner(ctx.content.economy_config);
   const player = ctx.world.slices.world.playerId;
   if (amount > 0) {
-    if (!spendMoney(ctx, player, amount, 'company_deposit')) return reject('no_money', '钱不够');
+    if (!spendMoney(ctx, player, amount, 'company_deposit'))
+      return reject('no_money', tr('sys.economy.reject.no_money.short'));
     addMoney(ctx, owner, amount, 'company_deposit');
   } else {
     if (!spendMoney(ctx, owner, -amount, 'company_withdraw')) {
-      return reject('no_funds', '商会账上没有这么多钱');
+      return reject('no_funds', tr('sys.economy.reject.no_funds.withdraw'));
     }
     addMoney(ctx, player, -amount, 'company_withdraw');
   }
@@ -146,11 +153,13 @@ export function companyTransfer(
 ): CommandResult {
   const need = requireCompany(ctx);
   if (need) return need;
-  if (!Number.isInteger(qty) || qty <= 0) return reject('bad_qty', '数量不对');
+  if (!Number.isInteger(qty) || qty <= 0)
+    return reject('bad_qty', tr('sys.economy.reject.bad_qty.count'));
   const owner = companyOwner(ctx.content.economy_config);
   const player = ctx.world.slices.world.playerId;
   const [from, dest] = to === 'company' ? [player, owner] : [owner, player];
-  if (!removeItem(ctx, from, itemId, qty, 'company_transfer')) return reject('missing', '数量不够');
+  if (!removeItem(ctx, from, itemId, qty, 'company_transfer'))
+    return reject('missing', tr('sys.economy.reject.missing.count'));
   addItem(ctx, dest, itemId, qty, 'company_transfer');
   return ok();
 }
@@ -188,16 +197,19 @@ export function startProduction(ctx: SystemContext, recipeId: string, runs: numb
   if (need) return need;
   const config = ctx.content.economy_config;
   const recipe = ctx.content.trade_recipes.find((r) => r.id === recipeId);
-  if (!recipe) return reject('no_recipe', '没有这个配方');
-  if (!recipeUnlocked(ctx, recipe)) return reject('locked', `还不会做${recipe.name}`);
-  if (!Number.isInteger(runs) || runs <= 0 || runs > 20) return reject('bad_runs', '批次数不对');
+  if (!recipe) return reject('no_recipe', tr('sys.economy.reject.no_recipe'));
+  if (!recipeUnlocked(ctx, recipe))
+    return reject('locked', tr('sys.economy.reject.locked', { recipe: recipe.name }));
+  if (!Number.isInteger(runs) || runs <= 0 || runs > 20)
+    return reject('bad_runs', tr('sys.economy.reject.bad_runs'));
   const c = ctx.world.slices.economy.company;
-  if (c.jobs.length >= config.company.maxQueue) return reject('queue_full', '作坊的活已经排满了');
+  if (c.jobs.length >= config.company.maxQueue)
+    return reject('queue_full', tr('sys.economy.reject.queue_full'));
   const owner = companyOwner(config);
   for (const [itemId, n] of Object.entries(recipe.inputs)) {
     if (countItem(ctx.world, owner, itemId) < n * runs) {
       const name = itemDef(ctx.content, itemId)?.name ?? itemId;
-      return reject('no_input', `商会仓里的${name}不够（需要 ${n * runs}）`);
+      return reject('no_input', tr('sys.economy.reject.no_input', { item: name, n: n * runs }));
     }
   }
   for (const [itemId, n] of Object.entries(recipe.inputs)) {
@@ -267,28 +279,30 @@ export function sendCaravan(
   if (need) return need;
   const config = ctx.content.economy_config;
   const route = routeBetween(ctx.content.trade_routes, from, to);
-  if (!route) return reject('no_route', '这两地之间没有商路');
+  if (!route) return reject('no_route', tr('sys.economy.reject.no_route'));
   const c = ctx.world.slices.economy.company;
   if (c.caravans.filter((k) => k.status === 'travel').length >= config.company.maxCaravans) {
-    return reject('too_many', '商队都在路上了');
+    return reject('too_many', tr('sys.economy.reject.too_many'));
   }
   if (!Number.isInteger(guards) || guards < 0 || guards > 30)
-    return reject('bad_guards', '护卫人数不对');
+    return reject('bad_guards', tr('sys.economy.reject.bad_guards'));
   const owner = companyOwner(config);
   let units = 0;
   let basis = 0;
   for (const [itemId, n] of Object.entries(cargo)) {
-    if (!Number.isInteger(n) || n <= 0) return reject('bad_qty', '货物数量不对');
-    if (!itemDef(ctx.content, itemId)) return reject('no_item', '没有这种货物');
-    if (countItem(ctx.world, owner, itemId) < n) return reject('missing', '商会仓里的货不够');
+    if (!Number.isInteger(n) || n <= 0)
+      return reject('bad_qty', tr('sys.economy.reject.bad_qty.cargo'));
+    if (!itemDef(ctx.content, itemId)) return reject('no_item', tr('sys.economy.reject.no_item'));
+    if (countItem(ctx.world, owner, itemId) < n)
+      return reject('missing', tr('sys.economy.reject.missing.cargo'));
     units += n;
     basis += quote(ctx.world, ctx.content, from, itemId, 'buy', n)?.total ?? 0;
   }
-  if (units === 0) return reject('empty', '商队没有装货');
+  if (units === 0) return reject('empty', tr('sys.economy.reject.empty'));
   const carts = Math.ceil(units / config.company.cartCapacity);
   const cost = caravanCost(config, route, carts, guards);
   if (!spendMoney(ctx, owner, cost, 'caravan_cost')) {
-    return reject('no_funds', `商会账上的钱不够付车马与护卫（${formatMoney(cost)}）`);
+    return reject('no_funds', tr('sys.economy.reject.no_funds.caravan', { cost }));
   }
   for (const [itemId, n] of Object.entries(cargo))
     removeItem(ctx, owner, itemId, n, 'caravan_load');

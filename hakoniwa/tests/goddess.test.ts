@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { Engine, ok } from '../src/core';
 import type { GameSystem, SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
 import { tickAtDay } from '../src/core/time';
+import { renderTextDeep, t } from '../src/shared_ui/i18n';
 import {
   divineRecord,
   type GoddessActCommand,
   goddessContext,
   goddessView,
   honorificsIn,
+  planSituation,
 } from '../src/systems/goddess';
 import { addItem, countItem } from '../src/systems/inventory';
 import { activeModifiers } from '../src/systems/modifiers';
@@ -138,7 +141,9 @@ describe('goddess arbiter', () => {
     expect(code(act(g, { goddessId: 'merca', action: 'blessing' }))).toBe('no_token');
     expect(code(act(g, { goddessId: 'eluen', action: 'blessing' }))).toBe('no_token');
     const res = act(g, { goddessId: 'eluen', action: 'price' });
-    expect(res?.kind === 'command.result' && res.data.reason).toBe('这不在她的神权之内');
+    expect(res?.kind === 'command.result' && res.data.reason).toEqual(
+      tr('sys.goddess.reject.not_on_menu'),
+    );
   });
 
   it('drops stale model proposals by revision', () => {
@@ -259,7 +264,7 @@ describe('planning, sight and wake-ups', () => {
     expect(plans.map((r) => r.agentId).sort()).toEqual(['eluen', 'merca', 'moira', 'sylvie']);
     for (const r of plans) {
       expect(r.allowed).toContain('goddess.act');
-      expect(scanForLeaks(r.context, g.world, g.content), r.agentId).toEqual([]);
+      expect(scanForLeaks(renderTextDeep(r.context), g.world, g.content), r.agentId).toEqual([]);
     }
   });
 
@@ -355,6 +360,10 @@ describe('offerings, revelations and views', () => {
       .reverse()
       .find((e) => e.kind === 'command.result' && e.data.kind === 'goddess.offer');
     expect(noCoin?.kind === 'command.result' && noCoin.data.code).toBe('no_coin');
+    // the reason names the offering goddess from her card and renders as it always read
+    const reason = noCoin?.kind === 'command.result' ? noCoin.data.reason : undefined;
+    expect(reason).toEqual(tr('sys.goddess.reject.no_coin', { goddess: '梅尔卡' }));
+    expect(t(reason)).toBe('没有梅尔卡的硬币，联系不上她');
     g.queue('probe.give', { item: 'merca_coin' });
     g.queue('flag.set', { key: 'p_coin_terms', value: 'interest_free' });
     g.queue('goddess.offer', { itemId: 'relic_receipt', want: 'blessing' });
@@ -367,6 +376,15 @@ describe('offerings, revelations and views', () => {
     g.queue('goddess.offer', { itemId: 'raven_black_feather', want: 'intel' });
     g.step(1);
     expect(g.world.meta.flags['intel.merca.salt_hoard']).toBe(true);
+    const notes = g.world.slices.goddess.ledger
+      .filter((e) => e.action === 'offering')
+      .map((e) => e.note);
+    expect(notes).toEqual([
+      tr('sys.goddess.note.offering_blessing', { goddess: '梅尔卡' }),
+      tr('sys.goddess.note.offering_intel', { goddess: '梅尔卡' }),
+    ]);
+    const blessing = activeModifiers(g.world, 'xp', 'player').find((m) => m.source === 'merca');
+    expect(t(blessing?.note)).toBe('梅尔卡的附物加护（硬币）');
   });
 
   it('lands revelations: rules first, then the steles, then every goddess reads them', () => {
@@ -379,7 +397,7 @@ describe('offerings, revelations and views', () => {
     );
     expect(
       g.world.recent.some(
-        (e) => e.kind === 'dialogue.line' && e.data.text.includes('荒原之澱满。'),
+        (e) => e.kind === 'dialogue.line' && t(e.data.text).includes('荒原之澱满。'),
       ),
     ).toBe(true);
     g.step(1);
@@ -410,7 +428,7 @@ describe('offerings, revelations and views', () => {
     const g = game('off');
     const v = goddessView(g.world, g.content);
     expect(v.map((x) => x.id)).not.toContain('janu');
-    expect(v.find((x) => x.id === 'eluen')?.gazeBand).toBe('不知其存在或只当传闻');
+    expect(v.find((x) => x.id === 'eluen')?.gazeBand).toEqual(tr('sys.goddess.gaze.unknown'));
     g.queue('flag.set', { key: 'a1_dream_door_woman', value: true });
     g.step(1);
     const janu = goddessView(g.world, g.content).find((x) => x.id === 'janu');
@@ -434,7 +452,9 @@ describe('reveal ledger in prompts', () => {
         // Janu is never asked before her first dream (planning.ts dailyPlans)
         if (!s || (def.id === 'janu' && !world.meta.flags.a1_dream_door_woman)) continue;
         const context = goddessContext(ctx, def, s, '测试');
-        expect(scanForLeaks(context, world, g.content), `${act} ${def.id}`).toEqual([]);
+        expect(scanForLeaks(renderTextDeep(context), world, g.content), `${act} ${def.id}`).toEqual(
+          [],
+        );
       }
       checked.push(act);
     };
@@ -454,5 +474,56 @@ describe('reveal ledger in prompts', () => {
       'act6',
       'epilogue',
     ]);
+  });
+});
+
+describe('goddess text keys', () => {
+  it('renders the planning situation and the command help as the old prompt text', () => {
+    const g = game('off');
+    const def = g.content.goddesses.find((d) => d.id === 'eluen');
+    const s = g.world.slices.goddess.goddesses.eluen;
+    if (!def || !s) throw new Error('eluen missing');
+    const ctx = {
+      world: g.world,
+      content: g.content,
+      tick: g.tick,
+      flag: (k: string) => g.world.meta.flags[k],
+    } as unknown as SystemContext;
+    const text = t(planSituation(ctx, def, s));
+    expect(text.startsWith(`圣历 998 年春第 1 日。你的神力 ${Math.round(s.power)}。`)).toBe(true);
+    expect(text).toContain('你对那个人几乎一无所知，只当传闻；你对那个人的态度：平淡。');
+    const help = renderTextDeep(goddessContext(ctx, def, s, '测试').commands) as Record<
+      string,
+      string
+    >;
+    expect(help['goddess.say']).toBe(
+      "数据 {goddessId:'eluen', text, revision}：以你的口吻说一句话。",
+    );
+    expect(
+      help['goddess.act']?.startsWith("数据 {goddessId:'eluen', action, revision, params"),
+    ).toBe(true);
+  });
+
+  it('flags the hidden goddess name spoken before it is revealed, from her card', () => {
+    const say: GameSystem = {
+      id: 'zz_say_name',
+      order: 998,
+      commands: {
+        'probe.give'(ctx, d) {
+          ctx.emit('player.said', { text: d.item, mapId: 'divine_court' });
+          return ok();
+        },
+      },
+    };
+    const g = Engine.create(5, narrativeContent(), [...NARRATIVE_SYSTEMS, say], { aiMode: 'off' });
+    g.queue('flag.set', { key: 'act', value: 'act1' });
+    g.queue('probe.give', { item: '那扇门后的人叫雅努吗' });
+    g.step(2);
+    expect(g.world.meta.flags['player.spoke_forbidden_name']).toBe(true);
+    const g2 = Engine.create(5, narrativeContent(), [...NARRATIVE_SYSTEMS, say], { aiMode: 'off' });
+    g2.queue('flag.set', { key: 'a6_name_spoken', value: true });
+    g2.queue('probe.give', { item: '雅努' });
+    g2.step(2);
+    expect(g2.world.meta.flags['player.spoke_forbidden_name']).toBeUndefined();
   });
 });

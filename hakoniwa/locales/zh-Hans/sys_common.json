@@ -1,0 +1,22 @@
+{
+  "sys.common.join.none": "",
+  "sys.common.join.comma": "，",
+  "sys.common.join.list": "、",
+  "sys.common.join.semicolon": "；",
+  "sys.common.join.space": " ",
+  "sys.common.join.newline": "\n",
+  "sys.common.money.gold": "{n} 金",
+  "sys.common.money.silver": "{n} 银",
+  "sys.common.money.copper": "{n} 铜",
+  "sys.common.money.sep": " ",
+  "sys.common.season.0": "春",
+  "sys.common.season.1": "夏",
+  "sys.common.season.2": "秋",
+  "sys.common.season.3": "冬",
+  "sys.common.date.default": "圣历 {year} 年 {season} 第 {day} 日",
+  "sys.common.date.short": "{season} {day} 日 {hh}:{mm}",
+  "sys.common.duration.days": "{n} 天",
+  "sys.common.duration.hours": "{n} 小时",
+  "sys.common.duration.sep": " ",
+  "sys.common.clip": "{text}"
+}

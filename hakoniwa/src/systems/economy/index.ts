@@ -5,8 +5,9 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
-import { addMoney, formatMoney } from '../inventory';
+import { addMoney } from '../inventory';
 import { getEntity } from '../world';
 import {
   canFoundCompany,
@@ -34,11 +35,11 @@ export * from './types';
 
 const SYSTEM = 'economy';
 
-function say(ctx: SystemContext, npcId: string, text: string): void {
+function say(ctx: SystemContext, npcId: string, text: TextParam): void {
   const npc = getEntity(ctx.world, npcId);
   ctx.emit('dialogue.line', {
     speakerId: npcId,
-    speakerName: npc?.name ?? '商人',
+    speakerName: npc?.name ?? tr('sys.economy.name.merchant'),
     text,
     listenerId: ctx.world.slices.world.playerId,
     kind: 'say',
@@ -97,10 +98,14 @@ export const system: GameSystem = {
     'player.talked'(ctx, e) {
       const npc = getEntity(ctx.world, e.data.npcId);
       const ref = e.data.npcRef ?? npc?.ref;
-      const options: { id: string; label: string; hint?: string }[] = [];
+      const options: { id: string; label: TextParam; hint?: TextParam }[] = [];
       const market = merchantMarket(ctx, npc, ref);
       if (market && isMarketOpen(ctx.world, market)) {
-        options.push({ id: 'trade', label: '交易', hint: `${market.name}的行情` });
+        options.push({
+          id: 'trade',
+          label: tr('sys.economy.option.trade'),
+          hint: tr('sys.economy.option.trade_hint', { market: market.name }),
+        });
       }
       const config = ctx.content.economy_config;
       if (ref === config.company.partnerNpc) {
@@ -108,12 +113,14 @@ export const system: GameSystem = {
           if (!config.company.requiresFlags?.some((f) => !ctx.flag(f))) {
             options.push({
               id: 'found_company',
-              label: '合伙创立商会',
-              hint: `出资 ${formatMoney(config.company.foundCost)}`,
+              label: tr('sys.economy.option.found_company'),
+              hint: tr('sys.economy.option.found_company_hint', {
+                cost: config.company.foundCost,
+              }),
             });
           }
         } else {
-          options.push({ id: 'company_status', label: '商会近况' });
+          options.push({ id: 'company_status', label: tr('sys.economy.option.company_status') });
         }
       }
       if (options.length > 0) {
@@ -129,18 +136,22 @@ export const system: GameSystem = {
       } else if (e.data.optionId === 'found_company') {
         const check = canFoundCompany(ctx);
         if (!check.ok) {
-          say(ctx, npcId, `现在还不行：${check.reason}。`);
+          say(ctx, npcId, tr('sys.economy.say.not_yet', { reason: check.reason }));
           return;
         }
         foundCompany(ctx);
-        say(ctx, npcId, '那就说定了。账我来记，货你来想办法，门扉商会今天开张。');
+        say(ctx, npcId, tr('sys.economy.say.founded'));
       } else if (e.data.optionId === 'company_status') {
         const c = ctx.world.slices.economy.company;
         const travelling = c.caravans.filter((k) => k.status === 'travel').length;
         say(
           ctx,
           npcId,
-          `账上累计进项 ${formatMoney(c.revenue)}，路上有 ${travelling} 支商队，作坊排着 ${c.jobs.length} 批活。`,
+          tr('sys.economy.say.company_status', {
+            revenue: c.revenue,
+            caravans: travelling,
+            jobs: c.jobs.length,
+          }),
         );
       }
     },
@@ -154,7 +165,8 @@ export const system: GameSystem = {
       return tradeCommand(ctx, 'sell', d.itemId, d.qty, d.ownerId);
     },
     'economy.close_trade'(ctx) {
-      if (!ctx.world.slices.economy.session) return reject('no_session', '现在没有在交易');
+      if (!ctx.world.slices.economy.session)
+        return reject('no_session', tr('sys.economy.reject.no_session.close'));
       closeTrade(ctx);
       return ok();
     },

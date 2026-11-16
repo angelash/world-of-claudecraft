@@ -1,0 +1,11 @@
+{
+  "sys.party.order.follow": "跟随",
+  "sys.party.order.assist": "协助",
+  "sys.party.order.passive": "被动",
+  "sys.party.order.stay": "原地",
+  "sys.party.reject.bad_order": "没有这种命令",
+  "sys.party.reject.no_companion": "队伍里没有这位同伴",
+  "sys.party.reject.no_item": "没有这件物品",
+  "sys.party.reject.not_giftable": "这件东西不能送人",
+  "sys.party.reject.missing": "背包里没有它"
+}

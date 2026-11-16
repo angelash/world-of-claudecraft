@@ -6,6 +6,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import type { RngState } from '../../core/rng';
+import type { TextParam } from '../../core/text';
 
 export type DamageType = 'slash' | 'pierce' | 'blunt' | 'missile' | 'magic' | 'holy' | 'siege';
 export type ArmorType = 'none' | 'light' | 'medium' | 'heavy' | 'monster' | 'building' | 'spirit';
@@ -82,6 +83,9 @@ export interface UnitTypeDef {
   /** traits: night, forest, undead, flying, never_rout, anti_monster, ... */
   tags?: string[];
 }
+
+/** A unit as the kernel sees it: a content type, or a built-in stand-in named by a TextRef. */
+export type KernelUnit = Omit<UnitTypeDef, 'name'> & { name: TextParam };
 
 export type HeroAbilityKind = 'charge' | 'inspire' | 'aoe' | 'rally' | 'strike';
 
@@ -166,7 +170,8 @@ export interface ObjectiveSpec {
   /** whose objective it is */
   team: Team;
   kind: ObjectiveKind;
-  label: string;
+  /** display label: content text for scenarios, a TextRef for generated field battles */
+  label: TextParam;
   /** hold: the zone; seconds: hold or survive duration */
   zone?: Rect;
   seconds?: number;
@@ -186,7 +191,8 @@ export interface ReinforcementSpec {
 
 /** Everything the kernel needs to run a battle; scenarios and generated fields share it. */
 export interface BattleSetup {
-  name: string;
+  /** display name: content text for scenarios, a TextRef for generated field battles */
+  name: TextParam;
   width: number;
   height: number;
   rows: string[];
@@ -201,6 +207,7 @@ export interface BattleSetup {
 }
 
 export interface BattleScenarioDef extends BattleSetup {
+  name: string;
   id: string;
   /** squad, company, legion, coalition (D-045) */
   scale: 'squad' | 'company' | 'legion' | 'coalition';
@@ -224,7 +231,8 @@ export interface RegimentState {
   typeId: string;
   team: Team;
   controller: 'player' | 'ai';
-  name: string;
+  /** display name: the spec or unit type name (content), or a TextRef for built-in units */
+  name: TextParam;
   count: number;
   maxCount: number;
   x: number;
@@ -290,13 +298,13 @@ export type PlanId = 'advance' | 'flank' | 'breakthrough' | 'hold' | 'protect' |
 
 export interface BattleLogEntry {
   t: number;
-  text: string;
+  text: TextParam;
 }
 
 export interface BattleState {
   id: string;
   scenarioId: string;
-  name: string;
+  name: TextParam;
   /** battle seconds elapsed */
   time: number;
   step: number;
@@ -317,7 +325,7 @@ export interface BattleState {
   revision: number;
   mode: 'manual' | 'auto';
   log: BattleLogEntry[];
-  outcome: { victor: Victor; reason: string } | null;
+  outcome: { victor: Victor; reason: TextParam } | null;
   zones?: { id: string; name: string; rect: Rect }[];
   /** additive morale baseline per team from registered morale modifiers */
   moraleBonus?: Partial<Record<Team, number>>;
@@ -338,7 +346,7 @@ export interface BattleResultRecord {
   battleId: string;
   scenarioId: string;
   victor: Victor;
-  reason: string;
+  reason: TextParam;
   seconds: number;
   tick: number;
   casualties: Record<Team, number>;
@@ -372,7 +380,7 @@ export interface AutoResolveInput {
 
 export interface AutoResolveResult {
   victor: Victor;
-  reason: string;
+  reason: TextParam;
   seconds: number;
   teams: Record<
     Team,
@@ -406,7 +414,7 @@ declare module '../../core/contracts' {
       battleId: string;
       scenario: string;
       victor: Victor;
-      reason: string;
+      reason: TextParam;
       seconds: number;
       casualties: Record<Team, number>;
       regiments: { id: string; typeId: string; team: Team; start: number; end: number }[];

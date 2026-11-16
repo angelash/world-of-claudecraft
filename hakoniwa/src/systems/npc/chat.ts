@@ -6,6 +6,7 @@
 import { systemSource } from '../../core';
 import type { AnyCommand } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { pickLine } from '../dialogue/templates';
 import { currentWeather, getEntity } from '../world';
@@ -87,25 +88,31 @@ export function converse(ctx: SystemContext, a: NpcState, b: NpcState, loc: Loca
     a.id,
     b.id,
     sour ? { like: -2 } : { like: 1, trust: 0.5 },
-    sour ? '拌嘴' : '闲聊',
+    sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
   );
   adjustRelation(
     ctx,
     b.id,
     a.id,
     sour ? { like: -2 } : { like: 1, trust: 0.5 },
-    sour ? '拌嘴' : '闲聊',
+    sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
   );
   pushTrack(a, hour, knewA ? kind : 'meet', loc.id, cardB.name);
   pushTrack(b, hour, knewB ? kind : 'meet', loc.id, cardA.name);
   addMemory(ctx, a.id, {
-    text: `在${loc.name}和${cardB.name}${sour ? '拌了几句嘴' : '聊了几句'}`,
+    text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
+      place: loc.name,
+      other: cardB.name,
+    }),
     src: 'self',
     about: b.id,
     imp: sour ? 0.35 : 0.12,
   });
   addMemory(ctx, b.id, {
-    text: `在${loc.name}和${cardA.name}${sour ? '拌了几句嘴' : '聊了几句'}`,
+    text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
+      place: loc.name,
+      other: cardA.name,
+    }),
     src: 'self',
     about: a.id,
     imp: sour ? 0.35 : 0.12,
@@ -158,11 +165,17 @@ function speak(ctx: SystemContext, a: NpcState, b: NpcState, loc: LocationDef, s
         pa,
         slice.minds[a.id],
         (k) => ctx.flag(k),
-        `你在${loc.name}遇到了${cardB.name}，你们闲聊。你对${cardB.name}的感觉：${relationBand(
-          relationOf(slice, a.id, b.id),
-        )}。说一句符合你口吻的话，只是闲聊。`,
+        tr('sys.npc.prompt.chat_situation', {
+          place: loc.name,
+          other: cardB.name,
+          band: relationBand(relationOf(slice, a.id, b.id)),
+        }),
         {
-          'npc.say': `说一句话。数据：{ npcId: "${a.id}", toId: "${b.id}", text, revision: ${a.sayRev} }。text 为 40 字以内的中文台词；嘴上说的事不会自动发生，不要承诺给东西。`,
+          'npc.say': tr('sys.npc.prompt.chat_command', {
+            npcId: a.id,
+            toId: b.id,
+            rev: a.sayRev,
+          }),
         },
         { suggested: text },
       ),

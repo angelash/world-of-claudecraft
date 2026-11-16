@@ -9,6 +9,7 @@ import { type AiMode, Engine, ok } from '../src/core';
 import type { ContentMap, FlagValue } from '../src/core/contracts';
 import type { GameSystem, SystemContext } from '../src/core/system';
 import { TICKS_PER_GAME_HOUR } from '../src/core/time';
+import { t } from '../src/shared_ui/i18n';
 import { system as director } from '../src/systems/director';
 import { system as goddess } from '../src/systems/goddess';
 import { system as inventory } from '../src/systems/inventory';
@@ -179,7 +180,7 @@ export function flags(engine: Engine): Record<string, FlagValue> {
 }
 
 export function linesSaid(engine: Engine): string[] {
-  return engine.world.recent.flatMap((e) => (e.kind === 'dialogue.line' ? [e.data.text] : []));
+  return engine.world.recent.flatMap((e) => (e.kind === 'dialogue.line' ? [t(e.data.text)] : []));
 }
 
 /** Collect every dialogue line for the whole run (the recent ring is bounded). */
@@ -188,7 +189,7 @@ export function recordLines(engine: Engine): { text: string; speakerId: string; 
   engine.onEvents((events) => {
     for (const e of events) {
       if (e.kind === 'dialogue.line')
-        out.push({ text: e.data.text, speakerId: e.data.speakerId, kind: e.data.kind });
+        out.push({ text: t(e.data.text), speakerId: e.data.speakerId, kind: e.data.kind });
     }
   });
   return out;

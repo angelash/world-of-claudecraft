@@ -1,0 +1,23 @@
+{
+  "sys.scenes.reject.no_scene.missing": "没有这段场景",
+  "sys.scenes.reject.no_scene.idle": "现在没有在播放的场景",
+  "sys.scenes.reject.waiting": "需要先作出选择",
+  "sys.scenes.reject.no_choice": "这里不需要选择",
+  "sys.scenes.reject.no_option": "没有这个选项",
+  "sys.scenes.reject.no_court": "这里不是审庭",
+  "sys.scenes.reject.limit": "这一轮能出示的证据已经用完",
+  "sys.scenes.reject.no_evidence": "你手里没有这件证据，或已经出示过了",
+  "sys.scenes.reject.no_input": "这里不需要输入",
+  "sys.scenes.reject.stale": "场景已经往前走了，这段台词作废",
+  "sys.scenes.court.present_line": "（出示证据：{name}）{text}",
+  "sys.scenes.court.shaken": "证据落在证物台上。她的防线晃了一下，还没有塌。",
+  "sys.scenes.court.opened": "她沉默了很久。这件证据没有击穿什么，却打开了一扇可以坦白的门。",
+  "sys.scenes.court.present": "出示：{name}",
+  "sys.scenes.court.end": "结束质证",
+  "sys.scenes.epilogue.heading": "【{subject}】",
+  "sys.scenes.epilogue.heading_later": "【{subject}】很久以后：",
+  "sys.scenes.epilogue.heading_year": "【{subject}】审定后第{year}年：",
+  "sys.scenes.epilogue.historian": "凡人史官",
+  "sys.scenes.epilogue.ledger": "神之账本",
+  "sys.scenes.prompt.resolve": "数据 {runId, revision, lines:[{speaker, text}], choiceId?}：说出这一段的台词；有分类任务时给出 choiceId。"
+}

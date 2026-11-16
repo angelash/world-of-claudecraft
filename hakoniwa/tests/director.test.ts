@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Engine, worldHash } from '../src/core';
+import { Engine, tr, worldHash } from '../src/core';
 import type { GameSystem } from '../src/core/system';
 import { TICKS_PER_GAME_HOUR } from '../src/core/time';
+import { t } from '../src/shared_ui/i18n';
 import { bandFor, decide, rawTension, smooth } from '../src/systems/director';
 import { activeModifiers } from '../src/systems/modifiers';
 import { NARRATIVE_SYSTEMS, narrativeContent } from './narrative_harness';
@@ -55,6 +56,13 @@ describe('director in the world', () => {
     );
     expect(moira.length).toBeGreaterThan(0);
     expect(moira.every((e) => e.power >= 1 && e.power <= 5 && !e.public)).toBe(true);
+    // the ledger note is a text key naming the fate goddess, the move and the menu item
+    const note = moira[0]?.note;
+    expect(note).toMatchObject({
+      key: 'sys.director.note.arranged',
+      params: { move: tr('sys.director.move.coincidence') },
+    });
+    expect(t(note)).toMatch(/安排的巧合：/);
     expect(g.world.recent.some((e) => e.kind === 'director.move')).toBe(true);
   });
 

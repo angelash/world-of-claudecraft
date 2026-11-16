@@ -2,8 +2,9 @@
 // divine record and Merca's coin offering.
 
 import { clear, el } from '../../shared_ui/dom';
+import { t as renderText } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
-import { ORDER_NAMES, type PartyOrder } from '../../systems/party';
+import { orderName, type PartyOrder } from '../../systems/party';
 import { actionButton, badge, empty, progress, rebuilder, tabs } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
@@ -104,7 +105,7 @@ export function partyWindow(ctx: WindowContext): WindowContent {
         el('div', { className: 'hk-row' }, [
           el('span', { className: 'hk-muted', text: T.party.all }),
           ...ORDERS.map((o) =>
-            actionButton(ctx, ORDER_NAMES[o], () => ad.order(ctx.view, undefined, o)),
+            actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, undefined, o)),
           ),
         ]),
       );
@@ -133,7 +134,7 @@ export function partyWindow(ctx: WindowContext): WindowContent {
             el('div', { className: 'hk-row' }, [
               el('span', { className: 'hk-muted', text: T.party.orders }),
               ...ORDERS.map((o) =>
-                actionButton(ctx, ORDER_NAMES[o], () => ad.order(ctx.view, c.id, o), {
+                actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, c.id, o), {
                   cls: c.order === o ? 'active' : '',
                 }),
               ),

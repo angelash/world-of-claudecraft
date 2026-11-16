@@ -3,6 +3,7 @@
 // (reputation_and_cognition.md 3.2 to 3.5, society.md 8.2 to 8.7). Values are "待调".
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { personaById } from '../npc/personas';
 import type { PersonaCard, RelationDims, SocialClass } from '../npc/types';
@@ -107,25 +108,30 @@ export function subjectOfEntity(world: World, entityId: string): string | null {
 }
 
 /** Display name of a rumor or belief subject as townsfolk would say it. */
-export function subjectName(content: ContentMap, subject: string): string {
-  if (subject === 'player') return '那个新来的 F 级';
-  if (subject === 'stranger') return '某个怪人';
-  if (subject === 'lucky_newbie') return '一个运气好的新人';
-  if (subject === 'heroes') return '勇者团';
-  return personaById(content, subject)?.name ?? '某个人';
+export function subjectName(content: ContentMap, subject: string): TextParam {
+  if (subject === 'player') return tr('sys.cognition.subject.player');
+  if (subject === 'stranger') return tr('sys.cognition.subject.stranger');
+  if (subject === 'lucky_newbie') return tr('sys.cognition.subject.lucky_newbie');
+  if (subject === 'heroes') return tr('sys.cognition.subject.heroes');
+  return personaById(content, subject)?.name ?? tr('sys.cognition.subject.someone');
 }
 
-export const STATE_NAMES: Record<string, string> = {
-  unaware: '无视',
-  doubt: '怀疑',
-  explaining: '解释化',
-  wavering: '动摇',
-  accepted: '接受',
-  worship: '崇拜',
-  hostile: '敌视',
-  exploit: '利用',
-  depend: '依赖',
+const STATE_NAMES: Record<string, () => KeyText> = {
+  unaware: () => tr('sys.cognition.state.unaware'),
+  doubt: () => tr('sys.cognition.state.doubt'),
+  explaining: () => tr('sys.cognition.state.explaining'),
+  wavering: () => tr('sys.cognition.state.wavering'),
+  accepted: () => tr('sys.cognition.state.accepted'),
+  worship: () => tr('sys.cognition.state.worship'),
+  hostile: () => tr('sys.cognition.state.hostile'),
+  exploit: () => tr('sys.cognition.state.exploit'),
+  depend: () => tr('sys.cognition.state.depend'),
 };
+
+/** Display name of a belief state (the state id itself when unknown). */
+export function stateName(state: string): TextParam {
+  return STATE_NAMES[state]?.() ?? state;
+}
 
 /** Whether a state counts as having accepted the truth. */
 export function isAccepted(state: string): boolean {
@@ -144,7 +150,20 @@ export function stateRank(state: string): number {
   return { unaware: 0, doubt: 1, explaining: 2, wavering: 3 }[state] ?? 0;
 }
 
-export const TIER_LABELS = ['凡阶·初', '凡阶·熟', '精英阶', '英雄阶', '传说阶', '神话阶', '超越'];
+const TIER_LABELS: readonly (() => KeyText)[] = [
+  () => tr('sys.cognition.tier.0'),
+  () => tr('sys.cognition.tier.1'),
+  () => tr('sys.cognition.tier.2'),
+  () => tr('sys.cognition.tier.3'),
+  () => tr('sys.cognition.tier.4'),
+  () => tr('sys.cognition.tier.5'),
+  () => tr('sys.cognition.tier.6'),
+];
+
+/** Display name of a tier 0..6 as townsfolk estimate it ('' out of range). */
+export function tierLabel(tier: number): TextParam {
+  return TIER_LABELS[tier]?.() ?? '';
+}
 
 export function tierOfApparent(level: number): number {
   if (level <= 9) return 0;

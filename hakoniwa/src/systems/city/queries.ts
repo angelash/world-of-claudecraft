@@ -1,7 +1,10 @@
 // Read-only views for the client and the editor workbench. Pure functions of world plus
 // content; the placement preview lives in ./placement and is re-exported from index.
+// Text fields are TextRefs or content strings (the `Text` parameter); the client renders
+// them (SettlementView<string>).
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextRef, tr } from '../../core/text';
 import { itemDef } from '../inventory';
 import { actingLevel } from './autonomy';
 import {
@@ -21,10 +24,12 @@ import { unlockProblem } from './placement';
 import {
   type BuildingDef,
   type BuildingInstance,
-  DOMAIN_LABELS,
+  type CityEventKind,
   type Domain,
+  domainLabel,
   type SiteState,
   type Stage,
+  stageLabel,
 } from './types';
 
 type CityContent = Pick<
@@ -32,14 +37,10 @@ type CityContent = Pick<
   'city_sites' | 'city_buildings' | 'city_officials' | 'city_policies' | 'maps' | 'items'
 >;
 
-const STAGE_NAMES: Record<Stage, string> = {
-  outpost: '据点',
-  village: '村落',
-  territory: '领地',
-  court: '庭院',
-};
+/** Kernel text in a view: a TextRef or a content string. */
+export type ViewText = TextRef | string;
 
-export interface BuildingView {
+export interface BuildingView<Text = ViewText> {
   id: string;
   defId: string;
   name: string;
@@ -54,16 +55,16 @@ export interface BuildingView {
   condition: number;
   workers: number;
   jobs: number;
-  note: string;
+  note: Text;
 }
 
-export interface SettlementView {
+export interface SettlementView<Text = ViewText> {
   id: string;
   name: string;
   kind: 'settlement' | 'court';
   mapId: string;
   stage: Stage;
-  stageName: string;
+  stageName: Text;
   active: boolean;
   outsideDivineSight: boolean;
   population: {
@@ -76,17 +77,17 @@ export interface SettlementView {
   housing: number;
   foodDays: number;
   happiness: number;
-  happinessFactors: { label: string; value: number }[];
+  happinessFactors: { label: Text; value: number }[];
   security: number;
   health: number;
   needs: SiteState['needs'];
   storage: { used: number; cap: number };
   treasury: number;
   stock: { itemId: string; name: string; count: number }[];
-  buildings: BuildingView[];
+  buildings: BuildingView<Text>[];
   offices: {
     domain: Domain;
-    label: string;
+    label: Text;
     holderId?: string;
     holderName?: string;
     deputyId?: string;
@@ -105,14 +106,14 @@ export interface SettlementView {
     C: number;
     dependency: number;
     trend: number[];
-    recent: { day: number; action: string; delta: number }[];
+    recent: { day: number; action: Text; delta: number }[];
   };
   upkeep: { perMonth: number; state: SiteState['upkeep']['state']; arrearsDays: number };
   defense: { level: number; militia: number };
   gateLinked: boolean;
   gateRoom: number;
-  events: SiteState['eventLog'];
-  status: string[];
+  events: { day: number; kind: CityEventKind; severity: 'minor' | 'severe'; text: Text }[];
+  status: Text[];
   sediment: number;
 }
 
@@ -135,9 +136,12 @@ export function buildingView(content: CityContent, b: BuildingInstance): Buildin
     jobs: def?.jobs ?? 0,
     note:
       b.status === 'construction'
-        ? `建造中 ${Math.min(b.progress, def?.days ?? 0)}/${def?.days ?? 0} 天`
+        ? tr('sys.city.view.building_progress', {
+            done: Math.min(b.progress, def?.days ?? 0),
+            days: def?.days ?? 0,
+          })
         : b.condition < 20
-          ? '损毁严重，停工'
+          ? tr('sys.city.view.wrecked')
           : (b.note ?? ''),
   };
 }
@@ -162,7 +166,7 @@ export function settlementView(
     kind: sdef.kind,
     mapId: sdef.mapId,
     stage: site.stage,
-    stageName: STAGE_NAMES[site.stage],
+    stageName: stageLabel(site.stage),
     active: site.active,
     outsideDivineSight: !!sdef.outsideDivineSight,
     population: {
@@ -197,7 +201,7 @@ export function settlementView(
       const authority = o?.authority ?? 2;
       return {
         domain,
-        label: DOMAIN_LABELS[domain],
+        label: domainLabel(domain),
         holderId: o?.holderId,
         holderName: holder?.name,
         deputyId: o?.deputyId,
@@ -249,23 +253,23 @@ export function buildingList(
   return content.city_buildings.filter((b) => b.sites.includes(sdef.kind));
 }
 
-/** Building menu with lock reasons, for the build window. */
+/** Building menu with lock reasons ('' when available), for the build window. */
 export function buildMenu(
   world: CityWorld,
   content: CityContent,
   siteId: string,
-): { def: BuildingDef; available: boolean; reason: string }[] {
+): { def: BuildingDef; available: boolean; reason: KeyText | '' }[] {
   const sdef = siteDef(content, siteId);
   const site = world.slices.city.sites[siteId];
   if (!sdef || !site) return [];
   return buildingList(content, siteId).map((def) => {
     const reason = unlockProblem(world, content, site, sdef, def);
-    return { def, available: reason === '', reason };
+    return { def, available: reason === null, reason: reason ?? '' };
   });
 }
 
 export function policyList(content: Pick<ContentMap, 'city_policies'>) {
-  return content.city_policies.map((p) => ({ ...p, domainLabel: DOMAIN_LABELS[p.domain] }));
+  return content.city_policies.map((p) => ({ ...p, domainLabel: domainLabel(p.domain) }));
 }
 
 export function officialCandidates(content: Pick<ContentMap, 'city_officials'>) {

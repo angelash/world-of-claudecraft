@@ -4,6 +4,7 @@
 // I institutions, T talent depth, D delegation share, S self-reliance record, C cohesion,
 // P_dep accumulated player dependency (decays 2 percent per day, capped at 40).
 
+import type { TextRef } from '../../core/text';
 import { clamp } from './common';
 import type { AutonomyLedger, DecisionRecord, TrialRecord } from './types';
 
@@ -132,7 +133,7 @@ export function stepLedger(ledger: AutonomyLedger, terms: AutonomyTerms): void {
 export function addDependency(
   ledger: AutonomyLedger,
   day: number,
-  action: string,
+  action: TextRef,
   delta: number,
 ): void {
   ledger.pDep = clamp(ledger.pDep + delta, 0, 40);

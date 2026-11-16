@@ -2,10 +2,12 @@
 // shared helpers over the battle state. Content arrays are immutable at runtime.
 
 import type { FlagValue } from '../../core/contracts';
+import { type TextParam, tr } from '../../core/text';
 import type {
   BattleState,
   HeroAbilityDef,
   HeroState,
+  KernelUnit,
   RegimentState,
   Team,
   UnitTypeDef,
@@ -38,9 +40,8 @@ export function kernelData(
 }
 
 /** Fallback soldier for unknown type ids (keeps the kernel total; content validation reports it). */
-export const UNKNOWN_UNIT: UnitTypeDef = {
+export const UNKNOWN_UNIT: Omit<KernelUnit, 'name'> = {
   id: 'unknown',
-  name: '未知兵种',
   race: 'human',
   role: 'militia',
   quality: 'recruit',
@@ -63,8 +64,9 @@ export const UNKNOWN_UNIT: UnitTypeDef = {
   desc: '',
 };
 
-export function unitOf(data: KernelData, typeId: string): UnitTypeDef {
-  return data.units.get(typeId) ?? UNKNOWN_UNIT;
+export function unitOf(data: KernelData, typeId: string): KernelUnit {
+  // the stand-in gets a fresh name each time: it can become a regiment name in world state
+  return data.units.get(typeId) ?? { ...UNKNOWN_UNIT, name: tr('sys.warfare.name.unknown_unit') };
 }
 
 export function other(team: Team): Team {
@@ -111,7 +113,7 @@ export function inRect(
   return p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
 }
 
-export function pushLog(state: BattleState, text: string): void {
+export function pushLog(state: BattleState, text: TextParam): void {
   state.log.push({ t: Math.round(state.time * 10) / 10, text });
   if (state.log.length > 80) state.log.splice(0, state.log.length - 80);
 }

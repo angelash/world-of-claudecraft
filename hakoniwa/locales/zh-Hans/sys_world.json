@@ -1,0 +1,10 @@
+{
+  "sys.world.reject.no_entity": "找不到这个对象",
+  "sys.world.reject.wrong_map": "目标不在当前地图",
+  "sys.world.reject.unreachable": "那里走不过去",
+  "sys.world.reject.no_exit": "这里没有出口",
+  "sys.world.reject.too_far": "离出口太远",
+  "sys.world.reject.locked": "现在还不能从这里离开",
+  "sys.world.reject.bad_exit": "出口通向的地方不存在",
+  "sys.world.reject.bad_target": "无法传送到那里"
+}

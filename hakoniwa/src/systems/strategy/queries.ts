@@ -2,7 +2,8 @@
 // and armies, one nation's state, and the diplomatic table.
 
 import type { ContentMap } from '../../core/contracts';
-import { RESULT_NAME, STAGE_NAME } from './conclave';
+import { type KeyText, type TextParam, tr } from '../../core/text';
+import { resultName, stageName } from './conclave';
 import { provinceDef } from './map';
 import {
   aliveNations,
@@ -45,7 +46,7 @@ export interface ContinentView {
     region: string;
     terrain: ProvinceTerrain;
     owner: NationId | null;
-    ownerName: string;
+    ownerName: string | KeyText;
     color: string;
     population: number;
     garrison: number;
@@ -54,15 +55,15 @@ export interface ContinentView {
     y: number;
     impassable: boolean;
     capitalOf?: NationId;
-    siege: { by: NationId; byName: string; progress: number } | null;
+    siege: { by: NationId; byName: string | KeyText; progress: number } | null;
     armies: string[];
   }[];
   links: { a: string; b: string; days: number; kind?: string }[];
   armies: {
     id: string;
     owner: NationId;
-    ownerName: string;
-    name: string;
+    ownerName: string | KeyText;
+    name: TextParam;
     province: string;
     soldiers: number;
     general?: string;
@@ -76,8 +77,8 @@ export interface ContinentView {
     score: number;
     startDay: number;
   }[];
-  conference: { stage: ConclaveStage; stageName: string; endsDay: number } | null;
-  summit: { result: SummitResult; name: string } | null;
+  conference: { stage: ConclaveStage; stageName: string | KeyText; endsDay: number } | null;
+  summit: { result: SummitResult; name: string | KeyText } | null;
   pendingBattle: { scenarioId: string; province: string } | null;
   log: StrategyLogEntry[];
 }
@@ -156,11 +157,11 @@ export function continentView(world: WorldWithStrategy, content: ContentMap): Co
     conference: s.conference
       ? {
           stage: s.conference.stage,
-          stageName: STAGE_NAME[s.conference.stage],
+          stageName: stageName(s.conference.stage),
           endsDay: s.conference.stageEndsDay,
         }
       : null,
-    summit: s.summit ? { result: s.summit, name: RESULT_NAME[s.summit] } : null,
+    summit: s.summit ? { result: s.summit, name: resultName(s.summit) } : null,
     pendingBattle: s.pendingBattle
       ? { scenarioId: s.pendingBattle.scenarioId, province: s.pendingBattle.province }
       : null,
@@ -170,8 +171,8 @@ export function continentView(world: WorldWithStrategy, content: ContentMap): Co
 
 export interface NationView {
   id: NationId;
-  name: string;
-  ruler: string;
+  name: string | KeyText;
+  ruler: string | KeyText;
   capital: string;
   alive: boolean;
   treasury: number;
@@ -186,7 +187,7 @@ export interface NationView {
   credibility: number;
   population: number;
   provinces: { id: string; name: string }[];
-  armies: { id: string; name: string; province: string; soldiers: number }[];
+  armies: { id: string; name: TextParam; province: string; soldiers: number }[];
   soldiers: number;
   power: number;
   enemies: NationId[];
@@ -210,7 +211,7 @@ export function nationView(
   return {
     id,
     name: nationName(content, s, id),
-    ruler: id === PLAYER ? '你' : (def?.ruler.name ?? ''),
+    ruler: id === PLAYER ? tr('sys.strategy.name.you') : (def?.ruler.name ?? ''),
     capital,
     alive: n.alive,
     treasury: Math.round(n.treasury),
@@ -245,11 +246,11 @@ export function nationView(
 
 export interface DiplomacyRow {
   nation: NationId;
-  name: string;
+  name: string | KeyText;
   /** our score toward them, and theirs toward us */
   scoreTo: number;
   scoreFrom: number;
-  band: string;
+  band: string | KeyText;
   treaties: TreatyType[];
   atWar: boolean;
   truce: boolean;

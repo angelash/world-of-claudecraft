@@ -2,6 +2,7 @@
 // residents. Pure functions over content and the npc slice.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, tr } from '../../core/text';
 import type { Appearance } from '../world/types';
 import type {
   NeedWeights,
@@ -46,7 +47,16 @@ export function tierOfLevel(level: number): number {
   return 6;
 }
 
-export const TIER_NAMES = ['凡阶·初', '凡阶·熟', '精英阶', '英雄阶', '传说阶', '神话阶', '超越'];
+/** Public power impression per tier (text keys; render with t()). */
+export const TIER_NAMES: readonly KeyText[] = [
+  tr('sys.npc.tier.0'),
+  tr('sys.npc.tier.1'),
+  tr('sys.npc.tier.2'),
+  tr('sys.npc.tier.3'),
+  tr('sys.npc.tier.4'),
+  tr('sys.npc.tier.5'),
+  tr('sys.npc.tier.6'),
+];
 
 /** Fields shared by persona cards and resident cards. */
 export interface CardView {

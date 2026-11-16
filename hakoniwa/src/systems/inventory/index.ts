@@ -2,10 +2,12 @@
 // settlements). Item definitions live in the `items` content table, contributed by
 // several packs (equipment from combat, goods from economy, key and lore items from
 // quests). Phase 15. Money is an integer number of copper (1 gold = 100 silver =
-// 10000 copper; see docs/20_world/society.md currency).
+// 10000 copper; see docs/20_world/society.md currency). Display formatting lives on the
+// client: formatMoney in src/shared_ui/i18n.ts, or a {m, money} placeholder in a TextRef.
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 
 export type ItemKind =
   | 'weapon'
@@ -123,21 +125,6 @@ export function equippedDefs(
     .filter((d): d is ItemDef => !!d);
 }
 
-/** "1 金 23 银 45 铜" style formatting for copper amounts. */
-export function formatMoney(copper: number): string {
-  const sign = copper < 0 ? '-' : '';
-  let c = Math.abs(Math.round(copper));
-  const g = Math.floor(c / 10000);
-  c -= g * 10000;
-  const s = Math.floor(c / 100);
-  c -= s * 100;
-  const parts: string[] = [];
-  if (g) parts.push(`${g} 金`);
-  if (s) parts.push(`${s} 银`);
-  if (c || parts.length === 0) parts.push(`${c} 铜`);
-  return sign + parts.join(' ');
-}
-
 // ---------------------------------------------------------------------------
 // Ports
 
@@ -216,9 +203,10 @@ export const system: GameSystem = {
   commands: {
     'inventory.use'(ctx, d) {
       const def = itemDef(ctx.content, d.itemId);
-      if (!def) return reject('no_item', '没有这件物品');
-      if (!def.use) return reject('not_usable', '这件物品不能使用');
-      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0) return reject('missing', '背包里没有它');
+      if (!def) return reject('no_item', tr('sys.inventory.reject.no_item'));
+      if (!def.use) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
+      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0)
+        return reject('missing', tr('sys.inventory.reject.missing.bag'));
       if (def.kind === 'consumable') removeItem(ctx, d.ownerId, d.itemId, 1, 'use');
       ctx.emit('item.used', {
         ownerId: d.ownerId,
@@ -232,22 +220,23 @@ export const system: GameSystem = {
     },
     'inventory.equip'(ctx, d) {
       const def = itemDef(ctx.content, d.itemId);
-      if (!def?.slot) return reject('not_equipment', '这不是可以装备的东西');
-      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0) return reject('missing', '背包里没有它');
+      if (!def?.slot) return reject('not_equipment', tr('sys.inventory.reject.not_equipment'));
+      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0)
+        return reject('missing', tr('sys.inventory.reject.missing.bag'));
       holding(ctx, d.ownerId).equipped[def.slot] = d.itemId;
       ctx.emit('item.equipped', { ownerId: d.ownerId, itemId: d.itemId, slot: def.slot });
       return ok();
     },
     'inventory.unequip'(ctx, d) {
       const h = holding(ctx, d.ownerId);
-      if (!h.equipped[d.slot]) return reject('empty', '这个位置没有装备');
+      if (!h.equipped[d.slot]) return reject('empty', tr('sys.inventory.reject.empty'));
       delete h.equipped[d.slot];
       return ok();
     },
     'inventory.give'(ctx, d) {
-      if (d.count <= 0) return reject('bad_count', '数量不对');
+      if (d.count <= 0) return reject('bad_count', tr('sys.inventory.reject.bad_count'));
       if (!removeItem(ctx, d.fromId, d.itemId, d.count, 'give'))
-        return reject('missing', '数量不够');
+        return reject('missing', tr('sys.inventory.reject.missing.count'));
       addItem(ctx, d.toId, d.itemId, d.count, 'receive');
       return ok();
     },

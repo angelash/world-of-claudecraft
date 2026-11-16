@@ -1,0 +1,21 @@
+{
+  "_comment": "Settler name pool (content, not display text): the given names of L4 settler entities, drawn on the city.settlers stream. Belongs in data/ with the content pipeline (PK-M0-14 follow-up); kept here so behavior is unchanged.",
+  "names": [
+    "汉斯",
+    "莉娜",
+    "托比",
+    "格蕾塔",
+    "马丁",
+    "艾玛",
+    "奥斯卡",
+    "卡琳",
+    "鲁迪",
+    "贝蒂",
+    "约纳斯",
+    "米娅",
+    "保罗",
+    "安娜",
+    "雅各",
+    "索菲"
+  ]
+}

@@ -3,6 +3,7 @@
 // outputs, and the rewrite applied to model text before it reaches the player.
 
 import type { FlagValue } from '../../core/contracts';
+import type { TextParam } from '../../core/text';
 import type { LoreDef, TermDef } from '../goddess/types';
 import { evaluate, flagResolver } from './conditions';
 
@@ -79,7 +80,25 @@ export function sanitizeText(
   return out;
 }
 
-/** Recursively scan any JSON value (an AI context) for leaks. */
+/** sanitizeText over a text value: a string, or the string params of a TextRef. */
+export function sanitizeTextParam(
+  text: TextParam,
+  world: FlagWorld,
+  content: Pick<LoreContent, 'terms'>,
+): TextParam {
+  if (typeof text === 'string') return sanitizeText(text, world, content);
+  if (typeof text === 'number' || !('key' in text) || !text.params) return text;
+  const params: Record<string, TextParam> = {};
+  for (const [k, v] of Object.entries(text.params))
+    params[k] = sanitizeTextParam(v, world, content);
+  return { key: text.key, params };
+}
+
+/**
+ * Recursively scan any JSON value (an AI context) for leaks. Kernel text is TextRefs
+ * (D-077): render them first (renderTextDeep from src/shared_ui/i18n) so the scan sees
+ * the source-language text the keys stand for; content strings in params are scanned as is.
+ */
 export function scanForLeaks(value: unknown, world: FlagWorld, content: LoreContent): string[] {
   return findLeaks(JSON.stringify(value ?? ''), world, content);
 }

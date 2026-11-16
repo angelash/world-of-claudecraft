@@ -178,7 +178,7 @@ export class FlagRegistry {
     if (!table) return undefined;
     let best: string | undefined;
     for (const [alias, to] of Object.entries(table)) {
-      if (to !== value || !/[㐀-鿿]/.test(alias)) continue;
+      if (to !== value || !/[\u3400-\u9fff]/.test(alias)) continue;
       if (best === undefined || alias.length > best.length) best = alias;
     }
     return best;

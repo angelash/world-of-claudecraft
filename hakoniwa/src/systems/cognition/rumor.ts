@@ -6,6 +6,7 @@
 
 import type { Rng } from '../../core/rng';
 import type { SystemContext } from '../../core/system';
+import { type KeyText, type TextParam, textEquals, tr } from '../../core/text';
 import { TICKS_PER_GAME_DAY } from '../../core/time';
 import { addMemory } from '../npc/memory';
 import { npcEntityId, personaById, personaIndex } from '../npc/personas';
@@ -91,12 +92,12 @@ export function distortionOf(truth: RumorVersion, v: RumorVersion): number {
     0.15 * Math.abs(Math.log2(Math.max(0.01, v.count) / Math.max(0.01, truth.count))),
   );
   if (v.subject !== truth.subject) d += 0.4;
-  const kept = v.details.filter((x) => truth.details.includes(x)).length;
+  const kept = v.details.filter((x) => truth.details.some((y) => textEquals(x, y))).length;
   d += 0.05 * Math.max(0, truth.details.length - kept);
   if (v.template) d += 0.3;
   if (v.polarity !== truth.polarity) d += 0.15;
   d += 0.05 * v.when;
-  if (v.place !== truth.place) d += 0.1;
+  if (!textEquals(v.place, truth.place)) d += 0.1;
   if (v.explanation && v.explanation !== 'real' && v.explanation !== truth.explanation) d += 0.1;
   return Math.round(Math.min(1, d) * 1000) / 1000;
 }
@@ -117,10 +118,10 @@ export function seedRumor(
     topic: string;
     subject: string;
     mapId: string;
-    place: string;
+    place: TextParam;
     apparent: number;
     count: number;
-    details: string[];
+    details: TextParam[];
     famous: string[];
     tier: number;
   },
@@ -200,6 +201,18 @@ function exaggeration(rng: Rng, speaker: PersonaCard | undefined): number {
 
 const KILL_TOPICS = new Set(['kill', 'elite_kill', 'boss_kill']);
 
+/** Whether a version already carries a detail (structural text equality). */
+function hasDetail(v: RumorVersion, d: KeyText): boolean {
+  return v.details.some((x) => textEquals(x, d));
+}
+
+/** Details a 'detail' teller may add (one is picked). */
+const SPIN_DETAILS: readonly (() => KeyText)[] = [
+  () => tr('sys.cognition.detail.dusk'),
+  () => tr('sys.cognition.detail.dusty'),
+  () => tr('sys.cognition.detail.unhurt'),
+];
+
 /** One hop of distortion by the teller (society.md 7.4). */
 export function distort(
   ctx: SystemContext,
@@ -230,7 +243,8 @@ export function distort(
     }
   }
   // the teller's own spin (act1_borderstone.md 6.1)
-  if (spin === 'cute' && !v.details.includes('好厉害')) v.details.push('好厉害');
+  if (spin === 'cute' && !hasDetail(v, tr('sys.cognition.detail.amazing')))
+    v.details.push(tr('sys.cognition.detail.amazing'));
   if (spin === 'fear') {
     v.polarity = 'fear';
     if (
@@ -250,10 +264,10 @@ export function distort(
     else v.explanation = KILL_TOPICS.has(r.topic) ? 'wounded' : 'luck';
   }
   if (spin === 'deflect') v.explanation = rng.chance(0.5) ? 'luck' : 'gadget';
-  if (spin === 'detail' && v.details.length < 4)
-    v.details.push(rng.pick(['那会儿天刚擦黑', '衣裳上沾着灰', '身上一点伤都没有']));
+  if (spin === 'detail' && v.details.length < 4) v.details.push(rng.pick(SPIN_DETAILS)());
   if (spin === 'price') {
-    if (!v.details.includes('这得值不少钱')) v.details.push('这得值不少钱');
+    if (!hasDetail(v, tr('sys.cognition.detail.pricey')))
+      v.details.push(tr('sys.cognition.detail.pricey'));
     v.polarity = 'curious';
   }
   if (spin === 'light') {
@@ -286,7 +300,10 @@ export function distort(
   const days = Math.floor((ctx.tick - r.tick) / TICKS_PER_GAME_DAY);
   const age = days <= 0 ? 0 : days <= 3 ? 1 : days <= 60 ? 2 : 3;
   v.when = Math.min(3, Math.max(age, v.when + (rng.chance(0.3) ? 1 : 0)));
-  if (mapId !== r.mapId) v.place = `${mapById(ctx.content, r.mapId)?.name ?? '北边'}一带`;
+  if (mapId !== r.mapId)
+    v.place = tr('sys.cognition.place.around', {
+      map: mapById(ctx.content, r.mapId)?.name ?? tr('sys.cognition.place.north'),
+    });
   return { v: finalize(r.truth, v), misattributed };
 }
 
@@ -339,7 +356,7 @@ export interface Telling {
   origin: string;
   hops: number;
   fromId: string;
-  fromName: string;
+  fromName: TextParam;
 }
 
 /** A listener receives a version: holding, belief update, memory and heat. */
@@ -384,7 +401,7 @@ export function receive(
   const subject = t.v.subject;
   const text = rumorText(ctx.content, t.v, t.rumor.topic);
   addMemory(ctx, listenerId, {
-    text: `听${t.fromName}说：${text}`,
+    text: tr('sys.cognition.memory.heard', { from: t.fromName, text }),
     src: 'heard',
     cred,
     about: subject === 'stranger' || subject === 'lucky_newbie' ? undefined : subject,
@@ -403,7 +420,10 @@ export function receive(
       kinds,
       direct: false,
       suggested: t.v.explanation,
-      what: `听${t.fromName}说${subjectName(ctx.content, subject)}的事`,
+      what: tr('sys.cognition.belief.what.heard', {
+        from: t.fromName,
+        who: subjectName(ctx.content, subject),
+      }),
     });
   }
   return { believed, multi };
@@ -457,7 +477,7 @@ export function tryTell(
       ctx.emit('dialogue.line', {
         speakerId: npcEntityId(toId),
         speakerName: listener.name,
-        text: `不对，我亲眼看见的：${rumorText(ctx.content, own.v, r.topic)}`,
+        text: tr('sys.cognition.line.correct', { text: rumorText(ctx.content, own.v, r.topic) }),
         listenerId: npcEntityId(fromId),
         kind: 'say',
       });
@@ -473,7 +493,7 @@ export function tryTell(
     origin: pick.origin,
     hops,
     fromId,
-    fromName: speaker?.name ?? '有人',
+    fromName: speaker?.name ?? tr('sys.cognition.teller.someone'),
   };
   receive(ctx, toId, telling, mapId);
   if (visible && speaker) {
@@ -482,7 +502,7 @@ export function tryTell(
       ctx.emit('dialogue.line', {
         speakerId: npcEntityId(fromId),
         speakerName: speaker.name,
-        text: `听说${rumorText(ctx.content, v, r.topic)}`,
+        text: tr('sys.cognition.line.heard', { text: rumorText(ctx.content, v, r.topic) }),
         listenerId: npcEntityId(toId),
         kind: gate === 'full' ? 'say' : 'narrate',
       });
@@ -538,7 +558,7 @@ export function crowdTell(
       origin: `crowd:${mapId}`,
       hops: 3,
       fromId: `crowd:${mapId}`,
-      fromName: '街坊们',
+      fromName: tr('sys.cognition.teller.neighbors'),
     },
     mapId,
   );
@@ -548,7 +568,7 @@ export function crowdTell(
 export function tellPlayer(
   ctx: SystemContext,
   npcId: string,
-): { rumorId: string; text: string } | null {
+): { rumorId: string; text: TextParam } | null {
   const slice = ctx.world.slices.cognition;
   const speaker = personaById(ctx.content, npcId);
   const list = [...holdingsOf(slice, npcId)]

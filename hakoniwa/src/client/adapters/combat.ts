@@ -4,6 +4,7 @@
 // npc and cognition queries.
 
 import type { AnyWorldEvent } from '../../core/contracts';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import { appraisalLog, lastAppraisal, pressureSense } from '../../systems/cognition';
 import {
@@ -65,7 +66,7 @@ export function unitFrameData(
       .filter((r) => r.max > 0)
       .map((r) => ({
         kind: r.kind,
-        label: r.name,
+        label: t(r.name),
         value: r.cur,
         max: r.max,
         color: RESOURCE_COLORS[r.kind],
@@ -81,7 +82,7 @@ export function unitFrameData(
     data.dead = !u.alive;
     if (self) {
       data.level = u.level;
-      data.subtitle = u.tierName;
+      data.subtitle = t(u.tierName);
       const xp = xpProgress(w, entityId);
       data.xp = { value: xp.xp, max: xp.next };
     } else {
@@ -89,7 +90,7 @@ export function unitFrameData(
       const reading = strengthReading(w, viewerId, entityId);
       data.levelText =
         info && info.unit.id === entityId && info.levelText !== '?'
-          ? info.levelText
+          ? t(info.levelText)
           : readingText(reading);
       data.hostile = isHostile(w, viewerId, entityId);
     }
@@ -98,18 +99,18 @@ export function unitFrameData(
     const npcId = npcIdOfEntity(w, entityId);
     const npc = npcId ? npcView(w, c, npcId) : undefined;
     if (npc) {
-      data.subtitle = [npc.job, npc.activityName].filter(Boolean).join('  ');
-      if (!u) data.levelText = fmt(T.combat.relation, { band: npc.relationBand });
+      data.subtitle = [npc.job, t(npc.activityName)].filter(Boolean).join('  ');
+      if (!u) data.levelText = fmt(T.combat.relation, { band: t(npc.relationBand) });
     }
     const p = pressureSense(w, c, viewerId, entityId);
-    if (p && p.band !== 'none' && p.text) data.pressure = p.text;
+    if (p && p.band !== 'none' && p.text) data.pressure = t(p.text);
     const a = lastAppraisal(w);
     const mine = appraisalLog(w)
       .filter((r) => r.observerId === viewerId && r.targetId === entityId)
       .pop();
     const shown =
       mine ?? (a && a.observerId === viewerId && a.targetId === entityId ? a : undefined);
-    if (shown) data.appraisal = shown.display;
+    if (shown) data.appraisal = t(shown.display);
   }
   return data;
 }
@@ -119,7 +120,7 @@ export function hotbarSlots(view: GameView): HotbarSlotView[] {
   const c = view.content as never;
   const bar = abilityBar(w, c);
   const me = unitView(w, c, view.playerId());
-  const resName = new Map((me?.resources ?? []).map((r) => [r.kind, r.name]));
+  const resName = new Map((me?.resources ?? []).map((r) => [r.kind, t(r.name)]));
   return bar.slice(0, HOTBAR_SLOTS).map((a, i) => {
     const cd = Math.max(a.cooldownLeft, a.gcdLeft);
     const total =
@@ -132,7 +133,7 @@ export function hotbarSlots(view: GameView): HotbarSlotView[] {
       cooldown: cd,
       cooldownTotal: total,
       usable: a.usable,
-      reason: a.reason,
+      reason: a.reason === undefined ? undefined : t(a.reason),
       cost:
         a.resource && a.cost > 0 ? `${a.cost} ${resName.get(a.resource) ?? ''}`.trim() : undefined,
     };
@@ -278,7 +279,7 @@ export function characterSheet(view: GameView): CharacterSheetView | null {
   if (u) {
     stats.push({ label: T.character.hp, value: `${u.hp} / ${u.maxHp}` });
     for (const r of u.resources)
-      if (r.max > 0) stats.push({ label: r.name, value: `${r.cur} / ${r.max}` });
+      if (r.max > 0) stats.push({ label: t(r.name), value: `${r.cur} / ${r.max}` });
     if (u.combo > 0) stats.push({ label: T.character.combo, value: String(u.combo) });
     stats.push({
       label: T.character.inCombat,
@@ -301,14 +302,14 @@ export function characterSheet(view: GameView): CharacterSheetView | null {
     name: e.name,
     className: cls?.name,
     level: u?.level ?? xp.level,
-    tierName: u?.tierName,
+    tierName: u ? t(u.tierName) : undefined,
     xp: { value: xp.xp, max: xp.next },
     hp: u ? { value: u.hp, max: u.maxHp } : undefined,
     resources: (u?.resources ?? [])
       .filter((r) => r.max > 0)
       .map((r) => ({
         kind: r.kind,
-        label: r.name,
+        label: t(r.name),
         value: r.cur,
         max: r.max,
         color: RESOURCE_COLORS[r.kind],

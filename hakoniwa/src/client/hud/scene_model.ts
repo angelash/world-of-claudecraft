@@ -2,6 +2,7 @@
 // shows (title, styled lines, numbered choices, input box, court evidence state) and maps
 // keys to scene actions. Pure; Node-tested.
 
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type { SceneView } from '../../systems/scenes';
 
@@ -35,7 +36,8 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
         : v.waiting === 'resolve'
           ? 'resolve'
           : 'advance';
-  const choices = mode === 'choice' ? v.choices.map((c, i) => ({ ...c, number: i + 1 })) : [];
+  const choices =
+    mode === 'choice' ? v.choices.map((c, i) => ({ ...c, label: t(c.label), number: i + 1 })) : [];
   let court: string | null = null;
   if (v.court) {
     const parts = [fmt(T.scene.limit, { n: v.court.limit })];
@@ -47,8 +49,8 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
     key: `${v.sceneId}/${v.nodeId}/${v.waiting}/${v.lines.length}/${choices.length}`,
     title: v.title,
     lines: v.lines.map((l) => ({
-      speaker: l.kind === 'narrate' ? '' : l.speakerName,
-      text: l.text,
+      speaker: l.kind === 'narrate' ? '' : t(l.speakerName),
+      text: t(l.text),
       kind: (KINDS.has(l.kind) ? l.kind : 'say') as ScenePanelLine['kind'],
     })),
     mode,

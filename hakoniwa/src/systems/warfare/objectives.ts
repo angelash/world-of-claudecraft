@@ -2,6 +2,7 @@
 // for N seconds (lost after 15 s held by the enemy alone), kill a hero, survive; at the
 // time limit the result is judged on objectives, then on remaining strength.
 
+import { joinText, type TextParam, tr } from '../../core/text';
 import { soldierDps, soldierEhp } from './combat_math';
 import { active, heroById, inRect, type KernelData, other, unitOf } from './data';
 import type { BattleState, ObjectiveState, Team, Victor } from './types';
@@ -75,35 +76,54 @@ function required(state: BattleState, team: Team): ObjectiveState[] {
 export function verdict(
   state: BattleState,
   data: KernelData,
-): { victor: Victor; reason: string } | null {
+): { victor: Victor; reason: TextParam } | null {
   const pOut = eliminated(state, 'player');
   const eOut = eliminated(state, 'enemy');
-  if (pOut && eOut) return { victor: 'draw', reason: '两军皆溃' };
-  if (eOut) return { victor: 'player', reason: '敌军已无可战之兵' };
-  if (pOut) return { victor: 'enemy', reason: '我军已无可战之兵' };
+  if (pOut && eOut) return { victor: 'draw', reason: tr('sys.warfare.outcome.both_routed') };
+  if (eOut) return { victor: 'player', reason: tr('sys.warfare.outcome.enemy_out') };
+  if (pOut) return { victor: 'enemy', reason: tr('sys.warfare.outcome.player_out') };
   for (const team of ['player', 'enemy'] as Team[]) {
     const decisive = state.objectives.find(
       (o) => o.team === team && o.status === 'done' && (o.kind === 'annihilate' || o.decisive),
     );
-    if (decisive) return { victor: team, reason: `达成目标：${decisive.label}` };
+    if (decisive) {
+      return {
+        victor: team,
+        reason: tr('sys.warfare.outcome.objective_done', { label: decisive.label }),
+      };
+    }
   }
   for (const team of ['player', 'enemy'] as Team[]) {
     const failed = state.objectives.find((o) => o.team === team && o.status === 'failed');
-    if (failed) return { victor: other(team), reason: `目标失败：${failed.label}` };
+    if (failed) {
+      return {
+        victor: other(team),
+        reason: tr('sys.warfare.outcome.objective_failed', { label: failed.label }),
+      };
+    }
   }
   for (const team of ['player', 'enemy'] as Team[]) {
     const req = required(state, team);
     if (req.length > 0 && req.every((o) => o.status === 'done')) {
-      return { victor: team, reason: `达成目标：${req.map((o) => o.label).join('、')}` };
+      return {
+        victor: team,
+        reason: tr('sys.warfare.outcome.objective_done', {
+          label: joinText(
+            'list',
+            req.map((o) => o.label),
+          ),
+        }),
+      };
     }
   }
   if (state.time >= state.timeLimit) {
     const p = teamStrength(state, data, 'player');
     const e = teamStrength(state, data, 'enemy');
     const ratio = p / Math.max(1, e);
-    if (ratio >= 1.5) return { victor: 'player', reason: '时限已到，我军占优' };
-    if (ratio <= 1 / 1.5) return { victor: 'enemy', reason: '时限已到，敌军占优' };
-    return { victor: 'draw', reason: '时限已到，胜负未分' };
+    if (ratio >= 1.5) return { victor: 'player', reason: tr('sys.warfare.outcome.time_up_player') };
+    if (ratio <= 1 / 1.5)
+      return { victor: 'enemy', reason: tr('sys.warfare.outcome.time_up_enemy') };
+    return { victor: 'draw', reason: tr('sys.warfare.outcome.time_up_draw') };
   }
   return null;
 }

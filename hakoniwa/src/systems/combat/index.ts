@@ -6,6 +6,7 @@
 import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { type KeyText, tr } from '../../core/text';
 import { getEntity, haltEntity, playerEntity, tagValue } from '../world';
 import { interruptCast, tickCast, useAbility } from './abilities';
 import { tickAuras } from './aura_tick';
@@ -34,17 +35,17 @@ export * from './ports';
 export * from './queries';
 export type * from './types';
 
-type Actor = { ok: true; u: Unit } | { ok: false; code: string; reason: string };
+type Actor = { ok: true; u: Unit } | { ok: false; code: string; reason: KeyText };
 
 /** Resolve the acting unit; player-sourced commands may only drive the player. */
 function actor(ctx: SystemContext, entityId: string | undefined, source: CommandSource): Actor {
   const playerId = ctx.world.slices.world.playerId;
   const id = entityId ?? playerId;
   if (source.type === 'player' && id !== playerId) {
-    return { ok: false, code: 'not_yours', reason: '只能指挥自己' };
+    return { ok: false, code: 'not_yours', reason: tr('sys.combat.reject.not_yours') };
   }
   const u = unitOf(ctx.world, id);
-  if (!u) return { ok: false, code: 'no_unit', reason: '这个对象不能战斗' };
+  if (!u) return { ok: false, code: 'no_unit', reason: tr('sys.combat.reject.no_unit') };
   return { ok: true, u };
 }
 
@@ -149,7 +150,8 @@ export const system: GameSystem = {
         a.u.autoAttack = false;
         return ok();
       }
-      if (!liveUnit(ctx.world, d.targetId)) return reject('bad_target', '选不中那个目标');
+      if (!liveUnit(ctx.world, d.targetId))
+        return reject('bad_target', tr('sys.combat.reject.bad_target.unselectable'));
       a.u.target = d.targetId;
       return ok();
     },
@@ -164,7 +166,7 @@ export const system: GameSystem = {
       }
       const t = unitOf(ctx.world, a.u.target);
       if (!t || !canAttack(ctx.world, a.u, t))
-        return reject('bad_target', '需要一个可以攻击的目标');
+        return reject('bad_target', tr('sys.combat.reject.bad_target.enemy'));
       a.u.autoAttack = true;
       return ok();
     },
@@ -183,11 +185,12 @@ export const system: GameSystem = {
     },
     'combat.set_class'(ctx, d) {
       const e = getEntity(ctx.world, d.entityId);
-      if (!e) return reject('no_entity', '找不到这个对象');
+      if (!e) return reject('no_entity', tr('sys.combat.reject.no_entity'));
       if (e.id === ctx.world.slices.world.playerId) {
-        return reject('outsider', '编外者没有职能，力量只来自门');
+        return reject('outsider', tr('sys.combat.reject.outsider'));
       }
-      if (!classDef(ctx.content, d.classId)) return reject('no_class', '没有这个职能');
+      if (!classDef(ctx.content, d.classId))
+        return reject('no_class', tr('sys.combat.reject.no_class'));
       const u = unitOf(ctx.world, d.entityId);
       if (!u) {
         createUnit(ctx, d.entityId, {
@@ -203,10 +206,11 @@ export const system: GameSystem = {
       return ok();
     },
     'combat.spawn'(ctx, d) {
-      if (!monsterDef(ctx.content, d.monsterId)) return reject('no_monster', '没有这种魔物');
+      if (!monsterDef(ctx.content, d.monsterId))
+        return reject('no_monster', tr('sys.combat.reject.no_monster'));
       const p = playerEntity(ctx.world);
       const mapId = d.mapId ?? p?.mapId;
-      if (!mapId) return reject('no_map', '不知道生成在哪里');
+      if (!mapId) return reject('no_map', tr('sys.combat.reject.no_map'));
       const count = Math.max(1, Math.min(20, d.count ?? 1));
       let made = 0;
       for (let i = 0; i < count; i++) {
@@ -214,7 +218,9 @@ export const system: GameSystem = {
         const y = d.y ?? p?.y ?? 1;
         if (spawnMonster(ctx, d.monsterId, mapId, x, y, { level: d.level })) made++;
       }
-      return made > 0 ? ok(`生成了 ${made} 只`) : reject('no_room', '那里生成不了');
+      return made > 0
+        ? ok(tr('sys.combat.info.spawned', { n: made }))
+        : reject('no_room', tr('sys.combat.reject.no_room'));
     },
   },
 

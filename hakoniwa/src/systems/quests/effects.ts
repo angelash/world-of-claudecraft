@@ -165,7 +165,7 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       ctx.setFlag('p_appearance', `${e.base}:${e.colors.join(',')}`);
       return;
     case 'name': {
-      const name = String(ctx.flag(e.from) ?? '').trim() || '无名氏';
+      const name = String(ctx.flag(e.from) ?? '').trim() || emptyName(ctx, e.from);
       ctx.setFlag('player.name', name);
       ctx.setFlag('player.name', name);
       return;
@@ -189,6 +189,20 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       return;
     }
   }
+}
+
+/**
+ * The written default of a name nobody gave: the `empty` value of the scene input that
+ * stores into `key` (the prologue's name prompt). Content text, so it stays a plain
+ * string (flags hold plain values); '' when no input declares one.
+ */
+function emptyName(ctx: SystemContext, key: string): string {
+  for (const scene of ctx.content.scenes ?? []) {
+    for (const node of scene.nodes) {
+      if (node.input?.storeAs === key && node.input.empty) return node.input.empty;
+    }
+  }
+  return '';
 }
 
 export function applyEffects(ctx: SystemContext, effects: readonly Effect[] | undefined): void {

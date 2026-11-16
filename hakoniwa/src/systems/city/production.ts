@@ -3,6 +3,7 @@
 // 'production' keyed by the site id, except in the inner court, which is immune.
 
 import type { SystemContext } from '../../core/system';
+import { joinText, type KeyText, tr } from '../../core/text';
 import { TICKS_PER_GAME_DAY } from '../../core/time';
 import { addItem, addMoney, itemDef, removeItem, spendMoney } from '../inventory';
 import { applyModifiers, registerModifier } from '../modifiers';
@@ -102,14 +103,14 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
       assigned += w;
       b.workers = w;
       staffing = w / jobs;
-      if (w === 0) b.note = '没有人手';
+      if (w === 0) b.note = tr('sys.city.building_note.no_workers');
     } else {
       b.workers = 0;
     }
     if (!def.produces) continue;
     const eff = buildingEfficiency(ctx, site, sdef, b, day) * staffing;
     if (eff <= 0) {
-      if (site.upkeep.state === 'shutdown') b.note = '欠缴维护费，停工';
+      if (site.upkeep.state === 'shutdown') b.note = tr('sys.city.building_note.unpaid');
       continue;
     }
     let ratio = 1;
@@ -123,7 +124,8 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
         lacking.push(itemName(ctx, id));
       }
     }
-    if (lacking.length > 0) b.note = `缺少原料：${lacking.join('、')}`;
+    if (lacking.length > 0)
+      b.note = tr('sys.city.building_note.lacking', { items: joinText('list', lacking) });
     if (ratio <= 0) continue;
     const channel = def.channel ?? 'production';
     // Net change in stored units if the building runs at `ratio`: projected output (after
@@ -134,11 +136,11 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
     if (net > 0 && net > budget) {
       full = true;
       if (budget <= 0) {
-        b.note = FULL_NOTE;
+        b.note = fullNote();
         continue;
       }
       ratio *= budget / net;
-      b.note = '仓库将满，减产';
+      b.note = tr('sys.city.building_note.almost_full');
       net = budget;
     }
     budget -= net;
@@ -181,13 +183,15 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
     if (put < whole) {
       full = true;
       site.spoil[`out:${id}`] = (site.spoil[`out:${id}`] ?? 0) + (whole - put);
-      for (const b of producersOf[id] ?? []) b.note = FULL_NOTE;
+      for (const b of producersOf[id] ?? []) b.note = fullNote();
     }
   }
-  if (full) site.status.push('仓库已满：放不下的产出不再开工，腾出地方后恢复生产');
+  if (full) site.status.push(tr('sys.city.status.storage_full'));
 }
 
-const FULL_NOTE = '仓库已满，停产';
+function fullNote(): KeyText {
+  return tr('sys.city.building_note.full');
+}
 
 /** Whole units of output already produced but still waiting for storage space. */
 function backlog(site: SiteState): number {
@@ -261,10 +265,10 @@ export function runFinances(ctx: SystemContext, site: SiteState, sdef: SiteDef):
   site.upkeep.state = d <= 7 ? 'grace' : d <= 21 ? 'degraded' : 'shutdown';
   site.status.push(
     site.upkeep.state === 'grace'
-      ? `维护费欠缴第 ${d} 天（宽限期）`
+      ? tr('sys.city.status.upkeep_grace', { d })
       : site.upkeep.state === 'degraded'
-        ? `维护费欠缴第 ${d} 天：建筑降效`
-        : `维护费欠缴第 ${d} 天：建筑停工`,
+        ? tr('sys.city.status.upkeep_degraded', { d })
+        : tr('sys.city.status.upkeep_shutdown', { d }),
   );
 }
 
@@ -307,7 +311,7 @@ export function runPurifyWell(ctx: SystemContext, site: SiteState): void {
     untilTick: ctx.tick + 30 * TICKS_PER_GAME_DAY,
     source: 'city',
     visibility: 'public',
-    note: '净澱井：聚落的澱在缓慢沉降',
+    note: tr('sys.city.modifier.purify_well'),
   });
   site.sedimentModifier = { id: m.id, untilTick: m.untilTick };
 }

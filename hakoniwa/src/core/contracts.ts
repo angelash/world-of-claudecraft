@@ -10,6 +10,8 @@
 //
 // See docs/50_tech/architecture.md 4.3 to 4.6.
 
+import type { TextRef } from './text';
+
 export type FlagValue = number | boolean | string;
 
 /** Per-system state slices stored on the world. */
@@ -22,7 +24,8 @@ export interface EventMap {
     kind: string;
     ok: boolean;
     code?: string;
-    reason?: string;
+    /** the handler's readable reason (rejections) or note (successes), as text */
+    reason?: TextRef | string;
     source: CommandSource;
   };
   'flag.changed': { key: string; value: FlagValue; previous: FlagValue | undefined };
@@ -71,12 +74,19 @@ export interface Command<K extends CommandKind = CommandKind> {
 
 export type AnyCommand = { [K in CommandKind]: Command<K> }[CommandKind];
 
+/**
+ * A handler's verdict: success with an optional note, or a rejection with a stable code and
+ * a readable reason. The reason is a TextRef (architecture.md 4.5, D-077) and goes back to
+ * the proposer and to the player's log; a success note may also be a content display string
+ * (a chosen option's label from data).
+ */
 export type CommandResult =
-  | { ok: true; info?: string }
-  | { ok: false; code: string; reason: string };
+  | { ok: true; info?: TextRef | string }
+  | { ok: false; code: string; reason: TextRef };
 
-export const ok = (info?: string): CommandResult => (info ? { ok: true, info } : { ok: true });
-export const reject = (code: string, reason: string): CommandResult => ({
+export const ok = (info?: TextRef | string): CommandResult =>
+  info ? { ok: true, info } : { ok: true };
+export const reject = (code: string, reason: TextRef): CommandResult => ({
   ok: false,
   code,
   reason,

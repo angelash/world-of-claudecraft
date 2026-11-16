@@ -7,27 +7,12 @@ import type { SystemContext } from '../../core/system';
 import { mapById, orderMove, removeEntity, spawnEntity } from '../world';
 import { buildingDef, isWorking, totalPop } from './common';
 import { centerTile, entranceOf } from './placement';
+import settlerNames from './settler_names.json';
 import type { SiteDef, SiteState } from './types';
 
 const MAX_SETTLERS = 12;
-const NAMES = [
-  '汉斯',
-  '莉娜',
-  '托比',
-  '格蕾塔',
-  '马丁',
-  '艾玛',
-  '奥斯卡',
-  '卡琳',
-  '鲁迪',
-  '贝蒂',
-  '约纳斯',
-  '米娅',
-  '保罗',
-  '安娜',
-  '雅各',
-  '索菲',
-];
+// The name pool is content data (settler_names.json), not display text the kernel writes.
+const NAMES: readonly string[] = settlerNames.names;
 const PALETTES = [
   ['#6b5a3e', '#a08c6a', '#f1c9a5', '#3a2a1a'],
   ['#4f6b4a', '#c2b28a', '#e8bb93', '#5a3b22'],

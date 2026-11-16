@@ -2,6 +2,7 @@
 // the open trade session, and the company dashboard. Pure over world and content.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, tr } from '../../core/text';
 import { TICKS_PER_GAME_DAY } from '../../core/time';
 import type { World } from '../../core/world';
 import { countItem, holdingOf, itemDef } from '../inventory';
@@ -12,6 +13,9 @@ function recipeUnlockedFlags(world: World, recipe: RecipeDef): boolean {
   return !recipe.requiresFlags?.some((f) => !world.meta.flags[f]);
 }
 
+/** Market row condition: scarce below half the target stock, else stable or volatile. */
+export type MarketCondition = 'stable' | 'volatile' | 'scarce';
+
 export interface MarketRow {
   itemId: string;
   name: string;
@@ -21,7 +25,9 @@ export interface MarketRow {
   /** what the merchant pays per unit */
   sell: number;
   mult: number;
-  state: '稳定' | '波动' | '稀缺';
+  state: MarketCondition;
+  /** display label of `state` */
+  stateLabel: KeyText;
   legal: boolean;
 }
 
@@ -47,6 +53,11 @@ export function marketView(world: World, content: ContentMap, marketId: string):
     const sell = quote(world, content, marketId, g.itemId, 'sell', 1)?.unit ?? 0;
     const T = targetStock(config, g);
     const scarce = s.stock < T * 0.5;
+    const cond: MarketCondition = scarce
+      ? 'scarce'
+      : s.mult >= 0.9 && s.mult <= 1.1
+        ? 'stable'
+        : 'volatile';
     rows.push({
       itemId: g.itemId,
       name: item.name,
@@ -54,7 +65,8 @@ export function marketView(world: World, content: ContentMap, marketId: string):
       buy,
       sell,
       mult: s.mult,
-      state: scarce ? '稀缺' : s.mult >= 0.9 && s.mult <= 1.1 ? '稳定' : '波动',
+      state: cond,
+      stateLabel: tr(`sys.economy.market_state.${cond}`),
       legal: !isIllegal(config, item),
     });
   }
@@ -93,7 +105,7 @@ export interface TradeSessionView {
     count: number;
     sell: number;
     legal: boolean;
-    reason?: string;
+    reason?: KeyText;
   }[];
 }
 
@@ -120,7 +132,7 @@ export function tradeSessionView(world: World, content: ContentMap): TradeSessio
       count,
       sell: q?.unit ?? 0,
       legal,
-      reason: legal ? undefined : '未经净炼，合法市场不收',
+      reason: legal ? undefined : tr('sys.economy.trade.illegal_hint'),
     });
   }
   return {

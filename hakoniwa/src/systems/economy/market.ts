@@ -5,6 +5,7 @@
 
 import type { ContentMap } from '../../core/contracts';
 import type { Rng } from '../../core/rng';
+import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { type ItemDef, itemDef } from '../inventory';
 import { activeModifiers } from '../modifiers';
@@ -122,7 +123,7 @@ export function priceModifierLines(
     seen.add(m.id);
     factor *= m.factor ?? 1;
     add += m.add ?? 0;
-    const label = m.visibility === 'public' ? m.note : '异常波动（来源未查明）';
+    const label = m.visibility === 'public' ? m.note : tr('sys.economy.quote.hidden_modifier');
     lines.push({ kind: 'modifier', label, value: m.factor ?? 1, modifierId: m.id });
   }
   const [lo, hi] = config.modifierBounds;
@@ -152,7 +153,7 @@ export function quote(
   let mid: number;
   if (good && state?.goods[itemId]) {
     const base = item.value * (good.priceMult ?? 1);
-    lines.push({ kind: 'base', label: '基准价', value: base });
+    lines.push({ kind: 'base', label: tr('sys.economy.quote.base'), value: base });
     const mult = state.goods[itemId].mult;
     lines.push({ kind: 'supply', label: supplyLabel(mult), value: mult });
     const mod = priceModifierLines(world, config, marketId, itemId);
@@ -162,12 +163,20 @@ export function quote(
     // unlisted goods: merchants only buy them back at a fixed share of their value
     if (side === 'buy') return null;
     mid = item.value * market.buybackRate;
-    lines.push({ kind: 'base', label: '收购价', value: mid });
+    lines.push({ kind: 'base', label: tr('sys.economy.quote.buyback'), value: mid });
   }
   const spread = side === 'buy' ? 1 + market.spread / 2 : 1 - market.spread / 2;
-  lines.push({ kind: 'spread', label: side === 'buy' ? '商人加价' : '商人压价', value: spread });
+  lines.push({
+    kind: 'spread',
+    label: tr(side === 'buy' ? 'sys.economy.quote.markup' : 'sys.economy.quote.markdown'),
+    value: spread,
+  });
   const tax = side === 'buy' ? 1 + market.taxRate : 1 - market.taxRate;
-  lines.push({ kind: 'tax', label: `交易税 ${Math.round(market.taxRate * 100)}%`, value: tax });
+  lines.push({
+    kind: 'tax',
+    label: tr('sys.economy.quote.tax', { pct: Math.round(market.taxRate * 100) }),
+    value: tax,
+  });
   const raw = mid * spread * tax;
   const unit = side === 'buy' ? Math.max(1, Math.ceil(raw)) : Math.max(0, Math.floor(raw));
   return { marketId, itemId, side, qty, unit, total: unit * qty, lines, legal };
@@ -195,12 +204,12 @@ export function midPrice(
   );
 }
 
-function supplyLabel(mult: number): string {
-  if (mult >= 1.3) return '供需：紧缺';
-  if (mult >= 1.1) return '供需：偏紧';
-  if (mult <= 0.75) return '供需：积压';
-  if (mult <= 0.9) return '供需：宽松';
-  return '供需：平稳';
+function supplyLabel(mult: number): KeyText {
+  if (mult >= 1.3) return tr('sys.economy.quote.supply.tight');
+  if (mult >= 1.1) return tr('sys.economy.quote.supply.firm');
+  if (mult <= 0.75) return tr('sys.economy.quote.supply.glut');
+  if (mult <= 0.9) return tr('sys.economy.quote.supply.loose');
+  return tr('sys.economy.quote.supply.steady');
 }
 
 function round3(n: number): number {

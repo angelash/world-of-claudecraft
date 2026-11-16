@@ -1,10 +1,11 @@
 // Diplomacy (grand_strategy_slg.md 4): treaties, war declarations with casus belli and
 // defensive allies, peace and truces (D-049), and the AI side's utility acceptance of
-// proposals. Every result carries a readable Chinese reason.
+// proposals. Every result carries a readable reason (a TextRef, D-077).
 
 import { type CommandResult, ok, reject } from '../../core';
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { joinText, type KeyText, tr } from '../../core/text';
 import { neighbors } from './map';
 import {
   addTreaty,
@@ -52,11 +53,11 @@ export function declareWar(
   opts: { force?: boolean } = {},
 ): CommandResult {
   const s = strat(ctx);
-  if (a === b) return reject('self', '不能对自己宣战');
-  if (!s.nations[b]?.alive) return reject('no_nation', '没有这个国家');
-  if (atWar(s, a, b)) return reject('already', '双方已在交战');
+  if (a === b) return reject('self', tr('sys.strategy.reject.self.war'));
+  if (!s.nations[b]?.alive) return reject('no_nation', tr('sys.strategy.reject.no_nation.unknown'));
+  if (atWar(s, a, b)) return reject('already', tr('sys.strategy.reject.already.war'));
   if (!opts.force && inTruce(s, a, b, currentAct(ctx))) {
-    return reject('truce', '停战期未满（本幕之内且不少于一季）');
+    return reject('truce', tr('sys.strategy.reject.truce'));
   }
   const cb = opts.force || hasCasusBelli(ctx.content, s, a, b);
   const na = s.nations[a];
@@ -86,7 +87,11 @@ export function declareWar(
   for (const d of war.defenders) shiftRelation(s, a, d, -30);
   log(
     s,
-    `${nationName(ctx.content, s, a)}向${nationName(ctx.content, s, b)}宣战${cb ? '' : '（无正当理由）'}`,
+    tr('sys.strategy.log.war_declared', {
+      a: nationName(ctx.content, s, a),
+      b: nationName(ctx.content, s, b),
+      unjust: cb ? '' : tr('sys.strategy.log.war_unjust'),
+    }),
   );
   ctx.emit('slg.war_declared', {
     attacker: a,
@@ -94,7 +99,9 @@ export function declareWar(
     casusBelli: cb,
     allies: war.defenders.filter((x) => x !== b),
   });
-  return ok(cb ? '宣战' : '宣战（无正当理由，正统受损）');
+  return ok(
+    cb ? tr('sys.strategy.info.war_declared') : tr('sys.strategy.info.war_declared_unjust'),
+  );
 }
 
 export function makePeace(ctx: SystemContext, war: War, kind: 'truce' | 'peace'): void {
@@ -110,7 +117,10 @@ export function makePeace(ctx: SystemContext, war: War, kind: 'truce' | 'peace')
   }
   log(
     s,
-    `${nationName(ctx.content, s, war.attacker)}与${nationName(ctx.content, s, war.defender)}${kind === 'truce' ? '停战' : '议和'}`,
+    tr(kind === 'truce' ? 'sys.strategy.log.peace_truce' : 'sys.strategy.log.peace_peace', {
+      a: nationName(ctx.content, s, war.attacker),
+      b: nationName(ctx.content, s, war.defender),
+    }),
   );
   ctx.emit('slg.peace', { a: war.attacker, b: war.defender, kind });
 }
@@ -144,45 +154,49 @@ export function refusal(
   from: NationId,
   to: NationId,
   action: DiplomacyAction,
-): string | null {
+): KeyText | null {
   const s = strat(ctx);
   const rel = relation(s, to, from);
   const def = ctx.content.slg_nations?.find((n) => n.id === to);
   const caution = def?.ruler.caution ?? 0.5;
-  const relNeed = (need: number) => `关系 ${num(rel)}，需要 ${need}`;
+  const relNeed = (need: number) => tr('sys.strategy.refuse.rel_need', { rel: num(rel), need });
+  const atWarText = () => tr('sys.strategy.refuse.at_war');
   switch (action) {
     case 'alliance': {
-      if (atWar(s, from, to)) return '双方仍在交战';
+      if (atWar(s, from, to)) return atWarText();
       const enemy = commonEnemy(s, from, to);
       const threat = sharedThreat(s, from, to);
       if (rel >= 50 || (rel >= 30 && enemy) || (rel >= 0 && threat)) return null;
       const alt = [
-        enemy ? '有共同敌人时需要 30' : '有共同敌人可降到 30',
-        threat ? '同受第三国威胁时需要 0' : '同受第三国威胁可降到 0',
+        enemy ? tr('sys.strategy.refuse.enemy_need') : tr('sys.strategy.refuse.enemy_could'),
+        threat ? tr('sys.strategy.refuse.threat_need') : tr('sys.strategy.refuse.threat_could'),
       ];
-      return `对方认为结盟的时机未到（${relNeed(50)}；${alt.join('；')}）`;
+      return tr('sys.strategy.refuse.alliance', {
+        rel: relNeed(50),
+        alt: joinText('semicolon', alt),
+      });
     }
     case 'trade':
-      if (atWar(s, from, to)) return '双方仍在交战';
-      return rel >= -10 ? null : `对方不愿与你通商（${relNeed(-10)}）`;
+      if (atWar(s, from, to)) return atWarText();
+      return rel >= -10 ? null : tr('sys.strategy.refuse.trade', { rel: relNeed(-10) });
     case 'non_aggression': {
-      if (atWar(s, from, to)) return '双方仍在交战';
+      if (atWar(s, from, to)) return atWarText();
       const ratio =
         nationPower(ctx.content, s, from) / Math.max(1e-9, nationPower(ctx.content, s, to));
       const fear = ratio > 1.3;
       return rel >= 0 || fear
         ? null
-        : `对方不信任你的承诺（${relNeed(0)}；或你的国力达到对方的 1.3 倍，现为 ${times(ratio)} 倍）`;
+        : tr('sys.strategy.refuse.non_aggression', { rel: relNeed(0), ratio: times(ratio) });
     }
     case 'passage':
-      if (atWar(s, from, to)) return '双方仍在交战';
-      return rel >= 20 ? null : `对方不允许你的军队过境（${relNeed(20)}）`;
+      if (atWar(s, from, to)) return atWarText();
+      return rel >= 20 ? null : tr('sys.strategy.refuse.passage', { rel: relNeed(20) });
     case 'recognize':
-      return rel >= -10 ? null : `对方拒绝承认你的主权（${relNeed(-10)}）`;
+      return rel >= -10 ? null : tr('sys.strategy.refuse.recognize', { rel: relNeed(-10) });
     case 'truce':
     case 'peace': {
       const war = warBetween(s, from, to);
-      if (!war) return '双方并未交战';
+      if (!war) return tr('sys.strategy.refuse.not_at_war');
       const weariness = s.nations[to]?.warWeariness ?? 0;
       const toAttacks = war.attackers.includes(to);
       const toScore = toAttacks ? war.score : -war.score;
@@ -192,12 +206,12 @@ export function refusal(
       const patient = caution >= 0.7;
       if (weariness >= 40 || toScore <= -20 || ratio < 0.8 || (patient && days >= 28)) return null;
       const terms = [
-        `厌战 ${num(weariness)}，需要 40`,
-        `对方战争分数 ${num(toScore)}，需要 -20 以下`,
-        `对方国力为你的 ${times(ratio)} 倍，需要低于 0.8 倍`,
+        tr('sys.strategy.refuse.term.weariness', { n: num(weariness) }),
+        tr('sys.strategy.refuse.term.score', { n: num(toScore) }),
+        tr('sys.strategy.refuse.term.power', { ratio: times(ratio) }),
       ];
-      if (patient) terms.push(`已交战 ${days} 天，谨慎的统治者 28 天后愿意谈`);
-      return `对方认为仗还没有打完（${terms.join('；')}）`;
+      if (patient) terms.push(tr('sys.strategy.refuse.term.patient', { days }));
+      return tr('sys.strategy.refuse.peace', { terms: joinText('semicolon', terms) });
     }
     default:
       return null;
@@ -212,16 +226,16 @@ const TREATY_OF: Partial<Record<DiplomacyAction, TreatyType>> = {
   recognize: 'recognition',
 };
 
-const ACTION_NAME: Record<DiplomacyAction, string> = {
-  alliance: '结盟',
-  trade: '通商',
-  non_aggression: '互不侵犯',
-  passage: '借道',
-  recognize: '承认',
-  declare_war: '宣战',
-  truce: '停战',
-  peace: '议和',
-  break_treaty: '废约',
+const ACTION_NAME: Record<DiplomacyAction, () => KeyText> = {
+  alliance: () => tr('sys.strategy.action.alliance'),
+  trade: () => tr('sys.strategy.action.trade'),
+  non_aggression: () => tr('sys.strategy.action.non_aggression'),
+  passage: () => tr('sys.strategy.action.passage'),
+  recognize: () => tr('sys.strategy.action.recognize'),
+  declare_war: () => tr('sys.strategy.action.declare_war'),
+  truce: () => tr('sys.strategy.action.truce'),
+  peace: () => tr('sys.strategy.action.peace'),
+  break_treaty: () => tr('sys.strategy.action.break_treaty'),
 };
 
 /** Execute a diplomatic action from one nation toward another (acceptance included). */
@@ -233,19 +247,27 @@ export function performDiplomacy(
   treaty?: TreatyType,
 ): CommandResult {
   const s = strat(ctx);
-  if (!s.nations[from]?.alive) return reject('no_nation', '你还没有可以代表的国家');
-  if (!s.nations[to]?.alive) return reject('no_nation', '没有这个国家');
-  if (from === to) return reject('self', '不能与自己交涉');
+  if (!s.nations[from]?.alive)
+    return reject('no_nation', tr('sys.strategy.reject.no_nation.representable'));
+  if (!s.nations[to]?.alive)
+    return reject('no_nation', tr('sys.strategy.reject.no_nation.unknown'));
+  if (from === to) return reject('self', tr('sys.strategy.reject.self.talk'));
   if (action === 'declare_war') return declareWar(ctx, from, to);
   if (action === 'break_treaty') {
     const gone = removeTreaties(s, from, to, treaty);
-    if (gone.length === 0) return reject('no_treaty', '双方之间没有这项条约');
+    if (gone.length === 0) return reject('no_treaty', tr('sys.strategy.reject.no_treaty'));
     const n = s.nations[from];
     if (n) n.credibility = Math.max(0, n.credibility - 10);
     shiftRelation(s, from, to, -20);
     for (const t of gone) ctx.emit('slg.treaty', { a: from, b: to, type: t.type, signed: false });
-    log(s, `${nationName(ctx.content, s, from)}废除了与${nationName(ctx.content, s, to)}的条约`);
-    return ok('条约已废除');
+    log(
+      s,
+      tr('sys.strategy.log.treaty_broken', {
+        a: nationName(ctx.content, s, from),
+        b: nationName(ctx.content, s, to),
+      }),
+    );
+    return ok(tr('sys.strategy.info.treaty_broken'));
   }
   // the receiver decides (the player answers through its own commands)
   if (to !== PLAYER) {
@@ -254,21 +276,25 @@ export function performDiplomacy(
       shiftRelation(s, to, from, -2, false);
       return reject(
         'refused',
-        `${nationName(ctx.content, s, to)}拒绝了${ACTION_NAME[action]}：${why}`,
+        tr('sys.strategy.reject.refused', {
+          nation: nationName(ctx.content, s, to),
+          action: ACTION_NAME[action](),
+          why,
+        }),
       );
     }
   } else if (from !== PLAYER) {
-    return reject('needs_player', '需要玩家亲自答复');
+    return reject('needs_player', tr('sys.strategy.reject.needs_player.diplomacy'));
   }
   if (action === 'truce' || action === 'peace') {
     const war = warBetween(s, from, to);
-    if (!war) return reject('not_at_war', '双方并未交战');
+    if (!war) return reject('not_at_war', tr('sys.strategy.reject.not_at_war'));
     makePeace(ctx, war, action);
-    return ok(action === 'truce' ? '停战达成' : '和约签订');
+    return ok(action === 'truce' ? tr('sys.strategy.info.truce') : tr('sys.strategy.info.peace'));
   }
   const type = TREATY_OF[action];
-  if (!type) return reject('bad_action', '无法理解的外交动作');
-  if (hasTreaty(s, from, to, type)) return reject('exists', '这项条约已经生效');
+  if (!type) return reject('bad_action', tr('sys.strategy.reject.bad_action'));
+  if (hasTreaty(s, from, to, type)) return reject('exists', tr('sys.strategy.reject.exists'));
   addTreaty(s, from, to, type);
   if (action === 'recognize') {
     const target = s.nations[from];
@@ -282,9 +308,13 @@ export function performDiplomacy(
   ctx.emit('slg.treaty', { a: from, b: to, type, signed: true });
   log(
     s,
-    `${nationName(ctx.content, s, from)}与${nationName(ctx.content, s, to)}达成${ACTION_NAME[action]}`,
+    tr('sys.strategy.log.treaty_signed', {
+      a: nationName(ctx.content, s, from),
+      b: nationName(ctx.content, s, to),
+      action: ACTION_NAME[action](),
+    }),
   );
-  return ok(`${ACTION_NAME[action]}达成`);
+  return ok(tr('sys.strategy.info.signed', { action: ACTION_NAME[action]() }));
 }
 
 /** Neighbouring nations (sharing a province link). */

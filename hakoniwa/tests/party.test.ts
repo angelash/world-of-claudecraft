@@ -13,6 +13,8 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
+import { t } from '../src/shared_ui/i18n';
 import { system as combat } from '../src/systems/combat';
 import { deriveStats } from '../src/systems/combat/stats';
 import { system as doors } from '../src/systems/doors';
@@ -202,7 +204,7 @@ describe('following and fighting', () => {
     recruit(g, 'ron');
     g.queue('party.order', { order: 'passive' });
     g.step(1);
-    expect(partyView(g.world, g.content)[0]?.orderName).toBe('被动');
+    expect(partyView(g.world, g.content)[0]?.orderName).toEqual(tr('sys.party.order.passive'));
     const id = spawnNear(g, 'dian_dreg', 1, 3);
     g.queue('combat.attack', { on: true, targetId: id });
     g.step(20 * 5);
@@ -214,6 +216,7 @@ describe('following and fighting', () => {
     g.queue('party.order', { order: 'charge' as never });
     g.step(1);
     expect(lastResult(g, 'party.order')?.code).toBe('bad_order');
+    expect(lastResult(g, 'party.order')?.reason).toEqual(tr('sys.party.reject.bad_order'));
     g.queue('party.order', { companionId: 'ghost', order: 'follow' });
     g.step(1);
     expect(lastResult(g, 'party.order')?.code).toBe('no_companion');
@@ -265,6 +268,7 @@ describe('bonds', () => {
     g.queue('party.gift', { companionId: 'shiya', itemId: 'wolf_pelt' });
     g.step(1);
     expect(lastResult(g, 'party.gift')?.code).toBe('missing');
+    expect(t(lastResult(g, 'party.gift')?.reason)).toBe('背包里没有它');
     withCtx(g, (ctx) => addItem(ctx, 'player', 'gate_stone', 1));
     g.queue('party.gift', { companionId: 'shiya', itemId: 'gate_stone' });
     g.step(1);

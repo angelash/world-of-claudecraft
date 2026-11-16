@@ -13,7 +13,9 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine, type EngineOptions, ok, worldHash } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { GameSystem, SystemContext } from '../src/core/system';
+import { isTextRef, type KeyText, rawText, tr } from '../src/core/text';
 import { calendarAt, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR, tickAtDay } from '../src/core/time';
+import { renderTextDeep, t } from '../src/shared_ui/i18n';
 import { system as cognition } from '../src/systems/cognition';
 import { system as dialogue } from '../src/systems/dialogue';
 import { holdingOf, system as inventory } from '../src/systems/inventory';
@@ -395,7 +397,9 @@ describe('daily plans through the AI port', () => {
     const ronReq = reqs.find((r) => r.agentId === 'ron' && r.role === 'npc.daily');
     expect(ronReq).toBeDefined();
     if (!ronReq) return;
-    const ctx = ronReq.context as {
+    // the prompt text is text keys; rendered in the source language it reads as before
+    expect(JSON.stringify(ronReq.context)).toContain('sys.npc.prompt.isolation');
+    const ctx = renderTextDeep(ronReq.context) as {
       v: number;
       persona: string;
       commands: Record<string, string>;
@@ -445,11 +449,17 @@ describe('daily plans through the AI port', () => {
     g.queue('npc.plan', { npcId: 'ron', revision: ronReq.revision, day, slots: good });
     g.step(1);
     const codes = results().map((e) => [e.data.code, e.data.reason]);
-    expect(codes).toContainEqual(['bad_plan', '计划已经过时，外部安排已改变']);
+    expect(codes).toContainEqual(['bad_plan', tr('sys.npc.plan.reject.stale')]);
     expect(
-      codes.some(([c, r]) => c === 'bad_plan' && String(r).includes('不是可以随便进的地方')),
+      codes.some(
+        ([c, r]) =>
+          c === 'bad_plan' &&
+          isTextRef(r) &&
+          (r as KeyText).key === 'sys.npc.plan.reject.private' &&
+          (r as KeyText).params?.n === 1,
+      ),
     ).toBe(true);
-    expect(codes).toContainEqual(['not_allowed', '玩家不能替别人安排日程']);
+    expect(codes).toContainEqual(['not_allowed', tr('sys.npc.reject.plan_not_allowed')]);
   });
 });
 
@@ -517,7 +527,13 @@ describe('batch diary (L3)', () => {
     const diary = g.world.slices.npc.npcs.cassian?.diary ?? [];
     expect(diary.length).toBeGreaterThan(0);
     expect(diary.length).toBeLessThanOrEqual(3);
-    expect(diary.every((d) => d.day === 0 && d.text.length <= 40)).toBe(true);
+    expect(diary.every((d) => d.day === 0 && t(d.text).length <= 40)).toBe(true);
+    // the rule diary is text keys with the place and the other person as parameters
+    expect(
+      diary.every(
+        (d) => isTextRef(d.text) && (d.text as KeyText).key.startsWith('sys.npc.diary.rule.'),
+      ),
+    ).toBe(true);
   });
 
   it('keeps only roster members, tracked kinds and three picks per person from a proposal', () => {
@@ -550,7 +566,12 @@ describe('batch diary (L3)', () => {
     });
     g.step(1);
     const diary = g.world.slices.npc.npcs[who]?.diary ?? [];
-    expect(diary.map((d) => d.text)).toEqual(['今天干活很顺。', '一', '二']);
+    // the model's words are kept as raw text with their language (D-087)
+    expect(diary.map((d) => d.text)).toEqual([
+      rawText('今天干活很顺。'),
+      rawText('一'),
+      rawText('二'),
+    ]);
     expect(g.world.slices.npc.npcs.selene?.diary.some((d) => d.text === '不在名册里')).toBe(false);
     g.queue('npc.diary_batch', {
       mapId: 'borderstone',
@@ -571,7 +592,9 @@ describe('queries and determinism', () => {
     const g = game();
     const v = npcView(g.world, g.content, 'ron');
     expect(v?.name).toBe('罗恩');
-    expect(v?.relationBand).toBeTruthy();
+    expect((v?.relationBand as KeyText | undefined)?.key.startsWith('sys.npc.relation.')).toBe(
+      true,
+    );
     expect(JSON.stringify(v)).not.toContain('从没独自打赢过');
     expect(JSON.stringify(v)).not.toContain('统帅');
     const list = npcsOnMap(g.world, g.content, 'wallenburg');

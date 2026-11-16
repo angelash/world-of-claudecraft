@@ -4,6 +4,7 @@
 // 60-level Record cap (decision D-005). Each function names its source. No state, no
 // randomness: callers roll dice with their own named Rng streams.
 
+import { type KeyText, tr } from '../../core/text';
 import type { ClassDef } from './types';
 
 export const MAX_LEVEL = 60;
@@ -258,16 +259,10 @@ export function tierForLevel(level: number): number {
   return 7;
 }
 
-export const TIER_NAMES = [
-  '凡阶·初',
-  '凡阶·熟',
-  '精英阶',
-  '英雄阶',
-  '传说阶',
-  '神话阶',
-  '超越边缘',
-  '超越',
-];
+/** Display name of a rank (tier 0 to 7, power_system.md 3), as a fresh text key. */
+export function tierName(tier: number): KeyText | '' {
+  return Number.isInteger(tier) && tier >= 0 && tier <= 7 ? tr(`sys.combat.tier.${tier}`) : '';
+}
 
 /**
  * Presence (威压) on attacks against a higher rank. Q-003 keeps the level miss penalty

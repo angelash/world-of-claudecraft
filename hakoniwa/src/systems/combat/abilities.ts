@@ -5,6 +5,7 @@
 
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { entitiesNear, getEntity, haltEntity, isWalkable, mapById, teleportEntity } from '../world';
 import { applyAura, dispel, hasAura } from './auras';
@@ -19,9 +20,12 @@ import { canAttack, isFriendlyPair, knownAbilities, liveUnit, unitOf } from './u
 
 export type Check =
   | { ok: true; def: AbilityDef; target: Unit; cost: number }
-  | { ok: false; code: string; reason: string };
+  | { ok: false; code: string; reason: KeyText };
 
-const RESOURCE_NAMES: Record<ResourceKind, string> = { mana: '灵力', rage: '战意', energy: '气息' };
+/** Display name of a resource pool, as a fresh text key. */
+export function resourceName(kind: ResourceKind): KeyText {
+  return tr(`sys.combat.resource.${kind}`);
+}
 
 export function abilityCost(def: AbilityDef, d: Derived): number {
   if (def.costPct && def.resource === 'mana') return Math.round((d.maxRes.mana ?? 0) * def.costPct);
@@ -54,45 +58,55 @@ export function checkAbility(
   targetId?: string | null,
 ): Check {
   const def = abilityDef(content, abilityId);
-  if (!def) return { ok: false, code: 'no_ability', reason: '没有这个技能' };
-  if (!liveUnit(world, caster.id)) return { ok: false, code: 'dead', reason: '现在无法行动' };
+  if (!def) return { ok: false, code: 'no_ability', reason: tr('sys.combat.reject.no_ability') };
+  if (!liveUnit(world, caster.id))
+    return { ok: false, code: 'dead', reason: tr('sys.combat.reject.dead') };
   if (!knownAbilities(content, caster).includes(abilityId)) {
-    return { ok: false, code: 'unknown', reason: '还不会这个技能' };
+    return { ok: false, code: 'unknown', reason: tr('sys.combat.reject.unknown') };
   }
   const d = deriveStats(world, content, caster);
-  if (isDisabled(d)) return { ok: false, code: 'disabled', reason: '身体不听使唤' };
+  if (isDisabled(d))
+    return { ok: false, code: 'disabled', reason: tr('sys.combat.reject.disabled') };
   if (d.cc.silence && (def.school ?? 'physical') !== 'physical') {
-    return { ok: false, code: 'silenced', reason: '被封住了施法' };
+    return { ok: false, code: 'silenced', reason: tr('sys.combat.reject.silenced') };
   }
-  if (caster.cast) return { ok: false, code: 'busy', reason: '正在施法' };
+  if (caster.cast) return { ok: false, code: 'busy', reason: tr('sys.combat.reject.busy') };
   const tick = world.meta.tick;
   if (def.gcd !== false && caster.gcd > tick)
-    return { ok: false, code: 'gcd', reason: '公共冷却中' };
+    return { ok: false, code: 'gcd', reason: tr('sys.combat.reject.gcd') };
   if ((caster.cds[abilityId] ?? 0) > tick)
-    return { ok: false, code: 'cooldown', reason: '技能冷却中' };
+    return { ok: false, code: 'cooldown', reason: tr('sys.combat.reject.cooldown') };
   const cost = abilityCost(def, d);
   if (def.resource && cost > 0) {
     const have = caster.res[def.resource];
     if (have === undefined) {
-      return { ok: false, code: 'no_pool', reason: `没有${RESOURCE_NAMES[def.resource]}可用` };
+      return {
+        ok: false,
+        code: 'no_pool',
+        reason: tr('sys.combat.reject.no_pool', { resource: resourceName(def.resource) }),
+      };
     }
     if (have < cost) {
-      return { ok: false, code: 'no_resource', reason: `${RESOURCE_NAMES[def.resource]}不足` };
+      return {
+        ok: false,
+        code: 'no_resource',
+        reason: tr('sys.combat.reject.no_resource', { resource: resourceName(def.resource) }),
+      };
     }
   }
   const req = def.requires;
   if (req?.combo && caster.combo < req.combo) {
-    return { ok: false, code: 'no_combo', reason: '还没有撕开破绽' };
+    return { ok: false, code: 'no_combo', reason: tr('sys.combat.reject.no_combo') };
   }
   if (req?.selfHpBelow !== undefined && caster.hp > d.maxHp * req.selfHpBelow) {
-    return { ok: false, code: 'not_yet', reason: '现在还用不上' };
+    return { ok: false, code: 'not_yet', reason: tr('sys.combat.reject.not_yet.self_hp') };
   }
 
   let target: Unit | undefined = caster;
   if (def.target === 'enemy' || def.target === 'enemy_area') {
     target = unitOf(world, targetId ?? caster.target);
     if (!target || !canAttack(world, caster, target)) {
-      return { ok: false, code: 'bad_target', reason: '需要一个可以攻击的目标' };
+      return { ok: false, code: 'bad_target', reason: tr('sys.combat.reject.bad_target.enemy') };
     }
   } else if (def.target === 'ally' || def.target === 'ally_area') {
     const want = unitOf(world, targetId ?? caster.target);
@@ -100,19 +114,21 @@ export function checkAbility(
   }
   if (target !== caster) {
     const g = gap(world, caster.id, target.id);
-    if (!Number.isFinite(g)) return { ok: false, code: 'bad_target', reason: '目标不在这里' };
-    if (g > reachOf(def)) return { ok: false, code: 'out_of_range', reason: '距离太远' };
+    if (!Number.isFinite(g))
+      return { ok: false, code: 'bad_target', reason: tr('sys.combat.reject.bad_target.absent') };
+    if (g > reachOf(def))
+      return { ok: false, code: 'out_of_range', reason: tr('sys.combat.reject.out_of_range') };
     if (def.minRange && g < def.minRange)
-      return { ok: false, code: 'too_close', reason: '距离太近' };
+      return { ok: false, code: 'too_close', reason: tr('sys.combat.reject.too_close') };
   }
   if (req?.targetHpBelow !== undefined) {
     const td = deriveStats(world, content, target);
     if (target.hp > td.maxHp * req.targetHpBelow) {
-      return { ok: false, code: 'not_yet', reason: '目标还不够虚弱' };
+      return { ok: false, code: 'not_yet', reason: tr('sys.combat.reject.not_yet.target_hp') };
     }
   }
   if (req?.targetLacksAura && hasAura(target, req.targetLacksAura)) {
-    return { ok: false, code: 'not_yet', reason: '目标身上已有同类效果' };
+    return { ok: false, code: 'not_yet', reason: tr('sys.combat.reject.not_yet.target_aura') };
   }
   return { ok: true, def, target, cost };
 }

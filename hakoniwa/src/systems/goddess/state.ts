@@ -4,6 +4,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { registerModifier } from '../modifiers';
 import { currentActId } from '../quests/act_order';
 import { playerEntity } from '../world';
@@ -195,7 +196,7 @@ export function recordIntervention(
         untilTick: ctx.tick + 28 * 28800,
         source: entry.goddess,
         visibility: 'hidden',
-        note: `${entry.note}留下的澱`,
+        note: tr('sys.goddess.modifier.sediment', { note: entry.note }),
       });
     }
   }

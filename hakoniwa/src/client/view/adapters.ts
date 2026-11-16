@@ -264,7 +264,7 @@ export interface CharacterAdapter {
 }
 
 export interface DoorsAdapter {
-  doors(view: GameView): DoorView[];
+  doors(view: GameView): DoorView<string>[];
   open(view: GameView, doorId: string): Commands;
   close(view: GameView, doorId: string): Commands;
 }
@@ -275,9 +275,29 @@ export interface QuestsAdapter {
   choose(view: GameView, questId: string, optionId: string): Commands;
 }
 
+/** A rumor book entry with its texts rendered for display. */
+export type RumorBookLine = Omit<RumorBookEntry, 'text' | 'fromName' | 'credibility'> & {
+  text: string;
+  fromName: string;
+  credibility: string;
+};
+
+/** A reputation row with its texts rendered for display. */
+export type ReputationLine = Omit<
+  Reputation,
+  'name' | 'fameBand' | 'opinionBand' | 'estimate' | 'label' | 'mainstream'
+> & {
+  name: string;
+  fameBand: string;
+  opinionBand: string;
+  estimate: string;
+  label: string;
+  mainstream: string[];
+};
+
 export interface RumorsAdapter {
-  rumors(view: GameView): RumorBookEntry[];
-  reputation(view: GameView): { regions: Reputation[]; factions: Reputation[] };
+  rumors(view: GameView): RumorBookLine[];
+  reputation(view: GameView): { regions: ReputationLine[]; factions: ReputationLine[] };
 }
 
 export interface PartyAdapter {
@@ -300,9 +320,15 @@ export interface SiteSummary {
   usable: boolean;
 }
 
+/** A placement check with its reason rendered for display. */
+export type PlacementPreview =
+  | Extract<PlacementResult, { ok: true }>
+  | (Omit<Extract<PlacementResult, { ok: false }>, 'reason'> & { reason: string });
+
 export interface TerritoryAdapter {
   sites(view: GameView): SiteSummary[];
-  settlement(view: GameView, siteId: string): SettlementView | null;
+  /** the settlement view with its kernel text rendered */
+  settlement(view: GameView, siteId: string): SettlementView<string> | null;
   buildMenu(
     view: GameView,
     siteId: string,
@@ -316,7 +342,7 @@ export interface TerritoryAdapter {
     available: boolean;
     reason: string;
   }[];
-  preview(view: GameView, siteId: string, defId: string, x: number, y: number): PlacementResult;
+  preview(view: GameView, siteId: string, defId: string, x: number, y: number): PlacementPreview;
   found(view: GameView, siteId: string): Commands;
   place(view: GameView, siteId: string, defId: string, x: number, y: number): Commands;
   cancel(view: GameView, siteId: string, buildingId: string): Commands;
@@ -364,9 +390,12 @@ export interface StrategyAdapter {
   setBattleMode(view: GameView, mode: 'auto' | 'manual'): Commands;
 }
 
+/** A miracle-ledger entry with its note rendered for display. */
+export type MiracleLine = Omit<MiracleEntry, 'note'> & { note: string };
+
 export interface GoddessAdapter {
-  goddesses(view: GameView): GoddessView[];
-  record(view: GameView): MiracleEntry[];
+  goddesses(view: GameView): GoddessView<string>[];
+  record(view: GameView): MiracleLine[];
   revelations(view: GameView): { id: string; text: string; literal: string }[];
   /** whether the coin offering is possible at all (holding Merca's coin) */
   canOffer(view: GameView): boolean;

@@ -2,9 +2,14 @@
 // the battlefield and the continent. Pure functions of GameView plus the economy, city,
 // warfare and strategy queries.
 
-import { buildMenu, previewPlacement, settlementView } from '../../systems/city';
+import { formatMoney, t } from '../../shared_ui/i18n';
+import {
+  buildMenu,
+  previewPlacement,
+  type SettlementView,
+  settlementView,
+} from '../../systems/city';
 import { companyView } from '../../systems/economy';
-import { formatMoney } from '../../systems/inventory';
 import { continentView, diplomacyView, nationView } from '../../systems/strategy';
 import { battleView, pendingScenario } from '../../systems/warfare';
 import type {
@@ -49,11 +54,30 @@ export function siteSummaries(view: GameView): SiteSummary[] {
   }));
 }
 
+/** The settlement view with every kernel text field rendered for the territory window. */
+export function renderSettlement(v: SettlementView): SettlementView<string> {
+  return {
+    ...v,
+    stageName: t(v.stageName),
+    happinessFactors: v.happinessFactors.map((f) => ({ ...f, label: t(f.label) })),
+    buildings: v.buildings.map((b) => ({ ...b, note: t(b.note) })),
+    offices: v.offices.map((o) => ({ ...o, label: t(o.label) })),
+    autonomy: {
+      ...v.autonomy,
+      recent: v.autonomy.recent.map((r) => ({ ...r, action: t(r.action) })),
+    },
+    events: v.events.map((e) => ({ ...e, text: t(e.text) })),
+    status: v.status.map((s) => t(s)),
+  };
+}
+
 export function createTerritoryAdapter(): TerritoryAdapter {
   return {
     sites: siteSummaries,
-    settlement: (view, siteId) =>
-      settlementView(view.world as never, view.content as never, siteId),
+    settlement: (view, siteId) => {
+      const v = settlementView(view.world as never, view.content as never, siteId);
+      return v ? renderSettlement(v) : null;
+    },
     buildMenu(view, siteId) {
       return buildMenu(view.world as never, view.content as never, siteId).map((m) => ({
         id: m.def.id,
@@ -63,11 +87,13 @@ export function createTerritoryAdapter(): TerritoryAdapter {
         h: m.def.footprint.h,
         cost: costText(m.def.cost, (id) => view.itemDef(id)?.name ?? id),
         available: m.available,
-        reason: m.reason,
+        reason: t(m.reason),
       }));
     },
-    preview: (view, siteId, defId, x, y) =>
-      previewPlacement(view.world as never, view.content as never, siteId, defId, x, y),
+    preview: (view, siteId, defId, x, y) => {
+      const r = previewPlacement(view.world as never, view.content as never, siteId, defId, x, y);
+      return r.ok ? r : { ...r, reason: t(r.reason) };
+    },
     found: (_view, siteId) => [{ kind: 'city.found', data: { siteId } }],
     place: (_view, siteId, defId, x, y) => [{ kind: 'city.place', data: { siteId, defId, x, y } }],
     cancel: (_view, siteId, buildingId) => [{ kind: 'city.cancel', data: { siteId, buildingId } }],
@@ -82,7 +108,10 @@ export function createTerritoryAdapter(): TerritoryAdapter {
 export function createBattleAdapter(): BattleAdapter {
   return {
     battle: (view) => battleView(view.world as never, view.content as never),
-    pending: (view) => pendingScenario(view.world as never, view.content as never),
+    pending: (view) => {
+      const p = pendingScenario(view.world as never, view.content as never);
+      return p ? { ...p, name: t(p.name), desc: t(p.desc) } : null;
+    },
     start: (_view, scenarioId) => [{ kind: 'war.start', data: { scenarioId } }],
     order: (_view, o) => [{ kind: 'war.order', data: { ...o } }],
     heroAbility: (_view, heroId, abilityId, target) => [

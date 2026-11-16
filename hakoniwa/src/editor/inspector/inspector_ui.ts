@@ -15,6 +15,7 @@ import {
   TICKS_PER_GAME_MINUTE,
 } from '../../core/time';
 import type { World } from '../../core/world';
+import { t as renderText, renderTextDeep } from '../../shared_ui/i18n';
 import { holdingOf } from '../../systems/inventory';
 import type { ModifierSpec, ModifierTarget } from '../../systems/modifiers';
 import type { Entity, EntityKind } from '../../systems/world/types';
@@ -602,7 +603,7 @@ export class InspectorTool implements EditorTool {
             `${m.untilTick} (${m.untilTick - e.tick})`,
             m.source,
             m.visibility === 'public' ? T.inspector.modPublic : T.inspector.modHidden,
-            m.note,
+            renderText(m.note),
           ].map((t) => h('td', { text: t })),
         ),
       );
@@ -807,7 +808,7 @@ export class InspectorTool implements EditorTool {
           h('td', { text: String(ev.tick) }),
           h('td', { text: String(ev.seq) }),
           h('td', { class: 'mono', text: ev.kind }),
-          h('td', { class: 'mono small', text: JSON.stringify(ev.data) }),
+          h('td', { class: 'mono small', text: JSON.stringify(renderTextDeep(ev.data)) }),
         ),
       );
     }
@@ -888,7 +889,7 @@ export class InspectorTool implements EditorTool {
           h('td', { text: String(r.tick) }),
           h('td', { class: 'mono', text: d.kind }),
           h('td', {
-            text: `${d.ok ? T.inspector.resultOk : T.inspector.resultRejected}${d.code ? ` ${d.code}` : ''}${d.reason ? `：${d.reason}` : ''}`,
+            text: `${d.ok ? T.inspector.resultOk : T.inspector.resultRejected}${d.code ? ` ${d.code}` : ''}${d.reason ? `：${renderText(d.reason)}` : ''}`,
           }),
           h('td', { text: sourceLabel(d.source) }),
         ),

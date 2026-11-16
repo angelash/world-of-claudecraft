@@ -4,6 +4,7 @@
 import { systemSource } from '../../core';
 import type { AnyCommand } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { commandText, type KeyText, type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { mapById } from '../world';
 import { applyDecision, decideHour, devotionOf, spendable } from './actions';
@@ -45,7 +46,7 @@ export function requestDailyPlans(ctx: SystemContext): void {
         source: systemSource('npc'),
       },
     ];
-    const here = locationById(ctx.content, st.mapId, st.locId)?.name ?? '家里';
+    const here = locationById(ctx.content, st.mapId, st.locId)?.name ?? tr('sys.npc.place.home');
     ctx.ai.request({
       agentId: id,
       role: 'npc.daily',
@@ -56,14 +57,19 @@ export function requestDailyPlans(ctx: SystemContext): void {
         p,
         slice.minds[id],
         (k) => ctx.flag(k),
-        `${timeLabel(ctx.tick)}，天快亮了，你在${here}。安排今天的日程。你现在：${needsText(st.needs, mNeed)}。`,
+        tr('sys.npc.prompt.plan_situation', {
+          time: timeLabel(ctx.tick),
+          here,
+          needs: needsText(st.needs, mNeed),
+        }),
         {
-          'npc.plan': `安排今天的日程。数据：{ npcId: "${id}", revision: ${st.planRev}, day: ${day}, slots: [{ from, to, at, act, note? }], goal?, note? }。from、to 为整点（0 到 24，to 小于 from 表示跨过午夜）；at 只能取 extra.places 中的地点 ID，或 @home、@work；act 只能取 extra.acts 的键；只能在自己家或干活的地方睡觉。默认日程见 extra.defaultPlan，不想改就原样提交。`,
+          'npc.plan': tr('sys.npc.prompt.plan_command', { npcId: id, rev: st.planRev, day }),
         },
         {
           defaultPlan: rule.slots,
           places: placeList(ctx, card),
-          acts: ACT_NAMES,
+          // fresh copies: the context is world state, the table is module data
+          acts: JSON.parse(JSON.stringify(ACT_NAMES)),
         },
       ),
       allowed: ['npc.plan'],
@@ -74,7 +80,16 @@ export function requestDailyPlans(ctx: SystemContext): void {
   }
 }
 
-/** Validate and apply a plan for today; returns a Chinese reason on rejection. */
+/** A proposed goal or note: model strings are capped; rule notes are text keys (short). */
+function planText(v: TextParam | undefined, fromModel: boolean): TextParam | undefined {
+  if (v === undefined) return undefined;
+  // rule goals and notes are short keys; only strings need the cap
+  const text = commandText(v, fromModel, (s) => s.slice(0, 60));
+  // the old reading kept an empty string and dropped anything that was not text
+  return text === '' && typeof v !== 'string' ? undefined : text;
+}
+
+/** Validate and apply a plan for today; returns a readable reason on rejection. */
 export function applyPlan(
   ctx: SystemContext,
   d: {
@@ -82,27 +97,34 @@ export function applyPlan(
     revision: number;
     day: number;
     slots: PlanSlotData[];
-    goal?: string;
-    note?: string;
+    goal?: TextParam;
+    note?: TextParam;
   },
   source: PlanState['source'],
-): string | null {
+): KeyText | null {
   const slice = ctx.world.slices.npc;
   const st = slice.npcs[d.npcId];
   const card = cardOf(slice, ctx.content, d.npcId);
-  if (!st || !card) return '没有这个人';
-  if (st.gone) return '这个人现在不在';
-  if (d.revision !== st.planRev) return '计划已经过时，外部安排已改变';
+  if (!st || !card) return tr('sys.npc.plan.reject.unknown_npc');
+  if (st.gone) return tr('sys.npc.reject.no_npc');
+  if (d.revision !== st.planRev) return tr('sys.npc.plan.reject.stale');
   const cal = calendarAt(ctx.tick);
-  if (d.day !== cal.dayIndex) return '这不是今天的计划';
-  const why = validatePlan(ctx.content, card, d.slots);
+  if (d.day !== cal.dayIndex) return tr('sys.npc.plan.reject.not_today');
+  const fromModel = source === 'ai';
+  const why = validatePlan(ctx.content, card, d.slots, fromModel);
   if (why) return why;
   st.plan = {
     day: d.day,
-    slots: d.slots.map((s) => ({ from: s.from, to: s.to, at: s.at, act: s.act, note: s.note })),
+    slots: d.slots.map((s) => ({
+      from: s.from,
+      to: s.to,
+      at: s.at,
+      act: s.act,
+      note: s.note === undefined ? undefined : commandText(s.note, fromModel, (x) => x),
+    })),
     source,
-    goal: typeof d.goal === 'string' ? d.goal.slice(0, 60) : undefined,
-    note: typeof d.note === 'string' ? d.note.slice(0, 60) : undefined,
+    goal: planText(d.goal, fromModel),
+    note: planText(d.note, fromModel),
   };
   ctx.emit('npc.plan_set', { npcId: d.npcId, day: d.day, source });
   if (!st.talking && ctx.tick >= st.freezeUntil) {

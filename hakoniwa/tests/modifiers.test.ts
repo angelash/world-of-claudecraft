@@ -8,6 +8,7 @@ import { pack as worldPack } from '../src/content/packs/world';
 import { Engine } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
 import type { SystemContext } from '../src/core/system';
+import { tr } from '../src/core/text';
 import { system as inventory } from '../src/systems/inventory';
 import {
   applyModifiers,
@@ -82,6 +83,23 @@ describe('channel caps', () => {
     expect(b.lines[1]?.delta).toBeCloseTo(35);
     expect(b.total).toBeCloseTo(150);
     expect(b.capDelta).toBeCloseTo(-25);
+  });
+});
+
+describe('modifier.register', () => {
+  it('rejects a modifier whose term has passed with a text key', () => {
+    const g = makeGame();
+    g.step(2);
+    g.queue('modifier.register', spec({ untilTick: 1 }), { type: 'script', script: 'test' });
+    g.step(1);
+    const r = [...g.world.recent]
+      .reverse()
+      .find((e) => e.kind === 'command.result' && e.data.kind === 'modifier.register');
+    expect(r?.kind === 'command.result' && r.data).toMatchObject({
+      ok: false,
+      code: 'expired',
+      reason: tr('sys.modifiers.reject.expired'),
+    });
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildContent, validateContent } from '../src/content';
 import { Engine, ok, worldHash } from '../src/core';
 import type { GameSystem } from '../src/core/system';
+import { tr } from '../src/core/text';
 import { TICKS_PER_GAME_HOUR, tickAtDay } from '../src/core/time';
 import { createGame } from '../src/game/create';
 import { findPath, mapById, playerEntity } from '../src/systems/world';
@@ -114,6 +115,9 @@ describe('kernel', () => {
     engine.step(1);
     const res = engine.world.recent.find((e) => e.kind === 'command.result');
     expect(res && res.kind === 'command.result' && res.data.ok).toBe(false);
+    expect(res?.kind === 'command.result' && res.data.reason).toEqual(
+      tr('sys.world.reject.no_exit'),
+    );
   });
 });
 

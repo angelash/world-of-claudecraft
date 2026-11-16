@@ -6,6 +6,7 @@
 // See docs/50_tech/architecture.md 5 and docs/50_tech/ai_architecture.md.
 
 import type { AnyCommand, CommandKind } from './contracts';
+import type { TextParam } from './text';
 
 export type AiMode = 'off' | 'external' | 'replay';
 
@@ -34,24 +35,26 @@ export interface AiRequestSpec {
  * Recommended shape of AiRequestSpec.context. The AI layer turns it into a prompt, so
  * systems never write prompt text themselves. Everything here must already be filtered
  * by the agent's knowledge tier and the reveal ledger (docs/30_story/reveal_ledger.md).
+ * Text is TextParam (D-077): kernel sentences are TextRefs, content text stays a string;
+ * the AI layer renders the TextRefs in the source language before building the prompt.
  */
 export interface AiContextV1 {
   v: 1;
-  /** who the agent is, in Chinese (persona card digest) */
-  persona: string;
+  /** who the agent is (persona card digest) */
+  persona: TextParam;
   /** what is happening right now */
-  situation: string;
+  situation: TextParam;
   /** facts the agent knows */
-  knowledge?: string[];
+  knowledge?: TextParam[];
   /** recent memories, newest last */
-  memory?: string[];
-  goals?: string[];
+  memory?: TextParam[];
+  goals?: TextParam[];
   /** allowed command kind -> description of its data fields and when to use it */
-  commands: Record<string, string>;
+  commands: Record<string, TextParam>;
   /** when a spoken line is expected, the speaker's display name */
-  speakAs?: string;
+  speakAs?: TextParam;
   /** speech fingerprint: tone rules, catchphrases, things never said */
-  voice?: string[];
+  voice?: TextParam[];
   extra?: unknown;
 }
 

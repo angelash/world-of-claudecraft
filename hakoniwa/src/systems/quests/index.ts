@@ -5,6 +5,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { getEntity } from '../world';
 import { openingAct, setAct } from './acts';
 import { applyEffects } from './effects';
@@ -76,23 +77,24 @@ function isPlayerSide(ctx: SystemContext, id: string | undefined): boolean {
 
 function accept(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
   const def = questDef(ctx.content, questId);
-  if (!def) return reject('no_quest', '没有这个任务');
-  if (ctx.world.slices.quests.quests[questId]) return reject('already', '这个任务已经接过了');
+  if (!def) return reject('no_quest', tr('sys.quests.reject.no_quest.missing'));
+  if (ctx.world.slices.quests.quests[questId])
+    return reject('already', tr('sys.quests.reject.already'));
   if (!offerable(ctx, def.giver ?? '').some((d) => d.id === questId)) {
-    return reject('unavailable', '现在还接不了这个任务');
+    return reject('unavailable', tr('sys.quests.reject.unavailable'));
   }
   startQuest(ctx, questId);
   if (def.giver) bump(ctx, (o) => o.type === 'talk' && o.npc === def.giver);
-  return ok(`接受任务：${def.title}`);
+  return ok(tr('sys.quests.label.accept', { title: def.title }));
 }
 
 function turnIn(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
   const def = questDef(ctx.content, questId);
   const q = ctx.world.slices.quests.quests[questId];
-  if (!def || !q) return reject('no_quest', '没有这个任务');
-  if (q.status !== 'ready') return reject('not_ready', '任务还没有完成');
+  if (!def || !q) return reject('no_quest', tr('sys.quests.reject.no_quest.missing'));
+  if (q.status !== 'ready') return reject('not_ready', tr('sys.quests.reject.not_ready'));
   finishQuest(ctx, def, q);
-  return ok(`交付任务：${def.title}`);
+  return ok(tr('sys.quests.label.turn_in', { title: def.title }));
 }
 
 function choose(
@@ -103,9 +105,10 @@ function choose(
 ): ReturnType<typeof ok> {
   const def = questDef(ctx.content, questId);
   const q = ctx.world.slices.quests.quests[questId];
-  if (!def || !q || q.status !== 'active') return reject('no_quest', '没有进行中的这个任务');
+  if (!def || !q || q.status !== 'active')
+    return reject('no_quest', tr('sys.quests.reject.no_quest.active'));
   const stage = currentStage(def, q);
-  if (!stage) return reject('no_stage', '任务没有可选的抉择');
+  if (!stage) return reject('no_stage', tr('sys.quests.reject.no_stage'));
   for (let i = 0; i < stage.objectives.length; i++) {
     const o = stage.objectives[i];
     if (o?.type !== 'choice' || q.met[i]) continue;
@@ -120,7 +123,7 @@ function choose(
     checkStage(ctx, def, q);
     return ok(opt.label);
   }
-  return reject('no_option', '没有这个选项');
+  return reject('no_option', tr('sys.quests.reject.no_option'));
 }
 
 export const system: GameSystem = {
@@ -186,15 +189,22 @@ export const system: GameSystem = {
     'player.talked'(ctx, e) {
       const npc = e.data.npcRef ?? e.data.npcId;
       bump(ctx, (o) => o.type === 'talk' && (o.npc === npc || o.npc === e.data.npcId));
-      const options: { id: string; label: string; hint?: string }[] = [];
+      const options: { id: string; label: TextParam; hint?: TextParam }[] = [];
       for (const def of offerable(ctx, npc)) {
-        options.push({ id: `accept:${def.id}`, label: `接受任务：${def.title}`, hint: def.desc });
+        options.push({
+          id: `accept:${def.id}`,
+          label: tr('sys.quests.label.accept', { title: def.title }),
+          hint: def.desc,
+        });
       }
       for (const id of ctx.world.slices.quests.order) {
         const q = ctx.world.slices.quests.quests[id];
         const def = questDef(ctx.content, id);
         if (q?.status === 'ready' && def?.turnIn === npc) {
-          options.push({ id: `turnin:${id}`, label: `交付任务：${def.title}` });
+          options.push({
+            id: `turnin:${id}`,
+            label: tr('sys.quests.label.turn_in', { title: def.title }),
+          });
         }
       }
       for (const { def, q } of activeQuests(ctx)) {

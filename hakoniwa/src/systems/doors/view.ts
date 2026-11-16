@@ -3,42 +3,31 @@
 // corridor never spoils a door the player has not glimpsed.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { type KeyProgress, keyProgress } from './keys';
 import type { DoorCategory, DoorStatus } from './types';
 
-export const CATEGORY_NAMES: Record<DoorCategory, string> = {
-  origin: '本源',
-  insight: '识见',
-  vocation: '职能',
-  school: '流派',
-  craft: '技艺',
-  bond: '羁绊',
-  passage: '通行',
-  domain: '经营',
-  truth: '真相',
-  forbidden: '禁门',
-  last: '终门',
-};
+/** Display name of a door category (a fresh text key each call; it ends up in views). */
+export function categoryName(category: DoorCategory): KeyText {
+  return tr(`sys.doors.category.${category}`);
+}
 
-export const STATUS_NAMES: Record<DoorStatus, string> = {
-  hidden: '未见',
-  hinted: '显影',
-  openable: '可开',
-  opened: '已开',
-  locked: '锁闭',
-  closed: '关闭',
-};
+/** Display name of a door state (a fresh text key each call). */
+export function statusName(state: DoorStatus): KeyText {
+  return tr(`sys.doors.status.${state}`);
+}
 
-export interface DoorView {
+/** One door in the corridor; labels are text keys in the kernel, strings once rendered. */
+export interface DoorView<Text = TextParam> {
   id: string;
   name: string;
   code?: string;
   category: DoorCategory;
-  categoryName: string;
+  categoryName: Text;
   act: number;
   state: DoorStatus;
-  stateName: string;
+  stateName: Text;
   hint: string;
   /** what the door gives; only once opened or closed */
   desc?: string;
@@ -58,10 +47,10 @@ export function corridorView(world: World, content: ContentMap, includeHidden = 
       name: door.name,
       code: door.code,
       category: door.category,
-      categoryName: CATEGORY_NAMES[door.category],
+      categoryName: categoryName(door.category),
       act: door.act,
       state,
-      stateName: STATUS_NAMES[state],
+      stateName: statusName(state),
       hint: door.hint,
       desc: state === 'opened' || state === 'closed' ? door.desc : undefined,
       keys: known || includeHidden ? keyProgress(world, door) : [],

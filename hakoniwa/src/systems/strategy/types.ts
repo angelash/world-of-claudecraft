@@ -1,7 +1,10 @@
 // Strategy (SLG) types: provinces on the continent graph, nations, relations, treaties,
 // wars, armies, the seven-nation conclave and the release index (D-043). Treasuries are
 // in gold (1 gold = 10000 copper); time steps by game day. See
-// docs/40_design/systems/grand_strategy_slg.md.
+// docs/40_design/systems/grand_strategy_slg.md. Text the kernel composes (log lines, treaty
+// notes, generated army names) is TextParam (D-077).
+
+import type { TextParam } from '../../core/text';
 
 export type ProvinceTerrain =
   | 'plain'
@@ -147,7 +150,7 @@ export interface Treaty {
   b: NationId;
   startDay: number;
   endDay?: number;
-  note?: string;
+  note?: TextParam;
 }
 
 export interface War {
@@ -214,7 +217,7 @@ export interface Regiment {
 export interface ArmyState {
   id: string;
   owner: NationId;
-  name: string;
+  name: TextParam;
   province: string;
   general?: string;
   regiments: Regiment[];
@@ -250,7 +253,7 @@ export interface PendingBattle {
 
 export interface StrategyLogEntry {
   day: number;
-  text: string;
+  text: TextParam;
 }
 
 export interface StrategySlice {

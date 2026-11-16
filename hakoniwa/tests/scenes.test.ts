@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { Engine, worldHash } from '../src/core';
+import { Engine, tr, worldHash } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
+import { t } from '../src/shared_ui/i18n';
 import { countItem } from '../src/systems/inventory';
 import {
   AI_DEADLINE,
   assembleEpilogue,
   ENDINGS,
   type EvidenceDef,
+  recordHeading,
+  recordSpeaker,
   type SceneDef,
   sceneView,
 } from '../src/systems/scenes';
@@ -356,6 +359,9 @@ describe('scene engine', () => {
       (e) => e.kind === 'command.result' && e.data.kind === 'scenes.choose',
     );
     expect(res?.kind === 'command.result' && res.data.ok).toBe(false);
+    expect(res?.kind === 'command.result' && res.data.reason).toEqual(
+      tr('sys.scenes.reject.no_option'),
+    );
   });
 });
 
@@ -397,8 +403,18 @@ describe('court and endings', () => {
       'evidence:E15',
       'end',
     ]);
+    const e01 = content.evidence.find((e) => e.id === 'E01');
+    expect(v?.choices[0]?.label).toEqual(tr('sys.scenes.court.present', { name: e01?.name ?? '' }));
+    expect(v?.choices.at(-1)?.label).toEqual(tr('sys.scenes.court.end'));
+    expect(t(v?.choices.at(-1)?.label)).toBe('结束质证');
     g.queue('scenes.choose', { choiceId: 'evidence:E01' });
     g.step(1);
+    // the presented piece is said by the player as a text key with the content params
+    const shown = g.world.slices.scenes.current?.shown[0];
+    expect(shown?.text).toEqual(
+      tr('sys.scenes.court.present_line', { name: e01?.name ?? '', text: e01?.presentText ?? '' }),
+    );
+    expect(t(shown?.text)).toBe(`（出示证据：${e01?.name}）${e01?.presentText}`);
     expect(g.world.meta.flags['court.eluen.fact']).toBeUndefined();
     g.queue('scenes.choose', { choiceId: 'evidence:E03' });
     g.step(1);
@@ -427,10 +443,29 @@ describe('court and endings', () => {
     const rel = assembleEpilogue(flags, content.epilogue, 'release');
     expect(rel.some((l) => l.subject.includes('醉月亭'))).toBe(true);
     expect(rel.some((l) => l.year === 0)).toBe(true);
+    // record headings and the record writers are text keys that render the old headings
+    const year = rel.find((l) => l.year > 0);
+    if (year) {
+      expect(recordHeading(year, 'release')).toEqual(
+        tr('sys.scenes.epilogue.heading_year', { subject: year.subject, year: year.year }),
+      );
+      expect(t(recordHeading(year, 'release'))).toBe(`【${year.subject}】审定后第${year.year}年：`);
+    }
+    const later = rel.find((l) => l.year === 0);
+    if (later) expect(t(recordHeading(later, 'release'))).toBe(`【${later.subject}】很久以后：`);
+    expect(t(recordHeading(rel[0] as (typeof rel)[number], 'rule_merca'))).toBe(
+      `【${rel[0]?.subject}】`,
+    );
+    expect(recordSpeaker(content, 'release', true)).toEqual({
+      id: 'historian',
+      name: tr('sys.scenes.epilogue.historian'),
+      kind: 'narrate',
+    });
+    expect(recordSpeaker(content, 'new_god', false).name).toEqual(tr('sys.scenes.epilogue.ledger'));
     const reclaim = assembleEpilogue(flags, content.epilogue, 'reclaim');
     expect(reclaim.length).toBe(1);
     const restored = assembleEpilogue(flags, content.epilogue, 'janu_restored');
-    expect(restored.every((l) => l.text.startsWith('你来了。'))).toBe(true);
+    expect(restored.every((l) => t(l.text).startsWith('你来了。'))).toBe(true);
     for (const e of ENDINGS) {
       if (e === 'maker') continue;
       expect(

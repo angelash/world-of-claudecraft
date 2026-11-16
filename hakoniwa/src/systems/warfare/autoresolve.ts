@@ -2,6 +2,7 @@
 // synchronously with the rule AI driving both teams. Also the generated field battle
 // used by strategy and city, and the C-layer power estimate (2.5).
 
+import { type TextParam, tr } from '../../core/text';
 import { QUALITY_COEF, soldierDps, soldierEhp } from './combat_math';
 import { kernelData } from './data';
 import { createBattleState, STEP_SECONDS, stepBattle } from './kernel';
@@ -31,7 +32,7 @@ export function summarize(state: BattleState): AutoResolveResult {
   }
   return {
     victor: state.outcome?.victor ?? 'draw',
-    reason: state.outcome?.reason ?? '战斗未分胜负',
+    reason: state.outcome?.reason ?? tr('sys.warfare.outcome.undecided'),
     seconds: state.time,
     teams,
     heroesDown: state.heroes.filter((h) => h.down).map((h) => h.id),
@@ -43,7 +44,8 @@ export function autoResolve(input: AutoResolveInput): AutoResolveResult {
   const data = kernelData(input.units, input.abilities);
   const state = createBattleState(input.setup, {
     id: 'auto',
-    scenarioId: input.setup.name,
+    // a throwaway state: the id only labels it (generated field names are TextRefs)
+    scenarioId: typeof input.setup.name === 'string' ? input.setup.name : 'field',
     seed: input.seed,
     data,
     mode: 'auto',
@@ -65,11 +67,12 @@ export function runToEnd(
   const maxSteps = Math.ceil(limit / STEP_SECONDS) + 2;
   let guard = 0;
   while (!state.outcome && guard++ < maxSteps + 10) stepBattle(state, data);
-  if (!state.outcome) state.outcome = { victor: 'draw', reason: '时限已到，胜负未分' };
+  if (!state.outcome)
+    state.outcome = { victor: 'draw', reason: tr('sys.warfare.outcome.time_up_draw') };
 }
 
 export interface FieldOptions {
-  name: string;
+  name: TextParam;
   teams: Record<Team, ForceSpec>;
   terrain?: BattleTerrain;
   width?: number;
@@ -142,8 +145,18 @@ export function buildFieldSetup(opts: FieldOptions): BattleSetup {
       },
     },
     objectives: [
-      { id: 'player_annihilate', team: 'player', kind: 'annihilate', label: '击溃敌军' },
-      { id: 'enemy_annihilate', team: 'enemy', kind: 'annihilate', label: '击溃敌军' },
+      {
+        id: 'player_annihilate',
+        team: 'player',
+        kind: 'annihilate',
+        label: tr('sys.warfare.objective.annihilate'),
+      },
+      {
+        id: 'enemy_annihilate',
+        team: 'enemy',
+        kind: 'annihilate',
+        label: tr('sys.warfare.objective.annihilate'),
+      },
     ],
     timeLimit: opts.timeLimit ?? 600,
   };

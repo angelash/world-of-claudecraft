@@ -4,6 +4,7 @@
 // This is the no-model version; a model may only polish within the template meaning.
 
 import type { FlagValue } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { recordWriterFor } from '../goddess/roster';
 import type { GoddessDef } from '../goddess/types';
 import { evaluate, flagResolver } from '../quests/conditions';
@@ -37,7 +38,7 @@ export interface EpilogueLine {
   layer: EpilogueLayer;
   subject: string;
   year: number;
-  text: string;
+  text: TextParam;
 }
 
 function matchesEnding(e: EpilogueEntry, ending: string): boolean {
@@ -75,11 +76,11 @@ export function assembleEpilogue(
 }
 
 /** The heading of one record entry (rule endings and the ledger carry their own dating). */
-export function recordHeading(line: EpilogueLine, ending: string): string {
+export function recordHeading(line: EpilogueLine, ending: string): KeyText {
   if (ending.startsWith('rule_') || ending === 'new_god' || ending === 'reclaim')
-    return `【${line.subject}】`;
-  if (line.year === 0) return `【${line.subject}】很久以后：`;
-  return `【${line.subject}】审定后第${line.year}年：`;
+    return tr('sys.scenes.epilogue.heading', { subject: line.subject });
+  if (line.year === 0) return tr('sys.scenes.epilogue.heading_later', { subject: line.subject });
+  return tr('sys.scenes.epilogue.heading_year', { subject: line.subject, year: line.year });
 }
 
 /**
@@ -91,10 +92,16 @@ export function recordSpeaker(
   content: { goddesses: readonly GoddessDef[] },
   ending: string,
   isLast: boolean,
-): { id: string; name: string; kind: 'narrate' | 'divine' } {
-  if (ending === 'release' && isLast) return { id: 'historian', name: '凡人史官', kind: 'narrate' };
-  if (ending === 'new_god') return { id: 'ledger', name: '神之账本', kind: 'narrate' };
+): { id: string; name: TextParam; kind: 'narrate' | 'divine' } {
+  const historian = () => ({
+    id: 'historian',
+    name: tr('sys.scenes.epilogue.historian'),
+    kind: 'narrate' as const,
+  });
+  if (ending === 'release' && isLast) return historian();
+  if (ending === 'new_god')
+    return { id: 'ledger', name: tr('sys.scenes.epilogue.ledger'), kind: 'narrate' };
   const writer = recordWriterFor(content, ending);
   if (writer?.record) return { id: writer.id, name: writer.name, kind: writer.record.kind };
-  return { id: 'historian', name: '凡人史官', kind: 'narrate' };
+  return historian();
 }

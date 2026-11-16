@@ -2,6 +2,7 @@
 // results, and the module augmentation for slice, content, events and commands.
 // See docs/40_design/systems/reputation_and_cognition.md and society.md 7 and 8.
 
+import type { TextParam, TextRef } from '../../core/text';
 import type { SocialClass } from '../npc/types';
 
 /** Cognitive state machine (society.md 8.5) with the four forks after acceptance. */
@@ -126,7 +127,8 @@ export interface BeliefProfile {
   explanation: ExplanationId | null;
   stick: number;
   refuted: ExplanationId[];
-  identity: string;
+  /** what the observer takes the subject for (a kernel word or a content identity) */
+  identity: TextParam;
   /** belief in the subject's words, 0..1 */
   credence: number;
   lastFeat: {
@@ -137,7 +139,7 @@ export interface BeliefProfile {
   } | null;
   evidence: EvidenceRecord[];
   /** reasoning log, rule-written */
-  log: string[];
+  log: TextParam[];
   lastTick: number;
   lastFeatTick: number;
 }
@@ -156,10 +158,10 @@ export interface RumorVersion {
   /** who did it in this version: 'player', a persona id, 'stranger' or 'lucky_newbie' */
   subject: string;
   count: number;
-  place: string;
+  place: TextParam;
   /** 0 today, 1 a few days ago, 2 some time ago, 3 last year */
   when: number;
-  details: string[];
+  details: TextParam[];
   template: RumorTemplate | null;
   polarity: Polarity;
   explanation: ExplanationId | 'real' | null;
@@ -207,14 +209,14 @@ export interface AppraisalResult {
   observerId: string;
   targetId: string;
   device: AppraisalDevice;
-  /** what the display shows: 无记载, 34+, ？, Lv12, 残页 ... */
-  display: string;
+  /** what the display shows: no record, 34+, unknown, Lv12, a record fragment ... */
+  display: TextRef | string;
   kind: 'no_record' | 'capped' | 'unknown' | 'exact' | 'fragment' | 'band';
   level?: number;
   tier?: number;
-  tierName?: string;
+  tierName?: TextParam;
   potential?: string;
-  note: string;
+  note: TextRef | string;
 }
 
 export type AppraisalDevice = 'crystal' | 'guild' | 'academy' | 'skill' | 'sense';
@@ -256,7 +258,7 @@ declare module '../../core/contracts' {
       from: BeliefState;
       to: BeliefState;
       explanation: ExplanationId | null;
-      reason: string;
+      reason: TextParam;
     };
     'cognition.rumor_spread': {
       rumorId: string;
@@ -267,7 +269,7 @@ declare module '../../core/contracts' {
       believed: boolean;
     };
     /** The player heard a rumor (rumor book entry). */
-    'cognition.rumor_heard': { rumorId: string; fromId: string; text: string };
+    'cognition.rumor_heard': { rumorId: string; fromId: string; text: TextParam };
   }
   interface CommandMap {
     /** Appraise a target (D-029 display rules). */

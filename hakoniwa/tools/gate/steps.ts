@@ -75,6 +75,11 @@ export const GATE_STEPS: readonly GateStep[] = [
     run: { kind: 'node', args: ['tools/content/validate.ts'] },
   },
   {
+    id: 'text_stringify',
+    title: 'no kernel TextRef turned into "[object Object]" (template, concat, join, String)',
+    run: { kind: 'node', args: ['tools/i18n/stringify_check.ts'] },
+  },
+  {
     id: 'build',
     title: 'game and editor build',
     run: { kind: 'npm', script: 'build' },

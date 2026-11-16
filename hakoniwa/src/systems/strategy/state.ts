@@ -3,6 +3,7 @@
 
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { estimatePower } from '../warfare/autoresolve';
 import type {
   ArmyState,
@@ -44,12 +45,12 @@ export function shiftRelation(
   if (both) setRelation(s, b, a, relation(s, b, a) + delta);
 }
 
-export function band(score: number): string {
-  if (score <= -60) return '敌对';
-  if (score <= -20) return '冷淡';
-  if (score < 20) return '中立';
-  if (score < 60) return '友善';
-  return '亲密';
+export function band(score: number): KeyText {
+  if (score <= -60) return tr('sys.strategy.band.hostile');
+  if (score <= -20) return tr('sys.strategy.band.cold');
+  if (score < 20) return tr('sys.strategy.band.neutral');
+  if (score < 60) return tr('sys.strategy.band.friendly');
+  return tr('sys.strategy.band.close');
 }
 
 export function treatiesBetween(s: StrategySlice, a: NationId, b: NationId): Treaty[] {
@@ -69,7 +70,7 @@ export function addTreaty(
   a: NationId,
   b: NationId,
   type: TreatyType,
-  note?: string,
+  note?: TextParam,
 ): Treaty {
   const existing = treatiesBetween(s, a, b).find((t) => t.type === type);
   if (existing) return existing;
@@ -145,7 +146,7 @@ export function newId(s: StrategySlice, prefix: string): string {
   return `${prefix}${s.nextId}`;
 }
 
-export function log(s: StrategySlice, text: string): void {
+export function log(s: StrategySlice, text: TextParam): void {
   s.log.push({ day: s.day, text });
   if (s.log.length > LOG_KEPT) s.log.splice(0, s.log.length - LOG_KEPT);
 }
@@ -194,9 +195,18 @@ export function nationPower(content: ContentMap, s: StrategySlice, n: NationId):
   return p;
 }
 
-export function nationName(content: ContentMap, s: StrategySlice, n: NationId | null): string {
-  if (!n) return '无主之地';
+/** Display name of a nation: the content name, or a text key for the unowned land. */
+export function nationName(
+  content: ContentMap,
+  s: StrategySlice,
+  n: NationId | null,
+): string | KeyText {
+  if (!n) return tr('sys.strategy.nation.unowned');
   if (n === PLAYER)
-    return s.playerNationName ?? content.slg_config?.playerNation.name ?? '庭外之国';
+    return (
+      s.playerNationName ??
+      content.slg_config?.playerNation.name ??
+      tr('sys.strategy.nation.player_default')
+    );
   return content.slg_nations?.find((x) => x.id === n)?.name ?? n;
 }

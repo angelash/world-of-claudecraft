@@ -4,6 +4,7 @@
 // window availability, conversations, scenes, battles and trade.
 
 import type { AnyWorldEvent } from '../../core/contracts';
+import { t } from '../../shared_ui/i18n';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import { formatEvent, type LogContext, type LogLine } from '../hud/log_format';
 import type { AnimTracker } from '../render/anim_state';
@@ -72,7 +73,7 @@ export class EventRouter {
       switch (ev.kind) {
         case 'dialogue.line': {
           const d = ev.data;
-          this.bubbles.add(d.speakerId, d.text, d.kind, nowMs);
+          this.bubbles.add(d.speakerId, t(d.text), d.kind, nowMs);
           if (inScene()) break;
           const conv = a.conversation?.conversation(v);
           if (conv && (d.speakerId === conv.npcId || d.speakerId === ctx.playerId)) break;

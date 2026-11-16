@@ -4,6 +4,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem } from '../../core/system';
+import { tr } from '../../core/text';
 import { siteDef, today } from './common';
 import { cancelBuilding, placeBuilding } from './construction';
 import { deposit, enterCourt, leaveCourt, presence, withdraw } from './court';
@@ -61,7 +62,7 @@ export const system: GameSystem = {
     'city.place'(ctx, d) {
       const site = ctx.world.slices.city.sites[d.siteId];
       const sdef = siteDef(ctx.content, d.siteId);
-      if (!site || !sdef) return reject('unknown_site', '没有这个聚落');
+      if (!site || !sdef) return reject('unknown_site', tr('sys.city.reject.unknown_site'));
       const pres = presence(ctx, site, sdef);
       if (!pres.ok) return reject(pres.code, pres.reason);
       return placeBuilding(ctx, d.siteId, d.defId, d.x, d.y, 'player').result;
@@ -69,7 +70,7 @@ export const system: GameSystem = {
     'city.cancel'(ctx, d) {
       const site = ctx.world.slices.city.sites[d.siteId];
       const sdef = siteDef(ctx.content, d.siteId);
-      if (!site || !sdef) return reject('unknown_site', '没有这个聚落');
+      if (!site || !sdef) return reject('unknown_site', tr('sys.city.reject.unknown_site'));
       const pres = presence(ctx, site, sdef);
       if (!pres.ok) return reject(pres.code, pres.reason);
       return cancelBuilding(ctx, d.siteId, d.buildingId);
@@ -93,12 +94,26 @@ export const system: GameSystem = {
       const site = ctx.world.slices.city.sites[d.siteId];
       const sdef = siteDef(ctx.content, d.siteId);
       if (!site || !sdef || sdef.kind !== 'settlement')
-        return reject('unknown_site', '没有这个聚落');
-      if (!(d.group in POP_GROUP_LABELS)) return reject('bad_group', '不认识的人群');
-      const n = addPopulation(ctx, site, sdef, d.group, d.count, d.reason ?? '剧情');
+        return reject('unknown_site', tr('sys.city.reject.unknown_site'));
+      if (!(d.group in POP_GROUP_LABELS))
+        return reject('bad_group', tr('sys.city.reject.bad_group'));
+      const n = addPopulation(
+        ctx,
+        site,
+        sdef,
+        d.group,
+        d.count,
+        d.reason ?? tr('sys.city.reason.story'),
+      );
       return n > 0
-        ? ok(`${n} 名${POP_GROUP_LABELS[d.group]}来到${sdef.name}`)
-        : reject('full', '这里已经容不下更多人了');
+        ? ok(
+            tr('sys.city.info.population_arrived', {
+              n,
+              group: POP_GROUP_LABELS[d.group](),
+              site: sdef.name,
+            }),
+          )
+        : reject('full', tr('sys.city.reject.full'));
     },
     'city.official_act'(ctx, d, source) {
       return officialAct(ctx, d, source);

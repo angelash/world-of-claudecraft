@@ -4,6 +4,7 @@
 // a door). Callers never touch the combat slice directly.
 
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { type Check, checkAbility, interruptCast, useAbility } from './abilities';
 import { applyAura, removeByOrigin } from './auras';
 import { abilityDef } from './defs';
@@ -135,7 +136,7 @@ export function castAs(
   targetId?: string,
 ): Check {
   const u = unitOf(ctx.world, unitId);
-  if (!u) return { ok: false, code: 'no_unit', reason: '这个对象不能战斗' };
+  if (!u) return { ok: false, code: 'no_unit', reason: tr('sys.combat.reject.no_unit') };
   return useAbility(ctx, u, abilityId, targetId);
 }
 

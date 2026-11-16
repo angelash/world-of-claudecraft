@@ -4,6 +4,7 @@
 // Pure over plain data; the only randomness is the battle's own Rng state.
 
 import type { FlagValue } from '../../core/contracts';
+import { tr } from '../../core/text';
 import { chooseUtilityPlan, runHeroAi, runTeamAi } from './ai';
 import { FORMATIONS, fatigueSpeedFactor, isRanged, regimentRadius } from './combat_math';
 import { active, dist, flagsAllow, type KernelData, onField, pushLog, unitOf } from './data';
@@ -150,7 +151,7 @@ export function createBattleState(setup: BattleSetup, o: CreateBattleOptions): B
   for (const team of ['player', 'enemy'] as Team[]) {
     state.plans[team] = { planId: chooseUtilityPlan(state, team, o.data), at: 0, source: 'rule' };
   }
-  pushLog(state, `${setup.name}开战`);
+  pushLog(state, tr('sys.warfare.log.begin', { name: setup.name }));
   return state;
 }
 
@@ -172,7 +173,13 @@ function arrivals(state: BattleState, data: KernelData): void {
       if (state.heroes.some((x) => x.id === spec.id)) continue;
       state.heroes.push(heroFromSpec(spec, r.team, 10));
     }
-    pushLog(state, r.label ?? (r.team === 'player' ? '我方援军抵达' : '敌方援军抵达'));
+    pushLog(
+      state,
+      r.label ??
+        (r.team === 'player'
+          ? tr('sys.warfare.log.reinforce.player')
+          : tr('sys.warfare.log.reinforce.enemy')),
+    );
   }
 }
 
@@ -256,7 +263,7 @@ function moveRegiment(state: BattleState, data: KernelData, r: RegimentState, dt
     if (Math.hypot(home.x - r.x, home.y - r.y) < 1) {
       r.state = 'gone';
       r.path = [];
-      pushLog(state, `${r.name}撤离了战场（余 ${r.count} 人）`);
+      pushLog(state, tr('sys.warfare.log.left_field', { name: r.name, n: r.count }));
     } else if (r.state !== 'rout') {
       r.state = 'march';
     }

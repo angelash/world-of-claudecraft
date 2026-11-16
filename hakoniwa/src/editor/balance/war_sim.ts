@@ -3,6 +3,7 @@
 // casualties and duration over seeds. Pure: no DOM.
 
 import type { ContentMap, FlagValue } from '../../core/contracts';
+import { t as renderText } from '../../shared_ui/i18n';
 import {
   type AutoResolveResult,
   autoResolve,
@@ -117,7 +118,10 @@ function casualties(
 export function summarizeBattles(results: readonly AutoResolveResult[]): BattleSummary {
   const n = results.length;
   const reasons = new Map<string, number>();
-  for (const r of results) reasons.set(r.reason, (reasons.get(r.reason) ?? 0) + 1);
+  for (const r of results) {
+    const reason = renderText(r.reason);
+    reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
+  }
   return {
     runs: n,
     winRate: rate(results.filter((r) => r.victor === 'player').length, n),

@@ -4,6 +4,7 @@
 // adjacent regiments; at most 6 soldiers of a regiment can reach a hero.
 
 import { Rng } from '../../core/rng';
+import { tr } from '../../core/text';
 import {
   aspectOf,
   engagedSlots,
@@ -17,7 +18,7 @@ import {
 import { active, dist, type KernelData, onField, unitOf } from './data';
 import { applyLosses, damageHero, heroArmor } from './heroes';
 import { lineClear, TERRAIN, terrainAt } from './terrain';
-import type { BattleState, HeroState, RegimentState, Team, UnitTypeDef } from './types';
+import type { BattleState, HeroState, KernelUnit, RegimentState, Team } from './types';
 
 export const HERO_RADIUS = 0.4;
 
@@ -35,7 +36,7 @@ export function meleeContact(
   return dist(a, b) <= reach && lineClear(state, a, b);
 }
 
-export function shootRange(state: BattleState, u: UnitTypeDef, r: RegimentState): number {
+export function shootRange(state: BattleState, u: KernelUnit, r: RegimentState): number {
   const high = TERRAIN[terrainAt(state, r.x, r.y)].high;
   return u.range * (high ? 1.2 : 1);
 }
@@ -77,9 +78,10 @@ export function auraSums(
   return { dmg: Math.min(AURA_CAP, dmg), def: Math.min(AURA_CAP, def) };
 }
 
-const HERO_UNIT_BASE: Omit<UnitTypeDef, 'armor' | 'level'> = {
+// the hero stand-in only feeds the combat math; its name never reaches world state
+const HERO_UNIT_BASE: Omit<KernelUnit, 'armor' | 'level'> = {
   id: 'hero',
-  name: '英雄',
+  name: tr('sys.warfare.name.hero'),
   race: 'human',
   role: 'shock',
   quality: 'elite',
@@ -100,7 +102,7 @@ const HERO_UNIT_BASE: Omit<UnitTypeDef, 'armor' | 'level'> = {
   desc: '',
 };
 
-function heroAsUnit(h: HeroState): UnitTypeDef {
+function heroAsUnit(h: HeroState): KernelUnit {
   return { ...HERO_UNIT_BASE, armor: heroArmor(h), level: 20 };
 }
 

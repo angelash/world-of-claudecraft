@@ -5,6 +5,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { type TextRef, tr } from '../../core/text';
 
 export type ModifierTarget =
   | 'price'
@@ -31,8 +32,8 @@ export interface ModifierSpec {
   source: string;
   /** public modifiers are visible to the player (market notices, omens) */
   visibility: 'public' | 'hidden';
-  /** short Chinese explanation shown in UI and the miracle ledger */
-  note: string;
+  /** short explanation shown in UI and the miracle ledger (text key or content text) */
+  note: TextRef | string;
   /**
    * stacking group (economy_and_trade 7.3 "同源"): a new modifier with the same source,
    * target, key and group refreshes the existing one instead of stacking
@@ -170,7 +171,7 @@ function clampTo(v: number, range: [number, number] | undefined): number {
 export interface ModifierLine {
   id: string;
   source: string;
-  note: string;
+  note: TextRef | string;
   visibility: ModifierSpec['visibility'];
   /** change to the running value this modifier made, before the channel cap */
   delta: number;
@@ -237,7 +238,7 @@ export const system: GameSystem = {
   },
   commands: {
     'modifier.register'(ctx, d) {
-      if (d.untilTick <= ctx.tick) return reject('expired', '修正项的期限已过');
+      if (d.untilTick <= ctx.tick) return reject('expired', tr('sys.modifiers.reject.expired'));
       registerModifier(ctx, d);
       return ok();
     },

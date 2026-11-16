@@ -1,0 +1,9 @@
+{
+  "sys.inventory.reject.no_item": "没有这件物品",
+  "sys.inventory.reject.not_usable": "这件物品不能使用",
+  "sys.inventory.reject.missing.bag": "背包里没有它",
+  "sys.inventory.reject.missing.count": "数量不够",
+  "sys.inventory.reject.not_equipment": "这不是可以装备的东西",
+  "sys.inventory.reject.empty": "这个位置没有装备",
+  "sys.inventory.reject.bad_count": "数量不对"
+}

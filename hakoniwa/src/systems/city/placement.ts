@@ -1,9 +1,10 @@
 // Placement validator (city_building 3.4): one deterministic, pure check shared by the
 // player, officials and the client preview. It returns a machine code plus a readable
-// Chinese reason and the footprint tiles for highlighting. Buildings do not change the
+// reason (a TextRef) and the footprint tiles for highlighting. Buildings do not change the
 // world's walkability (MapDef is immutable), so reachability is checked here instead.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextRef, tr } from '../../core/text';
 import { isWalkableTile, type LocationDef, type MapDef, mapById, tileAt } from '../world';
 import type { TileKind } from '../world/types';
 import {
@@ -15,7 +16,7 @@ import {
   siteDef,
   stageAtLeast,
 } from './common';
-import type { BuildingDef, SiteDef, SiteState, Stage } from './types';
+import { type BuildingDef, type SiteDef, type SiteState, type Stage, stageLabel } from './types';
 
 export interface Tile {
   x: number;
@@ -39,14 +40,7 @@ export type PlacementCode =
 
 export type PlacementResult =
   | { ok: true; tiles: Tile[]; entrance: Tile }
-  | { ok: false; code: PlacementCode; reason: string; tiles: Tile[]; blocked: Tile[] };
-
-const STAGE_LABEL: Record<Stage, string> = {
-  outpost: '据点',
-  village: '村落',
-  territory: '领地',
-  court: '庭院',
-};
+  | { ok: false; code: PlacementCode; reason: TextRef; tiles: Tile[]; blocked: Tile[] };
 
 export function footprintTiles(x: number, y: number, w: number, h: number): Tile[] {
   const out: Tile[] = [];
@@ -73,32 +67,51 @@ function inRect(r: { x: number; y: number; w: number; h: number }, t: Tile): boo
   return t.x >= r.x && t.y >= r.y && t.x < r.x + r.w && t.y < r.y + r.h;
 }
 
-/** Why a building is not available yet (empty string when it is). */
+/** Why a building is not available yet, and whether it is the per-site limit; null when it is. */
+function unlockCheck(
+  world: CityWorld,
+  content: Pick<ContentMap, 'city_buildings'>,
+  site: SiteState,
+  sdef: SiteDef,
+  def: BuildingDef,
+): { limit: boolean; reason: KeyText } | null {
+  const locked = (reason: KeyText) => ({ limit: false, reason });
+  if (!def.sites.includes(sdef.kind)) return locked(tr('sys.city.reject.site_kind'));
+  if (sdef.kind === 'settlement' && def.unlock.stage && !stageAtLeast(site.stage, def.unlock.stage))
+    return locked(tr('sys.city.reject.need_stage', { stage: stageLabel(def.unlock.stage) }));
+  if (!flagsOk(world.meta.flags, def.unlock.flags)) return locked(tr('sys.city.reject.locked'));
+  for (const need of def.unlock.buildings ?? []) {
+    if (!hasActive(site, need)) {
+      return locked(
+        tr('sys.city.reject.need_building', {
+          building: buildingDef(content, need)?.name ?? need,
+        }),
+      );
+    }
+  }
+  if (def.max !== undefined && countBuildings(site, def.id, true) >= def.max)
+    return {
+      limit: true,
+      reason: tr('sys.city.reject.limit', { max: def.max, building: def.name }),
+    };
+  return null;
+}
+
+/** Why a building is not available yet (null when it is). */
 export function unlockProblem(
   world: CityWorld,
   content: Pick<ContentMap, 'city_buildings'>,
   site: SiteState,
   sdef: SiteDef,
   def: BuildingDef,
-): string {
-  if (!def.sites.includes(sdef.kind)) return '这里不能建这种建筑';
-  if (sdef.kind === 'settlement' && def.unlock.stage && !stageAtLeast(site.stage, def.unlock.stage))
-    return `需要聚落发展到${STAGE_LABEL[def.unlock.stage]}`;
-  if (!flagsOk(world.meta.flags, def.unlock.flags)) return '还没有解锁';
-  for (const need of def.unlock.buildings ?? []) {
-    if (!hasActive(site, need)) {
-      return `需要先建成${buildingDef(content, need)?.name ?? need}`;
-    }
-  }
-  if (def.max !== undefined && countBuildings(site, def.id, true) >= def.max)
-    return `这里最多只能建 ${def.max} 座${def.name}`;
-  return '';
+): KeyText | null {
+  return unlockCheck(world, content, site, sdef, def)?.reason ?? null;
 }
 
-const NEED_KINDS: Record<string, { kinds: TileKind[]; label: string }> = {
-  near_water: { kinds: ['water', 'deep_water'], label: '需要靠近水边' },
-  near_tree: { kinds: ['tree'], label: '需要靠近树林' },
-  near_rock: { kinds: ['rock'], label: '需要靠近岩地' },
+const NEED_KINDS: Record<string, { kinds: TileKind[]; label: () => KeyText }> = {
+  near_water: { kinds: ['water', 'deep_water'], label: () => tr('sys.city.reject.terrain_water') },
+  near_tree: { kinds: ['tree'], label: () => tr('sys.city.reject.terrain_tree') },
+  near_rock: { kinds: ['rock'], label: () => tr('sys.city.reject.terrain_rock') },
 };
 
 function terrainNeedMet(map: MapDef, tiles: Tile[], need: string): boolean {
@@ -160,7 +173,7 @@ export function reachable(map: MapDef, start: Tile, occ: Set<number>): Uint8Arra
 
 function fail(
   code: PlacementCode,
-  reason: string,
+  reason: TextRef,
   tiles: Tile[],
   blocked: Tile[] = [],
 ): PlacementResult {
@@ -204,18 +217,17 @@ function validatePlacement(
   const sdef = siteDef(content, siteId);
   const site = world.slices.city.sites[siteId];
   const map = sdef ? mapById(content, sdef.mapId) : undefined;
-  if (!sdef || !site || !map) return fail('unknown_site', '没有这个聚落', []);
+  if (!sdef || !site || !map) return fail('unknown_site', tr('sys.city.reject.unknown_site'), []);
   const def = buildingDef(content, defId);
-  if (!def) return fail('unknown_building', '没有这种建筑', []);
+  if (!def) return fail('unknown_building', tr('sys.city.reject.unknown_building'), []);
   const tx = Math.floor(x);
   const ty = Math.floor(y);
   const tiles = footprintTiles(tx, ty, def.footprint.w, def.footprint.h);
-  if (!site.active) return fail('site_closed', '这里现在还不能建设', tiles);
-  if (!def.sites.includes(sdef.kind)) return fail('site_kind', '这里不能建这种建筑', tiles);
-  const locked = unlockProblem(world, content, site, sdef, def);
-  if (locked) {
-    return fail(locked.startsWith('这里最多') ? 'limit' : 'locked', locked, tiles);
-  }
+  if (!site.active) return fail('site_closed', tr('sys.city.reject.site_closed_build'), tiles);
+  if (!def.sites.includes(sdef.kind))
+    return fail('site_kind', tr('sys.city.reject.site_kind'), tiles);
+  const locked = unlockCheck(world, content, site, sdef, def);
+  if (locked) return fail(locked.limit ? 'limit' : 'locked', locked.reason, tiles);
 
   const zones = unlockedZones(map, site.stage);
   const outside = tiles.filter(
@@ -226,39 +238,43 @@ function validatePlacement(
       t.y >= map.height ||
       !zones.some((z) => inRect(z, t)),
   );
-  if (outside.length > 0) return fail('bounds', '超出了可建设用地', tiles, outside);
+  if (outside.length > 0) return fail('bounds', tr('sys.city.reject.bounds'), tiles, outside);
 
   const badGround = tiles.filter(
     (t) => !isWalkableTile(map, t.x, t.y) || tileAt(map, t.x, t.y) === 'door',
   );
   if (badGround.length > 0)
-    return fail('terrain', '这块地不能建房（水、墙、树或岩石）', tiles, badGround);
+    return fail('terrain', tr('sys.city.reject.bad_ground'), tiles, badGround);
   if (def.terrain && def.terrain !== 'any' && !terrainNeedMet(map, tiles, def.terrain)) {
-    return fail('terrain', NEED_KINDS[def.terrain]?.label ?? '地形不合适', tiles);
+    return fail(
+      'terrain',
+      NEED_KINDS[def.terrain]?.label() ?? tr('sys.city.reject.terrain'),
+      tiles,
+    );
   }
 
   const onRoad = tiles.filter((t) => {
     const k = tileAt(map, t.x, t.y);
     return k === 'road' || k === 'bridge';
   });
-  if (onRoad.length > 0) return fail('road', '不能压在道路上', tiles, onRoad);
+  if (onRoad.length > 0) return fail('road', tr('sys.city.reject.road'), tiles, onRoad);
 
   const occ = cache?.occ ?? occupiedTiles(site, map);
   const overlap = tiles.filter((t) => occ.has(t.y * map.width + t.x));
-  if (overlap.length > 0) return fail('overlap', '和别的建筑重叠了', tiles, overlap);
+  if (overlap.length > 0) return fail('overlap', tr('sys.city.reject.overlap'), tiles, overlap);
 
   const entrance = entranceOf(tx, ty, def.footprint.w, def.footprint.h);
   const ei = entrance.y * map.width + entrance.x;
   if (!isWalkableTile(map, entrance.x, entrance.y) || occ.has(ei))
-    return fail('entrance', '门口被挡住了，门前要留一格空地', tiles, [entrance]);
+    return fail('entrance', tr('sys.city.reject.entrance'), tiles, [entrance]);
 
   const center = centerTile(map, sdef);
   const after = new Set(occ);
   for (const t of tiles) after.add(t.y * map.width + t.x);
   if (after.has(center.y * map.width + center.x))
-    return fail('reach', '不能占用聚落中心', tiles, [center]);
+    return fail('reach', tr('sys.city.reject.center'), tiles, [center]);
   const reachAfter = reachable(map, center, after);
-  if (!reachAfter[ei]) return fail('reach', '门口和聚落中心走不通', tiles, [entrance]);
+  if (!reachAfter[ei]) return fail('reach', tr('sys.city.reject.reach'), tiles, [entrance]);
 
   // keep_reach: nothing that was reachable before may become cut off.
   const reachBefore = cache?.reachBefore ?? reachable(map, center, occ);
@@ -267,13 +283,20 @@ function validatePlacement(
     const i = e.y * map.width + e.x;
     if (reachBefore[i] && !reachAfter[i]) {
       const name = buildingDef(content, b.defId)?.name ?? b.defId;
-      return fail('keep_reach', `会挡住${name}的出入口`, tiles, [e]);
+      return fail(
+        'keep_reach',
+        tr('sys.city.reject.keep_reach_building', { building: name }),
+        tiles,
+        [e],
+      );
     }
   }
   for (const ex of map.exits) {
     const i = ex.y * map.width + ex.x;
     if (reachBefore[i] && !reachAfter[i]) {
-      return fail('keep_reach', '会堵住通往外面的路', tiles, [{ x: ex.x, y: ex.y }]);
+      return fail('keep_reach', tr('sys.city.reject.keep_reach_exit'), tiles, [
+        { x: ex.x, y: ex.y },
+      ]);
     }
   }
   return { ok: true, tiles, entrance };

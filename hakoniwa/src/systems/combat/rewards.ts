@@ -3,6 +3,7 @@
 // events for witnesses, and boss milestone flags. Also level progression.
 
 import type { SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { addItem, addMoney } from '../inventory';
 import { applyModifiers } from '../modifiers';
 import { getEntity, playerEntity } from '../world';
@@ -27,7 +28,7 @@ export function creditParty(ctx: SystemContext, mapId: string, x: number, y: num
 }
 
 /** Grant experience; handles level ups (player.level_up for the player). */
-export function gainXp(ctx: SystemContext, u: Unit, amount: number, reason: string): void {
+export function gainXp(ctx: SystemContext, u: Unit, amount: number, reason: TextParam): void {
   if (amount <= 0 || u.level >= MAX_LEVEL) return;
   u.xp += Math.round(amount);
   let leveled = false;
@@ -97,7 +98,9 @@ export function award(
         y: e.y,
         targetId: victim.id,
         targetRef: e.ref,
-        note: yielded ? `${mon.name}败退` : `${mon.name}被击倒`,
+        note: yielded
+          ? tr('sys.combat.feat.yielded', { name: mon.name })
+          : tr('sys.combat.feat.downed', { name: mon.name }),
       });
     }
   }

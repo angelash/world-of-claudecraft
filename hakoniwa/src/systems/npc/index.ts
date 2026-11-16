@@ -6,6 +6,7 @@
 import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { commandText, type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { referencedVars } from '../quests/conditions';
 import { playerEntity } from '../world';
@@ -53,6 +54,11 @@ function sourceKind(src: CommandSource): PlanState['source'] | null {
   if (src.type === 'fallback') return 'fallback';
   if (src.type === 'system' || src.type === 'script') return 'script';
   return null;
+}
+
+/** A spoken line: the model's string (whitespace folded, capped at 60), or a line as text. */
+function sayText(v: TextParam, fromModel: boolean): TextParam {
+  return commandText(v, fromModel, (s) => s.replace(/\s+/g, ' ').trim().slice(0, 60), 60);
 }
 
 function onHour(ctx: SystemContext, hour: number): void {
@@ -141,19 +147,18 @@ export const system: GameSystem = {
   commands: {
     'npc.plan'(ctx, d, src) {
       const kind = sourceKind(src);
-      if (!kind) return reject('not_allowed', '玩家不能替别人安排日程');
+      if (!kind) return reject('not_allowed', tr('sys.npc.reject.plan_not_allowed'));
       const why = applyPlan(ctx, d, kind);
       return why ? reject('bad_plan', why) : ok();
     },
     'npc.say'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能替别人说话');
+      if (src.type === 'player') return reject('not_allowed', tr('sys.npc.reject.say_not_allowed'));
       const slice = ctx.world.slices.npc;
       const st = slice.npcs[d.npcId];
-      if (!st || st.gone) return reject('no_npc', '这个人现在不在');
-      if (d.revision !== st.sayRev) return reject('stale', '这句话已经过时');
-      const text =
-        typeof d.text === 'string' ? d.text.replace(/\s+/g, ' ').trim().slice(0, 60) : '';
-      if (!text) return reject('empty', '没有台词');
+      if (!st || st.gone) return reject('no_npc', tr('sys.npc.reject.no_npc'));
+      if (d.revision !== st.sayRev) return reject('stale', tr('sys.npc.reject.stale_say'));
+      const text = sayText(d.text, src.type === 'ai');
+      if (!text) return reject('empty', tr('sys.npc.reject.empty_say'));
       const name = cardOf(slice, ctx.content, d.npcId)?.name ?? d.npcId;
       ctx.emit('dialogue.line', {
         speakerId: st.entityId,
@@ -165,20 +170,22 @@ export const system: GameSystem = {
       return ok();
     },
     'npc.diary_batch'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能替别人写日记');
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.npc.reject.diary_not_allowed'));
       const why = applyDiary(ctx, d.mapId, d.day, d.revision, d.entries, src.type);
       return why ? reject('bad_diary', why) : ok();
     },
     'npc.goto'(ctx, d, src) {
-      if (src.type === 'player') return reject('not_allowed', '玩家不能直接指挥居民');
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.npc.reject.goto_not_allowed'));
       const slice = ctx.world.slices.npc;
       const st = slice.npcs[d.npcId];
       const card = cardOf(slice, ctx.content, d.npcId);
-      if (!st || !card || st.gone) return reject('no_npc', '这个人现在不在');
+      if (!st || !card || st.gone) return reject('no_npc', tr('sys.npc.reject.no_npc'));
       const loc = resolvePlace(ctx.content, card, d.locationId);
-      if (!loc) return reject('no_place', '这张地图上没有那个地点');
+      if (!loc) return reject('no_place', tr('sys.npc.reject.no_place'));
       const act = d.act ?? 'wander';
-      if (!ACTIVITIES.includes(act)) return reject('bad_act', '不认识这个活动');
+      if (!ACTIVITIES.includes(act)) return reject('bad_act', tr('sys.npc.reject.bad_act'));
       const hours = Math.max(1, Math.min(24, Math.round(d.hours)));
       st.override = { until: ctx.tick + hours * TICKS_PER_GAME_HOUR, at: loc.id, act };
       const hour = calendarAt(ctx.tick).hour;

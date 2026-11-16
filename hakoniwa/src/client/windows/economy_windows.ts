@@ -2,8 +2,8 @@
 // "交易", closed with economy.close_trade) and the trade company.
 
 import { el } from '../../shared_ui/dom';
+import { formatMoney, t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
-import { formatMoney } from '../../systems/inventory';
 import { actionButton, badge, empty, kv, rebuilder } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
@@ -36,7 +36,7 @@ export function tradeWindow(ctx: WindowContext): WindowContent {
         root.append(
           el('div', { className: 'hk-inv-row' }, [
             el('span', { className: 'hk-inv-name', text: w.name }),
-            badge(w.state),
+            badge(t(w.stateLabel)),
             el('span', { className: 'hk-muted', text: fmt(T.trade.stock, { n: w.stock }) }),
             el('span', { className: 'hk-gold', text: formatMoney(w.buy) }),
             actionButton(ctx, T.trade.buy, () => ad.buy(ctx.view, w.itemId, 1), {
@@ -49,7 +49,7 @@ export function tradeWindow(ctx: WindowContext): WindowContent {
       if (!s.bag.length) root.append(empty(T.trade.emptyBag));
       for (const b of s.bag) {
         root.append(
-          el('div', { className: 'hk-inv-row', title: b.reason ?? '' }, [
+          el('div', { className: 'hk-inv-row', title: t(b.reason) }, [
             el('span', { className: 'hk-inv-name', text: `${b.name} x${b.count}` }),
             el('span', {
               className: 'hk-gold',

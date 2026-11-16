@@ -2,6 +2,7 @@
 // hidden potential never appear here (the talent door reads potential via cognition).
 
 import type { ContentMap } from '../../core/contracts';
+import { type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { getEntity } from '../world';
 import { needBand } from './ai_context';
@@ -23,18 +24,18 @@ export interface NpcView {
   intro: string;
   traits: string[];
   /** public power impression (tier name), not the record level */
-  rank: string;
+  rank: TextParam;
   mapId: string;
   tier: Tier;
   activity: Activity;
-  activityName: string;
-  note?: string;
+  activityName: TextParam;
+  note?: TextParam;
   location: { id: string; name: string } | null;
-  needs: { hunger: string; energy: string; social: string; faith: string };
+  needs: { hunger: TextParam; energy: TextParam; social: TextParam; faith: TextParam };
   /** relation toward the player as a band, plus raw values for the workbench */
-  relationBand: string;
+  relationBand: TextParam;
   relation: RelationDims;
-  plan: { day: number; source: string; note?: string; goal?: string } | null;
+  plan: { day: number; source: string; note?: TextParam; goal?: TextParam } | null;
   gone: GoneReason | null;
   named: boolean;
 }
@@ -107,7 +108,7 @@ export function npcMemories(world: World, id: string, about?: string): MemoryEnt
   return about ? mind.mem.filter((m) => m.about === about) : [...mind.mem];
 }
 
-export function npcMemoryLines(world: World, id: string, limit = 8): string[] {
+export function npcMemoryLines(world: World, id: string, limit = 8): TextParam[] {
   return memoryLines(world.slices.npc.minds[id], limit);
 }
 
@@ -120,7 +121,7 @@ export function npcDiary(world: World, id: string) {
 }
 
 /** Display name for a persona or resident id (falls back to the id). */
-export function npcName(world: World, content: ContentMap, id: string): string {
-  if (id === 'player') return '你';
+export function npcName(world: World, content: ContentMap, id: string): TextParam {
+  if (id === 'player') return tr('sys.npc.name.you');
   return personaById(content, id)?.name ?? world.slices.npc.residents[id]?.name ?? id;
 }

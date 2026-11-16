@@ -4,6 +4,7 @@
 // while there is a communal stove, housing and food.
 
 import type { SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { removeItem } from '../inventory';
 import {
   buildingDef,
@@ -39,7 +40,7 @@ export function addPopulation(
   sdef: SiteDef,
   group: PopGroup,
   count: number,
-  reason: string,
+  reason: TextParam,
 ): number {
   const cap = stageCaps(sdef, site.stage).population;
   const n = Math.max(0, Math.min(Math.floor(count), cap - totalPop(site)));
@@ -53,7 +54,7 @@ export function removePopulation(
   ctx: SystemContext,
   site: SiteState,
   count: number,
-  reason: string,
+  reason: TextParam,
 ): number {
   let left = Math.floor(count);
   let removed = 0;
@@ -204,29 +205,38 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   if (pop > 0) {
     factors.push(
       shortage > 0
-        ? { source: 'food', label: '挨饿', value: -6 }
-        : { source: 'food', label: '吃得饱', value: 2 },
+        ? { source: 'food', label: tr('sys.city.factor.hungry'), value: -6 }
+        : { source: 'food', label: tr('sys.city.factor.fed'), value: 2 },
     );
     factors.push(
       crowd > 0
-        ? { source: 'housing', label: '住不下', value: -4 }
-        : { source: 'housing', label: '有住处', value: 1 },
+        ? { source: 'housing', label: tr('sys.city.factor.crowded'), value: -4 }
+        : { source: 'housing', label: tr('sys.city.factor.housed'), value: 1 },
     );
     if (housing > 0 && shackHousing / housing > 0.5)
-      factors.push({ source: 'shack', label: '多数人住窝棚', value: -2 });
-    if (stability >= 0.75) factors.push({ source: 'stability', label: '生活安定', value: 2 });
-    if (prosperity >= 0.75) factors.push({ source: 'prosperity', label: '日子红火', value: 2 });
-    if (belonging >= 0.75) factors.push({ source: 'belonging', label: '有归属感', value: 2 });
+      factors.push({ source: 'shack', label: tr('sys.city.factor.shacks'), value: -2 });
+    if (stability >= 0.75)
+      factors.push({ source: 'stability', label: tr('sys.city.factor.stability'), value: 2 });
+    if (prosperity >= 0.75)
+      factors.push({ source: 'prosperity', label: tr('sys.city.factor.prosperity'), value: 2 });
+    if (belonging >= 0.75)
+      factors.push({ source: 'belonging', label: tr('sys.city.factor.belonging'), value: 2 });
     const fac = Math.min(6, sumEffect(site, content, 'happiness'));
-    if (fac !== 0) factors.push({ source: 'buildings', label: '设施', value: fac });
+    if (fac !== 0)
+      factors.push({ source: 'buildings', label: tr('sys.city.factor.facilities'), value: fac });
     const pol = policyEffectSum(site, content, 'happiness');
-    if (pol !== 0) factors.push({ source: 'policies', label: '政策', value: pol });
+    if (pol !== 0)
+      factors.push({ source: 'policies', label: tr('sys.city.factor.policies'), value: pol });
     for (const e of site.effects) {
-      if (e.kind === 'happiness') factors.push({ source: e.id, label: e.label, value: e.value });
+      if (e.kind === 'happiness')
+        factors.push({ source: e.id, label: { ...e.label }, value: e.value });
     }
-    if (site.security < 30) factors.push({ source: 'security', label: '不安全', value: -3 });
-    if (site.health < 40) factors.push({ source: 'health', label: '病痛缠身', value: -3 });
-    if (site.sediment >= 2) factors.push({ source: 'sediment', label: '澱斑', value: -1 });
+    if (site.security < 30)
+      factors.push({ source: 'security', label: tr('sys.city.factor.unsafe'), value: -3 });
+    if (site.health < 40)
+      factors.push({ source: 'health', label: tr('sys.city.factor.sick'), value: -3 });
+    if (site.sediment >= 2)
+      factors.push({ source: 'sediment', label: tr('sys.city.factor.sediment'), value: -1 });
   }
   site.factors = factors;
   site.happiness = clamp(
@@ -240,7 +250,12 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   const rng = ctx.rng('city.population');
   if (pop > 0 && (site.happiness < -10 || shortage > 0.3)) {
     const leave = Math.max(1, Math.floor(pop * 0.01)) * (shortage > 0.3 ? 2 : 1);
-    removePopulation(ctx, site, leave, site.happiness < -10 ? '不满离开' : '挨饿离开');
+    removePopulation(
+      ctx,
+      site,
+      leave,
+      site.happiness < -10 ? tr('sys.city.reason.left_unhappy') : tr('sys.city.reason.left_hungry'),
+    );
     pop = totalPop(site);
   }
   const room = Math.max(0, Math.min(housing - pop, cap - pop));
@@ -266,7 +281,7 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
         Math.max(1, Math.floor(pop * 0.01)),
         1 + Math.floor((attraction - 0.45) * 10),
       );
-      addPopulation(ctx, site, sdef, 'migrants', n, '移民迁入');
+      addPopulation(ctx, site, sdef, 'migrants', n, tr('sys.city.reason.migrants'));
     }
   }
   const roomNow = Math.max(0, Math.min(housing - totalPop(site), cap - totalPop(site)));
@@ -275,6 +290,13 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   const foodOk = totalPop(site) > 0 ? site.foodDays >= 3 : food >= 10;
   if (trickleStage && hasActive(site, 'communal_stove') && roomNow > 0 && foodOk) {
     const n = rng.int(1, 3) + Math.max(0, Math.round(policyEffectSum(site, content, 'refugees')));
-    addPopulation(ctx, site, sdef, 'refugees', Math.min(roomNow, n), '难民投奔');
+    addPopulation(
+      ctx,
+      site,
+      sdef,
+      'refugees',
+      Math.min(roomNow, n),
+      tr('sys.city.reason.refugees'),
+    );
   }
 }

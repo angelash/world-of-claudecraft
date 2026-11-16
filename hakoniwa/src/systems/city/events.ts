@@ -7,6 +7,7 @@
 
 import type { Rng } from '../../core/rng';
 import type { SystemContext } from '../../core/system';
+import { joinText, type TextParam, type TextRef, tr } from '../../core/text';
 import { removeItem } from '../inventory';
 import { applyModifiers } from '../modifiers';
 import { autoResolve, buildFieldSetup } from '../warfare/autoresolve';
@@ -36,7 +37,7 @@ function logEvent(
   sdef: SiteDef,
   kind: CityEventKind,
   severity: 'minor' | 'severe',
-  text: string,
+  text: TextRef,
   ok: boolean,
 ): void {
   const day = today(ctx.tick);
@@ -53,10 +54,12 @@ function tempEffect(
   day: number,
   kind: 'happiness' | 'health',
   value: number,
-  label: string,
+  label: TextRef,
   days = 7,
 ): void {
-  site.effects.push({ id: `${kind}:${label}`, kind, value, untilDay: day + days, label });
+  // the readable id renders as before: '<kind>:<label>'
+  const id = joinText('none', [`${kind}:`, label]);
+  site.effects.push({ id, kind, value, untilDay: day + days, label: { ...label } });
 }
 
 function rollFire(
@@ -87,7 +90,7 @@ function rollFire(
   const damage = Math.round((severe ? 70 : 35) * (fought ? 0.5 : 1));
   target.condition = Math.max(0, target.condition - damage);
   const day = today(ctx.tick);
-  tempEffect(site, day, 'happiness', -3, '火灾');
+  tempEffect(site, day, 'happiness', -3, tr('sys.city.effect.fire'));
   const name = buildingDef(ctx.content, target.defId)?.name ?? target.defId;
   if (severe) site.severe.push({ kind: 'fire', untilDay: day + 3 });
   logEvent(
@@ -96,7 +99,9 @@ function rollFire(
     sdef,
     'fire',
     severe ? 'severe' : 'minor',
-    fought ? `${name}起火，巡夜的人及时扑救，损失不大` : `${name}起火，烧坏了不少`,
+    fought
+      ? tr('sys.city.event.fire_fought', { building: name })
+      : tr('sys.city.event.fire', { building: name }),
     fought,
   );
 }
@@ -109,17 +114,19 @@ function rollPlague(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng
   if (!rng.chance(p)) return;
   const day = today(ctx.tick);
   site.severe.push({ kind: 'plague', untilDay: day + 7 });
-  tempEffect(site, day, 'health', -30, '疫病');
-  tempEffect(site, day, 'happiness', -4, '疫病');
+  tempEffect(site, day, 'health', -30, tr('sys.city.effect.plague'));
+  tempEffect(site, day, 'happiness', -4, tr('sys.city.effect.plague'));
   const dead = Math.max(1, Math.floor(pop * (clinic ? 0.01 : 0.03)));
-  removePopulation(ctx, site, dead, '疫病');
+  removePopulation(ctx, site, dead, tr('sys.city.reason.plague'));
   logEvent(
     ctx,
     site,
     sdef,
     'plague',
     'severe',
-    clinic ? `疫病流行，医馆控制住了，${dead} 人没能熬过去` : `疫病流行，${dead} 人病死`,
+    clinic
+      ? tr('sys.city.event.plague_contained', { dead })
+      : tr('sys.city.event.plague', { dead }),
     clinic,
   );
 }
@@ -160,10 +167,12 @@ function rollRaid(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng):
   const seed = rng.int(1, 0x7ffffff0);
   let won = false;
   let lost = 0;
-  const raiderName = units.find((u) => u.id === raiderType)?.name ?? '魔物';
+  const raiderName: TextParam =
+    units.find((u) => u.id === raiderType)?.name ?? tr('sys.city.name.monster');
   if (guard.regiments.length > 0 && units.some((u) => u.id === raiderType)) {
     const setup = buildFieldSetup({
-      name: `${sdef.name}遭袭`,
+      // a transient battle label (developer text, never shown)
+      name: `raid on ${sdef.id}`,
       teams: { player: guard, enemy: { regiments: [{ typeId: raiderType, count: raiderCount }] } },
       terrain: 'plain',
       width: 24,
@@ -185,7 +194,7 @@ function rollRaid(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng):
   }
   site.severe.push({ kind: 'raid', untilDay: day + 3 });
   const dead = Math.min(totalPop(site), Math.round(lost * 0.4));
-  if (dead > 0) removePopulation(ctx, site, dead, '袭击伤亡');
+  if (dead > 0) removePopulation(ctx, site, dead, tr('sys.city.reason.raid_casualties'));
   if (won) {
     logEvent(
       ctx,
@@ -193,7 +202,10 @@ function rollRaid(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng):
       sdef,
       'raid',
       'severe',
-      `${raiderName}来袭，民兵击退了它们${dead > 0 ? `，${dead} 人阵亡` : ''}`,
+      tr('sys.city.event.raid_repelled', {
+        raider: raiderName,
+        casualties: dead > 0 ? tr('sys.city.event.raid_fallen', { dead }) : '',
+      }),
       true,
     );
     return;
@@ -205,14 +217,18 @@ function rollRaid(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng):
   const working = site.buildings.filter(isWorking);
   const hit = working[Math.floor(rng.next() * working.length)];
   if (hit) hit.condition = Math.max(0, hit.condition - 40);
-  tempEffect(site, day, 'happiness', -5, '遭袭');
+  tempEffect(site, day, 'happiness', -5, tr('sys.city.effect.raid'));
   logEvent(
     ctx,
     site,
     sdef,
     'raid',
     'severe',
-    `${raiderName}冲进了村子，抢走 ${grainLost} 份粮${dead > 0 ? `，${dead} 人遇难` : ''}`,
+    tr('sys.city.event.raid_lost', {
+      raider: raiderName,
+      grain: grainLost,
+      casualties: dead > 0 ? tr('sys.city.event.raid_killed', { dead }) : '',
+    }),
     false,
   );
 }

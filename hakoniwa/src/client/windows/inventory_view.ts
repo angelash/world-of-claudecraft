@@ -1,9 +1,9 @@
 // Inventory window model: the player's purse, equipment slots and bag items grouped by
 // kind, with the actions each item allows. Built from inventory queries; pure.
 
+import { formatMoney } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type { EquipSlot, Holding, ItemDef, ItemKind } from '../../systems/inventory';
-import { formatMoney } from '../../systems/inventory';
 
 export const EQUIP_SLOTS: readonly EquipSlot[] = [
   'main_hand',

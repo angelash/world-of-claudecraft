@@ -4,6 +4,7 @@
 // text the side panel shows. No DOM, no clock, no randomness; Node-tested.
 
 import type { FlagValue } from '../../core/contracts';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type {
   ContinentView,
@@ -360,7 +361,7 @@ export function provinceMarks(
       ? {
           progress: Math.max(0, Math.min(100, p.siege.progress)),
           color: ownerColor(colors, p.siege.by),
-          byName: p.siege.byName,
+          byName: t(p.siege.byName),
         }
       : null,
     war: warMark(view.wars, p.owner),
@@ -440,12 +441,12 @@ export function buildNames(
 ): Names {
   const nations = new Map<string, string>();
   for (const p of view.provinces) {
-    if (p.owner) nations.set(p.owner, p.ownerName);
-    if (p.siege) nations.set(p.siege.by, p.siege.byName);
+    if (p.owner) nations.set(p.owner, t(p.ownerName));
+    if (p.siege) nations.set(p.siege.by, t(p.siege.byName));
   }
-  for (const a of view.armies) nations.set(a.owner, a.ownerName);
-  for (const r of rows) nations.set(r.nation, r.name);
-  if (player) nations.set(player.id, player.name);
+  for (const a of view.armies) nations.set(a.owner, t(a.ownerName));
+  for (const r of rows) nations.set(r.nation, t(r.name));
+  if (player) nations.set(player.id, t(player.name));
   const provinces = new Map(view.provinces.map((p) => [p.id, shortName(p.name)]));
   return {
     nation: (id) => nations.get(id) ?? id,
@@ -471,7 +472,7 @@ export interface InfoRow {
 export function provinceTooltip(p: Province): string {
   return fmt(T.strategy.tooltip, {
     name: shortName(p.name),
-    owner: p.ownerName,
+    owner: t(p.ownerName),
     population: formatCount(p.population),
   });
 }
@@ -484,7 +485,7 @@ export function provinceRows(
   const S = T.strategy;
   const marks = provinceMarks(view, p);
   const rows: InfoRow[] = [
-    { label: S.fields.owner, value: p.ownerName, swatch: p.color },
+    { label: S.fields.owner, value: t(p.ownerName), swatch: p.color },
     { label: S.fields.terrain, value: S.terrains[p.terrain] ?? p.terrain },
     { label: S.fields.population, value: formatCount(p.population) },
     { label: S.fields.garrison, value: formatCount(p.garrison) },
@@ -492,7 +493,7 @@ export function provinceRows(
     {
       label: S.fields.siege,
       value: p.siege
-        ? fmt(S.siegeBy, { name: p.siege.byName, progress: Math.round(p.siege.progress) })
+        ? fmt(S.siegeBy, { name: t(p.siege.byName), progress: Math.round(p.siege.progress) })
         : S.noSiege,
       tone: p.siege ? 'warn' : 'muted',
     },
@@ -512,8 +513,8 @@ export function provinceRows(
 
 export function armyLine(a: Army): string {
   return fmt(T.strategy.armyLine, {
-    name: a.name,
-    owner: a.ownerName,
+    name: t(a.name),
+    owner: t(a.ownerName),
     soldiers: formatCount(a.soldiers),
   });
 }
@@ -542,8 +543,8 @@ export function nationRows(n: NationView, names: Names): InfoRow[] {
   const F = S.nationFields;
   const ae = [...n.aeAgainst].sort((x, y) => y.value - x.value || x.nation.localeCompare(y.nation));
   return [
-    { label: F.name, value: n.name },
-    { label: F.ruler, value: n.ruler },
+    { label: F.name, value: t(n.name) },
+    { label: F.ruler, value: t(n.ruler) },
     { label: F.capital, value: n.capital ? names.province(n.capital) : S.none },
     { label: F.treasury, value: fmt(S.gold, { n: formatCount(n.treasury) }) },
     { label: F.income, value: fmt(S.goldGain, { n: oneDecimal(n.income) }), tone: 'ok' },
@@ -707,10 +708,10 @@ export function warSummaries(view: Pick<ContinentView, 'wars'>, names: Names): W
 /** The conclave line: the summit result, the running stage, or not yet convened. */
 export function conferenceText(view: Pick<ContinentView, 'conference' | 'summit'>): string {
   const S = T.strategy;
-  if (view.summit) return fmt(S.summitResult, { name: view.summit.name });
+  if (view.summit) return fmt(S.summitResult, { name: t(view.summit.name) });
   const c = view.conference;
   if (c && c.stage !== 'done')
-    return fmt(S.conferenceStage, { stage: c.stageName, day: c.endsDay });
+    return fmt(S.conferenceStage, { stage: t(c.stageName), day: c.endsDay });
   return S.conferenceIdle;
 }
 
@@ -732,7 +733,7 @@ export function logLines(view: Pick<ContinentView, 'log'>, max = 20): string[] {
   return view.log
     .slice(-max)
     .reverse()
-    .map((e) => fmt(T.strategy.logLine, { day: e.day, text: e.text }));
+    .map((e) => fmt(T.strategy.logLine, { day: e.day, text: t(e.text) }));
 }
 
 export function pendingText(

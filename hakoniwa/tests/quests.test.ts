@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Engine, ok } from '../src/core';
+import { Engine, ok, tr } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
 import type { GameSystem } from '../src/core/system';
 import { TICKS_PER_GAME_DAY } from '../src/core/time';
@@ -80,6 +80,13 @@ describe('acts and the main line', () => {
     expect(
       offer?.kind === 'dialogue.options_offered' && offer.data.options.map((o) => o.id),
     ).toContain('accept:q_a1_m04_hunt');
+    // the option label is a text key with the quest title (content) as its param
+    const hunt = g.content.quests.find((q) => q.id === 'q_a1_m04_hunt');
+    const opt =
+      offer?.kind === 'dialogue.options_offered'
+        ? offer.data.options.find((o) => o.id === 'accept:q_a1_m04_hunt')
+        : undefined;
+    expect(opt?.label).toEqual(tr('sys.quests.label.accept', { title: hunt?.title ?? '' }));
     // the dialogue system reports the choice back
     const probe: GameSystem = {
       id: 'zz_probe',
@@ -115,6 +122,14 @@ describe('acts and the main line', () => {
     for (let i = 0; i < 5; i++) g.queue('stub.kill', { kind: 'monster', mapId: 'forest_edge' });
     g.step(1);
     expect(g.world.slices.quests.quests.q_a1_m04_hunt?.status).toBe('ready');
+    g.queue('quests.accept', { questId: 'q_a1_m04_hunt' });
+    g.step(1);
+    const again = [...g.world.recent]
+      .reverse()
+      .find((e) => e.kind === 'command.result' && e.data.kind === 'quests.accept');
+    expect(again?.kind === 'command.result' && again.data.reason).toEqual(
+      tr('sys.quests.reject.already'),
+    );
     g.queue('quests.turn_in', { questId: 'q_a1_m04_hunt' });
     g.step(1);
     expect(g.world.meta.flags['quest.q_a1_m04_hunt']).toBe('done');

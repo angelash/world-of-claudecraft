@@ -1,6 +1,7 @@
 // Needs (npc_society_ai.md 7.2): hourly decay, gains from activities, and the
 // need-driven override that bends the schedule when a need falls below its line.
 
+import { type KeyText, tr } from '../../core/text';
 import { MEAL_TAVERN, NEED_CRITICAL, NEED_DECAY, NEED_GAIN, NEED_RECONSIDER } from './constants';
 import type { Activity, Needs, NeedWeights, ScheduleSegment } from './types';
 
@@ -45,17 +46,19 @@ export function needOverride(
   seg: ScheduleSegment,
   devotion: number,
   money: number,
-): { act: Activity; at: string; note: string } | null {
+): { act: Activity; at: string; note: KeyText } | null {
   if (seg.act === 'sleep') return null;
-  if (needs.energy < NEED_CRITICAL) return { act: 'sleep', at: '@home', note: '累垮了' };
+  if (needs.energy < NEED_CRITICAL)
+    return { act: 'sleep', at: '@home', note: tr('sys.npc.note.exhausted') };
   const hungry = seg.act === 'work' ? needs.hunger < NEED_CRITICAL : needs.hunger < NEED_RECONSIDER;
   if (hungry && seg.act !== 'eat') {
     return money >= MEAL_TAVERN
-      ? { act: 'eat', at: '@tavern', note: '饿了' }
-      : { act: 'eat', at: '@home', note: '啃黑面包' };
+      ? { act: 'eat', at: '@tavern', note: tr('sys.npc.note.hungry') }
+      : { act: 'eat', at: '@home', note: tr('sys.npc.note.black_bread') };
   }
   if (!FREE.has(seg.act)) return null;
-  if (devotion >= 0.5 && needs.faith < 25) return { act: 'pray', at: '@church', note: '心里发慌' };
-  if (needs.social < 25) return { act: 'chat', at: '@tavern', note: '闷得慌' };
+  if (devotion >= 0.5 && needs.faith < 25)
+    return { act: 'pray', at: '@church', note: tr('sys.npc.note.anxious') };
+  if (needs.social < 25) return { act: 'chat', at: '@tavern', note: tr('sys.npc.note.lonely') };
   return null;
 }

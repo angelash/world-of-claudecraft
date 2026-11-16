@@ -6,6 +6,7 @@
 // texts live in strategy_model.ts.
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
+import { t } from '../../shared_ui/i18n';
 import { fmt, T } from '../../shared_ui/text';
 import type { ContinentView, DiplomacyRow, NationView } from '../../systems/strategy';
 import type { GameView } from '../view/game_view';
@@ -505,7 +506,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     const army = cv?.armies.find((x) => x.id === armyId);
     if (!a || !army) return;
     ctx.commands.queueAll(a.moveArmy(view(), armyId, to));
-    say(fmt(S.moveOrdered, { army: army.name, province: names.province(to) }));
+    say(fmt(S.moveOrdered, { army: t(army.name), province: names.province(to) }));
     update();
   }
 
@@ -526,16 +527,18 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
   function onDiplomacy(row: DiplomacyRow, b: DiplomacyButton): void {
     const a = adapter();
     if (!a) return;
-    if (b.action === 'declare_war' && !window.confirm(fmt(S.confirmWar, { name: row.name })))
+    if (b.action === 'declare_war' && !window.confirm(fmt(S.confirmWar, { name: t(row.name) })))
       return;
     if (
       b.action === 'break_treaty' &&
-      !window.confirm(fmt(S.confirmBreak, { name: row.name, treaty: treatyName(b.treaty ?? '') }))
+      !window.confirm(
+        fmt(S.confirmBreak, { name: t(row.name), treaty: treatyName(b.treaty ?? '') }),
+      )
     ) {
       return;
     }
     ctx.commands.queueAll(a.diplomacyAct(view(), row.nation, b.action, b.treaty));
-    say(fmt(S.diplomacySent, { name: row.name, action: b.label }));
+    say(fmt(S.diplomacySent, { name: t(row.name), action: b.label }));
     update();
   }
 
@@ -712,7 +715,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
       }
       if (army) {
         const box = el('div', { className: 'hk-sg-orders' }, [
-          el('h3', { text: fmt(S.armyTitle, { name: army.name }) }),
+          el('h3', { text: fmt(S.armyTitle, { name: t(army.name) }) }),
           el('p', { className: 'hk-sg-small', text: armyStatus(army, names) }),
         ]);
         if (army.frozen)
@@ -748,7 +751,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
           if (p && p.id !== army.province && !p.impassable && !direct?.allowed) {
             box.append(
               el('div', { className: 'hk-row' }, [
-                button(fmt(S.moveHere, { army: army.name }), () => orderMove(army.id, p.id)),
+                button(fmt(S.moveHere, { army: t(army.name) }), () => orderMove(army.id, p.id)),
               ]),
             );
           }
@@ -811,7 +814,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
         el('button', {
           className: 'hk-sg-listbtn',
           text: fmt(S.armyBrief, {
-            name: a.name,
+            name: t(a.name),
             soldiers: a.soldiers,
             province: names.province(a.province),
           }),
@@ -837,8 +840,8 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     for (const row of rows) {
       const card = el('div', { className: `hk-sg-dip${row.atWar ? ' hk-sg-atwar' : ''}` }, [
         el('div', { className: 'hk-sg-dip-head' }, [
-          el('span', {}, [swatch(ownerColor(colors, row.nation)), row.name]),
-          el('span', { className: 'hk-sg-tag', text: row.band }),
+          el('span', {}, [swatch(ownerColor(colors, row.nation)), t(row.name)]),
+          el('span', { className: 'hk-sg-tag', text: t(row.band) }),
         ]),
         ...diplomacyLines(row).map((l) =>
           el('div', {

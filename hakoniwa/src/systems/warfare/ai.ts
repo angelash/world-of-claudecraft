@@ -2,21 +2,29 @@
 // model answers), the plan's per-regiment orders every two battle seconds, and hero
 // skill use. Same rules as the player: no hidden numbers, no fog peeking beyond the field.
 
+import { type KeyText, tr } from '../../core/text';
 import { BACKLINE, CAVALRY, isRanged, regimentRadius } from './combat_math';
 import { active, dist, type KernelData, onField, other, unitOf } from './data';
 import { nearestEnemyRegiment } from './engage';
 import { castAbility } from './heroes';
 import { teamStrength } from './objectives';
+import TRAIT_WORDS from './trait_words.json';
 import type { BattleState, HeroState, PlanId, RegimentState, Team } from './types';
 
-export const PLAN_NAMES: Record<PlanId, string> = {
-  advance: '正面推进',
-  flank: '两翼包抄',
-  breakthrough: '中央突破',
-  hold: '坚守待援',
-  protect: '保护目标',
-  decapitate: '斩首',
-};
+/** The plans in menu order. */
+export const PLAN_IDS: readonly PlanId[] = [
+  'advance',
+  'flank',
+  'breakthrough',
+  'hold',
+  'protect',
+  'decapitate',
+];
+
+/** Display name of a plan (a fresh TextRef each call). */
+export function planName(id: PlanId): KeyText {
+  return tr(`sys.warfare.plan.${id}`);
+}
 
 export function chooseUtilityPlan(state: BattleState, team: Team, data: KernelData): PlanId {
   const own = teamStrength(state, data, team);
@@ -28,13 +36,15 @@ export function chooseUtilityPlan(state: BattleState, team: Team, data: KernelDa
   );
   if (holds) return ratio > 2.5 ? 'advance' : 'protect';
   if (ratio < 0.7) return 'hold';
-  if (traits.includes('谨慎') && ratio < 1.2) return 'hold';
-  if (traits.includes('勇猛')) return 'breakthrough';
+  // trait words are content vocabulary matched against the general's Chinese trait list;
+  // they move to data/ once generals carry trait codes (content pipeline follow-up)
+  if (traits.includes(TRAIT_WORDS.cautious) && ratio < 1.2) return 'hold';
+  if (traits.includes(TRAIT_WORDS.brave)) return 'breakthrough';
   const mine = state.regiments.filter((r) => r.team === team && active(r));
   const cav = mine.filter((r) => CAVALRY.has(unitOf(data, r.typeId).role)).length;
   if (mine.length > 0 && cav / mine.length >= 0.25 && ratio >= 0.9) return 'flank';
   const foeHeroes = state.heroes.some((h) => h.team !== team && !h.down);
-  if (traits.includes('狡诈') && foeHeroes) return 'decapitate';
+  if (traits.includes(TRAIT_WORDS.cunning) && foeHeroes) return 'decapitate';
   return 'advance';
 }
 

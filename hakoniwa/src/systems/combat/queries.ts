@@ -3,17 +3,16 @@
 // hostility, experience progress, and movement locks. Pure functions of the world.
 
 import type { ContentMap } from '../../core/contracts';
+import { type KeyText, type TextParam, tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
 import type { World } from '../../core/world';
 import { getEntity } from '../world';
-import { abilityCost, checkAbility } from './abilities';
+import { abilityCost, checkAbility, resourceName } from './abilities';
 import { abilityDef, auraDef } from './defs';
-import { TIER_NAMES, xpForLevel } from './formulas';
+import { tierName, xpForLevel } from './formulas';
 import { deriveStats } from './stats';
 import type { ResourceKind, Side } from './types';
 import { canAttack, isHostilePair, knownAbilities, liveUnit, unitOf } from './units';
-
-const RESOURCE_NAMES: Record<ResourceKind, string> = { mana: '灵力', rage: '战意', energy: '气息' };
 
 export interface UnitView {
   id: string;
@@ -21,12 +20,12 @@ export interface UnitView {
   kind: string;
   level: number;
   tier: number;
-  tierName: string;
+  tierName: KeyText | '';
   side: Side;
   alive: boolean;
   hp: number;
   maxHp: number;
-  resources: { kind: ResourceKind; name: string; cur: number; max: number }[];
+  resources: { kind: ResourceKind; name: KeyText; cur: number; max: number }[];
   combo: number;
   auras: {
     id: string;
@@ -53,14 +52,14 @@ export function unitView(world: World, content: ContentMap, id: string): UnitVie
     kind: e.kind,
     level: u.level,
     tier: u.tier,
-    tierName: TIER_NAMES[u.tier] ?? '',
+    tierName: tierName(u.tier),
     side: u.side,
     alive: e.alive && !u.downed,
     hp: Math.max(0, Math.round(u.hp)),
     maxHp: d.maxHp,
     resources: (Object.keys(d.maxRes) as ResourceKind[]).map((k) => ({
       kind: k,
-      name: RESOURCE_NAMES[k],
+      name: resourceName(k),
       cur: Math.round(u.res[k] ?? 0),
       max: d.maxRes[k] ?? 0,
     })),
@@ -101,7 +100,7 @@ export interface AbilitySlot {
   gcdLeft: number;
   range: number;
   usable: boolean;
-  reason?: string;
+  reason?: KeyText;
 }
 
 /** The ability bar of a unit (the player by default) with live cooldowns and usability. */
@@ -157,8 +156,8 @@ export interface TargetInfo {
   hostile: boolean;
   attackable: boolean;
   reading: StrengthReading;
-  /** "Lv 12 到 15" with the Tide-sight door, otherwise "?" */
-  levelText: string;
+  /** the level range (sys.combat.level_range) with the Tide-sight door, otherwise "?" */
+  levelText: TextParam;
 }
 
 export function targetInfo(
@@ -180,7 +179,10 @@ export function targetInfo(
     hostile: isHostilePair(v, t),
     attackable: canAttack(world, v, t),
     reading,
-    levelText: sight && reading !== 'unreadable' ? `Lv ${lo} 到 ${t.level + 2}` : '?',
+    levelText:
+      sight && reading !== 'unreadable'
+        ? tr('sys.combat.level_range', { lo, hi: t.level + 2 })
+        : '?',
   };
 }
 

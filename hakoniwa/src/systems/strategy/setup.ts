@@ -4,6 +4,7 @@
 
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { log, PLAYER, relKey, setRelation, strat } from './state';
 import type { ArmyState, NationDef, NationState, StrategySlice } from './types';
 
@@ -140,6 +141,6 @@ export function foundPlayerNation(ctx: SystemContext, name?: string): string[] {
     if (s.relations[relKey(other, PLAYER)] === undefined) setRelation(s, other, PLAYER, v);
     setRelation(s, PLAYER, other, v);
   }
-  log(s, `${s.playerNationName}立国`);
+  log(s, tr('sys.strategy.log.founded', { nation: s.playerNationName }));
   return taken;
 }

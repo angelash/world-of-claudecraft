@@ -1,0 +1,12 @@
+{
+  "sys.quests.reject.no_quest.missing": "没有这个任务",
+  "sys.quests.reject.no_quest.active": "没有进行中的这个任务",
+  "sys.quests.reject.already": "这个任务已经接过了",
+  "sys.quests.reject.unavailable": "现在还接不了这个任务",
+  "sys.quests.reject.not_ready": "任务还没有完成",
+  "sys.quests.reject.no_stage": "任务没有可选的抉择",
+  "sys.quests.reject.no_option": "没有这个选项",
+  "sys.quests.label.accept": "接受任务：{title}",
+  "sys.quests.label.turn_in": "交付任务：{title}",
+  "sys.quests.name.you": "你"
+}

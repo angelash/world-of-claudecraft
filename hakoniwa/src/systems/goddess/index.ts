@@ -5,6 +5,7 @@
 
 import { type CommandSource, type FlagValue, ok, reject } from '../../core';
 import type { GameSystem } from '../../core/system';
+import { rawText, tr } from '../../core/text';
 import type { ModifierTarget } from '../modifiers';
 import { sanitizeText } from '../quests/lore';
 import { displayName, executeAct, type GoddessActCommand } from './actions';
@@ -110,17 +111,19 @@ export const system: GameSystem = {
     'goddess.say'(ctx, d, source: CommandSource) {
       const def = goddessDef(ctx.content, d.goddessId);
       const s = ctx.world.slices.goddess.goddesses[d.goddessId];
-      if (!def || !s) return reject('no_goddess', '没有这位司掌者');
-      if (s.departed) return reject('departed', '她已经离开了');
+      if (!def || !s) return reject('no_goddess', tr('sys.goddess.reject.no_goddess.act'));
+      if (s.departed) return reject('departed', tr('sys.goddess.reject.departed'));
       if (source.type === 'ai' && d.revision !== undefined && d.revision !== s.revision) {
-        return reject('stale', '局势已经变了，这句话来得太迟');
+        return reject('stale', tr('sys.goddess.reject.stale.say'));
       }
-      const text = sanitizeText(String(d.text ?? '').slice(0, 300), ctx.world, ctx.content).trim();
-      if (!text) return reject('empty', '没有内容');
+      const said = typeof d.text === 'string' ? d.text : '';
+      const text = sanitizeText(said.slice(0, 300), ctx.world, ctx.content).trim();
+      if (!text) return reject('empty', tr('sys.goddess.reject.empty'));
       ctx.emit('dialogue.line', {
         speakerId: def.id,
         speakerName: displayName(ctx, def),
-        text,
+        // the model's words are kept as raw text in their language (D-087)
+        text: source.type === 'ai' ? rawText(text) : text,
         listenerId: d.listenerId,
         kind: 'divine',
       });
@@ -128,26 +131,27 @@ export const system: GameSystem = {
     },
     'goddess.offer'(ctx, d) {
       const bad = makeOffering(ctx, d);
-      return bad ? reject(bad.code, bad.reason) : ok('供品已收下');
+      return bad ? reject(bad.code, bad.reason) : ok(tr('sys.goddess.info.offering_received'));
     },
     'maker.revelation'(ctx, d) {
       if (d.id) {
         const rev = ctx.content.revelations.find((r) => r.id === d.id);
-        if (!rev) return reject('no_revelation', '没有这条天启');
+        if (!rev) return reject('no_revelation', tr('sys.goddess.reject.no_revelation'));
         if (ctx.world.slices.goddess.revelations.some((r) => r.id === d.id)) {
-          return reject('already', '这条天启已经显现过了');
+          return reject('already', tr('sys.goddess.reject.already'));
         }
         issueRevelation(ctx, rev);
         return ok();
       }
       const text = String(d.text ?? '').trim();
-      if (!text) return reject('no_text', '天启需要碑文');
-      if (text.length > 40) return reject('too_long', '天启只有一到两句');
+      if (!text) return reject('no_text', tr('sys.goddess.reject.no_text.revelation'));
+      if (text.length > 40) return reject('too_long', tr('sys.goddess.reject.too_long'));
       if (d.modifier && !MODIFIER_TARGETS.includes(d.modifier.target)) {
-        return reject('bad_modifier', '天启的规则变更必须是登记过的修正项类型');
+        return reject('bad_modifier', tr('sys.goddess.reject.bad_modifier'));
       }
-      if (d.modifier && !(d.modifier.days > 0)) return reject('bad_days', '规则变更需要期限');
-      if (!d.modifier && !d.flag) return reject('no_rule', '天启必须对应一条可验证的规则变更');
+      if (d.modifier && !(d.modifier.days > 0))
+        return reject('bad_days', tr('sys.goddess.reject.bad_days'));
+      if (!d.modifier && !d.flag) return reject('no_rule', tr('sys.goddess.reject.no_rule'));
       adHocRevelation(ctx, { text, literal: d.literal, modifier: d.modifier, flag: d.flag });
       return ok();
     },

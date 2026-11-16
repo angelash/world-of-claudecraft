@@ -1,7 +1,9 @@
 // Economy types: market definitions and state, the trade session, the Door Company
 // (门扉商会) with caravans and Earth-knowledge production, and the rule-driven competitor
-// (金冠商行). Money is integer copper (see systems/inventory formatMoney).
+// (金冠商行). Money is integer copper (formatMoney in src/shared_ui/i18n.ts displays it).
 // See docs/40_design/systems/economy_and_trade.md.
+
+import type { TextParam, TextRef } from '../../core/text';
 
 export interface MarketGoodDef {
   itemId: string;
@@ -197,7 +199,7 @@ export interface CompetitorAction {
   kind: 'imitate' | 'undercut' | 'hoard' | 'offer';
   marketId: string;
   itemId?: string;
-  note: string;
+  note: TextParam;
 }
 
 export interface CompetitorState {
@@ -217,7 +219,7 @@ export interface EconomySlice {
 
 export interface QuoteLine {
   kind: 'base' | 'supply' | 'modifier' | 'spread' | 'tax';
-  label: string;
+  label: TextRef | string;
   value: number;
   modifierId?: string;
 }
@@ -233,7 +235,9 @@ export interface PriceQuote {
   legal: boolean;
 }
 
-export type TradeResult = { ok: true; total: number } | { ok: false; code: string; reason: string };
+export type TradeResult =
+  | { ok: true; total: number }
+  | { ok: false; code: string; reason: TextRef };
 
 declare module '../../core/contracts' {
   interface WorldSlices {

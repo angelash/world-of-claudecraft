@@ -6,11 +6,12 @@
 import type { AiContextV1, AnyCommand, CommandResult } from '../../core';
 import { ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
+import { joinText, rawText, type TextParam, tr } from '../../core/text';
 import { goddessContext } from '../goddess/planning';
 import { goddessDef } from '../goddess/state';
 import { applyEffects, conditionHolds, teleportPlayer } from '../quests/effects';
-import { knowledgeFor, sanitizeText } from '../quests/lore';
-import { defaultKind, fillSlots, speakerName } from '../quests/speakers';
+import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
+import { defaultKind, fillText, speakerName } from '../quests/speakers';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
 import type { SceneChoice, SceneDef, SceneLine, SceneNode, SceneRun, ShownLine } from './types';
@@ -39,16 +40,21 @@ function current(ctx: SystemContext): { run: SceneRun; scene: SceneDef; node: Sc
   return scene && node ? { run, scene, node } : null;
 }
 
+/** A line to show: written content (a SceneLine) or one the system composes as text keys. */
+export type ShowLine = Omit<SceneLine, 'text' | 'name'> & { text: TextParam; name?: TextParam };
+
 /** Emit one line as a dialogue.line and keep it on the run for the view. */
 export function say(
   ctx: SystemContext,
   run: SceneRun | null,
-  line: SceneLine,
+  line: ShowLine,
   aiText = false,
 ): ShownLine {
   const flags = ctx.world.meta.flags;
-  const raw = fillSlots(line.text, flags);
-  const text = aiText ? sanitizeText(raw, ctx.world, ctx.content) : raw;
+  const filled = fillText(line.text, flags);
+  const clean = aiText ? sanitizeTextParam(filled, ctx.world, ctx.content) : filled;
+  // the model's words are kept as raw text in their language (D-087)
+  const text = aiText && typeof clean === 'string' ? rawText(clean) : clean;
   const shown: ShownLine = {
     speakerId: line.speaker,
     speakerName: speakerName(flags, ctx.content, line.speaker, line.name),
@@ -145,8 +151,7 @@ function aiContextFor(
     situation,
     knowledge: knowledgeFor(ctx.world, ctx.content, 'K1', agentId),
     commands: {
-      'scenes.resolve':
-        '数据 {runId, revision, lines:[{speaker, text}], choiceId?}：说出这一段的台词；有分类任务时给出 choiceId。',
+      'scenes.resolve': tr('sys.scenes.prompt.resolve'),
     },
     speakAs: name || agentId,
     extra,
@@ -266,7 +271,7 @@ function showEpilogue(ctx: SystemContext, run: SceneRun): void {
       speaker: who.id,
       name: who.name,
       kind: who.kind,
-      text: `${recordHeading(l, ending)}${l.text}`,
+      text: joinText('none', [recordHeading(l, ending), l.text]),
     });
   });
   ctx.setFlag('ep_shown', ending);
@@ -287,16 +292,17 @@ function moveOn(
 // Commands
 
 export function cmdStart(ctx: SystemContext, sceneId: string): CommandResult {
-  if (!sceneDef(ctx.content, sceneId)) return reject('no_scene', '没有这段场景');
+  if (!sceneDef(ctx.content, sceneId))
+    return reject('no_scene', tr('sys.scenes.reject.no_scene.missing'));
   requestScene(ctx, sceneId);
   return ok();
 }
 
 export function cmdAdvance(ctx: SystemContext): CommandResult {
   const cur = current(ctx);
-  if (!cur) return reject('no_scene', '现在没有在播放的场景');
+  if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
   const { run, scene, node } = cur;
-  if (run.waiting !== 'advance') return reject('waiting', '需要先作出选择');
+  if (run.waiting !== 'advance') return reject('waiting', tr('sys.scenes.reject.waiting'));
   if (node.improv && !run.spoken) {
     for (const l of visibleLines(ctx, node.improv.fallback)) say(ctx, null, l);
     run.spoken = true;
@@ -327,12 +333,12 @@ export function applyChoice(
 
 export function cmdChoose(ctx: SystemContext, choiceId: string): CommandResult {
   const cur = current(ctx);
-  if (!cur) return reject('no_scene', '现在没有在播放的场景');
+  if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
   const { run, scene, node } = cur;
   if (run.waiting === 'court' && node.court) return chooseInCourt(ctx, run, scene, node, choiceId);
-  if (run.waiting !== 'choice') return reject('no_choice', '这里不需要选择');
+  if (run.waiting !== 'choice') return reject('no_choice', tr('sys.scenes.reject.no_choice'));
   const choice = visibleChoices(ctx, run, node).find((c) => c.id === choiceId);
-  if (!choice) return reject('no_option', '没有这个选项');
+  if (!choice) return reject('no_option', tr('sys.scenes.reject.no_option'));
   applyChoice(ctx, run, scene, node, choice);
   return ok(choice.label);
 }
@@ -345,20 +351,24 @@ function chooseInCourt(
   choiceId: string,
 ): CommandResult {
   const spec = node.court;
-  if (!spec) return reject('no_court', '这里不是审庭');
+  if (!spec) return reject('no_court', tr('sys.scenes.reject.no_court'));
   if (choiceId === COURT_END) {
     enterNode(ctx, run, scene, spec.to, 0);
     return ok();
   }
-  if (!choiceId.startsWith(EVIDENCE_PREFIX)) return reject('no_option', '没有这个选项');
+  if (!choiceId.startsWith(EVIDENCE_PREFIX))
+    return reject('no_option', tr('sys.scenes.reject.no_option'));
   if (spec.limit && run.presented.length >= spec.limit)
-    return reject('limit', '这一轮能出示的证据已经用完');
+    return reject('limit', tr('sys.scenes.reject.limit'));
   const evId = choiceId.slice(EVIDENCE_PREFIX.length);
   const ev = presentable(ctx.world, ctx.content, spec.goddess).find((e) => e.id === evId);
-  if (!ev) return reject('no_evidence', '你手里没有这件证据，或已经出示过了');
+  if (!ev) return reject('no_evidence', tr('sys.scenes.reject.no_evidence'));
   run.presented.push(ev.id);
   run.shown = [];
-  say(ctx, run, { speaker: 'player', text: `（出示证据：${ev.name}）${ev.presentText}` });
+  say(ctx, run, {
+    speaker: 'player',
+    text: tr('sys.scenes.court.present_line', { name: ev.name, text: ev.presentText }),
+  });
   const res = presentEvidence(ctx, spec.goddess, ev);
   const def = ctx.content.courtDefenses.find((d) => d.goddess === spec.goddess);
   if (def) {
@@ -367,13 +377,13 @@ function chooseInCourt(
     if (res.hit && res.newlyBroken.length === 0 && !res.mitigated) {
       say(ctx, run, {
         speaker: 'narrator',
-        text: '证据落在证物台上。她的防线晃了一下，还没有塌。',
+        text: tr('sys.scenes.court.shaken'),
       });
     }
     if (res.mitigated)
       say(ctx, run, {
         speaker: 'narrator',
-        text: '她沉默了很久。这件证据没有击穿什么，却打开了一扇可以坦白的门。',
+        text: tr('sys.scenes.court.opened'),
       });
   }
   ctx.emit('scene.choice', { sceneId: scene.id, nodeId: node.id, choiceId, label: ev.name });
@@ -383,10 +393,10 @@ function chooseInCourt(
 
 export function cmdInput(ctx: SystemContext, text: string): CommandResult {
   const cur = current(ctx);
-  if (!cur) return reject('no_scene', '现在没有在播放的场景');
+  if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
   const { run, scene, node } = cur;
   const spec = node.input;
-  if (run.waiting !== 'input' || !spec) return reject('no_input', '这里不需要输入');
+  if (run.waiting !== 'input' || !spec) return reject('no_input', tr('sys.scenes.reject.no_input'));
   const max = spec.maxLength ?? DEFAULT_INPUT_MAX;
   const clean = Array.from(String(text ?? ''))
     .filter((ch) => ch.charCodeAt(0) >= 32)
@@ -449,7 +459,7 @@ export interface ResolveData {
 export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolean): CommandResult {
   const cur = current(ctx);
   if (!cur || cur.run.runId !== d.runId || cur.run.revision !== d.revision) {
-    return reject('stale', '场景已经往前走了，这段台词作废');
+    return reject('stale', tr('sys.scenes.reject.stale'));
   }
   const { run, scene, node } = cur;
   const allowedSpeakers = new Set<string>([
@@ -494,10 +504,13 @@ export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolea
 }
 
 /** Evidence the player could present now (for the view). */
-export function courtOptions(ctx: SystemContext, goddess: string): { id: string; label: string }[] {
+export function courtOptions(
+  ctx: SystemContext,
+  goddess: string,
+): { id: string; label: TextParam }[] {
   return presentable(ctx.world, ctx.content, goddess).map((e) => ({
     id: `${EVIDENCE_PREFIX}${e.id}`,
-    label: `出示：${e.name}`,
+    label: tr('sys.scenes.court.present', { name: e.name }),
   }));
 }
 

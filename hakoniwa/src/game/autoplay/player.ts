@@ -130,12 +130,12 @@ export class Autoplayer {
       for (const e of events) {
         if (e.kind === 'quest.completed') {
           this.questsDone.push(e.data.questId);
-          this.progress(`任务完成：${e.data.title}（${e.data.questId}）`);
+          this.progress(`quest done: ${e.data.title} (${e.data.questId})`);
         } else if (e.kind === 'act.changed') {
           const last = this.acts[this.acts.length - 1];
           if (last) last.endTick = e.tick;
           this.acts.push({ act: e.data.to, startTick: e.tick });
-          this.progress(`换幕：${e.data.from} -> ${e.data.to}`);
+          this.progress(`act: ${e.data.from} -> ${e.data.to}`);
         } else if (e.kind === 'command.result' && !e.data.ok && e.data.source.type === 'player') {
           const key = `${e.data.kind}:${e.data.code ?? ''}`;
           this.rejected[key] = (this.rejected[key] ?? 0) + 1;
@@ -146,7 +146,7 @@ export class Autoplayer {
           const killer = killerId ? engine.world.slices.world.entities[killerId] : undefined;
           const ref = this.fightingRef ?? killer?.ref;
           if (ref) this.lossesTo[ref] = (this.lossesTo[ref] ?? 0) + 1;
-          this.log(`玩家倒下（${e.data.mapId}），从门里回来`);
+          this.log(`player down (${e.data.mapId}), back through the door`);
         } else if (e.kind === 'combat.damage') {
           const friends = friendlyIds(engine.world);
           if (friends.has(e.data.sourceId) && !friends.has(e.data.targetId)) {
@@ -163,9 +163,9 @@ export class Autoplayer {
           // the settlement growing or the player levelling is progress too (no log line)
           this.lastProgressTick = e.tick;
         } else if (e.kind === 'battle.ended') {
-          this.progress(`战役结束：${e.data.scenario ?? ''} 胜方 ${e.data.victor}`);
+          this.progress(`battle ended: ${e.data.scenario ?? ''} winner ${e.data.victor}`);
         } else if (e.kind === 'door.opened') {
-          this.log(`开门：${e.data.doorId}`);
+          this.log(`door opened: ${e.data.doorId}`);
         }
       }
     });
@@ -251,7 +251,7 @@ export class Autoplayer {
     }
     const last = this.acts[this.acts.length - 1];
     if (last && last.endTick === undefined && this.done()) last.endTick = this.engine.tick;
-    if (stuck) this.log(`停止：${stuck}`);
+    if (stuck) this.log(`stopped: ${stuck}`);
     return {
       ending: this.flags.ending === undefined ? null : String(this.flags.ending),
       finished: this.done(),

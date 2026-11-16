@@ -4,6 +4,7 @@
 // stable prefix cacheable. See docs/50_tech/ai_architecture.md 7.1, 7.3 and 11.2.
 
 import type { AiContextV1 } from '../core/ai_port';
+import { renderTextDeep } from '../shared_ui/i18n';
 import type { JsonSchema } from './contracts';
 import type { RolePack } from './roles';
 
@@ -163,12 +164,15 @@ export interface RenderedContext {
   playerText: string;
 }
 
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
 /**
  * Turn a request context into prompt text. AiContextV1 gets named sections; any other
  * context is cleaned and rendered as data. Only `allowed` command kinds are listed.
+ * Kernel text arrives as TextRefs and is rendered in the source language first (D-077).
  */
 export function renderContext(
-  ctx: unknown,
+  raw: unknown,
   allowed: readonly string[],
   playerMaxChars = PLAYER_TEXT_MAX_CHARS,
 ): RenderedContext {
@@ -176,16 +180,17 @@ export function renderContext(
   const parts: string[] = [];
   let playerText = '';
   let descriptions: Record<string, string> = {};
+  const ctx = renderTextDeep(raw);
 
   if (isContextV1(ctx)) {
-    const persona = cleanText(ctx.persona);
+    const persona = cleanText(str(ctx.persona));
     if (persona) stableParts.push(section('你是谁', persona));
     const voice = strings(ctx.voice);
     if (voice.length) stableParts.push(section('说话方式', bullets(voice)));
     const speakAs = typeof ctx.speakAs === 'string' ? cleanText(ctx.speakAs) : '';
     if (speakAs) stableParts.push(section('开口时', `需要说话时，你以“${speakAs}”的身份开口。`));
 
-    const situation = cleanText(ctx.situation ?? '');
+    const situation = cleanText(str(ctx.situation));
     if (situation) parts.push(section('眼下', situation));
     const knowledge = strings(ctx.knowledge);
     if (knowledge.length) parts.push(section('你知道的事', bullets(knowledge)));
@@ -207,7 +212,7 @@ export function renderContext(
     }
     const cleanedExtra = cleanValue(extra);
     if (cleanedExtra !== undefined) parts.push(section('补充', renderData(cleanedExtra)));
-    descriptions = ctx.commands ?? {};
+    descriptions = (ctx.commands ?? {}) as Record<string, string>;
   } else {
     const cleaned = cleanValue(ctx);
     if (cleaned !== undefined) parts.push(section('情况', renderData(cleaned)));

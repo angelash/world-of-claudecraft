@@ -4,6 +4,7 @@
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { tr } from '../../core/text';
 import { addUnit, setLevel, unitOf } from '../combat';
 import { countItem, itemDef, removeItem } from '../inventory';
 import { getEntity, playerEntity, removeEntity, spawnEntity, teleportEntity } from '../world';
@@ -103,9 +104,10 @@ export const system: GameSystem = {
 
   commands: {
     'party.order'(ctx, d) {
-      if (!ORDERS.includes(d.order)) return reject('bad_order', '没有这种命令');
+      if (!ORDERS.includes(d.order)) return reject('bad_order', tr('sys.party.reject.bad_order'));
       const list = d.companionId ? [ctx.world.slices.party.members[d.companionId]] : members(ctx);
-      if (list.length === 0 || !list[0]) return reject('no_companion', '队伍里没有这位同伴');
+      if (list.length === 0 || !list[0])
+        return reject('no_companion', tr('sys.party.reject.no_companion'));
       for (const m of list) {
         if (!m) continue;
         m.order = d.order;
@@ -116,13 +118,14 @@ export const system: GameSystem = {
     'party.gift'(ctx, d) {
       const m = ctx.world.slices.party.members[d.companionId];
       const def = companionDef(ctx, d.companionId);
-      if (!m || !def) return reject('no_companion', '队伍里没有这位同伴');
+      if (!m || !def) return reject('no_companion', tr('sys.party.reject.no_companion'));
       const item = itemDef(ctx.content, d.itemId);
       const pid = ctx.world.slices.world.playerId;
-      if (!item) return reject('no_item', '没有这件物品');
+      if (!item) return reject('no_item', tr('sys.party.reject.no_item'));
       if (item.kind === 'key' || item.kind === 'evidence')
-        return reject('not_giftable', '这件东西不能送人');
-      if (countItem(ctx.world, pid, d.itemId) <= 0) return reject('missing', '背包里没有它');
+        return reject('not_giftable', tr('sys.party.reject.not_giftable'));
+      if (countItem(ctx.world, pid, d.itemId) <= 0)
+        return reject('missing', tr('sys.party.reject.missing'));
       removeItem(ctx, pid, d.itemId, 1, `gift:${d.companionId}`);
       addBond(ctx, m, giftValue(def, item), `gift:${d.itemId}`);
       return ok();

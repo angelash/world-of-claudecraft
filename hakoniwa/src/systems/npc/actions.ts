@@ -3,6 +3,7 @@
 // snap elsewhere), book wages and purchases, and settle money once a day.
 
 import type { SystemContext } from '../../core/system';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { addMoney, holdingOf } from '../inventory';
 import { getEntity, orderMove, teleportEntity } from '../world';
@@ -17,7 +18,7 @@ import type { Activity, DiaryKind, NpcState, ScheduleSegment } from './types';
 export interface Decision {
   act: Activity;
   at: string;
-  note?: string;
+  note?: TextParam;
 }
 
 /** Spendable money: inventory balance plus today's unsettled wages and costs. */
@@ -39,7 +40,7 @@ export function decideHour(
   hour: number,
 ): Decision {
   if (st.override && ctx.tick < st.override.until) {
-    return { act: st.override.act, at: st.override.at, note: '有事在身' };
+    return { act: st.override.act, at: st.override.at, note: tr('sys.npc.note.busy') };
   }
   st.override = null;
   const day = calendarAt(ctx.tick).dayIndex;
