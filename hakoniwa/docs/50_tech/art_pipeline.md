@@ -308,7 +308,7 @@
 - **实例化：** 树与石每种变体一个 `InstancedMesh`；同屏大量同类单位用图集加实例化立牌（4.8）。
 - **目标：** 1080p 集显中档 60 帧；场景规模预算见 `architecture.md` 第 10 节；纹理内存预算见第 14 节。画质档的调度、首次启动选档与自动降档以 [`release_engineering.md`](release_engineering.md) 第 6.7 节为准，AI 位图的纹理内存预算以其第 6.8 节为准。
 
-画质档（`quality.ts` 的 `QUALITY_IDS` 扩展一档 `ultra`）：
+画质档（`src/client/hd2d/quality.ts`：`QUALITY_TIER_IDS` 是含 `ultra` 的全部档位；设置菜单列出的 `QUALITY_IDS` 在 M3 开放前不含 `ultra`）：
 
 | 档   | 阴影                    | 后期                                                   | 像素比上限 | 观感项                                                                 |
 | ---- | ----------------------- | ------------------------------------------------------ | ---------- | ---------------------------------------------------------------------- |
@@ -499,7 +499,7 @@
 - **每个物种一套 AI 动作表**，按体型选模板（3.2）：每个朝向一张（`_d`、`_r`、`_u`），行是动作（待机 4、移动 6、攻击 4、受击 2 加倒地 4），左向由右向镜像；
   无明显朝向的（软泥、灵球、浮眼）只出正面一张。每个物种先出三视图参照（`mon_turnaround`）。
 - **剪影不共用：** 蛛、蜈、甲虫用多足模板，水蛭、蠕虫、蛇用长躯模板，亚龙与飞龙用亚龙模板，鸦与蝠用飞行模板，软泥与灵体用无定形模板，熊与魔像用大型模板。
-  程序化占位同样按体型分流：`src/client/sprites/look.ts` 的 `lookFromEntity` 现把底型写作 `beast` 的魔物一律画成狼形（`dian_rat`、`dian_boar`、`edge_spider`、`burrow_worm`、`black_ridge`、
+  程序化占位同样按体型分流：内容数据的 `base` 写成体型别名（`rat`、`boar`、`spider`、`centipede`、`leech`、`worm`、`beetle`、`bear`、`drake`、`elemental`、`shade`、`imp`、`ogre` 等），`src/client/sprites/look.ts` 的 `lookFromEntity` 按体型取对应类别的素材；没有专属占位剪影的生灵体型暂画四足占位，与第一轮逐像素一致，多足、长躯等专属占位剪影随后续批次补。
   `crystal_mother`、`dian_leech`、`crystal_centipede_young`），这是要修正的现状：占位按物种的体型模板走多足、长躯、四足小型、四足大型，内容数据的 `base` 写成体型别名（`spider`、`centipede`、`leech`、`worm`、`bear`、`drake`）。
 - **澱化阶梯不另出图：** 同一物种从澱度零到五是同一套动作表（`../40_design/content/catalog_bestiary.md` 第 2.2 节）：
   颜色由色样行从本色插值到澱源主色；第三级起叠加澱源纹样（`vfx_overlay`：光澱的瓷纹、战澱的赤裂、契澱的金斑、生澱的菌斑、录澱的字样刻痕、古澱的门形空洞，每源一张，按立牌轮廓遮罩后着色）；
@@ -774,6 +774,7 @@ my_ai_town 没有战斗表现（调研 3.7 节），本节是本作自己的设�
 - **占位：** 现有的程序化绘制代码全部保留，作为每一类素材到位前的占位：纸娃娃与生灵模板（`src/client/sprites/`）、地面色阶（`src/client/render/tile_art.ts`）、
   墙面与屋面（`src/client/hd2d/textures.ts`）、装饰（`src/client/render/decor_art.ts`）、头顶字形（`src/client/render/markers.ts`）、程序化图标配方（类别通用）。
   素材解析器（2.1）按编号查素材清单，状态不是"通过"时返回占位；所以开发顺序可以是"先内容后素材"，内容条目进数据的当天就能在游戏里看到。
+- **解析器与加载器：** `src/client/assets/` 的 `AssetResolver` 只认状态为"通过"且导入已写出元数据的记录，其余返回原因码并退回占位；加载器只在开发构建读 `/assets/`，发行构建随正式图集清单（PK-M1-04）；纸娃娃组装器建成前，带纸娃娃配方的外观画占位（原因码 `doll_compositor`），别名物种在色样行换色实现前保持占位（`alias_recolour`），避免与本种一模一样。
 - **占位的确定性：** 占位与素材一样按外观参数确定性生成，回放与截图一致；开发构建可用 `?art=procedural` 强制全部占位，对比素材到位前后的观感与性能。
 - **平面降级档：** Canvas2D 平面渲染使用同一批位图（地面图集、立牌图集、特效俯视小图、图标）；三维外壳在平面档里没有对应位图，屋顶与墙顶由程序化绘制（`src/client/render/roofs.ts`），
   屋顶纹理取风格包屋面贴图的主色。平面档不显示远景天幕（2.13）。
