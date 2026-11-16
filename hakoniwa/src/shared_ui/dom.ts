@@ -1,5 +1,5 @@
 // Tiny DOM helpers shared by the client and the editor. No framework: build elements
-// with el(), empty a node with clear(). Text always arrives from shared_ui/text.ts.
+// with el(), empty a node with clear(). Text always arrives from t() (shared_ui/i18n.ts).
 
 export type Child = Node | string | null | undefined | false;
 

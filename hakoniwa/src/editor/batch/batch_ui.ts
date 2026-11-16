@@ -38,7 +38,6 @@ import {
   editRecord,
   filledBatch,
   finishWrites,
-  flattenText,
   interpretBatchFile,
   interruptedPromotion,
   MILESTONES,
@@ -438,7 +437,7 @@ export class BatchTool implements EditorTool {
       import('../../game/create'),
       import('../../game/autoplay'),
       import('../../game/autoplay/routes'),
-      import('../../shared_ui/text'),
+      import('../../shared_ui/i18n'),
     ]);
     const input = validationInput(
       { content: this.ws.content(), files: this.ws.allData(), packs: this.ws.packs },
@@ -451,7 +450,7 @@ export class BatchTool implements EditorTool {
         }),
         endingRoutes: [...autoplay.ENDING_ROUTES],
         routeProblems: (content) => routes.routeProblems(content),
-        uiText: flattenText(text.T),
+        uiText: { ...text.SOURCE_TABLE },
       },
     );
     return v.runValidators(input);

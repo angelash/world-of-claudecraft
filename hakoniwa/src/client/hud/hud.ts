@@ -4,7 +4,7 @@
 // module; this file only composes them.
 
 import { el, setText } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { SpriteCache } from '../sprites/sprite_cache';
 import type { WindowId } from '../windows/window_registry';
 import { Banner, WarPrompt } from './banner';
@@ -55,8 +55,8 @@ export class Hud {
     this.menuBar = new MenuBar(deps.onToggleWindow, deps.devMode);
     this.scene = new ScenePanel(deps.scene);
     this.banner = new Banner();
-    this.warPrompt = new WarPrompt(T.warPrompt.go, deps.onWarPrompt);
-    this.pauseBanner = el('div', { className: 'hk-banner', text: T.speed.paused });
+    this.warPrompt = new WarPrompt(t('ui.hud.warprompt.go'), deps.onWarPrompt);
+    this.pauseBanner = el('div', { className: 'hk-banner', text: t('ui.hud.clock.speed.paused') });
     this.pauseBanner.hidden = true;
     this.root = el('div', { className: 'hk-hud' }, [
       el('div', { className: 'hk-hud-tl' }, [this.playerFrame.el, this.targetFrame.el]),
@@ -68,14 +68,16 @@ export class Hud {
       this.pauseBanner,
       this.banner.el,
       this.scene.el,
-      deps.devMode ? el('div', { className: 'hk-dev-badge', text: T.app.devBadge }) : null,
+      deps.devMode
+        ? el('div', { className: 'hk-dev-badge', text: t('ui.scr.title.dev_badge') })
+        : null,
     ]);
     parent.append(this.root);
   }
 
   setPaused(paused: boolean): void {
     this.pauseBanner.hidden = !paused;
-    setText(this.pauseBanner, T.speed.paused);
+    setText(this.pauseBanner, t('ui.hud.clock.speed.paused'));
   }
 
   dispose(): void {

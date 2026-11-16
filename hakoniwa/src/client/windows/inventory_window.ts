@@ -3,7 +3,7 @@
 // only when the holding actually changed.
 
 import { clear, el } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { EquipSlot } from '../../systems/inventory';
 import { buildInventoryView } from './inventory_view';
 import type { WindowContext } from './window_context';
@@ -23,10 +23,10 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
     clear(root);
     root.append(
       el('div', { className: 'hk-inv-money' }, [
-        el('span', { className: 'hk-muted', text: T.inventory.money }),
+        el('span', { className: 'hk-muted', text: t('ui.win.inventory.money') }),
         el('strong', { text: v.money }),
       ]),
-      el('h3', { text: T.inventory.equipped }),
+      el('h3', { text: t('ui.win.inventory.equipped') }),
       el(
         'div',
         { className: 'hk-inv-slots' },
@@ -35,12 +35,12 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
             el('span', { className: 'hk-muted', text: s.label }),
             el('span', {
               className: s.quality !== undefined ? `hk-q${s.quality}` : 'hk-muted',
-              text: s.name ?? T.inventory.empty,
+              text: s.name ?? t('ui.win.inventory.empty'),
             }),
             s.itemId
               ? el('button', {
                   className: 'hk-btn hk-btn-small',
-                  text: T.inventory.unequip,
+                  text: t('ui.win.inventory.unequip'),
                   attrs: { type: 'button' },
                   on: {
                     click: () =>
@@ -54,10 +54,10 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
           ]),
         ),
       ),
-      el('h3', { text: T.inventory.bag }),
+      el('h3', { text: t('ui.win.inventory.bag') }),
     );
     if (v.empty) {
-      root.append(el('p', { className: 'hk-muted', text: T.inventory.bagEmpty }));
+      root.append(el('p', { className: 'hk-muted', text: t('ui.win.inventory.empty_state') }));
       return;
     }
     for (const g of v.groups) {
@@ -74,12 +74,12 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
               el('span', { className: `hk-inv-name hk-q${it.quality}`, text: it.name }),
               el('span', {
                 className: 'hk-muted',
-                text: fmt(T.inventory.count, { count: it.count }),
+                text: t('ui.win.inventory.count', { count: it.count }),
               }),
               ...it.actions.map((a) =>
                 el('button', {
                   className: 'hk-btn hk-btn-small',
-                  text: a === 'equip' ? T.inventory.equip : T.inventory.use,
+                  text: a === 'equip' ? t('ui.win.inventory.equip') : t('ui.win.inventory.use'),
                   attrs: { type: 'button' },
                   on: {
                     click: () =>

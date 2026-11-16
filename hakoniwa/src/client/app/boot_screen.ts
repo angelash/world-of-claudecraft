@@ -1,7 +1,7 @@
 // Title screen: start a new journey or load a save slot. Thin DOM.
 
 import { clear, el } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { type ClientSaves, LOAD_SLOTS, type SlotId, slotLabel } from '../hud/save_slots';
 
 export interface BootActions {
@@ -25,11 +25,13 @@ export class BootScreen {
     this.status = el('p', { className: 'hk-boot-status' });
     this.el = el('div', { className: 'hk-boot' }, [
       el('div', { className: 'hk-boot-card' }, [
-        el('h1', { className: 'hk-boot-title', text: T.app.title }),
-        el('p', { className: 'hk-boot-sub', text: T.app.subtitle }),
+        el('h1', { className: 'hk-boot-title', text: t('ui.common.game_title') }),
+        el('p', { className: 'hk-boot-sub', text: t('ui.scr.title.subtitle') }),
         this.body,
         this.status,
-        devMode ? el('div', { className: 'hk-dev-badge', text: T.app.devBadge }) : null,
+        devMode
+          ? el('div', { className: 'hk-dev-badge', text: t('ui.scr.title.dev_badge') })
+          : null,
       ]),
     ]);
     parent.append(this.el);
@@ -45,7 +47,11 @@ export class BootScreen {
     const seedInput = this.devMode
       ? el('input', {
           className: 'hk-input',
-          attrs: { type: 'number', placeholder: T.app.devSeed, 'aria-label': T.app.devSeed },
+          attrs: {
+            type: 'number',
+            placeholder: t('ui.scr.title.dev_seed'),
+            'aria-label': t('ui.scr.title.dev_seed'),
+          },
         })
       : null;
     if (seedInput && this.devSeed !== undefined) seedInput.value = String(this.devSeed);
@@ -53,13 +59,13 @@ export class BootScreen {
     this.body.append(
       el('button', {
         className: 'hk-btn hk-btn-wide hk-btn-primary',
-        text: T.app.newGame,
+        text: t('ui.scr.title.new_game'),
         attrs: { type: 'button' },
         on: {
           click: () => {
             const raw = seedInput?.value.trim();
             const seed = raw && Number.isFinite(Number(raw)) ? Number(raw) | 0 : undefined;
-            this.setStatus(T.app.loading);
+            this.setStatus(t('ui.scr.boot.loading'));
             // Let the status paint before the synchronous world build.
             setTimeout(() => this.actions.newGame(seed), 16);
           },
@@ -67,7 +73,7 @@ export class BootScreen {
       }),
       el('button', {
         className: 'hk-btn hk-btn-wide',
-        text: T.app.loadGame,
+        text: t('ui.scr.title.load_game'),
         attrs: hasSaves ? { type: 'button' } : { type: 'button', disabled: '' },
         on: { click: () => this.showLoad() },
       }),
@@ -91,23 +97,24 @@ export class BootScreen {
             attrs: { type: 'button' },
             on: {
               click: () => {
-                this.setStatus(T.app.loading);
+                this.setStatus(t('ui.scr.boot.loading'));
                 setTimeout(() => this.actions.load(slot), 16);
               },
             },
           },
           [
             el('strong', { text: slotLabel(slot) }),
-            el('span', { text: fmt(T.saves.meta, { date: meta.date, map: meta.mapName }) }),
+            el('span', { text: t('ui.win.saves.meta', { date: meta.date, map: meta.mapName }) }),
           ],
         ),
       );
     }
-    if (!any) this.body.append(el('p', { className: 'hk-muted', text: T.app.noSaves }));
+    if (!any)
+      this.body.append(el('p', { className: 'hk-muted', text: t('ui.scr.title.no_saves') }));
     this.body.append(
       el('button', {
         className: 'hk-btn hk-btn-wide',
-        text: T.app.back,
+        text: t('ui.scr.title.back'),
         attrs: { type: 'button' },
         on: { click: () => this.showMain() },
       }),

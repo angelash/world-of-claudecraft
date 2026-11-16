@@ -6,6 +6,7 @@ import type { Entity, MapDef } from '../../systems/world/types';
 import { ctx2d, makeCanvas, matrixToCanvas } from '../render/canvas_util';
 import { relationOf } from '../render/scene';
 import type { MapMarkerView } from '../view/adapters';
+import { contentNames } from '../view/content_names';
 import { DOT_COLORS, minimapMatrix, minimapScale } from './minimap_model';
 
 export class Minimap {
@@ -39,7 +40,7 @@ export class Minimap {
     if (map.id !== this.mapId) {
       this.mapId = map.id;
       this.base = matrixToCanvas(minimapMatrix(map));
-      this.title.textContent = map.name;
+      this.title.textContent = contentNames.map(map);
     }
     const s = minimapScale(map.width, map.height, this.boxW, this.boxH);
     const w = map.width * s;

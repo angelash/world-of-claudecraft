@@ -1,10 +1,15 @@
-// Window catalogue (architecture.md 7) and the availability rule: a window is usable when
-// every flag in requiresAll is on, at least one of requiresAny is on (when listed), and
-// it is not dev-only outside dev mode. Feature flags follow implementation_conventions.md
-// 4 (feature.<name>). Pure; Node-tested.
+// Window catalogue (architecture.md 7; ux_and_onboarding.md 2.3, the 23.1 M0 row on the
+// window registry with ui_ ids, the 23.2 window check) and the availability rule: a window is usable when every
+// flag in requiresAll is on, at least one of requiresAny is on (when listed), and it is not
+// dev-only outside dev mode. Feature flags follow implementation_conventions.md 4
+// (feature.<name>). Every window carries its ui_win_ id, the text keys of its title, its
+// empty state, its error state and its help entry (all in locales/zh-Hans/ui.json), its
+// milestone, and whether the client builds it yet: WINDOW_DEFS lists the built windows,
+// PLANNED_WINDOWS the ones the design adds later (6.3). Pure; Node-tested.
 
 import type { FlagValue } from '../../core/contracts';
-import { T } from '../../shared_ui/text';
+import type { TextKey } from '../../core/text';
+import { t } from '../../shared_ui/i18n';
 import { flagOn } from '../view/game_view';
 
 export type WindowId =
@@ -27,8 +32,42 @@ export type WindowId =
   | 'settings'
   | 'debug';
 
-export interface WindowDef {
-  id: WindowId;
+/** Windows of ux_and_onboarding.md 2.3 the client does not build yet (6.3). */
+export type PlannedWindowId =
+  | 'deeds'
+  | 'codex'
+  | 'craft'
+  | 'gather'
+  | 'beasts'
+  | 'atlas'
+  | 'board'
+  | 'letters'
+  | 'market'
+  | 'dungeon'
+  | 'evidence'
+  | 'council'
+  | 'army';
+
+/** Milestones of the design's window table (roadmap.md names). */
+export type UiMilestone = 'M0' | 'M1' | 'M2' | 'M3';
+
+/** The catalogue fields every window carries, built or planned (23.2 window check). */
+export interface WindowEntry<Id extends string = string> {
+  id: Id;
+  /** `ui_win_<id>` (1.2, 2.3) */
+  uiId: `ui_win_${Id}`;
+  /** title text key */
+  titleKey: TextKey;
+  /** empty-state text key (6.1: every window says what is missing and what to do) */
+  emptyKey: TextKey;
+  /** error-state text key */
+  errorKey: TextKey;
+  /** help entry text key (17.7) */
+  helpKey: TextKey;
+  milestone: UiMilestone;
+}
+
+export interface WindowDef extends WindowEntry<WindowId> {
   /** hotkey label shown on the menu bar (KeyboardEvent.code handled by the keymap) */
   hotkey?: string;
   requiresAll?: readonly string[];
@@ -39,38 +78,81 @@ export interface WindowDef {
   width: number;
 }
 
+/** The catalogue fields of window `id` from its key family `ui.win.<id>.*`. */
+function entry<Id extends string>(id: Id, milestone: UiMilestone): WindowEntry<Id> {
+  return {
+    id,
+    uiId: `ui_win_${id}`,
+    titleKey: `ui.win.${id}.title` as TextKey,
+    emptyKey: `ui.win.${id}.empty_state` as TextKey,
+    errorKey: `ui.win.${id}.error_state` as TextKey,
+    helpKey: `ui.win.${id}.help` as TextKey,
+    milestone,
+  };
+}
+
 export const WINDOW_DEFS: readonly WindowDef[] = [
-  { id: 'character', hotkey: 'C', menuBar: true, width: 360 },
-  { id: 'inventory', hotkey: 'I', menuBar: true, width: 380 },
-  { id: 'doors', hotkey: 'K', menuBar: true, width: 420 },
-  { id: 'quests', hotkey: 'L', menuBar: true, width: 380 },
-  { id: 'rumors', menuBar: true, width: 400 },
-  { id: 'party', menuBar: true, width: 360 },
-  { id: 'map', hotkey: 'M', menuBar: true, width: 460 },
-  { id: 'company', requiresAll: ['feature.company'], menuBar: true, width: 440 },
+  { ...entry('character', 'M1'), hotkey: 'C', menuBar: true, width: 360 },
+  { ...entry('inventory', 'M1'), hotkey: 'I', menuBar: true, width: 380 },
+  { ...entry('doors', 'M1'), hotkey: 'K', menuBar: true, width: 420 },
+  { ...entry('quests', 'M1'), hotkey: 'L', menuBar: true, width: 380 },
+  { ...entry('rumors', 'M1'), menuBar: true, width: 400 },
+  { ...entry('party', 'M1'), menuBar: true, width: 360 },
+  { ...entry('map', 'M1'), hotkey: 'M', menuBar: true, width: 460 },
   {
-    id: 'territory',
+    ...entry('company', 'M2'),
+    requiresAll: ['feature.company'],
+    menuBar: true,
+    width: 440,
+  },
+  {
+    ...entry('territory', 'M1'),
     requiresAny: ['feature.city', 'feature.inner_court'],
     menuBar: true,
     width: 440,
   },
-  { id: 'battle', requiresAll: ['feature.rts'], menuBar: true, width: 920 },
-  { id: 'strategy', requiresAll: ['feature.slg'], menuBar: true, width: 900 },
-  { id: 'goddess', menuBar: true, width: 400 },
-  { id: 'saves', menuBar: true, width: 420 },
-  { id: 'menu', menuBar: false, width: 260 },
-  { id: 'help', menuBar: false, width: 320 },
-  { id: 'trade', menuBar: false, width: 460 },
-  { id: 'settings', menuBar: false, width: 380 },
-  { id: 'debug', hotkey: '`', devOnly: true, menuBar: true, width: 460 },
+  { ...entry('battle', 'M2'), requiresAll: ['feature.rts'], menuBar: true, width: 920 },
+  { ...entry('strategy', 'M3'), requiresAll: ['feature.slg'], menuBar: true, width: 900 },
+  { ...entry('goddess', 'M1'), menuBar: true, width: 400 },
+  { ...entry('saves', 'M1'), menuBar: true, width: 420 },
+  { ...entry('menu', 'M1'), menuBar: false, width: 260 },
+  { ...entry('help', 'M1'), menuBar: false, width: 320 },
+  { ...entry('trade', 'M1'), menuBar: false, width: 460 },
+  { ...entry('settings', 'M1'), menuBar: false, width: 380 },
+  { ...entry('debug', 'M0'), hotkey: '`', devOnly: true, menuBar: true, width: 460 },
 ];
+
+/** The windows of 2.3 the client does not build yet, with their ids and text keys reserved. */
+export const PLANNED_WINDOWS: readonly WindowEntry<PlannedWindowId>[] = [
+  entry('deeds', 'M1'),
+  entry('codex', 'M1'),
+  entry('craft', 'M1'),
+  entry('gather', 'M1'),
+  entry('beasts', 'M1'),
+  entry('atlas', 'M2'),
+  entry('board', 'M1'),
+  entry('letters', 'M1'),
+  entry('market', 'M2'),
+  entry('dungeon', 'M1'),
+  entry('evidence', 'M1'),
+  entry('council', 'M2'),
+  entry('army', 'M2'),
+];
+
+/** Every window of 2.3: built first, then planned. */
+export const ALL_WINDOWS: readonly WindowEntry[] = [...WINDOW_DEFS, ...PLANNED_WINDOWS];
 
 export function windowDef(id: WindowId): WindowDef {
   return WINDOW_DEFS.find((d) => d.id === id) as WindowDef;
 }
 
+/** The window of a ui_win_ id (built or planned), or undefined. */
+export function windowByUiId(uiId: string): WindowEntry | undefined {
+  return ALL_WINDOWS.find((d) => d.uiId === uiId);
+}
+
 export function windowTitle(id: WindowId): string {
-  return T.windows.titles[id] ?? id;
+  return t(windowDef(id).titleKey);
 }
 
 export function isWindowAvailable(

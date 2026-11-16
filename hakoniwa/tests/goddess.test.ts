@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Engine, ok } from '../src/core';
+import { contentRef, Engine, ok } from '../src/core';
 import type { GameSystem, SystemContext } from '../src/core/system';
 import { tr } from '../src/core/text';
 import { tickAtDay } from '../src/core/time';
@@ -360,9 +360,10 @@ describe('offerings, revelations and views', () => {
       .reverse()
       .find((e) => e.kind === 'command.result' && e.data.kind === 'goddess.offer');
     expect(noCoin?.kind === 'command.result' && noCoin.data.code).toBe('no_coin');
-    // the reason names the offering goddess from her card and renders as it always read
+    // the reason names the offering goddess by her content key and renders as it always read
     const reason = noCoin?.kind === 'command.result' ? noCoin.data.reason : undefined;
-    expect(reason).toEqual(tr('sys.goddess.reject.no_coin', { goddess: '梅尔卡' }));
+    const merca = contentRef('goddesses', 'merca', 'name');
+    expect(reason).toEqual(tr('sys.goddess.reject.no_coin', { goddess: merca }));
     expect(t(reason)).toBe('没有梅尔卡的硬币，联系不上她');
     g.queue('probe.give', { item: 'merca_coin' });
     g.queue('flag.set', { key: 'p_coin_terms', value: 'interest_free' });
@@ -380,8 +381,8 @@ describe('offerings, revelations and views', () => {
       .filter((e) => e.action === 'offering')
       .map((e) => e.note);
     expect(notes).toEqual([
-      tr('sys.goddess.note.offering_blessing', { goddess: '梅尔卡' }),
-      tr('sys.goddess.note.offering_intel', { goddess: '梅尔卡' }),
+      tr('sys.goddess.note.offering_blessing', { goddess: merca }),
+      tr('sys.goddess.note.offering_intel', { goddess: merca }),
     ]);
     const blessing = activeModifiers(g.world, 'xp', 'player').find((m) => m.source === 'merca');
     expect(t(blessing?.note)).toBe('梅尔卡的附物加护（硬币）');

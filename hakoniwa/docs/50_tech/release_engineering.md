@@ -982,47 +982,70 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 
 ## 8. 本地化管线
 
-### 8.1 文本模型（D-077）
+### 8.1 文本模型（D-077、D-087）
 
 ```ts
-// src/core/text.ts（内核只认这个类型，不查表）
+// src/core/text.ts（内核只认这些类型，不查表）
 export type TextParam = string | number | TextRef;
 export type TextRef =
   | { key: string; params?: Record<string, TextParam> } // 文本键加参数
-  | { raw: string; lang: string }; // 模型生成的原文，带语言标签
-export function tr(key: string, params?: Record<string, TextParam>): TextRef;
+  | { raw: string; lang: string }; // 模型或玩家写下的原文，带语言标签
+export function tr(key: TextKey, params?: Record<string, TextParam>): TextRef; // 键受生成的联合类型约束
+// src/core/content_key.ts
+export function contentKey(table: string, id: string, field: string, index?: number | string): string;
+export function contentText(table: string, rec: { id: string } | undefined, fallback?: TextParam, field?: string): TextParam;
 ```
 
-- 内核、系统与游戏编排里所有玩家可见的文字都是 `TextRef`：命令拒绝原因（`CommandResult` 的可读原因）、事件里的文字字段、日记与心声的模板句、默认名。
-- 参数里的实体、物品、地点用 ID 或嵌套的 `TextRef` 传，客户端渲染时再取显示名，例如 `{ key: 'sys.city.reject.blocked', params: { site: { key: 'c.sites.old_outpost.name' } } }`。
-- 模型生成的文本是 `{ raw, lang }`，按生成时的界面语言打标签；切换语言后，历史里的模型原文保持原样。
-- 开发者文字（日志、断言、内部错误）用英文，不进字符串表。
+- **拒绝原因严格是 `TextRef`。** 命令的可读拒绝原因（`CommandResult` 的 `reason`）全部由内核写，一律是文本键；成功说明（`info`）是 `TextRef` 或内容显示文字。
+- **事件与视图里的文字字段是 `TextParam`。** 可能装内容显示名的字段（说话人、选项标签、任务标题、战役名等）用 `TextParam`，既可以是文本键，也可以是内容里的字符串。
+  内核持有内容记录时，参数传内容键：`contentText('markets', market)` 得到 `{ key: 'c.markets.<ID>.name' }`，记录缺失时用回退值（通常是 ID）；客户端按当前语言与揭示阶段取显示名。
+  城建、经济、战略、女神行动与任务交付的拒绝原因、日志与说明已经这样传；其余系统里仍以字符串传显示名的参数在后续包逐个换成内容键（渲染结果不变，以两条结局路线的渲染金样核对）。
+  内核只持有一段文字、不持有记录时（模型写的名字、运行中生成的部队名），参数是字符串。
+- **模型与玩家的文字是原文。** 模型写进世界的台词、计划、日记、女神与场景台词，以及玩家的输入，存为 `{ raw, lang }`，`lang` 是写下时的界面语言；切换语言后历史里的原文保持原样。
+  命令数据里的自由文字经 `commandText(值, 来自模型, 清洗, 上限)` 收下：来自模型时只收字符串，清洗后存为原文；模型给出的文本键一律拒收（得到空串）；
+  内核自己的规则回退可以给字符串或 `TextRef`，`TextRef` 按上限用截断指令 `sys.common.clip` 截断，渲染时与对字符串截断的结果相同。
+- **词表类。** 与中文内容值比对的性格词、玩家输入里的问候与致谢等关键词、聚落居民名，是数据而不是显示文字；它们以 JSON 词表放在各系统旁
+  （`src/systems/city/settler_names.json`、`src/systems/dialogue/input_lexicon.json`、`src/systems/goddess/input_lexicon.json`、`src/systems/npc/trait_words.json`、`src/systems/warfare/trait_words.json`），
+  是内核里唯一允许含中文的文件，由 `tests/i18n_kernel_guard.test.ts` 的名单逐个列出，新增词表必须加进名单；内容管线的后续批次把它们迁入 `data/`。
+- **题面键只按源语言渲染。** `sys.<系统>.prompt.*` 键是大模型题面的组成部分，题面固定用中文（第 8.6 节），渲染一律经 `tSource`；翻译导出跳过这些键；
+  内容数据里只供题面读的字段（人设与女神卡的口吻、目标、秘密，统治者人设，日程备注等，`src/shared_ui/content_text.ts` 的 `isSourceOnlyContentKey`）同样只按源语言渲染、不导出翻译。
+  导出的过滤函数是 `tools/i18n/text_check.ts` 的 `exportableKeys`（内容表传入 `isSourceOnlyContentKey`），由第 8.7 节第 2 步的导出工具使用。
+- 开发者文字（日志、断言、内部错误）用英文，不进字符串表；同一句话既进日志又进界面时拆成两条。
 
 ### 8.2 字符串表布局
 
 ```text
 hakoniwa/locales/
   zh-Hans/                  源语言
-    ui.json                 界面（由 src/shared_ui/text*.ts 迁出）
-    sys_<系统>.json          各系统的模板句与拒绝原因
-    content.generated.json  从 data/ 自动抽取（8.3），不手改
-    lines.generated.json    台词包（ln_、bark_）从 data/ 抽取，不手改
+    ui.json                 界面文字（键 ui.*，第 20.2 节的元件类）
+    sys_<系统>.json          各系统的模板句、拒绝原因与题面句（键 sys.<系统>.*；sys_common.json 放分隔符、金钱单位、季节、日期样式、截断指令）
+    content.generated.json  从 data/ 自动抽取（8.3），不手改；台词包（ln_、bark_）的台词行也在这里，键是 c.line_packs.*
   zh-Hant/  en/             1.1、1.2 加入；结构相同，另有 _meta.json 记录每个键对应的源文本哈希
-  pseudo/                   伪本地化（自动生成：拉长 40%、加边界符），只在开发构建可选
+src/core/text_keys.generated.ts  ui.json 与 sys_*.json 全部键的联合类型，不手改
 ```
 
-- 键名：`<域>.<子域>.<名>`，小写加下划线与点，例如 `ui.saves.slot`、`sys.combat.reject.out_of_range`。
-- 客户端查表：`t(ref: TextRef): string`（`src/shared_ui/i18n.ts`）；缺键时开发构建报错并显示键名，发布构建回退到源语言。
-- 类型：`tools/i18n/gen_keys.ts` 生成 `src/shared_ui/text_keys.generated.ts`（键的联合类型），`tr` 与 `t` 的键参数受它约束，拼错键在类型检查时失败。
-- 占位符写作 `{名}`；英文需要的复数用最小的 `{n, plural, one {…} other {…}}` 语法，由自写的格式化函数实现，不引第三方库。
-- 数字、货币、日期、时刻一律走格式化函数（`src/client/hud/format.ts` 一类，`Intl` 加本作的圣历日历）。
+- 键名：`<作用域>.<路径>`，小写 ASCII、数字、下划线，点分层，例如 `ui.win.saves.slot`、`sys.combat.reject.out_of_range`（界面文档第 20.2 节）。
+- 客户端查表：`t(key, params)` 与 `t(ref)`（`src/shared_ui/i18n.ts`）；查不到的键显示键名并上报，开发构建把未填的占位与显示成键名的文字标红（`src/client/app/dev_text_marks.ts`），发布构建回退到源语言。
+  按数据补全的键（`ui.win.battle.formations.<阵型>`）用 `tOr(key, 回退)`：任何表都没有时显示回退值，不上报。
+- 类型：`tools/i18n/gen_keys.ts` 生成 `src/core/text_keys.generated.ts`（`TextKey`，放在 `src/core` 是因为内核不得引用 `src/shared_ui`）；`tr` 与 `t` 的键参数受它约束：
+  拼错的字面量键在类型检查时失败，模板字面量只要能匹配某个键即可，读自数据的普通字符串放行；内容键（`c.`）由工具生成，不在联合类型里。新增或删除表项后重跑生成，文本检查核对它是否最新。
+- 占位与格式（界面文档第 20.3 节）：`{名}`；`{n, number}`、`{p, percent}`、`{m, money}`（铜数）；`{d, date}`、`{d, date, short}` 与 `{d, date, <样式键>}`（样式模板放在各系统表里，
+  例 `{tick, date, sys.npc.time.label}`；不带点的样式名读 `sys.common.date.<名>`）；`{t, duration}`；`{x, ref}`；`{n, plural, one {…} other {…}}`；`{g, select, …}`。格式化函数自写，不引第三方库。
+- 伪本地化 `qps-wide`（界面文档第 20.6 节）：开发构建在运行时由源语言表生成（`src/shared_ui/pseudo.ts`），每个汉字换成两个带变音符的拉丁字母、整串加【】，占位、复数与选择的语法原样保留，
+  内容文字同样变换；分隔符与日期、季节的公共条目保持源文本。地址参数 `?lang=qps-wide` 切换；发布构建不带伪语言。
+- 文本检查 `node tools/i18n/check.ts`（全量门的 `text_check` 步）：代码写到却不在表里的键、表里没有任何代码用到的键、各语言之间占位不一致、禁用字符、第 19.2 节长度上限
+  （按 `tools/i18n/text_check.ts` 的 `LENGTH_RULES` 对应到键族；目前覆盖窗口标题、菜单项、按钮、页签、提示条、通知与门名，其余类别随对应界面落地时补规则），
+  以及键类型与内容表是否最新；扫描 `src/`（编辑器与题面模板目录除外）的字面量键与按数据补全的键族。
 
 ### 8.3 内容数据的文本
 
 - `data/` 里的显示文字（`name`、`desc`、`text`、台词行等）保持中文源文本，作者照常编辑。
-- 构建步骤 `tools/i18n/extract_content.ts` 把它们抽成 `content.generated.json`，键按 `c.<表>.<ID>.<字段>[.<序号>]` 自动生成；作者不手写键。
+- 抽取工具 `node tools/i18n/extract_content.ts` 把它们抽成 `locales/zh-Hans/content.generated.json`（改了 `data/` 的显示文字后重跑，生成物随改动一起提交），键按 `c.<表>.<ID>.<字段>[.<序号>]` 自动生成（D-087），作者不手写键：
+  表名是内容表名的蛇形写法（`npcResidents` 写作 `npc_residents`）；ID 中的大写、点与连字符折成小写与下划线；字段按路径逐级写出，列表元素都有不同 ID 时用 ID，否则用序号；
+  含中文的字符串都算显示文字，匹配词、标签、条件与注册表除外。`--check` 判断生成物是否最新，文本检查调用它，`tests/i18n_ui_strings.test.ts` 也把生成物与一次重新抽取比对。
 - 翻译以键为单位；`_meta.json` 记源文本哈希，源文本变动的键自动标"过期"，发布级检查不允许过期与缺失。
-- 运行时取内容文字一律经 `tc(表, ID, 字段)`，它先查当前语言、再回退源语言。
+- 运行时取内容文字一律经文本键：内核传 `contentText(表, 记录)`，客户端以 `t(ref)` 或 `tc(表, ID, 字段)` 渲染，先查当前语言、再回退源语言；
+  客户端启动一局时以 `setContentText(contentTextLookup(content))` 装入这局所用内容的查表，生成表作后备。
 
 ### 8.4 迁移现有约 1000 行中文字面量
 
@@ -1047,8 +1070,10 @@ hakoniwa/locales/
    每批把中文移进 `locales/zh-Hans/sys_<系统>.json`，代码里换成 `tr(...)`；测试断言键与参数，不断言中文句子。
 5. **世界哈希**：事件里的文字从字符串变成对象，金样哈希每批重录一次；重录理由写进批次报告，并核对该批次除文字字段外没有行为差异（只搬不改写）。
 6. **棘轮守卫**：`tests/i18n_kernel_guard.test.ts` 统计 `src/core`、`src/systems`、`src/game`（模板目录除外）中的中文字面量，数量不得超过 `tests/fixtures/i18n_ceiling.json` 的上限；
-   每批完成后下调上限；M0 退出时上限为 0（D-077 要求 M0 完成迁移）。
-7. **界面表迁移**：`src/shared_ui/text*.ts` 的 `T` 对象由一次性脚本转成 `ui.json`，调用处由 `fmt(T.a.b, …)` 机械替换为 `t({ k: 'ui.a.b', p })`；编辑器与内容 pack 的字段标签不动。
+   上限为 0（D-077 要求 M0 完成迁移）。界面一侧由 `tests/i18n_ui_guard.test.ts` 守：`src/client` 与 `src/shared_ui` 的中文字面量为 0，
+   只允许逐条列出的例外（读文字的正则检测器、伪本地化的边界符、只在开发构建加载的客户端沙盒）。
+7. **界面表**：界面文字只在 `locales/zh-Hans/ui.json`，键按第 20.2 节的元件类组织（`ui.win.<窗口>.*`、`ui.hud.<元件>.*`、`ui.common.*` 等），客户端一律 `t('ui.…', 参数)`；
+   编辑器与内容 pack 的字段标签不本地化，留在 `src/editor/text.ts` 与各 pack 里。
 8. **存档**：迁移在 M2 兼容承诺之前完成，旧存档里的中文字符串不需要迁移代码。
 
 ### 8.5 字体与排版

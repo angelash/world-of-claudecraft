@@ -4,9 +4,10 @@
 // map change never settles twice. Economy design 3.1 to 3.4.
 
 import { ok, reject } from '../../core';
+import { contentRef, contentText } from '../../core/content_key';
 import type { CommandResult } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
-import { tr } from '../../core/text';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY } from '../../core/time';
 import {
   addItem,
@@ -61,6 +62,11 @@ export function companyOwner(config: EconomyConfig): string {
   return config.company.ownerId;
 }
 
+/** The company's display name as a content key (economy_config is keyed by section). */
+function companyName(config: EconomyConfig): TextParam {
+  return config.company.name ? contentRef('economy_config', 'company', 'name') : '';
+}
+
 export function canFoundCompany(ctx: SystemContext): CommandResult {
   const config = ctx.content.economy_config;
   const c = ctx.world.slices.economy.company;
@@ -112,10 +118,10 @@ export function foundCompany(ctx: SystemContext): CommandResult {
       mapId: p.mapId,
       x: p.x,
       y: p.y,
-      note: tr('sys.economy.feat.company_founded', { company: config.company.name }),
+      note: tr('sys.economy.feat.company_founded', { company: companyName(config) }),
     });
   }
-  return ok(tr('sys.economy.info.company_founded', { company: config.company.name }));
+  return ok(tr('sys.economy.info.company_founded', { company: companyName(config) }));
 }
 
 export function requireCompany(ctx: SystemContext): CommandResult | null {
@@ -199,7 +205,10 @@ export function startProduction(ctx: SystemContext, recipeId: string, runs: numb
   const recipe = ctx.content.trade_recipes.find((r) => r.id === recipeId);
   if (!recipe) return reject('no_recipe', tr('sys.economy.reject.no_recipe'));
   if (!recipeUnlocked(ctx, recipe))
-    return reject('locked', tr('sys.economy.reject.locked', { recipe: recipe.name }));
+    return reject(
+      'locked',
+      tr('sys.economy.reject.locked', { recipe: contentText('trade_recipes', recipe) }),
+    );
   if (!Number.isInteger(runs) || runs <= 0 || runs > 20)
     return reject('bad_runs', tr('sys.economy.reject.bad_runs'));
   const c = ctx.world.slices.economy.company;
@@ -208,7 +217,7 @@ export function startProduction(ctx: SystemContext, recipeId: string, runs: numb
   const owner = companyOwner(config);
   for (const [itemId, n] of Object.entries(recipe.inputs)) {
     if (countItem(ctx.world, owner, itemId) < n * runs) {
-      const name = itemDef(ctx.content, itemId)?.name ?? itemId;
+      const name = contentText('items', itemDef(ctx.content, itemId), itemId);
       return reject('no_input', tr('sys.economy.reject.no_input', { item: name, n: n * runs }));
     }
   }

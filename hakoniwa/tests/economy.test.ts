@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
 import { pack as economyPack } from '../src/content/packs/economy';
-import { type Engine, ok, type TextRef, tr, worldHash } from '../src/core';
+import { contentRef, type Engine, ok, type TextRef, tr, worldHash } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
 import type { GameSystem } from '../src/core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../src/core/time';
@@ -166,7 +166,11 @@ describe('markets', () => {
     const res = portResults.at(-1);
     expect(res?.ok).toBe(false);
     expect(res?.code).toBe('illegal_goods');
-    expect(res?.reason).toEqual(tr('sys.economy.reject.illegal_goods', { item: '灰晶' }));
+    expect(res?.reason).toEqual(
+      tr('sys.economy.reject.illegal_goods', { item: contentRef('items', 'grey_crystal', 'name') }),
+    );
+    // the item name is a content key (D-087) that renders as the item's display name
+    expect(t(res?.reason)).toContain('灰晶');
     expect(countItem(engine.world, 'player', 'grey_crystal')).toBe(3);
   });
 });

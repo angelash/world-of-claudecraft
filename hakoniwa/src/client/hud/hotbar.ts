@@ -3,7 +3,7 @@
 // are elided; the cooldown sweep is a CSS height.
 
 import { el, setClass, setText } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { HotbarSlotView } from '../view/adapters';
 
 interface SlotEls {
@@ -22,10 +22,10 @@ export class Hotbar {
   constructor(onPress: (slot: number) => void) {
     this.el = el('div', { className: 'hk-hotbar', attrs: { role: 'toolbar' } });
     for (let i = 1; i <= 9; i++) {
-      const name = el('span', { className: 'hk-slot-name', text: T.hotbar.empty });
+      const name = el('span', { className: 'hk-slot-name', text: t('ui.hud.hotbar.empty') });
       const cd = el('span', { className: 'hk-slot-cd' });
       const secs = el('span', { className: 'hk-slot-secs' });
-      const label = fmt(T.hotbar.slot, { n: i });
+      const label = t('ui.hud.hotbar.slot', { n: i });
       const root = el(
         'button',
         {
@@ -45,7 +45,7 @@ export class Hotbar {
     for (let i = 0; i < this.slots.length; i++) {
       const s = this.slots[i] as SlotEls;
       const v = views.find((x) => x.slot === i + 1);
-      setText(s.name, v?.abilityId ? v.name : T.hotbar.empty);
+      setText(s.name, v?.abilityId ? v.name : t('ui.hud.hotbar.empty'));
       setClass(s.root, 'empty', !v?.abilityId);
       setClass(s.root, 'unusable', !!v?.abilityId && !v.usable);
       const pct = v && v.cooldownTotal > 0 ? Math.min(1, v.cooldown / v.cooldownTotal) : 0;
@@ -57,7 +57,7 @@ export class Hotbar {
       setText(s.secs, v && v.cooldown >= 1 ? String(Math.ceil(v.cooldown)) : '');
       const title = v?.abilityId
         ? [v.name, v.cost, v.desc, v.usable ? '' : v.reason].filter(Boolean).join('\n')
-        : fmt(T.hotbar.slot, { n: i + 1 });
+        : t('ui.hud.hotbar.slot', { n: i + 1 });
       if (title !== s.title) {
         s.title = title;
         s.root.title = title;

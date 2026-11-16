@@ -3,7 +3,6 @@
 
 import { el } from '../../shared_ui/dom';
 import { formatMoney, t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
 import { actionButton, badge, empty, kv, rebuilder } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
@@ -23,39 +22,39 @@ export function tradeWindow(ctx: WindowContext): WindowContent {
       }
       root.append(
         el('div', { className: 'hk-card-head' }, [
-          el('strong', { text: fmt(T.trade.title, { market: s.marketName }) }),
+          el('strong', { text: t('ui.win.trade.market', { market: s.marketName }) }),
           el('span', {
             className: 'hk-gold',
-            text: fmt(T.trade.money, { money: formatMoney(s.money) }),
+            text: t('ui.win.trade.money', { money: formatMoney(s.money) }),
           }),
         ]),
-        el('h3', { text: T.trade.wares }),
+        el('h3', { text: t('ui.win.trade.wares') }),
       );
-      if (!s.wares.length) root.append(empty(T.trade.emptyWares));
+      if (!s.wares.length) root.append(empty(t('ui.win.trade.empty_state')));
       for (const w of s.wares) {
         root.append(
           el('div', { className: 'hk-inv-row' }, [
             el('span', { className: 'hk-inv-name', text: w.name }),
             badge(t(w.stateLabel)),
-            el('span', { className: 'hk-muted', text: fmt(T.trade.stock, { n: w.stock }) }),
+            el('span', { className: 'hk-muted', text: t('ui.win.trade.stock', { n: w.stock }) }),
             el('span', { className: 'hk-gold', text: formatMoney(w.buy) }),
-            actionButton(ctx, T.trade.buy, () => ad.buy(ctx.view, w.itemId, 1), {
+            actionButton(ctx, t('ui.win.trade.buy'), () => ad.buy(ctx.view, w.itemId, 1), {
               disabled: w.stock <= 0 || w.buy > s.money,
             }),
           ]),
         );
       }
-      root.append(el('h3', { text: T.trade.bag }));
-      if (!s.bag.length) root.append(empty(T.trade.emptyBag));
+      root.append(el('h3', { text: t('ui.win.trade.bag') }));
+      if (!s.bag.length) root.append(empty(t('ui.win.trade.empty_bag')));
       for (const b of s.bag) {
         root.append(
           el('div', { className: 'hk-inv-row', title: t(b.reason) }, [
             el('span', { className: 'hk-inv-name', text: `${b.name} x${b.count}` }),
             el('span', {
               className: 'hk-gold',
-              text: b.legal ? formatMoney(b.sell) : T.trade.illegal,
+              text: b.legal ? formatMoney(b.sell) : t('ui.win.trade.illegal'),
             }),
-            actionButton(ctx, T.trade.sell, () => ad.sell(ctx.view, b.itemId, 1), {
+            actionButton(ctx, t('ui.win.trade.sell'), () => ad.sell(ctx.view, b.itemId, 1), {
               disabled: !b.legal,
             }),
           ]),
@@ -63,7 +62,7 @@ export function tradeWindow(ctx: WindowContext): WindowContent {
       }
       root.append(
         el('div', { className: 'hk-row' }, [
-          actionButton(ctx, T.trade.close, () => ad.close(ctx.view)),
+          actionButton(ctx, t('ui.win.trade.close'), () => ad.close(ctx.view)),
         ]),
       );
     },
@@ -86,17 +85,17 @@ export function companyWindow(ctx: WindowContext): WindowContent {
     attrs: {
       type: 'number',
       min: '0',
-      placeholder: T.company.amountPlaceholder,
-      'aria-label': T.company.amountPlaceholder,
+      placeholder: t('ui.win.company.amount_placeholder'),
+      'aria-label': t('ui.win.company.amount_placeholder'),
     },
   });
   const funds = el('div', { className: 'hk-row' }, [
     amount,
-    actionButton(ctx, T.company.deposit, () => {
+    actionButton(ctx, t('ui.win.company.deposit'), () => {
       const n = Math.floor(Number(amount.value));
       return n > 0 ? ad.funds(ctx.view, n) : [];
     }),
-    actionButton(ctx, T.company.withdraw, () => {
+    actionButton(ctx, t('ui.win.company.withdraw'), () => {
       const n = Math.floor(Number(amount.value));
       return n > 0 ? ad.funds(ctx.view, -n) : [];
     }),
@@ -107,8 +106,10 @@ export function companyWindow(ctx: WindowContext): WindowContent {
     (c) => {
       if (!c.founded) {
         info.append(
-          empty(T.company.notFounded),
-          actionButton(ctx, T.company.found, () => ad.found(ctx.view), { cls: 'hk-btn-primary' }),
+          empty(t('ui.win.company.empty_state')),
+          actionButton(ctx, t('ui.win.company.found'), () => ad.found(ctx.view), {
+            cls: 'hk-btn-primary',
+          }),
         );
         return;
       }
@@ -117,25 +118,25 @@ export function companyWindow(ctx: WindowContext): WindowContent {
           el('strong', { text: c.name }),
           el('span', {
             className: 'hk-gold',
-            text: fmt(T.company.funds, { money: formatMoney(c.funds) }),
+            text: t('ui.win.company.funds', { money: formatMoney(c.funds) }),
           }),
         ]),
         el('div', {
           className: 'hk-muted',
-          text: `${fmt(T.company.scale, { n: c.scale })}  ${fmt(T.company.partner, { p: Math.round(c.partnerShare * 100) })}`,
+          text: `${t('ui.win.company.scale', { n: c.scale })}  ${t('ui.win.company.partner', { p: Math.round(c.partnerShare * 100) })}`,
         }),
       );
-      info.append(el('h3', { text: T.company.stock }));
+      info.append(el('h3', { text: t('ui.win.company.stock') }));
       info.append(
         el(
           'div',
           { className: 'hk-kv-grid' },
           c.stock.length
             ? c.stock.map((s) => kv(s.name, String(s.count)))
-            : [empty(T.inventory.empty)],
+            : [empty(t('ui.win.inventory.empty'))],
         ),
       );
-      info.append(el('h3', { text: T.company.recipes }));
+      info.append(el('h3', { text: t('ui.win.company.recipes') }));
       for (const r of c.recipes) {
         const inputs = Object.entries(r.inputs)
           .map(([id, n]) => `${ctx.view.itemDef(id)?.name ?? id} x${n}`)
@@ -143,35 +144,38 @@ export function companyWindow(ctx: WindowContext): WindowContent {
         info.append(
           el('div', { className: 'hk-inv-row' }, [
             el('span', { className: 'hk-inv-name', text: r.name, title: inputs }),
-            el('span', { className: 'hk-muted', text: fmt(T.company.daysLeft, { n: r.days }) }),
+            el('span', {
+              className: 'hk-muted',
+              text: t('ui.win.company.days_left', { n: r.days }),
+            }),
             r.unlocked
-              ? actionButton(ctx, T.company.produce, () => ad.produce(ctx.view, r.id, 1))
-              : badge(T.company.locked),
+              ? actionButton(ctx, t('ui.win.company.produce'), () => ad.produce(ctx.view, r.id, 1))
+              : badge(t('ui.win.company.locked')),
           ]),
         );
       }
       if (c.jobs.length) {
-        info.append(el('h3', { text: T.company.jobs }));
+        info.append(el('h3', { text: t('ui.win.company.jobs') }));
         for (const j of c.jobs)
           info.append(
             kv(
               c.recipes.find((r) => r.id === j.recipeId)?.name ?? j.recipeId,
-              fmt(T.company.daysLeft, { n: j.daysLeft }),
+              t('ui.win.company.days_left', { n: j.daysLeft }),
             ),
           );
       }
       if (c.caravans.length) {
-        info.append(el('h3', { text: T.company.caravans }));
+        info.append(el('h3', { text: t('ui.win.company.caravans') }));
         for (const cv of c.caravans)
           info.append(
             kv(
-              fmt(T.company.route, { from: cv.from, to: cv.to }),
-              `${cv.status}  ${fmt(T.company.daysLeft, { n: cv.daysLeft })}`,
+              t('ui.win.company.route', { from: cv.from, to: cv.to }),
+              `${cv.status}  ${t('ui.win.company.days_left', { n: cv.daysLeft })}`,
             ),
           );
       }
       if (c.ledger.length) {
-        info.append(el('h3', { text: T.company.ledger }));
+        info.append(el('h3', { text: t('ui.win.company.ledger') }));
         for (const l of c.ledger.slice(-8).reverse())
           info.append(kv(l.reason, formatMoney(l.delta)));
       }

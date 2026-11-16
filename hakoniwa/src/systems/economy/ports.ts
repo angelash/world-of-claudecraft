@@ -3,6 +3,7 @@
 // and buy food through these; the economy's own commands use the same path, so every
 // trade obeys stock, legality, tax and the price decomposition.
 
+import { contentText } from '../../core/content_key';
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { type KeyText, tr } from '../../core/text';
@@ -66,23 +67,32 @@ export function settleTrade(
   if (!isMarketOpen(ctx.world, market))
     return fail(
       'market_closed',
-      tr('sys.economy.reject.market_closed.port', { market: market.name }),
+      tr('sys.economy.reject.market_closed.port', { market: contentText('markets', market) }),
     );
   const item = itemDef(content, itemId);
   if (!item) return fail('no_item', tr('sys.economy.reject.no_item'));
   if (!Number.isInteger(qty) || qty <= 0)
     return fail('bad_qty', tr('sys.economy.reject.bad_qty.count'));
   if (side === 'sell' && isIllegal(content.economy_config, item)) {
-    return fail('illegal_goods', tr('sys.economy.reject.illegal_goods', { item: item.name }));
+    return fail(
+      'illegal_goods',
+      tr('sys.economy.reject.illegal_goods', { item: contentText('items', item) }),
+    );
   }
   if (side === 'sell' && item.tags?.includes('no_sell')) {
-    return fail('not_for_sale', tr('sys.economy.reject.not_for_sale', { item: item.name }));
+    return fail(
+      'not_for_sale',
+      tr('sys.economy.reject.not_for_sale', { item: contentText('items', item) }),
+    );
   }
   const q = quote(ctx.world, content, marketId, itemId, side, qty);
   if (!q)
     return fail(
       'not_traded',
-      tr('sys.economy.reject.not_traded', { market: market.name, item: item.name }),
+      tr('sys.economy.reject.not_traded', {
+        market: contentText('markets', market),
+        item: contentText('items', item),
+      }),
     );
   const state = ctx.world.slices.economy.markets[marketId];
   const listed = !!goodDef(market, itemId) && !!state?.goods[itemId];
@@ -92,8 +102,8 @@ export function settleTrade(
       return fail(
         'no_stock',
         tr('sys.economy.reject.no_stock', {
-          market: market.name,
-          item: item.name,
+          market: contentText('markets', market),
+          item: contentText('items', item),
           n: Math.floor(stock),
         }),
       );
@@ -105,7 +115,10 @@ export function settleTrade(
     if (state?.goods[itemId]) state.goods[itemId].stock -= qty;
   } else {
     if (q.unit <= 0)
-      return fail('worthless', tr('sys.economy.reject.worthless', { item: item.name }));
+      return fail(
+        'worthless',
+        tr('sys.economy.reject.worthless', { item: contentText('items', item) }),
+      );
     if (countItem(ctx.world, ownerId, itemId) < qty)
       return fail('missing', tr('sys.economy.reject.missing.count'));
     removeItem(ctx, ownerId, itemId, qty, reason);

@@ -1,8 +1,7 @@
 // Inventory window model: the player's purse, equipment slots and bag items grouped by
 // kind, with the actions each item allows. Built from inventory queries; pure.
 
-import { formatMoney } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { formatMoney, t, tOr } from '../../shared_ui/i18n';
 import type { EquipSlot, Holding, ItemDef, ItemKind } from '../../systems/inventory';
 
 export const EQUIP_SLOTS: readonly EquipSlot[] = [
@@ -51,7 +50,7 @@ export interface InventoryView {
 }
 
 export function qualityLabel(q: number): string {
-  return T.inventory.quality[Math.max(0, Math.min(5, Math.round(q)))] as string;
+  return t(`ui.win.inventory.quality.${Math.max(0, Math.min(5, Math.round(q)))}`);
 }
 
 export function buildInventoryView(
@@ -64,7 +63,7 @@ export function buildInventoryView(
     const def = id ? itemDef(id) : undefined;
     return {
       slot,
-      label: T.inventory.slots[slot] ?? slot,
+      label: tOr(`ui.win.inventory.slot.${slot}`, slot),
       itemId: id,
       name: id ? (def?.name ?? id) : undefined,
       quality: def?.quality,
@@ -85,10 +84,12 @@ export function buildInventoryView(
       quality: def?.quality ?? 1,
       qualityLabel: qualityLabel(def?.quality ?? 1),
       desc: def?.desc ?? '',
-      value: fmt(T.inventory.value, { money: formatMoney(def?.value ?? 0) }),
+      value: t('ui.win.inventory.value', { money: formatMoney(def?.value ?? 0) }),
       actions,
       equipped: equippedIds.has(id),
-      levelNote: def?.level ? fmt(T.inventory.requiresLevel, { level: def.level }) : undefined,
+      levelNote: def?.level
+        ? t('ui.win.inventory.requires_level', { level: def.level })
+        : undefined,
     };
     const list = byKind.get(kind) ?? [];
     list.push(row);
@@ -99,7 +100,7 @@ export function buildInventoryView(
     .filter((k) => byKind.has(k))
     .map((k) => ({
       kind: k,
-      label: k === 'unknown' ? T.log.unknownItem : (T.inventory.kinds[k] ?? k),
+      label: k === 'unknown' ? t('ui.hud.log.unknown_item') : tOr(`ui.win.inventory.kind.${k}`, k),
       items: (byKind.get(k) as ItemRowView[]).sort(
         (a, b) => b.quality - a.quality || a.name.localeCompare(b.name, 'zh-CN'),
       ),

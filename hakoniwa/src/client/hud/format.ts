@@ -2,54 +2,58 @@
 // features, entity kinds and tag-derived level and tier. Pure; Node-tested.
 
 import type { Calendar } from '../../core/time';
-import { fmt, T } from '../../shared_ui/text';
+import { t, tOr } from '../../shared_ui/i18n';
 import type { Entity, Weather } from '../../systems/world/types';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function seasonLabel(season: number): string {
-  return T.calendar.seasons[((season % 4) + 4) % 4] as string;
+  return t(`ui.common.calendar.season.${((season % 4) + 4) % 4}`);
 }
 
 /** "圣历 998 年 春 第 1 日" */
 export function formatDate(cal: Calendar): string {
-  return fmt(T.calendar.format, { year: cal.year, season: seasonLabel(cal.season), day: cal.day });
+  return t('ui.common.calendar.format', {
+    year: cal.year,
+    season: seasonLabel(cal.season),
+    day: cal.day,
+  });
 }
 
 /** "06:00" */
 export function formatTime(cal: Calendar): string {
-  return fmt(T.calendar.time, { hh: pad2(cal.hour), mm: pad2(cal.minute) });
+  return t('ui.common.calendar.time', { hh: pad2(cal.hour), mm: pad2(cal.minute) });
 }
 
 export function timeOfDayLabel(cal: Calendar): string {
   const h = cal.hour;
-  const t = T.calendar.timeOfDay;
-  if (h < 4) return t.lateNight;
-  if (h < 7) return t.dawn;
-  if (h < 11) return t.morning;
-  if (h < 13) return t.noon;
-  if (h < 17) return t.afternoon;
-  if (h < 20) return t.dusk;
-  if (h < 23) return t.night;
-  return t.lateNight;
+
+  if (h < 4) return t('ui.common.calendar.time_of_day.late_night');
+  if (h < 7) return t('ui.common.calendar.time_of_day.dawn');
+  if (h < 11) return t('ui.common.calendar.time_of_day.morning');
+  if (h < 13) return t('ui.common.calendar.time_of_day.noon');
+  if (h < 17) return t('ui.common.calendar.time_of_day.afternoon');
+  if (h < 20) return t('ui.common.calendar.time_of_day.dusk');
+  if (h < 23) return t('ui.common.calendar.time_of_day.night');
+  return t('ui.common.calendar.time_of_day.late_night');
 }
 
 export function weatherLabel(w: Weather | string): string {
-  return (T.weather as Record<string, string>)[w] ?? T.weather.unknown;
+  return tOr(`ui.common.weather.${w}`, t('ui.common.weather.unknown'));
 }
 
 export function actLabel(act: string): string {
-  return T.acts[act] ?? act;
+  return tOr(`ui.common.act.${act}`, act);
 }
 
 /** "feature.company" or "company" to its display name. */
 export function featureLabel(feature: string): string {
   const key = feature.startsWith('feature.') ? feature.slice('feature.'.length) : feature;
-  return T.features[key] ?? key;
+  return tOr(`ui.common.feature.${key}`, key);
 }
 
 export function kindLabel(kind: Entity['kind']): string {
-  return (T.frames.kinds as Record<string, string>)[kind] ?? kind;
+  return tOr(`ui.common.unit.kind.${kind}`, kind);
 }
 
 function tagNumber(tags: readonly string[], prefix: string): number | null {

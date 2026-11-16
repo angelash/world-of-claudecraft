@@ -80,6 +80,12 @@ export const GATE_STEPS: readonly GateStep[] = [
     run: { kind: 'node', args: ['tools/i18n/stringify_check.ts'] },
   },
   {
+    id: 'text_check',
+    title:
+      'string tables: missing, unused, placeholders, length; key types and content table current',
+    run: { kind: 'node', args: ['tools/i18n/check.ts'] },
+  },
+  {
     id: 'build',
     title: 'game and editor build',
     run: { kind: 'npm', script: 'build' },

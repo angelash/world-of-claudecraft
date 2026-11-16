@@ -11,7 +11,7 @@ import type { Engine } from '../../core/engine';
 import { RENAME_VERSION, runIdFromBytes } from '../../core/save';
 import type { World } from '../../core/world';
 import { MemoryKeyValue, selectPlatformHost } from '../../platform';
-import { fmt, T } from '../../shared_ui/text';
+import { contentTextLookup, setContentText, setTextLanguage, t } from '../../shared_ui/i18n';
 import { installApprovedArt } from '../assets';
 import {
   CLIENT_LOG_LIMIT,
@@ -31,6 +31,13 @@ import { GameSession } from './session';
 import { SettingsStore } from './settings_store';
 
 const config = parseConfig(window.location.search, import.meta.env.DEV);
+// Interface language first, before any text renders (only the source language and, in dev
+// builds, the pseudo-locale exist before 1.1).
+if (config.lang) setTextLanguage(config.lang);
+// Dev builds outline unfilled placeholders and keys shown as themselves in red (20.3).
+if (import.meta.env.DEV) {
+  void import('./dev_text_marks').then((m) => m.installMissingTextMarks(document.body));
+}
 const root = document.getElementById('app') ?? document.body;
 /** The page's local storage, or null when the browser does not let the page use it. */
 const pageKv = pageStorage(window);
@@ -41,7 +48,7 @@ const webVersions = { gameVersion, renameVersion: RENAME_VERSION, build: webBuil
 const host = selectPlatformHost(window as Window & { readonly hk?: unknown }, {
   version: gameVersion,
   build: webBuild,
-  writerName: T.saves.writerBrowser,
+  writerName: t('ui.win.saves.writer_browser'),
   storage: pageKv,
   indexedDB: typeof indexedDB === 'undefined' ? null : indexedDB,
   openWindow: (url) => {
@@ -52,7 +59,7 @@ const host = selectPlatformHost(window as Window & { readonly hk?: unknown }, {
   console,
   versions: webVersions,
 });
-document.title = T.app.title;
+document.title = t('ui.common.game_title');
 
 let saves: ClientSaves;
 let settings: SettingsStore;
@@ -94,12 +101,12 @@ function showTitle(): void {
             loaded = await saves.load(slot);
           } catch (err) {
             console.error(err);
-            boot?.setStatus(fmt(T.saves.loadFailed, { reason: loadErrorText(err) }));
+            boot?.setStatus(t('ui.win.saves.load_failed', { reason: loadErrorText(err) }));
             return;
           }
           await startWith(
             () => resume(loaded.world),
-            loadedLine(fmt(T.log.loaded, { slot: slotLabel(slot) }), loaded),
+            loadedLine(t('ui.hud.log.loaded', { slot: slotLabel(slot) }), loaded),
             loaded,
           );
         })(),
@@ -122,7 +129,7 @@ async function resume(world: World): Promise<Engine> {
 /** The "loaded" line, with a note when the load fell back to an older generation. */
 function loadedLine(line: string, loaded: LoadedSave): string {
   const note = loadNote(loaded);
-  return note ? fmt(T.saves.withNote, { line, note }) : line;
+  return note ? t('ui.win.saves.with_note', { line, note }) : line;
 }
 
 async function startWith(
@@ -135,9 +142,12 @@ async function startWith(
     engine = await make();
   } catch (err) {
     console.error(err);
-    boot?.setStatus(fmt(T.app.bootFailed, { reason: errorText(err) }));
+    boot?.setStatus(t('ui.scr.boot.boot_failed', { reason: errorText(err) }));
     return;
   }
+  // c.* keys resolve against the content this world runs on (the generated content table is
+  // the fallback for anything the live content lacks).
+  setContentText(contentTextLookup(engine.content));
   boot?.dispose();
   boot = null;
   session?.dispose();
@@ -208,13 +218,13 @@ async function start(): Promise<void> {
   // builds only; a no-op with an empty manifest or ?art=procedural).
   await installApprovedArt();
   showTitle();
-  if (!saves.durable) boot?.setStatus(T.saves.memoryOnly);
-  else if (!durability.settings) boot?.setStatus(T.prefs.memoryOnly);
-  else if (settings.fromNewerVersion()) boot?.setStatus(T.prefs.newerVersion);
+  if (!saves.durable) boot?.setStatus(t('ui.win.saves.memory_only'));
+  else if (!durability.settings) boot?.setStatus(t('ui.scr.settings.memory_only'));
+  else if (settings.fromNewerVersion()) boot?.setStatus(t('ui.scr.settings.newer_version'));
 }
 
 start().catch((err: unknown) => {
   // Nothing above is expected to throw; if it does, say so instead of a blank page.
   console.error(err);
-  root.textContent = fmt(T.app.bootFailed, { reason: errorText(err) });
+  root.textContent = t('ui.scr.boot.boot_failed', { reason: errorText(err) });
 });

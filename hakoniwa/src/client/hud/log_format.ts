@@ -7,7 +7,6 @@
 import type { AnyWorldEvent } from '../../core/contracts';
 import { calendarAt } from '../../core/time';
 import { formatMoney, t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
 import { actLabel, featureLabel, formatDate, weatherLabel } from './format';
 
 export type LogCategory =
@@ -43,21 +42,21 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
     case 'dialogue.line': {
       const d = ev.data;
       if (d.kind === 'narrate')
-        return { text: fmt(T.log.narrate, { text: t(d.text) }), category: 'narrate' };
+        return { text: t('ui.hud.log.narrate', { text: t(d.text) }), category: 'narrate' };
       if (d.kind === 'divine') {
         return {
-          text: fmt(T.log.divine, { name: t(d.speakerName), text: t(d.text) }),
+          text: t('ui.hud.log.divine', { name: t(d.speakerName), text: t(d.text) }),
           category: 'divine',
         };
       }
       if (d.kind === 'think') {
         return {
-          text: fmt(T.log.think, { name: t(d.speakerName), text: t(d.text) }),
+          text: t('ui.hud.log.think', { name: t(d.speakerName), text: t(d.text) }),
           category: 'dialogue',
         };
       }
       return {
-        text: fmt(T.log.say, { name: t(d.speakerName), text: t(d.text) }),
+        text: t('ui.hud.log.say', { name: t(d.speakerName), text: t(d.text) }),
         category: 'dialogue',
       };
     }
@@ -66,29 +65,37 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
       if (d.ok || d.source.type !== 'player' || QUIET_REJECTIONS.has(d.kind)) return null;
       return {
         text: d.reason
-          ? fmt(T.log.rejected, { reason: t(d.reason) })
-          : fmt(T.log.rejectedNoReason, { kind: d.kind }),
+          ? t('ui.hud.log.rejected', { reason: t(d.reason) })
+          : t('ui.hud.log.rejected_no_reason', { kind: d.kind }),
         category: 'warning',
       };
     }
     case 'money.changed': {
       const d = ev.data;
       if (d.ownerId !== me || d.delta === 0) return null;
-      const tpl = d.delta > 0 ? T.log.moneyGain : T.log.moneyLoss;
-      return { text: fmt(tpl, { money: formatMoney(Math.abs(d.delta)) }), category: 'loot' };
+      const money = formatMoney(Math.abs(d.delta));
+      return {
+        text: t(d.delta > 0 ? 'ui.hud.log.money_gain' : 'ui.hud.log.money_loss', { money }),
+        category: 'loot',
+      };
     }
     case 'inventory.changed': {
       const d = ev.data;
       if (d.ownerId !== me || d.delta === 0) return null;
-      const item = ctx.itemName(d.itemId) ?? T.log.unknownItem;
-      const tpl = d.delta > 0 ? T.log.itemGain : T.log.itemLoss;
-      return { text: fmt(tpl, { item, count: Math.abs(d.delta) }), category: 'loot' };
+      const item = ctx.itemName(d.itemId) ?? t('ui.hud.log.unknown_item');
+      const count = Math.abs(d.delta);
+      return {
+        text: t(d.delta > 0 ? 'ui.hud.log.item_gain' : 'ui.hud.log.item_loss', { item, count }),
+        category: 'loot',
+      };
     }
     case 'item.equipped': {
       const d = ev.data;
       if (d.ownerId !== me) return null;
       return {
-        text: fmt(T.log.itemEquipped, { item: ctx.itemName(d.itemId) ?? T.log.unknownItem }),
+        text: t('ui.hud.log.item_equipped', {
+          item: ctx.itemName(d.itemId) ?? t('ui.hud.log.unknown_item'),
+        }),
         category: 'system',
       };
     }
@@ -96,7 +103,9 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
       const d = ev.data;
       if (d.ownerId !== me) return null;
       return {
-        text: fmt(T.log.itemUsed, { item: ctx.itemName(d.itemId) ?? T.log.unknownItem }),
+        text: t('ui.hud.log.item_used', {
+          item: ctx.itemName(d.itemId) ?? t('ui.hud.log.unknown_item'),
+        }),
         category: 'system',
       };
     }
@@ -104,43 +113,51 @@ export function formatEvent(ev: AnyWorldEvent, ctx: LogContext): LogLine | null 
       const d = ev.data;
       if (d.id !== me) return null;
       return {
-        text: fmt(T.log.mapChanged, { map: ctx.mapName(d.to) ?? T.log.unknownMap }),
+        text: t('ui.hud.log.map_changed', {
+          map: ctx.mapName(d.to) ?? t('ui.hud.log.unknown_map'),
+        }),
         category: 'world',
       };
     }
     case 'world.weather': {
       const d = ev.data;
-      const tpl = d.forced ? T.log.weatherForced : T.log.weatherChanged;
-      return { text: fmt(tpl, { weather: weatherLabel(d.weather) }), category: 'world' };
+      const weather = weatherLabel(d.weather);
+      return {
+        text: t(d.forced ? 'ui.hud.log.weather_forced' : 'ui.hud.log.weather_changed', { weather }),
+        category: 'world',
+      };
     }
     case 'world.day':
       return {
-        text: fmt(T.log.newDay, { date: formatDate(calendarAt(ev.tick)) }),
+        text: t('ui.hud.log.new_day', { date: formatDate(calendarAt(ev.tick)) }),
         category: 'world',
       };
     case 'world.move_failed': {
       const d = ev.data;
       if (d.id !== me) return null;
-      return { text: fmt(T.log.moveFailed, { reason: t(d.reason) }), category: 'warning' };
+      return { text: t('ui.hud.log.move_failed', { reason: t(d.reason) }), category: 'warning' };
     }
     case 'feature.unlocked':
       return {
-        text: fmt(T.log.featureUnlocked, { feature: featureLabel(ev.data.feature) }),
+        text: t('ui.hud.log.feature_unlocked', { feature: featureLabel(ev.data.feature) }),
         category: 'story',
       };
     case 'act.changed':
-      return { text: fmt(T.log.actChanged, { act: actLabel(ev.data.to) }), category: 'story' };
+      return {
+        text: t('ui.hud.log.act_changed', { act: actLabel(ev.data.to) }),
+        category: 'story',
+      };
     case 'door.opened':
-      return { text: T.log.doorOpened, category: 'story' };
+      return { text: t('ui.hud.log.door_opened'), category: 'story' };
     case 'entity.died': {
       const d = ev.data;
       if (d.mapId !== ctx.playerMapId) return null;
       const name = d.id === me ? undefined : (d.name ?? ctx.entityName(d.id));
       if (!name) return null;
-      return { text: fmt(T.log.entityDied, { name }), category: 'combat' };
+      return { text: t('ui.hud.log.entity_died', { name }), category: 'combat' };
     }
     case 'player.level_up':
-      return { text: fmt(T.log.levelUp, { level: ev.data.level }), category: 'story' };
+      return { text: t('ui.hud.log.level_up', { level: ev.data.level }), category: 'story' };
     default:
       return null;
   }

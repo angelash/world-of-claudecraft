@@ -3,6 +3,7 @@
 // sibling modules. See docs/40_design/systems/city_building.md.
 
 import { ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { GameSystem } from '../../core/system';
 import { tr } from '../../core/text';
 import { siteDef, today } from './common';
@@ -110,7 +111,7 @@ export const system: GameSystem = {
             tr('sys.city.info.population_arrived', {
               n,
               group: POP_GROUP_LABELS[d.group](),
-              site: sdef.name,
+              site: contentText('city_sites', sdef),
             }),
           )
         : reject('full', tr('sys.city.reject.full'));

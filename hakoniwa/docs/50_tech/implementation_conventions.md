@@ -134,20 +134,26 @@
   `ruler.policy`、`official.decide`、`general.order`。
 - 无模型（`aiMode: 'off'`）时，请求在下一 tick 自动执行 fallback；系统不得因为 AI 关闭而停止运转（D-010）。
 
-## 8. 玩家可见文本（D-077）
+## 8. 玩家可见文本（D-077、D-087）
 
-- **内核只发文本引用。** 内核、系统与游戏编排里所有玩家可见的文字都是 `TextRef`（文本键加参数；M0 落地于 `src/core/text.ts`，导出 `TextRef`、`TextParam` 与构造函数 `tr`）：
-  命令拒绝原因（`CommandResult` 的可读原因）、事件里的文字字段、日记与心声的模板句、默认名。参数里的实体、物品、地点用 ID 或嵌套的 `TextRef` 传，客户端渲染时再取显示名。
-  模型生成的文本是 `{ raw, lang }`，按生成时的界面语言打标签。内核里现有的中文字面量在 M0 迁移批次里全部换成键（[`release_engineering.md`](release_engineering.md) 第 8.4 节）。
-- **中文是源语言。** 系统的模板句与拒绝原因放 `locales/zh-Hans/sys_<系统>.json`；界面文本放 `locales/zh-Hans/ui.json`（由 `src/shared_ui/text*.ts` 迁出）；
-  内容数据与台词包的文本由工具从 `data/` 抽取为 `content.generated.json`、`lines.generated.json`，不手改。客户端查表用 `t(ref)`（`src/shared_ui/i18n.ts`）。
-- **键名** `<域>.<子域>.<名>`，小写加下划线与点（例：`ui.saves.slot`、`sys.combat.reject.out_of_range`）；内容文本的键由工具生成，形如 `c.<表>.<内容 ID>.<字段>`（例：`c.items.eq_ash_blade.name`），作者不手写。键的联合类型由
-  `tools/i18n/gen_keys.ts` 生成，拼错键在类型检查时失败。布局与流程的完整规则见 [`release_engineering.md`](release_engineering.md) 第 8 节、[`../40_design/ux_and_onboarding.md`](../40_design/ux_and_onboarding.md) 第 20 节。
-- **内容文本经 `tc` 取。** 运行时取内容的显示文字一律经 `tc(表, ID, 字段)`，先查当前语言、再回退源语言；作者照常在 `data/` 里写中文，不手写键（[`release_engineering.md`](release_engineering.md) 第 8.3 节）。
-- **占位与格式。** 占位符写作 `{名}`；数字、货币、日期、时刻走格式化函数，不在模板句里拼接。缺键时开发构建报错并显示键名，发布构建回退到源语言（[`release_engineering.md`](release_engineering.md) 第 8.2 节）。
-- **测试断言键，不断言句子。** 系统测试断言 `TextRef` 的键与参数；棘轮守卫 `tests/i18n_kernel_guard.test.ts` 统计 `src/core`、`src/systems`、`src/game`（题面模板目录除外）的中文字面量，
-  数量不得超过 `tests/fixtures/i18n_ceiling.json` 的上限，每个迁移批次下调，M0 退出时为 0（PK-M0-14）。
+- **内核只发文本引用。** 内核、系统与游戏编排里所有玩家可见的文字都是文本引用（`src/core/text.ts` 导出 `TextRef`、`TextParam` 与构造函数 `tr`；类型与规则见 [`release_engineering.md`](release_engineering.md) 第 8.1 节）：
+  命令拒绝原因严格是 `TextRef`；成功说明是 `TextRef` 或内容显示文字；事件与视图里可能装内容显示名的字段是 `TextParam`。
+  参数里的实体、物品、地点：内核持有内容记录时传内容键（`contentText(表, 记录, 回退)`，`src/core/content_key.ts`），客户端渲染时按当前语言与揭示阶段取显示名；只有一段运行中生成的文字时才传字符串。
+  新写的代码一律这样传；尚以字符串传显示名的旧参数随后续包换掉（[`release_engineering.md`](release_engineering.md) 第 8.1 节）。
+- **模型与玩家的文字是原文。** 存为 `{ raw, lang }`；命令里的自由文字经 `commandText` 收下：来自模型时只收字符串，模型给出的文本键一律拒收；规则回退给的 `TextRef` 按上限用截断指令截断。
+- **中文是源语言。** 系统的模板句、拒绝原因与题面句放 `locales/zh-Hans/sys_<系统>.json`；界面文本放 `locales/zh-Hans/ui.json`；
+  内容数据与台词包的文本由工具从 `data/` 抽取为 `content.generated.json`，不手改。客户端查表用 `t('ui.…', 参数)` 或 `t(ref)`，内容文字用 `tc(表, ID, 字段)`（`src/shared_ui/i18n.ts`）。
+- **键名** `<作用域>.<路径>`，小写加下划线与点（例：`ui.win.saves.slot`、`sys.combat.reject.out_of_range`）；界面键按元件类组织（`ui.win.<窗口>.*`、`ui.hud.<元件>.*`、`ui.common.*`，[`../40_design/ux_and_onboarding.md`](../40_design/ux_and_onboarding.md) 第 20.2 节）；
+  内容文本的键由工具生成，形如 `c.<表>.<内容 ID>.<字段>`（例：`c.items.eq_ash_blade.name`），作者不手写。键的联合类型 `TextKey` 由 `tools/i18n/gen_keys.ts` 生成到 `src/core/text_keys.generated.ts`，
+  `tr` 与 `t` 的字面量键拼错时类型检查失败；按数据补全的键用模板字面量，回退用 `tOr`。布局与流程的完整规则见 [`release_engineering.md`](release_engineering.md) 第 8 节。
+- **占位与格式。** 占位符写作 `{名}`；数字、货币、日期、时刻走格式化语法（`{n, number}`、`{m, money}`、`{d, date}`、`{d, date, <样式键>}`、`{t, duration}`），不在模板句里拼接；
+  日期样式键指向一条带 `{year}`、`{season}`、`{day}`、`{hh}`、`{mm}` 的模板，放在所属系统的表里，不带点的样式名读 `sys.common.date.<名>`。缺键时显示键名，缺参数时保留占位，开发构建把二者标红，发布构建回退到源语言。
+- **题面键只按源语言渲染。** `sys.<系统>.prompt.*` 与内容里只供题面读的字段经 `tSource` 渲染为中文，翻译导出跳过它们。
+- **词表类。** 与中文内容值比对的性格词、玩家输入关键词与聚落居民名是数据，不是显示文字：JSON 词表放在系统旁（`src/systems/city/settler_names.json`、`src/systems/dialogue/input_lexicon.json`、
+  `src/systems/goddess/input_lexicon.json`、`src/systems/npc/trait_words.json`、`src/systems/warfare/trait_words.json`），是内核里唯一允许含中文的文件；新词表必须加进守卫的名单。
+- **测试断言键，不断言句子。** 系统测试断言 `TextRef` 的键与参数；棘轮守卫 `tests/i18n_kernel_guard.test.ts` 统计 `src/core`、`src/systems`、`src/game`（题面模板目录除外）的中文字面量，上限为 0（`tests/fixtures/i18n_ceiling.json`）；
+  `tests/i18n_ui_guard.test.ts` 对 `src/client` 与 `src/shared_ui` 做同样的检查，只允许逐条列出的例外。全量门的 `text_check` 步（`node tools/i18n/check.ts`）检查缺键、无用键、各语言占位一致、禁用字符、长度上限与生成物是否最新。
 - **不迁的文字。** 角色包的题面模板保持中文（大模型题面用中文），放 `src/game/ai_roles/templates/`；编辑器与内容 pack 的字段标签不本地化（[`release_engineering.md`](release_engineering.md) 第 8.4 节）。
 - **开发者文字用英文。** 日志、断言、内部错误与开发工具的输出用英文，不进字符串表；同一句话既进日志又进界面时拆成两条。
-- **发行语言**：1.0 简体中文；繁体中文与英文在 1.x 更新加入。大模型题面用中文，输出跟随界面语言。
+- **发行语言**：1.0 简体中文；繁体中文与英文在 1.x 更新加入。大模型题面用中文，输出跟随界面语言。开发构建另有伪语言 `qps-wide`（地址参数 `?lang=qps-wide`）测溢出与硬编码。
 - 禁用字符同仓库规则（无破折号、无 emoji、无 U+2600 到 U+27BF 符号）。

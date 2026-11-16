@@ -2,6 +2,7 @@
 // shared warfare kernel (auto-resolve, or a manual battle for the player through
 // `war.pending`), sieges and capture with aggressive expansion, garrison recovery.
 
+import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { autoResolve, buildFieldSetup } from '../warfare/autoresolve';
@@ -177,7 +178,7 @@ function settleBattle(
         s,
         tr('sys.strategy.log.army_routed', {
           army: a.name,
-          province: provinceDef(ctx.content, province)?.name ?? province,
+          province: contentText('slg_provinces', provinceDef(ctx.content, province), province),
         }),
       );
     }
@@ -185,7 +186,7 @@ function settleBattle(
   log(
     s,
     tr('sys.strategy.log.battle', {
-      province: provinceDef(ctx.content, province)?.name ?? province,
+      province: contentText('slg_provinces', provinceDef(ctx.content, province), province),
       outcome:
         victor === 'draw'
           ? tr('sys.strategy.log.battle_draw')
@@ -211,7 +212,9 @@ function fieldSetup(
 ) {
   const def = provinceDef(ctx.content, province);
   return buildFieldSetup({
-    name: tr('sys.strategy.battle.field_name', { province: def?.name ?? province }),
+    name: tr('sys.strategy.battle.field_name', {
+      province: contentText('slg_provinces', def, province),
+    }),
     teams: { player: mergeForce(sideA, 'p', scale), enemy: mergeForce(sideB, 'e', scale) },
     terrain: FIELD_TERRAIN[def?.terrain ?? 'plain'],
   });
@@ -282,7 +285,7 @@ export function resolveBattles(ctx: SystemContext): void {
           log(
             s,
             tr('sys.strategy.log.battle_pending', {
-              province: provinceDef(ctx.content, province)?.name ?? province,
+              province: contentText('slg_provinces', provinceDef(ctx.content, province), province),
             }),
           );
           continue;
@@ -398,7 +401,7 @@ export function capture(ctx: SystemContext, pid: string, to: NationId): void {
     s,
     tr('sys.strategy.log.captured', {
       nation: nationName(ctx.content, s, to),
-      province: provinceDef(ctx.content, pid)?.name ?? pid,
+      province: contentText('slg_provinces', provinceDef(ctx.content, pid), pid),
     }),
   );
   ctx.emit('slg.province_captured', { provinceId: pid, from, to });

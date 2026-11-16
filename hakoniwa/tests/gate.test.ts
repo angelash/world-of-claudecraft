@@ -94,6 +94,7 @@ describe('gate step table', () => {
       'registry_check',
       'content_validate',
       'text_stringify',
+      'text_check',
       'build',
       'build_release',
       'playthrough',
@@ -109,6 +110,7 @@ describe('gate step table', () => {
     expect(runs.registry_check).toEqual({ kind: 'npm', script: 'registry:check' });
     expect(runs.content_validate).toEqual({ kind: 'node', args: ['tools/content/validate.ts'] });
     expect(runs.text_stringify).toEqual({ kind: 'node', args: ['tools/i18n/stringify_check.ts'] });
+    expect(runs.text_check).toEqual({ kind: 'node', args: ['tools/i18n/check.ts'] });
     expect(runs.build).toEqual({ kind: 'npm', script: 'build' });
     expect(runs.build_release).toEqual({ kind: 'npm', script: 'build:release' });
     expect(runs.playthrough).toEqual({ kind: 'npm', script: 'playthrough' });

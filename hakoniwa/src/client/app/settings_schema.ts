@@ -1,5 +1,6 @@
 // The settings model (docs/50_tech/release_engineering.md 5.2, 13.10; D-088): two parts,
-// `sync` (keys, language, accessibility, sound captions, volume; follows the cloud) and
+// `sync` (keys, contextual key overrides, language, accessibility, sound captions, volume;
+// follows the cloud) and
 // `local` (quality, camera view, window, GPU preference, frame cap, install id and the `llm`
 // partition; stays on this machine). Each part carries a version and migrates step by step
 // like saves do; a part from a newer version is read best-effort and never written back.
@@ -17,6 +18,18 @@
 import { BUSES, type BusId, DEFAULT_VOLUMES } from '../audio/bus_model';
 import { QUALITY_IDS, type QualityId } from '../hd2d/quality';
 import { PITCH_MAX, PITCH_MIN, ZOOM_STEPS } from '../hd2d/view';
+import {
+  CHORD_CODE,
+  type ContextKeyOverrides,
+  DEFAULT_CONTEXT_KEYMAP,
+  defaultBinding,
+  INPUT_CONTEXTS,
+  isForbiddenChord,
+  type KeyChord,
+  LOCKED_SLOTS,
+  parseSlotKey,
+  type SlotOverride,
+} from '../input/contexts';
 import { type Action, DEFAULT_KEYMAP } from '../input/keymap';
 
 export type SettingsPart = 'sync' | 'local';
@@ -62,6 +75,11 @@ export type FrameCapSetting = (typeof FRAME_CAPS)[number];
 
 /** At most this many key overrides are kept. */
 export const MAX_KEY_OVERRIDES = 128;
+/** At most this many contextual overrides are kept: one per slot of the contextual key map. */
+export const MAX_CONTEXT_KEY_OVERRIDES = INPUT_CONTEXTS.reduce(
+  (n, c) => n + Object.keys(DEFAULT_CONTEXT_KEYMAP[c]).length * 2,
+  0,
+);
 const KEY_CODE = /^[A-Za-z][A-Za-z0-9]{0,31}$/;
 const INSTALL_ID = /^[0-9a-f]{16,32}$/;
 /** Window positions and sizes are kept within these bounds (screen pixels). */
@@ -96,6 +114,11 @@ export interface SyncSettings {
   version: number;
   /** Changes to the default key map by KeyboardEvent.code; null unbinds a default key. */
   keys: Record<string, KeyOverride | null>;
+  /**
+   * Changes to the contextual key map (ux_and_onboarding.md 16.6) by `<context>.<action>.<slot>`
+   * (src/client/input/contexts.ts); null clears a default slot. Shared by every save (rule 7).
+   */
+  contextKeys: ContextKeyOverrides;
   language: Language;
   accessibility: Accessibility;
   subtitles: CaptionMode;
@@ -243,6 +266,50 @@ function parseKeyOverride(v: unknown): KeyOverride | null | undefined {
   return v.slot === undefined ? { action: action as Action } : undefined;
 }
 
+function parseChord(v: unknown): KeyChord | undefined {
+  if (!isPlainObject(v) || typeof v.code !== 'string' || !CHORD_CODE.test(v.code)) return undefined;
+  const out: KeyChord = { code: v.code };
+  for (const mod of ['shift', 'ctrl', 'alt'] as const) {
+    if (v[mod] === undefined || v[mod] === false) continue;
+    if (v[mod] !== true) return undefined;
+    out[mod] = true;
+  }
+  for (const key of Object.keys(v))
+    if (!['code', 'shift', 'ctrl', 'alt'].includes(key)) return undefined;
+  return out;
+}
+
+/**
+ * Contextual key overrides: an entry must name a slot of the contextual key map that is not
+ * locked and hold a chord (not Alt+F4) or null; bad entries are dropped one by one, at most
+ * MAX_CONTEXT_KEY_OVERRIDES kept (enough to override every slot).
+ */
+function parseContextKeys(issue: (sub: string) => void): Parse<ContextKeyOverrides> {
+  return (v) => {
+    if (!isPlainObject(v)) return undefined;
+    const out: Record<string, SlotOverride> = {};
+    let n = 0;
+    for (const [key, raw] of Object.entries(v)) {
+      const slot = parseSlotKey(key);
+      const known = !!slot && !!defaultBinding(slot.context, slot.action);
+      const chord = raw === null ? null : parseChord(raw);
+      const parsed =
+        !known || n >= MAX_CONTEXT_KEY_OVERRIDES || LOCKED_SLOTS.has(key)
+          ? undefined
+          : chord && isForbiddenChord(chord)
+            ? undefined
+            : chord;
+      if (parsed === undefined) {
+        issue(slot ? key : '?');
+        continue;
+      }
+      out[key] = parsed;
+      n++;
+    }
+    return out;
+  };
+}
+
 /** Key overrides: bad entries are dropped one by one, at most MAX_KEY_OVERRIDES kept. */
 function parseKeys(issue: (sub: string) => void): Parse<Record<string, KeyOverride | null>> {
   return (v) => {
@@ -303,6 +370,10 @@ function partFields(
   if (part === 'sync') {
     const sync: Fields<Omit<SyncSettings, 'version'>> = {
       keys: { def: () => ({}), parse: parseKeys((s) => issue(`keys.${s}`)) },
+      contextKeys: {
+        def: () => ({}),
+        parse: parseContextKeys((s) => issue(`contextKeys.${s}`)),
+      },
       language: { def: () => 'zh-Hans', parse: oneOf(LANGUAGES) },
       accessibility: {
         def: defaultAccessibility,

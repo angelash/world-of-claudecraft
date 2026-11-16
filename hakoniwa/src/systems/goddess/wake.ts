@@ -5,6 +5,7 @@
 // Merca through her coin (10.2).
 
 import type { AnyCommand } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { type KeyText, type TextParam, tr } from '../../core/text';
@@ -232,7 +233,10 @@ export function makeOffering(
     return { code: 'inactive', reason: tr('sys.goddess.reject.inactive.offering') };
   const coin = merca.token ?? '';
   if (countItem(ctx.world, playerId, coin) <= 0)
-    return { code: 'no_coin', reason: tr('sys.goddess.reject.no_coin', { goddess: merca.name }) };
+    return {
+      code: 'no_coin',
+      reason: tr('sys.goddess.reject.no_coin', { goddess: contentText('goddesses', merca) }),
+    };
   if (d.itemId === coin) return { code: 'coin', reason: tr('sys.goddess.reject.coin') };
   const item = itemDef(ctx.content, d.itemId);
   if (!item) return { code: 'no_item', reason: tr('sys.goddess.reject.no_item') };
@@ -266,7 +270,7 @@ export function makeOffering(
       untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
       source: merca.id,
       visibility: 'public',
-      note: tr('sys.goddess.modifier.coin_blessing', { goddess: merca.name }),
+      note: tr('sys.goddess.modifier.coin_blessing', { goddess: contentText('goddesses', merca) }),
     });
     registerModifier(ctx, {
       target: 'price',
@@ -275,7 +279,7 @@ export function makeOffering(
       untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
       source: merca.id,
       visibility: 'public',
-      note: tr('sys.goddess.modifier.coin_blessing', { goddess: merca.name }),
+      note: tr('sys.goddess.modifier.coin_blessing', { goddess: contentText('goddesses', merca) }),
     });
   } else {
     const resolve = flagResolver(ctx.world.meta.flags);
@@ -297,8 +301,8 @@ export function makeOffering(
     breach: false,
     note:
       d.want === 'blessing'
-        ? tr('sys.goddess.note.offering_blessing', { goddess: merca.name })
-        : tr('sys.goddess.note.offering_intel', { goddess: merca.name }),
+        ? tr('sys.goddess.note.offering_blessing', { goddess: contentText('goddesses', merca) })
+        : tr('sys.goddess.note.offering_intel', { goddess: contentText('goddesses', merca) }),
   });
   return null;
 }

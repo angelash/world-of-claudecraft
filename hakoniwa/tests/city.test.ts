@@ -6,7 +6,7 @@ import type {
   CommandSource,
   ContentMap,
 } from '../src/core';
-import { worldHash } from '../src/core';
+import { contentRef, worldHash } from '../src/core';
 import type { Engine } from '../src/core/engine';
 import { tr } from '../src/core/text';
 import { calendarAt, tickAtDay } from '../src/core/time';
@@ -278,7 +278,9 @@ describe('placement validator', () => {
     });
     expect(code(2, 4)).toEqual({
       code: 'keep_reach',
-      reason: tr('sys.city.reject.keep_reach_building', { building: '石墩' }),
+      reason: tr('sys.city.reject.keep_reach_building', {
+        building: contentRef('city_buildings', 'block', 'name'),
+      }),
     });
     // Once the corridor is taken, the north room cannot be reached at all.
     site.buildings.push({

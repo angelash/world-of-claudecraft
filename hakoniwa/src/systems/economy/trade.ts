@@ -3,6 +3,7 @@
 // session closes when the player walks away or changes map.
 
 import { ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { CommandResult } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
@@ -35,7 +36,7 @@ export function openTrade(ctx: SystemContext, npcId: string, npcRef?: string): C
   if (!isMarketOpen(ctx.world, market))
     return reject(
       'market_closed',
-      tr('sys.economy.reject.market_closed.trade', { market: market.name }),
+      tr('sys.economy.reject.market_closed.trade', { market: contentText('markets', market) }),
     );
   const slice = ctx.world.slices.economy;
   slice.session = { npcId, npcRef: npcRef ?? npc.ref, marketId: market.id, openedTick: ctx.tick };

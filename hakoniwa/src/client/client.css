@@ -15,6 +15,13 @@
   --hk-font: system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
 }
 
+/* Dev builds: an unfilled placeholder or a key shown as itself (src/client/app/dev_text_marks.ts). */
+.hk-missing-text {
+  outline: 1px solid #ff3b30;
+  background: rgba(255, 59, 48, 0.25);
+  color: #ffd2cc;
+}
+
 /* The hidden attribute always wins over component display rules. */
 [hidden] {
   /* biome-ignore lint/complexity/noImportantStyles: the hidden attribute must beat component display rules */
@@ -480,6 +487,8 @@ body {
   font-size: 11px;
   line-height: 1.2;
   overflow: hidden;
+  /* long single words (English, the qps-wide pseudo-locale) wrap instead of clipping */
+  overflow-wrap: anywhere;
 }
 .hk-slot-cd {
   position: absolute;

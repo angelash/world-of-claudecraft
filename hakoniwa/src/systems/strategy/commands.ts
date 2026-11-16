@@ -2,6 +2,7 @@
 // AI rulers act only through slg.ruler_policy proposals and their fallbacks.
 
 import { type CommandResult, ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { CommandMap, CommandSource } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { joinText, tr } from '../../core/text';
@@ -63,7 +64,7 @@ export function moveArmy(
       : tr('sys.strategy.info.route', {
           route: joinText(
             'list',
-            route.map((p) => provinceDef(ctx.content, p)?.name ?? p),
+            route.map((p) => contentText('slg_provinces', provinceDef(ctx.content, p), p)),
           ),
         }),
   );
@@ -108,9 +109,9 @@ export function recruit(
   log(
     s,
     tr('sys.strategy.log.recruited', {
-      province: provinceDef(ctx.content, d.provinceId)?.name ?? d.provinceId,
+      province: contentText('slg_provinces', provinceDef(ctx.content, d.provinceId), d.provinceId),
       count,
-      unit: unit?.name ?? d.typeId,
+      unit: contentText('regiment_types', unit, d.typeId),
     }),
   );
   return ok(tr('sys.strategy.info.enlisted', { army: army.name }));

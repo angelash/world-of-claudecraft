@@ -1,7 +1,7 @@
 // Disk inputs of the content tools (the validators themselves are pure): the data files
 // under data/ (without the tooling directories _staging/ and _batches/), the system and
 // game sources for the flag index, the prompt library's asset ids, and the ValidationInput
-// built from them (with the interface text), optionally with a staged batch applied. Runs under
+// built from them (with the interface and system string tables), optionally with a staged batch applied. Runs under
 // Vite's module runner (tools/content/validate.ts), because the content packs are
 // assembled with import.meta.glob.
 
@@ -12,10 +12,9 @@ import { allPacks, buildContent } from '../../src/content';
 import { ENDING_ROUTES } from '../../src/game/autoplay';
 import { routeProblems } from '../../src/game/autoplay/routes';
 import { createGame } from '../../src/game/create';
-import { T } from '../../src/shared_ui/text';
+import { SOURCE_TABLE } from '../../src/shared_ui/i18n';
 import { loadLibrary } from '../assets/lib';
 import { applyBatch, isToolingFile, overlayContent, type StagedBatch } from './catalog/batch';
-import { flattenText } from './validators/names';
 import type { ValidationInput } from './validators/types';
 
 /** hakoniwa/ (this file lives in hakoniwa/tools/content/). */
@@ -87,7 +86,7 @@ export function loadValidationInput(opts: LoadOptions): ValidationInput {
     codeSources: readCodeSources(root),
     initialFlags: { ...createGame({ aiMode: 'off', content }).world.meta.flags },
     assetIds: readAssetIds(root),
-    uiText: flattenText(T),
+    uiText: { ...SOURCE_TABLE },
     endingRoutes: [...ENDING_ROUTES],
     routeProblems: routeProblems(content),
   };

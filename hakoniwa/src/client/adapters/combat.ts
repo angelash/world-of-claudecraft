@@ -4,8 +4,7 @@
 // npc and cognition queries.
 
 import type { AnyWorldEvent } from '../../core/contracts';
-import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { hasText, t, tOr } from '../../shared_ui/i18n';
 import { appraisalLog, lastAppraisal, pressureSense } from '../../systems/cognition';
 import {
   abilityBar,
@@ -31,6 +30,7 @@ import type {
   UnitFrameAdapter,
   UnitFrameData,
 } from '../view/adapters';
+import { contentNames } from '../view/content_names';
 import type { GameView } from '../view/game_view';
 
 const RESOURCE_COLORS: Record<string, string> = {
@@ -45,7 +45,7 @@ export const GCD_SPAN = 1.5;
 export const HOTBAR_SLOTS = 9;
 
 function readingText(r: ReturnType<typeof strengthReading>): string {
-  return T.combat.reading[r];
+  return t(`ui.hud.target.reading.${r}`);
 }
 
 export function unitFrameData(
@@ -73,7 +73,7 @@ export function unitFrameData(
       }));
     data.auras = u.auras.map((a) => ({
       id: a.id,
-      name: a.name,
+      name: contentNames.aura(a.id, a.name),
       harmful: a.kind === 'debuff',
       remaining: a.remaining,
       stacks: a.stacks,
@@ -100,7 +100,7 @@ export function unitFrameData(
     const npc = npcId ? npcView(w, c, npcId) : undefined;
     if (npc) {
       data.subtitle = [npc.job, t(npc.activityName)].filter(Boolean).join('  ');
-      if (!u) data.levelText = fmt(T.combat.relation, { band: t(npc.relationBand) });
+      if (!u) data.levelText = t('ui.hud.target.relation', { band: t(npc.relationBand) });
     }
     const p = pressureSense(w, c, viewerId, entityId);
     if (p && p.band !== 'none' && p.text) data.pressure = t(p.text);
@@ -128,8 +128,8 @@ export function hotbarSlots(view: GameView): HotbarSlotView[] {
     return {
       slot: i + 1,
       abilityId: a.id,
-      name: a.name,
-      desc: a.desc,
+      name: contentNames.ability(a.id, a.name),
+      desc: contentNames.abilityDesc(a.id, a.desc),
       cooldown: cd,
       cooldownTotal: total,
       usable: a.usable,
@@ -141,7 +141,9 @@ export function hotbarSlots(view: GameView): HotbarSlotView[] {
 }
 
 export function damageText(outcome: string, amount: number): string {
-  const label = (T.combat.outcomes as Record<string, string>)[outcome];
+  const label = hasText(`ui.ovl.fct.outcome.${outcome}`)
+    ? t(`ui.ovl.fct.outcome.${outcome}`)
+    : undefined;
   if (label) return amount > 0 ? `${label} ${amount}` : label;
   return String(amount);
 }
@@ -164,7 +166,7 @@ export function floatingFor(view: GameView, ev: AnyWorldEvent): FloatingTextView
       const text =
         d.outcome === 'hit' || (d.outcome === 'crit' && d.amount > 0)
           ? d.outcome === 'crit'
-            ? fmt(T.combat.crit, { n: d.amount })
+            ? t('ui.ovl.fct.crit', { n: d.amount })
             : String(d.amount)
           : damageText(d.outcome, d.amount);
       return [{ entityId: d.targetId, text, kind }];
@@ -177,14 +179,14 @@ export function floatingFor(view: GameView, ev: AnyWorldEvent): FloatingTextView
     }
     case 'combat.xp':
       return ev.data.entityId === me && ev.data.amount > 0
-        ? [{ entityId: me, text: fmt(T.combat.xp, { n: ev.data.amount }), kind: 'xp' }]
+        ? [{ entityId: me, text: t('ui.ovl.fct.xp', { n: ev.data.amount }), kind: 'xp' }]
         : [];
     case 'combat.level_up':
       return ev.data.entityId === me
-        ? [{ entityId: me, text: T.combat.levelUp, kind: 'level' }]
+        ? [{ entityId: me, text: t('ui.ovl.fct.level_up'), kind: 'level' }]
         : [];
     case 'combat.evade':
-      return [{ entityId: ev.data.entityId, text: T.combat.evade, kind: 'miss' }];
+      return [{ entityId: ev.data.entityId, text: t('ui.ovl.fct.evade'), kind: 'miss' }];
     default:
       return [];
   }
@@ -211,7 +213,7 @@ export function createCombatAdapter(): CombatAdapter {
     hotbar: hotbarSlots,
     activateSlot(view, slot, targetId) {
       const s = hotbarSlots(view).find((x) => x.slot === slot);
-      if (!s?.abilityId) return T.combat.emptySlot;
+      if (!s?.abilityId) return t('ui.hud.hotbar.empty_slot');
       // Pressing during a cooldown is routine: no message, the sweep already shows it.
       if (!s.usable && s.cooldown > 0) return [];
       if (!s.usable && s.reason) return s.reason;
@@ -277,13 +279,13 @@ export function characterSheet(view: GameView): CharacterSheetView | null {
   const bar = abilityBar(w, c);
   const stats: { label: string; value: string }[] = [];
   if (u) {
-    stats.push({ label: T.character.hp, value: `${u.hp} / ${u.maxHp}` });
+    stats.push({ label: t('ui.win.character.hp'), value: `${u.hp} / ${u.maxHp}` });
     for (const r of u.resources)
       if (r.max > 0) stats.push({ label: t(r.name), value: `${r.cur} / ${r.max}` });
-    if (u.combo > 0) stats.push({ label: T.character.combo, value: String(u.combo) });
+    if (u.combo > 0) stats.push({ label: t('ui.win.character.combo'), value: String(u.combo) });
     stats.push({
-      label: T.character.inCombat,
-      value: u.inCombat ? T.character.yes : T.character.no,
+      label: t('ui.win.character.in_combat'),
+      value: u.inCombat ? t('ui.win.character.yes') : t('ui.win.character.no'),
     });
   }
   const totals = new Map<string, number>();
@@ -294,13 +296,13 @@ export function characterSheet(view: GameView): CharacterSheetView | null {
   }
   for (const [k, v] of totals) {
     stats.push({
-      label: (T.character.statNames as Record<string, string>)[k] ?? k,
+      label: tOr(`ui.win.character.stat.${k}`, k),
       value: `+${v}`,
     });
   }
   return {
     name: e.name,
-    className: cls?.name,
+    className: cls ? contentNames.className(cls) : undefined,
     level: u?.level ?? xp.level,
     tierName: u ? t(u.tierName) : undefined,
     xp: { value: xp.xp, max: xp.next },
@@ -317,10 +319,10 @@ export function characterSheet(view: GameView): CharacterSheetView | null {
     stats,
     abilities: bar.map((a) => ({
       id: a.id,
-      name: a.name,
-      desc: a.desc,
+      name: contentNames.ability(a.id, a.name),
+      desc: contentNames.abilityDesc(a.id, a.desc),
       cost: a.resource && a.cost > 0 ? String(a.cost) : undefined,
-      cooldown: a.cooldown > 0 ? fmt(T.character.seconds, { n: a.cooldown }) : undefined,
+      cooldown: a.cooldown > 0 ? t('ui.win.character.seconds', { n: a.cooldown }) : undefined,
     })),
   };
 }

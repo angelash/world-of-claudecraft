@@ -3,7 +3,7 @@
 // interaction key, appraisal, Tab targeting, Esc layering, dialogue and scene keys.
 // Thin glue over the session; the rules live in the adapters and pure input modules.
 
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { screenIntentToWorld } from '../hd2d/view';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import type { Hud } from '../hud/hud';
@@ -98,7 +98,7 @@ export class PlayerInput {
     if (!isZero(i) && !this.canMove()) {
       if (!this.lockedNoted && !this.s.inScene()) {
         this.lockedNoted = true;
-        this.s.logLine(T.combat.cannotMove, 'warning');
+        this.s.logLine(t('ui.hud.log.cannot_move'), 'warning');
       }
       this.send({ dx: 0, dy: 0 });
       return;
@@ -154,7 +154,7 @@ export class PlayerInput {
     this.s.hud.hotbar.flash(slot);
     const combat = this.s.adapters.combat;
     if (!combat) {
-      this.s.logLine(T.log.hotbarPending);
+      this.s.logLine(t('ui.hud.log.hotbar_pending'));
       return;
     }
     const res = combat.activateSlot(this.v, slot, this.s.selection);
@@ -186,7 +186,7 @@ export class PlayerInput {
       this.s.queue(cmds);
       return;
     }
-    this.s.logLine(T.log.interactNothing);
+    this.s.logLine(t('ui.hud.log.interact_nothing'));
   }
 
   /** Space or Enter: scene first, then loose lines. */

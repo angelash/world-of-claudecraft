@@ -2,10 +2,11 @@
 // labels, quest-related residents, the player, and visible units by relation.
 
 import { el, setText } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { DOT_COLORS, minimapMatrix, minimapScale } from '../hud/minimap_model';
 import { ctx2d, makeCanvas, matrixToCanvas } from '../render/canvas_util';
 import { relationOf } from '../render/scene';
+import { contentNames } from '../view/content_names';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
@@ -27,7 +28,7 @@ export function mapWindow(ctx: WindowContext): WindowContent {
     if (map.id !== mapId) {
       mapId = map.id;
       base = matrixToCanvas(minimapMatrix(map));
-      setText(title, map.name);
+      setText(title, contentNames.map(map));
     }
     const s = minimapScale(map.width, map.height, BOX_W, BOX_H - 16);
     const ox = Math.floor((BOX_W - map.width * s) / 2);
@@ -62,14 +63,14 @@ export function mapWindow(ctx: WindowContext): WindowContent {
       dot(p.x, p.y, '#101018', 9);
       dot(p.x, p.y, DOT_COLORS.self, 7);
       c.fillStyle = '#ffffff';
-      c.fillText(T.mapWindow.you, ox + p.x * s, oy + p.y * s + 16);
+      c.fillText(t('ui.win.map.you'), ox + p.x * s, oy + p.y * s + 16);
     }
   };
   return {
     el: el('div', { className: 'hk-map' }, [
       title,
       canvas,
-      el('div', { className: 'hk-muted', text: T.mapWindow.legend }),
+      el('div', { className: 'hk-muted', text: t('ui.win.map.legend') }),
     ]),
     update,
   };

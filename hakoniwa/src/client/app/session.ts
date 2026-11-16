@@ -7,7 +7,7 @@
 // frame whether the renderer runs (release_engineering.md 6.3).
 
 import type { Engine } from '../../core/engine';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { Appearance } from '../../systems/world/types';
 import { createWorldRenderer, hasWebGL2, type QualityId, resolveQuality } from '../hd2d';
 import { isQualityId } from '../hd2d/quality';
@@ -453,7 +453,7 @@ export class GameSession implements PlayerInputHost {
   beginPlacement(siteId: string, defId: string, name: string): void {
     this.placing = { siteId, defId, name, x: -1, y: -1, preview: null };
     this.windows.closeAll();
-    this.logLine(fmt(T.territory.placing, { name }));
+    this.logLine(t('ui.win.territory.placing', { name }));
   }
 
   cancelPlacement(): void {
@@ -469,18 +469,24 @@ export class GameSession implements PlayerInputHost {
 
   private movePlacement(sx: number, sy: number): void {
     const pl = this.placing;
-    const t = this.adapters.territory;
+    const ter = this.adapters.territory;
     const w = this.worldPoint(sx, sy);
-    if (!pl || !t || !w) return;
-    const def = t.buildMenu(this.view, pl.siteId).find((b) => b.id === pl.defId);
+    if (!pl || !ter || !w) return;
+    const def = ter.buildMenu(this.view, pl.siteId).find((b) => b.id === pl.defId);
     const x = Math.floor(w.x) - Math.floor((def?.w ?? 1) / 2);
     const y = Math.floor(w.y) - Math.floor((def?.h ?? 1) / 2);
     if (x === pl.x && y === pl.y) return;
     pl.x = x;
     pl.y = y;
-    const r = t.preview(this.view, pl.siteId, pl.defId, x, y);
+    const r = ter.preview(this.view, pl.siteId, pl.defId, x, y);
     pl.preview = r.ok
-      ? { ok: true, tiles: r.tiles, blocked: [], entrance: r.entrance, label: T.territory.canPlace }
+      ? {
+          ok: true,
+          tiles: r.tiles,
+          blocked: [],
+          entrance: r.entrance,
+          label: t('ui.win.territory.can_place'),
+        }
       : { ok: false, tiles: r.tiles, blocked: r.blocked, entrance: null, label: r.reason };
   }
 
@@ -587,12 +593,12 @@ export class GameSession implements PlayerInputHost {
       exitHint = {
         x: exit.x + 0.5,
         y: exit.y + 0.5,
-        text: fmt(open ? T.prompts.exit : T.prompts.exitLocked, { label: exit.label }),
+        text: t(open ? 'ui.hud.prompt.exit' : 'ui.hud.prompt.exit_locked', { label: exit.label }),
       };
     } else {
       const near = this.adapters.interact?.nearestTalkable(this.view);
       const ne = near ? this.view.entity(near) : undefined;
-      if (ne) exitHint = { x: ne.x, y: ne.y - 1.6, text: T.prompts.talk };
+      if (ne) exitHint = { x: ne.x, y: ne.y - 1.6, text: t('ui.hud.prompt.talk') };
     }
 
     const scene = buildScene({
@@ -669,7 +675,7 @@ export class GameSession implements PlayerInputHost {
       target,
       target ? relationOf(target, pid) : null,
       target ? (a.unitFrames?.unitFrame(v, target.id, pid) ?? null) : null,
-      T.frames.noTarget,
+      t('ui.hud.target.none'),
     );
     this.hud.clock.update(v.calendar(), v.weather(), this.clock.speed, this.clock.paused);
     const map = v.currentMap();
@@ -683,7 +689,9 @@ export class GameSession implements PlayerInputHost {
     this.hud.hotbar.update(a.combat?.hotbar(v) ?? []);
     const pending = a.battle?.pending(v);
     this.hud.warPrompt.update(
-      pending && !a.battle?.battle(v) ? fmt(T.warPrompt.pending, { name: pending.name }) : null,
+      pending && !a.battle?.battle(v)
+        ? t('ui.hud.warprompt.pending', { name: pending.name })
+        : null,
     );
     this.hud.banner.update(now);
     this.hud.setPaused(this.clock.paused);
@@ -696,7 +704,7 @@ export class GameSession implements PlayerInputHost {
 
   saveTo(slot: SlotId): void {
     this.opts.saves.save(slot, this.saveInfo()).then(
-      () => this.saveLine(fmt(T.log.saved, { slot: slotLabel(slot) })),
+      () => this.saveLine(t('ui.hud.log.saved', { slot: slotLabel(slot) })),
       (err) => this.saveFailed(err),
     );
   }
@@ -705,11 +713,11 @@ export class GameSession implements PlayerInputHost {
     this.opts.saves.load(slot).then(
       (loaded) => {
         if (!this.disposed)
-          this.opts.loadWorld(loaded, fmt(T.log.loaded, { slot: slotLabel(slot) }));
+          this.opts.loadWorld(loaded, t('ui.hud.log.loaded', { slot: slotLabel(slot) }));
       },
       (err) => {
         console.warn('[saves] load failed', err);
-        this.saveLine(fmt(T.saves.loadFailed, { reason: loadErrorText(err) }), 'warning');
+        this.saveLine(t('ui.win.saves.load_failed', { reason: loadErrorText(err) }), 'warning');
       },
     );
   }
@@ -725,7 +733,7 @@ export class GameSession implements PlayerInputHost {
     });
     if (!safe) return;
     this.opts.saves.autosave(this.saveInfo()).then(
-      (meta) => this.saveLine(fmt(T.log.saved, { slot: slotLabel(meta.slot) })),
+      (meta) => this.saveLine(t('ui.hud.log.saved', { slot: slotLabel(meta.slot) })),
       (err) => this.saveFailed(err),
     );
   }
@@ -737,7 +745,7 @@ export class GameSession implements PlayerInputHost {
 
   private saveFailed(err: unknown): void {
     console.warn('[saves] save failed', err);
-    this.saveLine(fmt(T.saves.failed, { reason: saveErrorText(err) }), 'warning');
+    this.saveLine(t('ui.win.saves.failed', { reason: saveErrorText(err) }), 'warning');
   }
 
   /** A save finishes after its frame; the session may be gone by then. */

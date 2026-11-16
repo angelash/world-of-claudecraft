@@ -11,6 +11,7 @@ import type { AnimTracker } from '../render/anim_state';
 import type { BubbleBoard } from '../render/bubbles';
 import type { FloatingBoard } from '../render/floating_text';
 import type { BannerView, ClientAdapters } from '../view/adapters';
+import { contentNames } from '../view/content_names';
 import type { GameView } from '../view/game_view';
 import type { WindowId } from '../windows/window_registry';
 
@@ -43,7 +44,7 @@ export class EventRouter {
       playerId: v.playerId(),
       playerMapId: p?.mapId ?? '',
       itemName: (id) => v.itemDef(id)?.name,
-      mapName: (id) => v.map(id)?.name,
+      mapName: (id) => contentNames.map(v.map(id)) || undefined,
       entityName: (id) => v.entity(id)?.name,
     };
   }

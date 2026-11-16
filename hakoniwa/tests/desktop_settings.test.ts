@@ -109,6 +109,7 @@ describe('desktop settings files', () => {
     const sync = {
       version: 1,
       keys: { KeyQ: { action: 'interact' } },
+      contextKeys: { 'field.interact.primary': { code: 'KeyF' } },
       language: 'en',
       accessibility: {
         colorMode: 'high_contrast',
@@ -763,6 +764,7 @@ describe('desktop imports from the client', () => {
       '../audio/bus_model',
       '../hd2d/quality',
       '../hd2d/view',
+      '../input/contexts',
       '../input/keymap',
     ]);
   });

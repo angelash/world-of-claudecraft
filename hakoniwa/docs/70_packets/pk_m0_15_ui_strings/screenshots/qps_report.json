@@ -1,0 +1,28 @@
+{
+  "title": {
+    "overflow": [],
+    "unwrapped": []
+  },
+  "hud": {
+    "overflow": [],
+    "unwrapped": [
+      "在一切开始之前，是一个很普通的夜晚。",
+      "你记得的最后一个地方，是哪里？",
+      "末班车：加班到深夜，地铁末班车的车厢",
+      "雨夜便利店：深夜的便利店，外面下着大雨",
+      "医院走廊：凌晨，在走廊里等一个结果",
+      "老宅清空日：明天就要拆的老房子，最后一个房间"
+    ]
+  },
+  "window_inventory": {
+    "overflow": [],
+    "unwrapped": []
+  },
+  "window_character": {
+    "overflow": [],
+    "unwrapped": []
+  },
+  "console": [
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

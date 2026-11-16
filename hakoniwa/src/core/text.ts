@@ -3,7 +3,13 @@
 // parameters, or the raw text a model wrote tagged with its language. The client renders
 // a TextRef with the string tables under locales/ (src/shared_ui/i18n.ts); the kernel
 // never looks a key up. Entity, item and place parameters are ids, display names, or
-// nested TextRefs (`{ who: { key: 'c.npcs.ron.name' } }`). Pure and deterministic.
+// nested TextRefs (`{ who: { key: 'c.npcs.ron.name' } }`). Key arguments are checked against
+// the generated key union (text_keys.generated.ts, tools/i18n/gen_keys.ts). Pure and
+// deterministic.
+
+import type { TextKey } from './text_keys.generated';
+
+export type { TextKey };
 
 /** A template parameter: a plain value or a nested text reference. */
 export type TextParam = string | number | TextRef;
@@ -28,9 +34,34 @@ export const SOURCE_LANG = 'zh-Hans';
 /** Key prefix of the list joiners: `sys.common.join.<sep>`; the table value is the separator. */
 export const JOIN_PREFIX = 'sys.common.join.';
 
+/** Marker type for a key argument that names no key of the source tables. */
+export interface UnknownTextKey<K extends string> {
+  readonly unknownTextKey: K;
+}
+
+/**
+ * A key argument checked against the generated key union (release_engineering.md 8.2): a
+ * literal must be a key of the source tables, a template literal must match at least one
+ * (`sys.combat.tier.${n}`), a plain `string` (a key read from data) passes. Content keys
+ * (`c.`) are built by contentKey() and pass as strings.
+ */
+export type TextKeyArg<K extends string> = string extends K
+  ? K
+  : [K] extends [TextKey]
+    ? K
+    : K extends `c.${string}`
+      ? K
+      : [Extract<TextKey, K>] extends [never]
+        ? UnknownTextKey<K>
+        : K;
+
 /** A text reference to `key`; `params` fill its `{name}` placeholders. */
-export function tr(key: string, params?: Record<string, TextParam>): KeyText {
-  return params ? { key, params } : { key };
+export function tr<K extends string>(
+  key: TextKeyArg<K>,
+  params?: Record<string, TextParam>,
+): KeyText {
+  const k = key as string;
+  return params ? { key: k, params } : { key: k };
 }
 
 /** Raw text tagged with its language (model output, player words). */

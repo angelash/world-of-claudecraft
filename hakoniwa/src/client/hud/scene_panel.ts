@@ -3,7 +3,7 @@
 // advances. The world behind is dimmed and player movement is held by the session.
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { ScenePanelModel } from './scene_model';
 
 export interface ScenePanelHandlers {
@@ -31,7 +31,11 @@ export class ScenePanel {
   constructor(private readonly h: ScenePanelHandlers) {
     this.input = el('input', {
       className: 'hk-input hk-scene-input',
-      attrs: { type: 'text', placeholder: T.scene.placeholder, 'aria-label': T.scene.placeholder },
+      attrs: {
+        type: 'text',
+        placeholder: t('ui.mode.cutscene.placeholder'),
+        'aria-label': t('ui.mode.cutscene.placeholder'),
+      },
     });
     this.input.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') {
@@ -43,7 +47,7 @@ export class ScenePanel {
       this.input,
       el('button', {
         className: 'hk-btn hk-btn-primary',
-        text: T.scene.submit,
+        text: t('ui.mode.cutscene.submit'),
         attrs: { type: 'button' },
         on: { click: () => this.submit() },
       }),

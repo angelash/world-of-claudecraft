@@ -3,7 +3,7 @@
 // felt-pressure and appraisal notes for targets. Writes are elided.
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { Entity } from '../../systems/world/types';
 import type { Relation } from '../render/scene';
 import { lookFromEntity } from '../sprites/look';
@@ -107,11 +107,11 @@ export class UnitFrame {
     const levelLine =
       data?.levelText ??
       (data?.level !== undefined && data.level !== null
-        ? fmt(T.frames.level, { level: data.level })
+        ? t('ui.common.unit.level', { level: data.level })
         : data && 'level' in data && data.level === null
-          ? T.frames.levelUnknown
+          ? t('ui.common.unit.level_unknown')
           : tagLevel !== null && relation === 'self'
-            ? fmt(T.frames.level, { level: tagLevel })
+            ? t('ui.common.unit.level', { level: tagLevel })
             : '');
     const parts = [levelLine, data?.subtitle ?? (data ? '' : kindLabel(entity.kind))].filter(
       Boolean,
@@ -135,7 +135,7 @@ export class UnitFrame {
       this.xp.set(
         data.xp.value,
         data.xp.max,
-        `${T.character.xp} ${data.xp.value} / ${data.xp.max}`,
+        `${t('ui.win.character.xp')} ${data.xp.value} / ${data.xp.max}`,
       );
     } else this.xp.show(false);
     if (data?.cast) {
@@ -144,10 +144,10 @@ export class UnitFrame {
     } else this.cast.show(false);
     this.renderAuras(data?.auras ?? []);
     const notes = [
-      data?.appraisal ? fmt(T.combat.appraisal, { display: data.appraisal }) : '',
+      data?.appraisal ? t('ui.hud.target.appraisal', { display: data.appraisal }) : '',
       data?.pressure ?? '',
     ].filter(Boolean);
-    if (!data && this.cls === 'hk-frame-player') notes.push(T.frames.pendingCombat);
+    if (!data && this.cls === 'hk-frame-player') notes.push(t('ui.hud.player.pending_combat'));
     setText(this.noteEl, notes.join('  '));
   }
 

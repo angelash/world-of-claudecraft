@@ -4,6 +4,7 @@
 
 import { type CommandResult, ok, reject } from '../../core';
 import type { AiContextV1 } from '../../core/ai_port';
+import { contentText } from '../../core/content_key';
 import type { CommandSource } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { joinText, type KeyText, type TextRef, tr } from '../../core/text';
@@ -197,21 +198,27 @@ export function assignOffice(
   for (const o of Object.values(offices)) {
     if (!o || o.domain === d.domain) continue;
     if (o.holderId === d.npcId || o.deputyId === d.npcId)
-      return reject('busy', tr('sys.city.reject.busy_other', { name: off.name }));
+      return reject(
+        'busy',
+        tr('sys.city.reject.busy_other', { name: contentText('city_officials', off) }),
+      );
   }
   if (rank === 'head') {
     office.holderId = d.npcId;
     if (office.deputyId === d.npcId) office.deputyId = undefined;
   } else {
     if (office.holderId === d.npcId)
-      return reject('busy', tr('sys.city.reject.busy_head', { name: off.name }));
+      return reject(
+        'busy',
+        tr('sys.city.reject.busy_head', { name: contentText('city_officials', off) }),
+      );
     office.deputyId = d.npcId;
   }
   office.vacantDays = 0;
   office.revision += 1;
   return ok(
     tr('sys.city.info.appointed', {
-      name: off.name,
+      name: contentText('city_officials', off),
       domain: domainLabel(d.domain),
       rank: rankLabel(rank),
     }),
@@ -510,7 +517,7 @@ export function officialAct(
   if (def.level > level) {
     site.status.push(
       tr('sys.city.status.no_authority', {
-        name: officialDef(ctx, d.officialId)?.name ?? d.officialId,
+        name: contentText('city_officials', officialDef(ctx, d.officialId), d.officialId),
         action: actionName(d.action),
       }),
     );

@@ -4,8 +4,7 @@
 // painter in battle_window.ts only draws what this module decides.
 
 import type { AnyWorldEvent, EventMap } from '../../core/contracts';
-import { t as renderText, type TextParam } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { listSeparator, t as renderText, type TextParam, t, tOr } from '../../shared_ui/i18n';
 import type {
   BattleTerrain,
   BattleView,
@@ -85,7 +84,7 @@ export function terrainAtCell(b: BattleView, tx: number, ty: number): BattleTerr
 }
 
 export function terrainName(t: BattleTerrain): string {
-  return T.battle.terrain[t] ?? t;
+  return tOr(`ui.win.battle.terrain.${t}`, t);
 }
 
 export interface UnitColors {
@@ -367,7 +366,7 @@ export function isOrderable(u: UnitRef | null): boolean {
 /** Why a selected unit cannot take an order right now, or null when it can. */
 export function orderBlock(u: UnitRef | null): string | null {
   if (!u || !isOrderable(u)) return null;
-  if (u.kind === 'regiment' && u.unit.state === 'rout') return T.battle.routing;
+  if (u.kind === 'regiment' && u.unit.state === 'rout') return t('ui.win.battle.routing');
   return null;
 }
 
@@ -533,11 +532,11 @@ export function orderLine(
 
 export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
-  return fmt(T.battle.clock, { m: Math.floor(s / 60), ss: String(s % 60).padStart(2, '0') });
+  return t('ui.win.battle.clock', { m: Math.floor(s / 60), ss: String(s % 60).padStart(2, '0') });
 }
 
 export function timeLine(b: Pick<BattleView, 'time' | 'timeLimit'>): string {
-  return fmt(T.battle.time, { time: formatClock(b.time), limit: formatClock(b.timeLimit) });
+  return t('ui.win.battle.time', { time: formatClock(b.time), limit: formatClock(b.timeLimit) });
 }
 
 export function planLines(b: Pick<BattleView, 'plans'>): string[] {
@@ -546,7 +545,10 @@ export function planLines(b: Pick<BattleView, 'plans'>): string[] {
     const p = b.plans[team];
     if (p) {
       out.push(
-        fmt(T.battle.plan, { team: T.battle.sides[team] ?? team, plan: renderText(p.name) }),
+        t('ui.win.battle.plan', {
+          team: tOr(`ui.win.battle.sides.${team}`, team),
+          plan: renderText(p.name),
+        }),
       );
     }
   }
@@ -564,33 +566,33 @@ export interface ObjectiveSummary {
 
 export function objectiveSummaries(b: Pick<BattleView, 'objectives'>): ObjectiveSummary[] {
   return b.objectives.map((o) => {
-    const head = fmt(T.battle.objectiveLine, {
-      team: T.battle.objectiveTeams[o.team] ?? o.team,
+    const head = t('ui.win.battle.objective_line', {
+      team: tOr(`ui.win.battle.objective_teams.${o.team}`, o.team),
       label: renderText(o.label),
     });
     const timed = (o.kind === 'hold' || o.kind === 'survive') && (o.seconds ?? 0) > 0;
     const seconds = o.seconds ?? 0;
     const progress = Math.min(seconds, Math.floor(o.progress));
     const parts = [head];
-    if (timed) parts.push(fmt(T.battle.objectiveProgress, { progress, seconds }));
-    parts.push(T.battle.objectiveStatus[o.status] ?? o.status);
+    if (timed) parts.push(t('ui.win.battle.objective_progress', { progress, seconds }));
+    parts.push(tOr(`ui.win.battle.objective_status.${o.status}`, o.status));
     return {
       id: o.id,
       team: o.team,
       status: o.status,
-      text: parts.join('，'),
+      text: parts.join(listSeparator('comma')),
       frac: timed ? Math.max(0, Math.min(1, o.progress / seconds)) : null,
     };
   });
 }
 
 export function victorText(victor: Victor): string {
-  return T.battle.victors[victor] ?? victor;
+  return tOr(`ui.win.battle.victors.${victor}`, victor);
 }
 
 export function outcomeText(outcome: { victor: Victor; reason: TextParam } | null): string {
   if (!outcome) return '';
-  return fmt(T.battle.outcome, {
+  return t('ui.win.battle.outcome', {
     result: victorText(outcome.victor),
     reason: renderText(outcome.reason),
   });
@@ -599,7 +601,7 @@ export function outcomeText(outcome: { victor: Victor; reason: TextParam } | nul
 export function logLines(b: Pick<BattleView, 'log'>, n = 5): string[] {
   return b.log
     .slice(-n)
-    .map((e) => fmt(T.battle.logLine, { time: formatClock(e.t), text: renderText(e.text) }));
+    .map((e) => t('ui.win.battle.log_line', { time: formatClock(e.t), text: renderText(e.text) }));
 }
 
 export type BattleReport = EventMap['war.battle_report'];
@@ -615,17 +617,17 @@ export function lastReport(events: readonly AnyWorldEvent[]): BattleReport | nul
 
 export function reportLines(r: BattleReport): string[] {
   return [
-    fmt(T.battle.lastResult, { result: victorText(r.victor), reason: renderText(r.reason) }),
-    fmt(T.battle.casualties, { player: r.casualties.player, enemy: r.casualties.enemy }),
+    t('ui.win.battle.last_result', { result: victorText(r.victor), reason: renderText(r.reason) }),
+    t('ui.win.battle.casualties', { player: r.casualties.player, enemy: r.casualties.enemy }),
   ];
 }
 
 export function scaleText(scale: string): string {
-  return fmt(T.battle.scale, { scale: T.battle.scales[scale] ?? scale });
+  return t('ui.win.battle.scale', { scale: tOr(`ui.win.battle.scales.${scale}`, scale) });
 }
 
 export function formationName(f: string): string {
-  return T.battle.formations[f] ?? f;
+  return tOr(`ui.win.battle.formations.${f}`, f);
 }
 
 export function formationOptions(r: RegimentView): { value: Formation; label: string }[] {
@@ -636,22 +638,22 @@ function orderText(
   b: BattleView,
   order: UnitOrder | { kind: 'move'; x: number; y: number } | null,
 ): string {
-  if (!order) return T.battle.orders.none;
+  if (!order) return t('ui.win.battle.orders.none');
   switch (order.kind) {
     case 'move':
-      return fmt(T.battle.orders.move, { x: Math.round(order.x), y: Math.round(order.y) });
+      return t('ui.win.battle.orders.move', { x: Math.round(order.x), y: Math.round(order.y) });
     case 'attack': {
-      const t = findUnit(b, order.targetId);
-      return fmt(T.battle.orders.attack, {
-        target: t ? renderText(t.unit.name) : T.battle.unknownTarget,
+      const target = findUnit(b, order.targetId);
+      return t('ui.win.battle.orders.attack', {
+        target: target ? renderText(target.unit.name) : t('ui.win.battle.unknown_target'),
       });
     }
     case 'hold':
-      return T.battle.orders.hold;
+      return t('ui.win.battle.orders.hold');
     case 'retreat':
-      return T.battle.orders.retreat;
+      return t('ui.win.battle.orders.retreat');
   }
-  return T.battle.orders.none;
+  return t('ui.win.battle.orders.none');
 }
 
 /** Detail lines for the selected or inspected unit. */
@@ -660,10 +662,10 @@ export function unitDetail(b: BattleView, u: UnitRef): string[] {
   if (u.kind === 'regiment') {
     const r = u.unit;
     lines.push(
-      fmt(T.battle.regimentTitle, { name: renderText(r.name), type: renderText(r.typeName) }),
+      t('ui.win.battle.regiment_title', { name: renderText(r.name), type: renderText(r.typeName) }),
     );
     lines.push(
-      fmt(T.battle.regimentStats, {
+      t('ui.win.battle.regiment_stats', {
         count: r.count,
         max: r.maxCount,
         morale: Math.round(moraleShare(r.morale) * 100),
@@ -671,24 +673,28 @@ export function unitDetail(b: BattleView, u: UnitRef): string[] {
       }),
     );
     lines.push(
-      fmt(T.battle.regimentState, {
-        state: T.battle.states[r.state] ?? r.state,
+      t('ui.win.battle.regiment_state', {
+        state: tOr(`ui.win.battle.states.${r.state}`, r.state),
         formation: formationName(r.formation),
         order: orderText(b, r.order),
       }),
     );
-    if (r.broken) lines.push(T.battle.brokenNote);
+    if (r.broken) lines.push(t('ui.win.battle.broken_note'));
     if (r.general) {
       const g = b.heroes.find((h) => h.id === r.general);
-      lines.push(fmt(T.battle.generalNote, { name: g ? g.name : r.general }));
+      lines.push(t('ui.win.battle.general_note', { name: g ? g.name : r.general }));
     }
   } else {
     const h = u.unit;
-    lines.push(fmt(T.battle.heroTitle, { name: h.name }));
-    lines.push(h.down ? T.battle.heroDown : fmt(T.battle.heroStats, { hp: h.hp, max: h.maxHp }));
+    lines.push(t('ui.win.battle.hero_title', { name: h.name }));
+    lines.push(
+      h.down
+        ? t('ui.win.battle.hero_down')
+        : t('ui.win.battle.hero_stats', { hp: h.hp, max: h.maxHp }),
+    );
   }
-  if (u.unit.team === 'enemy') lines.push(T.battle.enemyUnit);
-  else if (u.unit.controller !== 'player') lines.push(T.battle.allied);
+  if (u.unit.team === 'enemy') lines.push(t('ui.win.battle.enemy_unit'));
+  else if (u.unit.controller !== 'player') lines.push(t('ui.win.battle.allied'));
   const block = orderBlock(u);
   if (block) lines.push(block);
   return lines;
@@ -698,8 +704,8 @@ export function unitDetail(b: BattleView, u: UnitRef): string[] {
 export function unitSummary(u: UnitRef): string {
   if (u.kind === 'regiment') {
     const r = u.unit;
-    return `${fmt(T.battle.regimentTitle, { name: renderText(r.name), type: renderText(r.typeName) })} ${fmt(
-      T.battle.regimentStats,
+    return `${t('ui.win.battle.regiment_title', { name: renderText(r.name), type: renderText(r.typeName) })} ${t(
+      'ui.win.battle.regiment_stats',
       {
         count: r.count,
         max: r.maxCount,
@@ -709,8 +715,10 @@ export function unitSummary(u: UnitRef): string {
     )}`;
   }
   const h = u.unit;
-  return `${fmt(T.battle.heroTitle, { name: h.name })} ${
-    h.down ? T.battle.heroDown : fmt(T.battle.heroStats, { hp: h.hp, max: h.maxHp })
+  return `${t('ui.win.battle.hero_title', { name: h.name })} ${
+    h.down
+      ? t('ui.win.battle.hero_down')
+      : t('ui.win.battle.hero_stats', { hp: h.hp, max: h.maxHp })
   }`;
 }
 
@@ -730,9 +738,9 @@ export function abilityButtons(h: HeroView): AbilityButton[] {
     kind: a.kind,
     name: a.name,
     label: a.ready
-      ? fmt(T.battle.abilityReady, { name: a.name })
-      : fmt(T.battle.abilityCooldown, { name: a.name, sec: Math.ceil(a.readyIn) }),
-    title: T.battle.abilityKinds[a.kind] ?? a.name,
+      ? t('ui.win.battle.ability_ready', { name: a.name })
+      : t('ui.win.battle.ability_cooldown', { name: a.name, sec: Math.ceil(a.readyIn) }),
+    title: tOr(`ui.win.battle.ability_kinds.${a.kind}`, renderText(a.name)),
     disabled: h.down || !a.ready,
     range: a.range,
   }));

@@ -4,7 +4,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { clear, el, setText } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { formatDate, formatTime, weatherLabel } from '../hud/format';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
@@ -26,30 +26,30 @@ export function debugWindow(ctx: WindowContext): WindowContent {
     statCells.set(key, dd);
     stats.append(el('dt', { text: label }), dd);
   };
-  addStat('tick', T.debug.tick);
-  addStat('calendar', T.debug.calendar);
-  addStat('weather', T.debug.weather);
-  addStat('map', T.debug.map);
-  addStat('pos', T.debug.position);
-  addStat('entities', T.debug.entities);
-  addStat('ai', T.debug.aiMode);
-  addStat('pending', T.debug.aiPending);
+  addStat('tick', t('ui.win.debug.tick'));
+  addStat('calendar', t('ui.win.debug.calendar'));
+  addStat('weather', t('ui.win.debug.weather'));
+  addStat('map', t('ui.win.debug.map'));
+  addStat('pos', t('ui.win.debug.position'));
+  addStat('entities', t('ui.win.debug.entities'));
+  addStat('ai', t('ui.win.debug.ai_mode'));
+  addStat('pending', t('ui.win.debug.ai_pending'));
 
   const filter = el('input', {
     className: 'hk-input',
-    attrs: { placeholder: T.debug.filter, type: 'text' },
+    attrs: { placeholder: t('ui.win.debug.filter'), type: 'text' },
   });
   const keyIn = el('input', {
     className: 'hk-input',
-    attrs: { placeholder: T.debug.key, type: 'text' },
+    attrs: { placeholder: t('ui.win.debug.key'), type: 'text' },
   });
   const valIn = el('input', {
     className: 'hk-input',
-    attrs: { placeholder: T.debug.value, type: 'text' },
+    attrs: { placeholder: t('ui.win.debug.value'), type: 'text' },
   });
   const setBtn = el('button', {
     className: 'hk-btn',
-    text: T.debug.setFlag,
+    text: t('ui.win.debug.set_flag'),
     attrs: { type: 'button' },
     on: {
       click: () => {
@@ -66,7 +66,7 @@ export function debugWindow(ctx: WindowContext): WindowContent {
     mapSel.append(el('option', { text: `${m.name} (${m.id})`, attrs: { value: m.id } }));
   const tpBtn = el('button', {
     className: 'hk-btn',
-    text: T.debug.teleport,
+    text: t('ui.win.debug.teleport'),
     attrs: { type: 'button' },
     on: {
       click: () => {
@@ -88,13 +88,13 @@ export function debugWindow(ctx: WindowContext): WindowContent {
 
   const root = el('div', { className: 'hk-debug' }, [
     stats,
-    el('h3', { text: T.debug.flags }),
+    el('h3', { text: t('ui.win.debug.flags') }),
     el('div', { className: 'hk-row' }, [filter]),
     flagList,
     el('div', { className: 'hk-row' }, [keyIn, valIn, setBtn]),
-    el('h3', { text: T.debug.teleport }),
+    el('h3', { text: t('ui.win.debug.teleport') }),
     el('div', { className: 'hk-row' }, [mapSel, tpBtn]),
-    el('h3', { text: T.debug.recentEvents }),
+    el('h3', { text: t('ui.win.debug.recent_events') }),
     events,
   ]);
 
@@ -126,7 +126,7 @@ export function debugWindow(ctx: WindowContext): WindowContent {
         .filter((k) => !q || k.includes(q))
         .sort();
       if (keys.length === 0)
-        flagList.append(el('p', { className: 'hk-muted', text: T.debug.noFlags }));
+        flagList.append(el('p', { className: 'hk-muted', text: t('ui.win.debug.empty_state') }));
       for (const k of keys) {
         flagList.append(
           el(

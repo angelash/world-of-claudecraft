@@ -5,7 +5,6 @@
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { T } from '../../shared_ui/text';
 import type { ConversationView } from '../view/adapters';
 import type { DialogueLine } from './dialogue_queue';
 
@@ -23,11 +22,14 @@ export class ConversationBox {
   private header = el('div', { className: 'hk-dlg-head' });
   private speaker = el('div', { className: 'hk-dlg-speaker' });
   private lines = el('div', { className: 'hk-dlg-lines' });
-  private pending = el('div', { className: 'hk-dlg-pending', text: T.conversation.thinking });
+  private pending = el('div', {
+    className: 'hk-dlg-pending',
+    text: t('ui.mode.dialogue.thinking'),
+  });
   private options = el('div', { className: 'hk-dlg-options' });
   private sayRow: HTMLElement;
   private input: HTMLInputElement;
-  private hint = el('div', { className: 'hk-dlg-hint', text: T.dialogue.advance });
+  private hint = el('div', { className: 'hk-dlg-hint', text: t('ui.mode.dialogue.advance') });
   private sig = '';
   private mode: 'talk' | 'loose' | 'none' = 'none';
 
@@ -39,8 +41,8 @@ export class ConversationBox {
       className: 'hk-input',
       attrs: {
         type: 'text',
-        placeholder: T.conversation.placeholder,
-        'aria-label': T.conversation.placeholder,
+        placeholder: t('ui.mode.dialogue.placeholder'),
+        'aria-label': t('ui.mode.dialogue.placeholder'),
         maxlength: String(maxSay),
       },
     });
@@ -58,7 +60,7 @@ export class ConversationBox {
       this.input,
       el('button', {
         className: 'hk-btn',
-        text: T.conversation.send,
+        text: t('ui.mode.dialogue.send'),
         attrs: { type: 'button' },
         on: {
           click: () => {
@@ -72,7 +74,7 @@ export class ConversationBox {
     ]);
     const leave = el('button', {
       className: 'hk-btn hk-btn-small',
-      text: T.conversation.leave,
+      text: t('ui.mode.dialogue.leave'),
       attrs: { type: 'button' },
       on: { click: () => this.h.leave() },
     });

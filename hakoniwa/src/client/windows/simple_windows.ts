@@ -2,7 +2,7 @@
 // windows whose systems arrive in phase 2.
 
 import { clear, el } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { LOAD_SLOTS, SLOT_IDS, type SlotId, slotLabel } from '../hud/save_slots';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
@@ -35,14 +35,14 @@ export function savesWindow(ctx: WindowContext): WindowContent {
             el('span', {
               className: 'hk-muted',
               text: meta
-                ? fmt(T.saves.meta, { date: meta.date, map: meta.mapName })
-                : T.saves.empty,
+                ? t('ui.win.saves.meta', { date: meta.date, map: meta.mapName })
+                : t('ui.win.saves.empty'),
             }),
           ]),
           btn(
-            T.saves.save,
+            t('ui.win.saves.save'),
             () => {
-              if (meta && !window.confirm(T.saves.confirmOverwrite)) return;
+              if (meta && !window.confirm(t('ui.win.saves.confirm_overwrite'))) return;
               ctx.actions.saveTo(slot);
               sig = '';
               render();
@@ -50,17 +50,17 @@ export function savesWindow(ctx: WindowContext): WindowContent {
             !writable,
           ),
           btn(
-            T.saves.load,
+            t('ui.win.saves.load'),
             () => {
-              if (!window.confirm(T.saves.confirmLoad)) return;
+              if (!window.confirm(t('ui.win.saves.confirm_load'))) return;
               ctx.actions.loadFrom(slot);
             },
             !meta,
           ),
           btn(
-            T.saves.remove,
+            t('ui.win.saves.remove'),
             () => {
-              if (!window.confirm(T.saves.confirmRemove)) return;
+              if (!window.confirm(t('ui.win.saves.confirm_remove'))) return;
               const redraw = () => {
                 sig = '';
                 render();
@@ -88,36 +88,41 @@ export function menuWindow(ctx: WindowContext): WindowContent {
       on: { click: onClick },
     });
   const root = el('div', { className: 'hk-menu' }, [
-    item(T.menu.resume, () => ctx.actions.closeWindow('menu')),
-    item(T.menu.saves, () => {
+    item(t('ui.win.menu.resume'), () => ctx.actions.closeWindow('menu')),
+    item(t('ui.win.menu.open_saves'), () => {
       ctx.actions.closeWindow('menu');
       ctx.actions.openWindow('saves');
     }),
-    item(T.menu.settings, () => {
+    item(t('ui.win.menu.open_settings'), () => {
       ctx.actions.closeWindow('menu');
       ctx.actions.openWindow('settings');
     }),
-    item(T.menu.help, () => {
+    item(t('ui.win.menu.open_help'), () => {
       ctx.actions.closeWindow('menu');
       ctx.actions.openWindow('help');
     }),
-    item(T.menu.toTitle, () => {
-      if (window.confirm(T.menu.confirmTitle)) ctx.actions.toTitle();
+    item(t('ui.win.menu.to_title'), () => {
+      if (window.confirm(t('ui.win.menu.confirm_title'))) ctx.actions.toTitle();
     }),
   ]);
   return { el: root };
 }
+
+/** The help lines in order (ux_and_onboarding.md 17.7 replaces them with bound keys, PK-M1-07). */
+const HELP_LINES = Array.from({ length: 16 }, (_, i) => `ui.win.help.line.${i}` as const);
 
 export function helpWindow(): WindowContent {
   return {
     el: el(
       'ul',
       { className: 'hk-help' },
-      T.help.lines.map((l) => el('li', { text: l })),
+      HELP_LINES.map((k) => el('li', { text: t(k) })),
     ),
   };
 }
 
 export function placeholderWindow(): WindowContent {
-  return { el: el('p', { className: 'hk-muted hk-placeholder', text: T.windows.pendingPhase2 }) };
+  return {
+    el: el('p', { className: 'hk-muted hk-placeholder', text: t('ui.common.panel.pending') }),
+  };
 }

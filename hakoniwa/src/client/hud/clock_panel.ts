@@ -3,7 +3,7 @@
 
 import type { Calendar } from '../../core/time';
 import { el, setClass, setText } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { Weather } from '../../systems/world/types';
 import { SPEEDS, type Speed } from '../app/clock';
 import { formatDate, formatTime, timeOfDayLabel, weatherLabel } from './format';
@@ -25,14 +25,19 @@ export class ClockPanel {
   constructor(controls: TimeControls) {
     this.pause = el('button', {
       className: 'hk-btn hk-btn-small',
-      text: T.speed.pause,
-      attrs: { type: 'button', 'aria-label': T.speed.pause },
+      text: t('ui.hud.clock.speed.pause'),
+      attrs: { type: 'button', 'aria-label': t('ui.hud.clock.speed.pause') },
       on: { click: () => controls.togglePause() },
     });
     const speeds = SPEEDS.map((s) => {
       const b = el('button', {
         className: 'hk-btn hk-btn-small hk-speed',
-        text: s === 1 ? T.speed.x1 : s === 2 ? T.speed.x2 : T.speed.x4,
+        text:
+          s === 1
+            ? t('ui.hud.clock.speed.x1')
+            : s === 2
+              ? t('ui.hud.clock.speed.x2')
+              : t('ui.hud.clock.speed.x4'),
         attrs: { type: 'button' },
         on: { click: () => controls.setSpeed(s) },
       });
@@ -44,7 +49,10 @@ export class ClockPanel {
       el('div', { className: 'hk-clock-line' }, [this.time, this.tod, this.weather]),
       el(
         'div',
-        { className: 'hk-clock-controls', attrs: { role: 'group', 'aria-label': T.speed.label } },
+        {
+          className: 'hk-clock-controls',
+          attrs: { role: 'group', 'aria-label': t('ui.hud.clock.speed.label') },
+        },
         [this.pause, ...speeds],
       ),
     ]);
@@ -55,7 +63,7 @@ export class ClockPanel {
     setText(this.time, formatTime(cal));
     setText(this.tod, timeOfDayLabel(cal));
     setText(this.weather, weatherLabel(weather));
-    setText(this.pause, paused ? T.speed.resume : T.speed.pause);
+    setText(this.pause, paused ? t('ui.hud.clock.speed.resume') : t('ui.hud.clock.speed.pause'));
     setClass(this.pause, 'active', paused);
     for (const [s, b] of this.speedBtns) setClass(b, 'active', s === speed && !paused);
   }

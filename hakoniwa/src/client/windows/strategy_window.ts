@@ -6,8 +6,7 @@
 // texts live in strategy_model.ts.
 
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
-import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { t, tOr } from '../../shared_ui/i18n';
 import type { ContinentView, DiplomacyRow, NationView } from '../../systems/strategy';
 import type { GameView } from '../view/game_view';
 import './strategy.css';
@@ -315,8 +314,6 @@ function drawMap(
 }
 
 export function strategyWindow(ctx: WindowContext): WindowContent {
-  const S = T.strategy;
-
   // ---- state
   let tab: Tab = 'region';
   let sizeMode: SizeMode = 'population';
@@ -352,26 +349,31 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
   // ---- the window's states
   const placeholder = el('p', {
     className: 'hk-muted hk-placeholder',
-    text: T.windows.pendingPhase2,
+    text: t('ui.common.panel.pending'),
   });
   const inactive = el('div', { className: 'hk-sg-inactive' }, [
-    el('h3', { text: S.inactive }),
-    el('p', { className: 'hk-muted', text: S.inactiveHint }),
+    el('h3', { text: t('ui.win.strategy.empty_state') }),
+    el('p', { className: 'hk-muted', text: t('ui.win.strategy.inactive_hint') }),
   ]);
 
   // founding (persistent nodes: the name survives refreshes)
   const foundName = el('input', {
     className: 'hk-input',
-    attrs: { type: 'text', maxlength: '24', placeholder: S.foundName, 'aria-label': S.foundName },
+    attrs: {
+      type: 'text',
+      maxlength: '24',
+      placeholder: t('ui.win.strategy.found_name'),
+      'aria-label': t('ui.win.strategy.found_name'),
+    },
   });
   const foundRow = el('div', { className: 'hk-row' }, [
     foundName,
-    button(S.foundButton, () => onFound(), 'hk-btn hk-btn-primary'),
+    button(t('ui.win.strategy.found_button'), () => onFound(), 'hk-btn hk-btn-primary'),
   ]);
   const foundReason = el('p', { className: 'hk-sg-reason' });
   const foundBox = el('div', { className: 'hk-sg-found' }, [
-    el('h3', { text: S.foundTitle }),
-    el('p', { className: 'hk-muted hk-sg-small', text: S.foundIntro }),
+    el('h3', { text: t('ui.win.strategy.found_title') }),
+    el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.found_intro') }),
     foundReason,
     foundRow,
   ]);
@@ -382,28 +384,28 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
   const pendingLine = el('span');
   const pendingBox = el('div', { className: 'hk-sg-pending' }, [
     pendingLine,
-    button(S.openBattle, () => ctx.actions.openWindow('battle')),
+    button(t('ui.win.strategy.open_battle'), () => ctx.actions.openWindow('battle')),
   ]);
   const header = el('div', { className: 'hk-sg-header' }, [status, pendingBox]);
 
   // map
   const canvas = el('canvas', {
     className: 'hk-sg-canvas',
-    attrs: { role: 'img', 'aria-label': S.mapLabel },
+    attrs: { role: 'img', 'aria-label': t('ui.win.strategy.map_label') },
   });
   canvas.style.width = `${MAP_W}px`;
   canvas.style.height = `${MAP_H}px`;
   const g = canvas.getContext('2d');
   const sizeBtns: Record<SizeMode, HTMLButtonElement> = {
-    population: button(S.sizePopulation, () => setSize('population')),
-    garrison: button(S.sizeGarrison, () => setSize('garrison')),
+    population: button(t('ui.win.strategy.size_population'), () => setSize('population')),
+    garrison: button(t('ui.win.strategy.size_garrison'), () => setSize('garrison')),
   };
   const mapCol = el('div', { className: 'hk-sg-mapcol' }, [
     canvas,
     el('div', { className: 'hk-sg-mapfoot' }, [
-      el('span', { className: 'hk-muted hk-sg-hint', text: S.mapHint }),
+      el('span', { className: 'hk-muted hk-sg-hint', text: t('ui.win.strategy.map_hint') }),
       el('span', { className: 'hk-sg-size' }, [
-        el('span', { className: 'hk-muted', text: S.sizeBy }),
+        el('span', { className: 'hk-muted', text: t('ui.win.strategy.size_by') }),
         sizeBtns.population,
         sizeBtns.garrison,
       ]),
@@ -418,7 +420,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     TABS.map((t) => {
       const b = el('button', {
         className: 'hk-sg-tab',
-        text: S.tabs[t] ?? t,
+        text: tOr(`ui.win.strategy.tabs.${t}`, t),
         attrs: { type: 'button', role: 'tab' },
         on: { click: () => setTab(t) },
       });
@@ -431,16 +433,22 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
   const regionInfo = el('div');
   const recruitType = el('select', {
     className: 'hk-input',
-    attrs: { 'aria-label': S.recruitType },
+    attrs: { 'aria-label': t('ui.win.strategy.recruit_type') },
   });
   const recruitCount = el('input', {
     className: 'hk-input hk-sg-count',
-    attrs: { type: 'number', min: '1', step: '1', value: '100', 'aria-label': S.recruitCount },
+    attrs: {
+      type: 'number',
+      min: '1',
+      step: '1',
+      value: '100',
+      'aria-label': t('ui.win.strategy.recruit_count'),
+    },
   });
-  const recruitBtn = button(S.recruitButton, () => onRecruit());
+  const recruitBtn = button(t('ui.win.strategy.recruit_button'), () => onRecruit());
   const recruitNote = el('p', { className: 'hk-muted hk-sg-small' });
   const recruitBox = el('div', { className: 'hk-sg-recruit' }, [
-    el('h3', { text: S.recruitTitle }),
+    el('h3', { text: t('ui.win.strategy.recruit_title') }),
     el('div', { className: 'hk-row' }, [recruitType, recruitCount, recruitBtn]),
     recruitNote,
   ]);
@@ -448,28 +456,30 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
   // affairs pane: rebuilt war list, persistent controls
   const warList = el('div');
   const confLine = el('p', { className: 'hk-sg-small' });
-  const conveneBtn = button(S.convene, () => onConvene());
+  const conveneBtn = button(t('ui.win.strategy.convene'), () => onConvene());
   const modeBtns = {
-    auto: button(S.battleAuto, () => onMode('auto')),
-    manual: button(S.battleManual, () => onMode('manual')),
+    auto: button(t('ui.win.strategy.battle_auto'), () => onMode('auto')),
+    manual: button(t('ui.win.strategy.battle_manual'), () => onMode('manual')),
   };
   const pendingAffairs = el('p', { className: 'hk-sg-small' });
-  const affairsBattleBtn = button(S.openBattle, () => ctx.actions.openWindow('battle'));
+  const affairsBattleBtn = button(t('ui.win.strategy.open_battle'), () =>
+    ctx.actions.openWindow('battle'),
+  );
 
   const panes: Record<Tab, HTMLElement> = {
     region: el('div', { className: 'hk-sg-pane' }, [regionInfo, recruitBox]),
     nation: el('div', { className: 'hk-sg-pane' }),
     diplomacy: el('div', { className: 'hk-sg-pane' }),
     affairs: el('div', { className: 'hk-sg-pane' }, [
-      el('h3', { text: S.wars }),
+      el('h3', { text: t('ui.win.strategy.wars') }),
       warList,
-      el('h3', { text: S.conference }),
+      el('h3', { text: t('ui.win.strategy.conference') }),
       confLine,
       el('div', { className: 'hk-row' }, [conveneBtn]),
-      el('h3', { text: S.battleMode }),
+      el('h3', { text: t('ui.win.strategy.battle_mode') }),
       el('div', { className: 'hk-sg-modes' }, [modeBtns.auto, modeBtns.manual]),
-      el('p', { className: 'hk-muted hk-sg-small', text: S.battleModeHint }),
-      el('h3', { text: S.pendingTitle }),
+      el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.battle_mode_hint') }),
+      el('h3', { text: t('ui.win.strategy.pending_title') }),
       pendingAffairs,
       el('div', { className: 'hk-row' }, [affairsBattleBtn]),
     ]),
@@ -497,7 +507,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     if (!a) return;
     const name = foundName.value.trim();
     ctx.commands.queueAll(a.foundNation(view(), name || undefined));
-    say(S.foundOrdered);
+    say(t('ui.win.strategy.found_ordered'));
     update();
   }
 
@@ -506,7 +516,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     const army = cv?.armies.find((x) => x.id === armyId);
     if (!a || !army) return;
     ctx.commands.queueAll(a.moveArmy(view(), armyId, to));
-    say(fmt(S.moveOrdered, { army: t(army.name), province: names.province(to) }));
+    say(t('ui.win.strategy.move_ordered', { army: t(army.name), province: names.province(to) }));
     update();
   }
 
@@ -520,25 +530,31 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     recruitCount.value = String(count);
     const unit = recruitType.selectedOptions[0]?.textContent ?? typeId;
     ctx.commands.queueAll(a.recruit(view(), p.id, typeId, count));
-    say(fmt(S.recruitOrdered, { province: shortName(p.name), count, unit }));
+    say(t('ui.win.strategy.recruit_ordered', { province: shortName(p.name), count, unit }));
     update();
   }
 
   function onDiplomacy(row: DiplomacyRow, b: DiplomacyButton): void {
     const a = adapter();
     if (!a) return;
-    if (b.action === 'declare_war' && !window.confirm(fmt(S.confirmWar, { name: t(row.name) })))
+    if (
+      b.action === 'declare_war' &&
+      !window.confirm(t('ui.win.strategy.confirm_war', { name: t(row.name) }))
+    )
       return;
     if (
       b.action === 'break_treaty' &&
       !window.confirm(
-        fmt(S.confirmBreak, { name: t(row.name), treaty: treatyName(b.treaty ?? '') }),
+        t('ui.win.strategy.confirm_break', {
+          name: t(row.name),
+          treaty: treatyName(b.treaty ?? ''),
+        }),
       )
     ) {
       return;
     }
     ctx.commands.queueAll(a.diplomacyAct(view(), row.nation, b.action, b.treaty));
-    say(fmt(S.diplomacySent, { name: t(row.name), action: b.label }));
+    say(t('ui.win.strategy.diplomacy_sent', { name: t(row.name), action: b.label }));
     update();
   }
 
@@ -546,7 +562,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     const a = adapter();
     if (!a) return;
     ctx.commands.queueAll(a.convene(view()));
-    say(S.conveneOrdered);
+    say(t('ui.win.strategy.convene_ordered'));
     update();
   }
 
@@ -679,7 +695,10 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
             armyLine(a),
           ]),
           mine
-            ? el('span', { className: 'hk-sg-tag', text: selected ? S.selected : S.select })
+            ? el('span', {
+                className: 'hk-sg-tag',
+                text: selected ? t('ui.win.strategy.selected') : t('ui.win.strategy.select'),
+              })
             : null,
         ]),
         el('span', {
@@ -702,36 +721,52 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     if (sig !== paneSig.region) {
       paneSig.region = sig;
       clear(regionInfo);
-      if (!p) regionInfo.append(el('p', { className: 'hk-muted', text: S.pickHint }));
+      if (!p)
+        regionInfo.append(el('p', { className: 'hk-muted', text: t('ui.win.strategy.pick_hint') }));
       else {
         regionInfo.append(
           el('div', { className: 'hk-sg-title', text: p.name }),
           infoTable(provinceRows(cv, p, names)),
-          el('h3', { text: S.armiesHere }),
+          el('h3', { text: t('ui.win.strategy.armies_here') }),
         );
         if (here.length === 0)
-          regionInfo.append(el('p', { className: 'hk-muted hk-sg-small', text: S.noArmies }));
+          regionInfo.append(
+            el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.no_armies') }),
+          );
         for (const a of here) regionInfo.append(armyCard(a));
       }
       if (army) {
         const box = el('div', { className: 'hk-sg-orders' }, [
-          el('h3', { text: fmt(S.armyTitle, { name: t(army.name) }) }),
+          el('h3', { text: t('ui.win.strategy.army_title', { name: t(army.name) }) }),
           el('p', { className: 'hk-sg-small', text: armyStatus(army, names) }),
         ]);
         if (army.frozen)
-          box.append(el('p', { className: 'hk-sg-small hk-sg-warn', text: S.frozenNoMove }));
+          box.append(
+            el('p', {
+              className: 'hk-sg-small hk-sg-warn',
+              text: t('ui.win.strategy.frozen_no_move'),
+            }),
+          );
         else {
-          box.append(el('p', { className: 'hk-muted hk-sg-small', text: S.moveHint }));
+          box.append(
+            el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.move_hint') }),
+          );
           const moves = el('div', { className: 'hk-sg-moves' });
           if (targets.length === 0)
-            moves.append(el('span', { className: 'hk-muted hk-sg-small', text: S.moveNone }));
+            moves.append(
+              el('span', {
+                className: 'hk-muted hk-sg-small',
+                text: t('ui.win.strategy.move_none'),
+              }),
+            );
           for (const tg of targets) {
-            const b = button(fmt(S.moveTo, { name: names.province(tg.id), days: tg.days }), () =>
-              orderMove(army.id, tg.id),
+            const b = button(
+              t('ui.win.strategy.move_to', { name: names.province(tg.id), days: tg.days }),
+              () => orderMove(army.id, tg.id),
             );
             if (!tg.allowed) {
               b.disabled = true;
-              b.title = fmt(S.moveBlocked, { name: names.province(tg.id) });
+              b.title = t('ui.win.strategy.move_blocked', { name: names.province(tg.id) });
             }
             moves.append(b);
           }
@@ -741,8 +776,10 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
             box.append(
               el('p', {
                 className: 'hk-muted hk-sg-small',
-                text: fmt(S.moveBlocked, {
-                  name: blocked.map((x) => names.province(x.id)).join(S.listSep),
+                text: t('ui.win.strategy.move_blocked', {
+                  name: blocked
+                    .map((x) => names.province(x.id))
+                    .join(t('ui.win.strategy.list_sep')),
                 }),
               }),
             );
@@ -751,14 +788,16 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
           if (p && p.id !== army.province && !p.impassable && !direct?.allowed) {
             box.append(
               el('div', { className: 'hk-row' }, [
-                button(fmt(S.moveHere, { army: t(army.name) }), () => orderMove(army.id, p.id)),
+                button(t('ui.win.strategy.move_here', { army: t(army.name) }), () =>
+                  orderMove(army.id, p.id),
+                ),
               ]),
             );
           }
         }
         box.append(
           el('div', { className: 'hk-row' }, [
-            button(S.deselect, () => {
+            button(t('ui.win.strategy.deselect'), () => {
               selArmy = null;
               update();
             }),
@@ -788,10 +827,10 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     setText(
       recruitNote,
       options.length === 0
-        ? S.recruitNone
+        ? t('ui.win.strategy.recruit_none')
         : limit > 0
-          ? fmt(S.recruitLimit, { n: limit })
-          : S.recruitNoPeople,
+          ? t('ui.win.strategy.recruit_limit', { n: limit })
+          : t('ui.win.strategy.recruit_no_people'),
     );
   }
 
@@ -803,17 +842,22 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     const pane = panes.nation;
     clear(pane);
     if (!nation) {
-      pane.append(el('p', { className: 'hk-muted', text: S.noNation }));
+      pane.append(el('p', { className: 'hk-muted', text: t('ui.win.strategy.no_nation') }));
       return;
     }
-    pane.append(infoTable(nationRows(nation, names)), el('h3', { text: S.yourArmies }));
+    pane.append(
+      infoTable(nationRows(nation, names)),
+      el('h3', { text: t('ui.win.strategy.your_armies') }),
+    );
     if (nation.armies.length === 0)
-      pane.append(el('p', { className: 'hk-muted hk-sg-small', text: S.noArmies }));
+      pane.append(
+        el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.no_armies') }),
+      );
     for (const a of nation.armies) {
       pane.append(
         el('button', {
           className: 'hk-sg-listbtn',
-          text: fmt(S.armyBrief, {
+          text: t('ui.win.strategy.army_brief', {
             name: t(a.name),
             soldiers: a.soldiers,
             province: names.province(a.province),
@@ -835,8 +879,14 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     const pane = panes.diplomacy;
     clear(pane);
     if (!hasNation)
-      pane.append(el('p', { className: 'hk-muted hk-sg-small', text: S.diplomacyNoNation }));
-    if (rows.length === 0) pane.append(el('p', { className: 'hk-muted', text: S.diplomacyEmpty }));
+      pane.append(
+        el('p', {
+          className: 'hk-muted hk-sg-small',
+          text: t('ui.win.strategy.diplomacy_no_nation'),
+        }),
+      );
+    if (rows.length === 0)
+      pane.append(el('p', { className: 'hk-muted', text: t('ui.win.strategy.diplomacy_empty') }));
     for (const row of rows) {
       const card = el('div', { className: `hk-sg-dip${row.atWar ? ' hk-sg-atwar' : ''}` }, [
         el('div', { className: 'hk-sg-dip-head' }, [
@@ -880,7 +930,9 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
       paneSig.affairs = sig;
       clear(warList);
       if (wars.length === 0)
-        warList.append(el('p', { className: 'hk-muted hk-sg-small', text: S.noWars }));
+        warList.append(
+          el('p', { className: 'hk-muted hk-sg-small', text: t('ui.win.strategy.no_wars') }),
+        );
       for (const w of wars) {
         warList.append(
           el('div', { className: `hk-sg-war${w.involvesPlayer ? ' hk-sg-mine' : ''}` }, [
@@ -896,7 +948,7 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     setClass(modeBtns.auto, 'active', mode === 'auto');
     setClass(modeBtns.manual, 'active', mode === 'manual');
     const pend = pendingText(cv, names);
-    setText(pendingAffairs, pend ?? S.pendingNone);
+    setText(pendingAffairs, pend ?? t('ui.win.strategy.pending_none'));
     setClass(pendingAffairs, 'hk-sg-warn', !!pend);
     show(affairsBattleBtn, !!pend);
   }
@@ -908,10 +960,10 @@ export function strategyWindow(ctx: WindowContext): WindowContent {
     paneSig.log = sig;
     const pane = panes.log;
     clear(pane);
-    pane.append(el('h3', { text: S.logTitle }));
+    pane.append(el('h3', { text: t('ui.win.strategy.log_title') }));
     const lines = logLines(cv);
     if (lines.length === 0) {
-      pane.append(el('p', { className: 'hk-muted', text: S.logEmpty }));
+      pane.append(el('p', { className: 'hk-muted', text: t('ui.win.strategy.log_empty') }));
       return;
     }
     pane.append(

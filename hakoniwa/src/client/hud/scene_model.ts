@@ -2,9 +2,9 @@
 // shows (title, styled lines, numbered choices, input box, court evidence state) and maps
 // keys to scene actions. Pure; Node-tested.
 
-import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { listSeparator, t } from '../../shared_ui/i18n';
 import type { SceneView } from '../../systems/scenes';
+import { contentNames } from '../view/content_names';
 
 export interface ScenePanelLine {
   speaker: string;
@@ -40,14 +40,18 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
     mode === 'choice' ? v.choices.map((c, i) => ({ ...c, label: t(c.label), number: i + 1 })) : [];
   let court: string | null = null;
   if (v.court) {
-    const parts = [fmt(T.scene.limit, { n: v.court.limit })];
+    const parts = [t('ui.mode.cutscene.limit', { n: v.court.limit })];
     if (v.court.presented.length)
-      parts.unshift(fmt(T.scene.presented, { list: v.court.presented.join('，') }));
+      parts.unshift(
+        t('ui.mode.cutscene.presented', {
+          list: v.court.presented.join(listSeparator('comma')),
+        }),
+      );
     court = parts.join('  ');
   }
   return {
     key: `${v.sceneId}/${v.nodeId}/${v.waiting}/${v.lines.length}/${choices.length}`,
-    title: v.title,
+    title: contentNames.sceneTitle(v.sceneId, v.title),
     lines: v.lines.map((l) => ({
       speaker: l.kind === 'narrate' ? '' : t(l.speakerName),
       text: t(l.text),
@@ -58,14 +62,14 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
     input: mode === 'input' ? v.input : null,
     hint:
       mode === 'advance'
-        ? T.scene.advanceHint
+        ? t('ui.mode.cutscene.advance_hint')
         : mode === 'choice'
-          ? T.scene.choiceHint
+          ? t('ui.mode.cutscene.choice_hint')
           : mode === 'resolve'
-            ? T.scene.resolving
+            ? t('ui.mode.cutscene.resolving')
             : '',
     court,
-    queued: v.queued.length ? fmt(T.scene.queued, { n: v.queued.length }) : null,
+    queued: v.queued.length ? t('ui.mode.cutscene.queued', { n: v.queued.length }) : null,
   };
 }
 

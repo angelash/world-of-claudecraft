@@ -3,7 +3,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { clear, el, setClass } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import {
   availabilityKey,
   availableWindows,
@@ -20,7 +20,10 @@ export class MenuBar {
     private readonly onToggle: (id: WindowId) => void,
     private readonly devMode: boolean,
   ) {
-    this.el = el('nav', { className: 'hk-menubar', attrs: { 'aria-label': T.menuBar.menu } });
+    this.el = el('nav', {
+      className: 'hk-menubar',
+      attrs: { 'aria-label': t('ui.hud.menubar.menu') },
+    });
   }
 
   update(flags: Readonly<Record<string, FlagValue>>, isOpen: (id: WindowId) => boolean): void {
@@ -44,8 +47,8 @@ export class MenuBar {
       }
       const menu = el('button', {
         className: 'hk-btn hk-menubar-btn',
-        text: T.menuBar.menu,
-        title: `${T.menuBar.menu} (Esc)`,
+        text: t('ui.hud.menubar.menu'),
+        title: `${t('ui.hud.menubar.menu')} (Esc)`,
         attrs: { type: 'button' },
         on: { click: () => this.onToggle('menu') },
       });

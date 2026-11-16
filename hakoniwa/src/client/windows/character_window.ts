@@ -2,7 +2,7 @@
 // experience, stats (live pools plus equipment bonuses), and the known abilities.
 
 import { el } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { empty, kv, progress, rebuilder } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
@@ -17,7 +17,7 @@ export function characterWindow(ctx: WindowContext): WindowContent {
     () => ad.sheet(ctx.view),
     (s) => {
       if (!s) {
-        root.append(empty(T.character.noUnit));
+        root.append(empty(t('ui.win.character.empty_state')));
         return;
       }
       root.append(
@@ -27,7 +27,7 @@ export function characterWindow(ctx: WindowContext): WindowContent {
             className: 'hk-muted',
             text: [
               s.className,
-              s.level !== null ? fmt(T.frames.level, { level: s.level }) : '',
+              s.level !== null ? t('ui.common.unit.level', { level: s.level }) : '',
               s.tierName,
             ]
               .filter(Boolean)
@@ -40,7 +40,7 @@ export function characterWindow(ctx: WindowContext): WindowContent {
           progress(
             s.hp.value,
             s.hp.max,
-            `${T.character.hp} ${s.hp.value} / ${s.hp.max}`,
+            `${t('ui.win.character.hp')} ${s.hp.value} / ${s.hp.max}`,
             'hk-bar-hp',
           ),
         );
@@ -55,11 +55,11 @@ export function characterWindow(ctx: WindowContext): WindowContent {
           progress(
             s.xp.value,
             s.xp.max,
-            `${T.character.xp} ${s.xp.value} / ${s.xp.max}`,
+            `${t('ui.win.character.xp')} ${s.xp.value} / ${s.xp.max}`,
             'hk-bar-xp',
           ),
         );
-      root.append(el('h3', { text: T.character.stats }));
+      root.append(el('h3', { text: t('ui.win.character.stats') }));
       root.append(
         el(
           'div',
@@ -67,13 +67,13 @@ export function characterWindow(ctx: WindowContext): WindowContent {
           s.stats.map((x) => kv(x.label, x.value)),
         ),
       );
-      root.append(el('h3', { text: T.character.abilities }));
-      if (s.abilities.length === 0) root.append(empty(T.hotbar.empty));
+      root.append(el('h3', { text: t('ui.win.character.abilities') }));
+      if (s.abilities.length === 0) root.append(empty(t('ui.hud.hotbar.empty')));
       s.abilities.forEach((ab, i) => {
         const meta = [
           i < 9 ? String(i + 1) : '',
-          ab.cost ? fmt(T.character.cost, { n: ab.cost }) : '',
-          ab.cooldown ? fmt(T.character.cooldown, { t: ab.cooldown }) : '',
+          ab.cost ? t('ui.win.character.cost', { n: ab.cost }) : '',
+          ab.cooldown ? t('ui.win.character.cooldown', { t: ab.cooldown }) : '',
         ]
           .filter(Boolean)
           .join('  ');

@@ -12,7 +12,7 @@ import {
   rawText,
   SOURCE_LANG,
   textEquals,
-  tr,
+  tr as trChecked,
 } from '../src/core/text';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR, tickAtDay } from '../src/core/time';
 import {
@@ -36,6 +36,10 @@ const table = {
   'sys.test.select': '{g, select, f {她} m {他} other {对方}}',
   'sys.test.brace': '数据：{ id: "{id}", text }',
 };
+/** tr() over this file's own test keys (not in the generated key union). */
+const tr = (key: string, params?: Parameters<typeof trChecked>[1]) =>
+  trChecked(key as string, params);
+
 const render = (v: Parameters<typeof formatText>[0], missing?: (m: MissingText) => void) =>
   formatText(v, { table, lang: SOURCE_LANG, missing });
 

@@ -1,7 +1,7 @@
 // Story windows: the Thousand Doors corridor and the quest log.
 
 import { el } from '../../shared_ui/dom';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { QuestView } from '../../systems/quests';
 import { objectiveText } from '../adapters/social';
 import { actionButton, badge, empty, rebuilder } from './kit';
@@ -30,15 +30,17 @@ export function doorsWindow(ctx: WindowContext): WindowContent {
         .sort((a, b) => (DOOR_ORDER[a.state] ?? 9) - (DOOR_ORDER[b.state] ?? 9) || a.act - b.act),
     (doors) => {
       const opened = doors.filter((d) => d.state === 'opened').length;
-      root.append(el('div', { className: 'hk-muted', text: fmt(T.doors.seal, { n: opened }) }));
-      if (doors.length === 0) root.append(empty(T.doors.none));
+      root.append(
+        el('div', { className: 'hk-muted', text: t('ui.win.doors.seal', { n: opened }) }),
+      );
+      if (doors.length === 0) root.append(empty(t('ui.win.doors.empty_state')));
       for (const d of doors) {
         const head = el('div', { className: 'hk-card-head' }, [
           el('strong', { text: d.name }),
           el('span', { className: 'hk-row-inline' }, [
             badge(d.categoryName),
             badge(d.stateName, `door-${d.state}`),
-            d.danger ? badge(T.doors.danger, 'danger') : null,
+            d.danger ? badge(t('ui.win.doors.danger'), 'danger') : null,
           ]),
         ]);
         const body: (HTMLElement | null)[] = [
@@ -61,14 +63,14 @@ export function doorsWindow(ctx: WindowContext): WindowContent {
         const buttons: HTMLElement[] = [];
         if (d.state === 'openable')
           buttons.push(
-            actionButton(ctx, T.doors.open, () => ad.open(ctx.view, d.id), {
+            actionButton(ctx, t('ui.win.doors.open'), () => ad.open(ctx.view, d.id), {
               cls: 'hk-btn-primary',
             }),
           );
         if (d.state === 'opened' && d.closable) {
           buttons.push(
-            actionButton(ctx, T.doors.close, () => ad.close(ctx.view, d.id), {
-              confirm: T.doors.confirmClose,
+            actionButton(ctx, t('ui.win.doors.close'), () => ad.close(ctx.view, d.id), {
+              confirm: t('ui.win.doors.confirm_close'),
             }),
           );
         }
@@ -92,7 +94,7 @@ function questCard(ctx: WindowContext, q: QuestView, ready: boolean): HTMLElemen
     { className: 'hk-objectives' },
     q.objectives.map((o) =>
       el('li', { className: o.done ? 'met' : '' }, [
-        `${objectiveText(o)}${o.optional ? T.quests.optional : ''}`,
+        `${objectiveText(o)}${o.optional ? t('ui.win.quests.optional') : ''}`,
         ...(o.options && !o.done && ad
           ? o.options.map((opt) =>
               actionButton(ctx, opt.label, () => ad.choose(ctx.view, q.id, opt.id), {
@@ -105,15 +107,15 @@ function questCard(ctx: WindowContext, q: QuestView, ready: boolean): HTMLElemen
   );
   const who = ready
     ? q.turnIn
-      ? fmt(T.quests.turnIn, { who: personaName(ctx, q.turnIn) })
+      ? t('ui.win.quests.turn_in', { who: personaName(ctx, q.turnIn) })
       : ''
     : q.giver
-      ? fmt(T.quests.giver, { who: personaName(ctx, q.giver) })
+      ? t('ui.win.quests.giver', { who: personaName(ctx, q.giver) })
       : '';
   return el('div', { className: `hk-card quest-${q.kind}${ready ? ' ready' : ''}` }, [
     el('div', { className: 'hk-card-head' }, [
       el('strong', { text: q.title }),
-      badge(q.kind === 'main' ? T.quests.main : T.quests.side, q.kind),
+      badge(q.kind === 'main' ? t('ui.win.quests.main') : t('ui.win.quests.side'), q.kind),
     ]),
     el('div', { className: 'hk-card-text', text: q.stageDesc || q.desc }),
     objectives,
@@ -130,20 +132,23 @@ export function questsWindow(ctx: WindowContext): WindowContent {
     () => ad.log(ctx.view),
     (log) => {
       root.append(
-        el('div', { className: 'hk-quests-act', text: fmt(T.quests.act, { title: log.actTitle }) }),
+        el('div', {
+          className: 'hk-quests-act',
+          text: t('ui.win.quests.act', { title: log.actTitle }),
+        }),
       );
       if (!log.active.length && !log.ready.length && !log.done.length)
-        root.append(empty(T.quests.empty));
+        root.append(empty(t('ui.win.quests.empty_state')));
       if (log.ready.length) {
-        root.append(el('h3', { text: T.quests.ready }));
+        root.append(el('h3', { text: t('ui.win.quests.ready') }));
         for (const q of log.ready) root.append(questCard(ctx, q, true));
       }
       if (log.active.length) {
-        root.append(el('h3', { text: T.quests.active }));
+        root.append(el('h3', { text: t('ui.win.quests.active') }));
         for (const q of log.active) root.append(questCard(ctx, q, false));
       }
       if (log.done.length) {
-        root.append(el('h3', { text: `${T.quests.done} ${log.done.length}` }));
+        root.append(el('h3', { text: `${t('ui.win.quests.done')} ${log.done.length}` }));
         root.append(
           el(
             'ul',

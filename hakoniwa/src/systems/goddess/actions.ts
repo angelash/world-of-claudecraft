@@ -5,6 +5,7 @@
 // sediment (E34). The model proposes, this file decides.
 
 import { type CommandResult, type CommandSource, type FlagValue, ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { type KeyText, type TextRef, tr } from '../../core/text';
 import { calendarAt, isNight, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
@@ -238,7 +239,10 @@ export function executeAct(
         untilTick: ctx.tick + Math.max(1, Math.round(dur)),
         source: def.id,
         visibility: isPublic ? 'public' : 'hidden',
-        note: tr('sys.goddess.modifier.action', { goddess: def.name, action: a.label }),
+        note: tr('sys.goddess.modifier.action', {
+          goddess: contentText('goddesses', def),
+          action: contentText('divineActions', a, '', 'label'),
+        }),
       });
     }
   };
@@ -280,7 +284,9 @@ export function executeAct(
       ctx.emit('dialogue.line', {
         speakerId: 'narrator',
         speakerName: '',
-        text: tr('sys.goddess.narrate.miracle', { place: mapById(ctx.content, mapId)?.name ?? '' }),
+        text: tr('sys.goddess.narrate.miracle', {
+          place: contentText('maps', mapById(ctx.content, mapId)),
+        }),
         kind: 'narrate',
       });
       note = tr('sys.goddess.note.miracle');
@@ -307,7 +313,7 @@ export function executeAct(
         untilTick: ctx.tick + dur,
         source: def.id,
         visibility: 'public',
-        note: tr('sys.goddess.modifier.price', { goddess: def.name }),
+        note: tr('sys.goddess.modifier.price', { goddess: contentText('goddesses', def) }),
       });
       note = tr('sys.goddess.note.price', {
         goods: p.goods ?? tr('sys.goddess.note.price_all'),
@@ -340,13 +346,13 @@ export function executeAct(
     sediment: Math.round(cost * a.sedimentRate * 100) / 100,
     public: isPublic,
     breach,
-    note: tr('sys.goddess.note.entry', { goddess: def.name, note }),
+    note: tr('sys.goddess.note.entry', { goddess: contentText('goddesses', def), note }),
   });
   if (breach) {
     s.breachActs.push(act);
     const trace = tr('sys.goddess.breach.trace', {
-      place: mapById(ctx.content, mapId)?.name ?? mapId,
-      goddess: def.name,
+      place: contentText('maps', mapById(ctx.content, mapId), mapId),
+      goddess: contentText('goddesses', def),
     });
     ctx.world.slices.goddess.breaches.push({
       id: recordId(ctx, 'breach'),

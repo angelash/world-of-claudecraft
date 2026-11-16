@@ -3,6 +3,7 @@
 // adds dependency per city_building 8.2 and counts as a player decision for the D term).
 
 import { type CommandResult, ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { joinText, type KeyText, tr } from '../../core/text';
 import { playerEntity } from '../world';
@@ -74,7 +75,7 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
   ctx.emit('dialogue.line', {
     speakerId: 'narrator',
     speakerName: '',
-    text: tr('sys.city.log.village_founded', { pop, site: sdef.name }),
+    text: tr('sys.city.log.village_founded', { pop, site: contentText('city_sites', sdef) }),
     kind: 'narrate',
   });
   const p = playerEntity(ctx.world);
@@ -86,10 +87,10 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
       mapId: p.mapId,
       x: p.x,
       y: p.y,
-      note: tr('sys.city.feat.village_founded', { site: sdef.name }),
+      note: tr('sys.city.feat.village_founded', { site: contentText('city_sites', sdef) }),
     });
   }
-  return ok(tr('sys.city.info.village_founded', { site: sdef.name }));
+  return ok(tr('sys.city.info.village_founded', { site: contentText('city_sites', sdef) }));
 }
 
 export function setPolicy(
@@ -108,7 +109,7 @@ export function setPolicy(
   if (!d.enabled) {
     if (!has) return reject('not_enabled', tr('sys.city.reject.policy_inactive'));
     site.policies = site.policies.filter((p) => p !== def.id);
-    return ok(tr('sys.city.info.policy_revoked', { policy: def.name }));
+    return ok(tr('sys.city.info.policy_revoked', { policy: contentText('city_policies', def) }));
   }
   if (has) return reject('already', tr('sys.city.reject.policy_active'));
   if (!stageAtLeast(site.stage, def.minStage))
@@ -117,13 +118,15 @@ export function setPolicy(
   if (clash)
     return reject(
       'exclusive',
-      tr('sys.city.reject.policy_clash', { policy: policyDef(ctx.content, clash)?.name ?? clash }),
+      tr('sys.city.reject.policy_clash', {
+        policy: contentText('city_policies', policyDef(ctx.content, clash), clash),
+      }),
     );
   const slots = policySlots(ctx, site);
   if (site.policies.length >= slots)
     return reject('slots', tr('sys.city.reject.policy_slots', { n: slots }));
   site.policies.push(def.id);
-  return ok(tr('sys.city.info.policy_enacted', { policy: def.name }));
+  return ok(tr('sys.city.info.policy_enacted', { policy: contentText('city_policies', def) }));
 }
 
 export function micro(

@@ -3,6 +3,7 @@
 // reason (a TextRef) and the footprint tiles for highlighting. Buildings do not change the
 // world's walkability (MapDef is immutable), so reachability is checked here instead.
 
+import { contentText } from '../../core/content_key';
 import type { ContentMap } from '../../core/contracts';
 import { type KeyText, type TextRef, tr } from '../../core/text';
 import { isWalkableTile, type LocationDef, type MapDef, mapById, tileAt } from '../world';
@@ -84,7 +85,7 @@ function unlockCheck(
     if (!hasActive(site, need)) {
       return locked(
         tr('sys.city.reject.need_building', {
-          building: buildingDef(content, need)?.name ?? need,
+          building: contentText('city_buildings', buildingDef(content, need), need),
         }),
       );
     }
@@ -92,7 +93,10 @@ function unlockCheck(
   if (def.max !== undefined && countBuildings(site, def.id, true) >= def.max)
     return {
       limit: true,
-      reason: tr('sys.city.reject.limit', { max: def.max, building: def.name }),
+      reason: tr('sys.city.reject.limit', {
+        max: def.max,
+        building: contentText('city_buildings', def),
+      }),
     };
   return null;
 }
@@ -282,7 +286,7 @@ function validatePlacement(
     const e = entranceOf(b.x, b.y, b.w, b.h);
     const i = e.y * map.width + e.x;
     if (reachBefore[i] && !reachAfter[i]) {
-      const name = buildingDef(content, b.defId)?.name ?? b.defId;
+      const name = contentText('city_buildings', buildingDef(content, b.defId), b.defId);
       return fail(
         'keep_reach',
         tr('sys.city.reject.keep_reach_building', { building: name }),

@@ -4,7 +4,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { clear, el } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import {
   cascadePos,
   clampWindowPos,
@@ -92,8 +92,8 @@ export class WindowManager {
       el('span', { text: windowTitle(id) }),
       el('button', {
         className: 'hk-window-close',
-        title: T.windows.close,
-        attrs: { 'aria-label': T.windows.close, type: 'button' },
+        title: t('ui.common.panel.close'),
+        attrs: { 'aria-label': t('ui.common.panel.close'), type: 'button' },
         on: { click: close },
       }),
     ]);

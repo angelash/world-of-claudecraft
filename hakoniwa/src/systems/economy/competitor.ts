@@ -4,6 +4,7 @@
 // hoards scarce staples, and makes a buyout offer once the company grows. Economy design
 // 3.6 ("竞争者守同一规则").
 
+import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
 import { addItem, itemDef, spendMoney } from '../inventory';
@@ -34,7 +35,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
     if (!first || comp.imitating[recipe.product]) continue;
     if (day - first.day < recipe.imitationDays) continue;
     comp.imitating[recipe.product] = true;
-    const name = itemDef(ctx.content, recipe.product)?.name ?? recipe.product;
+    const name = contentText('items', itemDef(ctx.content, recipe.product), recipe.product);
     act(ctx, {
       day,
       kind: 'imitate',
@@ -65,7 +66,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
       if ((comp.cooldown[key] ?? -1) > day) continue;
       const weekly = (state.sales[good.itemId] ?? []).reduce((a, b) => a + b, 0);
       const T = targetStock(config, good);
-      const name = itemDef(ctx.content, good.itemId)?.name ?? good.itemId;
+      const name = contentText('items', itemDef(ctx.content, good.itemId), good.itemId);
       if (company.founded && weekly > good.demand * 7 * rules.undercutTrigger && rng.chance(0.6)) {
         s.stock += Math.round(T * rules.undercutShare);
         comp.cooldown[key] = day + rules.cooldownDays;
@@ -74,7 +75,10 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
           kind: 'undercut',
           marketId: market.id,
           itemId: good.itemId,
-          note: tr('sys.economy.competitor.undercut', { market: market.name, item: name }),
+          note: tr('sys.economy.competitor.undercut', {
+            market: contentText('markets', market),
+            item: name,
+          }),
         });
       } else if (s.stock < T * rules.hoardBelow && rng.chance(0.3)) {
         const qty = Math.floor(s.stock * rules.hoardShare);
@@ -88,7 +92,10 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
           kind: 'hoard',
           marketId: market.id,
           itemId: good.itemId,
-          note: tr('sys.economy.competitor.hoard', { market: market.name, item: name }),
+          note: tr('sys.economy.competitor.hoard', {
+            market: contentText('markets', market),
+            item: name,
+          }),
         });
       }
     }

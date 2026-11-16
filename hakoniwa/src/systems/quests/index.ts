@@ -4,6 +4,7 @@
 // docs/40_design/systems/quests_and_events.md.
 
 import { ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { getEntity } from '../world';
@@ -94,7 +95,7 @@ function turnIn(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
   if (!def || !q) return reject('no_quest', tr('sys.quests.reject.no_quest.missing'));
   if (q.status !== 'ready') return reject('not_ready', tr('sys.quests.reject.not_ready'));
   finishQuest(ctx, def, q);
-  return ok(tr('sys.quests.label.turn_in', { title: def.title }));
+  return ok(tr('sys.quests.label.turn_in', { title: contentText('quests', def, '', 'title') }));
 }
 
 function choose(
@@ -203,7 +204,9 @@ export const system: GameSystem = {
         if (q?.status === 'ready' && def?.turnIn === npc) {
           options.push({
             id: `turnin:${id}`,
-            label: tr('sys.quests.label.turn_in', { title: def.title }),
+            label: tr('sys.quests.label.turn_in', {
+              title: contentText('quests', def, '', 'title'),
+            }),
           });
         }
       }

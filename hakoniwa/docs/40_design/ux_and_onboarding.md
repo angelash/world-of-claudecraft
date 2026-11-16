@@ -1752,7 +1752,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 4. 绑定到 Shift+Tab、F12、Alt+F4、Win 键时警告：会与系统或 Steam 冲突，仍允许（Alt+F4 不允许）。
 5. 手柄：菜单里的确认、返回与 Start 不可改（保证导航不失控），可整体互换确认与返回；其他全部可改；快捷栏的组合可整组搬家（例：LT 组改成 LB 组）。
 6. 所有提示、提示条、引导卡、交互提示里的按键都由当前绑定生成：文本里写 `{key:<动作>}` 占位，渲染时换成键帽或手柄字形（第 20.3 节）；文本里从不写死某个键。
-7. 改键存本机，全游戏共用（不随存档）；可导出、导入；"恢复默认"分全部与本情境。
+7. 改键存设置的同步份（`contextKeys`，随云同步，D-088；`../50_tech/release_engineering.md` 第 13.10 节），全游戏共用（不随存档）；可导出、导入；"恢复默认"分全部与本情境。
 8. Steam 输入：发行版提供动作集定义（每个情境一个动作集，层用于快捷栏组合），Steam 输入启用时以 Steam 的映射为准，游戏内手柄改键区只读并给"在 Steam 中配置"按钮；字形优先用 Steam 输入接口提供的官方字形，
    没有 Steam 时用本作自绘的中性字形（下方、右方、左方、上方与肩键、扳机，不仿制各平台的商标图形）。发行细节见 `../50_tech/release_engineering.md`。
 
@@ -2173,12 +2173,12 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 
 | 部分 | 位置 | 说明 |
 | --- | --- | --- |
-| 界面与系统文本（源） | `src/shared_ui/text/zh_hans/<域>.ts` | 按域拆分的 TypeScript 表（由现有 `text.ts`、`text_play.ts`、`text_battle.ts`、`text_strategy.ts` 拆出），带类型检查 |
-| 内容文本（源） | `data/**/*.json` 里的中文字段 | 抽取工具按 `<ID>.<字段>` 生成键；台词包与吠叫池在台词目录的数据里 |
-| 译文 | `i18n/<语言>/<域>.json` | 扁平的键到文本；每条带 `srcHash`（翻译时源文本的哈希）与状态 `pending`、`done`、`stale`（界面显示为未译、已译、需复核） |
-| 术语库 | `i18n/terms.json` | 每个专名与术语在各语言的固定译法；英文取各文档首次出现时附的英文代号 |
+| 界面与系统文本（源） | `locales/zh-Hans/ui.json`、`locales/zh-Hans/sys_<系统>.json` | 扁平的键到文本；全部键的联合类型由工具生成为 `src/core/text_keys.generated.ts`，`t` 与 `tr` 只收已有的键（`../50_tech/release_engineering.md` 第 8.2 节） |
+| 内容文本（源） | `data/**/*.json` 里的中文字段 | `tools/i18n/extract_content.ts` 按 `c.<表>.<内容 ID>.<字段>` 生成 `locales/zh-Hans/content.generated.json`，不手改；台词包与吠叫池的台词行在 `c.line_packs.*` |
+| 译文 | `locales/<语言>/`，与源语言同结构 | 每个键在 `_meta.json` 记翻译时源文本的哈希与状态 `pending`、`done`、`stale`（界面显示为未译、已译、需复核） |
+| 术语库 | `locales/terms.json` | 每个专名与术语在各语言的固定译法；英文取各文档首次出现时附的英文代号 |
 | 运行时 | `src/shared_ui/i18n.ts` 的 `t(key, params)`、`formatNumber`、`formatMoney`、`formatGameDate`、`formatDuration` | 回退链：当前语言到简体中文；发布版缺键静默回退并记日志，开发构建显示键名 |
-| 工具 | `tools/i18n/extract.ts`、`check.ts`、`pack.ts` | 抽取；检查（缺键、占位不一致、禁用字符、第 19.2 节长度上限、阶段条件引用未注册变量、按幕扫描被禁之名）；按语言与域打包，按需加载 |
+| 工具 | `tools/i18n/extract_content.ts`、`gen_keys.ts`、`check.ts`（`text_check` 是全量门的一步） | 抽取；检查（缺键、占位不一致、禁用字符、第 19.2 节长度上限、阶段条件引用未注册变量、按幕扫描被禁之名）；按语言与域打包，按需加载 |
 
 - 内核（`src/core/`、`src/systems/`）不引用字符串表，只发键；现有内核里的中文字面量在 M0 迁移（D-077）。
 - 生成的语言包只由打包步骤生成，不手改（[dev_process.md](../60_production/dev_process.md) 的生成物规则）。

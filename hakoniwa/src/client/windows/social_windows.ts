@@ -2,8 +2,7 @@
 // divine record and Merca's coin offering.
 
 import { clear, el } from '../../shared_ui/dom';
-import { t as renderText } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { t as renderText, t } from '../../shared_ui/i18n';
 import { orderName, type PartyOrder } from '../../systems/party';
 import { actionButton, badge, empty, progress, rebuilder, tabs } from './kit';
 import { placeholderWindow } from './simple_windows';
@@ -15,10 +14,10 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
   if (!ad) return placeholderWindow();
   const body = el('div');
   let force = 0;
-  const t = tabs(
+  const tabStrip = tabs(
     [
-      { id: 'book', label: T.rumors.book },
-      { id: 'rep', label: T.rumors.reputation },
+      { id: 'book', label: t('ui.win.rumors.book') },
+      { id: 'rep', label: t('ui.win.rumors.reputation') },
     ],
     'book',
     () => {
@@ -29,22 +28,22 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
   const update = rebuilder(
     body,
     () =>
-      t.current() === 'book'
+      tabStrip.current() === 'book'
         ? { tab: 'book' as const, force, rumors: ad.rumors(ctx.view) }
         : { tab: 'rep' as const, force, rep: ad.reputation(ctx.view) },
     (d) => {
       if (d.tab === 'book') {
         const list = [...d.rumors].sort((a, b) => b.tick - a.tick);
-        if (list.length === 0) body.append(empty(T.rumors.none));
+        if (list.length === 0) body.append(empty(t('ui.win.rumors.empty_state')));
         for (const r of list) {
           body.append(
             el('div', { className: `hk-card${r.aboutPlayer ? ' about-you' : ''}` }, [
               el('div', { className: 'hk-card-text', text: r.text }),
               el('div', { className: 'hk-row-inline hk-muted' }, [
-                fmt(T.rumors.from, { name: r.fromName }),
+                t('ui.win.rumors.from', { name: r.fromName }),
                 '  ',
-                fmt(T.rumors.credibility, { c: r.credibility }),
-                r.aboutPlayer ? badge(T.rumors.aboutYou, 'you') : null,
+                t('ui.win.rumors.credibility', { c: r.credibility }),
+                r.aboutPlayer ? badge(t('ui.win.rumors.about_you'), 'you') : null,
               ]),
             ]),
           );
@@ -52,8 +51,8 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
         return;
       }
       for (const [title, list] of [
-        [T.rumors.regions, d.rep.regions],
-        [T.rumors.factions, d.rep.factions],
+        [t('ui.win.rumors.regions'), d.rep.regions],
+        [t('ui.win.rumors.factions'), d.rep.factions],
       ] as const) {
         body.append(el('h3', { text: title }));
         for (const r of list) {
@@ -66,9 +65,9 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
               el('div', {
                 className: 'hk-muted',
                 text: [
-                  fmt(T.rumors.fame, { band: r.fameBand }),
-                  fmt(T.rumors.opinion, { band: r.opinionBand }),
-                  fmt(T.rumors.estimate, { e: r.estimate }),
+                  t('ui.win.rumors.fame', { band: r.fameBand }),
+                  t('ui.win.rumors.opinion', { band: r.opinionBand }),
+                  t('ui.win.rumors.estimate', { e: r.estimate }),
                 ].join('  '),
               }),
               r.mainstream.length
@@ -84,7 +83,7 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
       }
     },
   );
-  return { el: el('div', { className: 'hk-rumors' }, [t.strip, body]), update };
+  return { el: el('div', { className: 'hk-rumors' }, [tabStrip.strip, body]), update };
 }
 
 const ORDERS: PartyOrder[] = ['follow', 'assist', 'passive', 'stay'];
@@ -98,12 +97,12 @@ export function partyWindow(ctx: WindowContext): WindowContent {
     () => ad.companions(ctx.view),
     (list) => {
       if (list.length === 0) {
-        root.append(empty(T.party.none));
+        root.append(empty(t('ui.win.party.empty_state')));
         return;
       }
       root.append(
         el('div', { className: 'hk-row' }, [
-          el('span', { className: 'hk-muted', text: T.party.all }),
+          el('span', { className: 'hk-muted', text: t('ui.win.party.all') }),
           ...ORDERS.map((o) =>
             actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, undefined, o)),
           ),
@@ -124,15 +123,15 @@ export function partyWindow(ctx: WindowContext): WindowContent {
             el('div', {
               className: 'hk-muted',
               text: [
-                fmt(T.party.bond, { n: c.bond }),
-                c.nextThreshold !== null ? fmt(T.party.nextBond, { n: c.nextThreshold }) : '',
-                c.downed ? T.party.downed : '',
+                t('ui.win.party.bond', { n: c.bond }),
+                c.nextThreshold !== null ? t('ui.win.party.next_bond', { n: c.nextThreshold }) : '',
+                c.downed ? t('ui.win.party.downed') : '',
               ]
                 .filter(Boolean)
                 .join('  '),
             }),
             el('div', { className: 'hk-row' }, [
-              el('span', { className: 'hk-muted', text: T.party.orders }),
+              el('span', { className: 'hk-muted', text: t('ui.win.party.orders') }),
               ...ORDERS.map((o) =>
                 actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, c.id, o), {
                   cls: c.order === o ? 'active' : '',
@@ -153,7 +152,10 @@ export function goddessWindow(ctx: WindowContext): WindowContent {
   const list = el('div');
   const record = el('div');
   const offerBox = el('div', { className: 'hk-card hk-offer' });
-  const select = el('select', { className: 'hk-input', attrs: { 'aria-label': T.goddess.pick } });
+  const select = el('select', {
+    className: 'hk-input',
+    attrs: { 'aria-label': t('ui.win.goddess.pick') },
+  });
   let selectSig = '';
   const fillSelect = () => {
     const h = ctx.view.holding(ctx.view.playerId());
@@ -171,13 +173,15 @@ export function goddessWindow(ctx: WindowContext): WindowContent {
     if (items.some(([id]) => id === keep)) select.value = keep;
   };
   offerBox.append(
-    el('div', { className: 'hk-card-head' }, [el('strong', { text: T.goddess.offerTitle })]),
+    el('div', { className: 'hk-card-head' }, [
+      el('strong', { text: t('ui.win.goddess.offer_title') }),
+    ]),
     el('div', { className: 'hk-row' }, [
       select,
-      actionButton(ctx, T.goddess.blessing, () =>
+      actionButton(ctx, t('ui.win.goddess.blessing'), () =>
         select.value ? ad.offer(ctx.view, select.value, 'blessing') : [],
       ),
-      actionButton(ctx, T.goddess.intel, () =>
+      actionButton(ctx, t('ui.win.goddess.intel'), () =>
         select.value ? ad.offer(ctx.view, select.value, 'intel') : [],
       ),
     ]),
@@ -196,9 +200,9 @@ export function goddessWindow(ctx: WindowContext): WindowContent {
             el('div', {
               className: 'hk-muted',
               text: [
-                fmt(T.goddess.gaze, { band: g.gazeBand }),
-                fmt(T.goddess.relation, { band: g.relationBand }),
-                g.departed ? T.goddess.departed : '',
+                t('ui.win.goddess.gaze', { band: g.gazeBand }),
+                t('ui.win.goddess.relation', { band: g.relationBand }),
+                g.departed ? t('ui.win.goddess.departed') : '',
               ]
                 .filter(Boolean)
                 .join('  '),
@@ -225,12 +229,12 @@ export function goddessWindow(ctx: WindowContext): WindowContent {
         .slice(-12),
     }),
     (d) => {
-      record.append(el('h3', { text: T.goddess.revelations }));
-      if (!d.rev.length) record.append(empty(T.goddess.none));
+      record.append(el('h3', { text: t('ui.win.goddess.revelations') }));
+      if (!d.rev.length) record.append(empty(t('ui.win.goddess.empty_state')));
       for (const r of d.rev)
         record.append(el('div', { className: 'hk-card hk-revelation', text: r.text }));
-      record.append(el('h3', { text: T.goddess.seen }));
-      if (!d.rec.length) record.append(empty(T.goddess.none));
+      record.append(el('h3', { text: t('ui.win.goddess.seen') }));
+      if (!d.rec.length) record.append(empty(t('ui.win.goddess.empty_state')));
       for (const r of [...d.rec].reverse())
         record.append(el('div', { className: 'hk-card-text', text: r.note }));
     },

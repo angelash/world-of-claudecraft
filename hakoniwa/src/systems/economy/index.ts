@@ -4,6 +4,7 @@
 // (architecture.md 4.6). Other systems trade through ./ports.
 
 import { ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
@@ -104,7 +105,7 @@ export const system: GameSystem = {
         options.push({
           id: 'trade',
           label: tr('sys.economy.option.trade'),
-          hint: tr('sys.economy.option.trade_hint', { market: market.name }),
+          hint: tr('sys.economy.option.trade_hint', { market: contentText('markets', market) }),
         });
       }
       const config = ctx.content.economy_config;

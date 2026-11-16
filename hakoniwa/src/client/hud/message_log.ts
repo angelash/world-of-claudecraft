@@ -2,7 +2,7 @@
 // auto-scroll unless the reader scrolled up.
 
 import { el } from '../../shared_ui/dom';
-import { T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import type { LogLine } from './log_format';
 
 export const MAX_LOG_LINES = 200;
@@ -17,7 +17,7 @@ export class MessageLog {
       attrs: { role: 'log', 'aria-live': 'polite' },
     });
     this.el = el('div', { className: 'hk-panel hk-log' }, [
-      el('div', { className: 'hk-log-title', text: T.log.title }),
+      el('div', { className: 'hk-log-title', text: t('ui.hud.log.title') }),
       this.list,
     ]);
   }

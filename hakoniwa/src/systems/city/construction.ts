@@ -3,6 +3,7 @@
 // cancellation refunds (city_building 4.1).
 
 import { type CommandResult, ok, reject } from '../../core';
+import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { joinText, type KeyText, tr } from '../../core/text';
 import { addItem, addMoney, itemDef, removeItem, spendMoney } from '../inventory';
@@ -99,11 +100,16 @@ export function placeBuilding(
     // Building an ordinary building yourself bypasses the works official (8.2: +0.3).
     // Official builds are recorded by the official act itself.
     recordDecision(site.decisions, day, 'player', DECISION_WEIGHT[2] as number);
-    addDependency(site.autonomy, day, tr('sys.city.dep.build', { building: def.name }), 0.3);
+    addDependency(
+      site.autonomy,
+      day,
+      tr('sys.city.dep.build', { building: contentText('city_buildings', def) }),
+      0.3,
+    );
   }
   ctx.emit('city.building_placed', { siteId, buildingId: id, defId, by });
   return {
-    result: ok(tr('sys.city.info.build_started', { building: def.name })),
+    result: ok(tr('sys.city.info.build_started', { building: contentText('city_buildings', def) })),
     buildingId: id,
   };
 }
@@ -136,7 +142,7 @@ export function cancelBuilding(
     addDependency(
       site.autonomy,
       day,
-      tr('sys.city.dep.demolish', { building: def?.name ?? b.defId }),
+      tr('sys.city.dep.demolish', { building: contentText('city_buildings', def, b.defId) }),
       0.3,
     );
   }

@@ -4,8 +4,7 @@
 // text the side panel shows. No DOM, no clock, no randomness; Node-tested.
 
 import type { FlagValue } from '../../core/contracts';
-import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
+import { t, tOr } from '../../shared_ui/i18n';
 import type {
   ContinentView,
   DiplomacyAction,
@@ -416,7 +415,7 @@ export function formatCount(n: number): string {
   if (Math.abs(v) < 10000) return String(v);
   const w = v / 10000;
   const shown = Math.abs(w) >= 100 ? Math.round(w) : Math.round(w * 10) / 10;
-  return fmt(T.strategy.wan, { n: shown });
+  return t('ui.win.strategy.wan', { n: shown });
 }
 
 export function signed(n: number): string {
@@ -455,7 +454,9 @@ export function buildNames(
 }
 
 function joinNames(ids: readonly string[], name: (id: string) => string): string {
-  return ids.length === 0 ? T.strategy.none : ids.map(name).join(T.strategy.listSep);
+  return ids.length === 0
+    ? t('ui.win.strategy.none')
+    : ids.map(name).join(t('ui.win.strategy.list_sep'));
 }
 
 // ---------------------------------------------------------------------------
@@ -470,7 +471,7 @@ export interface InfoRow {
 }
 
 export function provinceTooltip(p: Province): string {
-  return fmt(T.strategy.tooltip, {
+  return t('ui.win.strategy.tooltip', {
     name: shortName(p.name),
     owner: t(p.ownerName),
     population: formatCount(p.population),
@@ -482,37 +483,60 @@ export function provinceRows(
   p: Province,
   names: Names = buildNames(view),
 ): InfoRow[] {
-  const S = T.strategy;
   const marks = provinceMarks(view, p);
   const rows: InfoRow[] = [
-    { label: S.fields.owner, value: t(p.ownerName), swatch: p.color },
-    { label: S.fields.terrain, value: S.terrains[p.terrain] ?? p.terrain },
-    { label: S.fields.population, value: formatCount(p.population) },
-    { label: S.fields.garrison, value: formatCount(p.garrison) },
-    { label: S.fields.dian, value: String(p.dian), tone: p.dian >= 3 ? 'warn' : undefined },
+    { label: t('ui.win.strategy.fields.owner'), value: t(p.ownerName), swatch: p.color },
     {
-      label: S.fields.siege,
+      label: t('ui.win.strategy.fields.terrain'),
+      value: tOr(`ui.win.strategy.terrains.${p.terrain}`, p.terrain),
+    },
+    { label: t('ui.win.strategy.fields.population'), value: formatCount(p.population) },
+    { label: t('ui.win.strategy.fields.garrison'), value: formatCount(p.garrison) },
+    {
+      label: t('ui.win.strategy.fields.dian'),
+      value: String(p.dian),
+      tone: p.dian >= 3 ? 'warn' : undefined,
+    },
+    {
+      label: t('ui.win.strategy.fields.siege'),
       value: p.siege
-        ? fmt(S.siegeBy, { name: t(p.siege.byName), progress: Math.round(p.siege.progress) })
-        : S.noSiege,
+        ? t('ui.win.strategy.siege_by', {
+            name: t(p.siege.byName),
+            progress: Math.round(p.siege.progress),
+          })
+        : t('ui.win.strategy.no_siege'),
       tone: p.siege ? 'warn' : 'muted',
     },
   ];
   if (p.capitalOf) {
     rows.push({
-      label: S.fields.status,
-      value: fmt(S.capitalOf, { name: names.nation(p.capitalOf) }),
+      label: t('ui.win.strategy.fields.status'),
+      value: t('ui.win.strategy.capital_of', { name: names.nation(p.capitalOf) }),
     });
   }
-  if (p.impassable) rows.push({ label: S.fields.status, value: S.impassable, tone: 'muted' });
+  if (p.impassable)
+    rows.push({
+      label: t('ui.win.strategy.fields.status'),
+      value: t('ui.win.strategy.impassable'),
+      tone: 'muted',
+    });
   if (marks.war === 'player')
-    rows.push({ label: S.fields.status, value: S.warWithPlayer, tone: 'warn' });
-  else if (marks.war === 'war') rows.push({ label: S.fields.status, value: S.atWar, tone: 'warn' });
+    rows.push({
+      label: t('ui.win.strategy.fields.status'),
+      value: t('ui.win.strategy.war_with_player'),
+      tone: 'warn',
+    });
+  else if (marks.war === 'war')
+    rows.push({
+      label: t('ui.win.strategy.fields.status'),
+      value: t('ui.win.strategy.at_war'),
+      tone: 'warn',
+    });
   return rows;
 }
 
 export function armyLine(a: Army): string {
-  return fmt(T.strategy.armyLine, {
+  return t('ui.win.strategy.army_line', {
     name: t(a.name),
     owner: t(a.ownerName),
     soldiers: formatCount(a.soldiers),
@@ -520,18 +544,18 @@ export function armyLine(a: Army): string {
 }
 
 export function armyStatus(a: Army, names: Names): string {
-  if (a.frozen) return T.strategy.armyFrozen;
+  if (a.frozen) return t('ui.win.strategy.army_frozen');
   const next = a.path[0];
   if (next !== undefined) {
-    return fmt(T.strategy.armyMarching, { next: names.province(next), steps: a.path.length });
+    return t('ui.win.strategy.army_marching', { next: names.province(next), steps: a.path.length });
   }
-  return T.strategy.armyIdle;
+  return t('ui.win.strategy.army_idle');
 }
 
 /** The status line of an army card, with its general when it has one. */
 export function armyDetail(a: Army, names: Names): string {
   const status = armyStatus(a, names);
-  return a.general ? fmt(T.strategy.armyWithGeneral, { status, name: a.general }) : status;
+  return a.general ? t('ui.win.strategy.army_with_general', { status, name: a.general }) : status;
 }
 
 export function armiesAt(view: Pick<ContinentView, 'armies'>, provinceId: string): Army[] {
@@ -539,57 +563,77 @@ export function armiesAt(view: Pick<ContinentView, 'armies'>, provinceId: string
 }
 
 export function nationRows(n: NationView, names: Names): InfoRow[] {
-  const S = T.strategy;
-  const F = S.nationFields;
   const ae = [...n.aeAgainst].sort((x, y) => y.value - x.value || x.nation.localeCompare(y.nation));
   return [
-    { label: F.name, value: t(n.name) },
-    { label: F.ruler, value: t(n.ruler) },
-    { label: F.capital, value: n.capital ? names.province(n.capital) : S.none },
-    { label: F.treasury, value: fmt(S.gold, { n: formatCount(n.treasury) }) },
-    { label: F.income, value: fmt(S.goldGain, { n: oneDecimal(n.income) }), tone: 'ok' },
+    { label: t('ui.win.strategy.nation_fields.name'), value: t(n.name) },
+    { label: t('ui.win.strategy.nation_fields.ruler'), value: t(n.ruler) },
     {
-      label: F.upkeep,
-      value: fmt(S.goldLoss, { n: oneDecimal(n.upkeep) }),
+      label: t('ui.win.strategy.nation_fields.capital'),
+      value: n.capital ? names.province(n.capital) : t('ui.win.strategy.none'),
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.treasury'),
+      value: t('ui.win.strategy.gold', { n: formatCount(n.treasury) }),
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.income'),
+      value: t('ui.win.strategy.gold_gain', { n: oneDecimal(n.income) }),
+      tone: 'ok',
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.upkeep'),
+      value: t('ui.win.strategy.gold_loss', { n: oneDecimal(n.upkeep) }),
       tone: n.upkeep > n.income ? 'warn' : undefined,
     },
-    { label: F.taxRate, value: fmt(S.percent, { n: Math.round(n.taxRate * 100) }) },
-    { label: F.stability, value: String(n.stability), tone: n.stability < 30 ? 'warn' : undefined },
     {
-      label: F.legitimacy,
+      label: t('ui.win.strategy.nation_fields.tax_rate'),
+      value: t('ui.win.strategy.percent', { n: Math.round(n.taxRate * 100) }),
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.stability'),
+      value: String(n.stability),
+      tone: n.stability < 30 ? 'warn' : undefined,
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.legitimacy'),
       value: String(n.legitimacy),
       tone: n.legitimacy < 30 ? 'warn' : undefined,
     },
     {
-      label: F.warWeariness,
+      label: t('ui.win.strategy.nation_fields.war_weariness'),
       value: String(n.warWeariness),
       tone: n.warWeariness >= 50 ? 'warn' : undefined,
     },
-    { label: F.autonomy, value: String(n.autonomy) },
-    { label: F.divineReliance, value: String(n.divineReliance) },
-    { label: F.credibility, value: String(n.credibility) },
-    { label: F.population, value: formatCount(n.population) },
-    { label: F.soldiers, value: formatCount(n.soldiers) },
-    { label: F.power, value: formatCount(n.power) },
-    { label: F.provinces, value: fmt(S.provinceCount, { n: n.provinces.length }) },
+    { label: t('ui.win.strategy.nation_fields.autonomy'), value: String(n.autonomy) },
+    { label: t('ui.win.strategy.nation_fields.divine_reliance'), value: String(n.divineReliance) },
+    { label: t('ui.win.strategy.nation_fields.credibility'), value: String(n.credibility) },
+    { label: t('ui.win.strategy.nation_fields.population'), value: formatCount(n.population) },
+    { label: t('ui.win.strategy.nation_fields.soldiers'), value: formatCount(n.soldiers) },
+    { label: t('ui.win.strategy.nation_fields.power'), value: formatCount(n.power) },
     {
-      label: F.enemies,
+      label: t('ui.win.strategy.nation_fields.provinces'),
+      value: t('ui.win.strategy.province_count', { n: n.provinces.length }),
+    },
+    {
+      label: t('ui.win.strategy.nation_fields.enemies'),
       value: joinNames(n.enemies, names.nation),
       tone: n.enemies.length > 0 ? 'warn' : 'muted',
     },
     {
-      label: F.recognizedBy,
+      label: t('ui.win.strategy.nation_fields.recognized_by'),
       value: joinNames(n.recognizedBy, names.nation),
       tone: n.recognizedBy.length > 0 ? undefined : 'muted',
     },
     {
-      label: F.aeAgainst,
+      label: t('ui.win.strategy.nation_fields.ae_against'),
       value:
         ae.length === 0
-          ? S.none
+          ? t('ui.win.strategy.none')
           : ae
-              .map((x) => fmt(S.aeEntry, { name: names.nation(x.nation), value: x.value }))
-              .join(S.listSep),
+              .map((x) =>
+                t('ui.win.strategy.ae_entry', { name: names.nation(x.nation), value: x.value }),
+              )
+              .join(t('ui.win.strategy.list_sep')),
       tone: ae.some((x) => x.value >= AE_WARN) ? 'warn' : ae.length === 0 ? 'muted' : undefined,
     },
   ];
@@ -601,29 +645,28 @@ export interface InfoLine {
 }
 
 export function treatyName(t: TreatyType | string): string {
-  return T.strategy.treatyNames[t] ?? t;
+  return tOr(`ui.win.strategy.treaty_names.${t}`, t);
 }
 
 /** The text lines of one diplomacy row (band and name are shown separately). */
 export function diplomacyLines(row: DiplomacyRow): InfoLine[] {
-  const S = T.strategy;
   const lines: InfoLine[] = [
-    { text: fmt(S.scores, { to: signed(row.scoreTo), from: signed(row.scoreFrom) }) },
+    { text: t('ui.win.strategy.scores', { to: signed(row.scoreTo), from: signed(row.scoreFrom) }) },
     {
-      text: fmt(S.treaties, {
+      text: t('ui.win.strategy.treaties', {
         list:
           row.treaties.length === 0
-            ? S.none
-            : [...new Set(row.treaties)].map(treatyName).join(S.listSep),
+            ? t('ui.win.strategy.none')
+            : [...new Set(row.treaties)].map(treatyName).join(t('ui.win.strategy.list_sep')),
       }),
       tone: row.treaties.length === 0 ? 'muted' : undefined,
     },
   ];
-  if (row.atWar) lines.push({ text: S.rowAtWar, tone: 'warn' });
-  if (row.truce) lines.push({ text: S.rowTruce, tone: 'muted' });
+  if (row.atWar) lines.push({ text: t('ui.win.strategy.row_at_war'), tone: 'warn' });
+  if (row.truce) lines.push({ text: t('ui.win.strategy.row_truce'), tone: 'muted' });
   if (row.aeTowardUs > 0) {
     lines.push({
-      text: fmt(S.rowAe, { n: row.aeTowardUs }),
+      text: t('ui.win.strategy.row_ae', { n: row.aeTowardUs }),
       tone: row.aeTowardUs >= AE_WARN ? 'warn' : undefined,
     });
   }
@@ -653,8 +696,8 @@ const OFFERS: { action: DiplomacyAction; treaty: TreatyType }[] = [
  */
 export function diplomacyActions(row: DiplomacyRow, hasNation: boolean): DiplomacyButton[] {
   if (!hasNation) return [];
-  const S = T.strategy;
-  const label = (a: DiplomacyAction) => S.actions[a] ?? a;
+
+  const label = (a: DiplomacyAction) => tOr(`ui.win.strategy.actions.${a}`, a);
   const out: DiplomacyButton[] = [];
   if (row.atWar) {
     out.push({ action: 'truce', label: label('truce'), tone: 'peace' });
@@ -666,11 +709,11 @@ export function diplomacyActions(row: DiplomacyRow, hasNation: boolean): Diploma
       }
     }
   }
-  for (const t of [...new Set(row.treaties)]) {
+  for (const treaty of [...new Set(row.treaties)]) {
     out.push({
       action: 'break_treaty',
-      treaty: t,
-      label: fmt(S.breakTreaty, { treaty: treatyName(t) }),
+      treaty,
+      label: t('ui.win.strategy.break_treaty', { treaty: treatyName(treaty) }),
       tone: 'break',
     });
   }
@@ -679,7 +722,7 @@ export function diplomacyActions(row: DiplomacyRow, hasNation: boolean): Diploma
       action: 'declare_war',
       label: label('declare_war'),
       tone: 'war',
-      hint: S.declareWarHint,
+      hint: t('ui.win.strategy.declare_war_hint'),
     });
   }
   return out;
@@ -693,26 +736,24 @@ export interface WarSummary {
 }
 
 export function warSummaries(view: Pick<ContinentView, 'wars'>, names: Names): WarSummary[] {
-  const S = T.strategy;
   return view.wars.map((w) => ({
     id: w.id,
-    title: fmt(S.warLine, {
-      attackers: w.attackers.map(names.nation).join(S.listSep),
-      defenders: w.defenders.map(names.nation).join(S.listSep),
+    title: t('ui.win.strategy.war_line', {
+      attackers: w.attackers.map(names.nation).join(t('ui.win.strategy.list_sep')),
+      defenders: w.defenders.map(names.nation).join(t('ui.win.strategy.list_sep')),
     }),
-    detail: fmt(S.warDetail, { score: signed(w.score), day: w.startDay }),
+    detail: t('ui.win.strategy.war_detail', { score: signed(w.score), day: w.startDay }),
     involvesPlayer: inWar(w, PLAYER),
   }));
 }
 
 /** The conclave line: the summit result, the running stage, or not yet convened. */
 export function conferenceText(view: Pick<ContinentView, 'conference' | 'summit'>): string {
-  const S = T.strategy;
-  if (view.summit) return fmt(S.summitResult, { name: t(view.summit.name) });
+  if (view.summit) return t('ui.win.strategy.summit_result', { name: t(view.summit.name) });
   const c = view.conference;
   if (c && c.stage !== 'done')
-    return fmt(S.conferenceStage, { stage: t(c.stageName), day: c.endsDay });
-  return S.conferenceIdle;
+    return t('ui.win.strategy.conference_stage', { stage: t(c.stageName), day: c.endsDay });
+  return t('ui.win.strategy.conference_idle');
 }
 
 /** commands.ts convene: once, not while running, and only after feature.slg. */
@@ -733,7 +774,7 @@ export function logLines(view: Pick<ContinentView, 'log'>, max = 20): string[] {
   return view.log
     .slice(-max)
     .reverse()
-    .map((e) => fmt(T.strategy.logLine, { day: e.day, text: t(e.text) }));
+    .map((e) => t('ui.win.strategy.log_line', { day: e.day, text: t(e.text) }));
 }
 
 export function pendingText(
@@ -741,11 +782,11 @@ export function pendingText(
   names: Names,
 ): string | null {
   const p = view.pendingBattle;
-  return p ? fmt(T.strategy.pendingBattle, { province: names.province(p.province) }) : null;
+  return p ? t('ui.win.strategy.pending_battle', { province: names.province(p.province) }) : null;
 }
 
 export function statusText(view: Pick<ContinentView, 'day' | 'releaseIndex' | 'wars'>): string {
-  return fmt(T.strategy.status, {
+  return t('ui.win.strategy.status', {
     day: view.day,
     release: Math.round(view.releaseIndex),
     wars: view.wars.length,
@@ -768,17 +809,18 @@ export function foundingState(
   flags: Readonly<Record<string, FlagValue>>,
   nation: Pick<NationView, 'alive'> | null,
 ): FoundingState {
-  const S = T.strategy;
   if (nation?.alive) return { show: false, can: false, reason: '' };
-  if (nation) return { show: true, can: false, reason: S.nationFallen };
-  if (flagOn(flags['a4_nation_founded'])) return { show: true, can: false, reason: S.foundAlready };
-  if (!flagOn(flags['feature.slg'])) return { show: true, can: false, reason: S.foundLocked };
+  if (nation) return { show: true, can: false, reason: t('ui.win.strategy.nation_fallen') };
+  if (flagOn(flags['a4_nation_founded']))
+    return { show: true, can: false, reason: t('ui.win.strategy.found_already') };
+  if (!flagOn(flags['feature.slg']))
+    return { show: true, can: false, reason: t('ui.win.strategy.found_locked') };
   const autonomy = Number(flags.territory_autonomy ?? 0);
   if (!(autonomy >= FOUNDING_AUTONOMY)) {
     return {
       show: true,
       can: false,
-      reason: fmt(S.foundAutonomy, {
+      reason: t('ui.win.strategy.found_autonomy', {
         have: Number.isFinite(autonomy) ? Math.floor(autonomy) : 0,
         need: FOUNDING_AUTONOMY,
       }),

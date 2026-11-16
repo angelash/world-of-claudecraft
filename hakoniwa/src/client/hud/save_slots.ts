@@ -26,7 +26,7 @@ import {
 } from '../../core/save';
 import { calendarAt } from '../../core/time';
 import type { World } from '../../core/world';
-import { fmt, T } from '../../shared_ui/text';
+import { t } from '../../shared_ui/i18n';
 import { inCombat, unitOf } from '../../systems/combat/units';
 import { playerEntity } from '../../systems/world';
 import { formatDate, formatTime } from './format';
@@ -70,11 +70,11 @@ export interface SlotMeta {
 }
 
 export function slotLabel(slot: SlotId): string {
-  if (slot === 'quick') return T.saves.quick;
-  if (slot === 'ironman') return T.saves.ironman;
+  if (slot === 'quick') return t('ui.win.saves.quick');
+  if (slot === 'ironman') return t('ui.win.saves.ironman');
   const auto = /^auto_(\d+)$/.exec(slot);
-  if (auto) return fmt(T.saves.auto, { n: Number(auto[1]) });
-  return fmt(T.saves.slot, { n: Number(slot.replace('manual_', '')) });
+  if (auto) return t('ui.win.saves.auto', { n: Number(auto[1]) });
+  return t('ui.win.saves.slot', { n: Number(slot.replace('manual_', '')) });
 }
 
 export function slotMeta(rec: SlotRecord): SlotMeta | null {
@@ -387,23 +387,23 @@ export function atSafePoint(world: World, s: { inScene: boolean; writing: boolea
 
 /** Player text for a failed save: quota, a newer save in the slot, or "the last save is intact". */
 export function saveErrorText(err: unknown): string {
-  if (isQuotaError(err)) return T.saves.quota;
-  if (err instanceof SaveFailed && err.code === 'newer_version') return T.saves.newer;
-  return T.saves.intact;
+  if (isQuotaError(err)) return t('ui.win.saves.quota');
+  if (err instanceof SaveFailed && err.code === 'newer_version') return t('ui.win.saves.newer');
+  return t('ui.win.saves.intact');
 }
 
 /** Player text for a failed load. */
 export function loadErrorText(err: unknown): string {
   if (err instanceof SaveLoadError) {
-    if (err.problem === 'empty') return T.app.noSaves;
-    if (err.problem === 'newer') return T.saves.newer;
+    if (err.problem === 'empty') return t('ui.scr.title.no_saves');
+    if (err.problem === 'newer') return t('ui.win.saves.newer');
   }
-  return T.saves.unreadable;
+  return t('ui.win.saves.unreadable');
 }
 
 /** A note for the message log when a load had to fall back to an older generation. */
 export function loadNote(loaded: LoadedSave): string | null {
-  if (loaded.cloudPending) return T.saves.cloudPending;
-  if (loaded.level > 0) return T.saves.fellBack;
+  if (loaded.cloudPending) return t('ui.win.saves.cloud_pending');
+  if (loaded.level > 0) return t('ui.win.saves.fell_back');
   return null;
 }

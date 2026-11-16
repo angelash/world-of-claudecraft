@@ -1,10 +1,11 @@
 // Every gameplay feature that content can unlock must have a player-facing label, so the
-// log never shows a raw id such as "door_corridor" (found in a browser play-test).
+// log never shows a raw id such as "door_corridor" (found in a browser play-test). The labels
+// are the ui.common.feature.* keys of locales/zh-Hans/ui.json.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { T } from '../src/shared_ui/text';
+import { SOURCE_TABLE } from '../src/shared_ui/i18n';
 
 const DATA = join(__dirname, '..', 'data');
 
@@ -30,7 +31,9 @@ function unlockableFeatures(): Set<string> {
 
 describe('feature labels', () => {
   it('labels every feature that content can unlock', () => {
-    const missing = [...unlockableFeatures()].filter((f) => !T.features[f]);
+    const missing = [...unlockableFeatures()].filter(
+      (f) => !SOURCE_TABLE[`ui.common.feature.${f}`],
+    );
     expect(missing).toEqual([]);
   });
 });

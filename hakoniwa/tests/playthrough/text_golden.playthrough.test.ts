@@ -11,6 +11,8 @@
 //     npx vitest run --config vitest.playthrough.config.ts tests/playthrough/text_golden
 // TEXT_GOLDEN_DUMP=<from>-<to> also writes the rendered events of that tick range as JSON
 // lines next to the output file, to find the first differing event of a window.
+// TEXT_GOLDEN_MAX_TICKS caps the run (default 6000000), so a route stuck on work in
+// progress elsewhere in the tree still ends with a digest two trees compare on.
 
 import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -23,6 +25,7 @@ import { SEED } from './harness';
 const OUT = process.env.TEXT_GOLDEN_OUT;
 const ROUTE = (process.env.TEXT_GOLDEN_ROUTE ?? 'release') as EndingRoute;
 const DUMP = process.env.TEXT_GOLDEN_DUMP;
+const MAX_TICKS = Number(process.env.TEXT_GOLDEN_MAX_TICKS) || 6_000_000;
 /** event digest window, in ticks */
 const WINDOW = 20000;
 
@@ -126,7 +129,7 @@ describe.skipIf(!OUT)('text golden capture', () => {
       if (actChanged) checkpoints.push(digestWorld());
     });
     const bot = new Autoplayer(engine, { route: ROUTE, log: () => {} });
-    const result = bot.run({ maxTicks: 6_000_000 });
+    const result = bot.run({ maxTicks: MAX_TICKS });
     closeWindow();
     const w = engine.world;
     const report = {

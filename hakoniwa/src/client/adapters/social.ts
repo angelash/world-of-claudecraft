@@ -4,7 +4,6 @@
 
 import type { SystemContext } from '../../core/system';
 import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
 import { type Reputation, reputationOf, rumorBook } from '../../systems/cognition';
 import { isHostile, unitOf } from '../../systems/combat';
 import { canTalkTo, currentConversation, TALK_RANGE } from '../../systems/dialogue';
@@ -50,7 +49,7 @@ export function createInteractAdapter(): InteractAdapter {
       return null;
     },
     prompt(view, entityId) {
-      return talkable(view, entityId) ? T.prompts.talk : null;
+      return talkable(view, entityId) ? t('ui.hud.prompt.talk') : null;
     },
     nearestTalkable(view) {
       const p = view.player();
@@ -273,7 +272,7 @@ export function objectiveText(o: {
   done: boolean;
 }): string {
   if (o.need > 1)
-    return fmt(T.quests.progress, {
+    return t('ui.win.quests.progress', {
       label: o.label,
       cur: Math.min(o.progress, o.need),
       need: o.need,

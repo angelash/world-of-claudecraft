@@ -8,7 +8,6 @@
 import './battle.css';
 import { clear, el, setClass, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { fmt, T } from '../../shared_ui/text';
 import type { BattleView, Formation, HeroView, RegimentView } from '../../systems/warfare';
 import { ctx2d, ensureSize, makeCanvas } from '../render/canvas_util';
 import type { BattleAdapter, Commands } from '../view/adapters';
@@ -78,7 +77,9 @@ type Mode = 'idle' | 'pending' | 'active';
 export function battleWindow(ctx: WindowContext): WindowContent {
   const adapter = ctx.adapters.battle;
   if (!adapter) {
-    return { el: el('p', { className: 'hk-muted hk-placeholder', text: T.windows.pendingPhase2 }) };
+    return {
+      el: el('p', { className: 'hk-muted hk-placeholder', text: t('ui.common.panel.pending') }),
+    };
   }
   const panel = new BattlePanel(ctx, adapter);
   return {
@@ -120,7 +121,7 @@ class BattlePanel {
 
   // idle
   private idleBox = el('div', { className: 'hk-bt-idle' });
-  private idleText = el('p', { className: 'hk-muted', text: T.battle.idle });
+  private idleText = el('p', { className: 'hk-muted', text: t('ui.win.battle.empty_state') });
   private idleReport = el('div', { className: 'hk-bt-report' });
   private reportSig = '';
   private report: BattleReport | null = null;
@@ -198,14 +199,14 @@ class BattlePanel {
       el('div', { className: 'hk-bt-actions' }, [
         el('button', {
           className: 'hk-btn hk-btn-primary',
-          text: T.battle.start,
+          text: t('ui.win.battle.start'),
           attrs: { type: 'button' },
           on: { click: () => this.startPending() },
         }),
         el('button', {
           className: 'hk-btn',
-          text: T.battle.autoResolve,
-          title: T.battle.autoResolveTitle,
+          text: t('ui.win.battle.auto_resolve'),
+          title: t('ui.win.battle.auto_resolve_title'),
           attrs: { type: 'button' },
           on: { click: () => this.autoPending() },
         }),
@@ -216,7 +217,7 @@ class BattlePanel {
     this.canvas = makeCanvas(1, 1);
     this.canvas.className = 'hk-bt-canvas';
     this.canvas.setAttribute('role', 'img');
-    this.canvas.setAttribute('aria-label', T.battle.canvasLabel);
+    this.canvas.setAttribute('aria-label', t('ui.win.battle.canvas_label'));
     this.g = ctx2d(this.canvas);
     this.canvas.addEventListener('click', (ev) => this.onClick(ev, 'left'));
     this.canvas.addEventListener('contextmenu', (ev) => {
@@ -226,27 +227,33 @@ class BattlePanel {
     this.canvas.addEventListener('pointermove', (ev) => this.onHover(ev));
     this.canvas.addEventListener('pointerleave', () => this.clearHover());
 
-    this.holdBtn = btn(T.battle.hold, T.battle.holdTitle, () => this.orderSelected('hold'));
-    this.retreatBtn = btn(T.battle.retreat, T.battle.retreatTitle, () =>
+    this.holdBtn = btn(t('ui.win.battle.hold'), t('ui.win.battle.hold_title'), () =>
+      this.orderSelected('hold'),
+    );
+    this.retreatBtn = btn(t('ui.win.battle.retreat'), t('ui.win.battle.retreat_title'), () =>
       this.orderSelected('retreat'),
     );
-    this.deselectBtn = btn(T.battle.deselect, T.battle.deselect, () => this.select(null));
+    this.deselectBtn = btn(t('ui.win.battle.deselect'), t('ui.win.battle.deselect'), () =>
+      this.select(null),
+    );
     this.formationSel.addEventListener('change', () => this.changeFormation());
     this.formationLabel.append(
-      el('span', { className: 'hk-muted', text: T.battle.formation }),
+      el('span', { className: 'hk-muted', text: t('ui.win.battle.formation') }),
       this.formationSel,
     );
     this.abilityBox.append(
-      el('div', { className: 'hk-bt-subtitle hk-muted', text: T.battle.abilities }),
+      el('div', { className: 'hk-bt-subtitle hk-muted', text: t('ui.win.battle.abilities') }),
       this.abilityList,
     );
     this.retreatAllBtn = btn(
-      T.battle.retreatAll,
-      T.battle.retreatAllTitle,
+      t('ui.win.battle.retreat_all'),
+      t('ui.win.battle.retreat_all_title'),
       () => this.retreatAll(),
       'hk-bt-danger',
     );
-    this.autoBtn = btn(T.battle.autoResolve, T.battle.autoResolveTitle, () => this.autoActive());
+    this.autoBtn = btn(t('ui.win.battle.auto_resolve'), t('ui.win.battle.auto_resolve_title'), () =>
+      this.autoActive(),
+    );
 
     this.activeBox.append(
       el('div', { className: 'hk-bt-head' }, [this.headName, this.headTime, this.headPlans]),
@@ -254,7 +261,7 @@ class BattlePanel {
       this.hint,
       el('div', { className: 'hk-bt-strip' }, [
         el('section', { className: 'hk-bt-col hk-bt-sel' }, [
-          el('h3', { text: T.battle.selection }),
+          el('h3', { text: t('ui.win.battle.selection') }),
           this.detail,
           el('div', { className: 'hk-bt-orders' }, [
             this.holdBtn,
@@ -265,10 +272,13 @@ class BattlePanel {
           this.abilityBox,
         ]),
         el('section', { className: 'hk-bt-col' }, [
-          el('h3', { text: T.battle.objectives }),
+          el('h3', { text: t('ui.win.battle.objectives') }),
           this.objList,
         ]),
-        el('section', { className: 'hk-bt-col' }, [el('h3', { text: T.battle.log }), this.logList]),
+        el('section', { className: 'hk-bt-col' }, [
+          el('h3', { text: t('ui.win.battle.log') }),
+          this.logList,
+        ]),
       ]),
       el('div', { className: 'hk-bt-foot' }, [this.outcomeEl, this.retreatAllBtn, this.autoBtn]),
     );
@@ -295,7 +305,7 @@ class BattlePanel {
     if (pending) {
       this.setMode('pending');
       this.pendingId = pending.id;
-      setText(this.pendingTitle, fmt(T.battle.pending, { name: pending.name }));
+      setText(this.pendingTitle, t('ui.win.battle.pending', { name: pending.name }));
       setText(this.pendingScale, scaleText(pending.scale));
       setText(this.pendingDesc, pending.desc);
       return;
@@ -401,7 +411,7 @@ class BattlePanel {
       this.logSig = sig;
       clear(this.logList);
       if (lines.length === 0) {
-        this.logList.append(el('div', { className: 'hk-muted', text: T.battle.noLog }));
+        this.logList.append(el('div', { className: 'hk-muted', text: t('ui.win.battle.no_log') }));
       }
       for (const line of lines)
         this.logList.append(el('div', { className: 'hk-bt-log-line', text: line }));
@@ -415,7 +425,7 @@ class BattlePanel {
   private renderSelection(b: BattleView): void {
     const sel = findUnit(b, this.selected);
     const shown = sel ?? findUnit(b, this.inspected);
-    const lines = shown ? unitDetail(b, shown) : [T.battle.noSelection];
+    const lines = shown ? unitDetail(b, shown) : [t('ui.win.battle.no_selection')];
     const sig = lines.join('\n');
     if (sig !== this.detailSig) {
       this.detailSig = sig;
@@ -472,17 +482,17 @@ class BattlePanel {
   }
 
   private renderHint(b: BattleView): void {
-    let text = T.battle.controls;
+    let text = t('ui.win.battle.controls');
     if (this.targeting) {
-      text = fmt(T.battle.targeting, { name: this.targeting.name });
+      text = t('ui.win.battle.targeting', { name: this.targeting.name });
     } else if (this.hoverPt && this.layout) {
       const terrain = terrainName(
         terrainAtCell(b, Math.floor(this.hoverPt.x), Math.floor(this.hoverPt.y)),
       );
       const hit = findUnit(b, this.hoverId);
       text = hit
-        ? fmt(T.battle.hoverUnit, { info: unitSummary(hit), terrain })
-        : fmt(T.battle.hoverTerrain, { terrain });
+        ? t('ui.win.battle.hover_unit', { info: unitSummary(hit), terrain })
+        : t('ui.win.battle.hover_terrain', { terrain });
     }
     setText(this.hint, text);
     setClass(this.canvas, 'hk-bt-aim', !!this.targeting);
@@ -496,7 +506,9 @@ class BattlePanel {
       clear(this.objList);
       this.objRows.clear();
       if (list.length === 0) {
-        this.objList.append(el('div', { className: 'hk-muted', text: T.battle.noObjectives }));
+        this.objList.append(
+          el('div', { className: 'hk-muted', text: t('ui.win.battle.no_objectives') }),
+        );
       }
       for (const o of list) {
         const text = el('div', { className: 'hk-bt-obj-text' });
@@ -658,14 +670,14 @@ class BattlePanel {
 
   private retreatAll(): void {
     if (!this.current || this.current.outcome) return;
-    if (!window.confirm(T.battle.confirmRetreatAll)) return;
+    if (!window.confirm(t('ui.win.battle.confirm_retreat_all'))) return;
     this.queue(this.adapter.retreat(this.ctx.view));
   }
 
   private autoActive(): void {
     const b = this.current;
     if (!b || b.outcome) return;
-    if (!window.confirm(T.battle.confirmAutoResolve)) return;
+    if (!window.confirm(t('ui.win.battle.confirm_auto_resolve'))) return;
     this.queue(this.adapter.autoResolve(this.ctx.view, b.scenarioId));
   }
 

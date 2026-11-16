@@ -115,7 +115,8 @@ describe('kernel CJK literal ratchet', () => {
 });
 
 describe('source string tables', () => {
-  const files = readdirSync(LOCALE_DIR).filter((f) => f.endsWith('.json'));
+  const allFiles = readdirSync(LOCALE_DIR).filter((f) => f.endsWith('.json'));
+  const files = allFiles.filter((f) => f.startsWith('sys_'));
 
   it('are flat key-to-text files, one per system, with well-formed keys', () => {
     const seen = new Map<string, string>();
@@ -136,6 +137,22 @@ describe('source string tables', () => {
         seen.set(k, f);
       }
     }
+    // ui.json (PK-M0-15): well-formed ui.* keys, no forbidden characters, no duplicates.
+    const uiTable = JSON.parse(readFileSync(join(LOCALE_DIR, 'ui.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    for (const [k, v] of Object.entries(uiTable)) {
+      expect(KEY.test(k), `ui.json: bad key ${k}`).toBe(true);
+      expect(k.startsWith('ui.'), `ui.json: ${k} outside ui.`).toBe(true);
+      expect(typeof v, `ui.json: ${k} is not text`).toBe('string');
+      expect(FORBIDDEN.test(v as string), `ui.json: ${k} has a forbidden character`).toBe(false);
+      expect(seen.has(k), `${k} defined twice`).toBe(false);
+      seen.set(k, 'ui.json');
+    }
+    // Only sys_*.json and ui.json feed SOURCE_TABLE; content.generated.json is separate
+    // (resolved through the content lookup, src/shared_ui/content_text.ts).
+    expect(allFiles.sort()).toEqual([...files, 'content.generated.json', 'ui.json'].sort());
     expect(Object.keys(SOURCE_TABLE).length).toBe(seen.size);
   });
 
@@ -192,7 +209,10 @@ describe('kernel text keys', () => {
       for (const m of v.matchAll(/\b(sys(?:\.[a-z0-9_]+)+)\s*\}/g)) used.add(m[1] as string);
     const dead = Object.keys(SOURCE_TABLE).filter(
       (k) =>
-        !k.startsWith('sys.common.') && !used.has(k) && !prefixes.some((p) => k.startsWith(p.key)),
+        k.startsWith('sys.') &&
+        !k.startsWith('sys.common.') &&
+        !used.has(k) &&
+        !prefixes.some((p) => k.startsWith(p.key)),
     );
     expect(dead).toEqual([]);
   });

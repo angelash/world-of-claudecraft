@@ -9,20 +9,25 @@
 // {n, plural, one {...} other {...}} and {g, select, a {...} other {...}}. A brace that does
 // not open one of these is literal text. A missing parameter stays as its placeholder and a
 // missing key renders as the key; both are reported to the missing-text handler (dev builds
-// warn). Content keys c.<table>.<id>.<field>[.<n>] resolve through the content lookup
-// until the generated content table (PK-M0-15) replaces it. Pure, no DOM.
+// warn). Content keys c.<table>.<id>.<field>[.<n>] resolve through the content lookup the
+// client installs for the content it runs (setContentText), then the generated content
+// table. Pure, no DOM.
 
+import { contentKey } from '../core/content_key';
 import {
   CLIP_KEY,
   isTextRef,
   JOIN_PREFIX,
   SOURCE_LANG,
+  type TextKeyArg,
   type TextParam,
   type TextRef,
 } from '../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../core/time';
+import { extractContentText } from './content_text';
+import { PSEUDO_LANG, pseudoTable, pseudoTemplate } from './pseudo';
 
-export { isTextRef, SOURCE_LANG, type TextParam, type TextRef };
+export { isTextRef, PSEUDO_LANG, SOURCE_LANG, type TextParam, type TextRef };
 
 export type TextTable = Readonly<Record<string, string>>;
 
@@ -42,19 +47,34 @@ export function mergeTables(files: Record<string, { default: Record<string, stri
   return out;
 }
 
+// The ui. and sys. tables (content.generated.json is excluded: it resolves through the
+// content lookup below, set with setContentText, not merged into SOURCE_TABLE).
 const SOURCE_FILES = import.meta.glob<{ default: Record<string, string> }>(
-  '../../locales/zh-Hans/*.json',
+  ['../../locales/zh-Hans/*.json', '!../../locales/zh-Hans/*.generated.json'],
   { eager: true },
 );
 
-/** The source-language table (every key the kernel may emit). */
+/** The source-language table (every ui. and sys. key the kernel and the client may emit). */
 export const SOURCE_TABLE: TextTable = mergeTables(SOURCE_FILES);
 
-const TABLES: Record<string, TextTable> = { [SOURCE_LANG]: SOURCE_TABLE };
-let lang = SOURCE_LANG;
-let contentText: ContentTextLookup | null = null;
+const GENERATED_CONTENT_FILES = import.meta.glob<{ default: Record<string, string> }>(
+  '../../locales/zh-Hans/content.generated.json',
+  { eager: true },
+);
+
+/** The generated content table (release_engineering.md 8.3): c.* keys to source text. */
+export const GENERATED_CONTENT_TABLE: TextTable = mergeTables(GENERATED_CONTENT_FILES);
 
 const DEV = !!(import.meta as { env?: { DEV?: boolean } }).env?.DEV;
+
+/** The source table run through the pseudo-localization transform (dev builds only). */
+export const PSEUDO_TABLE: TextTable = DEV ? pseudoTable(SOURCE_TABLE) : {};
+
+const TABLES: Record<string, TextTable> = DEV
+  ? { [SOURCE_LANG]: SOURCE_TABLE, [PSEUDO_LANG]: PSEUDO_TABLE }
+  : { [SOURCE_LANG]: SOURCE_TABLE };
+let lang = SOURCE_LANG;
+let contentText: ContentTextLookup | null = null;
 const reported = new Set<string>();
 const missingLog: MissingText[] = [];
 let onMissing: ((m: MissingText) => void) | null = DEV
@@ -100,25 +120,14 @@ export function setContentText(lookup: ContentTextLookup | null): void {
 }
 
 /**
- * A content lookup over a loaded content map: c.<table>.<id>.<field>[.<n>] reads
- * content[table] (an array of records with `id`, or a record keyed by id), then the field,
- * then the n-th entry when the field is a list. Content ids never contain dots (20.2).
+ * A content lookup over a loaded content map (the source language): the same keys the
+ * extractor writes to content.generated.json (src/shared_ui/content_text.ts), built once.
+ * Every non-empty string field resolves, so a display field the extractor would skip still
+ * renders as written.
  */
 export function contentTextLookup(content: unknown): ContentTextLookup {
-  const root = (content ?? {}) as Record<string, unknown>;
-  return (key) => {
-    const parts = key.split('.');
-    if (parts[0] !== 'c' || parts.length < 4) return undefined;
-    const [, tableName, id, field, index] = parts as [string, string, string, string, string?];
-    const table = root[tableName];
-    let rec: unknown;
-    if (Array.isArray(table)) rec = table.find((r) => (r as { id?: unknown })?.id === id);
-    else if (table && typeof table === 'object') rec = (table as Record<string, unknown>)[id];
-    if (!rec || typeof rec !== 'object') return undefined;
-    let v = (rec as Record<string, unknown>)[field];
-    if (index !== undefined && Array.isArray(v)) v = v[Number(index)];
-    return typeof v === 'string' ? v : undefined;
-  };
+  const { table } = extractContentText(content, { allStrings: true });
+  return (key) => table[key];
 }
 
 export interface FormatOptions {
@@ -130,15 +139,73 @@ export interface FormatOptions {
   missing?: (m: MissingText) => void;
 }
 
-/** Render a text value with the active language. Strings and numbers pass through. */
-export function t(v: TextParam | null | undefined): string {
-  return formatText(v, {
+/** Keys in string form: a scoped, lowercase dotted name (ux_and_onboarding.md 20.2). */
+const KEY_FORM = /^(ui|sys|tut|c)\.[a-z0-9_]+(\.[a-z0-9_]+)+$/;
+
+/** A string literal shaped like a text key (checked by the key overload of t, never text). */
+type KeyShaped = `${'ui' | 'sys' | 'tut' | 'c'}.${string}`;
+type NotKeyShaped<V> = V extends KeyShaped ? never : V;
+
+function activeOptions(): FormatOptions {
+  return {
     table: TABLES[lang] ?? SOURCE_TABLE,
     fallback: SOURCE_TABLE,
     lang,
     content: contentText,
     missing: report,
-  });
+  };
+}
+
+/**
+ * Render with the active language. `t('ui.win.quests.empty')` and `t('ui.x.y', { n: 3 })` look
+ * a key up (the key is checked against the generated key union at compile time); any other
+ * value renders as a text value: a TextRef by its key, raw text as written, other strings and
+ * numbers as they are (display names the kernel holds only as text, player words).
+ */
+export function t<K extends string>(key: TextKeyArg<K>, params?: Record<string, TextParam>): string;
+export function t<V extends TextParam | null | undefined>(v: V & NotKeyShaped<V>): string;
+export function t(v: TextParam | null | undefined, params?: Record<string, TextParam>): string {
+  if (typeof v === 'string' && (params !== undefined || KEY_FORM.test(v))) {
+    return formatText({ key: v, params }, activeOptions());
+  }
+  return formatText(v, activeOptions());
+}
+
+/**
+ * The text of `key`, or `fallback` when no table has it (no missing-key report): for keys
+ * completed from data at run time (`ui.win.battle.formation.${id}`) whose id may be new.
+ */
+export function tOr<K extends string>(
+  key: TextKeyArg<K>,
+  fallback: string,
+  params?: Record<string, TextParam>,
+): string {
+  const k = key as string;
+  if (!hasText(k)) return fallback;
+  return formatText({ key: k, params }, activeOptions());
+}
+
+/** True when the active language, the source language or the content table has `key`. */
+export function hasText(key: string): boolean {
+  if (key.startsWith('c.')) return lookup(key, activeOptions()) !== undefined;
+  return key in (TABLES[lang] ?? SOURCE_TABLE) || key in SOURCE_TABLE;
+}
+
+/**
+ * The list separator `sys.common.join.<sep>` names in the active language (the Chinese
+ * comma for 'comma'), for joining already rendered strings; joinText() is the kernel's form.
+ */
+export function listSeparator(sep: string): string {
+  return lookup(`${JOIN_PREFIX}${sep}`, activeOptions()) ?? '';
+}
+
+/**
+ * The display text of one content field (release_engineering.md 8.3): `tc('items',
+ * 'eq_ash_blade', 'name')` reads c.items.eq_ash_blade.name in the active language, then the
+ * source language. `table` is the ContentMap name (`npcResidents` or `npc_residents`).
+ */
+export function tc(table: string, id: string, field: string, index?: number | string): string {
+  return formatText({ key: contentKey(table, id, field, index) }, activeOptions());
 }
 
 /** Render in the source language whatever the interface language (prompt assembly, D-077). */
@@ -179,7 +246,10 @@ export function formatText(v: TextParam | null | undefined, o: FormatOptions): s
 }
 
 function lookup(key: string, o: FormatOptions): string | undefined {
-  if (key.startsWith('c.')) return o.content?.(key);
+  if (key.startsWith('c.')) {
+    const v = o.content?.(key) ?? GENERATED_CONTENT_TABLE[key];
+    return v !== undefined && o.lang === PSEUDO_LANG ? pseudoTemplate(v) : v;
+  }
   return o.table[key] ?? o.fallback?.[key];
 }
 

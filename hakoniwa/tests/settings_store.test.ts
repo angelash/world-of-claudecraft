@@ -52,6 +52,7 @@ function webHost(storage = new FakeStorage()) {
 const SYNC_DEFAULTS: SyncSettings = {
   version: 1,
   keys: {},
+  contextKeys: {},
   language: 'zh-Hans',
   accessibility: {
     colorMode: 'standard',
@@ -77,6 +78,10 @@ const LOCAL_DEFAULTS: LocalSettings = {
 /** A value other than the default for every field of each part. */
 const SYNC_CHANGED: Omit<SyncSettings, 'version'> = {
   keys: { KeyQ: { action: 'interact' }, KeyE: null, Digit0: { action: 'hotbar', slot: 9 } },
+  contextKeys: {
+    'field.interact.primary': { code: 'KeyF', shift: true },
+    'field.win_inventory.secondary': null,
+  },
   language: 'en',
   accessibility: {
     colorMode: 'red_green',

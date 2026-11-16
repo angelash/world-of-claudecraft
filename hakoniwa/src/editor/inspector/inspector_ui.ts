@@ -15,7 +15,12 @@ import {
   TICKS_PER_GAME_MINUTE,
 } from '../../core/time';
 import type { World } from '../../core/world';
-import { t as renderText, renderTextDeep } from '../../shared_ui/i18n';
+import {
+  contentTextLookup,
+  t as renderText,
+  renderTextDeep,
+  setContentText,
+} from '../../shared_ui/i18n';
 import { holdingOf } from '../../systems/inventory';
 import type { ModifierSpec, ModifierTarget } from '../../systems/modifiers';
 import type { Entity, EntityKind } from '../../systems/world/types';
@@ -195,6 +200,8 @@ export class InspectorTool implements EditorTool {
   }
 
   private async attach(engine: Engine, content: ContentMap, imported: boolean): Promise<void> {
+    // c.* keys in events and slices render with the workspace content this world runs on
+    setContentText(contentTextLookup(content));
     const made = await this.ai.make(engine, content);
     this.session.set({
       engine,
