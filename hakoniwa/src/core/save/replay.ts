@@ -51,15 +51,17 @@ export function planReplay(header: SlotHeader, anchorTick?: number, toTick?: num
 }
 
 /**
- * The anchor world, the commands after it, read through a slot, and the AI mode they were
- * played under (the segments' own record; the anchor's when there are none). Refuses a
- * span whose AI mode changes: replay from an anchor after the change.
+ * The anchor world (migrated like any snapshot, readWorld), the commands after it, read
+ * through a slot, and the AI mode they were played under (the segments' own record; the
+ * anchor's when there are none). Refuses a span whose AI mode changes: replay from an
+ * anchor after the change.
  */
 export async function loadReplay(
   backend: SaveBackend,
   plan: ReplayPlan,
+  migrate?: (text: string) => World,
 ): Promise<{ world: World; commands: LoggedCommand[]; aiMode: AiMode }> {
-  const world = await readWorld(backend, plan.slot, plan.anchor.sha256);
+  const world = await readWorld(backend, plan.slot, plan.anchor.sha256, migrate);
   const modes = new Set(plan.segments.map((s) => s.aiMode).filter((m) => m !== undefined));
   if (modes.size > 1) {
     throw new Error('the AI mode changes within this replay; start from a later anchor');

@@ -8,7 +8,8 @@
 // the commit point. A power cut before it leaves the old header whole, and every file it
 // names untouched. The current header becomes the previous one only while it is usable
 // (it verifies and its snapshot is whole), so a save never pushes the last good
-// generation out of a slot. A header from a newer build is never overwritten (5.5).
+// generation out of a slot. A header from a newer build (any ordered version number above
+// this build's, ./versions.ts) is never overwritten (5.5).
 //
 // Collection (5.4 step 5) is mark and sweep: files no header or previous header names
 // (headers this build cannot read are marked loosely) move to `trash/<stamp>/...` once
@@ -16,6 +17,7 @@
 // snapshots, in the volume or the trash, are the "recoverable saves" of 5.7 and can be
 // committed into a slot again.
 
+import { WORLD_VERSION } from '../world';
 import {
   parseRecoverableId,
   type Recoverable,
@@ -49,6 +51,7 @@ import {
   type SlotId,
   sealHeader,
 } from './header';
+import { IRONMAN_SLOT } from './ironman';
 import { sha256Hex } from './sha256';
 import {
   filePath,
@@ -64,6 +67,7 @@ import {
   TRASH_DIR,
   trashPath,
 } from './storage';
+import { buildVersions, newerFields, newerText } from './versions';
 
 export const HOUR_MS = 60 * 60 * 1000;
 export const DAY_MS = 24 * HOUR_MS;
@@ -147,6 +151,9 @@ export function isoTime(ms: number): string {
 
 /** A save refused because the slot holds a header from a newer build (5.5). */
 class NewerSave extends Error {}
+
+/** A save refused because the ironman slot holds another run (5.9). */
+class OtherRun extends Error {}
 
 /** Header file name to slot id: `manual_07.json` and `manual_07.prev.json` both give `manual_07`. */
 function slotOfHeaderPath(path: string): SlotId | null {
@@ -276,6 +283,9 @@ export class ContainerBackend implements SaveBackend {
         const whole = !!bytes && sha256Hex(bytes) === id.sha256;
         const info = whole && bytes ? await this.info(id.sha256, bytes) : null;
         if (!bytes || !info) return fail('not_found', `snapshot ${id.sha256} is not valid`);
+        if (info.version > WORLD_VERSION) {
+          return fail('newer_version', `snapshot ${id.sha256} is from a newer version`);
+        }
         const v = this.opts.versions ?? {};
         const draft: SlotHeaderDraft = {
           format: SAVE_FORMAT,
@@ -283,7 +293,9 @@ export class ContainerBackend implements SaveBackend {
           worldVersion: info.version,
           gameVersion: v.gameVersion ?? '',
           contentVersion: v.contentVersion ?? '',
-          renameVersion: v.renameVersion ?? 0,
+          // Which rename table the snapshot was written under is unknown: 0 applies every
+          // rename on load, which leaves a current world as it is.
+          renameVersion: 0,
           build: v.build ?? '',
           slot: req.slotId,
           label: '',
@@ -372,10 +384,21 @@ export class ContainerBackend implements SaveBackend {
     const cur = curBytes ? parseHeader(decoder.decode(curBytes)) : null;
     const prevBytes = await this.storage.read(prevPath);
     const prev = prevBytes ? parseHeader(decoder.decode(prevBytes)) : null;
-    for (const h of [cur, prev]) {
-      if (h && !h.ok && h.problem === 'newer_container') {
-        throw new NewerSave(`slot ${slot} holds a save from a newer version`);
-      }
+    const build = buildVersions(this.opts.versions?.gameVersion);
+    for (const [h, bytes] of [
+      [cur, curBytes],
+      [prev, prevBytes],
+    ] as const) {
+      if (!h || !bytes) continue;
+      const newer = h.ok
+        ? newerFields(h.header, build).length > 0
+        : h.problem === 'newer_container' || newerText(decoder.decode(bytes), build);
+      if (newer) throw new NewerSave(`slot ${slot} holds a save from a newer version`);
+    }
+    // The ironman slot holds one run (5.9): another run's save there is deleted on purpose
+    // (the player starting a new ironman game), never written over.
+    if (slot === IRONMAN_SLOT && cur?.ok && cur.header.runId !== draft.runId) {
+      throw new OtherRun(`the ironman slot holds run ${cur.header.runId}`);
     }
     if (curBytes && cur?.ok && (await this.usable(cur.header))) {
       await this.storage.write(this.tmp(prevPath), curBytes);
@@ -600,5 +623,6 @@ export async function snapshotInfo(bytes: Uint8Array): Promise<SnapshotInfo | nu
 /** Failures of a write or restore: a newer save in the slot, or a storage error. */
 function commitFailure(err: unknown): SaveFailure {
   if (err instanceof NewerSave) return fail('newer_version', err.message);
+  if (err instanceof OtherRun) return fail('bad_request', err.message);
   return ioFailure(err);
 }

@@ -7,7 +7,10 @@
 // no longer replay the run: the engine dropped log entries at its hard cap, the AI mode
 // changed when a save was loaded, or a file of the chain went missing. loadSlot reads a
 // slot back, falling back to the previous generation when the current one is broken
-// (levels 1 and 2 of 5.6); the migration chain plugs into its `migrate` hook (PK-M0-18).
+// (levels 1 and 2 of 5.6), migrating every snapshot to this build (./migrate.ts). Levels 3
+// and 4 are in ./recovery.ts. The ironman rules of 5.9 are enforced here: an ironman run
+// saves only to its own slot, only from autosave triggers and exit, and leaves an anchor
+// at every act change.
 
 import type { AiMode } from '../ai_port';
 import { TICKS_PER_GAME_DAY } from '../time';
@@ -27,6 +30,8 @@ import {
   type SlotHeaderDraft,
   type SlotId,
 } from './header';
+import { IRONMAN_SLOT, ironmanViolation, type SaveTrigger } from './ironman';
+import { anchorMigrator, defaultMigrator, NewerSaveError, type WorldMigrator } from './migrate';
 import {
   type DecodedSegment,
   decodeCommandSegment,
@@ -34,7 +39,8 @@ import {
   joinSegments,
 } from './segments';
 import { sha256Hex } from './sha256';
-import { deserializeWorld, serializeWorld } from './world_file';
+import { buildVersions, newerFields } from './versions';
+import { serializeWorld } from './world_file';
 
 /** What a save takes from the running game: the world and its replay log. */
 export interface LogSource {
@@ -82,6 +88,8 @@ export interface SaveRequest {
   summary: SaveSummary;
   label?: string;
   flags?: Partial<SaveFlags>;
+  /** what asked for the save; an ironman run accepts only `auto`, `exit` and `recovery` */
+  trigger?: SaveTrigger;
 }
 
 export class RunSaver {
@@ -102,7 +110,17 @@ export class RunSaver {
   /** a slot whose header references the whole committed chain (for merging) */
   private chainSlot: SlotId | null;
   /** the loaded snapshot and its AI mode, until the first save has checked the mode */
-  private from: { tick: number; sha256: string; mode: AiMode | undefined } | null;
+  private from: {
+    tick: number;
+    sha256: string;
+    mode: AiMode | undefined;
+    /** written by another build: its segments do not replay under this one */
+    otherBuild: boolean;
+  } | null;
+  /** the story act at the last save (an ironman run anchors every act change) */
+  private lastAct: string | null;
+  /** the next snapshot becomes an anchor (a restarted chain has none of its own yet) */
+  private forceAnchor = false;
   private tail: Promise<unknown> = Promise.resolve();
   private inFlight = 0;
 
@@ -114,7 +132,18 @@ export class RunSaver {
     this.mergeAbove = opts.mergeAbove ?? MERGE_ABOVE;
     this.versions = opts.versions;
     const from = opts.from ?? null;
-    this.runFlags = { ...(from ? pickRunFlags(from.flags) : {}), ...opts.flags };
+    // The run flags carry over from the loaded save and cannot be switched off.
+    const inherited = from ? pickRunFlags(from) : {};
+    const asked = opts.flags ?? {};
+    this.runFlags = {
+      ...asked,
+      ironman: inherited.ironman === true || asked.ironman === true,
+      demo: inherited.demo === true || asked.demo === true,
+    };
+    // 5.9: a recovered ironman run stays marked recovered.
+    if (this.runFlags.ironman && (inherited.recovered || asked.recovered)) {
+      this.runFlags.recovered = true;
+    }
     this.chain = from ? [...from.files.segments] : [];
     this.anchors = from ? [...from.files.anchors] : [];
     const commands = this.chain.filter((s) => s.kind === 'commands');
@@ -123,8 +152,19 @@ export class RunSaver {
       : (from?.tick ?? 0);
     this.chainSlot = from?.slot ?? null;
     this.from = from
-      ? { tick: from.tick, sha256: from.files.snapshot.sha256, mode: opts.fromMode }
+      ? {
+          tick: from.tick,
+          sha256: from.files.snapshot.sha256,
+          mode: opts.fromMode,
+          otherBuild: !sameBuild(from, this.versions),
+        }
       : null;
+    this.lastAct = from ? from.summary.act : null;
+  }
+
+  /** The run is an ironman run (5.9). */
+  get ironman(): boolean {
+    return this.runFlags.ironman === true;
   }
 
   /** True while a save is being encoded or written ("not writing" is part of a safe point). */
@@ -152,11 +192,16 @@ export class RunSaver {
    * caller may keep stepping the engine while the save is encoded and written.
    */
   save(source: LogSource, req: SaveRequest): Promise<SaveWriteResult> {
+    // Refused before the log is drained, so a refused save loses nothing.
+    const ironman = this.ironman || req.flags?.ironman === true;
+    const refused = ironmanViolation(ironman, req.slot, req.trigger);
+    if (refused) return Promise.resolve({ ok: false, code: 'bad_request', reason: refused });
     const gap = source.logGap === true;
     const drained = source.drainLog();
     const tick = source.world.meta.tick;
     const mode = source.world.ai.mode;
     const snapshot = serializeWorld(source.world);
+    const act = String(source.world.meta.flags.act ?? '').slice(0, 64);
     const from = this.from;
     this.from = null;
     let restart: { tick: number; anchor: AnchorRef | null } | null = null;
@@ -165,15 +210,21 @@ export class RunSaver {
       restart = { tick, anchor: null };
     } else {
       for (const e of drained) this.pending.push(e);
-      if (from?.mode !== undefined && from.mode !== mode) {
-        // The AI mode changed with the load: replays start at the loaded snapshot.
+      if (from && ((from.mode !== undefined && from.mode !== mode) || from.otherBuild)) {
+        // The AI mode changed with the load, or another build wrote the loaded save (its
+        // commands replay only under that build): replays start at the loaded snapshot,
+        // which the loader migrates like any snapshot.
         restart = { tick: from.tick, anchor: { tick: from.tick, sha256: from.sha256 } };
       }
     }
     this.inFlight++;
     const run = this.tail.then(async () => {
-      if (restart) this.restartChain(restart.tick, restart.anchor);
-      return this.commit(tick, snapshot, mode, req);
+      if (restart) this.restartChain(restart.tick, restart.anchor, true);
+      // Against the last committed save, so a failed save leaves the act change to the next.
+      const actAnchor = ironman && this.lastAct !== null && act !== this.lastAct ? act : null;
+      const res = await this.commit(tick, snapshot, mode, req, actAnchor);
+      if (res.ok) this.lastAct = act;
+      return res;
     });
     this.tail = run.catch(() => undefined);
     return run.finally(() => {
@@ -181,10 +232,17 @@ export class RunSaver {
     });
   }
 
-  /** Begin a new chain at `tick`: no segments, the given anchor (or the next snapshot). */
-  private restartChain(tick: number, anchor: AnchorRef | null): void {
+  /**
+   * Begin a new chain at `tick`: no segments, the given anchor (or the next snapshot). An
+   * ironman run's act anchors are kept (they are whole snapshots, replayed or not), except
+   * when the restart is for a missing file, which may be one of them.
+   */
+  private restartChain(tick: number, anchor: AnchorRef | null, keepActs: boolean): void {
     this.chain = [];
-    this.anchors = anchor ? [anchor] : [];
+    const acts = keepActs ? this.anchors.filter((a) => a.act !== undefined && a.tick < tick) : [];
+    this.anchors = anchor ? [...acts, anchor] : acts;
+    // Without a given anchor the next snapshot opens the new chain, whatever its age.
+    this.forceAnchor = anchor === null;
     this.coveredTick = tick;
     this.pending = this.pending.filter((e) => e.tick > tick);
     this.chainSlot = null;
@@ -195,6 +253,7 @@ export class RunSaver {
     snapshot: string,
     mode: AiMode,
     req: SaveRequest,
+    actAnchor: string | null,
   ): Promise<SaveWriteResult> {
     let take = 0;
     while (take < this.pending.length && (this.pending[take] as LoggedCommand).tick <= tick) take++;
@@ -228,7 +287,8 @@ export class RunSaver {
     const snapSha = sha256Hex(snapBytes);
     const snapFile: SaveFileBlob = { kind: 'snapshot', sha256: snapSha, bytes: snapBytes };
     files.push(snapFile);
-    const anchors = nextAnchors(this.anchors, tick, snapSha, this.anchorPolicy);
+    const policy = this.forceAnchor ? { ...this.anchorPolicy, everyTicks: 0 } : this.anchorPolicy;
+    const anchors = nextAnchors(this.anchors, tick, snapSha, policy, actAnchor);
     const draft = (segments: SegmentRef[], anchorRefs: AnchorRef[]): SlotHeaderDraft => ({
       format: SAVE_FORMAT,
       container: CONTAINER_VERSION,
@@ -256,8 +316,10 @@ export class RunSaver {
     if (!res.ok && res.code === 'missing_file' && (this.chain.length || this.anchors.length)) {
       // A file of the chain is gone (deleted with its slots, or never synced): the chain
       // cannot replay any more, so it starts over at this snapshot.
-      this.restartChain(tick, null);
-      const fresh = [{ tick, sha256: snapSha }];
+      this.restartChain(tick, null, false);
+      const fresh: AnchorRef[] = [
+        actAnchor === null ? { tick, sha256: snapSha } : { tick, sha256: snapSha, act: actAnchor },
+      ];
       res = await this.backend.write({
         runId: this.runId,
         slotId: req.slot,
@@ -268,10 +330,12 @@ export class RunSaver {
         this.chain = [];
         this.anchors = fresh;
         this.chainSlot = req.slot;
+        this.forceAnchor = false;
       }
       return res;
     }
     if (res.ok) {
+      this.forceAnchor = false;
       this.pending.splice(0, take);
       this.chain = chain;
       this.anchors = anchors;
@@ -324,9 +388,23 @@ export class RunSaver {
   }
 }
 
-function pickRunFlags(f: SaveFlags): Partial<SaveFlags> {
-  // Ironman and demo belong to the run; recovered and tainted describe one save.
-  return { ironman: f.ironman, demo: f.demo };
+/** The loaded header was written with this build's version fields. */
+function sameBuild(h: SlotHeader, v: Omit<SaveVersions, 'worldVersion'>): boolean {
+  return (
+    h.worldVersion === WORLD_VERSION &&
+    h.renameVersion === v.renameVersion &&
+    h.contentVersion === v.contentVersion &&
+    h.gameVersion === v.gameVersion &&
+    h.build === v.build
+  );
+}
+
+function pickRunFlags(h: SlotHeader): Partial<SaveFlags> {
+  // Ironman and demo belong to the run (only an ironman run writes the ironman slot);
+  // recovered and tainted describe one save, except that a recovered ironman run stays
+  // marked (5.9).
+  const ironman = h.flags.ironman || h.slot === IRONMAN_SLOT;
+  return { ironman, demo: h.flags.demo, recovered: ironman && h.flags.recovered };
 }
 
 function commandCount(chain: readonly SegmentRef[]): number {
@@ -335,16 +413,37 @@ function commandCount(chain: readonly SegmentRef[]): number {
   return n;
 }
 
+/**
+ * The anchors after a save: the snapshot becomes one when the last is at least
+ * `everyTicks` old, keeping the latest `keep`. An act anchor (an ironman run's act change,
+ * 5.3) is always added, carries its act and is kept for good beside the periodic ones.
+ */
 export function nextAnchors(
   anchors: readonly AnchorRef[],
   tick: number,
   sha256: string,
   policy: AnchorPolicy,
+  act: string | null = null,
 ): AnchorRef[] {
   const last = anchors[anchors.length - 1];
-  if (last && tick - last.tick < policy.everyTicks) return [...anchors];
-  if (last && last.tick === tick && last.sha256 === sha256) return [...anchors];
-  return [...anchors, { tick, sha256 }].slice(-Math.max(1, policy.keep));
+  let out: AnchorRef[];
+  if (last && last.tick === tick && last.sha256 === sha256) {
+    if (act === null || last.act !== undefined) return [...anchors];
+    out = [...anchors.slice(0, -1), { ...last, act }];
+  } else if (act !== null) {
+    out = [...anchors, { tick, sha256, act }];
+  } else if (last && tick - last.tick < policy.everyTicks) {
+    return [...anchors];
+  } else {
+    out = [...anchors, { tick, sha256 }];
+  }
+  const keep = Math.max(1, policy.keep);
+  let periodic = out.filter((a) => a.act === undefined).length;
+  return out.filter((a) => {
+    if (a.act !== undefined || periodic <= keep) return true;
+    periodic--;
+    return false;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -357,46 +456,64 @@ export class SaveLoadError extends Error {
   constructor(
     readonly problem: LoadProblem,
     message: string,
+    /** a referenced file was missing: maybe still syncing from the cloud (5.7) */
+    readonly cloudPending = false,
   ) {
     super(message);
     this.name = 'SaveLoadError';
   }
 }
 
-/** Turns a snapshot's text into a current world; PK-M0-18 plugs the migration chain in. */
-export type WorldMigrator = (text: string, header: SlotHeader) => World;
-
-export const strictMigrator: WorldMigrator = (text) => deserializeWorld(text);
-
 export interface LoadedSave {
   world: World;
   /** the header the world came from (the previous generation after a fallback) */
   header: SlotHeader;
-  /** 0: current generation; 1: header broken, previous used; 2: files broken, previous used */
-  level: 0 | 1 | 2;
+  /**
+   * 0: current generation; 1: header broken, previous used; 2: files broken, previous
+   * used; 3: replayed from an anchor; 4: a snapshot the player picked (./recovery.ts)
+   */
+  level: 0 | 1 | 2 | 3 | 4;
   /** a referenced file was missing: probably still syncing from the cloud (5.7) */
   cloudPending: boolean;
   /** the AI mode the world was saved with (resuming may change it on the world) */
   aiMode: AiMode;
 }
 
-/** Read a slot's world, falling back to the previous generation (5.6 levels 1 and 2). */
+export interface LoadOptions {
+  /** this build's game version, to refuse saves of a newer release (5.5) */
+  gameVersion?: string;
+}
+
+/**
+ * Read a slot's world through the migrations, falling back to the previous generation
+ * (5.6 levels 1 and 2). A save of a newer build is refused (SaveLoadError `newer`): a
+ * newer current generation is never replaced by an older previous one.
+ */
 export async function loadSlot(
   backend: SaveBackend,
   slot: SlotId,
-  migrate: WorldMigrator = strictMigrator,
+  migrate: WorldMigrator = defaultMigrator,
+  opts: LoadOptions = {},
 ): Promise<LoadedSave> {
   const rec = (await backend.list()).find((r) => r.slot === slot);
   if (!rec) throw new SaveLoadError('empty', `slot ${slot} is empty`);
-  if (rec.problem === 'newer_container' || (rec.header?.worldVersion ?? 0) > WORLD_VERSION) {
+  const build = buildVersions(opts.gameVersion);
+  const newer = (h: SlotHeader | null) => (h ? newerFields(h, build) : []);
+  if (rec.problem === 'newer_container' || newer(rec.header).length > 0) {
     throw new SaveLoadError('newer', `slot ${slot} was saved by a newer version`);
   }
   const tries: { header: SlotHeader; level: 0 | 1 | 2 }[] = [];
   if (rec.header) tries.push({ header: rec.header, level: 0 });
   if (rec.prev) tries.push({ header: rec.prev, level: rec.header ? 2 : 1 });
   let cloudPending = false;
+  let sawNewer = false;
   const reasons: string[] = [];
   for (const t of tries) {
+    if (newer(t.header).length > 0) {
+      sawNewer = true;
+      reasons.push(`generation ${t.header.generation} is from a newer version`);
+      continue;
+    }
     try {
       const world = await readWorld(backend, slot, t.header.files.snapshot.sha256, (text) =>
         migrate(text, t.header),
@@ -404,14 +521,27 @@ export async function loadSlot(
       return { world, header: t.header, level: t.level, cloudPending, aiMode: world.ai.mode };
     } catch (err) {
       if (err instanceof MissingFile) cloudPending = true;
+      if (err instanceof NewerSaveError) {
+        // The newest generation holds a newer world: the slot is a newer build's.
+        if (t === tries[0]) {
+          throw new SaveLoadError('newer', `slot ${slot} was saved by a newer version`);
+        }
+        sawNewer = true;
+      }
       reasons.push(String((err as Error)?.message ?? err));
     }
   }
+  if (sawNewer) throw new SaveLoadError('newer', `slot ${slot} was saved by a newer version`);
   if (rec.problem && rec.problem !== 'missing') reasons.unshift(`header ${rec.problem}`);
-  throw new SaveLoadError('unreadable', `slot ${slot} is unreadable: ${reasons.join('; ')}`);
+  throw new SaveLoadError(
+    'unreadable',
+    `slot ${slot} is unreadable: ${reasons.join('; ')}`,
+    cloudPending,
+  );
 }
 
-class MissingFile extends Error {}
+/** A referenced file is not in the run volume (yet): probably still syncing (5.7). */
+export class MissingFile extends Error {}
 
 async function readBytes(backend: SaveBackend, slot: SlotId, sha256: string): Promise<Uint8Array> {
   const res = await backend.read({ slotId: slot, hashes: [sha256] });
@@ -422,12 +552,16 @@ async function readBytes(backend: SaveBackend, slot: SlotId, sha256: string): Pr
   return f.bytes;
 }
 
-/** Read one snapshot (the slot's own or an anchor) referenced by a slot. */
+/**
+ * Read one snapshot (the slot's own or an anchor) referenced by a slot. By default it is
+ * migrated with every rename (an anchor may predate the build that wrote its header; the
+ * renames are idempotent), as the loader would have migrated it.
+ */
 export async function readWorld(
   backend: SaveBackend,
   slot: SlotId,
   sha256: string,
-  migrate: (text: string) => World = (text) => deserializeWorld(text),
+  migrate: (text: string) => World = anchorMigrator,
 ): Promise<World> {
   const text = await decodeSaveBytes(await readBytes(backend, slot, sha256));
   const world = migrate(text);

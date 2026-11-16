@@ -1,0 +1,106 @@
+{
+  "about": "Frozen save samples (release_engineering.md 10.4): one per act of each world version, recorded by the no-model autoplayer (node tools/replay/run.ts record --act-fixtures), plus saves written before the variable registry (rename version 0). hash and state are worldHash and stateHash after migration to the current build (the migration golden); a change to the migrations or the rename table that moves them fails tests/save_migration.test.ts.",
+  "samples": [
+    {
+      "file": "v1/prologue.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "prologue",
+      "tick": 60,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "ade5b210",
+      "state": "8af6515b"
+    },
+    {
+      "file": "v1/act1.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act1",
+      "tick": 200,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "e821ff4c",
+      "state": "97e9afff"
+    },
+    {
+      "file": "v1/act2.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act2",
+      "tick": 520886,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "3a47b5e9",
+      "state": "9b4f0334"
+    },
+    {
+      "file": "v1/act3.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act3",
+      "tick": 943812,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "de479816",
+      "state": "b396bbf6"
+    },
+    {
+      "file": "v1/act4.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act4",
+      "tick": 1062691,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "a5eeb05f",
+      "state": "9561d291"
+    },
+    {
+      "file": "v1/act5.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act5",
+      "tick": 1462460,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "a51fd179",
+      "state": "b4daf766"
+    },
+    {
+      "file": "v1/act6.hks",
+      "worldVersion": 1,
+      "renameVersion": 1,
+      "act": "act6",
+      "tick": 1935080,
+      "seed": 20261115,
+      "route": "release",
+      "hash": "b9c16c98",
+      "state": "27e4be40"
+    },
+    {
+      "file": "v1/r0_act2.hks",
+      "worldVersion": 1,
+      "renameVersion": 0,
+      "act": "act2",
+      "tick": 521423,
+      "seed": 20261115,
+      "route": "release",
+      "note": "written by the build before the variable registry (4687597add): old flag spellings and quest data ids",
+      "hash": "97cd429e",
+      "state": "177e346f"
+    },
+    {
+      "file": "../save_container/act6_release.hks",
+      "worldVersion": 1,
+      "renameVersion": 0,
+      "act": "act6",
+      "tick": 1941896,
+      "seed": 20261115,
+      "route": "release",
+      "note": "the container fixture of PK-M0-16, also written before the variable registry",
+      "hash": "2a248ead",
+      "state": "2a7d4ad7"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "format": "hakoniwa-save",
+  "container": 1,
+  "worldVersion": 1,
+  "gameVersion": "0.1.0",
+  "contentVersion": "c-test",
+  "renameVersion": 1,
+  "build": "test",
+  "slot": "manual_01",
+  "label": "",
+  "runId": "r-0123abcd",
+  "savedAt": "2026-11-16T00:00:00.000Z",
+  "tick": 36,
+  "flags": { "ironman": false, "demo": false, "tainted": false, "recovered": false },
+  "summary": { "act": "", "map": "" },
+  "files": {
+    "snapshot": {
+      "sha256": "f56792e9bcd5746c7f7636834d5332ac4ee1085495b08a1edf0a1d4f02815746",
+      "bytes": 369
+    },
+    "segments": [],
+    "anchors": [
+      { "tick": 35, "sha256": "f56792e9bcd5746c7f7636834d5332ac4ee1085495b08a1edf0a1d4f02815746" }
+    ]
+  },
+  "generation": 9,
+  "writerId": "w-test",
+  "writerName": "test",
+  "headerSha256": "3eb42ef2060f91603c5c6aec20125251357d149e2f88b3c7badc805fce6d3a6f"
+}

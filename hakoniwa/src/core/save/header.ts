@@ -4,6 +4,8 @@
 // run ids and hashes are the same file-name rules the desktop main process enforces.
 
 import type { AiMode } from '../ai_port';
+import { WORLD_VERSION } from '../world';
+import { RENAME_VERSION } from './renames';
 import { sha256Text } from './sha256';
 
 export const SAVE_FORMAT = 'hakoniwa-save';
@@ -97,6 +99,8 @@ export interface SegmentRef extends FileRef {
 export interface AnchorRef {
   tick: number;
   sha256: string;
+  /** an ironman run's act-change anchor (5.3): the act entered; kept beside the periodic ones */
+  act?: string;
 }
 
 export interface SaveFlags {
@@ -223,6 +227,7 @@ export function headerRefs(h: SlotHeaderDraft): { kind: 'snapshot' | 'segment'; 
 // ---------------------------------------------------------------------------
 // Validation (hand-written, like the rest of the content checks)
 
+/** `newer_container`: written by a newer build in a form this one cannot read (5.5). */
 export type HeaderProblem = 'bad_json' | 'bad_shape' | 'bad_hash' | 'newer_container';
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
@@ -252,7 +257,9 @@ function isSegmentRef(v: unknown): v is SegmentRef {
 }
 
 function isAnchorRef(v: unknown): v is AnchorRef {
-  return isObj(v) && isInt(v.tick) && isSha256(v.sha256);
+  return (
+    isObj(v) && isInt(v.tick) && isSha256(v.sha256) && (v.act === undefined || isStr(v.act, 64))
+  );
 }
 
 function isFlags(v: unknown): v is SaveFlags {
@@ -333,6 +340,18 @@ export function parseHeader(text: string): ParsedHeader {
 }
 
 export function checkHeader(v: unknown): ParsedHeader {
+  // A newer build may change the header's shape or hash: its raw version numbers tell it
+  // apart from damage, so its slot is refused rather than recovered over (5.5). A header
+  // of a newer world or rename version that this build can still parse stays readable
+  // (the slot list shows it; loading refuses it, ./versions.ts).
+  const raw = isObj(v) ? v : null;
+  if (raw && isInt(raw.container) && raw.container > CONTAINER_VERSION) {
+    return { ok: false, problem: 'newer_container' };
+  }
+  const newerData =
+    !!raw &&
+    ((isInt(raw.worldVersion) && raw.worldVersion > WORLD_VERSION) ||
+      (isInt(raw.renameVersion) && raw.renameVersion > RENAME_VERSION));
   if (
     !isHeaderDraft(v) ||
     !isInt((v as SlotHeader).generation, 1) ||
@@ -340,10 +359,11 @@ export function checkHeader(v: unknown): ParsedHeader {
     !isStr((v as SlotHeader).writerName, 128) ||
     !isSha256((v as SlotHeader).headerSha256)
   ) {
-    return { ok: false, problem: 'bad_shape' };
+    return { ok: false, problem: newerData ? 'newer_container' : 'bad_shape' };
   }
   const h = v as SlotHeader;
-  if (headerHash(h) !== h.headerSha256) return { ok: false, problem: 'bad_hash' };
-  if (h.container > CONTAINER_VERSION) return { ok: false, problem: 'newer_container' };
+  if (headerHash(h) !== h.headerSha256) {
+    return { ok: false, problem: newerData ? 'newer_container' : 'bad_hash' };
+  }
   return { ok: true, header: h };
 }

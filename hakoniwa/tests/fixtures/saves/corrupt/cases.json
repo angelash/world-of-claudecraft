@@ -1,0 +1,42 @@
+{
+  "about": "Corrupted save files (release_engineering.md 5.6 and 10.4), injected into a slot with two good generations by tests/save_recovery.test.ts. target: header (replaces the current header file), snapshot (replaces the current snapshot file in place), generation (committed as a new current generation whose snapshot is this file, stored under its own hash). expect: the recovery level, or newer when the slot is refused.",
+  "cases": [
+    {
+      "file": "header_truncated.json.part",
+      "target": "header",
+      "problem": "bad_json",
+      "expect": 1
+    },
+    { "file": "header_tampered.json", "target": "header", "problem": "bad_hash", "expect": 1 },
+    {
+      "file": "snapshot_flipped.hks",
+      "target": "snapshot",
+      "problem": "hash mismatch",
+      "expect": 2
+    },
+    {
+      "file": "snapshot_truncated.hks",
+      "target": "generation",
+      "problem": "gzip cut short",
+      "expect": 2
+    },
+    {
+      "file": "world_invalid.hks",
+      "target": "generation",
+      "problem": "validateWorld fails",
+      "expect": 2
+    },
+    {
+      "file": "world_newer.hks",
+      "target": "generation",
+      "problem": "world version 99 in the newest generation",
+      "expect": "newer"
+    },
+    {
+      "file": "world_newer.hks",
+      "target": "only_generation",
+      "problem": "world version 99, no older generation",
+      "expect": "newer"
+    }
+  ]
+}

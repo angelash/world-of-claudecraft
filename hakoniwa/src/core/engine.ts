@@ -107,8 +107,12 @@ export class Engine {
   }
 
   /**
-   * Replay a recorded run: a fresh world with the same seed, AI in replay mode, and the
-   * logged external commands re-applied at their original ticks.
+   * Replay a recorded run: a fresh world with the same seed and the logged external
+   * commands re-applied at their original ticks. By default the AI is in replay mode
+   * (proposals and fallbacks come from the log). Pass `aiMode: 'off'` for a run played with
+   * the AI off: it replays as replayFrom does, off and from its player and script commands,
+   * so conditions that read whether the AI is on see what the run saw and its fallbacks
+   * fire again exactly as they did.
    */
   static replay(
     seed: number,
@@ -117,9 +121,15 @@ export class Engine {
     log: readonly LoggedCommand[],
     opts: EngineOptions = {},
   ): Engine {
-    const engine = Engine.create(seed, content, systems, { ...opts, aiMode: 'replay' });
+    const off = opts.aiMode === 'off';
+    const engine = Engine.create(seed, content, systems, {
+      ...opts,
+      aiMode: off ? 'off' : 'replay',
+    });
     engine.replaying = true;
-    engine.replayLog = [...log];
+    engine.replayLog = off
+      ? log.filter((e) => OFF_REPLAY_SOURCES.has(e.command.source.type))
+      : [...log];
     return engine;
   }
 

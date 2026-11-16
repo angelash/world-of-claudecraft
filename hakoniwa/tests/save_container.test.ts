@@ -53,6 +53,7 @@ import {
   sha256Text,
   snapshotInfo,
   stateHash,
+  strictMigrator,
   utf8Codec,
   worldHash,
 } from '../src/core/save';
@@ -959,7 +960,9 @@ describe('an act 6 world (fixture)', () => {
       expect(res.header.tick).toBe(world.meta.tick);
       expect(res.header.files.snapshot.bytes).toBeLessThanOrEqual(2.5 * MB);
       expect(ms).toBeLessThan(10_000);
-      const loaded = await loadSlot(be, 'manual_01');
+      // The container round trip itself: this fixture predates the variable registry, so
+      // the default loader would migrate its names (tests/save_migration.test.ts).
+      const loaded = await loadSlot(be, 'manual_01', strictMigrator);
       expect(worldHash(loaded.world)).toBe(want);
       expect(serializeWorld(loaded.world)).toBe(wantJson);
     }

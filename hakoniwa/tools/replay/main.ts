@@ -13,10 +13,13 @@
 //     --days prints the hash at every game-day boundary. Exit code 1 when any differs.
 //
 //   record  --dir <saves dir> [--route release] [--seed N] [--every <ticks>] [--until <act>]
-//           [--max-ticks N] [--fixture <file>]
+//           [--max-ticks N] [--fixture <file>] [--act-fixtures <dir> [--act-delay <ticks>]]
 //     Play a no-model route with the autoplayer, saving every --every ticks into rotating
 //     manual slots (every save is an anchor) and once more at the end into `quick`.
 //     --fixture also copies the last snapshot file there (a test fixture).
+//     --act-fixtures saves once in every act, --act-delay ticks (default 600) after the
+//     act begins, and copies each snapshot to <dir>/<act>.hks (the migration samples of
+//     tests/fixtures/saves/, release_engineering.md 10.4).
 
 import { randomBytes } from 'node:crypto';
 import { copyFileSync, mkdirSync } from 'node:fs';
@@ -30,6 +33,7 @@ import {
   loadSlot,
   MANUAL_SLOTS,
   planReplay,
+  RENAME_VERSION,
   RunSaver,
   readWorld,
   runIdFromBytes,
@@ -70,7 +74,12 @@ function backendAt(dir: string): ContainerBackend {
   });
 }
 
-const VERSIONS = { gameVersion: 'tool', contentVersion: '', renameVersion: 0, build: 'replay' };
+const VERSIONS = {
+  gameVersion: 'tool',
+  contentVersion: '',
+  renameVersion: RENAME_VERSION,
+  build: 'replay',
+};
 
 export async function main(argv: string[]): Promise<number> {
   const { cmd, args } = parseArgs(argv);
@@ -78,7 +87,7 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'record') return record(args);
   console.log(
     'usage: node tools/replay/run.ts replay --dir <saves> --slot <slot> [--anchor <tick> | --all | --hops] [--to <tick>] [--shard i/n] [--days]\n' +
-      '       node tools/replay/run.ts record --dir <saves> [--route release] [--seed N] [--every <ticks>] [--until <act>] [--max-ticks N] [--fixture <file>]',
+      '       node tools/replay/run.ts record --dir <saves> [--route release] [--seed N] [--every <ticks>] [--until <act>] [--max-ticks N] [--fixture <file>] [--act-fixtures <dir> [--act-delay <ticks>]]',
   );
   return cmd === 'help' ? 0 : 2;
 }
@@ -133,7 +142,14 @@ async function replay(args: Args): Promise<number> {
   if (loaded.level > 0) console.log(`note: slot ${slot} read from its previous generation`);
   let bad = 0;
   for (const job of jobs) {
-    const plan = planReplay(header, job.from, job.to);
+    let plan: ReturnType<typeof planReplay>;
+    try {
+      plan = planReplay(header, job.from, job.to);
+    } catch (err) {
+      // An ironman act anchor kept from before a chain restart has no segments after it.
+      console.log(`skip anchor ${job.from} -> ${job.to}: ${(err as Error).message}`);
+      continue;
+    }
     const { world, commands, aiMode } = await loadReplay(backend, plan);
     const target = await targetAt(plan.toTick);
     const t0 = performance.now();
@@ -177,11 +193,27 @@ async function record(args: Args): Promise<number> {
   let next = every;
   let n = 0;
   const writes: Promise<string | null>[] = [];
+  const actDir = typeof args['act-fixtures'] === 'string' ? resolve(args['act-fixtures']) : null;
+  const actDelay = Number(args['act-delay'] ?? 600);
+  const acts: { act: string; tick: number; sha: Promise<string | null> }[] = [];
+  let actSeen = '';
+  let actAt = -1;
   const t0 = performance.now();
   const result = bot.run({
     maxTicks: args['max-ticks'] === undefined ? undefined : Number(args['max-ticks']),
     until: (e) => {
       if (until && e.world.meta.flags.act === until) return true;
+      const act = String(e.world.meta.flags.act ?? '');
+      if (actDir && act !== actSeen) {
+        if (actAt >= 0) console.warn(`act ${actSeen} ended before --act-delay: no fixture`);
+        actSeen = act;
+        actAt = e.tick + actDelay;
+      }
+      if (actDir && actAt >= 0 && e.tick >= actAt) {
+        actAt = -1;
+        const slot = MANUAL_SLOTS[n++ % MANUAL_SLOTS.length] as SlotId;
+        acts.push({ act: actSeen || 'start', tick: e.tick, sha: save(saver, e, slot) });
+      }
       if (e.tick >= next) {
         next += every;
         const slot = MANUAL_SLOTS[n++ % MANUAL_SLOTS.length] as SlotId;
@@ -196,6 +228,16 @@ async function record(args: Args): Promise<number> {
     `recorded ${n + 1} saves to ${dir}: ending=${result.ending} tick=${engine.tick} ` +
       `(${Math.round(performance.now() - t0)} ms)`,
   );
+  if (actDir) {
+    mkdirSync(actDir, { recursive: true });
+    for (const a of acts) {
+      const sha = await a.sha;
+      if (!sha) continue;
+      const src = join(resolve(dir), ...filePath(saver.runId, 'snapshot', sha).split('/'));
+      copyFileSync(src, join(actDir, `${a.act}.hks`));
+      console.log(`act fixture ${a.act} tick ${a.tick} <- ${sha}`);
+    }
+  }
   if (typeof args.fixture === 'string' && last) {
     const src = join(resolve(dir), ...filePath(saver.runId, 'snapshot', last).split('/'));
     mkdirSync(dirname(resolve(args.fixture)), { recursive: true });
