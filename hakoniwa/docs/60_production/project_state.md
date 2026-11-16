@@ -22,7 +22,7 @@
 
 ## 1. 当前里程碑
 
-**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-16、PK-M0-17、PK-M0-19、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
+**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-16、PK-M0-17、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
@@ -76,14 +76,14 @@
 | 任务、场景与结局 | 50% | `src/systems/quests/`、`scenes/`：任务与阶段、条件表达式、幕次推进、台账过滤、结局判定；序章、过场、梦境、神庭审判、11 个结局与后日谈 | 11 条结局路线中只验证了 2 条；立国事件链只映射到旗标 | PK-M3-05、PK-M3-15 |
 | 玩家自配模型 | 55% | `src/ai/`：运行器（并发、预算、降级、超时、冷却、过时作废）、角色包、审计；中立调用规格 `LlmCallSpec` 与 20 个问题代码；`src/ai/providers/` 的四个纯函数适配器、模式方言改写与能力表（`data/llm/`）；开发代理 `tools/llm_proxy.ts` 的 `/api/llm`、`/api/llm/test`、`/api/llm/models`；`src/ai/llm_config/` 的设置模型、四种预设、路由与估算器；三窗口预算与 0 到 9 级；三种传输与 RE-22 替身；桌面网关进程与密钥录入窗骨架（`desktop/llm_gateway/`、`desktop/key_entry/`） | 网关适配器、记账与密钥落盘；设置页屏 A 到 J 与台账；编辑器改用新传输后退役旧代理路径；用真密钥重录应答样例 | PK-M1-01、PK-M1-02 |
 | 内置 AI | 15% | 各系统里的规则兜底与"兜底先算"；`data/dialogue/templates.json`、`data/cognition/lines.json` | `src/core/brain/` 原语；NPC、女神、同伴、官员、将领、统治者、审庭的规则大脑；台词包与吠叫池 | PK-M0-25、PK-M0-26 起，见内置 AI 第 19 节 |
-| 客户端与界面 | 40% | `src/client/`：18 个窗口、HUD、键鼠输入、设置（大模型开关、画质、视角） | 31 个窗口与 10 种模式的目标；手柄与改键；24 格快捷栏；95 个 `tut_`；无障碍；字符串表 | PK-M0-15、PK-M1-07、PK-M1-22、PK-M1-23 |
+| 客户端与界面 | 45% | `src/client/`：18 个窗口、HUD、键鼠输入；设置存储 `SettingsStore`（同步份与本机份，经 `PlatformHost`；界面目前只用画质、视角与大模型开关） | 31 个窗口与 10 种模式的目标；手柄与改键；24 格快捷栏；95 个 `tut_`；无障碍；字符串表 | PK-M0-15、PK-M1-07、PK-M1-22、PK-M1-23 |
 | HD-2D 渲染 | 65% | `src/client/hd2d/` 与 `src/client/render/`：正交斜俯视、像素地面、立体房屋与掀顶（含穹顶、圆锥帐顶、尖塔）、立牌、光照图与动态光、天气、后期链、覆盖层、16 个风格包；平面降级档；素材解析器 `src/client/assets/`（通过的 AI 位图优先，其余退回占位） | 纸娃娃组装器；别名物种换色；地面分块；4 向；远景天幕；战场进 HD-2D；自动降档与超高档开放 | PK-M1-03、PK-M1-24、PK-M2-09、PK-M3-01 |
 | 编辑器与审核工作台 | 60% | `src/editor/`：内容编辑器、地图编辑器、世界检视器、内容检查台、AI 审计台、角色检视、任务与剧情图、平衡实验室 | 批次视图、注册表视图、台词包编辑、HD-2D 内嵌预览、素材浏览、行为树与意图试句台 | PK-M0-28、PK-M1-25、PK-M2-18 |
 | 自动玩家与测试 | 35% | `src/game/autoplay/`；50 个测试文件；`tests/playthrough/` 三项（两条结局路线与回放） | 11 条结局路线；20 种子乘三种条件矩阵；节奏三条路线；基准、端到端、截图、性能回归；存档与模型路径测试 | PK-M1-05、PK-M1-08、PK-M1-10、PK-M3-05 |
 | 本地化 | 5% | 界面文本集中在 `src/shared_ui/text*.ts` | `TextRef`、字符串表、伪本地化、文本检查 | PK-M0-14、PK-M0-15 |
 | 音频 | 15% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架 | 播放引擎、五总线实装、环境层、声部池、空间化、分轨 | PK-M1-06 |
 | 工具链 | 20% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/registry/`（`npm run registry`、`registry:check`）、`tools/replay/`、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取、内容抽取与校验 | PK-M0-28、PK-M1-04 |
-| 发行 | 30% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`、未签名的 `npm run pack:win`）；平台接口 `src/platform/` 的三种实现 | 客户端改走 `PlatformHost`、桌面存档与设置处理器、打包签名、Steam、崩溃与遥测、夜间流水线 | PK-M0-20、PK-M1-09，后续见发行工程第 17 节 |
+| 发行 | 30% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`、未签名的 `npm run pack:win`）；平台接口 `src/platform/` 的三种实现，客户端经它存档与读写设置；桌面主进程的设置与存档处理器 | 打包签名、Steam、崩溃与遥测（含遥测开关）、夜间流水线、网关台账 | PK-M1-01、PK-M1-09，后续见发行工程第 17 节 |
 
 ### 2.3 内容与素材层
 
@@ -128,7 +128,6 @@
 | PK-M0-07 提示词库收尾 | 生成脚本、规格文件、`promptHash` 与规格后处理已提交；技能、天赋、光环图标未做 | PK-M0-02 |
 | PK-M0-14 内核文本键迁移 | 代理实施中 | 无 |
 | PK-M0-18 存档迁移与恢复 | 代理实施中 | 无 |
-| PK-M0-20 设置存储 | 代理实施中 | 无 |
 | PK-M0-28 内容管线与校验层 | 代理实施中 | 无 |
 
 ---
