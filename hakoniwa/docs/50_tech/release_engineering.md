@@ -928,6 +928,10 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 6. **验证**：单元测试、内容校验、受影响幕的通关冒烟；涉及数值的批次跑平衡实验室的批量战斗模拟。
 7. **报告**：批次报告（新增、改动、删除的 ID，校验结果，平衡摘要）进包目录，封包。
 
+- 命令：`node tools/content/import_catalog.ts` 的 `mappings`、`extract`、`fill`、`validate`、`promote`、`verify`、`report`、`status`；映射是 `tools/content/mappings/` 下按目录表格写的声明，解析不了的单元格交给作者，不猜。
+- 批次的机读记录在 `data/_batches/<批次名>.json`（每一步的命令与结果），暂存文件在 `data/_staging/`，合入后删除，`data/_staging/index.json` 保留供编辑器列出批次；人读的批次报告进所属实施包的包目录（`docs/70_packets/pk_<里程碑>_<序号>_<短名>/`），批次名写在包的别名里。
+- 一个排期批次可以分段合入，段名顺延（`content_act1_items_01`、`_02`）。
+
 ### 7.4 校验层
 
 | 层 | 检查 | 实现 | 阻断 |
@@ -936,14 +940,14 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 | V2 引用 | 跨表 ID 存在（物品、魔物、地图、人物、门、任务、场景、技能） | 同上，扩到全部引用字段 | 是 |
 | V3 命名空间 | 一个 ID 一个主人；前缀与表匹配（总纲第 12 节与各目录登记的命名空间） | `tools/content/validators/namespace.ts` | 是 |
 | V4 变量注册表 | 每个旗标与变量都已登记；条件表达式可解析；写入方与读取方一致（D-076） | `validators/registry.ts` | 是 |
-| V5 揭示台账 | 玩家可见文本按"最早可见幕"做泄露扫描（禁区词、`leakSignatures`，[reveal_ledger.md](../30_story/reveal_ledger.md) 第 8 节） | `validators/ledger.ts`，复用 `src/systems/quests` 的知识过滤 | 是 |
+| V5 揭示台账 | 玩家可见文本按"最早可见幕"做泄露扫描（禁区词、`leakSignatures`，[reveal_ledger.md](../30_story/reveal_ledger.md) 第 8 节）；"最早可见幕"的世界取本幕及之前登记的旗标为真，揭示后的名字按其 `revealWhen` 判定 | `validators/ledger.ts`，复用 `src/systems/quests` 的知识过滤 | 禁区词与 `leakSignatures` 是；台账关键词只报警（含日常词）；已审例外登记在 `ledger_reviewed.json`，到期即阻断 |
 | V6 数值带 | 等级在所属幕的等级带内（D-069）；阶、价格按总纲第 3、6.4 节；经验产出按分幕预算（30%、25%、25%、12%、8% 五个来源），偏差超过 10% 报警 | `validators/balance.ts` | 等级与阶是；经验报警 |
 | V7 素材引用 | 需要图或声音的条目都有 `art_`、`mus_`、`amb_`、`sfx_` ID，且在素材需求清单中；M4 起不允许占位 | `validators/assets.ts` | M4 起是 |
-| V8 文本 | 每个玩家可见文本有键或在内容字段里；源文本非空；无禁用字符；长度不超过界面给的上限 | `validators/text.ts` | 是 |
-| V9 可达性 | 任务与剧情图全部可达（编辑器的任务与剧情图分析）；每个结局有路线（10.3） | `validators/reach.ts` | 是 |
-| V10 专有名词 | 主工程专有名词清单与已知作品名清单零命中（[reuse_map.md](reuse_map.md) 第 6.3 节第 3 条） | `validators/names.ts` | 是 |
+| V8 文本 | 每个玩家可见文本有键或在内容字段里；源文本非空；无禁用字符；长度不超过界面给的上限 | `validators/text.ts`（界面未给上限的字段，上限定在 `validators/player_text.ts`） | 是 |
+| V9 可达性 | 任务与剧情图全部可达（编辑器的任务与剧情图分析）；每个结局有路线（10.3） | `validators/reach.ts` | 任务与剧情图是；结局路线在 M3（RE-21 补齐 11 条路线）前只报警 |
+| V10 专有名词 | 主工程专有名词清单与已知作品名清单零命中（[reuse_map.md](reuse_map.md) 第 6.3 节第 3 条） | `validators/names.ts` | 是；第一轮数据里的命中登记为已审例外（`names_reviewed.json`），到期即阻断 |
 
-校验器都是纯函数，测试 `tests/content_validation.test.ts` 与命令行工具共用；编辑器保存前调用同一组校验器。
+校验器都是纯函数，测试 `tests/content_validation.test.ts` 与命令行工具共用；编辑器保存前调用同一组校验器（内容编辑器与地图编辑器的保存接入在 M1）。
 
 ### 7.5 编辑器
 

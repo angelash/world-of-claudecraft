@@ -22,14 +22,14 @@
 
 ## 1. 当前里程碑
 
-**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
+**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-27、PK-M0-28、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
 | MA-01 无模型完整通关 | PASS（第一轮基线） | `npm run playthrough`：离手与梅尔卡之治两条路线从序章到结局，回放哈希一致；单条路线约 10 分钟，目标 8 分钟以内（PK-M0-31） |
 | MA-02 内置 AI 验证矩阵 | 未开始 | 原语与意图分类器未建（PK-M0-25、PK-M0-26） |
 | MA-03 确定性回放 | PASS | 命令日志分段落盘，`tools/replay` 从任一锚点回放；完整离手路线 44 段逐段回放与中间锚点到终点的世界哈希、完整状态哈希一致（PK-M0-17）；带模型的局回放尚需记下 AI 结算 |
-| MA-04 零剧透 | VERIFY | 揭示台账知识过滤与泄露检查在 `src/systems/quests/`；V5、V10 校验器未建（PK-M0-28） |
+| MA-04 零剧透 | PASS（报警待清） | V5 揭示台账与 V10 专有名词已建，真实数据零阻断（PK-M0-28）；守护巨鸦描述在第一幕写出"雅努"，登记为到 M1 阻断的已审例外；`evidence_e20` 的"铭录后门"待叙事确认；`leakSignatures` 尚未写进数据 |
 | MA-05 花费上限 | PASS（模型替身） | 三窗口（小时、日、局）的金额与 token 口径、0 到 9 级与滞回；随机用量下"已结算加在途预留不超过上限"6000 步成立（`tests/llm_budget.test.ts`，PK-M0-24）；网关记账持久化在 PK-M1-01 |
 | MA-06 素材合规 | 未开始 | `assets/tools.json` 与条款快照未建（PK-M0-05） |
 | MA-07 正典一致 | VERIFY | 本轮设计的请求回写尚未全部落地（PK-M0-04） |
@@ -82,7 +82,7 @@
 | 自动玩家与测试 | 35% | `src/game/autoplay/`；50 个测试文件；`tests/playthrough/` 三项（两条结局路线与回放） | 11 条结局路线；20 种子乘三种条件矩阵；节奏三条路线；基准、端到端、截图、性能回归；存档与模型路径测试 | PK-M1-05、PK-M1-08、PK-M1-10、PK-M3-05 |
 | 本地化 | 5% | 界面文本集中在 `src/shared_ui/text*.ts` | `TextRef`、字符串表、伪本地化、文本检查 | PK-M0-14、PK-M0-15 |
 | 音频 | 15% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架 | 播放引擎、五总线实装、环境层、声部池、空间化、分轨 | PK-M1-06 |
-| 工具链 | 20% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/registry/`（`npm run registry`、`registry:check`）、`tools/replay/`、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取、内容抽取与校验 | PK-M0-28、PK-M1-04 |
+| 工具链 | 70% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/registry/`（`npm run registry`、`registry:check`）、`tools/replay/`、`tools/content/`（目录导入七步与 V1 到 V10 校验）、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取；后续内容批次 | PK-M1-04，内容批次见开发计划第 5 节 |
 | 发行 | 30% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`、未签名的 `npm run pack:win`）；平台接口 `src/platform/` 的三种实现，客户端经它存档与读写设置；桌面主进程的设置与存档处理器 | 打包签名、Steam、崩溃与遥测（含遥测开关）、夜间流水线、网关台账 | PK-M1-01、PK-M1-09，后续见发行工程第 17 节 |
 
 ### 2.3 内容与素材层
@@ -127,7 +127,7 @@
 | PK-M0-04 设计对账与回写收尾 | 回写、美术裁定与文档换成规范名已提交；决策日志第 3 节的 B 项待关闭 | PK-M0-01 到 PK-M0-03 |
 | PK-M0-07 提示词库收尾 | 生成脚本、规格文件、`promptHash` 与规格后处理已提交；技能、天赋、光环图标未做 | PK-M0-02 |
 | PK-M0-14 内核文本键迁移 | 代理实施中 | 无 |
-| PK-M0-28 内容管线与校验层 | 代理实施中 | 无 |
+| PK-M0-29 历法与成长重标 | 代理实施中 | 无 |
 
 ---
 
