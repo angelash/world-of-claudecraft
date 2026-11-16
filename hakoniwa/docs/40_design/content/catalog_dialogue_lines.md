@@ -71,9 +71,9 @@
 
 | 规则 | 内容 |
 | --- | --- |
-| 键 | `<包>.<槽>.<序号>`；带版本的话题 `<包>.topic.<话题>.<版本>.<序号>`；按幕覆盖 `<包>.acts.<幕>.<槽>.<序号>`；吠叫池 `<池>.<序号>`；闲聊 `ln_party.party.<编号>.<序号>` |
-| 序号 | 只追加，不复用；删句留空位（builtin_ai 第 7.1 节） |
-| 现有数据 | `data/dialogue/templates.json` 与 `data/cognition/lines.json` 的键迁入 `ln_common`，对照见第 4.12 节；`data/npc/personas.json` 的 `lines` 字段迁入本人包，原句作该槽第 1 句 |
+| 键 | 内容键 `c.line_packs.<包>.slots.<槽>.<序号>`；带版本的话题在槽后加版本名；按幕覆盖 `c.line_packs.<包>.acts.<幕>.<槽>.<序号>`；写成对象的句子末尾加 `.zh`；槽名里的点折成下划线（builtin_ai 第 7.1 节）。键由抽取工具生成，作者不手写 |
+| 序号 | 数据里的序号从 0 起，等于本文句号减 1；只追加，不复用；删句在数据里留 `null` 空位（builtin_ai 第 7.1 节） |
+| 现有数据 | 原 `data/dialogue/templates.json` 与 `data/cognition/lines.json` 已迁入台词包，对照见第 4.14 节，旧键到槽位的对照在 `data/dialogue/legacy_lines.json`；`data/npc/personas.json` 的 `lines` 字段迁入本人包，原句作该槽第 1 句 |
 | 写定场景 | 过场与写定场景的整段台词归过场目录（`cut_`）与分幕文档；台词包只收其中会被选择器单独调用的句子（锚点、节点句、会被重复说出的口头句） |
 
 ### 1.5 说话者类别与最低量
@@ -1112,19 +1112,19 @@ NPC 之间闲聊的往复句（builtin_ai 第 5.1 节），`{other}` 是交谈�
 | `chat.weather.<天气>` | `bark.<天气>` | `cloudy` 并入 `bark.rain` 的前兆句 |
 | `banter`、`banter.*` | `banter`、`banter.*` | 原样 |
 | `opinion.<状态>` | `topic.gen_you.<认知版本>` | `accepted` 到 `topic.gen_you.worship` 以外的接受句并入 `greet.warm` |
-| `opinion.explaining.<解释>` | `expl.<解释>` | 改写为短语，填 `{expl}` |
+| `opinion.explaining.<解释>` | `unbelief.explain.<解释>` | 原句照搬（第二人称的整句，不是短语）；`expl.<解释>` 的短语另写 |
 | `rumor.tell` | `rumor.tell.plain` | |
 | `rumor.none` | `react.nothing_more` 第 1 句的同义句 | |
 | `bye` | `farewell` | |
 | `say`、`say.question`、`say.hello`、`say.thanks`、`say.cold`、`say.warm` | `react.confused`、`react.unknown`、`greet.neutral.day`、`react.thanked`、`react.decline`、`react.joke` | |
 | `feat`、`feat.*` | `feat`、`feat.*` | 原样，另加三条 |
 | `rumor.when.*`、`rumor.story`、`rumor.expl.*`、`rumor.tpl.*` | 同名零件 | 原样 |
-| `react.explain.<解释>` | `expl.<解释>` 与 `unbelief.explain` | 句意并入解释短语 |
+| `react.explain.<解释>` | `unbelief.explain.<解释>` | 原句照搬；`unbelief.explain.<解释>` 是第二档按解释细分的槽，缺省时截短到 `unbelief.explain` |
 | `react.switch`、`react.switch.*` | 同名 | 补齐十一种 |
 | `react.wavering`、`react.accept`、`react.believe`、`react.hostile` | `unbelief.waver`、`greet.warm`、`react.feat_seen`、`react.belief_hostile` | |
-| `react.again`、`react.again.*` | `unbelief.explain` 第 3 句"又是{expl}。" | |
-| `appraise.crystal`、`appraise.crystal.again` | `ln_lina` 的 `react.identity_pageless`；`ln_role_info` 不收 | 本人台词 |
-| `appraise.clergy` | `ln_cassian` 的 `react.identity_pageless`；`ln_class_clergy` 的同槽 | 本人台词与阶层层 |
+| `react.again`、`react.again.*` | `unbelief.explain`、`unbelief.explain.<解释>` | 原句照搬；通用句"又是{expl}。"另写 |
+| `appraise.crystal`、`appraise.crystal.again` | `ln_lina` 的 `react.identity_pageless` | 本人台词；`ln_role_info` 不收 |
+| `appraise.clergy` | `ln_class_clergy` 的 `react.identity_pageless` | 阶层层；卡西安本人句在 `ln_cassian` 的同槽 |
 
 ## 5. 意图应答的通用句
 

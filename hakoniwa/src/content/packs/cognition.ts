@@ -1,17 +1,15 @@
-// Cognition pack: social-class parameters (ceilings, thresholds, explanation orders),
-// the explanation library, and the rule lines for reactions, rumors and appraisal
-// (rows of the shared dialogueTemplates table).
+// Cognition pack: social-class parameters (ceilings, thresholds, explanation orders) and
+// the explanation library. Its rule lines (reactions, rumors, appraisal) live in the line
+// packs now (ln_common, data/dialogue/lines/; PK-M0-25).
 
 import classes from '../../../data/cognition/classes.json';
 import explanations from '../../../data/cognition/explanations.json';
-import lines from '../../../data/cognition/lines.json';
 import type { ContentMap } from '../../core/contracts';
 import {
   type ClassParams,
   EVIDENCE_KINDS,
   type ExplanationDef,
 } from '../../systems/cognition/types';
-import type { DialogueTemplate } from '../../systems/dialogue/types';
 import type { ContentPack } from '../pack';
 
 const CATEGORIES = ['luck', 'cheat', 'gadget', 'miracle', 'monster', 'conspiracy', 'real'];
@@ -45,7 +43,6 @@ export const pack: ContentPack = {
   tables: {
     cognitionClasses: classes as unknown as ClassParams[],
     cognitionExplanations: explanations as unknown as ExplanationDef[],
-    dialogueTemplates: lines as unknown as DialogueTemplate[],
   },
   schemas: [
     {
@@ -76,16 +73,6 @@ export const pack: ContentPack = {
         { key: 'refutedBy', label: '被什么证据推翻', type: 'list' },
         { key: 'discount', label: '估计强度折扣', type: 'number', min: 0, max: 1 },
         { key: 'category', label: '归类', type: 'enum', options: CATEGORIES },
-      ],
-    },
-    {
-      table: 'dialogueTemplates',
-      label: '认知台词（反应、传闻、鉴定）',
-      file: 'cognition/lines.json',
-      idField: 'id',
-      fields: [
-        { key: 'id', label: '键', type: 'string', required: true },
-        { key: 'lines', label: '台词', type: 'list' },
       ],
     },
   ],

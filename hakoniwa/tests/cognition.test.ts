@@ -15,7 +15,7 @@ import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { GameSystem, SystemContext } from '../src/core/system';
 import { tr } from '../src/core/text';
 import { TICKS_PER_GAME_DAY, tickAtDay } from '../src/core/time';
-import { t } from '../src/shared_ui/i18n';
+import { contentTextLookup, setContentText, t } from '../src/shared_ui/i18n';
 import {
   appraise,
   beliefView,
@@ -81,6 +81,8 @@ function merge(packs: ContentPack[]): ContentMap {
 }
 
 const CONTENT = merge([worldPack, inventoryPack, npcPack, cognitionPack, dialoguePack]);
+// pack lines render through their content keys (the live lookup over this content map)
+setContentText(contentTextLookup(CONTENT));
 const SYSTEMS = [world, inventory, modifiers, npc, dialogue, cognition, probe];
 
 function game(seed = 7, opts: EngineOptions = {}): Engine {

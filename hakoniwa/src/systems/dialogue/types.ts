@@ -1,13 +1,7 @@
-// Dialogue system types: the open conversation, line templates, and the module
-// augmentation for its slice, content table, events and commands.
+// Dialogue system types: the open conversation and the module augmentation for its slice,
+// events and commands (the line packs and their content table are ./lines/types.ts).
 
 import type { TextParam } from '../../core/text';
-
-export interface DialogueTemplate {
-  /** dotted key, for example greet.unaware or opinion.explaining.luck */
-  id: string;
-  lines: string[];
-}
 
 export interface SessionLine {
   speakerId: string;
@@ -54,9 +48,6 @@ export interface DialogueSlice {
 declare module '../../core/contracts' {
   interface WorldSlices {
     dialogue: DialogueSlice;
-  }
-  interface ContentMap {
-    dialogueTemplates: DialogueTemplate[];
   }
   interface EventMap {
     'dialogue.opened': { sessionId: string; npcId: string; npcRef: string };

@@ -1,0 +1,686 @@
+{
+  "_doc": "Former rule-template keys (data/dialogue/templates.json, data/cognition/lines.json) to the slice of a pack slot that holds exactly their lines (PK-M0-25; catalog_dialogue_lines.md 4.14).",
+  "keys": {
+    "greet": {
+      "slot": "greet.neutral",
+      "start": 0,
+      "count": 2
+    },
+    "greet.first": {
+      "slot": "greet.neutral",
+      "start": 2,
+      "count": 2
+    },
+    "greet.sleep": {
+      "slot": "bark.sleep",
+      "start": 0,
+      "count": 1
+    },
+    "greet.doubt": {
+      "slot": "unbelief.deny",
+      "start": 0,
+      "count": 2
+    },
+    "greet.explaining": {
+      "slot": "unbelief.explain",
+      "start": 0,
+      "count": 2
+    },
+    "greet.wavering": {
+      "slot": "unbelief.waver",
+      "start": 0,
+      "count": 2
+    },
+    "greet.accepted": {
+      "slot": "greet.warm",
+      "start": 0,
+      "count": 1
+    },
+    "greet.worship": {
+      "slot": "react.belief_worship",
+      "start": 0,
+      "count": 2
+    },
+    "greet.hostile": {
+      "slot": "react.belief_hostile",
+      "start": 0,
+      "count": 2
+    },
+    "greet.exploit": {
+      "slot": "react.belief_exploit",
+      "start": 0,
+      "count": 1
+    },
+    "greet.cold": {
+      "slot": "greet.cold",
+      "start": 0,
+      "count": 2
+    },
+    "chat": {
+      "slot": "bark.chat",
+      "start": 0,
+      "count": 2
+    },
+    "chat.work": {
+      "slot": "bark.work",
+      "start": 0,
+      "count": 2
+    },
+    "chat.eat": {
+      "slot": "bark.eat",
+      "start": 0,
+      "count": 2
+    },
+    "chat.pray": {
+      "slot": "bark.pray",
+      "start": 0,
+      "count": 1
+    },
+    "chat.shop": {
+      "slot": "bark.shop",
+      "start": 0,
+      "count": 2
+    },
+    "chat.wander": {
+      "slot": "bark.wander",
+      "start": 0,
+      "count": 2
+    },
+    "chat.chat": {
+      "slot": "bark.chat",
+      "start": 2,
+      "count": 2
+    },
+    "chat.sleep": {
+      "slot": "bark.sleep",
+      "start": 1,
+      "count": 1
+    },
+    "chat.hungry": {
+      "slot": "bark.eat",
+      "start": 2,
+      "count": 1
+    },
+    "chat.tired": {
+      "slot": "bark.tired",
+      "start": 0,
+      "count": 1
+    },
+    "chat.poor": {
+      "slot": "bark.worried",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.clear": {
+      "slot": "bark.happy",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.cloudy": {
+      "slot": "bark.rain",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.rain": {
+      "slot": "bark.rain",
+      "start": 1,
+      "count": 1
+    },
+    "chat.weather.storm": {
+      "slot": "bark.storm",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.fog": {
+      "slot": "bark.fog",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.snow": {
+      "slot": "bark.snow",
+      "start": 0,
+      "count": 1
+    },
+    "chat.weather.ashfall": {
+      "slot": "bark.ashfall",
+      "start": 0,
+      "count": 1
+    },
+    "banter": {
+      "slot": "banter",
+      "start": 0,
+      "count": 2
+    },
+    "banter.work": {
+      "slot": "banter.work",
+      "start": 0,
+      "count": 2
+    },
+    "banter.eat": {
+      "slot": "banter.eat",
+      "start": 0,
+      "count": 2
+    },
+    "banter.shop": {
+      "slot": "banter.shop",
+      "start": 0,
+      "count": 2
+    },
+    "banter.wander": {
+      "slot": "banter.wander",
+      "start": 0,
+      "count": 2
+    },
+    "banter.chat": {
+      "slot": "banter.chat",
+      "start": 0,
+      "count": 2
+    },
+    "banter.hungry": {
+      "slot": "banter.hungry",
+      "start": 0,
+      "count": 1
+    },
+    "banter.tired": {
+      "slot": "banter.tired",
+      "start": 0,
+      "count": 1
+    },
+    "banter.sour": {
+      "slot": "banter.sour",
+      "start": 0,
+      "count": 2
+    },
+    "banter.weather.clear": {
+      "slot": "banter.weather.clear",
+      "start": 0,
+      "count": 1
+    },
+    "banter.weather.rain": {
+      "slot": "banter.weather.rain",
+      "start": 0,
+      "count": 1
+    },
+    "banter.weather.fog": {
+      "slot": "banter.weather.fog",
+      "start": 0,
+      "count": 1
+    },
+    "banter.weather.ashfall": {
+      "slot": "banter.weather.ashfall",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.unaware": {
+      "slot": "topic.gen_you",
+      "version": "unaware",
+      "start": 0,
+      "count": 2
+    },
+    "opinion.doubt": {
+      "slot": "topic.gen_you",
+      "version": "doubt",
+      "start": 0,
+      "count": 2
+    },
+    "opinion.explaining": {
+      "slot": "topic.gen_you",
+      "version": "explaining",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.luck": {
+      "slot": "unbelief.explain.luck",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.wounded": {
+      "slot": "unbelief.explain.wounded",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.gadget": {
+      "slot": "unbelief.explain.gadget",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.cheat": {
+      "slot": "unbelief.explain.cheat",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.misreport": {
+      "slot": "unbelief.explain.misreport",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.miracle": {
+      "slot": "unbelief.explain.miracle",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.sorcery": {
+      "slot": "unbelief.explain.sorcery",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.conspiracy": {
+      "slot": "unbelief.explain.conspiracy",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.hidden_identity": {
+      "slot": "unbelief.explain.hidden_identity",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.bloodline": {
+      "slot": "unbelief.explain.bloodline",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.explaining.useful": {
+      "slot": "unbelief.explain.useful",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.wavering": {
+      "slot": "topic.gen_you",
+      "version": "wavering",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.accepted": {
+      "slot": "greet.warm",
+      "start": 1,
+      "count": 1
+    },
+    "opinion.worship": {
+      "slot": "topic.gen_you",
+      "version": "worship",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.hostile": {
+      "slot": "topic.gen_you",
+      "version": "hostile",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.exploit": {
+      "slot": "topic.gen_you",
+      "version": "exploit",
+      "start": 0,
+      "count": 1
+    },
+    "opinion.depend": {
+      "slot": "topic.gen_you",
+      "version": "depend",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tell": {
+      "slot": "rumor.tell.plain",
+      "start": 0,
+      "count": 2
+    },
+    "rumor.none": {
+      "slot": "react.nothing_more",
+      "start": 0,
+      "count": 2
+    },
+    "bye": {
+      "slot": "farewell",
+      "start": 0,
+      "count": 2
+    },
+    "say": {
+      "slot": "react.confused",
+      "start": 0,
+      "count": 2
+    },
+    "say.question": {
+      "slot": "react.unknown",
+      "start": 0,
+      "count": 2
+    },
+    "say.hello": {
+      "slot": "greet.neutral.day",
+      "start": 0,
+      "count": 2
+    },
+    "say.thanks": {
+      "slot": "react.thanked",
+      "start": 0,
+      "count": 2
+    },
+    "say.cold": {
+      "slot": "react.decline",
+      "start": 0,
+      "count": 2
+    },
+    "say.warm": {
+      "slot": "react.joke",
+      "start": 0,
+      "count": 2
+    },
+    "feat": {
+      "slot": "feat",
+      "start": 0,
+      "count": 1
+    },
+    "feat.kill": {
+      "slot": "feat.kill",
+      "start": 0,
+      "count": 1
+    },
+    "feat.elite_kill": {
+      "slot": "feat.elite_kill",
+      "start": 0,
+      "count": 1
+    },
+    "feat.boss_kill": {
+      "slot": "feat.boss_kill",
+      "start": 0,
+      "count": 1
+    },
+    "feat.heal": {
+      "slot": "feat.heal",
+      "start": 0,
+      "count": 1
+    },
+    "feat.rescue": {
+      "slot": "feat.rescue",
+      "start": 0,
+      "count": 1
+    },
+    "feat.spell": {
+      "slot": "feat.spell",
+      "start": 0,
+      "count": 1
+    },
+    "feat.build": {
+      "slot": "feat.build",
+      "start": 0,
+      "count": 1
+    },
+    "feat.destroy": {
+      "slot": "feat.destroy",
+      "start": 0,
+      "count": 1
+    },
+    "feat.miracle": {
+      "slot": "feat.miracle",
+      "start": 0,
+      "count": 1
+    },
+    "feat.duel": {
+      "slot": "feat.duel",
+      "start": 0,
+      "count": 1
+    },
+    "feat.trade": {
+      "slot": "feat.trade",
+      "start": 0,
+      "count": 1
+    },
+    "feat.appraise": {
+      "slot": "feat.appraise",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.when.0": {
+      "slot": "rumor.when.0",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.when.1": {
+      "slot": "rumor.when.1",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.when.2": {
+      "slot": "rumor.when.2",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.when.3": {
+      "slot": "rumor.when.3",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.story": {
+      "slot": "rumor.story",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.real": {
+      "slot": "rumor.expl.real",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.luck": {
+      "slot": "rumor.expl.luck",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.wounded": {
+      "slot": "rumor.expl.wounded",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.gadget": {
+      "slot": "rumor.expl.gadget",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.cheat": {
+      "slot": "rumor.expl.cheat",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.misreport": {
+      "slot": "rumor.expl.misreport",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.miracle": {
+      "slot": "rumor.expl.miracle",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.sorcery": {
+      "slot": "rumor.expl.sorcery",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.conspiracy": {
+      "slot": "rumor.expl.conspiracy",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.hidden_identity": {
+      "slot": "rumor.expl.hidden_identity",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.bloodline": {
+      "slot": "rumor.expl.bloodline",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.expl.useful": {
+      "slot": "rumor.expl.useful",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.hero_legend": {
+      "slot": "rumor.tpl.hero_legend",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.demon_return": {
+      "slot": "rumor.tpl.demon_return",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.goddess": {
+      "slot": "rumor.tpl.goddess",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.witch": {
+      "slot": "rumor.tpl.witch",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.noble_bastard": {
+      "slot": "rumor.tpl.noble_bastard",
+      "start": 0,
+      "count": 1
+    },
+    "rumor.tpl.ghost": {
+      "slot": "rumor.tpl.ghost",
+      "start": 0,
+      "count": 1
+    },
+    "react.explain.luck": {
+      "slot": "unbelief.explain.luck",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.wounded": {
+      "slot": "unbelief.explain.wounded",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.gadget": {
+      "slot": "unbelief.explain.gadget",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.cheat": {
+      "slot": "unbelief.explain.cheat",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.misreport": {
+      "slot": "unbelief.explain.misreport",
+      "start": 1,
+      "count": 1
+    },
+    "react.explain.miracle": {
+      "slot": "unbelief.explain.miracle",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.sorcery": {
+      "slot": "unbelief.explain.sorcery",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.conspiracy": {
+      "slot": "unbelief.explain.conspiracy",
+      "start": 1,
+      "count": 1
+    },
+    "react.explain.hidden_identity": {
+      "slot": "unbelief.explain.hidden_identity",
+      "start": 1,
+      "count": 2
+    },
+    "react.explain.bloodline": {
+      "slot": "unbelief.explain.bloodline",
+      "start": 1,
+      "count": 1
+    },
+    "react.explain.useful": {
+      "slot": "unbelief.explain.useful",
+      "start": 1,
+      "count": 1
+    },
+    "react.switch": {
+      "slot": "react.switch",
+      "start": 0,
+      "count": 1
+    },
+    "react.switch.cheat": {
+      "slot": "react.switch.cheat",
+      "start": 0,
+      "count": 2
+    },
+    "react.switch.hidden_identity": {
+      "slot": "react.switch.hidden_identity",
+      "start": 0,
+      "count": 1
+    },
+    "react.switch.sorcery": {
+      "slot": "react.switch.sorcery",
+      "start": 0,
+      "count": 1
+    },
+    "react.switch.conspiracy": {
+      "slot": "react.switch.conspiracy",
+      "start": 0,
+      "count": 1
+    },
+    "react.wavering": {
+      "slot": "unbelief.waver",
+      "start": 2,
+      "count": 1
+    },
+    "react.accept": {
+      "slot": "greet.warm",
+      "start": 2,
+      "count": 2
+    },
+    "react.believe": {
+      "slot": "react.feat_seen",
+      "start": 0,
+      "count": 2
+    },
+    "react.hostile": {
+      "slot": "react.belief_hostile",
+      "start": 2,
+      "count": 1
+    },
+    "react.again": {
+      "slot": "unbelief.explain",
+      "start": 2,
+      "count": 1
+    },
+    "react.again.luck": {
+      "slot": "unbelief.explain.luck",
+      "start": 3,
+      "count": 1
+    },
+    "react.again.wounded": {
+      "slot": "unbelief.explain.wounded",
+      "start": 3,
+      "count": 1
+    },
+    "react.again.miracle": {
+      "slot": "unbelief.explain.miracle",
+      "start": 3,
+      "count": 1
+    },
+    "appraise.crystal": {
+      "pack": "ln_lina",
+      "slot": "react.identity_pageless",
+      "start": 0,
+      "count": 1
+    },
+    "appraise.crystal.again": {
+      "pack": "ln_lina",
+      "slot": "react.identity_pageless",
+      "start": 1,
+      "count": 1
+    },
+    "appraise.clergy": {
+      "pack": "ln_class_clergy",
+      "slot": "react.identity_pageless",
+      "start": 0,
+      "count": 1
+    }
+  }
+}

@@ -21,6 +21,7 @@ import { defaultRegistry, FlagRegistry, registryData } from '../../../src/core/r
 import type { LoreDef, TermDef } from '../../../src/systems/goddess/types';
 import { findLeaks } from '../../../src/systems/quests';
 import {
+  actIndex,
   checkCondition,
   comparisons,
   evaluate,
@@ -125,7 +126,8 @@ export function ledgerFindings(
   const used = new Set<ReviewedHit>();
   for (const t of playerTexts(input.content, undefined, idFieldsOf(input.packs))) {
     if (typeof t.value !== 'string' || t.value === '') continue;
-    const n = acts.of(t.table, t.row);
+    const own = t.act === undefined ? Number.NaN : actIndex(t.act);
+    const n = Number.isNaN(own) ? acts.of(t.table, t.row) : Math.max(own, acts.of(t.table, t.row));
     const world = t.gate ? worldWhere(worldAt(n), t.gate) : worldAt(n);
     const strict = findLeaks(t.value, world, ledger.strict);
     const broad = findLeaks(t.value, world, ledger.broad).filter((h) => !strict.includes(h));

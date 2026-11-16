@@ -3,8 +3,10 @@
 // fits the interface's limit. The fields are ./player_text.ts; the forbidden-character
 // scan is the editor check desk's (src/editor/checks/rules.ts findForbidden, scanValue),
 // run over every string of every data file (over the player texts when no files are given).
+// The line packs (data/dialogue/lines/) get their own checks in ./lines.ts.
 
 import { findForbidden, scanValue } from '../../../src/editor/checks/rules';
+import { linesFindings } from './lines';
 import { idFieldsOf, PLAYER_TEXT, playerTexts, TEXT_LIMITS, type TextField } from './player_text';
 import type { Finding, ValidationInput, Validator } from './types';
 
@@ -68,5 +70,5 @@ export function textFindings(
 export const textValidator: Validator = {
   id: 'V8',
   title: 'text',
-  run: (input) => textFindings(input),
+  run: (input) => [...textFindings(input), ...linesFindings(input)],
 };

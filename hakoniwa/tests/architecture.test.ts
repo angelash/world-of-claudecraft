@@ -1,6 +1,8 @@
 // Guards the layering rules of docs/50_tech/architecture.md 2 and 12:
 // - pure logic layers (core, content, systems, ai, game) never touch the DOM;
-// - simulation layers (core, systems, game) never use non-deterministic time or randomness;
+// - simulation layers (core, systems, game) never use non-deterministic time or randomness,
+//   and the built-in AI primitives (src/core/brain/) only draw from the named stream their
+//   caller hands them (builtin_ai.md 1.5);
 // - only the world system writes the entity fields alive, tags, speed, move and intent;
 //   every other system goes through src/systems/world/ports.ts (release_engineering.md 13.1);
 // - core, systems, game and ai never import src/platform, which never imports the client.
@@ -49,6 +51,20 @@ describe('architecture guard', () => {
       expect(bad).toEqual([]);
     });
   }
+
+  // The built-in AI primitives (builtin_ai.md 1.5, 19 step 1) only draw from the named
+  // stream their caller passes in (ctx.rng(name)): they never seed or mint a stream of
+  // their own, and never read a clock (the scan above covers them under core/).
+  it('core/brain/ draws only from named streams it is given', () => {
+    const brain = files(join(SRC, 'core', 'brain'));
+    expect(brain.length).toBeGreaterThan(0);
+    const OWN_STREAM = /\bnew\s+Rng\s*\(|\bhashSeed\s*\(|\.rng\s*\(/;
+    const bad = brain.filter((f) => OWN_STREAM.test(stripComments(readFileSync(f, 'utf8'))));
+    expect(bad).toEqual([]);
+    expect(OWN_STREAM.test('const r = new Rng({ s: 1 });')).toBe(true);
+    expect(OWN_STREAM.test("ctx.rng('npc.brain')")).toBe(true);
+    expect(OWN_STREAM.test('function pick(rng: Rng) { rng.next(); }')).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

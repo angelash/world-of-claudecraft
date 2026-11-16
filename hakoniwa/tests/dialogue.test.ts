@@ -16,7 +16,7 @@ import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
 import type { GameSystem } from '../src/core/system';
 import { tr } from '../src/core/text';
 import { TICKS_PER_GAME_MINUTE, tickAtDay } from '../src/core/time';
-import { renderTextDeep, t } from '../src/shared_ui/i18n';
+import { contentTextLookup, renderTextDeep, setContentText, t } from '../src/shared_ui/i18n';
 import { system as cognition, rumorBook } from '../src/systems/cognition';
 import { canTalkTo, currentConversation, system as dialogue, fill } from '../src/systems/dialogue';
 import { system as inventory } from '../src/systems/inventory';
@@ -78,6 +78,8 @@ function merge(packs: ContentPack[]): ContentMap {
 }
 
 const CONTENT = merge([worldPack, inventoryPack, npcPack, cognitionPack, dialoguePack]);
+// pack lines render through their content keys (the live lookup over this content map)
+setContentText(contentTextLookup(CONTENT));
 const SYSTEMS = [world, inventory, modifiers, npc, dialogue, cognition, quests];
 
 function game(seed = 7, opts: EngineOptions = {}): Engine {

@@ -3,12 +3,12 @@
 
 import type { ContentMap } from '../../core/contracts';
 import { joinText, type TextParam, tr } from '../../core/text';
-import { linesFor } from '../dialogue/templates';
+import { firstLine } from '../dialogue/templates';
 import { subjectName } from './params';
 import type { RumorVersion } from './types';
 
-function first(content: ContentMap, key: string): string {
-  return linesFor(content, key)[0] ?? '';
+function first(content: ContentMap, key: string): TextParam {
+  return firstLine(content, key);
 }
 
 const COUNTED = new Set(['kill', 'elite_kill', 'boss_kill', 'rescue', 'heal']);

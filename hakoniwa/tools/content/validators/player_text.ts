@@ -33,6 +33,13 @@ export interface TextField {
   gate?: string;
   /** an empty string means "nothing to show" here (a wordless revelation, the narrator) */
   blankOk?: boolean;
+  /** the path also addresses non-text values (a line written as an object); skip those */
+  textOnly?: boolean;
+  /**
+   * line packs: the text's own gate is the `when` of the line object holding it, and a
+   * text under `acts.<act>.` is first visible in that act
+   */
+  linePack?: boolean;
 }
 
 const f = (table: string, cls: TextClass, ...paths: string[]): TextField[] =>
@@ -87,8 +94,20 @@ export const PLAYER_TEXT: readonly TextField[] = [
   ...f('companions', 'title', 'title'),
   ...f('companions', 'label', 'personality[]'),
   ...f('courtDefenses', 'line', 'askBack.*', 'broken.*', 'deflect', 'verdictLines.*'),
-  ...f('dialogueTemplates', 'bark', 'lines[]'),
   ...f('directorMenu', 'label', 'label'),
+  // line packs (data/dialogue/lines/): every line, plain or with conditions, per slot and
+  // per version, base and per act; lengths per slot family and the line's shape are the
+  // line validator's (./lines.ts), so the class here is the widest one
+  ...['slots.*[]', 'slots.*.*[]', 'acts.*.*[]', 'acts.*.*.*[]'].flatMap((list) => [
+    { table: 'linePacks', path: list, cls: 'line' as const, textOnly: true, linePack: true },
+    {
+      table: 'linePacks',
+      path: `${list}.zh`,
+      cls: 'line' as const,
+      textOnly: true,
+      linePack: true,
+    },
+  ]),
   ...f('directorMenu', 'line', 'narration'),
   ...f('divineActions', 'label', 'label'),
   ...f('divineActions', 'line', 'lines.*[]'),
@@ -179,9 +198,23 @@ export interface PlayerText {
   cls: TextClass;
   /** condition the text waits for (the gate field's value), when the field has one */
   gate?: string;
+  /** the act from which this text is shown, when the text itself says (a line pack's acts.<act>) */
+  act?: string;
   blankOk?: boolean;
   /** the row the text sits in */
   source: unknown;
+}
+
+/** A line pack text's act (`acts.<act>.` paths) and gate (the `when` of its line object). */
+function lineScope(pack: unknown, path: string): { act?: string; gate?: string } {
+  const act = /^acts.([a-z0-9]+)./.exec(path)?.[1];
+  if (!path.endsWith('.zh')) return { act };
+  const at = valuesAt(pack, path.slice(0, -3).replace(/[(d+)]/g, '[]'));
+  const owner = at.find((v) => `${v.path}.zh` === path)?.value as { when?: unknown } | undefined;
+  return {
+    act,
+    gate: typeof owner?.when === 'string' && owner.when !== '' ? owner.when : undefined,
+  };
 }
 
 /** Rows of a table: an array table's rows (keyed by idField), an object table as one row. */
@@ -211,13 +244,17 @@ export function playerTexts(
     for (const { row, value } of tableRows(content, field.table, idFields[field.table])) {
       const gate = field.gate ? (value as Record<string, unknown>)[field.gate] : undefined;
       for (const p of valuesAt(value, field.path)) {
+        if (field.textOnly && typeof p.value !== 'string') continue;
+        const scope = field.linePack ? lineScope(value, p.path) : {};
+        const own = typeof gate === 'string' && gate !== '' ? gate : undefined;
         out.push({
           table: field.table,
           row,
           path: p.path,
           value: p.value,
           cls: field.cls,
-          gate: typeof gate === 'string' && gate !== '' ? gate : undefined,
+          gate: scope.gate ?? own,
+          act: scope.act,
           blankOk: field.blankOk,
           source: value,
         });

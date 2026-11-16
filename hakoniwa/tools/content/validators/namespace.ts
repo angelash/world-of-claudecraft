@@ -73,8 +73,8 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'nev_', owner: 'catalog_warfare_strategy.md', tables: [] },
   { prefix: 'div_', owner: 'catalog_goddess_interventions.md', tables: ['divineActions'] },
   { prefix: 'trl_', owner: 'catalog_goddess_interventions.md', tables: [] },
-  { prefix: 'ln_', owner: 'catalog_dialogue_lines.md', tables: [] },
-  { prefix: 'bark_', owner: 'catalog_dialogue_lines.md', tables: [] },
+  { prefix: 'ln_', owner: 'catalog_dialogue_lines.md', tables: ['linePacks'] },
+  { prefix: 'bark_', owner: 'catalog_dialogue_lines.md', tables: ['linePacks'] },
   { prefix: 'self_', owner: 'catalog_dialogue_lines.md (topics)', tables: [] },
   { prefix: 'place_', owner: 'catalog_dialogue_lines.md (topics)', tables: [] },
   { prefix: 'person_', owner: 'catalog_dialogue_lines.md (topics)', tables: [] },
@@ -97,6 +97,7 @@ export const NAMESPACES: readonly Namespace[] = [
 /** Tables whose every id carries one of their prefixes (namespaced from the first data). */
 export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   quests: ['q_'],
+  linePacks: ['ln_', 'bark_'],
 };
 
 /** Entity kinds that legitimately share one id: the place codes. */

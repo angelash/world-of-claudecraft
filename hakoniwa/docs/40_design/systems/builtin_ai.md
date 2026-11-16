@@ -160,7 +160,7 @@ D-067 的设置页按角色绑定模型；内置 AI 的接替粒度与之一一�
 | `data/ai/personas/*.json` | 女神、统治者、将领、官员的权重表 | |
 | `data/dialogue/topics.json` | 话题图 | |
 | `data/dialogue/intents.json`、`data/dialogue/lexicon.json` | 意图规则与词典 | |
-| `data/lines/ln_*.json`、`data/lines/bark_*.json` | 台词包与吠叫池（内容由台词目录产出） | |
+| `data/dialogue/lines/ln_*.json`、`data/dialogue/lines/bark_*.json` | 台词包与吠叫池（内容由台词目录产出），一包一个文件；`data/dialogue/legacy_lines.json` 是原规则模板键到包内槽位的对照 | |
 
 ## 2. 共用原语
 
@@ -1083,8 +1083,8 @@ L4 人群单元的份额传播照常由规则批量结算；人群的"声音"来
 
 - 一句台词可以是字符串，也可以是带条件的对象：`{ "zh": "源文", "when": "台账语法条件", "mood": ["怒"], "place": ["tavern"], "first": true, "w": 1 }`。
   `when` 不满足的句子不可选；`mood`、`place` 默认是加权偏好，写 `"strict": true` 时变成硬条件；`first` 表示只在初见时用；`w` 是基础权重。
-- 文本键（D-077）：每句的稳定键是 `<包>.<槽>.<序号>`（例：`ln_cassian.greet.cold.2`），条件版本另加版本名（`ln_cassian.topic.gen_self.K2.1`）。内核只发文本键与槽位参数，客户端按字符串表渲染；中文为源语言。
-- 序号只追加不复用：删掉一句时留空位，避免存档里的台词历史指错句子。
+- 文本键（D-077）：每句的键是内容键 `c.line_packs.<包>.slots.<槽>.<序号>`，按幕覆盖为 `c.line_packs.<包>.acts.<幕>.<槽>.<序号>`，带版本的话题在槽后加版本名，写成对象的句子末尾加 `.zh`；槽名里的点在键中折成下划线（例：`c.line_packs.ln_cassian.slots.greet_cold.1`、`c.line_packs.ln_cassian.slots.topic_gen_self.k2.0`）。序号从 0 起，等于该句在数据列表里的位置；台词目录的句号减 1 即序号。键由内容抽取工具生成（`src/shared_ui/content_text.ts`），作者不手写；内核只发键与槽位参数，客户端按内容表渲染；中文为源语言。
+- 序号只追加不复用：删掉一句时把它在列表里的位置写成 `null`（空位），后面的句子序号不变，避免存档里的台词历史与译文指错句子；给已有的一句加条件（由字符串改成对象）会让它的键多一段 `.zh`，所以要改条件时，在末尾追加新句并把旧句置空。
 
 ### 7.2 槽位语法（封闭集合）
 
@@ -1096,7 +1096,7 @@ L4 人群单元的份额传播照常由规则批量结算；人群的"声音"来
 | 反应 | `react.<eventKind>` | 各 2 | 事件种类见第 7.5 节 |
 | 任务 | `quest.<q_id>.<stage>` | 1 到 3 | 阶段封闭集合：`offer`、`accept`、`decline`、`progress`、`complete`、`fail`、`after` |
 | 吠叫 | `bark.<context>` | 各 2 | 语境见第 7.6 节；日程中的自言自语与头顶气泡 |
-| 凡人不信 | `unbelief.<档>`，档取 `deny`、`explain`、`waver` | 各 2（L1 各 3） | 三档，第 5.7 节 |
+| 凡人不信 | `unbelief.<档>`，档取 `deny`、`explain`、`waver`；第二档可按解释细分为 `unbelief.explain.<解释>`（解释取解释库编号） | 各 2（L1 各 3） | 三档，第 5.7 节；细分槽缺省时按回退链截短到 `unbelief.explain` |
 | 队内闲聊 | `party.<exchangeId>` | 一段 2 到 6 句的多人往复 | 只在台词包 `ln_party` 里（第 11.3 节） |
 | 按幕覆盖 | `acts.<actId>.<任意上述槽位>`，`actId` 取 `prologue`、`act1` 到 `act6`、`epilogue` | 同所覆盖的槽位 | 该幕内优先于基础槽位 |
 
