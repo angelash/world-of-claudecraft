@@ -1043,7 +1043,7 @@
 | `node_waste_gatepicker_camp` | 拾门者营地 | special | T3 | `iron_ore_waste`（四世纪教会甲片）；`mat_gate_dust` | 中层两处；三 | 穿教会旧甲的亡灵 | 中 |
 | `node_waste_outer_ring` | 千门都外环 | special | T4 | `src_hollow_2`；`crystal_large_raw`（澱晶簇）、`mat_glassplain_slag` | 核心外环；三 | 澱度四，限时（数周即病）；显示名在 `a3_ash_tells_sundering` 之前为"荒原下的古城外环"（[台账 6][rl]）| 中到重 |
 | `node_waste_crater_rim` | 主门坑沿 | special | T6 | `mat_gate_crystal` | 主门坑；五 | 稀缺锁（6.12）| 重 |
-| `node_waste_first_gate` | 外庭门槛 | special | T3 | `mat_gate_dust` | 封门遗迹外庭的门槛（地图简报第 13.3 节）；第二幕末（阿什信任 `ash_relation` 为 trusted 之后）到第三幕 | 每 5 日至多取 2 份；取得太多门槛会塌，遗民门守会来劝；教会的人见到即按 `contraband:church` 记一笔 | 轻 |
+| `node_waste_first_gate` | 外庭门槛 | special | T3 | `mat_gate_dust` | 封门遗迹外庭的门槛（地图简报第 13.3 节）；第二幕末（阿什信任 `a3_ash_relation` 为 trusted 之后）到第三幕 | 每 5 日至多取 2 份；取得太多门槛会塌，遗民门守会来劝；教会的人见到即按 `contraband:church` 记一笔 | 轻 |
 
 ### 6.4 圣艾琉恩教国（`holysee`）
 
@@ -1196,7 +1196,7 @@
 | `mat_spring_lotus` | 每年 3 株 | 灵泉守纳茜娅·晨露 | 采莲时希尔薇会注意到（神意通道）| 四 |
 | `cs_spring_water_vial`（T4，按配额管理） | 每月 1 到 5 瓶，随信任 | 晨露氏 | 外交 | 四 |
 | `mat_worldtree_fallen` | 每周目约 5 次落枝 | 精灵向导在场 | 拾取合法；砍伐则希尔薇记账、精灵关系崩坏 | 四 |
-| `mat_dragon_molt`（含 `molt_source: gola`） | 每周目 2 次；第四幕经叶戈尔走私的歌菈之鳞计入同一额度 | 艾斯卡（第五幕后）；走私货没有许可 | 无许可拿蜕或收走私货 = 龙族记账，与 `eska_consent` 对接（[城建 12.3][cb]），与迷宫 `trial_eska_silver_eyrie`"拿走即失败"同一规则；冰谷与蜕鳞窝的老蜕不可采 | 四（走私）、五 |
+| `mat_dragon_molt`（含 `molt_source: gola`） | 每周目 2 次；第四幕经叶戈尔走私的歌菈之鳞计入同一额度 | 艾斯卡（第五幕后）；走私货没有许可 | 无许可拿蜕或收走私货 = 龙族记账，与 `a5_eska_consent` 对接（[城建 12.3][cb]），与迷宫 `trial_eska_silver_eyrie`"拿走即失败"同一规则；冰谷与蜕鳞窝的老蜕不可采 | 四（走私）、五 |
 | `mat_abyss_hide`、`part_<种类>_t5` | 每周目约 10 只渊澱外缘的 S 级异兽（魔物目录定）| 渊澱外缘在王胎渊（夜境禁地，须夜后或鳞母放行）与主门坑（第五幕）| 重澱染；在王胎渊猎杀被夜境视为闯禁 | 五 |
 | `crystal_king_raw` | 每座迷宫之主、每只 S 级魔物一枚 | 须向公会总堂登记 | 王晶一出手，各国都会来问（`cog`）| 四到五 |
 | `src_<澱源>_3` | 每只澱涌之主与对应首领一份（迷宫与首领目录定）| 冕晶要避开教会（它是"圣遗物"里最贵的）；战魂核在王胎渊 | 重澱染；冕晶被教会追索 | 五 |

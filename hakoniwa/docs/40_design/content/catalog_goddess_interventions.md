@@ -79,7 +79,7 @@
 | 项 | 规则（M1 基线） |
 | --- | --- |
 | 收支 | 日毛收入、日常耗、日净收入、开局积蓄按[女神 GM][gm]第 4.2 节：艾琉恩 60、33、27、2000；梅尔卡 22、8、14、6000；瓦尔妲 18、6、12、4000；希尔薇 16、6、10、5000；莫伊拉 6、3、3、3000；雅努为渗出神力（第 2.7 节）。与 `data/goddess/goddesses.json` 的 `power` 一致 |
-| 收入冲击 | 全录之日（`moira_published`）后艾琉恩日毛收入乘 0.6 直到审期；瓦尔妲群谕坦白后日毛收入乘 0.9；魔王被勇者终光击倒的那一刻，艾琉恩一次性加 3000、瓦尔妲加 2000（戏剧性时刻，正典排澱的收割）；神殿被毁一座，所属女神日毛收入减该神殿放大量 |
+| 收入冲击 | 全录之日（`a5_moira_published`）后艾琉恩日毛收入乘 0.6 直到审期；瓦尔妲群谕坦白后日毛收入乘 0.9；魔王被勇者终光击倒的那一刻，艾琉恩一次性加 3000、瓦尔妲加 2000（戏剧性时刻，正典排澱的收割）；神殿被毁一座，所属女神日毛收入减该神殿放大量 |
 | 透支与枯竭 | 余额可降到 -(30 × 日净收入)；透支中新动作神力乘 1.25、凝视位减一、样本权重乘 0.7；透支超过下限或持续 7 个游戏日即枯竭，只剩神谕、托梦、会话 |
 | 凝视位 | 默认 2 个，莫伊拉 3 个；额外凝视位每日 2 神力；凝视中的地区，恩宠与庇佑级信徒的样本即时进入，权重乘 1.5 |
 | 触达 | 触达度 = clamp(地区信仰份额 × 神殿系数, 0, 1)；神殿系数：礼拜堂 1.1、大教堂 1.3、圣都级 1.6；动作要求触达度不低于 0.05（雅努与委托除外）；远程干预神力乘 1 / sqrt(max(触达度, 0.1)) |
@@ -210,7 +210,7 @@
 | `div_eluen_dream_oracle` | 梦谕 | 谕 | 1 | 同一对象 3 日 | 对象为眷顾级以上且入睡 | 无 | 不留 |
 | `div_eluen_holy_war` | 圣战号召 | 遣 | 约 300，另计每月 50 维持 | 每幕 1 次 | 第三幕台账节点起（第三幕洛萨圣战、第五幕圣战联军）；经教皇或大主教的神谕链 | `casus_belli.div_eluen_holy_war`；`volunteer_pool`（圣教国家 +15%）；`morale`（`army:` 加入圣战的军队 +8，显性）；`relation_shift`（对目标 -20） | 顺势；约 3（伴随神迹另计） |
 | `div_eluen_descent` | 神降 | 身 | 约 1000（一场战斗，至多 6 游戏小时） | 30 日 | 第五幕起；圣女带"神降之器"加护（白石结衣，或接过勇者加护的人）；写定条件见 `div_beat_a5_descent` | `morale`（`army:` 圣战军 +15，显性）；圣女得神话阶下限战力与"圣裁"（区域光柱） | 逆势；约 300（圣女所在） |
-| `div_eluen_heresy_edict` | 异端之国诏 | 惩 | 约 40（对教皇的神谕与诏书的神迹印证） | 每幕 1 次 | 第四幕起；时机由 `church_verdict_3` 决定（[第四幕][a4] 8.2）；第五幕第二道诏书同用此动作 | `trade_restriction.div_eluen_heresy_edict`（圣教市场与信徒对目标国禁止通商，到撤销为止，显性）；`relation_shift`（全体圣教国家对目标 -30）；`legitimacy_shock`（目标 -10） | 顺势；约 0.4 |
+| `div_eluen_heresy_edict` | 异端之国诏 | 惩 | 约 40（对教皇的神谕与诏书的神迹印证） | 每幕 1 次 | 第四幕起；时机由 `a3_church_verdict` 决定（[第四幕][a4] 8.2）；第五幕第二道诏书同用此动作 | `trade_restriction.div_eluen_heresy_edict`（圣教市场与信徒对目标国禁止通商，到撤销为止，显性）；`relation_shift`（全体圣教国家对目标 -30）；`legitimacy_shock`（目标 -10） | 顺势；约 0.4 |
 | `div_eluen_recall_light` | 回光 | 迹 | 约 200 | 每名勇者每幕 1 次 | 第三幕起；对象持视线之契且濒死 | 无 | 逆势；约 60（原地） |
 | `div_eluen_pillar_light` | 圣柱降光（圣化与净化之光） | 迹 | 约 600（光柱至多 1 游戏小时） | 每幕 1 次 | 第三幕起；曙光圣柱 `rl_dawnpillar` 在她的眷顾级受者手里举起；提交时作风险声明（第 3.2 节） | `morale`（`army:` 圣战军 +20，光柱期间，显性）；`army_damage`（+15%，同期）；`dian_rate`（光柱扫过的地块澱值减半，推向下游：下游地区 +180，30 日内分摊） | 逆势；约 180（落在下游） |
 | `div_eluen_write_page` | 为客人写页（招安） | 录 | 约 800（开页与勇者加护套装，借用召唤大阵） | 一局 1 次 | 第四幕；玩家答应招安；莫伊拉副署成立（`div_moira_countersign`），否则回执 `NEEDS_COUNTERSIGN` | 无 | 逆势；约 240（瑟兰召唤大阵） |
@@ -231,7 +231,7 @@
 | `div_eluen_heresy_edict` | 教皇诏书在各国宣读，圣教信徒离开集市 | 公开；通常察觉（梅尔卡的收益指数随之上升，第 3.2 节） | 无 | 诏书原件是文书类痕迹 | 无 | 对玩家国家计入一次，预兆为先遣审判或招安被拒 |
 | `div_eluen_recall_light` | 濒死的勇者被一道光整个拽走，"像被收回的东西"；他在最近的圣所醒来，重伤 | 公开；通常察觉 | 无 | 公开条目 | 3 到 10 日后原地 2 只光澱异兽 | 否 |
 | `div_eluen_pillar_light` | 光柱落下处的人被"圣化"；门纹持有者的门纹像被烙铁按住（玩家、遗民、门守受灼，强度由内核设定）。`div.narrate.div_eluen_pillar_light`："光像一根柱子立在桥头。它照到的地方，灰都退了。" | 公开；通常察觉 | 第二条：风险声明同神降；光柱致死他司信徒即越约（`div_breach_eluen_pillar`，E36） | 公开；越约时柱身裂纹与落点蚀痕 | 两周内落点与下游出白蛆、瓷角鹿（图鉴 BE-05） | 玩家在光柱下时计入，预兆为举柱者的圣咏（至少 2 游戏分钟） |
-| `div_eluen_write_page` | 玩家第一次有了页：等级、职能、勇者加护套装 | 公开；必然察觉 | 第三条：经副署的开页不算篡改（D-037） | `eluen_page = true`；之后玩家在她的视线里 | 圣都一季内光澱回声 | 否 |
+| `div_eluen_write_page` | 玩家第一次有了页：等级、职能、勇者加护套装 | 公开；必然察觉 | 第三条：经副署的开页不算篡改（D-037） | `a4_eluen_page = true`；之后玩家在她的视线里 | 圣都一季内光澱回声 | 否 |
 
 ### 2.3 瓦尔妲（11）
 
@@ -357,7 +357,7 @@
 | `div_moira_lend_record` | 无 | 无感；借阅者知道交付了什么 | 第三条：伪造摘要不是篡改，是说谎，内核记"伪" | 借阅回执；"伪"可成为证据 | 无 | 否 |
 | `div_moira_intel` | 一页没有署名的纸 | 亲见；一般不察觉 | 无 | 她把客卷卖给他神时记一笔（第六幕正当防线的素材） | 无 | 出卖玩家的客卷给他神时计入，预兆为交易时写明"客卷可借阅"的条款 |
 | `div_moira_countersign` | 无 | 无感；请求副署的一方知道 | 第三条：开新页须她副署（D-037） | 副署记录 | 无 | 否 |
-| `div_moira_full_record` | 一个游戏日内全大陆的鉴定水晶显示同一页"排澱之约"，之后角落留下"此页已录" | 公开；必然察觉 | 第三条：显页而且告知，不是越约 | `moira_published = true`；排澱真相公开 | 一季内各城录澱回声（墨蛾、书虱）少量 | 否 |
+| `div_moira_full_record` | 一个游戏日内全大陆的鉴定水晶显示同一页"排澱之约"，之后角落留下"此页已录" | 公开；必然察觉 | 第三条：显页而且告知，不是越约 | `a5_moira_published = true`；排澱真相公开 | 一季内各城录澱回声（墨蛾、书虱）少量 | 否 |
 
 ### 2.7 雅努（6）
 
@@ -373,7 +373,7 @@
 | `div_janu_resonance` | 门纹共鸣 | 门 | 1 | 3 日 | 阶段 2 起；遗民在门、门址或玩家附近 | `door_resonance.div_janu_resonance`（遗民凝聚 +1、门纹觉醒进度 +，30 日） | 不留 |
 | `div_janu_door_chance` | 门边巧合 | 门 | 0.5 | 1 日 | 阶段 2 起；地点是门或门遗迹；类型：门没锁、风把门吹开、钥匙出现在合适处 | 无 | 不留 |
 | `div_janu_close_light` | 合光 | 门 | 3 | 每幕 1 次 | 第三幕起；阶段 3 起；共鸣之门已开且门守在场；目标是一道正在灼烧门纹的光（圣柱降光、神降圣裁） | 无（终止那道光对门纹的灼烧，圣化保留） | 不留 |
-| `div_janu_act` | 现实出手（接人、封隙） | 门 | 写定 | 写定 | 阶段 5；第五幕首领战结果决定规模（`janu_act`，[第五幕][a5] 第 8 节） | 封隙：`janu_faith` 暴涨（事件） | 接人约 10；封隙约 300 |
+| `div_janu_act` | 现实出手（接人、封隙） | 门 | 写定 | 写定 | 阶段 5；第五幕首领战结果决定规模（`a5_janu_act`，[第五幕][a5] 第 8 节） | 封隙：`janu_faith` 暴涨（事件） | 接人约 10；封隙约 300 |
 
 **乙表：表现与后果**
 
@@ -490,7 +490,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | 莫伊拉 | 不会发生：没有借阅压力（艾琉恩以为玩家已死） | 动态 `div_breach_moira_blot`（抹页，E34-B05-2） | 动态 `div_breach_moira_blot`（E34-B05-3，最可能的一幕） | 动态 `div_breach_moira_blot`（E34-B05-4） | 不会发生：她在全录之日选择告知，本幕只记录 |
 | 雅努 | 不适用 | 不适用 | 不适用 | 不适用 | 不适用 |
 
-- 序章没有菜单；第六幕审庭里神权菜单全部停用，女神之间动手即触发"诸神之战"（`god_war`），规则归[第六幕][a6]与[女神 GM][gm] 第 11.7 节，不在本表。
+- 序章没有菜单；第六幕审庭里神权菜单全部停用，女神之间动手即触发"诸神之战"（`a6_god_war`），规则归[第六幕][a6]与[女神 GM][gm] 第 11.7 节，不在本表。
 - 一局里越约的典型数量：无模型、玩家不刻意阻止时 3 到 4 次（E36、金湾冻灯、神降圣裁、灰烬对撞）；玩家处处阻止时可以是 0 次。这是"揭露违约"玩法可以因人而异的来源。
 
 ### 3.4 越约模板
@@ -597,7 +597,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | DB-A2-05 | `div_beat_a2_seize_it` | 艾琉恩 | 神谕（逮捕令） | 第 12 周；葬礼上信徒目睹无貌者与玩家对话，或劫法场 | 条件成立即必达 | "执之。勿令近光。"；预兆即第 1 周起的暗查 | [第二幕][a2] 8 |
 | DB-A2-06 | `div_beat_a2_yui_dream` | 艾琉恩 | 梦谕 | 结衣在祈祷中三次以上提到"那个人" | 否 | "远离瑕疵。" | [第二幕][a2] 8 |
 | DB-A2-07 | `div_beat_a2_archbishop_oracle` | 艾琉恩 | 神谕 | 第 14 周，对洛萨大主教塞维林·莫兰德 | 是 | "找到那扇门，毁掉它。"；第三幕圣战的起点 | [第二幕][a2] 8 |
-| DB-A2-08 | `div_beat_a2_valda_seed` | 瓦尔妲 | 档案样本（不耗神力） | 红沙场之后，赫拉妲在战前祈祷中提到玩家 | 否 | `valda_seed = 1` | [第二幕][a2] 8 |
+| DB-A2-08 | `div_beat_a2_valda_seed` | 瓦尔妲 | 档案样本（不耗神力） | 红沙场之后，赫拉妲在战前祈祷中提到玩家 | 否 | `a2_valda_seed = 1` | [第二幕][a2] 8 |
 | DB-A2-09 | `div_beat_a2_grain_price` | 梅尔卡 | 物价修正 | 伯爵死后 | 是 | 瓦伦堡粮 `price_supply` +15%，30 日（正典"粮价涨四成"中她顺势推动的那一份），并抽成 | [第二幕][a2] 8 |
 | DB-A2-10 | `div_beat_a2_merca_loan` | 梅尔卡 | 借贷担保 | 第 8 周，门扉商会已成立 | 否 | 经布鲁娜的低息贷款，附带"一成货物走商会联合的账" | [第二幕][a2] 8 |
 | DB-A2-11 | `div_beat_a2_sirill_contract` | 梅尔卡 | 契约加护 | 继承之争中西里尔立金契时 | 是 | 她为金契背书（她知道，玩家不知道） | [第二幕][a2] 8 |
@@ -645,7 +645,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | DB-A3-22 | `div_beat_a3_reed_fog` | 希尔薇 | 季节与天气、兽引 | 苇塘屠村那夜 | 条件成立即必达 | 降下大雾，鹿群引幸存者逃进芦苇深处 | [第三幕][a3] 8 |
 | DB-A3-23 | `div_beat_a3_archive_coincidence` | 莫伊拉 | 导演巧合 | 第 5 周 | 是 | 王国档案馆的巧合 | [第三幕][a3] 8 |
 | DB-A3-24 | `div_beat_a3_moira_offer` | 莫伊拉 | 情报交易（经史官） | 第 15 周 | 是 | 奥丽芙："我的主人想做一笔交易：你的故事，换一段被锁起来的历史。"同时说出 MIS-14；置 `a3_moira_offer` | [第三幕][a3] 8 |
-| DB-A3-25 | `div_beat_a3_deposit_trade` | 莫伊拉 | 情报交易 | `a3_moira_offer` 之后 | 否 | 一笔不涉及空白纪副本的"定金"小交易（`moira_trade`） | [第三幕][a3] 8 |
+| DB-A3-25 | `div_beat_a3_deposit_trade` | 莫伊拉 | 情报交易 | `a3_moira_offer` 之后 | 否 | 一笔不涉及空白纪副本的"定金"小交易（`a3_moira_trade`） | [第三幕][a3] 8 |
 | DB-A3-26 | `div_beat_a3_three_crowns` | 莫伊拉 | 预言 | 宫廷线第二阶段 | 是 | 经奥丽芙："三顶王冠落在一张桌上。" | [第三幕][a3] 8 |
 | DB-A3-27 | `div_beat_a3_wenzel_page` | 莫伊拉 | 导演·敌方的疏漏 | 朝阳门之夜前 | 否 | 文策尔在玩家面前掉落一页文件 | [第三幕][a3] 8 |
 | DB-A3-28 | `div_beat_a3_blizzard_respite` | 莫伊拉 | 导演·节拍推迟 | 北境战后玩家太疲惫 | 否 | 帝国使团因暴雪耽搁，给一周平静 | [第三幕][a3] 8 |
@@ -665,7 +665,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | DB-A4-03 | `div_beat_a4_valda_pitch` | 瓦尔妲 | 降影（帝国第三军团营地地下的祭坛，借濒死战士之口） | 强者之宴之后，`A4-M07` 第二阶段；默认第三 | 是 | 与 DB-A4-11 合为一次演出（过场 `cut_a4_valda_offer`）：先讲版本（6.2 独白稿），后提结盟；祭坛本身是 E23 | [第四幕][a4] 6.2 |
 | DB-A4-04 | `div_beat_a4_sylvie_pitch` | 希尔薇 | 托梦（欧拉）、兽引、降影（灵泉） | 默认第四 | 是 | 6.4 独白稿；欧拉托梦后半鹿半狼的兽领路到春天才醒的草地 | [第四幕][a4] 6.4 |
 | DB-A4-05 | `div_beat_a4_moira_pitch` | 莫伊拉 | 化身（无尽书库，书梯顶端） | 默认第五 | 是 | 6.5 独白稿；借书卡写着书库最底层的层号 | [第四幕][a4] 6.5 |
-| DB-A4-06 | `div_beat_a4_heresy_edict` | 艾琉恩 | 异端之国诏 | 按 `church_verdict_3`：lost_lamb 时招安被拒后，heretic 时立国即颁，demon_precursor 时以"先驱"定性 | 是 | 诏书全文按[第四幕][a4] 8.2 | [第四幕][a4] 8.2 |
+| DB-A4-06 | `div_beat_a4_heresy_edict` | 艾琉恩 | 异端之国诏 | 按 `a3_church_verdict`：lost_lamb 时招安被拒后，heretic 时立国即颁，demon_precursor 时以"先驱"定性 | 是 | 诏书全文按[第四幕][a4] 8.2 | [第四幕][a4] 8.2 |
 | DB-A4-07 | `div_beat_a4_countersign_talks` | 艾琉恩、莫伊拉 | 约定、副署 | 玩家答应招安 | 条件成立即必达 | 莫伊拉开价，其余女神可阻挠或加价；成立则 `div_eluen_write_page` | [第四幕][a4] 6.1，D-037 |
 | DB-A4-08 | `div_beat_a4_isomorphism` | 莫伊拉 | 化身 | `deed.deed_god_five_offers` 之后，且 `director.a4_disputes_midway >= 2`（至少两条纷争进入中段，[第四幕][a4] 7.1） | 是 | 点破同构："你在边石镇做的事，和我们在神庭做的事，一模一样。"；置 `a4_moira_isomorphism` | [第四幕][a4] 7 |
 | DB-A4-09 | `div_beat_a4_trade_records` | 莫伊拉 | 情报交易 | 同构之后 | 是 | 空白纪副本按页交易；置 `a4_moira_trade_records`；之后"神之记录"页解锁第一档（第 12.5 节） | [第四幕][a4] 7.3 |
@@ -688,14 +688,14 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | DB-A5-01 | `div_beat_a5_second_edict` | 艾琉恩 | 异端之国诏（第二道） | 无貌之王诞生后 | 是 | 教国称第九代魔王为"瓦尔妲之秽"，号召"讨伐魔王，清剿夜境" | [第五幕][a5] 4.2 |
 | DB-A5-02 | `div_beat_a5_valda_confession` | 瓦尔妲 | 群谕 | 第二道诏书之后的第一个黄昏 | 是 | [第五幕][a5] 4.2 三句原文；E12 进入可用状态的前置 | [第五幕][a5] 4.2 |
 | DB-A5-03 | `div_beat_a5_pig_line` | 瓦尔妲 | 降影（帝国军营祭坛） | 玩家在祭坛前质问她 | 否 | "你吃肉的时候，会给猪道歉吗？"；玩家答"猪也是你造的"时她沉默一下后大笑断开 | [第五幕][a5] 4.2 |
-| DB-A5-04 | `div_beat_a5_holy_war_league` | 艾琉恩 | 圣战号召 | `summit_result` 为圣战联军 | 条件成立即必达 | 南线出现圣战联军；加入国家受加护修正项 | [大战略][slg] 8 |
+| DB-A5-04 | `div_beat_a5_holy_war_league` | 艾琉恩 | 圣战号召 | `a4_summit_result` 为圣战联军 | 条件成立即必达 | 南线出现圣战联军；加入国家受加护修正项 | [大战略][slg] 8 |
 | DB-A5-05 | `div_beat_a5_descent` | 艾琉恩 | 神降 | `a5_yui_descent` 的条件（结衣留任或接过勇者加护）成立后的第一场决战 | 条件成立即必达 | 越约窗口（`div_breach_eluen_descent`）；瓦尔妲的对撞窗口随之打开：神降请求前写 `a5_valda_ashclash`（对撞窗口是否开启） | [人物][chr] 1.1 |
 | DB-A5-06 | `div_beat_a5_full_record` | 莫伊拉 | 全录之日 | `div_moira_full_record` 的条件 | 条件成立即必达 | 四司收到同一张纸条："我已告知。"；她在书页上写"这一章，是我写过最好的。" | [第五幕][a5] 4.4 |
 | DB-A5-07 | `div_beat_a5_merca_quotes` | 梅尔卡 | 物价修正、借贷担保、约定 | 决战筹备期 | 是 | 向双方报价；灰铁 `price_demand` +30%；可借出门钥（"两头下注"，开价视关系） | [第五幕][a5] 6.2 |
 | DB-A5-08 | `div_beat_a5_sylvie_branch` | 希尔薇 | 托梦、森林（吸澱） | 世界树的枝被选作众门环节点 | 是 | 托梦劝阻精灵；`goddess.sylvie >= 50` 时则暗中护住根下（森林吸澱） | [第五幕][a5] 6.2 |
 | DB-A5-09 | `div_beat_a5_spring_murky` | 希尔薇 | 降影（灵泉） | 玩家在灵泉边与她说话 | 否 | "灵泉很浑。我看不清了。" | [人物][chr] 1.2 |
 | DB-A5-10 | `div_beat_a5_catalyze_test` | 瓦尔妲 | 魔王催化、魔物潮（推压） | 众门环工程推进到不少于 3 个节点 | 条件成立即必达 | "看看你们的办法扛不扛得住。" | [迷宫目录][dgn] 4.1 |
-| DB-A5-11 | `div_beat_a5_janu_act` | 雅努 | 现实出手 | 无貌之王首领战"归无" | 是 | 规模按 `janu_act`；"接住你了。"（序章伸过手时多半句："你又伸手了。"） | [第五幕][a5] 8 |
+| DB-A5-11 | `div_beat_a5_janu_act` | 雅努 | 现实出手 | 无貌之王首领战"归无" | 是 | 规模按 `a5_janu_act`；"接住你了。"（序章伸过手时多半句："你又伸手了。"） | [第五幕][a5] 8 |
 | DB-A5-12 | `div_beat_a5_faceless_named` | 雅努 | 降影（现实） | 救赎条件齐（[第五幕][a5] 2.5，过场目录第五幕一节的定义）且玩家选择递出照片 | 条件成立即必达 | 叫出"沈望"；"……对不起。那一次，我没有接住你。"；置 `a5_faceless_named` | [第五幕][a5] 8 |
 | DB-A5-13 | `div_beat_a5_trial_called` | 五司 | 天启解读 | 天启「审期至。六司归庭。」 | 是 | 五司反应以[第五幕][a5] 9.1 与 `revelations.json` 为准；之后神权菜单停用 | [第五幕][a5] 9 |
 | DB-A5-14 | `div_beat_a5_buy_slot` | 艾琉恩、希尔薇 | 约定（求购召唤名额） | 陆辰卸光或死去（勇者缺位） | 条件成立即必达 | 希尔薇拒绝；拒绝写入神迹账旁注 | 本文 2.1 |
@@ -741,10 +741,10 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_plan_eluen_purge_flaw` | 清除规格外者（借代理人） | `act >= 3 AND 确信 == 确认` | 审判之名（1）：异端审判·暗查（预兆）→ 拘传 → 勇者团调度·逮捕 → 公开审判；圣战之名（2）：神谕（大主教）→ 圣战号召 → 授予加护（圣化）→ 圣柱降光（风险声明按第 3.2 节）；断其羽翼（2）：剥夺加护（倒向玩家的神职）→ 神谕（贵族，敌视玩家领地）→ 委托发布（查访"无记载者"） | 敌对预算用尽；或 `act >= 4` |
 | `div_plan_eluen_keep_hero` | 保住这一轮的勇者 | `act >= 3` | 守护（1）：凝视（勇者团）→ 授予加护（补强）→ 回光（濒死时）→ 神谕（安抚陆辰） | 陆辰卸光 |
 | `div_plan_eluen_recruit` | 招安 | `act == 4 AND a4_nation_founded` | 光像（1）：降影（国内礼拜堂）→ 为客人写页·提议 → 传讯莫伊拉求副署 → 约定（副署的对价）；光之诏（2，国内没有她的礼拜堂）：神谕（教国圣使）→ 降影（光之诏卷轴） | 玩家拒绝，转 `edict_pressure` |
-| `div_plan_eluen_edict_pressure` | 诏书施压 | 招安被拒，或 `church_verdict_3` 为 heretic、demon_precursor | 诏令（1）：异端审判·先遣审判（赛琳入境，预兆）→ 异端之国诏 → 圣战号召（联军集结） | 七国会盟结果为眠鳞同盟且教国孤立 |
+| `div_plan_eluen_edict_pressure` | 诏书施压 | 招安被拒，或 `a3_church_verdict` 为 heretic、demon_precursor | 诏令（1）：异端审判·先遣审判（赛琳入境，预兆）→ 异端之国诏 → 圣战号召（联军集结） | 七国会盟结果为眠鳞同盟且教国孤立 |
 | `div_plan_eluen_bury_sundering` | 掩盖大断绝 | `act >= 4` 且艾尔温将公证，或空白纪第三页已被交易 | 引渡（1）：神谕（教国审判官：引渡遗民）→ 异端审判·拘传（艾尔温）；借阅交易（2）：向莫伊拉求购空白纪页 → 约定（不得公开第三页）；白光（3，恐惧不低于 70）：显光（根下庭，接受风险，越约候选 B01） | `lie_exposed.eluen` |
 | `div_plan_eluen_last_proof` | 最后一次证明 | `act == 5 AND a5_demon_king_born` | 勇者斩王（1）：勇者团调度·讨伐（主门坑）→ 授予加护（补强）→ 回光（濒死时）；圣战（2）：圣战号召 → 神降（结衣）→ 大神迹（战后）；补位（3，勇者缺位）：约定（向希尔薇求购召唤名额，必被拒）→ 授予加护（把勇者加护转写给结衣，或写过页的玩家） | `a5_final_battle_done` |
-| `div_plan_eluen_deny_purge` | 否认排澱 | `a5_truth_purge_cycle` | 否认（1）：神谕（教皇：称"邪神之言"）→ 指控（瓦尔妲）→ 委托发布（收缴《堕勇手记》） | `moira_published` |
+| `div_plan_eluen_deny_purge` | 否认排澱 | `a5_truth_purge_cycle` | 否认（1）：神谕（教皇：称"邪神之言"）→ 指控（瓦尔妲）→ 委托发布（收缴《堕勇手记》） | `a5_moira_published` |
 
 ### 5.2 瓦尔妲
 
@@ -806,7 +806,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_plan_sylvie_watch_child` | 远观 | 无 | 守望（1）：托梦（欧拉）→ 借兽示警（只对真实危险）→ 兽引（鹿泉，序章好感不低于 2） | 无 |
 | `div_plan_sylvie_warn_city` | 示警 | `act == 2` | 示警（1）：借兽示警（乌鸦、老鼠）→ 托梦（白杉）→ 授予加护（鹿角会的猎人：林佑） | 无 |
 | `div_plan_sylvie_shelter` | 庇护 | `act == 3` | 庇护（1）：兽群迁徙（东线）→ 托梦（芦苇流血）→ 季节与天气（大雾）→ 兽引（鹿群引幸存者） | 无 |
-| `div_plan_sylvie_root_court` | 根下庭 | `act == 4` | 引路（1）：托梦（欧拉：引玩家来）→ 兽引（草地）→ 降影（灵泉）；震怒（5，`refuge_state == 被毁` 且玩家未介入）：借兽示警（教国边郡，7 日预兆）→ 天灾·虫（焚林军的来路，全作唯一一次） | 根下庭收场 |
+| `div_plan_sylvie_root_court` | 根下庭 | `act == 4` | 引路（1）：托梦（欧拉：引玩家来）→ 兽引（草地）→ 降影（灵泉）；震怒（5，`a4_refuge_state == 被毁` 且玩家未介入）：借兽示警（教国边郡，7 日预兆）→ 天灾·虫（焚林军的来路，全作唯一一次） | 根下庭收场 |
 | `div_plan_sylvie_hold_spring` | 护住灵泉 | `act == 5` | 护泉（1）：托梦（精灵：劝阻）或森林·吸澱（世界树外根，`goddess.sylvie >= 50`）→ 归泉之许（大量死者，默认放行）→ 降影（灵泉浑浊） | `a5_revelation_trial` |
 
 ### 5.5 莫伊拉
@@ -895,9 +895,11 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `debt.overdue`、`debt.paid`、`market.player_rival`、`market.player_profit`、`key.theft`、`key.returned`、`key.given_away` | 梅尔卡相关 | 金额、份额、门钥 |
 | `kill.needless`、`harm.children`、`protect.children`、`forest.cut`、`spring.overdrawn`、`refuge.destroyed`、`refuge.saved`、`pet.with_player`、`pet.left_in_courtyard`、`player.dream_seen` | 希尔薇相关 | 对象、地点 |
 | `story.written`、`story.false`、`companion.page_anomaly`、`borrow.request_about_companion`、`lore.found`、`player.reads_record`、`player.request_publish`、`player.asks_isomorphism`、`fate_thread.seen`、`memory.given`、`courtyard.frequent`、`story.stalled` | 莫伊拉相关 | 同伴、页、条目 |
-| `door.opened`、`door.danger_opened`、`seal.stage_up`、`player.asks_cost`、`remnant.offering`、`player.sleep_courtyard`、`player.sleep_unsafe`、`remnant.harmed`、`player.closed_door`、`faceless.mentioned`、`player.reached_out` | 雅努相关 | 门、阶段 |
+| `player.opened_door`、`player.opened_danger_door`、`seal.stage_up`、`player.asks_cost`、`remnant.offering`、`player.sleep_courtyard`、`player.sleep_unsafe`、`remnant.harmed`、`player.closed_door`、`faceless.mentioned`、`player.reached_out` | 雅努相关 | 门、阶段 |
 | `harm.followers`、`player.save_believer`、`hero.harmed_by_player` | 艾琉恩相关 | 对象、目击者 |
 | `revelation.landed`、`breach.detected`、`player.temple_built`、`player.temple_razed`、`relic.anchor_lost` | 共用 | 天启、违约、神殿、神器 |
+
+事件词是反应表自己的词表，不是旗标；词形不与旗标族撞形（门族 `door.<门 ID>`），开门的两个词用 `player.opened_door`、`player.opened_danger_door`，由反应层从千门的内核事件 `door.opened`（`thousand_doors.md` 第 3.5 节）换来。
 
 ### 6.2 共用行（五司）
 
@@ -998,8 +1000,8 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_react_sylvie_07` | `trial.won` | 希尔薇的试炼 | 5 | `trial_wins.sylvie` +1；关系 +5 | 每场 1 |
 | `div_react_sylvie_08` | `forest.cut` | 玩家领地一季内砍伐活树超过可再生产出 | 4 | 关系每季 -3；季节动作对该地不倾向有利 | 每季 1 |
 | `div_react_sylvie_09` | `spring.overdrawn` | 采空灵穴 | 6 | 关系 -10；持有两季花冠时新花一侧当场枯死 | 每处 1 |
-| `div_react_sylvie_10` | `door.opened` | `act >= 4` | 3 | 下一次降影里提起：槽 `ln_sylvie.doors.warn`（锚定句："你开了多少扇门？"） | 每 7 日 1 |
-| `div_react_sylvie_11` | `refuge.destroyed` | `refuge_state == 被毁` 且玩家未介入 | 10 | 借兽示警（教国边郡，7 日）→ 天灾·虫（焚林军的来路），全作唯一一次；之后本幕对玩家沉默；记"那一年我也降过一次灾"（第六幕陈述素材） | 一局 1 |
+| `div_react_sylvie_10` | `player.opened_door` | `act >= 4` | 3 | 下一次降影里提起：槽 `ln_sylvie.doors.warn`（锚定句："你开了多少扇门？"） | 每 7 日 1 |
+| `div_react_sylvie_11` | `refuge.destroyed` | `a4_refuge_state == 被毁` 且玩家未介入 | 10 | 借兽示警（教国边郡，7 日）→ 天灾·虫（焚林军的来路），全作唯一一次；之后本幕对玩家沉默；记"那一年我也降过一次灾"（第六幕陈述素材） | 一局 1 |
 | `div_react_sylvie_12` | `refuge.saved` | 根下庭公开庇护或迁入 | 9 | 兽碰手（DB-A4-13）；关系 +25 | 一局 1 |
 | `div_react_sylvie_13` | `pet.with_player` | 玩家带兽伴进入她的视线区 | 2 | 视线按"动物在场"计（浓度 +1 档，上限"模糊"） | 无 |
 | `div_react_sylvie_14` | `pet.left_in_courtyard` | 兽伴留在门内庭院 | 2 | 兽伴的页"所在不明"，每只每天给莫伊拉的档案加一笔 | 无 |
@@ -1022,7 +1024,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_react_moira_10` | `player.asks_isomorphism` | `a4_moira_isomorphism` 之前问"巧合是不是你安排的" | 7 | 只能暗示："巧合，是命运的另一个名字。" | 无 |
 | `div_react_moira_11` | `fate_thread.seen` | 识才之门进阶后玩家看见命运丝 | 6 | 关系 +3；她在书页边写"被看见了" | 一局 1 |
 | `div_react_moira_12` | `pitch.refused` | 第四幕交易被拒 | 3 | 关系不变；"这一章还长" | 每 7 日 1 |
-| `div_react_moira_13` | `memory.given` | 玩家交出一段前世记忆 | 8 | 关系 +15；`moira_sight` 上升一档；`deed_god_memory_given` | 每段 1 |
+| `div_react_moira_13` | `memory.given` | 玩家交出一段前世记忆 | 8 | 关系 +15；`goddess.moira.gaze` 上升一档；`deed_god_memory_given` | 每段 1 |
 | `div_react_moira_14` | `evidence.exposed_about_her` | E20、E21、E34 | 5 | 换成"我让这个故事更好看了"的版本 | 每件 1 |
 | `div_react_moira_15` | `courtyard.frequent` | 同一同伴连续出入庭院 | 3 | 线索加重；注视 +3 | 每同伴 7 日 |
 | `div_react_moira_16` | `story.stalled` | 张力计推进停滞 | 2 | 不在神务通道处理（导演通道独立）；神务会话只收到普通通知 | 无 |
@@ -1031,8 +1033,8 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 
 | ID | 事件 | 条件 | 优先级 | 反应 | 冷却与次数 |
 | --- | --- | --- | --- | --- | --- |
-| `div_react_janu_01` | `door.opened` | 任意 | 4 | 松动度按门的档；入梦冷却推进 | 无 |
-| `div_react_janu_02` | `door.danger_opened` | 危险之门 | 6 | 下一个梦更长；`deed_god_danger_door` | 每扇 1 |
+| `div_react_janu_01` | `player.opened_door` | 任意 | 4 | 松动度按门的档；入梦冷却推进 | 无 |
+| `div_react_janu_02` | `player.opened_danger_door` | 危险之门 | 6 | 下一个梦更长；`deed_god_danger_door` | 每扇 1 |
 | `div_react_janu_03` | `seal.stage_up` | 任意 | 7 | 解锁该阶段的动作；第一次到阶段 3 时，梦里能看见身后的门与腰间的钥匙 | 每阶段 1 |
 | `div_react_janu_04` | `player.asks_cost` | `a3_seal_aware` 之后，在梦里问开门与封印 | 9 | 只答"是的"（槽 `ln_janu.dream.yes`） | 无 |
 | `div_react_janu_05` | `player.asks_cost` | `a3_seal_aware` 之前 | 8 | 回避："门总会开的。" | 无 |
@@ -1129,7 +1131,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `trl_valda_stronger` | GT-VA-04 | 更强者 | 瓦尔妲 | 三 | 试锋谷外 | 决斗 + 单人 | 对手高玩家 5 级（威压照算） | 无 |
 | `trl_valda_bare_hands` | GT-VA-05 | 空手 | 瓦尔妲 | 三 | 竞技场 | 击败全部 + 不用门 + 禁用消耗品 | 不用门的能力，只用基础招式 | 无 |
 | `trl_valda_pack` | GT-VA-06 | 群狼 | 瓦尔妲 | 四 | 夜风走廊 | 撑过 + 计连杀 + 一小时 | 以一敌群 | 情报"哪里有配得上你的对手" |
-| `trl_valda_broken_oath` | GT-VA-07 | 断剑之约预演 | 瓦尔妲 | 五 | 帝国军营祭坛前 | 决斗 + 单人 + 不用门 | 对手是萨莎（`sasha_fate` 为斩魔或离去时）或断剑会剑首 | 第六幕断剑之约决斗中她认得你的路数（槽） |
+| `trl_valda_broken_oath` | GT-VA-07 | 断剑之约预演 | 瓦尔妲 | 五 | 帝国军营祭坛前 | 决斗 + 单人 + 不用门 | 对手是萨莎（`a5_sasha_fate` 为斩魔或离去时）或断剑会剑首 | 第六幕断剑之约决斗中她认得你的路数（槽） |
 | `trl_merca_seven_days` | GT-ME-01 | 七日 | 梅尔卡 | 二 | 任一市场（经硬币） | 盈利 + 本金 5 银 + 7 日 | 七日内把五银变成十银 | 附物加护·商运 3 日（硬币） |
 | `trl_merca_fine_print` | GT-ME-02 | 小字 | 梅尔卡 | 二 | 硬币 | 谜题 + 写明全部条款 + 一日 | 一份契约里找出三处隐藏条款，改写成公平的版本 | 无 |
 | `trl_merca_scales` | GT-ME-03 | 辨钱 | 梅尔卡 | 二 | 秤街或金湾交易所 | 谜题 + 计答对 | 二十枚钱里找出伪币与短秤 | 无 |
@@ -1444,7 +1446,7 @@ E34 在[第六幕][a6] 第 5 节出现在四道防线里：艾琉恩·必要、�
 | 基准 | M = 无模型自动玩家 20 个种子的中位数（第 17 节）。M1 基线：艾琉恩 700、瓦尔妲 350、梅尔卡 60、莫伊拉 20 条 |
 | 强度 | S < 0.7M 为 1；0.7M 到 1.3M 为 2；S > 1.3M 为 3 |
 | 回声旁证 | 玩家经学院分类或澱哨记录了不少于 5 只带该女神澱源的回声出生（`echo_documented.<司> >= 5`）：强度加 1，至多 3 |
-| 神的办法 | `purge_route` 为神时按[第六幕][a6] 第 5 节：艾琉恩与瓦尔妲的必要防线各厚 2，E28、E29 不可用；E34 照常计 |
+| 神的办法 | `a5_purge_route` 为神时按[第六幕][a6] 第 5 节：艾琉恩与瓦尔妲的必要防线各厚 2，E28、E29 不可用；E34 照常计 |
 | 离手指数 | `release_index` 冬至前最后一次结算的值不低于 0 时，E34 在它所在的每道防线上强度加 1，至多 3（[大战略][slg] 第 2.6 节，D-043） |
 | 希尔薇 | E34 不在她的防线里：她极少出手，这本身是她的辩护（第六幕她"几乎不辩护"） |
 
@@ -1474,7 +1476,7 @@ E34 在[第六幕][a6] 第 5 节出现在四道防线里：艾琉恩·必要、�
 | --- | --- | --- |
 | 0 | 默认 | 无；只有价格明细里的"异常波动（来源未查明）"与传闻 |
 | 1 | `a4_moira_trade_records` | 莫伊拉交给玩家一册抄本：全部公开条目（神迹、诏书、天灾、魔物潮、商路），以及玩家已查明来源的半显性条目 |
-| 2 | `moira_published OR a5_truth_purge_cycle` | 加上每一条的澱当量与回声出生日志 |
+| 2 | `a5_moira_published OR a5_truth_purge_cycle` | 加上每一条的澱当量与回声出生日志 |
 | 3 | `a6_court_open` | 完整的 E34：含隐秘条目、本局被察觉或已证据化的越约 |
 
 ### 12.6 离手指数
@@ -1697,7 +1699,7 @@ E34 在[第六幕][a6] 第 5 节出现在四道防线里：艾琉恩·必要、�
 | `ops_revelations_landed` | 整数 | 女神系统 | 本局已落地的运营天启数 |
 | `div_journal_tier` | 0 到 3 | 女神系统 | "神之记录"界面的开放档 |
 | `request.<司>.<键>`、`oracle.<司>.*` | 标记 | 女神系统 | 现有代码写的委托与神谕标记 |
-| 读：`seal_looseness`、`church_suspicion`、`eluen_page`、`moira_pages`、`moira_published`、`janu_faith`、`janu_act`、`valda_seed`、`refuge_state`、`church_verdict_3`、`purge_route`、`lie_exposed.<司>`、`evidence.<编号>` | 见[揭示台账][rl] 第 0.4 节与分幕文档 | 他系统 | 本文的条件与阈值读取它们 |
+| 读：`seal_looseness`、`church_suspicion`、`a4_eluen_page`、`moira_pages`、`a5_moira_published`、`janu_faith`、`a5_janu_act`、`a2_valda_seed`、`a4_refuge_state`、`a3_church_verdict`、`a5_purge_route`、`lie_exposed.<司>`、`evidence.<编号>` | 见[揭示台账][rl] 第 0.4 节与分幕文档 | 他系统 | 本文的条件与阈值读取它们 |
 
 ## 17. 验收与测试
 

@@ -709,7 +709,7 @@
 | 人物 ID | 名 | 统/战/勇/鼓 | 主动 | 特性 | 偏好兵种 | σ | 出场 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `oriana_west` | 奥莉安娜·维斯特 | 78/80/76/65 | 65 | 机动、守约 | `unit_legion_phalanx`、`unit_ironhoof_cavalry`、`unit_battle_mage` | 0.10 | 鹿渡之战；第五幕东线 |
-| `sasha` | 萨莎 | 70/50/99/95 | 90 | 勇猛 | `unit_red_fang` | 0.25 | 霜脊堡之战；灰烬防线（观战）；第五幕视 `sasha_stance` |
+| `sasha` | 萨莎 | 70/50/99/95 | 90 | 勇猛 | `unit_red_fang` | 0.25 | 霜脊堡之战；灰烬防线（观战）；第五幕视 `a4_sasha_stance` |
 | `rogo_breakchain` | 罗戈 | 62/40/84/78 | 70 | 勇猛 | `unit_oni_infantry` | 0.15 | 霜脊堡之战（佯攻黑橡堡） |
 | `hiska` | 希斯卡 | 50/70/60/45 | 60 | 机动 | `unit_wing_fiend` | 0.10 | 霜脊堡之战（截信使） |
 | `ulrich_von_eisen` | 乌尔里希·冯·艾森 | 75/60/80/75 | 40 | 守约 | `unit_paladin`、`unit_zealot` | 0.07 | 灰烬防线之战；第五幕南线 |
@@ -722,7 +722,7 @@
 | `ferdinand_kress` | 费迪南德·克雷斯 | 80/78/60/62 | 40 | 谨慎、坚守 | `unit_siege_engineer`、`unit_legion_phalanx` | 0.06 | 东线侧翼 |
 | `edmond_lacroix` | 埃德蒙·拉克洛瓦 | 85/70/88/90 | 60 | 勇猛、仁慈 | `unit_paladin`、`unit_war_priest` | 0.15 | 南线 |
 | `matthias_clowen` | 马蒂亚斯·克洛温 | 65/72/78/50 | 55 | 多疑、狡诈 | `unit_inquisitor`、`unit_zealot` | 0.12 | 南线（狂信分支） |
-| `emilio_falco` | 埃米利奥·法尔科 | 72/68/70/55 | 35 | 守约 | `unit_golden_scale` | 0.07 | 金湾之围；第五幕视 `hart_state` |
+| `emilio_falco` | 埃米利奥·法尔科 | 72/68/70/55 | 35 | 守约 | `unit_golden_scale` | 0.07 | 金湾之围；第五幕视 `a4_hart_state` |
 | `herka_ironjaw` | 赫尔卡·铁颚 | 80/62/82/78 | 35 | 坚守、守约 | `unit_dwarf_heavy` | 0.05 | 门环线（炉心） |
 | `caranis_greenstring` | 卡兰妮丝·苍弦 | 80/78/75/65 | 45 | 谨慎 | `unit_elf_longbow` | 0.06 | 根下庭之夜；门环线（世界树） |
 | `tarien_greenstring` | 塔里恩（"鹰羽"） | 72/70/78/68 | 65 | 机动 | `unit_beastbond_ranger`、`unit_elf_longbow` | 0.10 | 门环线（世界树） |
@@ -759,7 +759,7 @@
 | 缄门者（城下首领） | 城下潮终段 | 30 | 由迷宫与首领目录定 | 由迷宫与首领目录定 | 首领战 | 黎明前仪式未终止才出现，转入全城首领战 |
 | 千骨行者幼体 | 骨原夜袭 | 26 | 3,200 | 55 | `bone_storm` | 每 15 秒吸附附近骨堆回血（图鉴"吸骨"） |
 | 奥莉安娜·维斯特 | 鹿渡之战 | 43 | 5,000 | 95 | `charge`、`strike`、`duel_challenge`、`feint_retreat` | 伤亡过两成或认定"东线有强者"即收兵；决斗输了守约 |
-| 萨莎 | 霜脊堡之战 | 48 | 6,000 | 110 | `war_cry`、`cleave`、`charge`、`rampage`、`duel_challenge` | 玩家出现后弃战局找玩家；一对一无法以击倒取胜：每 60 秒伤害 +10%，玩家撑住的秒数决定 `sasha_result` |
+| 萨莎 | 霜脊堡之战 | 48 | 6,000 | 110 | `war_cry`、`cleave`、`charge`、`rampage`、`duel_challenge` | 玩家出现后弃战局找玩家；一对一无法以击倒取胜：每 60 秒伤害 +10%，玩家撑住的秒数决定 `a3_sasha_result` |
 | 罗戈 | 霜脊堡之战（离屏） | 39 | 4,000 | 85 | `charge`、`war_cry` | 佯攻黑橡堡；第 240 秒起可能回援 |
 | 乌尔里希·冯·艾森 | 灰烬防线之战 | 42 | 4,200 | 90 | `charge`、`inspire` | 骑士守则：不追击溃兵；说服路线的关键人 |
 | 大主教塞维林 | 灰烬防线之战 | 40 | 3,000 | 50 | `dawn_pillar`、`inspire` | 第四阶段在桥头举圣柱；可被俘 |
@@ -831,8 +831,8 @@
 | 英雄与同伴 | 玩家：亲身或指挥，可下断门厅（带夜羽与至多一名同伴或一位勇者）。罗恩：第一次独立带队，玩家不插手时其将领经验按"独立指挥"计。勇者团：关系高时陆辰"这一次听你的"，接受玩家调度一次 |
 | 敌方计划（无模型） | 魔物按流场涌向出口内侧最近的平民聚集点，其次是仓库与钟楼；门徒会信徒取"斩首"变体，目标钟楼与鹰丘堡；泥巷巨口固定在泥巷井口不动；AI 友军按各自的自主优先目标行动（规则 AI） |
 | 可选打法 | 屋顶线（猎手占屋顶、罗恩小队机动、门扉护卫护送平民进鹰丘堡与大教堂）；弃点保人（放弃河港：商会规模 -1；集中守泥巷：贫民感激）；竞价（给赤鬃加价拉到泥巷）；勇者协同 |
-| 失败后果 | 进入军管分支 `wb_ruler=martial_chaos`：城市残破，第三幕难民潮加倍；游戏继续 |
-| 写回 | 继承结局（每个出口由谁守住，记在三位继承人名下）、`wb_damage`、平民伤亡、`rescued_children`、印戒去向、勇者团所见（显露度再结算）、艾琉恩知晓度 |
+| 失败后果 | 进入军管分支 `a2_wb_ruler=martial_chaos`：城市残破，第三幕难民潮加倍；游戏继续 |
+| 写回 | 继承结局（每个出口由谁守住，记在三位继承人名下）、`a2_wb_damage`、平民伤亡、`a2_rescued_children`、印戒去向、勇者团所见（显露度再结算）、艾琉恩知晓度 |
 
 ### 5.4 `bat_a3_bonefield` 骨原夜袭（战役 0）
 
@@ -845,7 +845,7 @@
 | 我方 | 民兵 60（`unit_militia` 两个兵团各 30，罗恩）；猎手 10（`unit_hunters`，希雅）；玩家 |
 | 敌方（约 150） | 开场：`unit_skeleton` 80（两个兵团）、`unit_bone_hound` 15。第 60 秒：`unit_skeleton` 20、`unit_bone_hound` 10。第 300 秒：千骨行者幼体（A 层）与骨卫 `unit_skeleton` 25 |
 | 目标 | 胜：守住村子到天亮，烧毁的房屋不超过两栋。负：村子区域被敌方占据 60 秒以上，或两个民兵兵团同时溃退 |
-| 阶段 | 0 秒：亡灵过溪试探。第 90 秒：罗恩的小错暴露（左翼留空：左翼民兵起始站位偏右 4 格，骨犬从左翼绕入）；玩家可以补位，也可以等：罗恩在第 150 秒自己发现并调整。第 180 秒或任一民兵兵团士气低于 25 时：罗恩举旗，剧本写 `a3_domain_beat = flag` 并请求 `cut_a3_domain` 段二（停手插演），千军之门可开：插演中由玩家推开（`push_door.door_thousand_legions`），战场由小队规模升为连队规模（界面切到指挥模式，玩家可框选全部兵团）；不推则按小队规模打完，战后仍可推开。第 300 秒：千骨行者幼体现身。第 600 秒：天亮，骷髅兵按"夜行"每分钟士气 -10 撤回骨原 |
+| 阶段 | 0 秒：亡灵过溪试探。第 90 秒：罗恩的小错暴露（左翼留空：左翼民兵起始站位偏右 4 格，骨犬从左翼绕入）；玩家可以补位，也可以等：罗恩在第 150 秒自己发现并调整。第 180 秒或任一民兵兵团士气低于 25 时：罗恩举旗，剧本写 `a3_domain_beat = flag` 并请求 `cut_a3_domain` 段二（停手插演），千军之门可开：插演中由玩家推开（`push_door.thousand_legions`），战场由小队规模升为连队规模（界面切到指挥模式，玩家可框选全部兵团）；不推则按小队规模打完，战后仍可推开。第 300 秒：千骨行者幼体现身。第 600 秒：天亮，骷髅兵按"夜行"每分钟士气 -10 撤回骨原 |
 | 英雄与同伴 | 玩家：单兵或指挥。罗恩：AI 将领，稳健。希雅：猎手队长 |
 | 敌方计划（无模型） | 千骨行者（勇猛）：正面推进，骨犬取"绕侧"攻左翼；幼体现身后中央突破，目标瞭望塔；天亮前不撤 |
 | 可选打法 | 罗恩全权，玩家只作单兵（罗恩将领经验 +3，`territory_autonomy` +3）；全程微操（稳赢，罗恩经验 +1）；引亡灵过溪再夹击 |
@@ -886,7 +886,7 @@
 | 敌方计划（无模型） | 奥莉安娜（机动、守约）：第一日"正面推进"（试探，推进速度慢，主攻为轻骑）；第三日"两翼包抄"（方阵正面，轻骑北面绕渡）；第五日"中央突破"（战法师开路）。任一次交战伤亡达 20% 即"迟滞撤退"并收兵写报告。邀斗接受度 0.76；守约，输了决斗退离三日 |
 | 可选打法 | 正面守渡（要塞配合时）；林间伏击（兽人与雾）；焦土让渡（先撤移民、让出渡口、袭粮道）；决斗 |
 | 失败后果 | 渡口失守，百帐营溃散，约 600 移民涌入领地（敌视人族，领地治安 -10）；橡盾要塞第 16 周不战而降；第二战线面对帝国先锋约 3,000 |
-| 写回 | `empire_view` +1（胜）；`deer_ford_result`（held、duel、lost）；奥莉安娜给帝都的报告里出现玩家；百帐营结盟 |
+| 写回 | `a3_empire_view` +1（胜）；`a3_deer_ford_result`（held、duel、lost）；奥莉安娜给帝都的报告里出现玩家；百帐营结盟 |
 
 ### 5.7 `bat_a3_frostridge` 霜脊堡之战（战役 2）
 
@@ -904,9 +904,9 @@
 | 英雄与同伴 | 玩家：以身为饵是最优解，前提是放手。英格丽德（守城、撤离）；冈特（救援，路上被希斯卡骚扰）；布丽吉特（守黑橡堡，不离主堡）；雷吉斯（向导；在石栏村被北境老兵认出，是否问罪看玩家）；卢卡斯（若在，骑兵机动） |
 | 敌方计划（无模型） | 萨莎在场前：鬼人"正面推进"中路，魔狼骑"两翼包抄"走冰面，翼魔"斩首"变体追信使。萨莎与玩家交手后：下级军官执行"中央突破"，冲锋型、追击过深，容易被诱上冰河（冰面路径权重 +50%）。罗戈回援后被击败则红牙撤军 |
 | 可选打法 | 以身为饵；避战（萨莎转为寻强，在战场上横冲直撞，伤亡大）；破冰（冰上的魔狼骑全军覆没）；谈判（"让我打个痛快，我就走。"：接受则决斗延长 120 秒，她守约撤走一半人马） |
-| 胜负与 `sasha_result` | defeated：玩家被打倒，她不杀（"还嫩。下回。"）；draw：撑满回合，她大笑收手；repelled：撑满回合、将领完成主目标、罗戈回援被击败，她下令撤军；none：玩家不在，内核自动结算，三村被焚、掳走三百 |
+| 胜负与 `a3_sasha_result` | defeated：玩家被打倒，她不杀（"还嫩。下回。"）；draw：撑满回合，她大笑收手；repelled：撑满回合、将领完成主目标、罗戈回援被击败，她下令撤军；none：玩家不在，内核自动结算，三村被焚、掳走三百 |
 | 失败后果 | 守堡失败：霜脊堡陷落，北境军团退守黑橡堡，布丽吉特第一印象为最低档 |
-| 写回 | `sasha_result`、`sasha_interest`、勇者团被玩家救过的记忆、布丽吉特第一印象（`north_status` 的前提） |
+| 写回 | `a3_sasha_result`、`a3_sasha_interest`、勇者团被玩家救过的记忆、布丽吉特第一印象（`a3_north_status` 的前提） |
 
 ### 5.8 `bat_a3_sunrise_gate` 朝阳门之夜（战役 3，可选）
 
@@ -923,8 +923,8 @@
 | 目标 | 救出腓力与御医（从冠石宫护送到撤离点）；从宰相府夺回冠石印；抢救档案馆（可选，第 900 秒前清出旧翼）；撤离（车辙区旧沟渠、河上小船，或玩家安放在王都的门标） |
 | 敌方计划（无模型） | 使团护卫长（无名将领，统帅 60、战术 55、谨慎）："保护目标"守宰相府与朝阳门，同时"正面推进"向冠石宫；宫廷禁卫"坚守"冠石宫，被突破后护送宰相撤往北岸 |
 | 失败后果 | 腓力被俘（默认结局）；主线照常推进 |
-| 写回 | `philip_fate`（获救、被俘、死亡：强攻冠石宫且约阿希姆阵亡时）；冠石印去向；档案馆碎片是否保住；艾登的去留 |
-| 过场接口 | 抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`（停手插演，战斗暂停）；参战但未抵达寝殿时，战斗结束后写 `a3_crown_beat = deathbed` 并请求；战斗结束时写 `philip_fate`、`a3_crown_beat = morning` 并请求次晨段 |
+| 写回 | `a3_philip_fate`（获救、被俘、死亡：强攻冠石宫且约阿希姆阵亡时）；冠石印去向；档案馆碎片是否保住；艾登的去留 |
+| 过场接口 | 抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`（停手插演，战斗暂停）；参战但未抵达寝殿时，战斗结束后写 `a3_crown_beat = deathbed` 并请求；战斗结束时写 `a3_philip_fate`、`a3_crown_beat = morning` 并请求次晨段 |
 
 ### 5.9 `bat_a3_reedbridge` 灰烬防线之战（战役 4）
 
@@ -937,15 +937,15 @@
 | 我方 | 灰烬民兵 400 到 1,000（`unit_ash_militia`，随领地规模）；罗恩的常备队 200（`unit_company_guard`）；希雅的猎兵 60（`unit_hunters`，第三幕末转骑后为 `unit_horse_archer`）；门扉商会佣兵 100 到 300（`unit_company_guard`）；遗民斥候与门守 30（`unit_remnant_scout` 20、`unit_keyholder_guard` 10，共鸣之门开启时有门感与合光）；百帐营兽人 300（`unit_orc_warrior`，结盟或迁入时）；瓦伦堡援军按第二幕继承结局（卢卡斯掌权：`unit_city_guard` 200、`unit_border_riders` 100；塞西莉亚掌权：`unit_company_guard` 150，但会故意拖延补给；艾德里克掌权：不来；军管：不来）；赤鬃佣兵团 120（`unit_redmane_merc`，挑战者事件收服时）；北境援军 300（`unit_greywall_infantry`，布丽吉特在北境见过玩家守住了什么，且北境已安） |
 | 敌方（约 6,200） | 圣战军：`unit_paladin` 500（乌尔里希）、`unit_inquisitor` 80（贝尔托德，照规灯）、`unit_zealot` 1,200、`unit_levy` 4,000、`unit_war_priest` 200、`unit_trebuchet` 6 具；勇者团 4（A 层）；大主教塞维林（A 层，曙光圣柱） |
 | 第三方 | 萨莎残部约 800（`unit_red_fang` 300、`unit_oni_infantry` 500）在东北丘陵，不参战；门徒会（海德薇）`unit_cultist` 30 沿灰溪上游潜向封门遗迹（离屏事件，可派一个兵团拦截） |
-| 阶段 | 一 前哨（第一日）：征召兵试探浅滩；营地间隔有夜袭粮道的机会。二 攻坚（第二日 0 到 600 秒）：圣骑士与志愿军强攻石桥，志愿军涉水抢滩，勇者团领衔。三 勇者（600 到 900 秒）：陆辰邀斗玩家，其余三人各自行动（第三幕 4.5）。四 净化之光（900 到 1,200 秒，`a3_holy_war_miracle`）：大主教在桥头举曙光圣柱，圣战军全体"圣化"（士气 +30、伤害 +20%，持续 240 秒）；光柱扫过之处门纹持有者（遗民兵团与玩家）每秒受神圣伤害；应对：深入敌阵打断大主教、击碎圣遗物、执钥人护卫与玩家合光、或撑过去；马库斯可能越过战线挡光；`sasha_interest` 2 以上时萨莎掷石，圣柱剩余时长减半。五 终局（1,200 秒后）：按胜利路线结算 |
-| 胜利路线 | 击溃：敌方战力降到 40% 以下且士气连锁崩溃；`church_verdict_3` 升到 heretic，敌方阵亡超过 2,500 时升到 demon_precursor；勇者团敌意上升。说服：持苇塘村证据（幸存者、奥丽芙的记录、结衣的证词）与真实神谕（赛琳的信），在阶段二或三派一个兵团抵达乌尔里希 4 格内并打开交涉窗口；成功后征召兵成队回乡（约尔格领头，每 60 秒一个 `unit_levy` 兵团离场），乌尔里希以骑士守则为由撤军，大主教孤立。不杀而胜：断粮（第一日夜袭粮道两次以上，或塞西莉亚拖延补给：敌方第二日士气基线 -15）；夜擒大主教（行路之门或裂隙之门深入，俘获目标 `severin`）；以防御为主撑到圣战军士气崩溃 |
+| 阶段 | 一 前哨（第一日）：征召兵试探浅滩；营地间隔有夜袭粮道的机会。二 攻坚（第二日 0 到 600 秒）：圣骑士与志愿军强攻石桥，志愿军涉水抢滩，勇者团领衔。三 勇者（600 到 900 秒）：陆辰邀斗玩家，其余三人各自行动（第三幕 4.5）。四 净化之光（900 到 1,200 秒，`a3_holy_war_miracle`）：大主教在桥头举曙光圣柱，圣战军全体"圣化"（士气 +30、伤害 +20%，持续 240 秒）；光柱扫过之处门纹持有者（遗民兵团与玩家）每秒受神圣伤害；应对：深入敌阵打断大主教、击碎圣遗物、执钥人护卫与玩家合光、或撑过去；马库斯可能越过战线挡光；`a3_sasha_interest` 2 以上时萨莎掷石，圣柱剩余时长减半。五 终局（1,200 秒后）：按胜利路线结算 |
+| 胜利路线 | 击溃：敌方战力降到 40% 以下且士气连锁崩溃；`a3_church_verdict` 升到 heretic，敌方阵亡超过 2,500 时升到 demon_precursor；勇者团敌意上升。说服：持苇塘村证据（幸存者、奥丽芙的记录、结衣的证词）与真实神谕（赛琳的信），在阶段二或三派一个兵团抵达乌尔里希 4 格内并打开交涉窗口；成功后征召兵成队回乡（约尔格领头，每 60 秒一个 `unit_levy` 兵团离场），乌尔里希以骑士守则为由撤军，大主教孤立。不杀而胜：断粮（第一日夜袭粮道两次以上，或塞西莉亚拖延补给：敌方第二日士气基线 -15）；夜擒大主教（行路之门或裂隙之门深入，俘获目标 `severin`）；以防御为主撑到圣战军士气崩溃 |
 | 英雄与同伴 | 玩家（`minLevel` 45）；罗恩（灰烬防线前向玩家坦白当年逃跑的事，只在玩家留在领地的夜里）；希雅；玛莎（防线被突破时在镇门前出手一次） |
 | 敌方计划（无模型） | 乌尔里希（守约）：第一日"正面推进"试探浅滩；第二日"中央突破"石桥加两翼涉水；不追击溃兵。贝尔托德：大主教的"保护目标"，照纹灯搜寻遗民。大主教：阶段四固定举圣柱（剧情神迹）。勇者团：陆辰找玩家，结衣救护（可能动摇），艾登观察召唤阵，马库斯保平民 |
 | 誓光之门 | 任一胜利路线即满足"在无人为你祈祷的地方以自己的名义立誓守护，并且守住"的钥，门在终局插演中由玩家推开 |
-| 失败后果 | 防线被突破（北岸桥头区被敌占据 300 秒以上，且我方战力低于 30%）：圣战军北上三十公里抵达边石镇，玛莎拖住一刻钟，阿什在封门遗迹前以灰埋掉先锋（过场）；`church_verdict_3` 为 demon_precursor；领地焚毁大半，进入 `ash_exile`；游戏继续 |
+| 失败后果 | 防线被突破（北岸桥头区被敌占据 300 秒以上，且我方战力低于 30%）：圣战军北上三十公里抵达边石镇，玛莎拖住一刻钟，阿什在封门遗迹前以灰埋掉先锋（过场）；`a3_church_verdict` 为 demon_precursor；领地焚毁大半，进入 `a3_ash_exile`；游戏继续 |
 | 余波 | 净化之光之后数日，荒原澱值上升：`cty_bonefield`、`cty_ashwood` 澱度临时 +1（一季），骨原魔物潮翻倍（`mtide_waste_boneplain`） |
-| 写回 | `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`lothar_ending`、领地人口与里程碑损失、`eluen_violation_evidence`、`a3_eluen_speaks`、`a3_sasha_retreat_line` |
-| 过场接口 | 按 `cut_a3_ashen_line` 的触发写段落旗标 `a3_ashline_beat` 并请求：第三阶段陆辰出阵 `duel`、对决分出结果 `duel_end`、阶段四写定神行 `div_beat_a3_pillar` 执行时 `pillar`、终局 `end`（先写 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`eluen_violation_evidence`）、防线被突破 `fallen`（写 `a3_ashline_route = fallen`）；光柱致死兽人信徒时写 `a3_pillar_breach`，断粮成立写 `a3_supply_cut`，夜擒大主教写 `a3_archbishop_seized`；战前夜段由 `A3-M11` 请求；誓光之门在终局插演中由玩家推开 |
+| 写回 | `a3_archbishop_fate`、`hero_state_*`、`a3_church_verdict`、`a3_lothar_ending`、领地人口与里程碑损失、`a3_eluen_violation`、`a3_eluen_speaks`、`a3_sasha_retreat_line` |
+| 过场接口 | 按 `cut_a3_ashen_line` 的触发写段落旗标 `a3_ashline_beat` 并请求：第三阶段陆辰出阵 `duel`、对决分出结果 `duel_end`、阶段四写定神行 `div_beat_a3_pillar` 执行时 `pillar`、终局 `end`（先写 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `a3_archbishop_fate`、`hero_state_*`、`a3_church_verdict`、`a3_eluen_violation`）、防线被突破 `fallen`（写 `a3_ashline_route = fallen`）；光柱致死兽人信徒时写 `a3_pillar_breach`，断粮成立写 `a3_supply_cut`，夜擒大主教写 `a3_archbishop_seized`；战前夜段由 `A3-M11` 请求；誓光之门在终局插演中由玩家推开 |
 
 ### 5.10 `bat_a3_second_front` 第二战线
 
@@ -969,7 +969,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 出处 | [第四幕 4.1、4.2](../../30_story/arcs/act4_continental_board.md)：立国的契机随第三幕洛萨结局不同，三种结局下新国一出生就有一位不认它的邻居；门徒会趁界石垒立成、封印受震叩封门。本战是庭外之国的第一场守土之战（第四幕的必经战斗），也是战线授权书的教学。地图与网格见[地图简报](../world/map_briefs.md) 第 10.4 节 |
-| 触发 | 立国后 30 到 90 日（SLG 时间）的一个夜里。第一波每种结局都有：封印躁动的澱与门徒会精锐从北面外庭扑向界石垒。第二波按 `lothar_ending` 选变体：瓜分时北境军阀、保护国时宰相总督的讨叛军、灰烬流亡叠加时圣教清剿先驱；`rump_kingdom`（残王国）时洛萨承认并结盟，没有第二波，第一波加入 `mtide_waste_road` 魔物潮 |
+| 触发 | 立国后 30 到 90 日（SLG 时间）的一个夜里。第一波每种结局都有：封印躁动的澱与门徒会精锐从北面外庭扑向界石垒。第二波按 `a3_lothar_ending` 选变体：瓜分时北境军阀、保护国时宰相总督的讨叛军、灰烬流亡叠加时圣教清剿先驱；`rump_kingdom`（残王国）时洛萨承认并结盟，没有第二波，第一波加入 `mtide_waste_road` 魔物潮 |
 | 变体与地图 | 全部变体都在 `boundary_cairn_battle`（A1-1，56×36 战场格）：上部是封门遗迹外庭（第一波来向），中部是界石垒与残阶坡（目标区 `hold_cairn`），下部是各群体代表的营地，东缘是灰溪。第二波的入场边：北境军阀沿旧巡逻道从西缘进场；讨叛军沿南大路从南缘进场（直扑代表营地）；清剿先遣自荒原外缘从东北角进场 |
 | 天气与时段 | 夜战；按当时季节（第 5.1 节）；清剿先遣变体每 300 秒有 20% 概率起灰暴（荒原的灰尘暴） |
 | 我方 | 庭外之国的军队（玩家组建，常见为 `unit_ash_militia`、`unit_company_guard`、`unit_orc_warrior`、`unit_remnant_scout`、`unit_keyholder_guard`、`unit_night_deserter`）；将领由玩家任命 |
@@ -998,8 +998,8 @@
 | 阶段 | 0 秒：审判官从北面小径进谷，照纹灯开始搜寻。第 180 秒：放火。第 300 秒：门徒会混入。第 600 秒：火势逼近主屋。第 1,200 秒：黎明 |
 | 英雄与同伴 | 玩家；夜羽（鸦群揭示照纹灯队）；门歌者塔维（若同行，门歌让遗民兵团不受照纹灯影响） |
 | 敌方计划（无模型） | 审判官（多疑、狡诈）：照纹灯队取"保护目标"，火把队取"正面推进"放火开路；门徒会取"斩首"变体，目标遗民孩子所在的撤离队 |
-| 失败后果 | `refuge_state` = 被毁：遗民死伤惨重，艾尔温闭门不出，世界树节点在第五幕不可用，希尔薇在本幕余下部分对玩家沉默 |
-| 写回 | `refuge_state`（公开庇护、迁入、被毁）、`elwin_testimony` 的前提、`trust.elwin` |
+| 失败后果 | `a4_refuge_state` = 被毁：遗民死伤惨重，艾尔温闭门不出，世界树节点在第五幕不可用，希尔薇在本幕余下部分对玩家沉默 |
+| 写回 | `a4_refuge_state`（公开庇护、迁入、被毁）、`a4_elwin_witness` 的前提、`trust.elwin` |
 
 ### 5.13 `bat_a4_redtent_bloodfight` 红帐血战
 
@@ -1020,7 +1020,7 @@
 | 萨莎 | 若玩家与萨莎在强者之宴互敬，第 300 秒她有 50% 概率临阵撤走（内核随机源）："这种仗没意思，打完了才知道谁是傀儡。" |
 | 敌方计划（无模型） | 大萨满派（仁慈、谨慎）："坚守待援"守向兽王台的坡；战首派（勇猛）："中央突破"；萨莎：寻强 |
 | 失败后果 | 本战没有对玩家的"失败"；每个结果都是一种结局。玩家阵亡则退出战场，余下由内核结算 |
-| 写回 | `beast_king`、`sasha_stance` 的调整、希雅的去留 |
+| 写回 | `a4_beast_king`、`a4_sasha_stance` 的调整、希雅的去留 |
 
 ### 5.14 `bat_a5_ring_node` 众门环守备（模板，七个节点）
 
@@ -1033,11 +1033,11 @@
 | 袭击者 | 教国拆门队（奥斯温·格雷 `oswin_grey`）：`unit_inquisitor` 30、`unit_siege_engineer` 60、`unit_zealot` 200。门徒会袭击队：`unit_cultist` 60、`unit_ashfolk` 100。魔物潮：按节点所在区域的编成（世界树 `mtide_silva_ring`、炉心 `mtide_mercato_slag`、祖灵石 `mtide_windfang_boneplain`、月井 `mtide_night_womb`、旧水道 `mtide_lotha_city`、眠鳞碑下 `mtide_sleepscale_slough`、主门坑 `mtide_waste_ashtide`） |
 | 阶段 | 预兆不少于 3 日。0 秒：袭击者抵达。第 300 秒：第二波（门徒会或魔物潮主力）。第 600 秒：领头出现（魔物潮）或审判官亲自上前（拆门队）。第 900 秒：结算 |
 | 英雄与同伴 | 玩家亲临时亲身或指挥；门歌者塔维（主门坑节点，门歌）；各节点承建种族的将领 |
-| 特殊 | 眠鳞碑下"龙下无刃"：袭击者在碑 6 格内士气 -30，在碑下流血即视为对原龙的冒犯（`eska_consent` 当场作废的风险由剧情决定，本战只给士气规则） |
+| 特殊 | 眠鳞碑下"龙下无刃"：袭击者在碑 6 格内士气 -30，在碑下流血即视为对原龙的冒犯（`a5_eska_consent` 当场作废的风险由剧情决定，本战只给士气规则） |
 | 目标 | 胜：锁定台耐久不低于 50%，执钥人存活至少一半，坚持 900 秒或击退。负：锁定台耐久降到 0，或执钥人全灭 |
 | 模式 | 玩家亲临时手动（经众门环瞬移，冷却按千门目录）；不在时自动结算，承建种族的将领（第五幕 7.2 门环线将领）指挥 |
 | 敌方计划（无模型） | 拆门队："斩首"，目标锁定台（攻城工兵破台），审判官取"保护目标"；门徒会："斩首"，目标执钥人；魔物潮：流场涌向锁定台 |
-| 失败后果 | 节点受损，建设进度 -2 周；工程期满时仍未完成的节点不计入 `gate_ring`；节点所在地区爆发一次局部魔物潮 |
+| 失败后果 | 节点受损，建设进度 -2 周；工程期满时仍未完成的节点不计入 `a5_gate_ring`；节点所在地区爆发一次局部魔物潮 |
 | 写回 | `ring_node.<节点>.integrity`（0 到 100）、`ring_node.<节点>.built` |
 
 ### 5.15 `bat_a5_final_war` 灰烬决战（总表）
@@ -1050,7 +1050,7 @@
 | 态势图 | `ashen_final_battle`（E3，56×32），数据 `act5_final_war`。它在本战中是三条外线的态势图（北区 14×6、东区 9×10、南区 14×6），显示在首领战的战线面板与战后回放里；同时是第 6.7 节标定基准的战场 |
 | 结算 | 战线回合方程（第 6 节）；玩家不能离开主门坑，只能经号令石下急令 |
 | 英雄下限 | 55（D-060） |
-| 写回 | `front_north`、`front_east`、`front_south`、`front_ring`、`front_rear`、`held_unaided`、`urgent_orders`、`gate_ring`、`continent`；E28 灰烬决战战报 |
+| 写回 | `front.north`、`front.east`、`front.south`、`front.ring`、`front.rear`、`a5_held_unaided`、`a5_urgent_orders`、`a5_gate_ring`、`continent`；E28 灰烬决战战报 |
 | 过场接口 | 战线回合系统每回合结算后写 `a5_fw_round`（1 到 4）与 `a5_fw_beat = report`，请求 `cut_a5_final_war` 的战报段；号令石引导完成写 `a5_fw_urgent_front`（north、east、south、ring、rear）与 `a5_fw_beat = urgent`，请求急令段；某线本回合进入待令时写族 `front_wait.<线>`（第五幕 7.3）；剑帝倒戈读 `a5_emperor_turned`（`cut_a5_route` 段三写入，他的兵在第二回合转入东线我方） |
 
 以下六个条目各写一条战线。敌方"基准编成"是回合零的兵力，修正写在后面；我方"参考编成"是按第四幕结果默认会到场的盟军，玩家自己的兵团在部署屏分配。
@@ -1073,8 +1073,8 @@
 | 地形与工事 | 山口与高地（高处远程 +20%）；工事等级 0 到 3：八周内由玩家或盟军修筑（关墙、壕沟、箭塔），每级为我方战线值 ×1.1 |
 | 天气 | 夏至前后的山口夜风；夜境军按夜战加成（战线方程里计入敌方士气系数 +0.05） |
 | 敌方基准编成 | 夜境诸侯派军团，主将赤铁公巴兹莱：`unit_oni_infantry` 2,500、`unit_wing_fiend` 800、`unit_night_caster` 400、`unit_dian_beast` 1,500、`unit_warg_rider` 500、`unit_womb_spawn` 200、`unit_faceless` 400 |
-| 敌方修正 | 全录之日已发生（`moira_published`）：部分诸侯得知"魔王是罐子"后倒戈或撤兵，敌方 -15%；卡穆被说服（交涉权限开启且 `kamu_beastbinder` 关系达标）：`unit_dian_beast` 与 `unit_warg_rider` -50%；萨莎为宿敌（`sasha_stance` = 宿敌）：她与 `unit_red_fang` 600 加入敌方 |
-| 我方参考编成 | 庭外之国主力（玩家分配）；夜后派（`night_pact` 为是）：`unit_oni_infantry` 1,500、`unit_night_caster` 400、`unit_wing_fiend` 400（夜后、奥丝塔）；风牙（联盟时）：`unit_orc_warrior` 1,000、`unit_hornbeast_rider` 200（塔尔干）；萨莎（`sasha_stance` 为互敬）：`unit_red_fang` 600 单独闯入，计入我方战力但不受授权书约束 |
+| 敌方修正 | 全录之日已发生（`a5_moira_published`）：部分诸侯得知"魔王是罐子"后倒戈或撤兵，敌方 -15%；卡穆被说服（交涉权限开启且 `kamu_beastbinder` 关系达标）：`unit_dian_beast` 与 `unit_warg_rider` -50%；萨莎为宿敌（`a4_sasha_stance` = 宿敌）：她与 `unit_red_fang` 600 加入敌方 |
+| 我方参考编成 | 庭外之国主力（玩家分配）；夜后派（`a4_night_pact` 为是）：`unit_oni_infantry` 1,500、`unit_night_caster` 400、`unit_wing_fiend` 400（夜后、奥丝塔）；风牙（联盟时）：`unit_orc_warrior` 1,000、`unit_hornbeast_rider` 200（塔尔干）；萨莎（`a4_sasha_stance` 为互敬）：`unit_red_fang` 600 单独闯入，计入我方战力但不受授权书约束 |
 | 将领 | 罗恩（默认）；替补夜后、拉兹格 |
 | 回合事件 | 回合二：卡穆可能当场解约（交涉许可开启时）。回合三：互敬的萨莎单人闯入，本回合我方 V ×1.1，方差 +0.1。回合四：渊胎从王胎渊补充一波（敌方 +10%） |
 | 失守与溃败 | 失守：首领战中千貌兵援军混入夜境精锐。溃败：魔族军团绕过主门坑直扑庭外之国都城（`cty_edgestone`），`continent` -15 |
@@ -1088,7 +1088,7 @@
 | 地形与工事 | 荒原澱区（非本地兵团士气每分钟 -1，澱猎人与净纹军械免除）；工事：壕沟与澱哨，0 到 3 级 |
 | 天气 | 每回合 30% 概率灰暴（视野 2 格；本回合双方伤亡 ×1.2） |
 | 敌方基准编成 | 灰潮（无将领，统率系数按 1.0）：`unit_ash_tide` 4,000、`unit_ashfolk` 5,000、`unit_faceless` 600 |
-| 敌方修正 | 门徒会持有门钥 `cult_door_keys` 每多于 1 枚，灰潮 +10%；众门环每多守住一个外围节点，灰潮 -3%（分流，只作修正项，不改变 `gate_ring` 的计数） |
+| 敌方修正 | 门徒会持有门钥 `cult_door_keys` 每多于 1 枚，灰潮 +10%；众门环每多守住一个外围节点，灰潮 -3%（分流，只作修正项，不改变 `a5_gate_ring` 的计数） |
 | 我方参考编成 | 帝国军团（眠鳞同盟时剑帝亲征；分化时可临时协同）：`unit_legion_phalanx` 4,000、`unit_ironhoof_cavalry` 800、`unit_imperial_crossbow` 1,000、`unit_battle_mage` 150，剑帝与剑卫（A 层）；洛萨残部（第三幕结局为残存时）：`unit_greywall_infantry` 800、`unit_longbow_militia` 800；冒险者公会 S 级：`unit_adventurers` 200 |
 | 将领 | 剑帝（亲征时）；帝国元帅巴尔塔扎·克伦 |
 | 回合事件 | 每回合 30% 概率灰暴。回合三：千貌军主力转到东线（敌方 +15%）。剑帝亲征时，回合四他亲自冲阵：本回合我方光环加成按剑帝鼓舞计满 |
@@ -1101,9 +1101,9 @@
 | --- | --- |
 | 位置 | 庭外之国南境，通往教国（`cty_reedbridge` 到 `cty_ashbrook_fields` 一线，即第三幕的苇桥）；态势图南区；标定战场复用 `reedbridge_battle` |
 | 地形与工事 | 灰溪与苇桥（第三幕的桥头堡可修复，0 到 3 级） |
-| 敌方基准编成（`summit_result` = 圣战联军） | `unit_paladin` 1,500、`unit_inquisitor` 200、`unit_zealot` 4,000、`unit_levy` 6,000、`unit_war_priest` 400、`unit_trebuchet` 6 具，勇者团（A 层）；主将马蒂亚斯·克洛温（狂信分支）或乌尔里希 |
+| 敌方基准编成（`a4_summit_result` = 圣战联军） | `unit_paladin` 1,500、`unit_inquisitor` 200、`unit_zealot` 4,000、`unit_levy` 6,000、`unit_war_priest` 400、`unit_trebuchet` 6 具，勇者团（A 层）；主将马蒂亚斯·克洛温（狂信分支）或乌尔里希 |
 | 敌方基准编成（其余结果） | 教国的勇者突击队：`unit_paladin` 400、`unit_inquisitor` 100、`unit_zealot` 1,000，勇者团（A 层）；主将乌尔里希 |
-| 敌方修正 | `hart_state` 为敌对或败退：哈特把佣兵卖给圣战联军，加 `unit_golden_scale` 3,000；`emperor_respect` 低于 60 且帝国入联军：加 `unit_legion_phalanx` 4,000、`unit_ironhoof_cavalry` 600（不低于 60 时剑帝在决战前夜阵前倒戈，这些兵在回合二转入东线我方）；乌尔里希被说服（交涉权限开启且持证据）：联军 -30% |
+| 敌方修正 | `a4_hart_state` 为敌对或败退：哈特把佣兵卖给圣战联军，加 `unit_golden_scale` 3,000；`npc.emperor.respect` 低于 60 且帝国入联军：加 `unit_legion_phalanx` 4,000、`unit_ironhoof_cavalry` 600（不低于 60 时剑帝在决战前夜阵前倒戈，这些兵在回合二转入东线我方）；乌尔里希被说服（交涉权限开启且持证据）：联军 -30% |
 | 我方参考编成 | 庭外之国南方守备（玩家分配）；赛琳（归附时）；马库斯（若在）；希雅（未回草原时）；教国改革派（教皇选举为改革时）：`unit_paladin` 600、`unit_war_priest` 200（埃德蒙） |
 | 将领 | 赛琳（默认）；替补马库斯、希雅 |
 | 回合事件 | 回合二：剑帝阵前倒戈（条件满足时）。回合三：勇者团试图突破（本回合敌方 +20%）；失守即闯入主门坑。乌尔里希的交涉窗口在回合二到四各开一次 |
@@ -1120,7 +1120,7 @@
 | 将领 | 门歌者塔维（总调度）；各节点：艾尔温（世界树）、赫尔卡（炉心）、大萨满或希雅（祖灵石）、夜后或奥丝塔（月井）、学院学者（旧水道） |
 | 回合事件 | 回合一到五：每个外围节点各自结算；回合三：教国拆门队的主攻（袭击者再 ×1.2，只对教国目标节点：世界树、旧水道） |
 | 失守 | 每失守一个节点：首领战中澱灌增加一脉，节点所在地区爆发局部魔物潮 |
-| 写回 | `gate_ring` = 回合五结束时守住的节点数（含核心）；`front_ring` |
+| 写回 | `a5_gate_ring` = 回合五结束时守住的节点数（含核心）；`front.ring` |
 
 ### 5.21 `bat_a5_front_rear` 后方·边石
 
@@ -1149,8 +1149,8 @@
 | 英雄与同伴 | 下庭时玩家亲身；留在箱庭的同伴照常作为各国与庭外之国的将领（第六幕审期中，玩家之外的人自己守） |
 | 两种结算 | 自持：玩家不下庭，每个受袭郡由内核自动结算。下庭：玩家穿庭镜上的门回到最危急的一郡，亲自指挥（手动），玩家缺席当场审理（第六幕 2.4 的代价） |
 | 结果映射 | 自持：所有受袭郡守住且玩家未下庭。勉强：守住，但有郡的破坏度超过 0.5 或守军伤亡超过 30%。下庭解决：玩家下庭且守住。失败：一个郡沦陷 |
-| 加成 | `held_unaided` 3 以上时，各国守军士气 +10（第五幕的经验）；澱哨网覆盖的郡，守军提前部署（伏兵与工事 +1 级） |
-| 写回 | `review.residue_tide`（self、barely、descend、fail），计入 `review_score` 与证据 E27 |
+| 加成 | `a5_held_unaided` 3 以上时，各国守军士气 +10（第五幕的经验）；澱哨网覆盖的郡，守军提前部署（伏兵与工事 +1 级） |
+| 写回 | `review.residue_tide`（self、barely、descend、fail），计入 `a6_review_score` 与证据 E27 |
 
 ### 5.23 SLG 生成战场模板
 
@@ -1236,7 +1236,7 @@
 
 **守失档**（第五幕 7.3 原式）：r 不小于 1.2 守住；0.9 到 1.2 僵持；0.6 到 0.9 失守；小于 0.6 溃败，溃败的线此后停止结算。
 
-**待令与急令**（第五幕 7.3 原式，照搬）：`autonomy` 低于 40 时，每回合每条线有 (40 - autonomy) × 1.5% 的概率待令（王政国体再加 10 个百分点），本回合方案强制为坚守且 V ×0.7，将领频道一句"等待国主指示"；急令使本回合该线 C自治 视为 1.5，代价 `autonomy` 永久 -3、`urgent_orders` 加一、该线不计入无援守住（台账语义）。待令与急令的判定都走内核随机源。
+**待令与急令**（第五幕 7.3 原式，照搬）：`autonomy` 低于 40 时，每回合每条线有 (40 - autonomy) × 1.5% 的概率待令（王政国体再加 10 个百分点），本回合方案强制为坚守且 V ×0.7，将领频道一句"等待国主指示"；急令使本回合该线 C自治 视为 1.5，代价 `autonomy` 永久 -3、`a5_urgent_orders` 加一、该线不计入无援守住（台账语义）。待令与急令的判定都走内核随机源。
 
 **回合后果**（写回兵团记录）：
 
@@ -1262,7 +1262,7 @@
 | 二 | 70% 转阶段 | 结算；剑帝阵前倒戈在本回合生效（若条件满足） |
 | 三 | 第二阶段（70% 到 35%） | 结算 |
 | 四 | 第三阶段（35% 到 5%） | 结算 |
-| 五 | 最终段（5%） | 决定性回合：各线最终状态锁定；`held_unaided` = 状态为守住或僵持、且整场未收到急令的非核心战线数 |
+| 五 | 最终段（5%） | 决定性回合：各线最终状态锁定；`a5_held_unaided` = 状态为守住或僵持、且整场未收到急令的非核心战线数 |
 
 玩家在主门坑阵亡退回门内庭院时，战略层立即多结算一回合（第五幕 7.2）；多出的回合照常结算，锁定仍在首领战的最终段。
 
@@ -1270,7 +1270,7 @@
 
 ### 6.6 与首领战的联动
 
-照搬[第五幕 7.4](../../30_story/arcs/act5_war_of_races.md)，由回合结果触发：北线失守，千貌兵援军混入夜境精锐；东线失守，澱灌增加一脉；南线失守，第三阶段勇者与圣战精锐闯入，三方乱战；每失守一个门环节点，澱灌增加一脉；守住的门环节点不少于 5，转阶段的门石只需两块、澱壳的引导者减为三名；后方·边石失守没有机制影响，只改变无貌之王转阶段时的声音；`cult_door_keys` 为 3 或 4，第二阶段门纹标记额外增加一扇假门。迷宫与首领的修正（例如门环节点附近迷宫的消化余量）只作修正项，不改变 `gate_ring` 的计数。
+照搬[第五幕 7.4](../../30_story/arcs/act5_war_of_races.md)，由回合结果触发：北线失守，千貌兵援军混入夜境精锐；东线失守，澱灌增加一脉；南线失守，第三阶段勇者与圣战精锐闯入，三方乱战；每失守一个门环节点，澱灌增加一脉；守住的门环节点不少于 5，转阶段的门石只需两块、澱壳的引导者减为三名；后方·边石失守没有机制影响，只改变无貌之王转阶段时的声音；`cult_door_keys` 为 3 或 4，第二阶段门纹标记额外增加一扇假门。迷宫与首领的修正（例如门环节点附近迷宫的消化余量）只作修正项，不改变 `a5_gate_ring` 的计数。
 
 ### 6.7 与内核同源：标定
 
@@ -1307,8 +1307,8 @@ FrontRoundLog { round, plan, r, rRaw, band, losses{ours, theirs}, events[] }   /
 ```
 
 - 新模块 `src/systems/warfare/fronts.ts`：`createFronts`（回合零，读部署）、`resolveFrontRound`（一回合一条线，纯函数加内核随机源）、`lockFronts`（回合五）。首领战阶段门槛的事件调用它。
-- `src/systems/quests/endings.ts` 的 `act5Outcome` 改读 `FrontState`：`front_*`、`held_unaided`、`gate_ring` 由战线回合给出；`frontOutcomes` 删除，其旗标兜底用作"无部署存档"的迁移路径（老存档在进入第五幕时按旗标生成一份默认部署）。
-- 测试：`tests/warfare_fronts.test.ts`（方程逐项、待令与急令、溃败后停止结算、`held_unaided` 计数、同种子可复现）与 `tests/warfare_front_calibration.test.ts`（第 6.7 节门槛）。
+- `src/systems/quests/endings.ts` 的 `act5Outcome` 改读 `FrontState`：`front_*`、`a5_held_unaided`、`a5_gate_ring` 由战线回合给出；`frontOutcomes` 删除，其旗标兜底用作"无部署存档"的迁移路径（老存档在进入第五幕时按旗标生成一份默认部署）。
+- 测试：`tests/warfare_fronts.test.ts`（方程逐项、待令与急令、溃败后停止结算、`a5_held_unaided` 计数、同种子可复现）与 `tests/warfare_front_calibration.test.ts`（第 6.7 节门槛）。
 
 ## 7. 规模、节拍与性能（RTS-1、RTS-5）
 
@@ -1608,7 +1608,7 @@ FrontRoundLog { round, plan, r, rRaw, band, losses{ours, theirs}, events[] }   /
 | --- | --- |
 | 圣历 998 年春（开局） | 按郡表的"开局归属"；荒原与眠鳞的郡无主 |
 | 第三幕受封 | 灰烬边境领 = `cty_edgestone`、`cty_oldwatch`、`cty_ironhemlock`、`cty_reedbridge`、`cty_sealed_gate`、`cty_bonefield`（[世界地图 1.2](../world/world_map.md) C1 的范围：A 系列、苇桥村、旧哨村、荒原南沿、骨原、苇塘村）；`cty_ashbrook_fields` 仍属洛萨 |
-| 第四幕立国 | 庭外之国 = 灰烬边境领六郡加荒原外缘其余五郡（`cty_brokenspan`、`cty_crystal_gully`、`cty_ashwood`、`cty_west_hamlets`、`cty_east_hamlets`），共 11 郡；`rump_kingdom` 时腓力的永久自治特许另含 `cty_ashbrook_fields`（12 郡）；`ash_exile` 时领地焚毁大半，立国时 `cty_edgestone` 与 `cty_reedbridge` 的人口与建筑按焚毁结算，郡仍在国土内。这取代 `data/strategy/config.json` 的 `playerProvinces`（第 14 节） |
+| 第四幕立国 | 庭外之国 = 灰烬边境领六郡加荒原外缘其余五郡（`cty_brokenspan`、`cty_crystal_gully`、`cty_ashwood`、`cty_west_hamlets`、`cty_east_hamlets`），共 11 郡；`rump_kingdom` 时腓力的永久自治特许另含 `cty_ashbrook_fields`（12 郡）；`a3_ash_exile` 时领地焚毁大半，立国时 `cty_edgestone` 与 `cty_reedbridge` 的人口与建筑按焚毁结算，郡仍在国土内。这取代 `data/strategy/config.json` 的 `playerProvinces`（第 14 节） |
 | 荒原中层与核心 | 无主；按连地规则（[大战略 1.1](../systems/grand_strategy_slg.md)）只能占领相邻或补给连通的郡；无人口的郡"占领"即派驻军 30 日并建一处哨站 |
 | 不可通行与隐郡 | `cty_vaulttouch`、`cty_silver_eyrie` 不可通行，只在会盟与剧情时进入；`cty_deeproot` 在第四幕"森林的秘密"第 1 步之前不显示，邻边为"密" |
 
@@ -1679,14 +1679,14 @@ County {
 
 ### 9.3 各国事件链（43）
 
-**洛萨（5）**：链头由第三幕的 `lothar_ending` 决定。
+**洛萨（5）**：链头由第三幕的 `a3_lothar_ending` 决定。
 
 | ID | 名 | 触发 | 预兆 | 选项 | 效果 |
 | --- | --- | --- | --- | --- | --- |
 | `nev_lothar_debt_due` | 同盟债息到期 | 每年秋，洛萨或其继承者存在 | 同盟债务专员来信（显性） | 付息（默）；展期；拒付 | 付息：国库 -岁入三成；展期：利率 +2 分，同盟关系 +5；拒付：同盟对其禁运，信誉 -15，落日港关税被同盟扣押 |
-| `nev_lothar_north_warlord` | 北境自守 | `lothar_ending` = partitioned，或王权崩溃 | 北境诸侯会议（显性） | 自守（默）；投帝国；与庭外之国互不侵犯（需布丽吉特对玩家的第一印象不低于中，即 `north_status` 的前提） | 北境诸郡（`cty_blackoak`、`cty_frostridge`、`cty_nightwind_south`、`cty_downs_east`、`cty_valenhead`）成为一个独立势力；可触发 `bat_a4_boundary_war` 的北境军阀变体 |
-| `nev_lothar_rump_court` | 复位之议 | `lothar_ending` = rump_kingdom，且 `philip_fate` = 获救 | 腓力召集诸侯（显性） | 召集（默）；求援庭外之国 | 召集成功：洛萨正统 +15；庭外之国援助（粮或兵）：洛萨与庭外之国同盟，洛萨在第五幕东线侧翼出兵 |
-| `nev_lothar_protectorate_levy` | 保护国岁贡 | `lothar_ending` = imperial_vassal | 帝国度支院来函 | 加税缴纳（默）；拖欠 | 加税：稳定 -10；拖欠：帝国关系 -15，帝国驻军增加 |
+| `nev_lothar_north_warlord` | 北境自守 | `a3_lothar_ending` = partitioned，或王权崩溃 | 北境诸侯会议（显性） | 自守（默）；投帝国；与庭外之国互不侵犯（需布丽吉特对玩家的第一印象不低于中，即 `a3_north_status` 的前提） | 北境诸郡（`cty_blackoak`、`cty_frostridge`、`cty_nightwind_south`、`cty_downs_east`、`cty_valenhead`）成为一个独立势力；可触发 `bat_a4_boundary_war` 的北境军阀变体 |
+| `nev_lothar_rump_court` | 复位之议 | `a3_lothar_ending` = rump_kingdom，且 `a3_philip_fate` = 获救 | 腓力召集诸侯（显性） | 召集（默）；求援庭外之国 | 召集成功：洛萨正统 +15；庭外之国援助（粮或兵）：洛萨与庭外之国同盟，洛萨在第五幕东线侧翼出兵 |
+| `nev_lothar_protectorate_levy` | 保护国岁贡 | `a3_lothar_ending` = imperial_vassal | 帝国度支院来函 | 加税缴纳（默）；拖欠 | 加税：稳定 -10；拖欠：帝国关系 -15，帝国驻军增加 |
 | `nev_lothar_refugees_south` | 王都流民 | 第四幕初，洛萨稳定低于 40 | 王都车辙区的流民（显性） | 无选项 | 对教国与庭外之国各触发一次 `nev_refugee_wave` |
 
 **帝国（5）**
@@ -1695,7 +1695,7 @@ County {
 | --- | --- | --- | --- | --- | --- |
 | `nev_empire_war_weariness` | 帝国厌战 | 战争厌倦高于 50 | 元老与军团意见分裂（半显性） | 继续（默，剑帝人格）；求和 | 继续：稳定 -10；求和：触发 `nev_peace_overture` |
 | `nev_empire_brokenblade_cell` | 断剑会秘召 | 瓦尔妲经元帅递话（第三幕东线与第五幕） | 军中断剑纹臂章增多（半显性） | 默许（默）；清查 | 默许：东线兵团中出现 `unit_brokenblade_berserker`，该线敌我的狂战加护计入神迹账；清查：断剑会怨恨，元帅忠诚 -10 |
-| `nev_empire_sword_trial` | 剑冠之试 | 剑帝或其继承者与展示过实力的对象相遇（强者之宴、战场决斗） | 请柬（显性） | 应试；拒绝 | 剑帝对应试者好感 +，`emperor_respect` 按分幕规则变化；帝国向谁低头即为剑冠之试的失败（商品目录 5.2） |
+| `nev_empire_sword_trial` | 剑冠之试 | 剑帝或其继承者与展示过实力的对象相遇（强者之宴、战场决斗） | 请柬（显性） | 应试；拒绝 | 剑帝对应试者好感 +，`npc.emperor.respect` 按分幕规则变化；帝国向谁低头即为剑冠之试的失败（商品目录 5.2） |
 | `nev_empire_highmoor_embargo` | 高沼战马禁运 | 帝国对某国开战或关系低于 -30 | 马市关闭（显性） | 禁运（默）；照常 | 对目标国禁运 `tg_warhorse_lot`；目标国骑兵换马只能靠本国马群 |
 | `nev_empire_rampart_tide` | 长垒魔物潮 | `mtide_grantia_rampart` 触发 | 废段烽燧无人自燃 | 守（默）；弃废段 | 守：生成 `bat_slg_tide`；第五幕时长垒战线值 -（东线敌方 +5%） |
 
@@ -1703,7 +1703,7 @@ County {
 
 | ID | 名 | 触发 | 预兆 | 选项 | 效果 |
 | --- | --- | --- | --- | --- | --- |
-| `nev_holysee_heresy_edict` | 异端之国诏 | 写定（第四幕 8.2，时机由 `church_verdict_3` 决定） | 教皇颁诏（显性） | 无选项 | 全体圣教国家对庭外之国关系 -20；信徒不得与之通商通婚（`trade_restriction`）；庭外之国境内信徒稳定 -10，无神之礼可抵消一半 |
+| `nev_holysee_heresy_edict` | 异端之国诏 | 写定（第四幕 8.2，时机由 `a3_church_verdict` 决定） | 教皇颁诏（显性） | 无选项 | 全体圣教国家对庭外之国关系 -20；信徒不得与之通商通婚（`trade_restriction`）；庭外之国境内信徒稳定 -10，无神之礼可抵消一半 |
 | `nev_holysee_crusade_call` | 圣战号召 | 每幕至多一次（第三幕台账节点起） | 各地礼拜堂宣读（显性） | 响应国：出兵（默，虔诚人格）；只出志愿兵；不响应 | 响应国征召人口的 2% 转为 `unit_zealot`（`volunteer_pool`，计入其神依赖度）；不响应：教国关系 -10 |
 | `nev_holysee_papal_election` | 教皇选举 | 教皇死亡，或全录之日后枢机团改选 | 七钟修院的钟连响七日（显性） | 由枢机团投票：塞勒斯坦当选（改革）或狂信派当选 | 改革：触发 `nev_crisis_holysee_reform` 的改革支；狂信：触发其狂信支 |
 | `nev_holysee_ossuary_breach` | 殉光地下墓溢出 | 圣骑士团被战事抽调（第四、五幕），`mtide_holysee_ossuary` | 瑟兰夜里的白狗（半显性） | 召回骑士（默）；封锁消息 | 召回：南线圣骑士 -300；封锁：朝圣者看见魔物上地面，教国正统 -10 |
@@ -1723,7 +1723,7 @@ County {
 
 | ID | 名 | 触发 | 预兆 | 选项 | 效果 |
 | --- | --- | --- | --- | --- | --- |
-| `nev_silva_extradition` | 引渡遗民 | 写定（第四幕 8.3 第 5 步） | 教国来使（显性） | 议会表决：交出（闭关派）；拒绝（守约派） | 交出且玩家未介入：`refuge_state` 走向被毁；拒绝：希尔瓦与教国决裂；中间可触发 `bat_a4_rootcourt_night` |
+| `nev_silva_extradition` | 引渡遗民 | 写定（第四幕 8.3 第 5 步） | 教国来使（显性） | 议会表决：交出（闭关派）；拒绝（守约派） | 交出且玩家未介入：`a4_refuge_state` 走向被毁；拒绝：希尔瓦与教国决裂；中间可触发 `bat_a4_rootcourt_night` |
 | `nev_silva_council_split` | 闭关与守约 | 写定（第四幕 8.3 第 2 步） | 议会争执（半显性） | 由议会立场分数决定 | 决定 `nev_silva_extradition` 的默认结果；艾尔温公证使守约派 +30 |
 | `nev_silva_bloom` | 腐冠化 | 天灾后一季，或 `mtide_silva_bloom` | 灵萤一片片熄灭 | 清剿（默）；隔离 | 月露谷药草产出 -50%，林约收紧（外族入林 -） |
 | `nev_silva_poaching` | 偷伐活树 | 外族在林缘郡伐木（玩家或 AI 的伐木营靠近希尔瓦） | 林中烟（显性） | 驱逐（默）；索赔 | 伐木国与希尔瓦关系 -15；希尔薇记一笔 |
@@ -1734,7 +1734,7 @@ County {
 | ID | 名 | 触发 | 预兆 | 选项 | 效果 |
 | --- | --- | --- | --- | --- | --- |
 | `nev_windfang_locust` | 蝗潮 | 希尔薇的天灾（虫），或蝗卵坡未清，`mtide_windfang_locust` | 旱獭搬家、天边黄雾 | 迁营（默）；烧草阻蝗 | 冬营地草料一季减半；越过毡路时帝国 `cty_ear_south` 收成 -20% |
-| `nev_windfang_border_raid` | 战首派劫掠 | `beast_king` 为战首派或分裂，每季 | 红帐营集结（半显性） | 劫掠目标由战首派选（默：最弱的相邻人族郡） | 生成 `bat_slg_raid`；被劫郡破坏度 +0.2 |
+| `nev_windfang_border_raid` | 战首派劫掠 | `a4_beast_king` 为战首派或分裂，每季 | 红帐营集结（半显性） | 劫掠目标由战首派选（默：最弱的相邻人族郡） | 生成 `bat_slg_raid`；被劫郡破坏度 +0.2 |
 | `nev_windfang_moon_challenge` | 月下挑战 | 某部酋长被族人挑战 | 部族大会（显性） | 应战（默）；退位 | 部族忠诚重算；新酋长的派别改变该部的女神倾向 |
 | `nev_windfang_winter_camps` | 冬营草料 | 冬季草料低于需求 | 牲畜消瘦 | 南下就食（默，瓦尔妲派）；向邻国买草 | 南下就食：邻郡触发 `nev_border_incident` |
 | `nev_windfang_hunt_contract` | 猎团的去向 | 兽王之争爆发后 | 风牙猎团的合同到期（显性） | 投瓦尔妲派（默，卡夏人格）；接外国合同（出价最高者） | 风牙猎团（约 3,000，`unit_spotshadow_scout` 为主）加入出价最高或瓦尔妲派一方 |
@@ -1745,7 +1745,7 @@ County {
 | --- | --- | --- | --- | --- | --- |
 | `nev_night_feast` | 夜宴 | 每季 | 请柬（显性，夜境内） | 由摄政应对挑战 | 摄政威望 ±10；威望决定夜境动员效率（[大战略 2.1](../systems/grand_strategy_slg.md)） |
 | `nev_night_red_snow` | 王胎渊红雪 | 空位期澱升，或 `mtide_night_womb` | 王胎渊上空落红雪 | 封渊（默，夜后）；朝圣（迎王派） | 迎王派声势 +；第五幕时渊胎并入诸侯派军团（北线敌方 +） |
-| `nev_night_moon_pact` | 月下之约 | 写定（第四幕 5.6） | 无（秘约） | 签；不签 | `night_pact`；秘约被揭露时信任危机（[大战略 4.1](../systems/grand_strategy_slg.md)） |
+| `nev_night_moon_pact` | 月下之约 | 写定（第四幕 5.6） | 无（秘约） | 签；不签 | `a4_night_pact`；秘约被揭露时信任危机（[大战略 4.1](../systems/grand_strategy_slg.md)） |
 | `nev_night_thrall_unrest` | 隶民不安 | 夜境稳定低于 40，或庭外之国的无神之礼与人簿传到夜境 | 隶民逃亡增多（半显性） | 镇压（默，诸侯）；以赎身额度释放；默许鼠道 | 以赎身额度释放：释放的隶民成为自由民（可迁往庭外之国，`remnants` 不变，人口 +）；镇压：稳定 +5、庭外之国对夜境关系 -；本事件是条款"赎身额度"的来源（第 10.5 节） |
 | `nev_night_regent_prestige` | 摄政威望 | 夜后的威望低于 30 | 诸侯拒绝应召 | 决斗立威；让步 | 决斗立威：夜后与一位诸侯决斗（结果由内核按两人的完整实体结算）；让步：诸侯忠诚 +，夜后派规模 - |
 
@@ -1770,14 +1770,14 @@ County {
 | --- | --- | --- | --- | --- |
 | `nev_crisis_empire_civil_war` | 帝国内乱 | 剑帝战死，或断剑会政变（[国家志 1.2](../../20_world/nations_and_factions.md)） | 一 夺位（马克西米连与伊瑟琳）；二 军团站队（每个军团按将领忠诚与派系选边）；三 求援（伊瑟琳向玩家求援）；四 决战（生成 `bat_slg_field`） | 伊瑟琳胜：帝国自治度 +10，对庭外之国友善；马克西米连胜：帝国好战，断剑会掌军；僵持：帝国分裂为两国，东线兵力减半 |
 | `nev_crisis_holysee_reform` | 改革或狂信 | `nev_holysee_papal_election` 的结果 | 一 新教皇登座；二 枢机清洗或开放；三 对庭外之国的新诏 | 改革：异端之国诏撤回或降级，南线敌方变为勇者突击队，改革派圣骑士入南线我方；狂信：马蒂亚斯掌审判庭，南线敌方 +20%，门环线拆门队 ×1.5 |
-| `nev_crisis_goldbay_run` | 金湾挤兑 | 写定（第四幕 8.1 第 6 步） | 一 哈特集中抛售门券；二 限时兑付（物流小游戏：调度门路节点与商队）；三 收场 | 按第四幕 8.1 的结局表：哈特败退、和解、解约同盟、经济附庸；写 `econ_indep`、`hart_state` |
-| `nev_crisis_beast_king` | 兽王之争 | 写定（第四幕 8.4 第 1 步，老兽王病逝） | 一 两种牙；二 战首的夸口；三 狼族的旧约；四 希雅的抉择；五 血战或调停（`bat_a4_redtent_bloodfight`） | `beast_king` 五种结局 |
-| `nev_crisis_heresy_coalition` | 圣战联军成形 | 写定（第四幕 8.2 第 7 步） | 一 教国召集；二 各国回应（每国按立场分数）；三 玩家分化（公开神谕原文与蚀痕证据、争取剑帝拒绝借道、收买佣兵、劝降圣骑士） | `heresy_state`：联军成形、联军分裂、联军未成；接入会盟议题二 |
+| `nev_crisis_goldbay_run` | 金湾挤兑 | 写定（第四幕 8.1 第 6 步） | 一 哈特集中抛售门券；二 限时兑付（物流小游戏：调度门路节点与商队）；三 收场 | 按第四幕 8.1 的结局表：哈特败退、和解、解约同盟、经济附庸；写 `econ_indep`、`a4_hart_state` |
+| `nev_crisis_beast_king` | 兽王之争 | 写定（第四幕 8.4 第 1 步，老兽王病逝） | 一 两种牙；二 战首的夸口；三 狼族的旧约；四 希雅的抉择；五 血战或调停（`bat_a4_redtent_bloodfight`） | `a4_beast_king` 五种结局 |
+| `nev_crisis_heresy_coalition` | 圣战联军成形 | 写定（第四幕 8.2 第 7 步） | 一 教国召集；二 各国回应（每国按立场分数）；三 玩家分化（公开神谕原文与蚀痕证据、争取剑帝拒绝借道、收买佣兵、劝降圣骑士） | `a4_heresy_state`：联军成形、联军分裂、联军未成；接入会盟议题二 |
 | `nev_crisis_waste_full` | 荒原之澱满 | 写定（第四幕 10，会盟最后一项表决时） | 一 七碑显现；二 诸神反应；三 诸国反应（第四幕 10.3 的表） | 内核规则：荒原澱值锁定为临界，第九代魔王诞生倒计时开始，荒原魔物生成上限解除；教国第二道诏书 |
 | `nev_crisis_demon_king` | 第九代魔王诞生 | 第五幕开端 | 一 诞生；二 圣教号召讨伐"魔王与其先驱"；三 魔族涌向新魔王 | 夜境诸侯倒向魔王（`nev_crisis_night_crowning`）；荒原郡全部成为魔王军控制 |
-| `nev_crisis_night_crowning` | 夜境迎王 | `nev_crisis_demon_king` 第三阶段 | 一 暗夜王座自亮；二 诸侯献座；三 夜后的抉择 | `night_queen`：联盟（`night_pact` 为是）、观望、孤立；夜后派规模随瓦尔妲坦白与全录之日上升 |
+| `nev_crisis_night_crowning` | 夜境迎王 | `nev_crisis_demon_king` 第三阶段 | 一 暗夜王座自亮；二 诸侯献座；三 夜后的抉择 | `a5_night_queen`：联盟（`a4_night_pact` 为是）、观望、孤立；夜后派规模随瓦尔妲坦白与全录之日上升 |
 | `nev_crisis_ring_works` | 众门环工程 | 第五幕，选择众生的办法后 | 八周：每周结算各节点建设进度与袭击（`bat_a5_ring_node`） | `ring_node.<节点>.built`；决战开始时建成的节点进入门环线 |
-| `nev_crisis_review` | 审期危机 | 第六幕"审期至"之后 | 五场：无光之祷（指控）、残澱之潮（质证一，`bat_a6_residue_tide`）、契约停摆（质证二）、冬前之荒（陈述）、铭录静默（陈述） | 每场写 `review.<危机>` = self、barely、descend、fail；平均为 `review_score`（第六幕 2.4） |
+| `nev_crisis_review` | 审期危机 | 第六幕"审期至"之后 | 五场：无光之祷（指控）、残澱之潮（质证一，`bat_a6_residue_tide`）、契约停摆（质证二）、冬前之荒（陈述）、铭录静默（陈述） | 每场写 `review.<危机>` = self、barely、descend、fail；平均为 `a6_review_score`（第六幕 2.4） |
 
 ## 10. 外交行动与条约条款
 
@@ -1930,14 +1930,14 @@ County {
 | 序 | 议题 | 动议 | 表决规则 | 结果 |
 | --- | --- | --- | --- | --- |
 | 一 | 席位之议 | 人族一席归谁（帝国、教国、洛萨）；夜后能否入席；门民之席能否有人坐 | 七席各一票，人族席未定时人族三方各算半票；龙族之席不投票（碑本身） | 夜后入席、门民之席有人是"眠鳞同盟"的条件 |
-| 二 | 异端之国案 | 教国动议授权圣战，要求各国出兵或借道 | 简单多数；同盟议长提出"若庭外之国把门路专营权让给同盟，同盟就弃权"（玩家接受则同盟弃权，拒绝并拿出更好的买卖同盟才投反对） | 通过即 `summit_result` 倾向圣战联军 |
+| 二 | 异端之国案 | 教国动议授权圣战，要求各国出兵或借道 | 简单多数；同盟议长提出"若庭外之国把门路专营权让给同盟，同盟就弃权"（玩家接受则同盟弃权，拒绝并拿出更好的买卖同盟才投反对） | 通过即 `a4_summit_result` 倾向圣战联军 |
 | 三 | 荒原之议 | 荒原是谁的问题：交给庭外之国、共管、或无主 | 简单多数 | 共管或交给庭外之国使众门环承建更容易 |
 | 四 | 商路与债 | 各国是否承认"债随地走" | 简单多数 | 不承认则同盟立场 -10，哈特的经济战失去法理 |
 | 五 | 遗民之议 | 遗民应被"引渡审判"还是"承认为门民" | 简单多数 | 承认为门民：众门环的执钥人可在各国境内通行 |
 
 **流血即破裂**："龙下无刃"：任何一方在会场流血（门徒会刺客袭击塔维、萨莎在碑下拔刀），会盟立刻以"破裂"结束。袭击是门徒会的计划事件，可由玩家的护卫与谍报阻止。
 
-**结果映射**（`summit_result`，第四幕 9.6）：眠鳞同盟（帝国拒绝借道；希尔瓦公开庇护或遗民已迁入；夜后入席；门民之席有人；至少两条纷争取得好结局）；分化（议题二未通过，没有正式同盟，各国签"眠鳞公约"，即条款 24 的非战区）；圣战联军（议题二通过）；破裂（会场流血）。
+**结果映射**（`a4_summit_result`，第四幕 9.6）：眠鳞同盟（帝国拒绝借道；希尔瓦公开庇护或遗民已迁入；夜后入席；门民之席有人；至少两条纷争取得好结局）；分化（议题二未通过，没有正式同盟，各国签"眠鳞公约"，即条款 24 的非战区）；圣战联军（议题二通过）；破裂（会场流血）。
 
 ### 11.2 第五幕联盟军议
 
@@ -2111,8 +2111,8 @@ County {
 | --- | --- | --- |
 | `art_map_continent` | 大陆地图插画（俯视，郡界由程序叠加；山脉、森林、草原、荒原的笔触与地理志 2.1 一致） | M3 |
 | `art_map_county_tex_<地形>` | 郡图的地形底纹：平原、丘陵、森林、草原、山地、沼泽、荒原、冻原、海岸、雪地，共 10 | M3 |
-| `art_bg_battle_<战场>` | 战场的远景天幕（D-078）：下城河港、骨原、鹿渡、霜脊、朝阳门、苇桥、瓦伦平野、界石垒、根下庭、兽王台、七个众门环节点、灰烬决战、边石后方，共 19 | M2（前 7 个）、M3（其余） |
-| `art_tile_ice`、`art_tile_ash` | 新地形：冰面（有裂纹的三档）、焦土 | M2 |
+| `art_bg_battle_<战场>` | 战场的远景天幕（D-078），只替换风格包天幕的远山层：下城河港、骨原、鹿渡、霜脊、朝阳门、苇桥、瓦伦平野、界石垒、根下庭、兽王台、众门环的地上节点、灰烬决战、边石后方；编号见第 13.5 节 | M2（前 7 个）、M3（其余） |
+| `art_tile_ice`、`art_tile_ash` | 新地形：冰面（有裂纹的三档）、焦土 | M2（冰面）、M3（焦土） |
 
 ### 13.4 战场特效
 
@@ -2133,6 +2133,44 @@ County {
 | `art_vfx_rune_ward` | 护甲符文 | M3 |
 | `art_vfx_ashstorm` | 灰暴（全屏层） | M3 |
 | `art_vfx_holy_aura`、`art_vfx_berserk_aura`、`art_vfx_contract_aura` | 三种女神加护的可见光环（光轮、红色断剑纹、金色秤纹） | M2 |
+
+### 13.5 提示词库的编号对照
+
+正式编号归提示词库（`assets/prompts/specs/*.json`）。下表是与第 13.1 到 13.4 节提议编号不同名的落点；未列出的提议编号在提示词库里同名。
+
+| 提议编号 | 提示词库编号 | 规则 |
+| --- | --- | --- |
+| `art_unit_<兵种>`（人形兵种） | 纸娃娃阵营服装 `art_doll_fac_<服装>` 加装备外观与手持物（`doll.json`） | 人形兵种不出兵团立牌动作表，由阵营服装层按兵种烘成兵团图集（[美术管线](../../50_tech/art_pipeline.md)第 4.8 节）；兵种到阵营服装与手持物的映射归 PK-M2-09 |
+| `art_unit_<兵种>`（骑兵、战兽、攻城器械、飞行兵、魔物与亡灵兵团、车阵与静态法阵） | `art_unit_<兵种>_ref` 加朝向动作表 `_d`、`_r`、`_u`（`units.json`） | 兵种名同第 13.1 节；左向由右向镜像 |
+| `art_bg_battle_<战场>` | `art_bg_battle_<剧本>`（`backgrounds.json`），按 `bat_` 剧本命名，见下表 | 只替换风格包天幕的远山层，中景与云带照旧；地图上的绑定是图集字段 `battleSky`（[地图简报](../world/map_briefs.md)第 1.7 节） |
+| `art_tile_ice` | `art_tile_wild_forest_battle_ice_01`、`_02`、`_03`（`tiles.json`，M2） | 地形键 `ice` 按地面瓦片的 `art_tile_<风格包>_<名>` 命名；三档依次是完好、开裂、将碎 |
+| `art_tile_ash` | `art_tile_silva_canopy_scorched_01`、`_02`（`tiles.json`，M3） | 地形键 `ash` 同上命名：根下庭之夜林火烧过的焦土；荒原的灰地是另一种地面（`art_tile_ash_waste_ash_ground_01`） |
+| `art_map_continent` | `art_map_medius`（`maps.json`） | 复用世界图插画，郡界由程序叠加 |
+| `art_vfx_dawn_pillar` | `art_vfx_boss_archbishop_dawnpillar_pillar_sweep`（`vfx.json`） | 复用大主教与曙光圣柱的光柱扫场 |
+| `art_vfx_explosive_jar` | `art_vfx_boss_emil_keywarden_fight_crystal_bomb`（`vfx.json`） | 复用钥司埃米尔的澱晶爆罐 |
+| `art_vfx_siege_shot` | `art_vfx_siege_shot_stone`、`_bolt`、`_crystal`，各带命中条目 `_hit` | 投石、弩车、晶炮各一条弹道加一条命中 |
+| `art_vfx_terraform` | `art_vfx_terraform_root_bind`、`_forest_growth`、`_fog_wall` | 根缚、林生、雾障各一条 |
+| `art_vfx_totem` | `art_vfx_totem_raise`、`art_vfx_totem_aura` | 立起与光环各一条 |
+| `art_ico_regstate_<状态>` | 坚定、重整、待令、急令、守土、营澱：`art_ico_regstate_steady`、`_rallying`、`_awaiting`、`_urgent`、`_home_guard`、`_taint`（`icons_units.json`）；动摇、溃退、陷阵、混乱共用士气图标 `art_ico_sys_mood_wavering`、`_routed`、`_engaged`、`_disordered`（`icons_ui.json`） | 兵团状态与人物士气同形 |
+| `art_ico_weather_<天气>` | 共用时钟旁的天气图标 `art_ico_sys_wx_clear`、`_fog`、`_rain`、`_snow`、`_blizzard`、`_ashstorm`（`icons_ui.json`） | 战场天气不另出图标 |
+
+| `bat_` 剧本 | 战场天幕 |
+| --- | --- |
+| `bat_a2_undertide` | `art_bg_battle_undertide` |
+| `bat_a3_bonefield`、`bat_a3_salvage_raid` | `art_bg_battle_bonefield` |
+| `bat_a3_deer_ford` | `art_bg_battle_deer_ford` |
+| `bat_a3_frostridge` | `art_bg_battle_frostridge` |
+| `bat_a3_sunrise_gate` | `art_bg_battle_sunrise_gate` |
+| `bat_a3_reedbridge` | `art_bg_battle_reedbridge` |
+| `bat_a3_second_front` | `art_bg_battle_second_front` |
+| `bat_a4_boundary_war` | `art_bg_battle_boundary_war` |
+| `bat_a4_rootcourt_night` | `art_bg_battle_rootcourt` |
+| `bat_a4_redtent_bloodfight` | `art_bg_battle_redtent` |
+| `bat_a5_ring_node` 与 `bat_a5_front_ring` 的地上节点：一主门坑、二世界树、四祖灵石、五月井、七眠鳞碑下 | `art_bg_battle_ring_r01`、`_r02`、`_r04`、`_r05`、`_r07` |
+| `bat_a5_final_war`（北线、东线、南线的态势图同用） | `art_bg_battle_final_war` |
+| `bat_a5_front_rear` | `art_bg_battle_front_rear` |
+
+众门环的节点三炉心（`redanvil`，山腹炉厅）与节点六旧水道（`broken_door_hall`）在地下，没有天幕。生成战场（第 5.23 节）与 `bat_a6_residue_tide` 不出战场天幕，用郡所在区域风格包的天幕。
 
 ## 14. 数据导入与校验
 
@@ -2174,7 +2212,7 @@ County {
 | `nev.<事件名去前缀>` | 选项代号 | 第 9 节全部事件 |
 | 兵团字段 `taint` | 0 到 100 | 第 2.7 节（兵团记录的字段，不是台账旗标） |
 
-沿用分幕已有的变量（`sasha_result`、`philip_fate`、`church_verdict_3`、`refuge_state`、`beast_king`、`summit_result`、`front_*`、`held_unaided`、`urgent_orders`、`gate_ring`、`review.*` 等），本文不重新定义。
+沿用分幕已有的变量（`a3_sasha_result`、`a3_philip_fate`、`a3_church_verdict`、`a4_refuge_state`、`a4_beast_king`、`a4_summit_result`、`front_*`、`a5_held_unaided`、`a5_urgent_orders`、`a5_gate_ring`、`review.*` 等），本文不重新定义。
 
 ### 14.5 战略层数据
 
@@ -2202,7 +2240,7 @@ County {
 | 测试 | 钉住什么 |
 | --- | --- |
 | `tests/warfare_units_catalog.test.ts` | 90 个兵种的 ID 唯一、字段齐全、特性键都已注册、军械套与图鉴引用存在 |
-| `tests/warfare_fronts.test.ts` | 第 6.3 节方程逐项；待令与急令；溃败后停止结算；`held_unaided` 计数；同种子可复现 |
+| `tests/warfare_fronts.test.ts` | 第 6.3 节方程逐项；待令与急令；溃败后停止结算；`a5_held_unaided` 计数；同种子可复现 |
 | `tests/warfare_front_calibration.test.ts` | 第 6.7 节的标定门槛 |
 | `tests/strategy_counties.test.ts` | 152 郡；连线对称；每条省份连线由郡边实现；省份人口等于郡合计；各区人口与国家志一致 |
 | `tests/strategy_events.test.ts` | 73 个事件的触发条件与选项效果都引用已登记的变量与修正项；女神事件都是显性或半显性 |

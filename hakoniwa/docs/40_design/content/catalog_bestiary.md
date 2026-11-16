@@ -976,6 +976,8 @@
 | `womb_brood` | 胎渊巢母（渊胎的巢，4·战·澱生） | elemental B | 46·`night` 王胎渊外围的一处裂口（四到五） | `unstableForm`、`rampage`、`summonAdds`（渊胎、无主之角） | 中晶 1（10% 升大晶）、`brood_horn_core` 巢母角核（替 `part_horn_t4`）、本阶精品 `eq_brood_horn_glaive` | 夜境渊口潮；迎王派的宣传"渊在催王" | 养：迎王派想养；毁：王胎渊外围更深；净：几乎不可能，要等第五幕的门网 | `story`、`war` |
 | `sloughed_scale_nest` | 蜕鳞窝（一片大龙蜕凝成的巢，2·龙·龙种） | dragonkin B | 12·`sleepscale` 云阶隘北的冰谷（四） | `smolder`、`cleave`、`summonAdds`（鳞生蜥） | 中晶 1、`slough_scale_plate` 蜕鳞板（替 `part_scale_t2`）、本阶精品 `eq_cloudstep_frost_charm`（清巢后把蜕鳞板还给龙族才换得，老蜕不可采） | 云阶隘商队遇袭；鳞生蜥在关城附近筑巢 | 养：卖龙种鳞是"贩尸"，龙族好感降；毁：可；净：把龙蜕还给龙族，艾斯卡收下时会说一句话 | `cog`：龙族 |
 
+**澱巢 ID**：野外澱巢的数据编号是 `nest_` 加巢主 ID（`nest_furrow_rat_queen`、`nest_bonepile_lord`、`nest_empty_house_master`）；遗契巢没有巢主，按死去的术士写 `nest_orphan_pact_<术士 ID>`。澱巢与迷宫共用状态镜像族 `dg.<迷宫或巢>.<字段>`（[变量注册表][wsr]第 8.6 节），例 `dg.nest_bonepile_lord.choice` 记养、毁、净（未处置为 `untouched`）。
+
 **澱巢的位置原则**：每个澱巢都压在一条经济线上（田、矿、商路、药圃、关隘），所以"清不清、怎么清"永远是领地或当地人的事，而不只是玩家的刷怪点。巢主的等级落在本区生态带的上沿或局部热点，符合"世界不缩放"。
 
 ### 6.1 小澱巢：遗契巢（不设巢主）
@@ -1329,3 +1331,4 @@ ID 本身即英文代号；地点与术语另附英文。正典已有的名称�
 [tdr]: ../systems/thousand_doors.md
 [cmb]: ../systems/combat_and_classes.md
 [rtsd]: ../systems/warfare_rts.md
+[wsr]: ../world_state_registry.md

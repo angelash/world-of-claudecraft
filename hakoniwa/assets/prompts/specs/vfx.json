@@ -5090,7 +5090,7 @@
         "en": "Dust of a rout: a broad pall of tawny dust trailing low to the left, the bright-edged outlines of a few dropped spears, round shields and helmets tumbling in it, landing and sliding off to the left, new clouds of dust welling up from the right, like a body of troops turned and fleeing."
       },
       "milestone": "M2",
-      "notes": "战场特效：兵团溃退时持续播放（溃退是可行动信息，追击与重整都看它；状态图标是 art_ico_regstate_routing），导入时跟随溃退兵团、按逃跑方向旋转（逃向画面右方，尘向左拖）。尘用土黄 #c8a878 与灰褐 #9a8a76；丢下的兵器只画亮边轮廓（加色混合下实色看不见）；不画人物。"
+      "notes": "战场特效：兵团溃退时持续播放（溃退是可行动信息，追击与重整都看它；状态图标是 art_ico_sys_mood_routed），导入时跟随溃退兵团、按逃跑方向旋转（逃向画面右方，尘向左拖）。尘用土黄 #c8a878 与灰褐 #9a8a76；丢下的兵器只画亮边轮廓（加色混合下实色看不见）；不画人物。"
     },
     {
       "id": "art_vfx_charge_impact",
@@ -5258,7 +5258,7 @@
       },
       "deps": ["art_vfx_cut_static_ash"],
       "milestone": "M3",
-      "notes": "战场天气：灰暴（荒原专有，视野 2 格，非本地兵团士气每分钟 -1；天气图标是 art_ico_weather_ashstorm）。用 vfx_loop 不用 vfx_overlay：灰暴是持续流动的全屏层，vfx_overlay 是贴在立牌与墙面轮廓里的静态灰度纹样。配色照 art_vfx_cut_static_ash（灰白 #d8d4cc、冷灰 #8a8a90），余烬橙 #ff9a4a 只点几粒；不用澱紫。渲染层给天气层设不透明度上限，地面预警与选择环在灰暴里仍清楚可辨。"
+      "notes": "战场天气：灰暴（荒原专有，视野 2 格，非本地兵团士气每分钟 -1；天气图标是 art_ico_sys_wx_ashstorm）。用 vfx_loop 不用 vfx_overlay：灰暴是持续流动的全屏层，vfx_overlay 是贴在立牌与墙面轮廓里的静态灰度纹样。配色照 art_vfx_cut_static_ash（灰白 #d8d4cc、冷灰 #8a8a90），余烬橙 #ff9a4a 只点几粒；不用澱紫。渲染层给天气层设不透明度上限，地面预警与选择环在灰暴里仍清楚可辨。"
     },
     {
       "id": "art_vfx_holy_aura",

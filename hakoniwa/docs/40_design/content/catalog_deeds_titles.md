@@ -374,7 +374,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_grow_two_arts` | 两门一战 | `manual`：两扇资源不同的职能门已开，同一场战斗里把两种资源都用到见底并取胜 | 10 | 无 | 门：双脉之门 `door_dual_pulse` 初阶的历钥（[门目录][drs]） | key、power | | 二 |
 | `deed_grow_kept_vow` | 无人祈祷之处的誓 | `manual`：在没有任何人为你祈祷的地方以自己的名义立誓守护，誓约期满且被守护者存活 | 25 | 记事柱一格 | 门：`door_vocation_paladin` 历钥；认知：被守护者进入"接受" | key、bond | | 三 |
 | `deed_grow_doors_ten` | 十扇门 | `meter:doors_opened >= 10` | 5 | 无 | 认知：阿什在 `a3_ash_warning_doors` 那一场里会提到"你已经开了十扇门"（台词分支，不改该标记的触发）；事迹簿从此附一栏封印的账 | story、key | | 二 |
-| `deed_grow_closed_door` | 门是可以关上的 | 新·`doorState`：第一次主动把一扇已开的门关上 | 25 | 记事柱一格 | 门：离手之门 `door_release` 的伏笔（它的钥是识钥与择钥，本事迹不作钥）；认知：`ash_relation` 稳固 | key、story | | 三 |
+| `deed_grow_closed_door` | 门是可以关上的 | 新·`doorState`：第一次主动把一扇已开的门关上 | 25 | 记事柱一格 | 门：离手之门 `door_release` 的伏笔（它的钥是识钥与择钥，本事迹不作钥）；认知：`a3_ash_relation` 稳固 | key、story | | 三 |
 | `deed_grow_beyond_sixty` | 刻度之外 | `meter:door_rank >= 61`，且 `act >= 5`（门镜第五幕才刻出 60 以上，[千门 4.3][td]） | 25 | 无 | 认知：门镜第一次显示一个铭录写不下的数；夜羽与阿什的对话分支 | story | 隐 | 五 |
 | `deed_grow_first_signature` | 第一招奥义 | 新·`doorState`：任一流派之门（`door_school_*`）到二阶 | 10 | 无 | 认知：教奥义的那位师傅在本地开始讲"那个无记载者学会了"；二十七扇流派进阶的汇总记录（门目录不逐门立事迹） | power、cog | | 三 |
 | `deed_grow_three_schools` | 三派同修 | 新·`doorState`：同一职能门下三扇流派之门的初阶都已开 | 25 | 记事柱一格 | 认知：三位师傅的传人互相听说了你（凡人一生一职，做不到）；当架切换的教学对话（[千门 9.5][td]） | power、cog | | 四 |
@@ -390,8 +390,8 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_hunt_tide_night` | 兽潮之夜 | `flag:a1_beast_tide_cleared` | 25 | 无 | 称号：`a1_tide_credit`（别名 `rumor.tide_attribution`）为 `player` 时授 `title_street_tide_f`；认知：伯爵来信的措辞（[第一幕 9.4][a1]） | cog、war | | 一 |
 | `deed_hunt_colossus_seen` | 巨像不是自己塌的 | `quest:A1-M12` 且 新·`witness`：巨像战具名目击者中信任 60 以上者至少四人 | 25 | 无 | 认知：传闻版本"那个 F 级打退了兽潮"成立；罗恩、希雅、伊莎、格蕾塔成为第一传播者 | cog | | 一 |
 | `deed_hunt_rat_king` | 百尾鼠王 | `quest:A2-M02` 的讨伐段 | 10 | 称号 `title_guild_b_real` | 认知：雷纳德 `reynard` 的"作弊"解释被推翻 | cog | | 二 |
-| `deed_hunt_redfang_round` | 第一回合 | `manual`：霜脊堡之战中与萨莎 `sasha` 交手，撑到她说"第一回合" | 25 | 无 | 认知：`sasha_interest`；`trial_sasha_third_round` 的前置 | cog、bond | | 三 |
-| `deed_hunt_dawnpillar` | 打断曙光 | `manual`：苇桥第四阶段打断举柱者，或在净化之光下撑过（`archbishop_dawnpillar`） | 25 | 无 | 认知：E36 越约的蚀痕 `eluen_violation_evidence` 为 witnessed 的条件之一 | story、cog | | 三 |
+| `deed_hunt_redfang_round` | 第一回合 | `manual`：霜脊堡之战中与萨莎 `sasha` 交手，撑到她说"第一回合" | 25 | 无 | 认知：`a3_sasha_interest`；`trial_sasha_third_round` 的前置 | cog、bond | | 三 |
+| `deed_hunt_dawnpillar` | 打断曙光 | `manual`：苇桥第四阶段打断举柱者，或在净化之光下撑过（`archbishop_dawnpillar`） | 25 | 无 | 认知：E36 越约的蚀痕 `a3_eluen_violation` 为 witnessed 的条件之一 | story、cog | | 三 |
 | `deed_hunt_surge_ashstorm` | 风眼里站着 | `manual`：击败灰暴之心 `ashstorm_heart` | 25 | 无 | 经营：玻璃原到灰海的拾荒路可走一季；收藏：古澱高档澱源材入 `col_six_fingerprints` | manage、collect | | 三 |
 | `deed_hunt_surge_frostbell` | 冰钟停了 | `manual`：击败冻铃夜哭 `frostbell_dirge` | 25 | 无 | 军需：北境冻铃河谷的冬季补给线；认知：BE-06 的旁证 | war、cog | | 三 |
 | `deed_hunt_surge_blades` | 万刃归鞘 | `manual`：击败万刃冢 `ten_thousand_blades` | 25 | 无 | 认知：帝国巡逻队对你的身份先验升一档；断剑会注意你 | cog | | 四 |
@@ -462,7 +462,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 
 | ID | 名 | 触发 | 名望 | 奖励 | 喂给 | 通道 | 隐 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `deed_dg_seal_grey_page` | 带一页灰回来 | `manual`：回访封门遗迹 `dg_seal_ruins` 时收拢灰页群而不烧毁，交还阿什 | 10 | 无 | 认知：`ash_relation`；收藏：`col_thousand_archive` 的线索 | story、bond | | 三 |
+| `deed_dg_seal_grey_page` | 带一页灰回来 | `manual`：回访封门遗迹 `dg_seal_ruins` 时收拢灰页群而不烧毁，交还阿什 | 10 | 无 | 认知：`a3_ash_relation`；收藏：`col_thousand_archive` 的线索 | story、bond | | 三 |
 | `deed_dg_old_mine_one_night` | 一夜之间 | `manual`：边石旧矿 `dg_old_mine` 从塌方口到晶脉一夜完成 | 5 | 无 | 认知：表观位阶 26 的事迹（[认知 3.2][rep]）；`deed_mortal_dwarf_mechanism` 的起点 | cog | | 一 |
 | `deed_dg_moon_cellar_untouched` | 只看不碰 | `manual`：清完醉月亭地窖 `dg_moon_cellar`，没碰长木匣 | 0 | 无 | 认知：玛莎的测试 T3 评价不降；`trial_martha_evening_bell` 的解锁倾向 | bond、cog | 隐 | 一 |
 | `deed_dg_waterway_none_missing` | 一个都没少 | `manual`：旧水道 `dg_old_waterway` 断门厅救出全部孩子 | 25 | 记事柱一格 | 门：`door_resonance` 的缘钥进度（遗民孩子）；认知：门徒会的敌意升级 | key、bond | | 二 |
@@ -500,7 +500,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_exp_main_gatestone` | 主门石 | `collectItems:[ky_gatestone_main_gate]` | 25 | 无 | 门：千径之门 `door_thousand_paths` 的节点规划；收藏：`col_gatestones` | key、collect | | 五 |
 | `deed_exp_stele_customs` | 按碑的规矩 | `collectItems:[ky_rubbing_eluen, ky_rubbing_valda, ky_rubbing_merca, ky_rubbing_sylvie]`，每张按当地规矩取得（默许或夜潜、碑前决斗、交拓费、守泉者许可） | 25 | 无 | 认知：各司的规矩各是什么样；收藏：`col_seven_steles` | cog、divine | | 四 |
 | `deed_exp_stele_mute` | 透光的哑碑 | `collectItems:[ky_rubbing_hollow]`（只在天启之夜可拓） | 25 | 无 | 认知：碑上原本有字；收藏：`col_seven_steles` | story、collect | | 四到五 |
-| `deed_exp_stele_sky` | 天碑 | `collectItems:[ky_rubbing_seventh]`（`eska_consent` 之后） | 25 | 无 | 收藏：`col_seven_steles`、`col_dragon_traces` | collect、story | | 五 |
+| `deed_exp_stele_sky` | 天碑 | `collectItems:[ky_rubbing_seventh]`（`a5_eska_consent` 之后） | 25 | 无 | 收藏：`col_seven_steles`、`col_dragon_traces` | collect、story | | 五 |
 | `deed_exp_pit_gaze` | 再看一眼 | `manual`：在书库屋顶远望主门坑时选择"再看一眼"（C3-3），被迫退回庭院休整一日 | 0 | 无 | 认知：观澜之门隔着几里地也只读出"？"；夜羽拽你的那一下 | story | 隐 | 三 |
 | `deed_exp_falling_iron` | 天上掉下来的铁 | `visit:poi:sleepscale:vault_terrace` 时恰逢落铁，拾起 `mat_vaultiron_chunk` | 10 | 无 | 认知：BE-16；收藏：`col_boundary_proofs` | collect、story | | 四 |
 | `deed_exp_garden_guest` | 庭院的客人 | `manual`：第一次带一位有页同伴进门内庭院 | 5 | 无 | 认知：同伴第一次见到箱庭之外；诸神：他的页显示"所在不明"，引来莫伊拉的书签（[力量 8.6][pow]） | bond、divine | | 一末到二 |
@@ -542,7 +542,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_bond_first_believer` | 第一个相信你的人 | 新·`belief`：希雅 `shiya` 进入"接受"，且 `trust.shiya >= 60` | 10 | 无 | 门：`door_talent_sight` 的缘钥进度；认知：希雅成为你在东坡的第一位担保人 | bond、key | | 一 |
 | `deed_bond_oola_cleared` | 药草婆婆平反 | 新·`cond`：`a1_oola_fate == cleared` | 25 | 记事柱一格 | 认知：贝莎的"邪术"解释被推翻，`church_suspicion` 下降；欧拉 `oola` 的信任开放落叶路 | bond、cog | | 一 |
-| `deed_bond_brun_glove` | 旧手套 | 新·`cond`：`brun.secret_kept == true` | 10 | 布伦的旧手套 | 认知：礼拜堂里门纹被看见的几率降低；手录从信任开始写 | bond、cog | | 一 |
+| `deed_bond_brun_glove` | 旧手套 | 新·`cond`：`npc.bron.secret_kept == true` | 10 | 布伦的旧手套 | 认知：礼拜堂里门纹被看见的几率降低；手录从信任开始写 | bond、cog | | 一 |
 | `deed_bond_brun_first_line` | 实绩如下 | `flag:a2_arrive_valen`（布伦的推荐信随你入城） | 5 | 事迹簿改名"布伦手录" | 认知：推荐信计书面 1；奥托 `krause` 背书后手录升为书面 2 | cog、collect | | 二 |
 | `deed_bond_gave_credit` | 让出去的功劳 | `manual`：第一次把一件事迹的名分让给在场的有页同伴，且目击者采信 | 10 | 无 | 立名：该同伴的讲述数上升；认知：你的注视度不升（藏拙） | bond、cog | | 二 |
 | `deed_bond_hidden_six` | 六位的点头 | 新·`belief`：十二位隐藏强者（[人物二 3.11][chc]）中至少六人进入"接受"，且你从未挑衅过任何一人两次 | 25 | 称号 `title_bond_nodded_at` | 认知：观澜之门对"凡人"的估计永远多留一分（C2-1 的系统化）；各人的缘钥 | cog、key | | 四到五 |
@@ -552,8 +552,8 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_bond_trial_sasha` | 第三回合 | `manual`：`trial_sasha_third_round` 胜（任一规则） | 50 | 无 | 认知：萨莎从此叫你的名字；羁绊：第五幕萨莎的招募条件；无加护之战让她"第一次背对瓦尔妲"的分支更稳 | bond、war | | 四到五 |
 | `deed_bond_trial_ash` | 灰中静坐 | `manual`：`trial_ash_vigil` 胜（一夜不开任何门） | 25 | 无 | 门：关门之门 `door_bond_ash` 的历钥；认知："门是可以关上的"，`deed_grow_closed_door` 的伏笔 | story、key | | 三到五 |
 | `deed_bond_trial_emperor` | 座签 | `manual`：`trial_emperor_hook` 完成且未用门的能力（胜负皆可） | 25 | 胜时称号 `title_crown_emperor_seat` | 门：负时得斩伐之门 `door_school_warrior_arms` 的一把历钥（剑理）；胜时可看帝国星象台的记录（`col_boundary_proofs` 旁证） | key、cog | | 四到五 |
-| `deed_bond_trial_vespera` | 你数了 | `manual`：`trial_vespera_eight_wars` 胜 | 25 | 无 | 认知：`trust.vespera` 大幅上升（按台账 60 开放《堕勇手记》，不另设捷径）；月下之约多一条逃兵安置条款 | cog、war | | 四 |
-| `deed_bond_trial_elwin` | 默行 | `manual`：`trial_elwin_silent_walk` 胜（一路不杀任何生灵） | 25 | 称号 `title_tribe_elf_silent_walker` | 认知：门歌残句；公证的意愿更强（不改 `elwin_testimony`） | story、bond | | 四 |
+| `deed_bond_trial_vespera` | 你数了 | `manual`：`trial_vespera_eight_wars` 胜 | 25 | 无 | 认知：`trust.night_queen` 大幅上升（按台账 60 开放《堕勇手记》，不另设捷径）；月下之约多一条逃兵安置条款 | cog、war | | 四 |
+| `deed_bond_trial_elwin` | 默行 | `manual`：`trial_elwin_silent_walk` 胜（一路不杀任何生灵） | 25 | 称号 `title_tribe_elf_silent_walker` | 认知：门歌残句；公证的意愿更强（不改 `a4_elwin_witness`） | story、bond | | 四 |
 | `deed_bond_trial_grete` | 过桥 | `manual`：`trial_grete_bridge` 胜 | 25 | 无 | 立名：可选把她的故事讲出去（`title_named_grete`）；守城将领候选 | bond、cog | | 三 |
 | `deed_bond_trial_eska` | 空手下山 | `manual`：`trial_eska_silver_eyrie` 中什么都没拿 | 25 | 无 | 诸神：原龙同意供能的判定多一份分量（不替代 `a5_eska_consent` 的正典条件）；认知：龙族记住你空手下山 | divine | 隐 | 五 |
 | `deed_bond_famed_pet` | 第一只名伴 | 新·`rumorReach`：你给兽伴起的名字传到第二座城镇（[兽伴 1.3][cre]） | 10 | 无 | 兽伴：名伴特性；认知："那个人养着……" | bond、cog | | 二起 |
@@ -598,16 +598,16 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 
 | ID | 名 | 触发 | 名望 | 奖励 | 喂给 | 通道 | 隐 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `deed_war_castle_tide` | 城下潮 | `quest:A2-M12` | 25 | 无 | 认知：卫兵长卡尔 `karl` 亲眼看见；瓦伦堡的 `rumor_shape` 定型 | war、cog | | 二 |
+| `deed_war_castle_tide` | 城下潮 | `quest:A2-M12` | 25 | 无 | 认知：卫兵长卡尔 `karl` 亲眼看见；瓦伦堡的 `a2_rumor_shape` 定型 | war、cog | | 二 |
 | `deed_war_first_defense` | 守土 | `manual`：领地的第一次守土之战胜利，罗恩为将 | 25 | 无 | 门：`door_thousand_legions` 历钥 | key、war | | 三 |
 | `deed_war_three_hundred` | 三百人 | `manual`：鹿渡之战以三百人守住渡口 | 25 | 无 | 认知：奥莉安娜 `oriana_west` 认定洛萨藏了一支军团，按兵不动两日（U3-2）；`title_street_three_hundred` 的来源 | war、cog | | 三 |
 | `deed_war_frostspine` | 守住了 | `manual`：霜脊堡之战北线守住 | 10 | 无 | 认知：布丽吉特 `brigitte` 把战报划到只剩"守住了"三个字（U3-6）；北境口碑 | war、cog | | 三 |
 | `deed_war_reed_bridge` | 苇桥 | `manual`：灰烬防线之战任一胜利路线 | 25 | 无 | 解锁：`trial_grete_bridge`；认知：战后有人说桥头的血不是圣战军的（E36 的一条传闻线索） | war、cog | | 三 |
 | `deed_war_banner_returned` | 还旗 | `manual`：和谈时把缴获的军旗还给对方 | 10 | 无 | 收藏：`col_war_banners` 计曾藏；认知：对方将领的敬意 | cog、bond | | 三起 |
 | `deed_war_goldbay` | 金湾之围 | `manual`：经济战中以门券或凡约破围（[第四幕 8.1][a4]） | 25 | 无 | 经济：门券信用；认知：同盟商会联合 | econ、war | | 四 |
-| `deed_war_one_sword` | 一剑问 | `manual`：强者之宴上剑帝的一剑问，你答"不怕" | 25 | 无 | 解锁：`trial_emperor_hook` 的延期决斗约定；认知：`emperor_respect` | cog | | 四 |
+| `deed_war_one_sword` | 一剑问 | `manual`：强者之宴上剑帝的一剑问，你答"不怕" | 25 | 无 | 解锁：`trial_emperor_hook` 的延期决斗约定；认知：`npc.emperor.respect` | cog | | 四 |
 | `deed_war_seven_nations` | 七国会盟 | `manual`：七国会盟达成任一联盟结果 | 50 | 称号 `title_crown_league_seat` | 认知：各国精英的看法；第五幕阵营抉择 | war、cog | | 四 |
-| `deed_war_gate_ring` | 众门环 | 新·`cond`：`gate_ring >= 5` | 50 | 称号 `title_war_ring_keeper` | 叙事：众生路线的前提（[第五幕 6.2][a5]）；E29 | war、story | | 五 |
+| `deed_war_gate_ring` | 众门环 | 新·`cond`：`a5_gate_ring >= 5` | 50 | 称号 `title_war_ring_keeper` | 叙事：众生路线的前提（[第五幕 6.2][a5]）；E29 | war、story | | 五 |
 | `deed_war_dismantlers` | 拆门队 | `manual`：击败或说服拆门队队长奥斯温 `oswin_grey`，保住至少一个门环节点 | 25 | 称号 `title_war_dismantlers_foe` | 认知：教国对你的定性在门环线上具体化 | war、cog | | 五 |
 | `deed_war_four_fronts` | 你不在的战线 | 新·`cond`：灰烬决战中你不在场的北、东、南与门环战线全部自行守住 | 50 | 无 | 经营：自治度的终极检验（[第五幕 7.3][a5]）；认知：国民相信"没有他我们也行"；E34 | war、manage | | 五 |
 | `deed_war_rear_held` | 边石没有失守 | 新·`cond`：后方·边石守住，守将为玛莎或布伦 | 25 | 无 | 立名：守将的 `deed_world_held_place`；全作开始的地方 | war、bond | | 五 |
@@ -620,10 +620,10 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_god_full_name` | 念出尊名 | `manual`：第一次在祈祷或对话中念出一位女神的完整尊名 | 5 | 无 | 诸神：一次"主动被看见"（[女神 GM 6.3][gm]）；认知：你学会了怎么叫她们来，也知道了代价 | divine | | 二起 |
 | `deed_god_five_offers` | 五份招揽 | `flag:a4_goddess_versions_heard` | 25 | 无 | 认知：对照页的前两列；`a4_moira_isomorphism` 的前置 | story、divine | | 四 |
 | `deed_god_none_accepted` | 一个也没答应 | 新·`cond`：五位女神的招揽全部婉拒，且第四幕结束时未与任何一司立约 | 25 | 无 | 诸神：五司的档案各记一笔"不可收买"；认知：第六幕庭上的说服基础 | divine、cog | 隐 | 四 |
-| `deed_god_moira_story` | 讲述 | `manual`：与莫伊拉完成第一笔交易（`a3_moira_offer` 之后） | 10 | 无 | 诸神：她的客卷开卷，`moira_sight` 上升；称号 `title_court_guest_scroll` | divine、story | | 三到四 |
+| `deed_god_moira_story` | 讲述 | `manual`：与莫伊拉完成第一笔交易（`a3_moira_offer` 之后） | 10 | 无 | 诸神：她的客卷开卷，`goddess.moira.gaze` 上升；称号 `title_court_guest_scroll` | divine、story | | 三到四 |
 | `deed_god_memory_given` | 交出 | `manual`：把一段前世记忆交给莫伊拉 | 0 | 无 | 代价型：前世之门的对应加成永久失去；回忆里那一段显示为空白；认知：莫伊拉对你的可见度上升 | story | 隐 | 四 |
 | `deed_god_danger_door` | 门缝里的风 | 新·`cond`：`danger_doors_opened >= 1` | 0 | 无 | 代价型：`seal_looseness`；认知：阿什的警告应验，他说她会更近（C3-8） | story、key | 隐 | 三 |
-| `deed_god_eska_consent` | 原龙的应允 | 新·`cond`：`eska_consent == true` | 50 | 无 | 叙事：净澱工程的供能；E30；认知：龙族与精灵把你当作说动过原龙的人 | divine、story | | 五 |
+| `deed_god_eska_consent` | 原龙的应允 | 新·`cond`：`a5_eska_consent == true` | 50 | 无 | 叙事：净澱工程的供能；E30；认知：龙族与精灵把你当作说动过原龙的人 | divine、story | | 五 |
 | `deed_god_six_chairs` | 第六把椅子 | 新·`doorState`：六椅厅六扇门全部已开（含梦扉之门 `door_trial_dream`） | 25 | 无 | 认知：候见厅里那把只有你看得见的椅子，在梦里第一次有人坐过（P）；六扇试炼赏门的汇总记录 | divine、story | 隐 | 四 |
 | `deed_god_ownerless` | 无主之身 | 新·`cond`：直到第五幕末，从未佩戴任何附物加护的锚物（[力量 6.8][pow]） | 0 | 称号 `title_late_ownerless` | 诸神：五司的档案里你始终是"看不清的人" | divine、cog | 壮 | 五 |
 
@@ -637,7 +637,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | ID | 名 | 触发 | 名望 | 奖励 | 喂给 | 通道 | 隐 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_truth_brun_mark` | 二十年前那个人手上 | `flag:a1_bron_sees_mark` | 10 | 无 | 认知：布伦的旧伤线（S02）；手录里从此多一页他不给人看的 | story | 隐 | 一 |
-| `deed_truth_faceless_projection` | 没有脸的人 | `flag:a2_faceless_projection`，且你没有出手 | 10 | 无 | 认知：`faceless_interest`；"另一个你"的第一面 | story | 隐 | 二 |
+| `deed_truth_faceless_projection` | 没有脸的人 | `flag:a2_faceless_projection`，且你没有出手 | 10 | 无 | 认知：`npc.faceless.interest`；"另一个你"的第一面 | story | 隐 | 二 |
 | `deed_truth_ferryman` | 老船夫 | `flag:a2_ferryman_reveal` | 10 | 无 | 认知：称谓"第八代勇者"解锁（他本人拒绝这个称呼） | story | 隐 | 二 |
 | `deed_truth_ash_sundering` | 那件事 | `flag:a3_ash_tells_sundering` | 25 | 无 | 门：`door_echoes` 识钥记录；称谓"大断绝""千门都"解锁；E01 | story、key | 隐 | 三 |
 | `deed_truth_sealed_room` | 七锁库 | `flag:a3_archive_sealed_room` | 25 | 无 | 认知：称谓"空白纪"解锁 | story | 隐 | 三 |
@@ -698,7 +698,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_feat_unbroken_path` | 一次也没回去 | 新·`cond`：第一幕到第三幕末，一次也没有退回门内 | 0 | 记事柱一格 | 认知：边石镇的"不死的人"传闻从来没有机会出现 | collect | 壮 | 三 |
 | `deed_feat_released` | 离手 | 新·`cond`：达成真结局"离手"（`ending == release`，D-043） | 0 | 称号 `title_late_released` | 叙事 | story | 壮 | 终 |
 | `deed_feat_next_cycle` | 下一期 | `manual`：新周目开局时回声之门显影 | 0 | 称号 `title_late_echo` | 门：回声之门 `door_recall` | key | 壮 | 终 |
-| `deed_feat_last_door` | 终门 | 新·`doorState`：`door.door_last` 为已开 | 0 | 无 | 门：`door_last` | key | 壮 | 终 |
+| `deed_feat_last_door` | 终门 | 新·`doorState`：`door.last` 为已开 | 0 | 无 | 门：`door_last` | key | 壮 | 终 |
 | `deed_feat_none_smelted` | 一个也没熔 | 新·`cond`：到达任一结局时 `gatebronze_smelted == 0`（[遗物 1.5][rel]） | 0 | 称号 `title_late_unsmelted` | 认知：阿什在结局里多说一句"书都还在" | collect、story | 壮 | 终 |
 
 - `deed_hid_orphan_mark`：【真相】孤儿院孩子的门纹（S08）；欧拉的部分在 `trust.oola >= 60` 时说出，遗民的全貌在第三幕遗民之谷。
@@ -741,7 +741,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_street_lucky_newbie` | 运气好的新人 | 街头：缩小版本（[认知 4.3][rep]），传得最远的那一版 | 边石镇到瓦伦堡的商路 | 解释化的默认解释是"运气"；冒险者不服 | 无 | 可复现证据（`deed_mortal_three_times`）让它在当地失效 | 一到二 |
 | `title_street_tide_f` | 打退兽潮的 F 级 | 街头：`a1_tide_credit` 为 `player`（F 级版本占优）时（`deed_hunt_tide_night`） | 边石镇；随伯爵来信到瓦伦堡 | 半讽半敬的"F 级大人"；伯爵来信里的"那个 F 级" | 无 | 到了瓦伦堡被芬恩的歌对照，引出冒名（`title_wrong_impostor`） | 一末 |
 | `title_street_heroes_porter` | 勇者的挑夫 | 街头：芬恩 `fynn` 的新歌《勇者与挑夫》（U2-3 后） | 瓦伦堡平民与虔诚者 | 平民当你是勇者团的跟班 | 无 | 城下潮被亲眼看见；或勇者团的纠正被第二个权威采信 | 二 |
-| `title_street_hidden_master` | 无名高手 | 街头：佣兵版本（`rumor_shape` 为 hidden_master） | 瓦伦堡佣兵与冒险者 | 挑战者上门；佣兵团出价挖人 | 无 | 被"灰烬男爵"或官方定性取代 | 二 |
+| `title_street_hidden_master` | 无名高手 | 街头：佣兵版本（`a2_rumor_shape` 为 hidden_master） | 瓦伦堡佣兵与冒险者 | 挑战者上门；佣兵团出价挖人 | 无 | 被"灰烬男爵"或官方定性取代 | 二 |
 | `title_street_unrecorded` | 无记载者 | 街头：公会与学院的行话流到街上 | 瓦伦堡起各城的公会街 | 半是好奇半是忌讳；神职听见会皱眉 | 无 | 不失去；第四幕起与 `title_people_first_page` 并用，意思从"缺了什么"变成"他就是这样" | 二 |
 | `title_street_ash_baron` | 灰烬男爵 | 街头：芬恩去王都卖唱，把你唱成"灰烬男爵"，传闻从此定型（[人物一 5][chl]） | 洛萨全境 | 平民叫"男爵大人"，先于诏书；王都贵族当它是玩笑 | 无 | 宫廷剥夺爵位后街头照叫；只有更大的名字能盖过它 | 三 |
 | `title_street_three_hundred` | 三百人的 | 军中与街头：鹿渡之战（`deed_war_three_hundred`） | 洛萨东线的兵；帝国斥候 | 兵卒的信任；帝国当你藏着一支军团 | 无 | 随东线热度衰减；参战老兵不忘 | 三 |
@@ -770,7 +770,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_crown_baronet` | 灰烬边境准男爵 | 洛萨王冠：`a2_barony_granted`（`deed_mgmt_barony`） | 洛萨官员与贵族；诏书 | 官员改用职名；权威背书 3；宫廷的宴请与把柄随之而来 | 无 | 宫廷结局敌对时剥夺 | 二末 |
 | `title_crown_border_baron` | 灰烬边境男爵 | 洛萨王冠：第三幕王国结局有利时腓力 `philip` 晋封 | 洛萨；外交文书 | 诸侯以平辈相待；街头的"灰烬男爵"终于和诏书一致 | 无 | 同上 | 三 |
 | `title_crown_reed_medal` | 苇桥勋 | 洛萨军方：灰烬防线之战后授勋（`deed_war_reed_bridge`）；布丽吉特 `brigitte` 签字时，你可以让她把葛蕾特的名字写在你前面 | 洛萨军方 | 军中信任 | 无（对葛蕾特：一份书面来源） | 不失去 | 三 |
-| `title_crown_emperor_seat` | 无冠厅的座签 | 剑帝 `emperor`：`trial_emperor_hook` 胜，他从铁钩上取下座签递还："公会不改，我改。" | 帝国精英与军方 | 帝国精英的信念画像跳一档；军人叫你"座签上的人" | 无 | 用门的能力取胜则座签被收回（`emperor_respect` 附"忌惮"） | 四到五 |
+| `title_crown_emperor_seat` | 无冠厅的座签 | 剑帝 `emperor`：`trial_emperor_hook` 胜，他从铁钩上取下座签递还："公会不改，我改。" | 帝国精英与军方 | 帝国精英的信念画像跳一档；军人叫你"座签上的人" | 无 | 用门的能力取胜则座签被收回（`npc.emperor.respect` 附"忌惮"） | 四到五 |
 | `title_crown_founder` | 国主（随国体定名） | 界石誓与人簿（`deed_mgmt_nation_founded`） | 本国与诸国 | 称呼随国体（[第四幕 4.4][a4]，D-048）：王政称陛下，议事诸制称议首等 | 无 | 国体变更时改名 | 四 |
 | `title_crown_league_seat` | 会盟之席 | 七国会盟（`deed_war_seven_nations`） | 七国宫廷 | 外交文书里与诸王并列 | 无 | 会盟破裂 | 四 |
 | `title_crown_pit_after_champion` | 冠军之后 | 斗场主塔德奥 `taddeo_val`：击败斗场冠军席薇 `sive_fell`（`deed_dg_redgravel_seven`） | 帝国民间；斗场看客 | "在我的场子里，输的人也要输得有人记得"：你的事迹在帝国传得更快 | 无（对席薇：她的讲述数随你被讲而上升） | 揭穿假赛后改为"第三十一场的对手"，荣誉不减 | 四 |
@@ -865,7 +865,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_people_fine_without_you` | 不在也行的人 | 人簿众名：`deed_mgmt_year_without_you` | 本国 | 国民对你的称呼从敬畏转向亲近 | 无 | 国家在你离开时出事并由你紧急返回 | 四到五 |
 | `title_late_known_abroad` | 诸国皆知 | 街头：`deed_exp_nine_lands` 与七个地区的传闻画像 | 全大陆 | 外国陌生人的身份先验不再从"无记载者"起步 | 无 | 不失去 | 五 |
 | `title_late_ownerless` | 无主之人 | 五司档案里的共同标注：`deed_god_ownerless` | 女神（档案）；你告诉的人 | 第六幕庭上五司都说不出你是谁的人 | 无 | 不失去 | 五 |
-| `title_court_guest_scroll` | 客卷之主 | 莫伊拉：她为你单独写的客卷封面（[第四幕 7.3][a4]） | 莫伊拉与你（第四幕起她给你看） | 莫伊拉的称呼；`moira_sight` 越高她越能预判你 | 无 | 不失去；你交出的记忆在客卷里也是空白页 | 四 |
+| `title_court_guest_scroll` | 客卷之主 | 莫伊拉：她为你单独写的客卷封面（[第四幕 7.3][a4]） | 莫伊拉与你（第四幕起她给你看） | 莫伊拉的称呼；`goddess.moira.gaze` 越高她越能预判你 | 无 | 不失去；你交出的记忆在客卷里也是空白页 | 四 |
 | `title_late_released` | 离手的人 | 真结局：`deed_feat_released` | 终章 | 后日谈里所有人对你的称呼 | 无 | 不失去 | 终 |
 | `title_late_echo` | 回声 | 新周目：`deed_feat_next_cycle` | 下一期的门镜 | 门镜边多一道上一期留下的刻痕 | 无 | 不失去 | 终 |
 | `title_late_unsmelted` | 一个也没熔 | 结局：`deed_feat_none_smelted` | 后日谈；阿什 | 后日谈里史馆把你记作"没有熔掉任何一段历史的人" | 无 | 不失去 | 终 |
@@ -930,7 +930,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `trial_sasha_third_round` | `deed_bond_trial_sasha` | 第五幕招募条件 | 第一回合已由 `deed_hunt_redfang_round` 记过 |
 | `trial_ash_vigil` | `deed_bond_trial_ash` | "门是可以关上的" | 开了门：若是第一扇危险之门，记 `deed_god_danger_door`（代价型） |
 | `trial_emperor_hook` | `deed_bond_trial_emperor` | 胜：`title_crown_emperor_seat`；负：剑理历钥 | 用门取胜：不记，座签收回 |
-| `trial_vespera_eight_wars` | `deed_bond_trial_vespera` | `trust.vespera` 与月下之约条款 | 无 |
+| `trial_vespera_eight_wars` | `deed_bond_trial_vespera` | `trust.night_queen` 与月下之约条款 | 无 |
 | `trial_elwin_silent_walk` | `deed_bond_trial_elwin` | `title_tribe_elf_silent_walker` | 下一季可再走 |
 | `trial_grete_bridge` | `deed_bond_trial_grete` | 可选立名：`title_named_grete` | 落水，帮她搬一上午石头 |
 | `trial_eska_silver_eyrie` | `deed_bond_trial_eska`（隐） | 原龙判定的一份分量 | 拿走龙蜕：`title_infamy_grave_robber` |
@@ -1004,8 +1004,8 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 老船夫 `ferryman` | 第五幕存活且作证 | `deed_truth_ferryman`、`deed_bond_trial_ferryman` | E09 |
 | 赛琳 `selene` | `a3_selene_tremble_told` 且存活 | `title_named_selene` 的第二个称号 | E15 |
 | 勇者团（`luchen`、`yui`、`aiden`） | 传唤 | `deed_mortal_heroes_glory`、`deed_col_eight_heroes` | E35 |
-| 无貌者 `faceless` | `faceless_end` 为救赎 | `deed_truth_faceless_projection` | E18 |
-| 原龙艾斯卡 `eska` | `eska_consent` | `deed_god_eska_consent` | E30 |
+| 无貌者 `faceless` | `a5_faceless_end` 为救赎 | `deed_truth_faceless_projection` | E18 |
+| 原龙艾斯卡 `eska` | `a5_eska_consent` | `deed_god_eska_consent` | E30 |
 | 老布伦 `bron`（人簿） | 人簿运转一年以上，布伦交出手录 | `deed_mgmt_register_year` | E26 |
 | `oren_greyhood` | 走过堕勇之墓线并得其认可 | `deed_dg_tomb_sword_left` | E13 |
 | `tobias_vell` | 碑庭事件后取得信任 | `deed_exp_stele_customs` | E08 |

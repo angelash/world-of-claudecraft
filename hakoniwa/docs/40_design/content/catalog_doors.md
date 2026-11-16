@@ -113,7 +113,7 @@
 | --- | --- | --- | --- |
 | 历钥 | 剧情标记、内核事件计数、可挑战段 `trial_`、事迹 `deed_`（门只读已授予的事迹，[千门 5.3][td]）、女神试炼胜场 `trial_wins.<司>` | `flag`、`count`、`trial`、`deed` | `a3_ash_tells_sundering`；`trial_martha_evening_bell`；`deed_grow_stand_before_ash` |
 | 物钥 | 物品 ID，注明"消耗"或"记住"（[总纲 2.2][bible] 的去处"开门"） | `item` | `ky_messenger_plume`（消耗）；`gate_stone`（记住） |
-| 缘钥 | 人物 ID 加信任门槛 `trust.<id>>=N`；数据层旧写法 `bond.<id>.<N>` 导入时改写为 `trust`（[千门 5.4][td]）；师傅授课写 `taught` | `trust`、`taught` | `trust.shiya>=20`；刃之门由 `barto` 教过 |
+| 缘钥 | 人物 ID 加门槛 `trust.<id>>=N`：落在非同伴人物身上读信任，落在同伴身上按羁绊导入为门钥类型 `bond`（[千门 5.4][td]）；师傅授课写 `taught` | `trust`、`bond`、`taught` | `trust.oola>=60`；希雅的羁绊不低于 20；刃之门由 `barto` 教过 |
 | 择钥 | 抉择标记 | `choice` | `a4_refused_to_let_go` |
 | 地钥 | 迷宫 ID、地图与地点 | `visit`、`dungeon` | `dg_wreck_bay`；`forest_edge` 的 `pact_oak` |
 | 阶钥 | 门阶 `door_rank>=N`（[千门 4.6][td]，全部阶钥见下表） | `rank` | `door_rank>=35` |

@@ -169,8 +169,12 @@
 - 编号前缀：地面 `art_tile_<风格包>_<名>`、建筑部件 `art_bld_<风格包>_<名>`、道具 `art_prop_<名>`、区域图插画 `art_map_<区域>`、远景 `art_bg_`。
 - **远景天幕**（D-078；[`../../50_tech/art_pipeline.md`](../../50_tech/art_pipeline.md) 第 2.13 节；编号以 `assets/prompts/specs/backgrounds.json` 为准）：
   - 12 个室外风格包（`lothar_plain`、`valen_city`、`wild_forest`、`ash_waste`、`divine_court`、`holy_see_white`、`grantia_ochre`、`mercato_coast`、`silva_canopy`、`windfang_steppe`、`night_basalt`、`sleepscale_snow`）各有三层 `art_bg_<风格包>_far`、`_mid`、`_clouds`；
-    `sealed_ruins`、`forge_deep`、`door_corridor`、`earth_modern` 没有自己的天幕。天幕是环绕镜头的横带，不分方位，不按地图另出图；四时、昼夜与天气由光照调色与天气层驱动。
+    `sealed_ruins`、`forge_deep`、`door_corridor`、`earth_modern` 没有自己的天幕。天幕是环绕镜头的横带，不分方位，不按地图另出图（战场的远山层除外，见下）；四时、昼夜与天气由光照调色与天气层驱动。
   - **天幕包**：一张图默认用本图风格包的三层；本图风格包没有天幕时用所在区域风格包的三层；简报写明理由时可以另指一个风格包的三层（图集字段 `sky`，[`world_map.md`](world_map.md) 第 9.1 节）。
+  - **战场远山层**（图集字段 `battleSky`，[`world_map.md`](world_map.md) 第 9.1 节）：每个地上战场有一张 `art_bg_battle_<名>`，只替换天幕包的远山层，中景与云带照旧按天幕包取；不写时用天幕包自己的远山层。`role: battle` 的图总是用它；众门环节点所在的图只在节点战斗（`bat_a5_ring_node` 与 `bat_a5_front_ring` 的逐节点战场）时用它，平时照旧。
+    取值：`wallenburg_harbor_battle` 写 `art_bg_battle_undertide`，`bonefield_battle`（含拾遗营夜袭的北部变体）写 `art_bg_battle_bonefield`，`deer_ford_battle` 写 `art_bg_battle_deer_ford`，`frostridge_battle` 写 `art_bg_battle_frostridge`，`sunrise_gate_battle` 写 `art_bg_battle_sunrise_gate`，`reedbridge_battle` 写 `art_bg_battle_reedbridge`，
+    `valen_fields_battle` 写 `art_bg_battle_second_front`，`boundary_cairn_battle` 写 `art_bg_battle_boundary_war`，`rootcourt_battle` 写 `art_bg_battle_rootcourt`，`windfang_rock_battle` 写 `art_bg_battle_redtent`，`ashen_final_battle` 写 `art_bg_battle_final_war`，`borderstone_rear_battle` 写 `art_bg_battle_front_rear`；
+    众门环节点所在的 `main_gate_crater`、`world_tree`、`windfang_rock`、`duskcrown`、`seven_seats` 依次写 `art_bg_battle_ring_r01`、`_r02`、`_r04`、`_r05`、`_r07`；节点三炉心 `redanvil` 与节点六旧水道 `broken_door_hall` 在地下，不写，也不显示天幕。编号以 `assets/prompts/specs/backgrounds.json` 为准。
   - **特殊天幕**两层 `art_bg_sky_<名>_far`、`_near`：`earth_night_city` 用于地球四景（P1 到 P4）的窗外与门外；`dream_door_sea` 用于梦境场景（门口的女人出现的梦）；
     `divine_heights` 用于神域区域（`divine_realm`）的露天段；`vault` 第六幕起替换室外地图的云层，远景与中景照旧；`mist_edge` 只用于结局演出，由过场指定，不挂地图。
 - **区域图插画**（编号以 `assets/prompts/specs/maps.json` 为准）：世界图 `art_map_medius`；区域图 `art_map_edgestone_area`、`art_map_ashen_waste`、`art_map_valen_valley`、`art_map_lotha_realm`、`art_map_divine_realm`、`art_map_court_gap`、
@@ -2979,6 +2983,7 @@ WWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWW
 | `data/world/atlas_regions.json` | 全表 | 新区域 `earth`（`tier: realm`，`acts` [0, 7]，`style` `earth_modern`，无澱度）；`court_gap` 的 `acts` 为 [0, 1, 2, 3, 4, 5, 6, 7] |
 | `data/world/atlas_maps.json` | 过场布景与主门坑 | 第 3 节 P1 到 P4、X2 到 X4 七个过场布景（`tier: scene`，`role: stage`，`status: planned`，不写 `hubOf`）；`main_gate_crater` 的 `acts` 为 [4, 5]，`note` 补"第四幕只开放坑沿的凿碑台与门框断面（`A4-S01`、`A4-S02`、`A4-M14` 与天启之后的天亮）" |
 | `data/world/atlas_routes.json` | 全表 | 第 9.1 节的新路线；第四幕世界图到 `main_gate_crater` 的接入（省份 `thousand_gates`）；`borderstone_seal_ruins` 起点为 `borderstone_north`、公里 3；`valen_river` 只留船行；`orien_bridges` 拆为两条 |
+| `data/world/atlas_maps.json` 与 `src/systems/world/atlas.ts` | 战场图与众门环节点图 | 按第 1.7 节写 `battleSky`：每张地上战场图与五个地上节点图各写一张，地下节点不写；`AtlasMapDef` 加可选字段 `battleSky`，图集校验要求它以 `art_bg_battle_` 开头 |
 | `docs/40_design/content/catalog_dungeons_bosses.md` 与 `content_bible.md` 4.4 | `dg_frostbone_crypt`、`dg_martyr_catacomb`、`dg_gate_stations` | 霜骨墓窟 36 到 42（首领 38、40、42，专属魔物同步加 10）；殉光地下墓 45 到 50（首领 46、48、50）；门站群的玻璃原段 30 到 35、灰海段 33 到 37（与第三幕 7.5 一致） |
 | `docs/40_design/content/catalog_gathering_crafting.md` | 6.3 | 加 `node_waste_first_gate`（封门遗迹外庭门槛，special，T3，`mat_gate_dust`，第二幕末到第三幕） |
 | `docs/40_design/content/catalog_bestiary.md` | 1.2 或 4 节前言 | 写明"野外刷新点可按所在图的等级带定级（`SpawnDef.level`），图鉴等级是地表种群的基准"；`black_ridge` 的地点写"铁杉林深处" |

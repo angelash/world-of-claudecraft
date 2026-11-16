@@ -45,6 +45,8 @@
 | 台账线索编号（`M01-C01`）、锚点（`A00`）、误导条目（`MIS-01`） | [揭示台账][rl] | 是线索的 ID，不是变量；线索的解锁条件引用本表变量 |
 | 内容条目 ID（`door_`、`eq_`、`dg_` 等） | 各目录 | 作为族的实体代号出现在变量名里 |
 | 物品与魔物的标签（`earth`、`tainted`、`gatebronze`、`forbidden`、`claim:<势力>`、`nameless`、`shiny`、光环标签） | 物品与魔物条目的 `tags` | 是条目属性，条件读取物品时用 `has.<物品>` |
+| 玩家与 AI 的命令（例 `slg.convene` 召集七国会盟） | 各系统的命令处理器（`src/systems/strategy/commands.ts` 的 `convene`） | 是一次性的意图，不是状态；会盟的进行阶段在 strategy 切片里，结果由 strategy 写 `a4_summit_result` 与 `a4_conclave_done` |
+| 同伴的羁绊（每名同伴 0 到 100，跨过的门槛另有记录） | `World.slices.party` | 是 party 系统的状态，与人物对玩家的信任 `trust.<人>` 是两个量；同伴的缘钥用门钥类型 `bond` 直接读它（[千门][td]第 5.4 节、[同伴][cmp]第 8.1 节），不镜像为旗标 |
 
 ### 1.3 与台账、数据、编辑器的关系
 
@@ -275,7 +277,7 @@
 2. 枚举只用 `==`、`!=`、`IN`，字面量必须在值集内；布尔标记直接作条件，不写 `== true`。
 3. 条件只做比较与逻辑；加减乘除只出现在注册表的 `derive` 与幕初始化映射里。
 4. "足够""较多"一类模糊阈值不进数据，写出数字。
-5. 门钥里 `trust.<id> >= N` 与数据层 `bond.<id>.<N>` 等价，加载时统一为前者。
+5. 读人物信任的门钥写 `trust.<id> >= N`；旗标写法 `bond.<id>.<N>` 是它的别名，加载时读作前者，新内容不写。同伴的羁绊不是本表的变量，同伴的缘钥用门钥类型 `bond`（第 1.2 节）。
 6. 条件长度不超过 400 字符；超过时在注册表里立派生量。
 
 ### 5.4 分幕写法的改写表（B-003）
@@ -440,7 +442,7 @@
 | `faith_<司>` | `faith.<司>` | 族 |
 | `verdict_<司>` | `verdict.<司>` | 族 |
 | `god_exposed_<司>` | `lie_exposed.<司>` | |
-| `breach.<司>.<幕>` | 照旧 | 越约记录（goddess） |
+| `breach.<司>.<幕>` | 照旧 | 越约记录（goddess）；幕只有 `act1` 到 `act5`（第 8.5 节） |
 
 ### 7.4 快照、族写法与量纲
 
@@ -465,8 +467,8 @@
 | `house_scale` | `econ.house_scale` | 商会规模，economy 写 |
 | `hart_relation` | `npc.hart.relation` | 活变量（第二、三幕） |
 | `door_seal`、`janu.seal_loosening`、`SEAL` | `seal_looseness` | D-031 |
-| `bond.<人>` | `trust.<人>` | 同伴的羁绊就是信任 |
-| `bond.<人>.<N>` | 条件 `trust.<人> >= N` | 门钥写法 |
+| `bond.<人>` | `trust.<人>` | 别名写法，按信任读取；同伴的羁绊本身是 party 切片的量，不在本表（第 1.2 节） |
+| `bond.<人>.<N>` | 条件 `trust.<人> >= N` | 门钥的旗标写法；同伴的缘钥用门钥类型 `bond` |
 | `item.<物品>` | `has.<物品>` | 物品持有 |
 | `potential.seen` | `npc.<人>.potential_seen` | 集合拆成族 |
 | `npc.deaths` | `npc.<人>.dead` | 集合拆成族，派生集合 `npc_deaths` |
@@ -501,10 +503,10 @@
 | `review.*` | `self`、`barely`、`descend`、`fail` | 自持、勉强、下庭解决、失败 |
 | `a6_court_seat` | `seated`、`witness` | 就座、证人 |
 | `a6_returned_doors` | `all`、`some`、`none` | 全部、`partial`、部分 |
-| `a4_summit_result` | `league`、`accord`、`crusade`、`broken` | 眠鳞同盟、分化、圣战联军、破裂；`a4_alliance` 的 `broad`、`narrow`、`broken` 分别读作 `league`、`accord`、`broken` |
+| `a4_summit_result` | `league`、`accord`、`crusade`、`broken` | `眠鳞同盟`、`broad`、`alliance` 即 `league`；`分化`、`narrow`、`divided` 即 `accord`；`圣战联军` 即 `crusade`；`破裂` 即 `broken`；`broad`、`narrow` 是别名 `a4_alliance` 的值；`alliance`、`divided` 是 strategy 的会盟结果，strategy 按 `data/strategy/config.json` 的 `summitFlagValues` 换成规范值后写入 |
 | `p_earth_opening` | `a`、`b`、`c`、`d` | `A`、`B`、`C`、`D` |
 | `p_rejection_response` | `r1` 到 `r5` | `R1` 到 `R5` |
-| `p_last_words` | `back`、`regret`、`thanks`、`silent` | 序章数据里的四句原文（"我会回来的"、"你们会后悔的"、"谢谢你的硬币"、不说话） |
+| `p_last_words` | `back`、`regret`、`thanks`、`silent`、`free` | 序章数据里的五个选项（"我会回来的"、"你们会后悔的"、"谢谢你的硬币"、不说话、"自由说一句"） |
 | `p_courtyard_object` | `lamp`、`empty_bowl`、`waiting_chair`、`old_chair`、`bare_tree`、`open_window`、`old_cup`、`old_scarf`、`unsent_letter`、`blank_paper` | 序章数据里的十句原文 |
 | `ep_ruler` | 女神代号 | 艾琉恩、瓦尔妲、梅尔卡、希尔薇、莫伊拉 |
 | `a1_count_letter` | `a`、`b`、`c`、`d` | 甲、乙、丙、丁 |
@@ -692,8 +694,8 @@
 | `a2_castle_well_open` | `castle_well_open` | 第二幕第 13 周后伯爵许可通行鹰丘旧井 | 瓦伦堡出口 `to_castle_well`（路线 `castle_well_shaft`，[地图简报][mb]） |
 | `a3_territory_granted` | `city.territory_granted` | A3-M01 抵领（`q`） | city 扩张为领地 |
 | `a3_thousand_gate` | 无 | A3-M02 千军场景（`s25`） | 千军之门的演出 |
-| `a3_vow_taken` | 无 | 誓光之门的立誓选择（`s25`；可写 false） | `a3_vow_kept_reed_bridge` 的前提；注意：类型是布尔，不是标记 |
-| `a3_vow_kept_reed_bridge` | `a3_danger_door_vow` | 立誓（`a3_vow_taken`）且在灰烬防线之战守住苇桥 | 誓光之门的钥（`dr`，C91）；不计入 `danger_doors_opened` |
+| `a3_vow_taken` | 无 | 阿什警告时"不再开危险的门"的表态（现有数据 `s25` 的阿什警告场景写入，可写 false）；过场目录的同一表态是 `a3_danger_stance`（第 8.8.4 节） | 现有数据的对白分支；与誓光之门无关；注意：类型是布尔，不是标记 |
+| `a3_vow_kept_reed_bridge` | `a3_danger_door_vow` | 灰烬防线之战以任一胜利路线守住苇桥（`a3_ashline_route` 为 `rout`、`persuade` 或 `bloodless`）时由 `cut_a3_ashen_line` 的 `vow` 节点写入，第三幕第 20 到 21 周；守苇桥本身就是誓言，不另读立誓选项；防线失守（`failed`）时不写 | 誓光之门的钥（`dr`，C91）；不计入 `danger_doors_opened` |
 | `a3_reedpond_resonance` | 无 | 门纹在苇塘芦苇深处共鸣（第三幕） | 芦苇小径 `reedpond_path` 的开关格（[地图简报][mb]） |
 | `a3_archive_sealed_room` | 无 | A3-S04 七锁库（`q`） | `lore`、`terms` |
 | `a3_hart_buys_nera` | 无 | 第 9 周金冠买下奈拉 | 台账 |
@@ -705,7 +707,7 @@
 | `a3_blank_era_ruin` | 无 | A3-S04 无字碑林 | 台账 |
 | `a3_ash_warning_doors` | `seal_looseness_known` | 阿什（守门人）的警告，A3-M09（`s25`） | 女神（`gd`）、`lore`、回廊每扇门旁的"风"与"门后的风"一行（[千门 6.5][td]、[界面][ux]） |
 | `a3_seal_aware` | 无 | `a3_ash_warning_doors AND seal_looseness >= 30`（`s25`） | 第三幕拉远；界面只显示阶段名，不显示数值 |
-| `a3_selene_tremble_told` | 无 | A3-S19 赛琳的密信（`s25`） | 台账、第六幕 |
+| `a3_selene_tremble_told` | 无 | A3-S19 赛琳的密信：`receive` 阶段收下密信时（第三幕第 15 周）；第四幕会盟（`cut_a4_conclave`）只读 | 台账、照规之门的识钥、灰烬防线的说服路线、`cut_a4_conclave`、第六幕 E15 |
 | `a3_martha_tale` | 无 | 玛莎讲出晚钟小队 | 台账 |
 | `a3_moira_offer` | 无 | A3-S05 奥丽芙转达 | 台账、第四幕 |
 | `a3_eluen_speaks` | 无 | 拉远第 6 步（`s25`） | 立国之门（`dr`）、女神（`gd`）、`lore` |
@@ -768,7 +770,7 @@
 | `p_door_hints` | `prologue.door_hints` | 集合 | 六种倾向取最高的两条（[序章 4.8][a0]） | quests 的 `prologue_door_hints` 计算 | 第一幕门缝 |
 | `p_earth_anchor_trigger` | `prologue.earth_anchor_trigger` | 枚举 | `player`、`moira`、`relic` | 序章锚点（`s0`） | 终章措辞（`s0`） |
 | `p_rejection_response` | `prologue.rejection_response` | 枚举 | `r1` 到 `r5` | 序章 N11（`s0`） | 第三幕艾琉恩与瓦尔妲的题面 |
-| `p_last_words` | `prologue.last_words` | 枚举 | `back`、`regret`、`thanks`、`silent` | 序章 N12（`s0`） | 第三幕重逢的回扣（`sc`） |
+| `p_last_words` | `prologue.last_words` | 枚举 | `back`、`regret`、`thanks`、`silent`、`free` | 序章 N12（`s0`）；有模型时可自由说一句，写 `free`，原话进 `p_free.last_words`，空值写 `silent` | 第三幕重逢的回扣（`sc`） |
 | `p_merca_valuation` | `prologue.merca_valuation` | 枚举 | `high`、`mid`、`low` | 梅尔卡面试（`s0`） | `s0`、硬币兑换 |
 | `p_coin_terms` | `merca_coin.terms` | 枚举 | `interest_free`、`three_percent`、`first_free` | 梅尔卡估价（`s0`） | 神龛兑换比例、奈拉的反应 |
 | `p_courtyard_object` | `courtyard.first_object` | 枚举 | 第 7.6 节十种 | 希尔薇轮或开场默认（`s0`） | 第一幕末门内庭院 |
@@ -777,7 +779,7 @@
 | `a1_bs_population` | `borderstone.population` | 整数 | 600 到 900 | 兽潮结算与离开者 | 边石镇人力 |
 | `a1_bs_prosperity` | `borderstone.prosperity` | 整数 | 0 到 100 | 兽潮结算、税率、独眼团与莫斯的结局 | 商会起步资金与物价 |
 | `a1_oola_fate` | `a1_ola_fate`、`ola.fate` | 枚举 | `cleared`、`convicted`、`fled`、`executed`（executed 只由第二幕光之审写入，D-055） | 魔女审判（`s1`） | `dr`、`pc`、`q`、`np`、`sep`、第二幕光之审 |
-| `a1_moss_fate` | `moss.fate` | 枚举 | `in_power`、`puppet`、`arrested`、`fled_south`、`dead`、`retained`、`dismissed`、`handed_over` | 税与匪 | 第二幕伯爵府、A2-S11 |
+| `a1_moss_fate` | `moss.fate` | 枚举 | `in_power`、`puppet`、`arrested`、`fled`（别名值 `fled_south`）、`dead`、`retained`、`dismissed`、`handed_over` | 税与匪（[第一幕 12][a1]：南逃为 `fled`） | 第二幕伯爵府、A2-S11 |
 | `a1_oneeye_fate` | `oneeye.fate` | 枚举 | `active`、`absorbed`、`destroyed`、`scattered` | 税与匪 | 旧哨村 |
 | `a1_viro_status` | `viro.status`、`vero.status` | 枚举 | `in_band`、`fled_wallenburg`（别名值 `fled_to_wallenburg`）、`captured`、`recruited` | 税与匪 | 瓦伦堡灰鼠线 |
 | `a1_old_watch` | `old_watch.status` | 枚举 | `bandits`、`cleared`、`camp` | 税与匪 | 第二幕立村起点 |
@@ -855,7 +857,7 @@
 | `a4_remnant_door_keys` | `remnant_door_keys` | 整数 | 0 到 3 | 钥匙失窃 | 第五幕 |
 | `a4_merca_door_keys` | `merca_door_keys` | 整数 | 3 到 6 | 钥匙失窃 | 第五六幕 |
 | `a4_summit_convener` | `summit_convener` | 枚举 | `cohost`、`guild`、`church` | 会盟召集 | 会盟 |
-| `a4_summit_result` | `summit_result`、`slg.summit_result`、`a4_alliance` | 枚举 | `league`、`accord`、`crusade`、`broken` | 七国会盟（`s25`；strategy） | 千径之门（`dr`）、`s25`、第五幕 |
+| `a4_summit_result` | `summit_result`、`slg.summit_result`、`a4_alliance` | 枚举 | `league`、`accord`、`crusade`、`broken` | 七国会盟（`s25`；strategy 的会盟结果按第 7.6 节换值） | 千径之门（`dr`）、`s25`、第五幕 |
 | `a4_allies` | `allies` | 集合 | 势力代号 | 会盟 | 第五幕联盟 |
 | `a4_night_pact` | `night_pact` | 布尔 | | 强者之宴与夜后 | 第五幕（D-042） |
 | `a4_sasha_stance` | `sasha_stance` | 枚举 | `nemesis`、`duel_pledge`、`mutual_respect` | 第三幕与强者之宴 | 第五幕 |
@@ -934,6 +936,7 @@
 | `npc.<人>.injury` | 无 | 枚举 | `none`、`minor`、`major`、`limb`、`temper_recoil`、`old_wound` | combat 与 party（[成长 10][pp]） | 同伴随行 |
 | `npc.nera.handed_over` | `nera.handed_over` | 标记 | | 交出奈拉（交给哈特或逐出商会） | 双账之门的强制闭门 X10（[千门 9][td]） |
 | `npc.cassian.path` | `cassian.path` | 枚举 | `reform`、`chapel`、`zealot` | 个人线 `PL-cassian-4` 的信仰危机抉择（[同伴 9.2][cmp]） | 卡西安入队（`chapel`）、后日谈 |
+| `npc.ron.command_growth` | 无 | 整数 | 0 到 3（按范围截断） | A2-S17 罗恩的第一次带队（放手 +2，暗中帮 +1，亲自上 +0）；A3-M02 千军（全权指挥 +2，微操 +1；向前失败时减半） | 识才之门里罗恩"统帅"潜质的成长、将领罗恩的统帅档案 |
 | `pl.<人>` | 无 | 整数 | 人物 ID；个人线已完成的段号，只升不降 | party 个人线（[同伴 9][cmp]） | 羁绊关、过关事件、个人线回报 |
 | `ferried.<人>` | 无 | 标记 | 人物 ID | 渡魂结算（[千门 10.1][td]） | 分幕存亡判定、后日谈 |
 | `spring_farewell.<人>` | 无 | 标记 | 人物 ID | 泉畔守夜"放手" | 羁绊之门的门环、告别事迹 |
@@ -965,7 +968,7 @@
 | `verdict.<司>` | `verdict_<司>` | 枚举 | 五位在任女神；`voluntary`、`judged`、`refuse`、`contend` | 终审（scenes 的 court） | `sc`、`se`、`sep` |
 | `faith.<司>` | `faith_<司>` | 整数 | 0 到 100 | strategy 信仰份额 | 第五六幕 |
 | `trial_wins.<司>` | 无 | 整数 | `eluen`、`valda`、`merca`、`sylvie`、`moira`、`dream` | 女神试炼 | 试炼赏门 |
-| `breach.<司>.<幕>` | 无 | 标记 | 幕：`act1` 到 `act6` | goddess 越约（D-026） | 蚀痕证据、第六幕 |
+| `breach.<司>.<幕>` | 无 | 标记 | 幕：`act1` 到 `act5`（序章没有神权菜单；第六幕审庭停用菜单，女神之间动手记 `a6_god_war`；终章在审定之后；三者都没有越约） | goddess 越约（D-026） | 蚀痕证据、第六幕 |
 | `court.<司>.<防线>` | 无 | 枚举 | 防线 `fact`、`just`、`need`；值 `intact`、`broken` | 质证（scenes 的 court） | 终审 |
 | `court.collapsed` | 无 | 整数 | 0 到 15 | 终审（court） | 结局 |
 | `court.janu.e32`、`court.merca.outlet`、`court.valda.duel`、`court.tavi_called`、`court.player_lets_go` | 无 | 标记 | | 审庭场景（`sc`） | 终审 |
@@ -989,7 +992,7 @@
 | `door_state.<门>` | 无 | 枚举 | `hidden`、`hinted`、`openable`、`opened`、`locked`、`closed` | doors | 回廊界面、提示导演 |
 | `door_hint.<门>` | 无 | 标记 | 门 ID | 雅努的提示（goddess） | 门显影 |
 | `p_hint.<倾向>` | `prologue.hint.<倾向>` | 整数 | `blade`、`beast`、`breath`、`pact`、`shadow`、`spirit` | 序章回答（`s0`） | `p_door_hints` |
-| `p_free.<话题>` | `prologue.free.<话题>` | 文本 | `eluen`、`valda`、`merca`、`sylvie`、`moira`、`past_life`、`rejection`、`call`、`appraise` | 序章自由回答（`s0` 的 `storeAs`；`call` 由 `cut_p_call`、`appraise` 由 `cut_p_judgement` 写入） | 女神题面、第六幕 |
+| `p_free.<话题>` | `prologue.free.<话题>` | 文本 | `eluen`、`valda`、`merca`、`sylvie`、`moira`、`past_life`、`rejection`、`call`、`appraise`、`last_words` | 序章自由回答（`s0` 的 `storeAs`；`call` 由 `cut_p_call`、`appraise` 由 `cut_p_judgement` 写入；`last_words` 是 N12 自由说的最后一句，至多 60 字） | 女神题面、第六幕 |
 
 ### 8.6 系统镜像
 
@@ -1008,7 +1011,7 @@
 | `war.<剧本>.result` | 无 | 枚举 | `won`、`lost`、`draw` | warfare | 任务 |
 | `war.first_battle_won` | 无 | 标记 | | warfare：骨原夜袭（`bat_a3_bonefield`）里罗恩举旗守住阵线的那一刻，战败也成立 | 千军之门（`dr`） |
 | `war.generals` | `generals` | 集合 | 人物 ID | warfare | 第三幕出口、战线 |
-| `dg.<迷宫>.<字段>` | `dg_state.<迷宫>.<字段>`；不带字段的 `dg_state.<迷宫或巢>` 即 `.choice` | 按字段 | 迷宫或澱巢 ID；字段 `choice`（养毁净的抉择：`nurture`、`destroy`、`purify`）、`cleared`（标记）、`depth`（整数）、`pressure`（整数）、`active`（布尔）、`phase`（枚举 `lair`、`shallow`、`dungeon`、`great`、`overflow`、`purified`） | 迷宫系统 | 门钥、首通经验、城建 |
+| `dg.<迷宫>.<字段>` | `dg_state.<迷宫>.<字段>`；不带字段的 `dg_state.<迷宫或巢>` 即 `.choice` | 按字段 | 迷宫或澱巢 ID（迷宫写 `dg_` ID；澱巢写 `nest_` 加巢主 ID，例 `nest_bonepile_lord`，[魔物图鉴][best]第 6 节）；字段 `choice`（养毁净的抉择：`untouched`（未处置，默认）、`nurture`、`destroy`、`purify`）、`cleared`（标记）、`depth`（整数）、`pressure`（整数）、`active`（布尔）、`phase`（枚举 `lair`、`shallow`、`dungeon`、`great`、`overflow`、`purified`） | 迷宫系统 | 门钥、首通经验、城建 |
 | `city.court_study` | 无 | 标记 | | city 建成（`src/systems/city/construction.ts`） | 配方（`data/economy/recipes.json`） |
 | `city.officials` | `officials` | 集合 | 人物 ID | city 任命 | 第三幕出口 |
 | `econ.company_founded` | 无 | 标记 | | economy 商会成立 | `data/city/buildings.json`、配方、`q`、`s25`、审期 |
@@ -1045,7 +1048,7 @@
 | `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号 | quests | 日志"还有别的做法"、传闻版本 |
 | `cmm_count.<模板>` | 无 | 整数 | 委托模板 ID；本周完成次数 | quests 委托板 | 委托经验递减 |
 | `trade_count.<人>` | 无 | 整数 | 人物 ID；与此人的合作交易次数 | economy、quests | 纷争节点、前世之门加成 |
-| `route_state.<路>` | 无 | 整数 | 路线 ID；风险档 -3 到 3（委托与事件按周增减） | quests、world | 途中事件、委托报酬 |
+| `route_state.<路>` | 无 | 整数 | 路线 ID（图集路线 `data/world/atlas_routes.json` 或商路 `data/economy/routes.json` 的 `id`，两表同名即同一条路；灰路是 `ash_road_upstream` 与 `brokenspan_crystal_gully`，夜风走廊是 `nightwind_south_mouth`）；风险档 -3 到 3（委托与事件按周增减；3 是断路：路段不能通行，期满由写入方回落） | quests、world | 途中事件、委托报酬 |
 | `badges_returned` | 无 | 整数 | ≥ 0 | 跨幕支线"带他们回家"（第一幕起） | 后续段、事迹 |
 | `donkey_road` | 无 | 整数 | 0 到 3 | 跨幕支线"驴之路" | 后续段 |
 | `letters_delivered` | 无 | 整数 | ≥ 0 | 跨幕支线"送信人"（第三幕起） | 十二封与二十四封的结算、事迹 |
@@ -1069,7 +1072,7 @@
 | `a1_wolf_den` | `forest.wolf_den` | 枚举 | `cleared` | 狼穴清剿（林地之争节点 f） | 林地之争结局 |
 | `a1_tide_omen` | 无 | 标记 | | 兽潮前兆事件 `ev_a1_tide_omens` | A1-M11 前置、`cut_a1_yeyu_memory` |
 | `a1_spring_source_found` | `a1_seep_channel_found` | 标记 | | A1-M07 找到渗泉源头 | 魔女审判的物证 |
-| `a1_moss_intercepted` | 无 | 标记 | | 南门截下莫斯的澱晶车 | `a1_moss_fate` 不写 `fled_south` |
+| `a1_moss_intercepted` | 无 | 标记 | | 南门截下莫斯的澱晶车 | `a1_moss_fate` 不写 `fled` |
 | `a1_blade_mark_seen` | 无 | 标记 | | 匪徒刀上的暗记 | A1-S02 |
 | `a1_lair_located` | 无 | 标记 | | 护送伏击中活捉匪徒 | 旧哨村据点 |
 | `a1_viro_pact_known` | 无 | 标记 | | 薇罗与莫斯的密约线索 | 税与匪的反咬 |
@@ -1101,6 +1104,13 @@
 | `a2_reynard_letter` | 无 | 标记 | | 金狮的面子（友善结局） | 雷纳德 |
 | `a2_ferryman_talks` | `ferryman_talks` | 整数 | ≥ 0（交谈次数） | 老船夫的酒 | 夜渡 |
 | `a2_ferryman_secret_kept` | `ferryman_secret_kept` | 标记 | | 从未说出老船夫的身份 | 夜渡 A2-S27 |
+| `a2_ferryman_met_luchen` | 无 | 标记 | | A2-D04.b 老船夫的酒：玩家硬把陆辰带到老船夫面前（他只说"等你打完了，再来问我值不值"） | 老船夫与陆辰的台词、第五幕勇者线的任务 |
+| `a2_buyer_traced` | 无 | 标记 | | A2-S11 莫斯的账本：追到的澱晶买家指向药师埃米尔 | 任务 A2-M09 的 `a2_clue_ledger` 提前成立（提前两周识破毒杀） |
+| `a2_marcus_shiya_friends` | 无 | 标记 | | A2-S12 马库斯想吃烤肉，希雅在场时：马库斯把希雅当作平等的战友 | 马库斯与希雅的台词（`ln_marcus`、`ln_shiya`）、第三幕勇者团线的任务 |
+| `a2_yui_herbs` | 无 | 标记 | | A2-S13 结衣的病房：带结衣去旧哨村跟欧拉认草药 | 第三幕战地任务（结衣可用草药救治）、结衣线 |
+| `a2_aiden_stars` | 无 | 标记 | | A2-S15 太整齐的星星：艾登说"这里的星星走得太整齐了"（学院说那是禁学） | 台账 M12-C03、艾登线 |
+| `a2_greyroad_cut` | 无 | 标记 | | A2-S38 截下一车灰晶（灰路的走私车） | 城下潮 `bat_a2_undertide` 第三波的爆罐手少一组、门徒会的澱晶存量 |
+| `a2_merca_loan` | 无 | 标记 | | 动态事件 `ev_a2_merca_loan` 的选项"接受"：接受梅尔卡经布鲁娜提供的低息贷款（一成货物走商会联合的账） | 门扉商会的账、梅尔卡线 |
 | `a3_title_confirmed` | 无 | 标记 | | 宫廷（爵位确认） | 第三幕出口 |
 | `court_chip.<种>` | 无 | 整数 | `favor`、`leverage`、`credit`、`merit`；各 0 到 5 | 宫廷各节点 | 回援王都、宫廷结局 |
 | `a3_council_stance` | 无 | 枚举 | `oppose`、`fight_first`、`silent` | 宫廷 | 宫廷结局 |
@@ -1201,7 +1211,7 @@
 | `a1_isa_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S20`（`q_a1_s20_nun_testimony` 完成时置真）；伊莎亲眼看见孩子有危险时由 quests 按 A1-D02 的兜底置真 | `cut_a1_tide`、`cut_a1_trial` | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险） |
 | `a1_toma_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S15`（`q_a1_s15_bell_tower` 完成时置真） | `cut_a1_trial` | 托马肯开口（S15 完成） |
 | `a1_grey_lamp_seen` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-M07` 的 `spring` 阶段（病房里发灰的灯，暗面节拍 D2） | `cut_a1_trial` | 暗面节拍 D2：玩家在病房里看见灯焰发灰 |
-| `a1_oola_jailbroken` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）A1-D02.f（`A1-M09` 的劫狱解法，`quest.q_a1_m09_lamp_of_light.path == jailbreak`；定罪后到押送前同样写入） | `cut_a1_trial` | 劫狱成功（第一幕 4.2 节点 f，第 7 周起，定罪后到押送前也可） |
+| `a1_oola_jailbroken` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）A1-D02.f（`A1-M09` 的劫狱解法，`quest.q_a1_m09_trial.path == jailbreak`；定罪后到押送前同样写入） | `cut_a1_trial` | 劫狱成功（第一幕 4.2 节点 f，第 7 周起，定罪后到押送前也可） |
 | `a1_oola_bribed` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）A1-D02.h（`A1-M09` 的贿赂路线，`quest_path = bribed`） | `cut_a1_trial` | 贿赂莫斯放人（节点 h） |
 | `a1_tess_in_crowd` | 无 | 出口 | 布尔 | 默认假 | quests：`A1-M09` 的 `verdict` 阶段开场结算（`trust.isa >= 60`、`A1-S19` 守密、或孩子已改住磨坊时为假） | `cut_a1_trial` | 审判时苔丝在人群里；内核在审判开场结算：伊莎信任 60 以上、或 S19 守密、或孩子已改住磨坊时为否 |
 | `a1_vouched` | 无 | 标记 | 标记 | 默认假 | cognition 社会结算（任一人物信任不低于 80，且在审判、传讯或广场公开替玩家说话）；`cut_a1_trial`（布伦作证） | `cut_a1_talent`、`cut_a1_trial` | 一位凡人当众替玩家担保（任一 NPC 信任 80 以上，在审判、传讯或广场公开替玩家说话；识才之门的第三把钥）；社会结算写入，`cut_a1_trial` 的布伦作证也写 |
@@ -1257,7 +1267,7 @@
 | `a2_emil_custody` | 无 | 出口 | 枚举 | `selene`、`lucas`；默认未写入 | `cut_a2_siege` | 第三幕埃米尔的审讯（`a2_emil_fate == captured`） | 被俘的埃米尔交给谁 |
 | `a2_signet_in_hand` | 无 | 标记 | 标记 | 默认假 | `cut_a2_siege` | `cut_a2_siege` | 印戒在玩家手里（从埃米尔身上追回） |
 | `a2_siege_descended` | 无 | 标记 | 标记 | 默认假 | warfare：`bat_a2_undertide` 结算（玩家在战斗中下到过断门厅） | `cut_a2_siege` | 玩家在战斗中下到过断门厅 |
-| `a2_siege_result` | 无 | 出口 | 枚举 | `held`、`fell`；默认未写入 | warfare：`bat_a2_undertide` 结算（黎明钟敲响为 `held`，城破为 `fell`，与 `quest.q_a2_m12_tide_under_city` 的完成与失败一致） | `cut_a2_siege` | 城下潮结果；fell 进入军管分支 |
+| `a2_siege_result` | 无 | 出口 | 枚举 | `held`、`fell`；默认未写入 | warfare：`bat_a2_undertide` 结算（黎明钟敲响为 `held`，城破为 `fell`，与 `quest.q_a2_m12_defense` 的完成与失败一致） | `cut_a2_siege` | 城下潮结果；fell 进入军管分支 |
 | `a2_held.<出口>` | `a2_held_<出口>`（例 `a2_held_mudlane`） | 族 | 布尔 | 键：`mudlane`、`fishmarket`、`harbor`、`cathedral`、`eaglewell`；默认假 | warfare：`bat_a2_undertide` 结算（下城三口按守备，上城两口由内核按 AI 友军结算） | `cut_a2_siege` | 五个出口是否守住到黎明；`a2_tide_exits_held` 是其中为真的个数 |
 | `a2_bell_tower_fell` | 无 | 标记 | 标记 | 默认假 | warfare：`bat_a2_undertide` 结算 | `cut_a2_siege` | 白钟钟楼倒塌（黎明钟改由小钟楼敲） |
 | `a2_heir_fallen` | 无 | 出口 | 枚举 | `none`、`edric`、`cecilia`、`lucas`；默认未写入 | warfare：`bat_a2_undertide` 结算（同时写 `npc.<人>.dead`） | `cut_a2_siege`、`cut_a2_barony`；`compute wb_council` 第 7 条 | 战死的继承人 |
@@ -1685,8 +1695,11 @@
 | `data/scenes/acts2_5.json` | `hart_state` | 写 `rival`、`pending`，不在第四幕值集内 | `a4_hart_state` 只写 `hostile`、`routed`、`reconciled`、`allied`；第二三幕的竞争关系写 `npc.hart.relation` |
 | `data/scenes/acts2_5.json` | `a4_alliance` | `broad`、`narrow`、`broken` | `a4_summit_result` 的 `league`、`accord`、`broken` |
 | `data/strategy/config.json` | `evidenceFlags` | `evidence.oracle_text` 等命名证据 | 第 7.5 节的 `evidence.E15`、`E01`、`E10`、`E04` 与 `a3_eluen_violation` |
-| `data/doors/doors.json` | 誓光之门的钥 | `a3_danger_door_vow` | `a3_vow_kept_reed_bridge`（C91；立誓本身读 `a3_vow_taken`） |
-| `data/doors/doors.json` | 门钥 `bond.<人>.<N>` | 与台账写法并存 | `trust.<人> >= N` |
+| `data/doors/doors.json` | 誓光之门的钥 | `a3_danger_door_vow` | `a3_vow_kept_reed_bridge`（C91） |
+| `data/doors/doors.json` | 门钥 `bond.<人>.<N>` | 与台账写法并存 | 同伴的缘钥用门钥类型 `bond`（读 party 切片的羁绊）；读人物信任的缘钥写 `trust.<人> >= N` |
+| `data/scenes/acts2_5.json` | 阿什警告场景的 `vow` 选项 | 同时写 `a3_vow_taken` 与 `a3_vow_kept_reed_bridge`，誓光之门在第 14 周前后就可开 | 只写表态 `a3_danger_stance`（`forsworn`、`continue`、`undecided`，过场目录 `cut_a3_warning`）；`a3_vow_kept_reed_bridge` 只由 `cut_a3_ashen_line` 的 `vow` 节点写入（第 8.3 节） |
+| `data/scenes/prologue.json` | `n12_free` 的 `storeAs` | 自由输入的原话写进枚举 `p_last_words` | 原话写 `p_free.last_words`，同一节点写 `p_last_words = free`；空值写 `silent` |
+| `data/quests/quests.json`（第三幕支线导入时） | `a3_selene_tremble_told` | 数据里没有写入点 | 由 A3-S19 `q_a3_s19_selene_letter` 的 `receive` 阶段置真；第四幕会盟只读 |
 | `data/quests/quests.json` | 触发 `act == act1` 与 `act_index` | `act_index` 是重复的量 | 统一读 `act` |
 
 ## 12. 来源链接
@@ -1715,6 +1728,7 @@
 [mb]: world/map_briefs.md
 [war]: content/catalog_warfare_strategy.md
 [cmp]: systems/companions_and_party.md
+[best]: content/catalog_bestiary.md
 [qa13]: content/catalog_quests_acts1_3.md
 [cut]: content/catalog_cutscenes.md
 [dgb]: content/catalog_dungeons_bosses.md

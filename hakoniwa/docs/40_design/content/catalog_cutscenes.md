@@ -437,14 +437,14 @@ G 节的写法之外，序章用到下列写法。除注明"新增"的四项外�
 | --- | --- |
 | 幕与拍 | 序章，落地（P1） |
 | 类型 | 可操作场景（开场选择之后，在一个房间大小的舞台里自由走动，兴趣点触发节点） |
-| 触发 | `act == 0 AND NOT next_cycle`（新游戏开始即播）；系统菜单"重选开场"重新进入本场。请求方：无（序章是开局固定流程，不挂主线任务） |
+| 触发 | `act == 0 AND cycle == 1`（新游戏开始即播）；系统菜单"重选开场"重新进入本场。请求方：无（序章是开局固定流程，不挂主线任务） |
 | 时机 | 地球上的一个夜晚，不计入圣历；必经，不可跳时，不可错过 |
 | 出场 | 玩家；场景内说话者（只露声音或背影）：醉汉 `stranger`（A）、店长 `manager`（B，电话留言）、店员 `clerk`（B 顾客版）、护士 `nurse`（C）、搬家工人 `worker`（D，楼下）；猫（B，立牌） |
 | 地点 | 开场选择在黑场里进行；A `earth_train`（`seat`、`opposite`、`window`、`car_door`、`gangway`）；B `earth_store`（`counter`、`freezer`、`entrance`、`aisle`、`stockroom`）；C `earth_hospital`（`chairs`、`nurse_station`、`ward_door`、`exit_sign`、`elevator`）；D `earth_house`（`old_chair`、`door_frame`、`wardrobe`、`window`、`stairs`）。舞台南侧是玩家起点，门出现的位置在北侧（D-063） |
 | 时长 | 约 3 分钟（四个开场相近，含一次文字输入） |
 | 现有数据 | `prologue` 第 1 到 5 节点（`n1_opening`、`n1_a`、`n1_b`、`n1_c`、`n1_d`），5 节点，23 行；扩写到 28 节点、73 行：每个开场从一个叙述节点扩成"开场叙述、兴趣点、没说出口的那句话、门"四段 |
-| 写入旗标 | `prologue.earth_opening`（A 到 D）、`prologue.earth_relic`、`courtyard.first_object`（开场默认）、`prologue.default_past_life`、`prologue.door_attempts_refused = 0`；新旗标 `prologue.unsent_words`、`prologue.store_role`（B）、`prologue.waiting_for`（C）；门提示 A 契、B 息、C 息、D 刃各 +1；物品 `relic_badge`、`relic_receipt`、`relic_mint`、`relic_key` 之一；`prologue.mode` 由引擎在新游戏时按当前配置写入 |
-| 揭示 | 无台账线索（日常交代）。为锚点 A11（地球）留下对照：玩家亲眼见过的、有人等你回家吃饭的那个世界；`prologue.unsent_words` 供终章"回地球"四开场与第六幕地球真相回扣 |
+| 写入旗标 | `p_earth_opening`（A 到 D）、`p_earth_relic`、`p_courtyard_object`（开场默认）、`p_default_past_life`、`p_door_attempts_refused = 0`；新旗标 `p_unsent_words`、`p_store_role`（B）、`p_waiting_for`（C）；门提示 A 契、B 息、C 息、D 刃各 +1；物品 `relic_badge`、`relic_receipt`、`relic_mint`、`relic_key` 之一；`p_mode` 由引擎在新游戏时按当前配置写入 |
+| 揭示 | 无台账线索（日常交代）。为锚点 A11（地球）留下对照：玩家亲眼见过的、有人等你回家吃饭的那个世界；`p_unsent_words` 供终章"回地球"四开场与第六幕地球真相回扣 |
 | 音乐与音效 | 镜 1 无乐；镜 2 `mus_pro_earth` 入（A 电钢琴、B 雨声吉他、C 低频合成器、D 旧钢琴），环境 `amb_earth_last_train`、`amb_earth_store_rain`、`amb_earth_hospital`、`amb_earth_old_house`；镜 6 门出现时音乐降一档；出场延续到 `cut_p_door_white`。专用音效 `sfx_cin_phone_buzz`、`sfx_cin_msg_sending`、`sfx_cin_train_brake`、`sfx_cin_store_chime`、`sfx_cin_voicemail`、`sfx_cin_cat_mew`、`sfx_cin_call_bell`、`sfx_cin_truck_horn`、`sfx_cin_wardrobe_creak`、`sfx_cin_earth_door` |
 | 所需美术 | 特写 `art_prop_cut_badge`、`art_prop_cut_receipt_candy`、`art_prop_cut_visitor_mint`、`art_prop_cut_old_key`、`art_prop_cut_phone`；四个开场的门用实景运镜（地球舞台实景加门光特效 `art_vfx_cut_earth_door`）；立牌 `art_chr_earth_drunk`、`art_chr_earth_clerk`、`art_chr_earth_nurse`、`art_chr_earth_cat`；开场卡片用界面层的四格文字卡（不画插画） |
 | 里程碑 | M1 |
@@ -470,13 +470,13 @@ G 节的写法之外，序章用到下列写法。除注明"新增"的四项外�
 【n1_opening】
 @镜 1
 @淡 黑 0
-效果 flag prologue.door_attempts_refused = 0
+效果 flag p_door_attempts_refused = 0
 narrator：在一切开始之前，是一个很普通的夜晚。
 narrator：你记得的最后一个地方，是哪里？
-选 a「末班车：加班到深夜，地铁末班车的车厢」→ n1_a｜效果 flag prologue.earth_opening = A；flag prologue.earth_relic = relic_badge；item relic_badge；hint pact；flag courtyard.first_object = 一盏台灯；flag prologue.default_past_life = abacus；teleport earth_train seat
-选 b「雨夜便利店：深夜的便利店，外面下着大雨」→ n1_b｜效果 flag prologue.earth_opening = B；flag prologue.earth_relic = relic_receipt；item relic_receipt；hint breath；flag courtyard.first_object = 一只空食盆；flag prologue.default_past_life = nightlight；teleport earth_store counter
-选 c「医院走廊：凌晨，在走廊里等一个结果」→ n1_c｜效果 flag prologue.earth_opening = C；flag prologue.earth_relic = relic_mint；item relic_mint；hint breath；flag courtyard.first_object = 一把等候椅；flag prologue.default_past_life = whitecoat；teleport earth_hospital chairs
-选 d「老宅清空日：明天就要拆的老房子，最后一个房间」→ n1_d｜效果 flag prologue.earth_opening = D；flag prologue.earth_relic = relic_key；item relic_key；hint blade；flag courtyard.first_object = 那把旧椅子；flag prologue.default_past_life = wrench；teleport earth_house old_chair
+选 a「末班车：加班到深夜，地铁末班车的车厢」→ n1_a｜效果 flag p_earth_opening = a；flag p_earth_relic = relic_badge；item relic_badge；hint pact；flag p_courtyard_object = lamp；flag p_default_past_life = abacus；teleport earth_train seat
+选 b「雨夜便利店：深夜的便利店，外面下着大雨」→ n1_b｜效果 flag p_earth_opening = b；flag p_earth_relic = relic_receipt；item relic_receipt；hint breath；flag p_courtyard_object = empty_bowl；flag p_default_past_life = nightlight；teleport earth_store counter
+选 c「医院走廊：凌晨，在走廊里等一个结果」→ n1_c｜效果 flag p_earth_opening = c；flag p_earth_relic = relic_mint；item relic_mint；hint breath；flag p_courtyard_object = waiting_chair；flag p_default_past_life = whitecoat；teleport earth_hospital chairs
+选 d「老宅清空日：明天就要拆的老房子，最后一个房间」→ n1_d｜效果 flag p_earth_opening = d；flag p_earth_relic = relic_key；item relic_key；hint blade；flag p_courtyard_object = old_chair；flag p_default_past_life = wrench；teleport earth_house old_chair
 【n1_a】
 @镜 2
 @乐 mus_pro_earth 入
@@ -508,12 +508,12 @@ stranger〈醉汉〉：……再坐一站……就一站……
 @声 sfx_cin_phone_buzz
 narrator：手机亮了一下。是那条一直没回的消息：「周末回家吃饭吗？」
 narrator：三天前发来的。
-输入「回复：周末回家吃饭吗？（可以不回）」→ n1_a_unsent｜存入 prologue.unsent_words｜上限 40｜空值 （没有回）
+输入「回复：周末回家吃饭吗？（可以不回）」→ n1_a_unsent｜存入 p_unsent_words｜上限 40｜空值 （没有回）
 【n1_a_unsent】
-narrator［prologue.unsent_words == '（没有回）'］：你打了两个字，又删掉了。
-player［prologue.unsent_words == '（没有回）'］：（明天再回吧。）
-narrator［prologue.unsent_words != '（没有回）'］：你按下发送。消息旁边转起一个小圈。
-narrator［prologue.unsent_words != '（没有回）'］：列车钻进一段很长的隧道，信号一格一格掉光。小圈一直转，一直转。
+narrator［p_unsent_words == '（没有回）'］：你打了两个字，又删掉了。
+player［p_unsent_words == '（没有回）'］：（明天再回吧。）
+narrator［p_unsent_words != '（没有回）'］：你按下发送。消息旁边转起一个小圈。
+narrator［p_unsent_words != '（没有回）'］：列车钻进一段很长的隧道，信号一格一格掉光。小圈一直转，一直转。
 → n1_a_door
 【n1_a_door】
 @镜 6
@@ -532,8 +532,8 @@ narrator：一扇本不该在这里的门。
 @天气 雨
 narrator：深夜的便利店，雨下得很大。
 narrator：那天晚上，你站在收银台的哪一边？
-选 clerk「里面：上夜班的店员」→ n1_b_clerk｜效果 flag prologue.store_role = clerk
-选 customer「外面：进来躲雨的顾客」→ n1_b_customer｜效果 flag prologue.store_role = customer；flag prologue.default_past_life = hearth
+选 clerk「里面：上夜班的店员」→ n1_b_clerk｜效果 flag p_store_role = clerk
+选 customer「外面：进来躲雨的顾客」→ n1_b_customer｜效果 flag p_store_role = customer；flag p_default_past_life = hearth
 【n1_b_clerk】
 narrator：你站在收银台后面，困得眼皮直打架。凌晨两点，店里一个客人都没有。
 @声 sfx_cin_voicemail
@@ -555,8 +555,8 @@ narrator：你把小票和那颗糖一起塞进了口袋。
 @镜 3
 narrator：雨砸在玻璃门上，一阵紧一阵。
 选 rain「看外面的雨」→ ｜一次｜效果 line narrator 路灯底下白茫茫一片。今晚大概要等雨小了才走得了。
-选 talk「和店员搭句话」→ n1_b_talk｜一次｜条件 prologue.store_role == customer
-选 shelf「把倒了的货扶起来」→ ｜一次｜条件 prologue.store_role == clerk｜效果 line narrator 一排速食面被谁碰倒了。你一个个扶好，标签朝外。
+选 talk「和店员搭句话」→ n1_b_talk｜一次｜条件 p_store_role == customer
+选 shelf「把倒了的货扶起来」→ ｜一次｜条件 p_store_role == clerk｜效果 line narrator 一排速食面被谁碰倒了。你一个个扶好，标签朝外。
 选 cat「去门口看那只猫」→ n1_b_cat
 【n1_b_talk】
 narrator：你问店员，这雨要下到什么时候。
@@ -567,10 +567,10 @@ narrator：你看了看价签，摇了摇头。
 @镜 5
 narrator：门口那只躲雨的猫又来了。它蹲在屋檐下，尾巴绕着脚，毛被雨打湿了一半。
 narrator：它每天都来。你一直想给它起个名字，一直没想好。
-输入「给它起个名字（可以不起）」→ n1_b_named｜存入 prologue.unsent_words｜上限 12｜空值 （还没想好）
+输入「给它起个名字（可以不起）」→ n1_b_named｜存入 p_unsent_words｜上限 12｜空值 （还没想好）
 【n1_b_named】
-narrator［prologue.unsent_words == '（还没想好）'］：你蹲下来看了它很久。名字还是没想好。
-narrator［prologue.unsent_words != '（还没想好）'］：「{flag:prologue.unsent_words}。」你在心里念了一遍，还没叫出声。
+narrator［p_unsent_words == '（还没想好）'］：你蹲下来看了它很久。名字还是没想好。
+narrator［p_unsent_words != '（还没想好）'］：「{flag:p_unsent_words}。」你在心里念了一遍，还没叫出声。
 narrator：猫忽然竖起耳朵，盯着你身后。
 → n1_b_door
 【n1_b_door】
@@ -590,9 +590,9 @@ narrator：猫没有跑。它看着那扇门，轻轻叫了一声。
 narrator：凌晨的医院走廊。你坐在冰凉的塑料椅上，等一个结果。
 narrator：护士站的脚步声来了又走。病房里有人在咳嗽，咳得很轻，像怕吵醒谁。
 narrator：你在等谁的结果？
-输入「你在等谁？（可以不说）」→ n1_c_who｜存入 prologue.waiting_for｜上限 12｜空值 某个人
+输入「你在等谁？（可以不说）」→ n1_c_who｜存入 p_waiting_for｜上限 12｜空值 某个人
 【n1_c_who】
-narrator：你手里攥着探视证，上面写着{flag:prologue.waiting_for}的床号。
+narrator：你手里攥着探视证，上面写着{flag:p_waiting_for}的床号。
 narrator：口袋里还有半盒薄荷糖，已经吃掉了一大半。
 → n1_c_hub
 【n1_c_hub】
@@ -611,7 +611,7 @@ nurse〈护士〉：去坐着等吧，站久了腿麻。
 @镜 5
 narrator：你走到病房门口，手放在门把上，没有推。
 narrator：等结果出来，第一句话要说什么，你已经在心里排练过很多遍。
-输入「结果出来的时候，你想说的第一句话（可以不说）」→ n1_c_door｜存入 prologue.unsent_words｜上限 40｜空值 （还没想好）
+输入「结果出来的时候，你想说的第一句话（可以不说）」→ n1_c_door｜存入 p_unsent_words｜上限 40｜空值 （还没想好）
 【n1_c_door】
 @镜 6
 narrator：那个结果，还没有人来告诉你。
@@ -649,7 +649,7 @@ narrator：后来就没有人再给你量了。
 narrator：房间里那把旧椅子，新家没地方放。以前总有人坐在这上面，等你放学回家。
 narrator：你在上面坐了很久，最后还是决定把它留下。
 narrator：走之前，你想对这个房间说点什么。
-输入「对这个房间，你想说的话（可以不说）」→ n1_d_door｜存入 prologue.unsent_words｜上限 40｜空值 （没有说出口）
+输入「对这个房间，你想说的话（可以不说）」→ n1_d_door｜存入 p_unsent_words｜上限 40｜空值 （没有说出口）
 【n1_d_door】
 @镜 6
 narrator：话到了嘴边，你又咽了回去。
@@ -669,17 +669,17 @@ narrator：衣柜的门开着一条缝。门后面不是衣柜，是另一扇门
 | `b` | 雨夜便利店 | `n1_b` | 开场 B；遗物小票与糖；息 +1；庭院默认"一只空食盆"；默认前世夜灯；传送 `earth_store` | 无 |
 | `c` | 医院走廊 | `n1_c` | 开场 C；遗物探视证与薄荷糖；息 +1；庭院默认"一把等候椅"；默认前世白衣；传送 `earth_hospital` | 无 |
 | `d` | 老宅清空日 | `n1_d` | 开场 D；遗物老钥匙；刃 +1；庭院默认"那把旧椅子"；默认前世扳手；传送 `earth_house` | 无 |
-| `clerk`、`customer` | 收银台里面、外面 | `n1_b_clerk`、`n1_b_customer` | `prologue.store_role`；顾客版默认前世改取灶火（分幕文档第 2 节 B 的第二个推荐） | 开场 B |
+| `clerk`、`customer` | 收银台里面、外面 | `n1_b_clerk`、`n1_b_customer` | `p_store_role`；顾客版默认前世改取灶火（分幕文档第 2 节 B 的第二个推荐） | 开场 B |
 | 各兴趣点 | 车窗、醉汉、雨、货架、店员、薄荷糖、护士、门框、喊楼下 | 本开场 `hub` | 无数值，只出台词 | 各自一次 |
-| 输入 | 没说出口的那句话 | 本开场的门 | `prologue.unsent_words`（C 另有 `prologue.waiting_for`） | 无 |
+| 输入 | 没说出口的那句话 | 本开场的门 | `p_unsent_words`（C 另有 `p_waiting_for`） | 无 |
 
 **变体**
 
-| 开场 | 舞台 | 路人 | 地球遗物 | 没说出口的那句话（`prologue.unsent_words` 的含义与空值） | 门的出现方式 |
+| 开场 | 舞台 | 路人 | 地球遗物 | 没说出口的那句话（`p_unsent_words` 的含义与空值） | 门的出现方式 |
 | --- | --- | --- | --- | --- | --- |
 | A 末班车 | `earth_train` | 对面座位睡着的醉汉（两句梦话） | 工牌（带照片与姓名的门禁卡） | 回给"周末回家吃饭吗？"的消息；写了就发送，但隧道里没有信号，停在"发送中"；空值"（没有回）" | 列车减速，车门打开，门外不是站台而是一扇门 |
 | B 雨夜便利店 | `earth_store` | 店长的电话留言；顾客版另有犯困的店员（找零给糖）；门口的猫 | 一张小票与一颗糖（店员版是客人落下的找零，顾客版是自己的找零） | 给那只猫起的名字，在心里念了，还没叫出声；空值"（还没想好）" | 冰柜玻璃里映出一扇门，回头看只有货架，再看玻璃门更近了 |
-| C 医院走廊 | `earth_hospital` | 护士（两句）；病房里很轻的咳嗽 | 探视证与半盒薄荷糖 | 结果出来时想说的第一句话；另存在等谁 `prologue.waiting_for`（空值"某个人"）；空值"（还没想好）" | 走廊尽头安全出口的绿灯下多了一扇门 |
+| C 医院走廊 | `earth_hospital` | 护士（两句）；病房里很轻的咳嗽 | 探视证与半盒薄荷糖 | 结果出来时想说的第一句话；另存在等谁 `p_waiting_for`（空值"某个人"）；空值"（还没想好）" | 走廊尽头安全出口的绿灯下多了一扇门 |
 | D 老宅清空日 | `earth_house` | 楼下的搬家工人（两句） | 老房子的钥匙 | 对这个房间想说的话，到了嘴边又咽回去；空值"（没有说出口）" | 衣柜门开着一条缝，门后面不是衣柜，是另一扇门 |
 
 【设计】四个开场的"没说出口的那句话"一律不在序章里说出口或送达：消息停在发送中、猫的名字没叫出声、结果没人来告诉、对房间的话咽了回去。
@@ -691,13 +691,13 @@ narrator：衣柜的门开着一条缝。门后面不是衣柜，是另一扇门
 | --- | --- |
 | 幕与拍 | 序章，落地（P2 到 P4） |
 | 类型 | 可操作场景（P2 在地球舞台上，P3 白场，P4 在候见厅自由探索） |
-| 触发 | 首期：`scene.cut_p_earth.seen`（由 `cut_p_earth` 接续）；下一期：`next_cycle`（由回收结局 `cut_end_reclaim` 接续，从候见厅开始）。请求方：无 |
+| 触发 | 首期：`scene.cut_p_earth.seen`（由 `cut_p_earth` 接续）；下一期：`cycle >= 2`（由回收结局 `cut_end_reclaim` 接续，从候见厅开始）。请求方：无 |
 | 时机 | 紧接上一场；必经，不可错过 |
 | 出场 | 玩家；门；隔壁的四个声音（`voice_neighbor` 隔壁的声音、`voice_young` 年轻的男声、`voice_elegant` 优雅的女声，加一阵大笑），只闻其声 |
 | 地点 | P2：上一场的地球舞台（门在 A `car_door`、B `freezer`、C `exit_sign`、D `wardrobe`；转角在 A `gangway`、B `stockroom`、C `elevator`、D `stairs`）；P3、P4：`divine_court` 南半，`antechamber`、`bench`、`spirit_mirror`、`number_board`、`curtain`；玩家落在帘幕西端南侧 (6.5, 9.5) |
 | 时长 | 约 3 分钟（P2 约 1 分钟，P3 约 1 分钟，P4 约 1 分钟起；灵镜界面的操作另计 1 到 5 分钟） |
 | 现有数据 | `prologue` 第 6 到 19 节点（`n2_door`、`n2_turn1` 到 `n2_turn3`、`n2_push`、`n3_white`、`n3_hub`、`n3_mirror`、`n3_mirror_done`、`n3_listen`、`n3_curtain`、`n3_bench`、`n3_check`、`n3_faint`），14 节点，33 行；扩写到 17 节点、42 行：三次转身按开场写出四套转角，门加"端详"，候见厅加号码板与灵镜界面，补下一期入口 |
-| 写入旗标 | `prologue.door_attempts_refused`（0 到 3）、`prologue.mirror_done`、`prologue.appearance`（灵镜界面写入）、`prologue.heard_neighbors`；物品 `number_tag_five` |
+| 写入旗标 | `p_door_attempts_refused`（0 到 3）、`p_mirror_done`、`p_appearance`（灵镜界面写入）、`p_heard_neighbors`；物品 `number_tag_five` |
 | 揭示 | 无台账线索。D-038 的前置：号码板只有四格。P4 必经："名单上只有四位，孩子。"（与第二幕艾登"召唤阵亮了五盏灯"呼应）。三次转身后门自己开了，与"门总会开的"同构，不点破 |
 | 音乐与音效 | 入场延续 `mus_pro_earth`；镜 4 推门时 `mus_pro_earth` 出，白场后镜 5 `mus_pro_antechamber` 入，环境 `amb_divine_court`；出场延续到 `cut_p_quarrel`。专用音效 `sfx_cin_shutter`、`sfx_god_door_woman_whisper`、`sfx_cin_door_push`、`sfx_cin_white_in`、`sfx_cin_number_tag`、`sfx_cin_spirit_mirror`、`sfx_cin_wall_murmur`、`sfx_cin_footsteps_away` |
 | 所需美术 | 特写 `art_prop_cut_unknown_door`、`art_prop_cut_tag_five`、`art_prop_cut_number_board`；实景运镜；特效 `art_vfx_cut_white_in`、`art_vfx_cut_mirror_ripple`、`art_vfx_cut_door_trace` |
@@ -724,7 +724,7 @@ narrator：衣柜的门开着一条缝。门后面不是衣柜，是另一扇门
 ```text
 场景 cut_p_door_white｜标题 不该存在的门｜幕 prologue｜地图 无｜位置 无｜起点 n2_gate｜接续 cut_p_quarrel
 【n2_gate】
-分支［next_cycle］→ n3_cycle
+分支［cycle >= 2］→ n3_cycle
 → n2_door
 【n2_door】
 @镜 1
@@ -736,23 +736,23 @@ narrator：门缝里没有光，也没有声音。
 选 look「走近端详」→ ｜一次｜效果 line narrator 门板上没有锁孔，也没有门牌。只有门把手被谁摸得发亮，像每天都有人从这里进出。
 选 photo「拿手机拍下来」→ ｜一次｜效果 line narrator 你按下快门。照片里只有一面空墙。
 选 push「伸手推门」→ n2_push
-选 turn「转身离开」→ n2_turn1｜效果 add prologue.door_attempts_refused 1
+选 turn「转身离开」→ n2_turn1｜效果 add p_door_attempts_refused 1
 【n2_turn1】
 @镜 3
-narrator［prologue.earth_opening == A］：你转身往下一节车厢走。拉开连接处的门，那扇门又在那里，像一直在等你。
-narrator［prologue.earth_opening == B］：你转身躲进仓库。推开仓库的门，那扇门又在那里，像一直在等你。
-narrator［prologue.earth_opening == C］：你转身往电梯厅走。拐过转角，那扇门又在那里，像一直在等你。
-narrator［prologue.earth_opening == D］：你转身下楼。走到楼梯拐角，那扇门又在那里，像一直在等你。
+narrator［p_earth_opening == a］：你转身往下一节车厢走。拉开连接处的门，那扇门又在那里，像一直在等你。
+narrator［p_earth_opening == b］：你转身躲进仓库。推开仓库的门，那扇门又在那里，像一直在等你。
+narrator［p_earth_opening == c］：你转身往电梯厅走。拐过转角，那扇门又在那里，像一直在等你。
+narrator［p_earth_opening == d］：你转身下楼。走到楼梯拐角，那扇门又在那里，像一直在等你。
 选 push「伸手推门」→ n2_push
-选 turn「转身离开」→ n2_turn2｜效果 add prologue.door_attempts_refused 1
+选 turn「转身离开」→ n2_turn2｜效果 add p_door_attempts_refused 1
 【n2_turn2】
 narrator：你又一次走开。这一次门出现得更近，近得伸手就能碰到。
-narrator［prologue.earth_opening == A］：车厢的灯闪了一下。对面的醉汉还在睡。
-narrator［prologue.earth_opening == B］：猫跟在你脚边，仰头看着那扇门。
-narrator［prologue.earth_opening == C］：护士站的呼叫铃响了一声，没有人去接。
-narrator［prologue.earth_opening == D］：楼下的卡车又按了一声喇叭，像在催你。
+narrator［p_earth_opening == a］：车厢的灯闪了一下。对面的醉汉还在睡。
+narrator［p_earth_opening == b］：猫跟在你脚边，仰头看着那扇门。
+narrator［p_earth_opening == c］：护士站的呼叫铃响了一声，没有人去接。
+narrator［p_earth_opening == d］：楼下的卡车又按了一声喇叭，像在催你。
 选 push「伸手推门」→ n2_push
-选 turn「转身离开」→ n2_turn3｜效果 add prologue.door_attempts_refused 1
+选 turn「转身离开」→ n2_turn3｜效果 add p_door_attempts_refused 1
 【n2_turn3】
 @声 sfx_god_door_woman_whisper
 narrator：第三次。门已经开了一条缝，门后有风，很轻，像有人在那边呼吸。
@@ -791,35 +791,35 @@ narrator：号码板上四个格子，安安静静。隔壁有人在说话。
 → n3_hub
 【n3_hub】
 @镜 6
-narrator［NOT prologue.heard_neighbors］：隔壁隐约有人在说话。
-narrator［prologue.heard_neighbors］：候见厅里很安静。
-选 mirror「照一照墙上的镜子」→ n3_mirror｜条件 NOT prologue.mirror_done｜一次
-选 listen「贴着墙，听隔壁」→ n3_listen｜条件 NOT prologue.heard_neighbors｜一次
+narrator［NOT p_heard_neighbors］：隔壁隐约有人在说话。
+narrator［p_heard_neighbors］：候见厅里很安静。
+选 mirror「照一照墙上的镜子」→ n3_mirror｜条件 NOT p_mirror_done｜一次
+选 listen「贴着墙，听隔壁」→ n3_listen｜条件 NOT p_heard_neighbors｜一次
 选 curtain「走近帘幕」→ n3_curtain｜一次
 选 bench「在长椅上坐一会儿」→ n3_bench｜一次
 选 board「看看号码板」→ ｜一次｜效果 line narrator 一、二、三、四。四个格子都暗着，排得整整齐齐，没有给第五个留位置。
 选 tag「看看手里的号码牌」→ ｜一次｜效果 line narrator 号码牌是硬纸做的，边角还很新。「伍」字写得端端正正，像有人一笔一画认真写上去的。
 选 back「回到来时的门那里」→ ｜一次｜效果 line narrator 门已经不在了。墙上只剩一个门形的浅痕。
-选 wait「（坐下来，等着叫号）」→ n3_check｜条件 prologue.mirror_done
+选 wait「（坐下来，等着叫号）」→ n3_check｜条件 p_mirror_done
 【n3_mirror】
 @镜 7
 @声 sfx_cin_spirit_mirror
 narrator：镜子里的人影一开始是模糊的，像隔着一层水汽。
 narrator：镜面泛起一圈涟漪。镜子里的人在等你决定：在这里，你该是什么模样。
-选 creator「（细细地照：灵镜）」→ n3_mirror_done｜效果 ui ui_mode_creator；flag prologue.mirror_done = true
-选 look_1「深灰外套，黑色短发」→ n3_mirror_done｜效果 appearance look_1；flag prologue.mirror_done = true
-选 look_2「米色风衣，栗色长发」→ n3_mirror_done｜效果 appearance look_2；flag prologue.mirror_done = true
-选 look_3「灰色卫衣，浅金色的头发」→ n3_mirror_done｜效果 appearance look_3；flag prologue.mirror_done = true
-选 look_4「墨绿毛衣，乱糟糟的棕发」→ n3_mirror_done｜效果 appearance look_4；flag prologue.mirror_done = true
-选 look_5「白衬衫，深蓝长裤，银灰色的头发」→ n3_mirror_done｜效果 appearance look_5；flag prologue.mirror_done = true
-选 look_6「酒红外套，黑色卷发，肤色偏深」→ n3_mirror_done｜效果 appearance look_6；flag prologue.mirror_done = true
+选 creator「（细细地照：灵镜）」→ n3_mirror_done｜效果 ui ui_mode_creator；flag p_mirror_done = true
+选 look_1「深灰外套，黑色短发」→ n3_mirror_done｜效果 appearance look_1；flag p_mirror_done = true
+选 look_2「米色风衣，栗色长发」→ n3_mirror_done｜效果 appearance look_2；flag p_mirror_done = true
+选 look_3「灰色卫衣，浅金色的头发」→ n3_mirror_done｜效果 appearance look_3；flag p_mirror_done = true
+选 look_4「墨绿毛衣，乱糟糟的棕发」→ n3_mirror_done｜效果 appearance look_4；flag p_mirror_done = true
+选 look_5「白衬衫，深蓝长裤，银灰色的头发」→ n3_mirror_done｜效果 appearance look_5；flag p_mirror_done = true
+选 look_6「酒红外套，黑色卷发，肤色偏深」→ n3_mirror_done｜效果 appearance look_6；flag p_mirror_done = true
 【n3_mirror_done】
 narrator：镜子里的人眨了眨眼。是你。大概是你。
 → n3_hub
 【n3_listen】
 @镜 8
 @声 sfx_cin_wall_murmur
-效果 flag prologue.heard_neighbors = true
+效果 flag p_heard_neighbors = true
 narrator：你把耳朵贴上墙。墙是温的。
 voice_neighbor〈隔壁的声音〉：谢谢您，我会尽力。
 narrator：有人笑得很大声，笑声撞在墙上，震得你耳朵发麻。
@@ -839,11 +839,11 @@ narrator：你在长椅上坐下。长椅很硬，有点凉，像车站或医院
 narrator：你等了一会儿，没有人来。号码板上的四个格子安安静静，一个都没有亮。
 → n3_hub
 【n3_check】
-分支［NOT prologue.heard_neighbors］→ n3_faint
+分支［NOT p_heard_neighbors］→ n3_faint
 结束
 【n3_faint】
 @声 sfx_cin_wall_murmur
-效果 flag prologue.heard_neighbors = true
+效果 flag p_heard_neighbors = true
 narrator：隔壁的墙后，隐约传来几句话，很轻，断断续续。
 voice_neighbor〈隔壁的声音〉：……谢谢您，我会尽力。
 narrator：有人大声笑了起来。
@@ -860,11 +860,11 @@ narrator：然后，声音远去了。
 | --- | --- | --- | --- | --- |
 | `look`、`photo` | 走近端详、拿手机拍下来 | 留在本节点 | 各追加一行 | 各一次 |
 | `push` | 伸手推门 | `n2_push` | 无 | 无 |
-| `turn` | 转身离开 | `n2_turn1` 到 `n2_turn3` | `prologue.door_attempts_refused` +1（至多 3；第三次门自己开） | 无 |
+| `turn` | 转身离开 | `n2_turn1` 到 `n2_turn3` | `p_door_attempts_refused` +1（至多 3；第三次门自己开） | 无 |
 | `mirror` | 照一照墙上的镜子 | `n3_mirror` | 无 | 灵镜未完成 |
-| `creator` | （细细地照：灵镜） | `n3_mirror_done` | 打开 `ui_mode_creator`，"照好了"写入 `prologue.appearance`（含性别与体型）；`prologue.mirror_done` | 无 |
-| `look_1` 到 `look_6` | 六个外貌快照 | `n3_mirror_done` | 快照颜色组；纸娃娃默认体型；`prologue.mirror_done`。快照也供无头脚本玩家使用 | 无 |
-| `listen` | 贴着墙，听隔壁 | `n3_listen` | `prologue.heard_neighbors` | 未听过 |
+| `creator` | （细细地照：灵镜） | `n3_mirror_done` | 打开 `ui_mode_creator`，"照好了"写入 `p_appearance`（含性别与体型）；`p_mirror_done` | 无 |
+| `look_1` 到 `look_6` | 六个外貌快照 | `n3_mirror_done` | 快照颜色组；纸娃娃默认体型；`p_mirror_done`。快照也供无头脚本玩家使用 | 无 |
+| `listen` | 贴着墙，听隔壁 | `n3_listen` | `p_heard_neighbors` | 未听过 |
 | `curtain`、`bench`、`board`、`tag`、`back` | 帘幕、长椅、号码板、号码牌、来时的门 | 本节点或回到 `n3_hub` | 无数值 | 各一次 |
 | `wait` | （坐下来，等着叫号） | `n3_check` | 未听过隔壁时补播 `n3_faint`（P4 必经） | 灵镜已完成 |
 
@@ -872,9 +872,9 @@ narrator：然后，声音远去了。
 
 | 条件 | 差异 |
 | --- | --- |
-| `prologue.earth_opening` 为 A、B、C、D | 门所在位置与三个转角按开场（见上表"地点"）；`n2_turn1`、`n2_turn2` 的开场行 |
-| `prologue.door_attempts_refused` 为 0 到 3 | 3 时由 `n2_turn3` 进入（门自己开了）；该值供第六幕雅努的回扣（"你推了三次才进来"） |
-| `next_cycle` | 跳过 P2，从 `n3_cycle` 进入候见厅；地球遗物与开场旗标沿用上一期（同一个灵魂），号码牌重新发 |
+| `p_earth_opening` 为 A、B、C、D | 门所在位置与三个转角按开场（见上表"地点"）；`n2_turn1`、`n2_turn2` 的开场行 |
+| `p_door_attempts_refused` 为 0 到 3 | 3 时由 `n2_turn3` 进入（门自己开了）；该值供第六幕雅努的回扣（"你推了三次才进来"） |
+| `cycle >= 2` | 跳过 P2，从 `n3_cycle` 进入候见厅；地球遗物与开场旗标沿用上一期（同一个灵魂），号码牌重新发 |
 
 【设计】隔壁四个声音依次是白石结衣（"谢谢您，我会尽力。"）、马库斯（大笑）、陆辰（问外面那个人）与艾琉恩（"名单上只有四位，孩子。"）。
 界面一律只显示"隔壁的声音""年轻的男声""优雅的女声"，不显示名字（台账第 8.1 节：勇者团不与玩家对话）；"优雅的女声"与帘幕后的"冷静的女声"刻意用不同标签，
@@ -886,13 +886,13 @@ narrator：然后，声音远去了。
 | --- | --- |
 | 幕与拍 | 序章，落地（P5） |
 | 类型 | 写定场景（开场一次姿态选择，之后自动播放五段） |
-| 触发 | `prologue.mirror_done AND prologue.heard_neighbors`（由 `cut_p_door_white` 接续）。请求方：无 |
+| 触发 | `p_mirror_done AND p_heard_neighbors`（由 `cut_p_door_white` 接续）。请求方：无 |
 | 时机 | 紧接上一场；必经，不可错过 |
 | 出场 | 五位女神，只有声音：梅尔卡（甜甜的女声）、艾琉恩（冷静的女声）、瓦尔妲（粗豪的女声）、莫伊拉（慢悠悠的女声）、希尔薇（很轻的女声）；远档时为"帘幕后的声音" `curtain_voices` |
 | 地点 | `divine_court`：`bench`（远）、帘幕前三格（中）、`curtain` 南侧贴帘（近） |
 | 时长 | 约 2.5 分钟 |
 | 现有数据 | `prologue` 第 20 到 27 节点（`n4_stance`、`n4_s1`、`n4_s1_check`、`n4_cough`、`n4_s2` 到 `n4_s5`），8 节点，61 行；扩写到 8 节点、61 行（台词全部沿用，只补演出指令与说话者标签写法） |
-| 写入旗标 | `prologue.eavesdrop_level`（0 到 3） |
+| 写入旗标 | `p_eavesdrop_level`（0 到 3） |
 | 揭示 | 为台账 M10（审定、两年、"未"）、M12（上面那位）、M07（女神们说法不一）、M05（那件事）埋下关键词；正式首现编号在 `cut_p_call` 与 `cut_p_judgement`。P5 必经：四档都至少听到"名额""审定""那件事""上面"各一次 |
 | 音乐与音效 | 入场延续 `mus_pro_antechamber` 并压到最低；镜 6（第四段的长沉默）音乐全停；镜 8 铃响后 `mus_pro_antechamber` 淡出；出场静音进入 `cut_p_call`。专用音效 `sfx_cin_chairs_seat`、`sfx_god_merca_coin_flip`、`sfx_cin_cough_player`、`sfx_god_moira_page`、`sfx_god_door_woman_keys`、`sfx_cin_bell_call`、`sfx_cin_board_slot` |
 | 所需美术 | 特效 `art_vfx_cut_curtain_slit`（帘幕缝隙的一线光与书、硬币的影子）、`art_vfx_cut_board_slot`（号码板长出第五格）；特写 `art_prop_cut_number_board` |
@@ -924,23 +924,23 @@ narrator：然后，声音远去了。
 @声 sfx_god_merca_coin_flip
 narrator：帘幕后面忽然有了动静：椅子被拉开，有人落座，衣料窸窣，还有一枚硬币在桌面上转动的声音。
 narrator：有人开口说话了。隔着帘幕，听不太真切。
-选 bench「留在长椅上，不去管它」→ n4_s1｜效果 flag prologue.eavesdrop_level = 0
-选 step「走到帘幕前三步的地方听」→ n4_s1｜效果 flag prologue.eavesdrop_level = 2
-选 press「贴着帘幕听」→ n4_s1｜效果 flag prologue.eavesdrop_level = 3
-选 cough「走到帘幕前，故意咳嗽一声」→ n4_s1｜效果 flag prologue.eavesdrop_level = 1
+选 bench「留在长椅上，不去管它」→ n4_s1｜效果 flag p_eavesdrop_level = 0
+选 step「走到帘幕前三步的地方听」→ n4_s1｜效果 flag p_eavesdrop_level = 2
+选 press「贴着帘幕听」→ n4_s1｜效果 flag p_eavesdrop_level = 3
+选 cough「走到帘幕前，故意咳嗽一声」→ n4_s1｜效果 flag p_eavesdrop_level = 1
 【n4_s1】
 @镜 3
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 1］：四个。亲爱的，你一口气要了四个名额。按信仰份额算，你这次可是把账做得满满的。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 1］：份额就是份额。四个，合规格，每一个都经过挑选。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：挑选？你挑的是哪种？听话的那种吧。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：勇者需要的是秩序，不是你那种只会咬人的野狗。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：哈！我那一个，一个人顶你四个。
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：两位，请注意措辞。我在记。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：你什么时候不在记？
-curtain_voices〈帘幕后的声音〉［prologue.eavesdrop_level == 0］：四个……（听不清）……名额……按份额……（笑声）……野狗……
+merca〈甜甜的女声〉［p_eavesdrop_level >= 1］：四个。亲爱的，你一口气要了四个名额。按信仰份额算，你这次可是把账做得满满的。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 1］：份额就是份额。四个，合规格，每一个都经过挑选。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：挑选？你挑的是哪种？听话的那种吧。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：勇者需要的是秩序，不是你那种只会咬人的野狗。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：哈！我那一个，一个人顶你四个。
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：两位，请注意措辞。我在记。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：你什么时候不在记？
+curtain_voices〈帘幕后的声音〉［p_eavesdrop_level == 0］：四个……（听不清）……名额……按份额……（笑声）……野狗……
 → n4_s1_check
 【n4_s1_check】
-分支［prologue.eavesdrop_level == 1］→ n4_cough
+分支［p_eavesdrop_level == 1］→ n4_cough
 → n4_s2
 【n4_cough】
 @镜 4
@@ -953,69 +953,69 @@ narrator：过了一会儿，声音压低了，又继续说了下去。你只能
 → n4_s2
 【n4_s2】
 @镜 5
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：话说回来，外面候见厅坐着的那位，是第几号？
-narrator［prologue.eavesdrop_level >= 2］：（停顿）
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：名单上只有四个。
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：可号码牌发出去五张。我对数字很敏感的，亲爱的，尤其是多出来的数字。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：召唤网偶尔会带进杂质。处理掉就是了。
-sylvie〈很轻的女声〉［prologue.eavesdrop_level >= 2］：……杂质，也是一条命。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：那就请生命之司亲自照顾它？
-narrator［prologue.eavesdrop_level >= 2］：（那个很轻的声音没有回答。）
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：先别急着处理嘛。多出来的东西，有时候比账上的还值钱。那它算谁的名额？
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：不算任何人的。
-narrator［prologue.eavesdrop_level >= 2］：（翻书声）
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：不算任何人的……嗯，这一行我先空着。
-curtain_voices〈帘幕后的声音〉［prologue.eavesdrop_level < 2］：……第几号……名单上只有四个……杂质……处理掉……算谁的名额？
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：话说回来，外面候见厅坐着的那位，是第几号？
+narrator［p_eavesdrop_level >= 2］：（停顿）
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：名单上只有四个。
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：可号码牌发出去五张。我对数字很敏感的，亲爱的，尤其是多出来的数字。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：召唤网偶尔会带进杂质。处理掉就是了。
+sylvie〈很轻的女声〉［p_eavesdrop_level >= 2］：……杂质，也是一条命。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：那就请生命之司亲自照顾它？
+narrator［p_eavesdrop_level >= 2］：（那个很轻的声音没有回答。）
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：先别急着处理嘛。多出来的东西，有时候比账上的还值钱。那它算谁的名额？
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：不算任何人的。
+narrator［p_eavesdrop_level >= 2］：（翻书声）
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：不算任何人的……嗯，这一行我先空着。
+curtain_voices〈帘幕后的声音〉［p_eavesdrop_level < 2］：……第几号……名单上只有四个……杂质……处理掉……算谁的名额？
 → n4_s3
 【n4_s3】
 @声 sfx_god_moira_page
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：审定之前，名单上不能留来路不明的东西。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：急什么，两年而已。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：两年。只剩两年。你们没有一个人觉得这很短吗？
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：觉得呀，所以我才要把每一笔都算清楚。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：一千年前那块碑上写了个「未」，你到现在还没睡好吧？
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：这一次不会是「未」。
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：说得真笃定。上一次，你也是这么说的。
-narrator［prologue.eavesdrop_level >= 2］：（翻书声）
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：「未」，就是「尚未」。我一直想知道，尚未什么。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：尚未有人把你们几个都揍趴下。
-sylvie〈很轻的女声〉［prologue.eavesdrop_level >= 2］：……也许是，尚未学会。
-narrator［prologue.eavesdrop_level >= 2］：（短暂的沉默）
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：生命之司今天的话，真多。
-curtain_voices〈帘幕后的声音〉［prologue.eavesdrop_level < 2］：……审定……两年……只剩两年……碑上……「未」……尚未什么……
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：审定之前，名单上不能留来路不明的东西。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：急什么，两年而已。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：两年。只剩两年。你们没有一个人觉得这很短吗？
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：觉得呀，所以我才要把每一笔都算清楚。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：一千年前那块碑上写了个「未」，你到现在还没睡好吧？
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：这一次不会是「未」。
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：说得真笃定。上一次，你也是这么说的。
+narrator［p_eavesdrop_level >= 2］：（翻书声）
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：「未」，就是「尚未」。我一直想知道，尚未什么。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：尚未有人把你们几个都揍趴下。
+sylvie〈很轻的女声〉［p_eavesdrop_level >= 2］：……也许是，尚未学会。
+narrator［p_eavesdrop_level >= 2］：（短暂的沉默）
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：生命之司今天的话，真多。
+curtain_voices〈帘幕后的声音〉［p_eavesdrop_level < 2］：……审定……两年……只剩两年……碑上……「未」……尚未什么……
 → n4_s4
 【n4_s4】
 @镜 6
 @乐 mus_pro_antechamber 出
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：说起来，上一次咱们五个这么整整齐齐坐在一张桌子边上，是什么时候来着？
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：那件事之后。
-narrator［prologue.eavesdrop_level >= 2］：（有人很快地接了一句）
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：神约。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：神约哪一条不许提「那件事」了？我又没说名字。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：我们说好了，不提。
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：说好的是不提名字。至于那件事，我的书里写得清清楚楚，只是一直没人来借阅。
-sylvie〈很轻的女声〉［prologue.eavesdrop_level >= 2］：……别说了。
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：说起来，上一次咱们五个这么整整齐齐坐在一张桌子边上，是什么时候来着？
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：那件事之后。
+narrator［p_eavesdrop_level >= 2］：（有人很快地接了一句）
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：神约。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：神约哪一条不许提「那件事」了？我又没说名字。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：我们说好了，不提。
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：说好的是不提名字。至于那件事，我的书里写得清清楚楚，只是一直没人来借阅。
+sylvie〈很轻的女声〉［p_eavesdrop_level >= 2］：……别说了。
 @停 3
 @声 sfx_god_door_woman_keys
-narrator［prologue.eavesdrop_level >= 2］：（很长的沉默。帘幕后很远的一角，有什么东西轻轻响了一下，像钥匙碰到钥匙。没有人走过去看。）
+narrator［p_eavesdrop_level >= 2］：（很长的沉默。帘幕后很远的一角，有什么东西轻轻响了一下，像钥匙碰到钥匙。没有人走过去看。）
 @镜 7
-narrator［prologue.eavesdrop_level == 3］：帘幕的缝隙里透出一线光。你看见两道影子：一本悬在半空、自己翻动的书，和一枚不停旋转的硬币。
-curtain_voices〈帘幕后的声音〉［prologue.eavesdrop_level < 2］：……那件事之后……神约……没说名字……（沉默）
+narrator［p_eavesdrop_level == 3］：帘幕的缝隙里透出一线光。你看见两道影子：一本悬在半空、自己翻动的书，和一枚不停旋转的硬币。
+curtain_voices〈帘幕后的声音〉［p_eavesdrop_level < 2］：……那件事之后……神约……没说名字……（沉默）
 → n4_s5
 【n4_s5】
 @乐 mus_pro_antechamber 入
-merca〈甜甜的女声〉［prologue.eavesdrop_level >= 2］：你们说，上面那位这一千年，到底在看什么？
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：上面不会看我们吵架。
-valda〈粗豪的女声〉［prologue.eavesdrop_level >= 2］：一千年一句话都没有，说不定早睡着了。
-moira〈慢悠悠的女声〉［prologue.eavesdrop_level >= 2］：或者在等一个好结尾。
-sylvie〈很轻的女声〉［prologue.eavesdrop_level >= 2］：……或者在等我们自己停下来。
-eluen〈冷静的女声〉［prologue.eavesdrop_level >= 2］：够了。把那个「杂质」叫进来，看一眼，结束。
+merca〈甜甜的女声〉［p_eavesdrop_level >= 2］：你们说，上面那位这一千年，到底在看什么？
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：上面不会看我们吵架。
+valda〈粗豪的女声〉［p_eavesdrop_level >= 2］：一千年一句话都没有，说不定早睡着了。
+moira〈慢悠悠的女声〉［p_eavesdrop_level >= 2］：或者在等一个好结尾。
+sylvie〈很轻的女声〉［p_eavesdrop_level >= 2］：……或者在等我们自己停下来。
+eluen〈冷静的女声〉［p_eavesdrop_level >= 2］：够了。把那个「杂质」叫进来，看一眼，结束。
 @镜 8
 @声 sfx_cin_bell_call
 @声 sfx_cin_board_slot
-narrator［prologue.eavesdrop_level >= 2］：（铃响。候见厅墙上的号码板凭空多出一个格子，「伍」亮起。）
-curtain_voices〈帘幕后的声音〉［prologue.eavesdrop_level < 2］：……上面那位……在看什么……睡着了……（铃声）
-narrator［prologue.eavesdrop_level < 2］：墙上的号码板凭空多出一个格子，「伍」亮了起来。
+narrator［p_eavesdrop_level >= 2］：（铃响。候见厅墙上的号码板凭空多出一个格子，「伍」亮起。）
+curtain_voices〈帘幕后的声音〉［p_eavesdrop_level < 2］：……上面那位……在看什么……睡着了……（铃声）
+narrator［p_eavesdrop_level < 2］：墙上的号码板凭空多出一个格子，「伍」亮了起来。
 @乐 mus_pro_antechamber 出
 结束
 ```
@@ -1024,7 +1024,7 @@ narrator［prologue.eavesdrop_level < 2］：墙上的号码板凭空多出一�
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `bench` | 留在长椅上，不去管它 | `n4_s1` | `prologue.eavesdrop_level = 0`（远） | 无 |
+| `bench` | 留在长椅上，不去管它 | `n4_s1` | `p_eavesdrop_level = 0`（远） | 无 |
 | `step` | 走到帘幕前三步的地方听 | `n4_s1` | `= 2`（中） | 无 |
 | `press` | 贴着帘幕听 | `n4_s1` | `= 3`（近） | 无 |
 | `cough` | 走到帘幕前，故意咳嗽一声 | `n4_s1` | `= 1`（弄出声响：从中档降到远档） | 无 |
@@ -1054,7 +1054,7 @@ narrator［prologue.eavesdrop_level < 2］：墙上的号码板凭空多出一�
 | 地点 | `divine_court`：`curtain`、`interview_hall`、`long_table`、`sixth_chair` |
 | 时长 | 约 1.5 分钟；每个可选提问加约 10 秒；有模型的自由提问每次约 30 秒 |
 | 现有数据 | `prologue` 第 28 到 42 节点（`n5_call`、`n5_name`、`n5_named`、`n5_reveal`、`n5_questions`、`n5_q_where` 到 `n5_q_chair` 九个问答节点、`n5_begin`），15 节点，44 行；扩写到 22 节点、68 行（另有 1 行输入兜底）：补点名、改口划掉名字、自由提问、下一期说出被禁之名 |
-| 写入旗标 | `prologue.player_name`（空值"无名氏"）、`prologue.asked_sixth_chair`；新旗标 `prologue.call_free_count`、`prologue.free.call`、`prologue.cycle_name_reaction`（下一期）；下一期莫伊拉兴趣 +1 |
+| 写入旗标 | `player.name`（空值"无名氏"）、`p_asked_sixth_chair`；新旗标 `p_call_free_count`、`p_free.call`、`p_cycle_name_reaction`（下一期）；下一期莫伊拉兴趣 +1 |
 | 揭示 | 台账 M07-C01（"审定是什么"五人答案彼此不一）；D-038（第六把椅子只有玩家看得见，五位女神的困惑是真话） |
 | 音乐与音效 | 入场静音；镜 1 `mus_stg_motif_moira` 入（羽管键琴单线）；镜 3 帘幕拉开时 `mus_stg_motif_moira` 出、`mus_pro_interview` 入；出场延续到 `cut_p_interview`。专用音效 `sfx_god_moira_quill`、`sfx_cin_strike_out`、`sfx_cin_curtain`、`sfx_cin_halo_stop`（下一期） |
 | 所需美术 | 立绘 `art_bust_moira`（smile、thinking、surprised、special）、`art_bust_eluen`（neutral、special）、`art_bust_valda`（grin、surprised）、`art_bust_merca`（smile、thinking、surprised）、`art_bust_sylvie`（neutral）；实景运镜；特写 `art_prop_cut_moira_scroll`；特效 `art_vfx_cut_moira_shadow`、`art_vfx_cut_chair_outline`；立牌 `art_chr_moira_write` |
@@ -1084,7 +1084,7 @@ narrator［prologue.eavesdrop_level < 2］：墙上的号码板凭空多出一�
 ```text
 场景 cut_p_call｜标题 叫号｜幕 prologue｜地图 divine_court｜位置 antechamber｜起点 n5_gate｜接续 cut_p_interview
 【n5_gate】
-分支［next_cycle］→ n5_cycle_gate
+分支［cycle >= 2］→ n5_cycle_gate
 → n5_call
 【n5_cycle_gate】
 效果 interest moira 1
@@ -1093,21 +1093,21 @@ narrator［prologue.eavesdrop_level < 2］：墙上的号码板凭空多出一�
 @镜 1
 @乐 mus_stg_motif_moira 入
 narrator：帘幕上映出一个身影：兜帽，一只眼前悬着镜片，长长的卷轴一直拖到地上。
-moira〈兜帽的身影〉［prologue.eavesdrop_level == 3］：偷听是个好习惯，我也有。
+moira〈兜帽的身影〉［p_eavesdrop_level == 3］：偷听是个好习惯，我也有。
 moira〈兜帽的身影〉：第五号。名字。
 → n5_name
 【n5_name】
 @镜 2
 narrator：她的笔尖悬在卷轴上，等着。
-输入「报上你的名字（可以不报）」→ n5_named｜存入 prologue.player_name｜上限 12｜空值 无名氏
+输入「报上你的名字（可以不报）」→ n5_named｜存入 player.name｜上限 12｜空值 无名氏
 【n5_named】
-效果 name prologue.player_name
+效果 name player.name
 @声 sfx_god_moira_quill
-narrator［prologue.player_name == '无名氏'］：你没有回答。
-moira〈兜帽的身影〉［prologue.player_name == '无名氏'］：那我先这么写。
-narrator［prologue.player_name == '无名氏'］：她在卷轴上写下三个字：无名氏。
-narrator［prologue.player_name != '无名氏'］：她把你的名字写在卷轴上，笔画落得很慢。
-moira〈兜帽的身影〉［prologue.player_name != '无名氏'］：记下了。
+narrator［player.name == '无名氏'］：你没有回答。
+moira〈兜帽的身影〉［player.name == '无名氏'］：那我先这么写。
+narrator［player.name == '无名氏'］：她在卷轴上写下三个字：无名氏。
+narrator［player.name != '无名氏'］：她把你的名字写在卷轴上，笔画落得很慢。
+moira〈兜帽的身影〉［player.name != '无名氏'］：记下了。
 narrator：帘幕向两边拉开了。
 → n5_reveal
 【n5_reveal】
@@ -1157,10 +1157,10 @@ narrator：你可以先问点什么，也可以等她们开始。
 选 five「我为什么是五号？」→ n5_q_five｜一次
 选 neighbors「隔壁那四个人是谁？」→ n5_q_neighbors｜一次
 选 home「我能回家吗？我死了吗？」→ n5_q_home｜一次
-选 chair「那把空椅子是谁的？」→ n5_q_chair｜一次｜效果 flag prologue.asked_sixth_chair = true
-选 rename「其实，我有名字。」→ n5_rename｜一次｜条件 prologue.player_name == '无名氏'
-选 ask「（自由提问）」→ n5_q_free｜条件 ai_enabled AND prologue.call_free_count < 3
-选 say_name「（说出那个名字）」→ n5_cycle_name｜一次｜条件 next_cycle
+选 chair「那把空椅子是谁的？」→ n5_q_chair｜一次｜效果 flag p_asked_sixth_chair = true
+选 rename「其实，我有名字。」→ n5_rename｜一次｜条件 player.name == '无名氏'
+选 ask「（自由提问）」→ n5_q_free｜条件 ai_enabled AND p_call_free_count < 3
+选 say_name「（说出那个名字）」→ n5_cycle_name｜一次｜条件 cycle >= 2
 选 begin「（不再提问，等她们开始）」→ n5_begin
 【n5_q_where】
 @立绘 eluen neutral 右
@@ -1224,22 +1224,22 @@ narrator：（莫伊拉推了推镜片）
 moira：……你看得见的东西，我的镜片看不见。这一句我记下来了。
 → n5_questions
 【n5_rename】
-输入「你的名字」→ n5_renamed｜存入 prologue.player_name｜上限 12｜空值 无名氏
+输入「你的名字」→ n5_renamed｜存入 player.name｜上限 12｜空值 无名氏
 【n5_renamed】
-效果 name prologue.player_name
+效果 name player.name
 @立绘 moira smile 右
 @声 sfx_cin_strike_out
-narrator［prologue.player_name != '无名氏'］：（莫伊拉笑了。她在"无名氏"三个字上划了一道，在旁边重新写。）
-moira［prologue.player_name != '无名氏'］：改口也是剧情。记下了。
-moira［prologue.player_name == '无名氏'］：还是不说？那就继续空着。
+narrator［player.name != '无名氏'］：（莫伊拉笑了。她在"无名氏"三个字上划了一道，在旁边重新写。）
+moira［player.name != '无名氏'］：改口也是剧情。记下了。
+moira［player.name == '无名氏'］：还是不说？那就继续空着。
 → n5_questions
 【n5_q_free】
-效果 add prologue.call_free_count 1
-输入「你想问什么？」→ n5_questions｜存入 prologue.free.call｜上限 80｜答者 merca
+效果 add p_call_free_count 1
+输入「你想问什么？」→ n5_questions｜存入 p_free.call｜上限 80｜答者 merca
 即兴 merca｜目的：在叫号与面试之间答玩家一个问题，一到两句；问题命中本场九个问答话题（这是哪里、世界叫什么、审定、那件事、上面、为什么是五号、隔壁是谁、能不能回家、空椅子）时，由该话题的回应者按问答节点原句的含义作答（可多人，顺序同原句）；其余问题由梅尔卡用生意话接住，艾琉恩可以打断"下一个问题。"｜情境：帘幕刚拉开，五位女神刚由莫伊拉点过名；她们以为五号是登记错误，说话不避人；面试还没开始｜含义键：按话题；玩家第一次提到地球或自己的世界时由艾琉恩说出锚点"那种连神都没有的荒地？"（A11）｜禁区：台账第 8.1 节全体女神行与各人行；不说出"空座"或任何与"第六"相关的称呼；不提前问面试的五个问题；被追问锚点的含义按回避原句
 merca：这个嘛，客人，等面试完了再说？
 【n5_cycle_name】
-效果 flag prologue.cycle_name_reaction = falter
+效果 flag p_cycle_name_reaction = falter
 @镜 8
 @乐 mus_pro_interview 出
 narrator：你说出了那个名字。
@@ -1272,22 +1272,22 @@ moira：那么，开始吧。按顺序来。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| 姓名输入 | 报上你的名字 | `n5_named` | `prologue.player_name`（至多 12 字，空值"无名氏"）；设定玩家名 | 无 |
+| 姓名输入 | 报上你的名字 | `n5_named` | `player.name`（至多 12 字，空值"无名氏"）；设定玩家名 | 无 |
 | `where` 到 `home` | 八个统一问题（分幕文档第 4.7 节） | 对应问答节点，回到 `n5_questions` | 无数值 | 各一次 |
-| `chair` | 那把空椅子是谁的？ | `n5_q_chair` | `prologue.asked_sixth_chair = true`（第一幕神纹大厅的独白） | 一次 |
+| `chair` | 那把空椅子是谁的？ | `n5_q_chair` | `p_asked_sixth_chair = true`（第一幕神纹大厅的独白） | 一次 |
 | `rename` | 其实，我有名字。 | `n5_rename` | 重新输入；莫伊拉划掉"无名氏" | 名字为"无名氏"；一次 |
-| `ask` | （自由提问） | `n5_q_free` | `prologue.call_free_count` +1；原文存 `prologue.free.call` | 有模型，至多 3 次 |
-| `say_name` | （说出那个名字） | `n5_cycle_name` | `prologue.cycle_name_reaction = falter` | 下一期；一次 |
+| `ask` | （自由提问） | `n5_q_free` | `p_call_free_count` +1；原文存 `p_free.call` | 有模型，至多 3 次 |
+| `say_name` | （说出那个名字） | `n5_cycle_name` | `p_cycle_name_reaction = falter` | 下一期；一次 |
 | `begin` | （不再提问，等她们开始） | `n5_begin` | 无 | 无 |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
-| `prologue.eavesdrop_level == 3` | 莫伊拉第一句"偷听是个好习惯，我也有。" |
-| `prologue.player_name == '无名氏'` | 莫伊拉写下"无名氏"；问答里多出"其实，我有名字。"，改口后笑着划掉（分幕文档第 1 节 P6） |
+| `p_eavesdrop_level == 3` | 莫伊拉第一句"偷听是个好习惯，我也有。" |
+| `player.name == '无名氏'` | 莫伊拉写下"无名氏"；问答里多出"其实，我有名字。"，改口后笑着划掉（分幕文档第 1 节 P6） |
 | 有模型 | 多出"（自由提问）"，答话按统一回应的含义；第一次提到地球即触发 A11，面试里不再重复 |
-| `next_cycle` | 莫伊拉兴趣 +1（她书里有一页被撕过的痕迹，好奇加倍，`act6_review_and_epilogue.md` 第 13.4 节）；问答里多出"（说出那个名字）"：在面试开始之前说出，艾琉恩慌乱失误，玩家看见她的手在发抖（下一期新增的早期证据）；在面试中说出见 `cut_p_interview` |
+| `cycle >= 2` | 莫伊拉兴趣 +1（她书里有一页被撕过的痕迹，好奇加倍，`act6_review_and_epilogue.md` 第 13.4 节）；问答里多出"（说出那个名字）"：在面试开始之前说出，艾琉恩慌乱失误，玩家看见她的手在发抖（下一期新增的早期证据）；在面试中说出见 `cut_p_interview` |
 
 【设计】玩家选"（说出那个名字）"时，对白里只写"你说出了那个名字"，不把名字印出来：D-023 的界面规则在新的一期仍按世界状态生效，而世界状态已经重置。
 
@@ -1303,7 +1303,7 @@ moira：那么，开始吧。按顺序来。
 | 地点 | `divine_court`：`interview_hall`、`long_table`；玩家站在长桌南侧中段 |
 | 时长 | 无模型约 5.5 分钟（每轮约 1 分钟，含一轮写定追问）；有模型 15 到 30 分钟（每轮软上限 6 轮、硬上限 10 轮玩家发言） |
 | 现有数据 | `prologue` 第 43 到 97 节点（`n6_eluen` 到 `n10_end`），55 节点，70 行，另有 6 行输入兜底；扩写到 91 节点、121 行（另有 6 行输入兜底）：艾琉恩、瓦尔妲各补一轮写定追问（各 6 个追问节点与 3 个共用回应节点），梅尔卡补估价入账与还价，希尔薇补"至多一句"的追问与沉默，莫伊拉补"这一章的结尾"，两处地球锚点补追问回避，五轮各补开场点名与收尾节点，有模型的五轮输入补即兴指令与轮次，补下一期分支 |
-| 写入旗标 | `goddess.<司>.impression`、`goddess.<司>.interest`、`goddess.<司>.memory_tags`（经效果 `impression`、`interest`、`memory`）；`prologue.answers`（E、V、M、S、O 五类）；门提示（`prologue.hint.*`，第一幕开局由 `compute prologue_door_hints` 汇总为 `prologue.door_hints`）；`prologue.merca_valuation`；`courtyard.first_object`（S1、S3、S4，有模型时 S2 也写）；`prologue.past_life_door`；`prologue.earth_anchor_trigger`（player、moira、relic）；`prologue.free.<神>`、`prologue.free.past_life`；`prologue.round_end.<神>`；`p_interview_done`；下一期 `prologue.cycle_name_reaction = drop` |
+| 写入旗标 | `goddess.<司>.impression`、`goddess.<司>.interest`、`goddess.<司>.memory_tags`（经效果 `impression`、`interest`、`memory`）；`p_answers`（E、V、M、S、O 五类）；门提示（`prologue.hint.*`，第一幕开局由 `compute prologue_door_hints` 汇总为 `p_door_hints`）；`p_merca_valuation`；`p_courtyard_object`（S1、S3、S4，有模型时 S2 也写）；`p_past_life_door`；`p_earth_anchor_trigger`（player、moira、relic）；`prologue.free.<神>`、`p_free.past_life`；`prologue.round_end.<神>`；`p_interview_done`；下一期 `p_cycle_name_reaction = drop` |
 | 揭示 | 台账 M07-C01（五问，女神们对审定的说法彼此不一）、M11-C01（锚点 A11"那种连神都没有的荒地？"，三种触发：玩家主动、莫伊拉追问、梅尔卡读遗物）；`p_interview_done` 解锁 M07-C01、M11-C01、M12-C01、M12-C02 的谈论 |
 | 音乐与音效 | 入场延续 `mus_pro_interview`；各轮交叉叠入该女神的动机：艾琉恩 `mus_stg_motif_eluen`、瓦尔妲 `mus_stg_motif_valda`、梅尔卡 `mus_stg_motif_merca`；希尔薇轮 `mus_pro_interview` 出，只留 `mus_stg_motif_sylvie`；莫伊拉轮 `mus_pro_interview` 入并叠 `mus_stg_motif_moira`；出场延续，`cut_p_judgement` 镜 1 淡出。专用音效 `sfx_cin_sword_table`、`sfx_god_merca_ledger`、`sfx_cin_ink_drop`、`sfx_cin_table_knock`、`sfx_god_moira_quill` |
 | 所需美术 | 立绘 `art_bust_eluen`（neutral、angry、special）、`art_bust_valda`（neutral、grin、surprised、special）、`art_bust_merca`（smile、thinking、surprised、special）、`art_bust_sylvie`（neutral、sad、tender）、`art_bust_moira`（smile、thinking）；特写 `art_prop_cut_moira_scroll`、地球遗物四张（复用 `cut_p_earth`）；特效 `art_vfx_cut_ink_drop`、`art_vfx_cut_coin_spin`；立牌 `art_chr_moira_write` |
@@ -1329,12 +1329,12 @@ moira：那么，开始吧。按顺序来。
 | --- | --- |
 | 轮次 | 玩家每发一句算一轮。软上限 6 轮：第 6 轮之后，执行者在提问女神的指令里加"本轮收尾"，她的回复必须收尾；回复不含收尾含义时，播放她的收尾原句。硬上限 10 轮：不再请求模型，莫伊拉敲桌"下一位。"（莫伊拉自己那一轮："下一位。……哦，没有下一位了。"）。提问女神认为已得到答案时，可以在任何一轮主动收尾。结束方式写入 `prologue.round_end.<神>`（closed、soft、hard） |
 | 插话 | 非提问的女神每轮合计至多插话两次，由执行者按人格触发：玩家吹嘘时瓦尔妲、玩家提到吃的或地球的新奇东西时梅尔卡、玩家讲故事时莫伊拉、玩家提到"自由"或冒犯秩序时艾琉恩；希尔薇轮任何人不插话 |
-| 归类 | 收尾后由 `prologue.extract` 把本轮全部回答归入分幕文档第 4.8 节的一个类别；内核只结算该类别选项的效果（好感、兴趣、门提示、记忆标签、`prologue.answers`），不播放该类别的写定反应与写定追问，直接进入本轮收尾（女神的反应已在对话里；梅尔卡轮先经入账节点 `n8_ledger`，莫伊拉轮经 `n10_past_gate` 接到前世之后的流程）。梅尔卡轮另出估价（high、mid、low）；希尔薇轮归入 S1 或 S2 时另从八件物品（一只旧茶杯、一条旧围巾、一封没寄出的信、一张空白信纸、一盏台灯、一只空食盆、一把等候椅、那把旧椅子）里选最接近的写入 `courtyard.first_object`；莫伊拉轮另出前世（八类之一或"无法归类"） |
+| 归类 | 收尾后由 `prologue.extract` 把本轮全部回答归入分幕文档第 4.8 节的一个类别；内核只结算该类别选项的效果（好感、兴趣、门提示、记忆标签、`p_answers`），不播放该类别的写定反应与写定追问，直接进入本轮收尾（女神的反应已在对话里；梅尔卡轮先经入账节点 `n8_ledger`，莫伊拉轮经 `n10_past_gate` 接到前世之后的流程）。梅尔卡轮另出估价（high、mid、low）；希尔薇轮归入 S1 或 S2 时另从八件物品（一只旧茶杯、一条旧围巾、一封没寄出的信、一张空白信纸、一盏台灯、一只空食盆、一把等候椅、那把旧椅子）里选最接近的写入 `p_courtyard_object`；莫伊拉轮另出前世（八类之一或"无法归类"） |
 | 写定台词 | 下列台词不交给即兴，触发时由执行者插入原句：A11"那种连神都没有的荒地？"（之后可接"……难怪。"）；瓦尔妲被反问时的"输过。一次。不是用拳头输的。"（随后演出她看向长桌尽头空着的方向又移开，立绘切 special）；梅尔卡还回遗物时的"好东西要放在会升值的地方。"；希尔薇对"什么都不想"的"……会想的。以后。"；莫伊拉无法归类前世时的"那我替你写一个。" |
-| 地球锚点 | 玩家在叫号或面试中第一次提到地球或自己的世界，由艾琉恩说出 A11，写入 `prologue.earth_anchor_trigger = player`，本序章不再重复；若到莫伊拉轮结束仍未触发，莫伊拉问"那一页上，是什么地方？"（`n10_where`）。只开玩笑、没提到地球的 E6 回答不算触发，交给莫伊拉的追问 |
-| 统一回应 | 面试中被问到分幕文档第 4.7 节的九个问题，由对应的女神按 `cut_p_call` 问答节点原句的含义作答；问到空椅子时写入 `prologue.asked_sixth_chair` |
+| 地球锚点 | 玩家在叫号或面试中第一次提到地球或自己的世界，由艾琉恩说出 A11，写入 `p_earth_anchor_trigger = player`，本序章不再重复；若到莫伊拉轮结束仍未触发，莫伊拉问"那一页上，是什么地方？"（`n10_where`）。只开玩笑、没提到地球的 E6 回答不算触发，交给莫伊拉的追问 |
+| 统一回应 | 面试中被问到分幕文档第 4.7 节的九个问题，由对应的女神按 `cut_p_call` 问答节点原句的含义作答；问到空椅子时写入 `p_asked_sixth_chair` |
 | 回避 | 追问已说出的锚点的含义：艾琉恩"下一个。"；瓦尔妲"自己去挖。"；梅尔卡"那是另一笔生意。"；莫伊拉"剧透是不道德的。"；希尔薇不答（只回"……"） |
-| 改口报名 | 名字为"无名氏"而玩家在对话中报出名字时，莫伊拉插一句"改口也是剧情。记下了。"，内核写入 `prologue.player_name` |
+| 改口报名 | 名字为"无名氏"而玩家在对话中报出名字时，莫伊拉插一句"改口也是剧情。记下了。"，内核写入 `player.name` |
 | 下一期 | 玩家在面试中说出被禁之名：内核立即跳到 `n6_cycle_drop`（艾琉恩当场丢弃玩家），不再请求模型 |
 | 模型失败 | 本轮未开始：隐藏"（自由回答）"，只给选项；对话中途失败：播放答者的写定回应，按已有回答归类，失败时取兜底类别 |
 
@@ -1371,14 +1371,14 @@ moira：艾琉恩。
 → n6_eluen
 【n6_eluen】
 eluen：第五号。我只问一个问题，你也只需要答一次：你凭什么值得被选中？
-选 e1「我不确定我值得。但只要给我机会，我会学。」→ n6_eluen_e1｜效果 impression eluen 1；hint pact；memory eluen 知礼的样本；append prologue.answers E1
-选 e2「因为我比他们四个都强。」→ n6_eluen_e2｜效果 impression eluen -1；interest valda 1；hint blade；memory eluen 自负；append prologue.answers E2
-选 e3「我没求着被你们选。」→ n6_eluen_e3｜效果 impression eluen -2；impression valda 1；interest sylvie 1；hint shadow；memory eluen 不驯；append prologue.answers E3
-选 e4「……我不知道。」→ n6_eluen_e4｜效果 impression sylvie 1；hint breath；memory eluen 空白；append prologue.answers E4
-选 e5「能见到您，已经是我的荣幸。」→ n6_eluen_e5｜效果 impression eluen 1；interest moira -1；interest merca 1；hint pact；memory eluen 顺从；append prologue.answers E5
-选 e6「在我们地球，面试官一般会先自我介绍。」→ n6_eluen_e6｜效果 impression eluen -1；interest moira 1；hint spirit；memory eluen 轻浮；append prologue.answers E6
+选 e1「我不确定我值得。但只要给我机会，我会学。」→ n6_eluen_e1｜效果 impression eluen 1；hint pact；memory eluen 知礼的样本；append p_answers E1
+选 e2「因为我比他们四个都强。」→ n6_eluen_e2｜效果 impression eluen -1；interest valda 1；hint blade；memory eluen 自负；append p_answers E2
+选 e3「我没求着被你们选。」→ n6_eluen_e3｜效果 impression eluen -2；impression valda 1；interest sylvie 1；hint shadow；memory eluen 不驯；append p_answers E3
+选 e4「……我不知道。」→ n6_eluen_e4｜效果 impression sylvie 1；hint breath；memory eluen 空白；append p_answers E4
+选 e5「能见到您，已经是我的荣幸。」→ n6_eluen_e5｜效果 impression eluen 1；interest moira -1；interest merca 1；hint pact；memory eluen 顺从；append p_answers E5
+选 e6「在我们地球，面试官一般会先自我介绍。」→ n6_eluen_e6｜效果 impression eluen -1；interest moira 1；hint spirit；memory eluen 轻浮；append p_answers E6
 选 free「（自由回答）」→ n6_eluen_free｜条件 ai_enabled
-选 say_name「（说出那个名字）」→ n6_cycle_drop｜一次｜条件 next_cycle
+选 say_name「（说出那个名字）」→ n6_cycle_drop｜一次｜条件 cycle >= 2
 【n6_eluen_e1】
 eluen：谦逊是合格的第一步。只是第一步。
 → n6_f_e1
@@ -1400,7 +1400,7 @@ narrator：（莫伊拉打了个哈欠。）
 → n6_f_e5
 【n6_eluen_e6】
 @镜 7
-效果 flag prologue.earth_anchor_trigger = player
+效果 flag p_earth_anchor_trigger = player
 @立绘 eluen neutral 右
 eluen：地球？那种连神都没有的荒地？……难怪。
 选 chase「"连神都没有"……是什么意思？」→ n6_chase｜一次
@@ -1459,15 +1459,15 @@ valda：（压低声音）我倒挺喜欢。
 eluen：沉默也是回答。记下了。
 → n6_eluen_close
 【n6_eluen_free】
-输入「回答艾琉恩：你凭什么值得被选中？」→ n6_eluen_close｜存入 prologue.free.eluen｜上限 200｜答者 eluen｜轮次 软 6 硬 10｜归类 n6_eluen：e1,e2,e3,e4,e5,e6｜兜底 e4
+输入「回答艾琉恩：你凭什么值得被选中？」→ n6_eluen_close｜存入 p_free.eluen｜上限 200｜答者 eluen｜轮次 软 6 硬 10｜归类 n6_eluen：e1,e2,e3,e4,e5,e6｜兜底 e4
 即兴 eluen｜目的：确认第五号合不合规格：会不会服从秩序、有没有可供光使用之处、懂不懂感恩；至少追问一轮（可用"合格的人不需要解释。你在解释。""你说的这些，光看得见吗？""孩子，你在向谁证明？"）；每次回复一到三句，礼貌、精确，评判不加掩饰｜情境：刚在隔壁面试完四名勇者，以为五号是登记错误，隐约不安，但当着另外四司绝不失态；称玩家"第五号""样本""孩子"；看不见长桌尽头的椅子｜含义键：规格、合格、光；玩家第一次提到地球或自己的世界时由执行者插入锚点原句"那种连神都没有的荒地？"；软上限时收尾，含义"够了，剩下的交给光"｜禁区：台账第 8.1 节艾琉恩行与全体女神行；五位共同禁区；不提四名勇者的名字；不解释审定；不说"回收"；被追问锚点含义只说"下一个。"
 eluen：我听见了。光会替我判断。
 【n6_eluen_close】
-moira［prologue.round_end.eluen == hard］：（用笔杆敲了敲桌面）下一位。
-eluen［NOT prologue.free.eluen］：够了。剩下的，光会替我看。
+moira［p_round_end.eluen == hard］：（用笔杆敲了敲桌面）下一位。
+eluen［NOT p_free.eluen］：够了。剩下的，光会替我看。
 → n7_intro
 【n6_cycle_drop】
-效果 flag prologue.cycle_name_reaction = drop；flag p_interview_done = true
+效果 flag p_cycle_name_reaction = drop；flag p_interview_done = true
 @镜 9
 @乐 mus_pro_interview 出
 @震 1
@@ -1489,12 +1489,12 @@ narrator：（瓦尔妲把断剑往桌上一搁，震得长桌嗡的一声。）
 → n7_valda
 【n7_valda】
 valda：轮到我了。你打过架吗？输过吗？
-选 v1「输过。被打趴下过，后来又站起来了。」→ n7_valda_v1｜效果 impression valda 2；interest valda 1；hint blade；memory valda 爬起来的；append prologue.answers V1
-选 v2「我从来没输过。」→ n7_valda_v2｜效果 impression valda -1；hint shadow；memory valda 撒谎的；append prologue.answers V2
-选 v3「我不喜欢打架。真要打，我会想别的办法赢。」→ n7_valda_v3｜效果 interest valda 1；impression sylvie 1；hint breath；memory valda 不出拳的；append prologue.answers V3
-选 v4「……不想说。」→ n7_valda_v4｜效果 impression valda -1；hint shadow；memory valda 躲开的；append prologue.answers V4
-选 v5「你呢？你输过吗？」→ n7_valda_v5｜效果 impression valda 1；interest valda 2；impression eluen -1；hint blade；memory valda 敢问的；append prologue.answers V5
-选 v6「（沉默）」→ n7_valda_v6｜效果 memory valda 哑巴；append prologue.answers V6
+选 v1「输过。被打趴下过，后来又站起来了。」→ n7_valda_v1｜效果 impression valda 2；interest valda 1；hint blade；memory valda 爬起来的；append p_answers V1
+选 v2「我从来没输过。」→ n7_valda_v2｜效果 impression valda -1；hint shadow；memory valda 撒谎的；append p_answers V2
+选 v3「我不喜欢打架。真要打，我会想别的办法赢。」→ n7_valda_v3｜效果 interest valda 1；impression sylvie 1；hint breath；memory valda 不出拳的；append p_answers V3
+选 v4「……不想说。」→ n7_valda_v4｜效果 impression valda -1；hint shadow；memory valda 躲开的；append p_answers V4
+选 v5「你呢？你输过吗？」→ n7_valda_v5｜效果 impression valda 1；interest valda 2；impression eluen -1；hint blade；memory valda 敢问的；append p_answers V5
+选 v6「（沉默）」→ n7_valda_v6｜效果 memory valda 哑巴；append p_answers V6
 选 free「（自由回答）」→ n7_valda_free｜条件 ai_enabled
 【n7_valda_v1】
 valda：哈！躺了多久？算了，站起来就行。
@@ -1571,12 +1571,12 @@ valda：嘴硬。嘴硬的肉，嚼起来有劲。
 valda：不说也行。总有一天，打一架就知道了。
 → n7_valda_close
 【n7_valda_free】
-输入「回答瓦尔妲：你打过架吗？输过吗？」→ n7_valda_close｜存入 prologue.free.valda｜上限 200｜答者 valda｜轮次 软 6 硬 10｜归类 n7_valda：v1,v2,v3,v4,v5,v6｜兜底 v6
+输入「回答瓦尔妲：你打过架吗？输过吗？」→ n7_valda_close｜存入 p_free.valda｜上限 200｜答者 valda｜轮次 软 6 硬 10｜归类 n7_valda：v1,v2,v3,v4,v5,v6｜兜底 v6
 即兴 valda｜目的：看玩家怎么对待"输"：输了有没有爬起来，敢不敢承认，不在乎赢没赢过；至少追问一轮（可用"然后呢？""躺了多久？""那个赢你的，你后来怎么着他了？"）；每次回复一到两句，粗豪、爱笑、拿打架打比方｜情境：刚看完艾琉恩的那一轮，觉得好笑；称玩家"新肉"；当面嘲讽艾琉恩"装模作样"｜含义键：输、爬起来；玩家反问她输没输过时，由执行者插入原句"输过。一次。不是用拳头输的。"并演出她看向长桌尽头空着的方向；软上限时收尾，含义"我看清你是什么人了"｜禁区：台账第 8.1 节瓦尔妲行与全体女神行；五位共同禁区；不说输给了谁；不提萨莎的名字（可说"我那一个"）；不提魔王；被追问"那件事"只说"自己去挖。"
 valda：行，我听着呢。
 【n7_valda_close】
-moira［prologue.round_end.valda == hard］：（用笔杆敲了敲桌面）下一位。
-valda［NOT prologue.free.valda］：行了。你是什么肉，我闻出来了。
+moira［p_round_end.valda == hard］：（用笔杆敲了敲桌面）下一位。
+valda［NOT p_free.valda］：行了。你是什么肉，我闻出来了。
 → n8_intro
 【n8_intro】
 @镜 4
@@ -1591,12 +1591,12 @@ merca：终于轮到我啦。叫我梅尔卡就好。
 → n8_merca
 【n8_merca】
 merca：亲爱的客人，我们来谈谈正事：你能带来什么？
-选 m1「我会做饭，也懂一些我们那边的手艺和做法。」→ n8_merca_m1｜效果 impression merca 2；interest moira 1；hint pact；memory merca 有货的；append prologue.answers M1；flag prologue.merca_valuation = high
-选 m2「你先说你出什么价。」→ n8_merca_m2｜效果 impression merca 1；interest merca 2；hint pact；hint shadow；memory merca 会还价的；append prologue.answers M2；flag prologue.merca_valuation = high
-选 m3「（拿出从地球带来的东西）」→ n8_merca_m3｜效果 impression merca 1；hint pact；memory merca 带着念想的；append prologue.answers M3；flag prologue.merca_valuation = mid
-选 m4「我什么都没有。」→ n8_merca_m4｜效果 interest sylvie 1；memory merca 空手的；append prologue.answers M4；flag prologue.merca_valuation = low
-选 m5「我能带来的，是我这个人的信用。」→ n8_merca_m5｜效果 hint breath；memory merca 讲情怀的；append prologue.answers M5；flag prologue.merca_valuation = mid
-选 m6「那你们能给我什么？」→ n8_merca_m6｜效果 impression merca 1；impression eluen -1；hint pact；memory merca 反向报价的；append prologue.answers M6；flag prologue.merca_valuation = high
+选 m1「我会做饭，也懂一些我们那边的手艺和做法。」→ n8_merca_m1｜效果 impression merca 2；interest moira 1；hint pact；memory merca 有货的；append p_answers M1；flag p_merca_valuation = high
+选 m2「你先说你出什么价。」→ n8_merca_m2｜效果 impression merca 1；interest merca 2；hint pact；hint shadow；memory merca 会还价的；append p_answers M2；flag p_merca_valuation = high
+选 m3「（拿出从地球带来的东西）」→ n8_merca_m3｜效果 impression merca 1；hint pact；memory merca 带着念想的；append p_answers M3；flag p_merca_valuation = mid
+选 m4「我什么都没有。」→ n8_merca_m4｜效果 interest sylvie 1；memory merca 空手的；append p_answers M4；flag p_merca_valuation = low
+选 m5「我能带来的，是我这个人的信用。」→ n8_merca_m5｜效果 hint breath；memory merca 讲情怀的；append p_answers M5；flag p_merca_valuation = mid
+选 m6「那你们能给我什么？」→ n8_merca_m6｜效果 impression merca 1；impression eluen -1；hint pact；memory merca 反向报价的；append p_answers M6；flag p_merca_valuation = high
 选 free「（自由回答）」→ n8_merca_free｜条件 ai_enabled
 【n8_merca_m1】
 merca：哎呀，好货。新东西最值钱了。
@@ -1616,10 +1616,10 @@ merca：那我先出价：一个机会。你拿什么换？
 merca：成交。……先记在账上，利息以后再谈。
 → n8_ledger
 【n8_merca_m3】
-narrator［prologue.earth_relic == relic_badge］：你把胸前的工牌摘下来，递了过去。
-narrator［prologue.earth_relic == relic_receipt］：你从口袋里掏出那张小票和那颗糖，递了过去。
-narrator［prologue.earth_relic == relic_mint］：你把探视证和那半盒薄荷糖递了过去。
-narrator［prologue.earth_relic == relic_key］：你摊开手心，把那把老钥匙递了过去。
+narrator［p_earth_relic == relic_badge］：你把胸前的工牌摘下来，递了过去。
+narrator［p_earth_relic == relic_receipt］：你从口袋里掏出那张小票和那颗糖，递了过去。
+narrator［p_earth_relic == relic_mint］：你把探视证和那半盒薄荷糖递了过去。
+narrator［p_earth_relic == relic_key］：你摊开手心，把那把老钥匙递了过去。
 @立绘 merca thinking 右
 narrator：（梅尔卡接过去，翻来覆去地看）
 @立绘 merca smile 右
@@ -1637,19 +1637,19 @@ merca：反向报价？客人你真坏，我喜欢。
 narrator：（艾琉恩冷哼一声。）
 → n8_ledger
 【n8_merca_free】
-输入「回答梅尔卡：你能带来什么？」→ n8_ledger｜存入 prologue.free.merca｜上限 200｜答者 merca｜轮次 软 6 硬 10｜归类 n8_merca：m1,m2,m3,m4,m5,m6｜兜底 m4
+输入「回答梅尔卡：你能带来什么？」→ n8_ledger｜存入 p_free.merca｜上限 200｜答者 merca｜轮次 软 6 硬 10｜归类 n8_merca：m1,m2,m3,m4,m5,m6｜兜底 m4
 即兴 merca｜目的：给玩家估价（高、中、低）：可投资性、地球的新奇东西、能不能做长期生意、会不会还价；允许讨价还价；玩家拿出地球遗物时仔细看完再还回去；每次回复一到三句，甜、快，句句是交易｜情境：账本摊开，手里在吃东西，身边转着硬币；称玩家"客人"或"亲爱的客人"；对地球的食物与小玩意两眼放光｜含义键：估价、生意；还回遗物时由执行者插入原句"好东西要放在会升值的地方。"；软上限时收尾，含义"这一页账先记到这儿"｜禁区：台账第 8.1 节梅尔卡行与全体女神行；五位共同禁区；不提钥匙；两头下注只表现不说出；不提哈特；不许诺硬币；被追问锚点含义只说"那是另一笔生意。"
 merca：嗯哼，让我算算。
 【n8_ledger】
 @声 sfx_god_merca_ledger
 narrator：（梅尔卡在账本上写了一行。字很小，写得很快。）
-merca［prologue.merca_valuation == high］：这个数，我很少写。
-merca［prologue.merca_valuation == mid］：中规中矩。中规中矩的东西，放久了会涨。
-merca［prologue.merca_valuation == low］：零后面，也是能添零的。
+merca［p_merca_valuation == high］：这个数，我很少写。
+merca［p_merca_valuation == mid］：中规中矩。中规中矩的东西，放久了会涨。
+merca［p_merca_valuation == low］：零后面，也是能添零的。
 → n8_merca_close
 【n8_merca_close】
-moira［prologue.round_end.merca == hard］：（用笔杆敲了敲桌面）下一位。
-merca［NOT prologue.free.merca］：好啦，这一页账先记到这儿。
+moira［p_round_end.merca == hard］：（用笔杆敲了敲桌面）下一位。
+merca［NOT p_free.merca］：好啦，这一页账先记到这儿。
 → n9_intro
 【n9_intro】
 @镜 5
@@ -1664,21 +1664,21 @@ sylvie：……生命……与循环。
 → n9_sylvie
 【n9_sylvie】
 sylvie：……你想念什么？
-选 s1「一个人。」→ n9_sylvie_s1｜效果 impression sylvie 1；hint breath；memory sylvie 有牵挂的；append prologue.answers S1
-选 s2「一个地方，或者一样东西。」→ n9_sylvie_s2｜效果 impression sylvie 1；hint beast；memory sylvie 恋旧的；append prologue.answers S2
-选 s3「什么都不想。」→ n9_sylvie_s3｜效果 interest sylvie 1；hint shadow；memory sylvie 无根的；append prologue.answers S3；flag courtyard.first_object = 空院，只有一棵没开花的树
-选 s4「想念没有神管的日子。」→ n9_sylvie_s4｜效果 interest sylvie 1；impression eluen -1；hint spirit；memory sylvie 想要自由的；append prologue.answers S4；flag courtyard.first_object = 一扇开着的窗
-选 s5「你呢？你想念什么？」→ n9_sylvie_s5｜效果 interest moira 1；memory sylvie 藏起来的；append prologue.answers S5
-选 s6「（很久不说话）」→ n9_sylvie_s6｜效果 impression sylvie 2；hint breath；memory sylvie 会痛的；append prologue.answers S6
+选 s1「一个人。」→ n9_sylvie_s1｜效果 impression sylvie 1；hint breath；memory sylvie 有牵挂的；append p_answers S1
+选 s2「一个地方，或者一样东西。」→ n9_sylvie_s2｜效果 impression sylvie 1；hint beast；memory sylvie 恋旧的；append p_answers S2
+选 s3「什么都不想。」→ n9_sylvie_s3｜效果 interest sylvie 1；hint shadow；memory sylvie 无根的；append p_answers S3；flag p_courtyard_object = 空院，只有一棵没开花的树
+选 s4「想念没有神管的日子。」→ n9_sylvie_s4｜效果 interest sylvie 1；impression eluen -1；hint spirit；memory sylvie 想要自由的；append p_answers S4；flag p_courtyard_object = open_window
+选 s5「你呢？你想念什么？」→ n9_sylvie_s5｜效果 interest moira 1；memory sylvie 藏起来的；append p_answers S5
+选 s6「（很久不说话）」→ n9_sylvie_s6｜效果 impression sylvie 2；hint breath；memory sylvie 会痛的；append p_answers S6
 选 free「（自由回答）」→ n9_sylvie_free｜条件 ai_enabled
 【n9_sylvie_s1】
 narrator：你心里，已经浮出了那个人的样子。
 → n9_s1_who
 【n9_s1_who】
-选 family「家人」→ n9_f_s1｜效果 flag courtyard.first_object = 一只旧茶杯
-选 friend「朋友」→ n9_f_s1｜效果 flag courtyard.first_object = 一条旧围巾
-选 beloved「喜欢的人」→ n9_f_s1｜效果 flag courtyard.first_object = 一封没寄出的信
-选 unsaid「不说」→ n9_f_s1｜效果 flag courtyard.first_object = 一张空白信纸
+选 family「家人」→ n9_f_s1｜效果 flag p_courtyard_object = old_cup
+选 friend「朋友」→ n9_f_s1｜效果 flag p_courtyard_object = old_scarf
+选 beloved「喜欢的人」→ n9_f_s1｜效果 flag p_courtyard_object = unsent_letter
+选 unsaid「不说」→ n9_f_s1｜效果 flag p_courtyard_object = blank_paper
 【n9_f_s1】
 sylvie：……还会回来吗，那个？
 选 back「会的。」→ n9_hush
@@ -1712,11 +1712,11 @@ narrator：（希尔薇轻轻摇头，没有回答。）
 sylvie：……嗯。
 → n9_close
 【n9_sylvie_free】
-输入「回答希尔薇：你想念什么？」→ n9_close｜存入 prologue.free.sylvie｜上限 200｜答者 sylvie｜轮次 软 6 硬 10｜归类 n9_sylvie：s1,s2,s3,s4,s5,s6｜兜底 s3
+输入「回答希尔薇：你想念什么？」→ n9_close｜存入 p_free.sylvie｜上限 200｜答者 sylvie｜轮次 软 6 硬 10｜归类 n9_sylvie：s1,s2,s3,s4,s5,s6｜兜底 s3
 即兴 sylvie｜目的：确认玩家心里有没有放不下的生命或地方；只问一次，至多追问一句（"……还会回来吗，那个？"或"……冬天的时候，会更想吗？"）；听完答案沉默两三秒，不评价｜情境：闭着眼，脚边伏着半鹿半狼的兽；这一轮其他女神都安静；她不称呼玩家｜含义键：想念；每次回复至多一句、十二字以内，或只回"……"；回答"什么都不想"时由执行者插入原句"……会想的。以后。"；软上限时收尾"……嗯。"｜禁区：台账第 8.1 节希尔薇行与全体女神行；五位共同禁区；不重复"尚未学会"；不评价玩家；被追问任何锚点只回"……"
 narrator：（希尔薇静静地听着，没有睁眼。）
 【n9_close】
-moira［prologue.round_end.sylvie == hard］：（用笔杆敲了敲桌面）下一位。
+moira［p_round_end.sylvie == hard］：（用笔杆敲了敲桌面）下一位。
 narrator：（她脚边的兽，把头搁回了前爪上。）
 → n10_intro
 【n10_intro】
@@ -1731,12 +1731,12 @@ moira：好，翻到我这一页。
 → n10_moira
 【n10_moira】
 moira：最后一个问题，也是我最喜欢的：你的故事，是从哪一页开始的？
-选 o1「从我出生那天。」→ n10_moira_o1｜效果 hint spirit；memory moira 经典开头；append prologue.answers O1
-选 o2「从我推开那扇门。」→ n10_moira_o2｜效果 impression moira 1；interest moira 2；hint pact；memory moira 推门的人；append prologue.answers O2
-选 o3「从我失去某样东西的那天。」→ n10_moira_o3｜效果 impression moira 1；interest moira 1；hint breath；memory moira 从失去开始；append prologue.answers O3
-选 o4「普通地上班上学，没什么好讲的。」→ n10_moira_o4｜效果 memory moira 平凡的人；append prologue.answers O4
-选 o5「还没开始。就从这一页开始。」→ n10_moira_o5｜效果 impression moira 2；interest moira 1；hint spirit；memory moira 空白页；append prologue.answers O5
-选 o6「我不想被你写进去。」→ n10_moira_o6｜效果 interest moira 1；hint shadow；memory moira 不肯被写的；append prologue.answers O6
+选 o1「从我出生那天。」→ n10_moira_o1｜效果 hint spirit；memory moira 经典开头；append p_answers O1
+选 o2「从我推开那扇门。」→ n10_moira_o2｜效果 impression moira 1；interest moira 2；hint pact；memory moira 推门的人；append p_answers O2
+选 o3「从我失去某样东西的那天。」→ n10_moira_o3｜效果 impression moira 1；interest moira 1；hint breath；memory moira 从失去开始；append p_answers O3
+选 o4「普通地上班上学，没什么好讲的。」→ n10_moira_o4｜效果 memory moira 平凡的人；append p_answers O4
+选 o5「还没开始。就从这一页开始。」→ n10_moira_o5｜效果 impression moira 2；interest moira 1；hint spirit；memory moira 空白页；append p_answers O5
+选 o6「我不想被你写进去。」→ n10_moira_o6｜效果 interest moira 1；hint shadow；memory moira 不肯被写的；append p_answers O6
 选 free「（自由回答）」→ n10_moira_free｜条件 ai_enabled
 【n10_moira_o1】
 moira：经典开头。经典开头的故事，结尾通常不经典。
@@ -1757,30 +1757,30 @@ moira：我喜欢空白页。非常喜欢。
 moira：拒绝被写，也是一种开头。
 → n10_past
 【n10_moira_free】
-输入「回答莫伊拉：你的故事，是从哪一页开始的？」→ n10_past_gate｜存入 prologue.free.moira｜上限 200｜答者 moira｜轮次 软 6 硬 10｜归类 n10_moira：o1,o2,o3,o4,o5,o6｜兜底 o4
+输入「回答莫伊拉：你的故事，是从哪一页开始的？」→ n10_past_gate｜存入 p_free.moira｜上限 200｜答者 moira｜轮次 软 6 硬 10｜归类 n10_moira：o1,o2,o3,o4,o5,o6｜兜底 o4
 即兴 moira｜目的：判断这个故事好不好看；必问"那一页上，你是做什么的？"，把前世落成八类之一（算盘、夜灯、白衣、扳手、笔记、灶火、路标、讲台）；可问"这一章的结尾，你希望是什么？"；每次回复一到三句，优雅、调侃，像旁白｜情境：她是书记官，管轮次；把玩家的回答写进自己的卷轴（不是"铭录"）；称玩家"你"，像对读者说话｜含义键：页、章、前世；若到本轮收尾时地球锚点仍未落地，问"那一页上，是什么地方？"；软上限时收尾，含义"这一页写满了，翻页"｜禁区：台账第 8.1 节莫伊拉行与全体女神行；五位共同禁区；不说"这是一个游戏"；不说"铭录"一词；不承认安排巧合；被追问锚点含义只说"剧透是不道德的。"
 moira：我记下了。让我看看，这该归进哪一章。
 【n10_past_gate】
-分支［prologue.past_life_door］→ n10_past_noted
+分支［p_past_life_door］→ n10_past_noted
 → n10_past_ghost
 【n10_past】
 moira：那一页上，你是做什么的？
-选 abacus「做案头工作：职员、会计、销售、程序员之类（算盘）」→ n10_past_noted｜效果 flag prologue.past_life_door = abacus
-选 nightlight「上夜班：店员、保安，或者总在熬夜的学生（夜灯）」→ n10_past_noted｜效果 flag prologue.past_life_door = nightlight
-选 whitecoat「照顾病人：医护、护工，或者照顾过病人的家属（白衣）」→ n10_past_noted｜效果 flag prologue.past_life_door = whitecoat
-选 wrench「动手修东西：工匠、维修工，做工程的（扳手）」→ n10_past_noted｜效果 flag prologue.past_life_door = wrench
-选 notes「读书写字：学生、研究者、写作者（笔记）」→ n10_past_noted｜效果 flag prologue.past_life_door = notes
-选 hearth「做饭：厨师、做餐饮的，或者只是爱下厨（灶火）」→ n10_past_noted｜效果 flag prologue.past_life_door = hearth
-选 signpost「一直在路上：司机、快递员、导游（路标）」→ n10_past_noted｜效果 flag prologue.past_life_door = signpost
-选 podium「站在人前说话：教师、讲师、主持（讲台）」→ n10_past_noted｜效果 flag prologue.past_life_door = podium
+选 abacus「做案头工作：职员、会计、销售、程序员之类（算盘）」→ n10_past_noted｜效果 flag p_past_life_door = abacus
+选 nightlight「上夜班：店员、保安，或者总在熬夜的学生（夜灯）」→ n10_past_noted｜效果 flag p_past_life_door = nightlight
+选 whitecoat「照顾病人：医护、护工，或者照顾过病人的家属（白衣）」→ n10_past_noted｜效果 flag p_past_life_door = whitecoat
+选 wrench「动手修东西：工匠、维修工，做工程的（扳手）」→ n10_past_noted｜效果 flag p_past_life_door = wrench
+选 notes「读书写字：学生、研究者、写作者（笔记）」→ n10_past_noted｜效果 flag p_past_life_door = notes
+选 hearth「做饭：厨师、做餐饮的，或者只是爱下厨（灶火）」→ n10_past_noted｜效果 flag p_past_life_door = hearth
+选 signpost「一直在路上：司机、快递员、导游（路标）」→ n10_past_noted｜效果 flag p_past_life_door = signpost
+选 podium「站在人前说话：教师、讲师、主持（讲台）」→ n10_past_noted｜效果 flag p_past_life_door = podium
 选 ghost「你替我写吧。」→ n10_past_ghost
 选 free「（自由回答）」→ n10_past_free｜条件 ai_enabled
 【n10_past_free】
-输入「回答莫伊拉：那一页上，你是做什么的？」→ n10_past｜存入 prologue.free.past_life｜上限 200｜答者 moira｜归类 n10_past：abacus,nightlight,whitecoat,wrench,notes,hearth,signpost,podium,ghost｜兜底 ghost
+输入「回答莫伊拉：那一页上，你是做什么的？」→ n10_past｜存入 p_free.past_life｜上限 200｜答者 moira｜归类 n10_past：abacus,nightlight,whitecoat,wrench,notes,hearth,signpost,podium,ghost｜兜底 ghost
 即兴 moira｜目的：用一句话接住玩家说的职业，不评价好坏｜情境：同上一轮｜含义键：前世；无法归入八类时只说"那我替你写一个。"｜禁区：同上一轮
 moira：嗯……让我想想，这一行该怎么写。
 【n10_past_ghost】
-效果 copy prologue.past_life_door prologue.default_past_life；memory moira 被代笔的
+效果 copy p_past_life_door p_default_past_life；memory moira 被代笔的
 narrator：（莫伊拉笑了）
 moira：那我替你写一个。
 → n10_past_noted
@@ -1804,19 +1804,19 @@ moira：没想好最好。想好了的，往往写不出来。
 moira：哦？那我等着读。
 → n10_earth_check
 【n10_earth_check】
-分支［NOT prologue.earth_anchor_trigger］→ n10_where
+分支［NOT p_earth_anchor_trigger］→ n10_where
 → n10_close
 【n10_where】
 @立绘 moira smile 右
 moira：那一页上，是什么地方？
-选 earth「地球。」→ n10_earth_anchor｜效果 flag prologue.earth_anchor_trigger = moira
-选 secret「不告诉你。」→ n10_relic｜效果 flag prologue.earth_anchor_trigger = relic
+选 earth「地球。」→ n10_earth_anchor｜效果 flag p_earth_anchor_trigger = moira
+选 secret「不告诉你。」→ n10_relic｜效果 flag p_earth_anchor_trigger = relic
 【n10_relic】
 @立绘 merca thinking 左
-narrator［prologue.earth_relic == relic_badge］：梅尔卡探过身，从你胸前勾起那张工牌，眯着眼看上面印的字。
-narrator［prologue.earth_relic == relic_receipt］：梅尔卡探过身，从你口袋里抽出那张小票，眯着眼看上面印的字。
-narrator［prologue.earth_relic == relic_mint］：梅尔卡探过身，捏起你手里那张探视证，眯着眼看上面印的字。
-narrator［prologue.earth_relic == relic_key］：梅尔卡探过身，勾起那把老钥匙上挂着的旧塑料牌，眯着眼看上面写的字。
+narrator［p_earth_relic == relic_badge］：梅尔卡探过身，从你胸前勾起那张工牌，眯着眼看上面印的字。
+narrator［p_earth_relic == relic_receipt］：梅尔卡探过身，从你口袋里抽出那张小票，眯着眼看上面印的字。
+narrator［p_earth_relic == relic_mint］：梅尔卡探过身，捏起你手里那张探视证，眯着眼看上面印的字。
+narrator［p_earth_relic == relic_key］：梅尔卡探过身，勾起那把老钥匙上挂着的旧塑料牌，眯着眼看上面写的字。
 merca：这上面的字……地球？
 → n10_earth_anchor
 【n10_earth_anchor】
@@ -1835,7 +1835,7 @@ narrator：（莫伊拉笑了一下，没有替她解释。）
 效果 flag p_interview_done = true
 @立绘撤
 @立绘 moira smile 右
-moira［prologue.round_end.moira == hard］：（敲了敲自己面前的桌面）下一位。……哦，没有下一位了。
+moira［p_round_end.moira == hard］：（敲了敲自己面前的桌面）下一位。……哦，没有下一位了。
 moira：问完了。艾琉恩，你的。
 结束
 ```
@@ -1846,33 +1846,33 @@ moira：问完了。艾琉恩，你的。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `e1` 到 `e6` | 艾琉恩轮六类回答 | `n6_eluen_e1` 到 `e6`，再到追问 `n6_f_e1` 到 `e6` | 第 4.8 节 E1 到 E6；E6 在节点里写 `prologue.earth_anchor_trigger = player` | 无 |
+| `e1` 到 `e6` | 艾琉恩轮六类回答 | `n6_eluen_e1` 到 `e6`，再到追问 `n6_f_e1` 到 `e6` | 第 4.8 节 E1 到 E6；E6 在节点里写 `p_earth_anchor_trigger = player` | 无 |
 | `fy`、`fp`、`fs` | 艾琉恩追问的三种回应（顺着说、顶回去、不答） | `n6_r_yes`、`n6_r_push`、`n6_r_silent` | 无数值（类别由首答决定，追问只演出被审视的压力） | 无 |
 | `chase` | "连神都没有"……是什么意思？ | `n6_chase`、`n10_chase` | 无；艾琉恩回避"下一个。" | 地球锚点刚说出；一次 |
 | `v1` 到 `v6` | 瓦尔妲轮六类回答 | 反应节点，再到追问 `n7_f_v1` 到 `v6` | 第 4.8 节 V1 到 V6 | 无 |
 | `va`、`vb`、`vc` | 瓦尔妲追问的三种回应（爽快、嘴硬、不答） | `n7_r_a`、`n7_r_b`、`n7_r_c` | 无数值 | 无 |
-| `m1` 到 `m6` | 梅尔卡轮六类回答 | 反应节点（M2 先到还价 `n8_haggle`），再到 `n8_ledger` | 第 4.8 节 M1 到 M6；`prologue.merca_valuation` | 无 |
+| `m1` 到 `m6` | 梅尔卡轮六类回答 | 反应节点（M2 先到还价 `n8_haggle`），再到 `n8_ledger` | 第 4.8 节 M1 到 M6；`p_merca_valuation` | 无 |
 | `story`、`meal`、`favor` | 还价：一个故事、一顿饭、一个人情 | `n8_deal` | 无数值 | M2 之后 |
-| `s1` 到 `s6` | 希尔薇轮六类回答 | S1 先选人（`n9_s1_who`）再追问；S2 追问；其余直接到 `n9_close` | 第 4.8 节 S1 到 S6；`courtyard.first_object`：S1 按人（旧茶杯、旧围巾、没寄出的信、空白信纸），S3 空院与没开花的树，S4 开着的窗，S2、S5、S6 保留开场默认 | 无 |
+| `s1` 到 `s6` | 希尔薇轮六类回答 | S1 先选人（`n9_s1_who`）再追问；S2 追问；其余直接到 `n9_close` | 第 4.8 节 S1 到 S6；`p_courtyard_object`：S1 按人（旧茶杯、旧围巾、没寄出的信、空白信纸），S3 空院与没开花的树，S4 开着的窗，S2、S5、S6 保留开场默认 | 无 |
 | `back`、`gone`、`more`、`less`、`none` | 希尔薇追问的回应 | `n9_hush` | 无数值；她沉默两三秒，不评价 | S1、S2 之后 |
 | `o1` 到 `o6` | 莫伊拉轮六类回答 | 反应节点，再到 `n10_past` | 第 4.8 节 O1 到 O6 | 无 |
-| `abacus` 到 `podium` | 八类前世 | `n10_past_noted` | `prologue.past_life_door` | 无 |
+| `abacus` 到 `podium` | 八类前世 | `n10_past_noted` | `p_past_life_door` | 无 |
 | `ghost` | 你替我写吧。 | `n10_past_ghost` | 取开场默认前世；莫伊拉标签"被代笔的" | 无 |
 | `good`、`notyet`、`mine` | 这一章的结尾 | 各自回应，再到地球检查 | 无数值 | 无 |
-| `earth`、`secret` | 那一页上是什么地方 | `n10_earth_anchor`、`n10_relic` | `prologue.earth_anchor_trigger = moira` 或 `relic` | 地球锚点尚未触发 |
+| `earth`、`secret` | 那一页上是什么地方 | `n10_earth_anchor`、`n10_relic` | `p_earth_anchor_trigger = moira` 或 `relic` | 地球锚点尚未触发 |
 | `free` | （自由回答） | 各轮的输入节点 | 见"有模型时的面试规则" | `ai_enabled` |
-| `say_name` | （说出那个名字） | `n6_cycle_drop` | `prologue.cycle_name_reaction = drop`；`p_interview_done` | 下一期；一次 |
+| `say_name` | （说出那个名字） | `n6_cycle_drop` | `p_cycle_name_reaction = drop`；`p_interview_done` | 下一期；一次 |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
-| 地球锚点触发方式 `prologue.earth_anchor_trigger` | player：艾琉恩轮 E6 当场说出（有模型时在叫号或面试中第一次提到地球时说出）；moira：莫伊拉轮末玩家答"地球"；relic：玩家答"不告诉你"，梅尔卡读出遗物上的字（四种遗物各一句） |
-| `prologue.earth_relic` | M3 献出遗物与 relic 触发时的叙述各四句 |
-| `prologue.merca_valuation` | 入账时梅尔卡的一句（high、mid、low） |
+| 地球锚点触发方式 `p_earth_anchor_trigger` | player：艾琉恩轮 E6 当场说出（有模型时在叫号或面试中第一次提到地球时说出）；moira：莫伊拉轮末玩家答"地球"；relic：玩家答"不告诉你"，梅尔卡读出遗物上的字（四种遗物各一句） |
+| `p_earth_relic` | M3 献出遗物与 relic 触发时的叙述各四句 |
+| `p_merca_valuation` | 入账时梅尔卡的一句（high、mid、low） |
 | 有模型与无模型 | 有模型：五轮自由对话，不播写定反应与写定追问，只播收尾节点；无模型：选项、写定反应、写定追问、收尾原句 |
 | `prologue.round_end.<神> == hard` | 收尾由莫伊拉敲桌"下一位。"代替提问女神的收尾句 |
-| `next_cycle` | 艾琉恩轮多出"（说出那个名字）"，选中即当场丢弃（`n6_cycle_drop`），面试到此为止，`cut_p_judgement` 走 `n11_cycle_drop` |
+| `cycle >= 2` | 艾琉恩轮多出"（说出那个名字）"，选中即当场丢弃（`n6_cycle_drop`），面试到此为止，`cut_p_judgement` 走 `n11_cycle_drop` |
 
 #### cut_p_judgement 鉴定与判决（Out of Specification）
 
@@ -1886,7 +1886,7 @@ moira：问完了。艾琉恩，你的。
 | 地点 | `divine_court`：`interview_hall`、`long_table`；鉴定时玩家站在长桌南侧中段，梅尔卡给硬币时走到玩家面前 |
 | 时长 | 约 2.5 分钟（下一期当场丢弃分支约 20 秒） |
 | 现有数据 | `prologue` 第 98 到 107 节点（`n11_appraise`、`n11_verdict`、`n11_response`、`n11_r1` 到 `n11_r5`、`n11_free`、`n11_coin`），10 节点，42 行；扩写到 19 节点、59 行（另有 1 行输入兜底）：鉴定后补"可以说话、可以后退"的一拍，硬币后补"只看结果"的追问回避，补下一期两处台词与当场丢弃分支 |
-| 写入旗标 | `moira.page_anomaly_noted = true`；`prologue.rejection_response`（R1 到 R5）；`prologue.free.rejection`、新旗标 `prologue.free.appraise`；物品 `merca_coin`；`merca_coin.terms`（interest_free、three_percent、first_free）；R 类别的好感、兴趣与全体记忆标签 |
+| 写入旗标 | `p_moira_page_anomaly = true`；`p_rejection_response`（R1 到 R5）；`p_free.rejection`、新旗标 `p_free.appraise`；物品 `merca_coin`；`p_coin_terms`（interest_free、three_percent、first_free）；R 类别的好感、兴趣与全体记忆标签 |
 | 揭示 | 台账 M01-C01（A00、A01）、M10-C01（A01）、M05-C03（A03）、M12-C01（A09）、M12-C02（A05）；锚点 A00、A06、A01、A03、A09、A04、A05 依此顺序全部写定 |
 | 音乐与音效 | 入场 `mus_pro_interview` 淡出；镜 1 `mus_pro_judgment` 入，张力渐强；镜 8 光闪时全曲骤停，之后无乐；镜 12 梅尔卡走下来时 `mus_stg_motif_merca` 独奏（拨弦与铃），出场淡出。专用音效 `sfx_god_eluen_gaze`、`sfx_cin_hollow`、`sfx_cin_halo_stop`、`sfx_god_moira_page`、`sfx_cin_table_slam`、`sfx_god_eluen_halo`、`sfx_cin_hall_flicker`、`sfx_cin_coin` |
 | 所需美术 | 立绘 `art_bust_eluen`（neutral、angry、special：光环停转）、`art_bust_valda`（grin、surprised、special）、`art_bust_merca`（smile、thinking、surprised）、`art_bust_moira`（smile、surprised、thinking）、`art_bust_sylvie`（sad、special：睁眼）；实景运镜；特写 `art_prop_cut_merca_coin`；特效 `art_vfx_cut_appraise_light`、`art_vfx_cut_door_hollow`、`art_vfx_cut_glint`、`art_vfx_cut_coin_spin`；立牌 `art_chr_eluen_appraise`、`art_chr_valda_slam`、`art_chr_merca_hop` |
@@ -1919,10 +1919,10 @@ moira：问完了。艾琉恩，你的。
 ```text
 场景 cut_p_judgement｜标题 鉴定与判决｜幕 prologue｜地图 divine_court｜位置 interview_hall｜起点 n11_gate｜接续 cut_p_discard
 【n11_gate】
-分支［prologue.cycle_name_reaction == drop］→ n11_cycle_drop
+分支［p_cycle_name_reaction == drop］→ n11_cycle_drop
 → n11_appraise
 【n11_appraise】
-效果 flag moira.page_anomaly_noted = true
+效果 flag p_moira_page_anomaly = true
 @镜 1
 @乐 mus_pro_interview 出
 @乐 mus_pro_judgment 入
@@ -1952,7 +1952,7 @@ eluen：这不合规格。
 narrator：（莫伊拉翻书，翻得很快，停住，又往回翻。然后她抬起头，笑了。）
 @立绘 moira smile 左
 moira：规格外……我的书里，没有你那一页。有意思。
-moira［next_cycle］：……奇怪。这里有被撕过的痕迹。我从来不撕书。
+moira［cycle >= 2］：……奇怪。这里有被撕过的痕迹。我从来不撕书。
 → n11_stance
 【n11_stance】
 @镜 6
@@ -1975,7 +1975,7 @@ narrator：（她笑着，把那一页又翻了回去。）
 narrator：你站着没动。长桌那头，梅尔卡轻轻吸了一口气。
 → n11_verdict
 【n11_say】
-输入「说点什么」→ n11_verdict｜存入 prologue.free.appraise｜上限 60｜答者 moira
+输入「说点什么」→ n11_verdict｜存入 p_free.appraise｜上限 60｜答者 moira
 即兴 moira｜目的：用一句话接住玩家此刻的话，不解释鉴定看到了什么｜情境：鉴定刚结束，艾琉恩冷着脸，判决还没下，其他人都没出声｜含义键：回避；玩家追问"没有那一页"的含义时只说原句"剧透是不道德的。"｜禁区：台账第 8.1 节莫伊拉行与全体女神行；五位共同禁区（见 `cut_p_interview`）；不提"页"为什么没有
 moira：嘘。还没到你说话的时候。
 【n11_verdict】
@@ -2020,11 +2020,11 @@ narrator：光恢复了。瓦尔妲没有再笑。希尔薇睁开了眼睛。
 @镜 11
 @立绘撤
 narrator：她们都在看你。
-选 r1「凭什么！」→ n11_r1｜效果 flag prologue.rejection_response = R1；interest valda 1；memory all 会咬人的
-选 r2「我到底哪里不合规格？」→ n11_r2｜效果 flag prologue.rejection_response = R2；interest moira 1；memory all 问为什么的
-选 r3「等等，求你们再看一次。」→ n11_r3｜效果 flag prologue.rejection_response = R3；interest sylvie 1；memory all 求过情的
-选 r4「原来神也会怕。」→ n11_r4｜效果 flag prologue.rejection_response = R4；impression eluen -2；impression valda 1；memory all 看穿的
-选 r5「（沉默）」→ n11_r5｜效果 flag prologue.rejection_response = R5；interest sylvie 1；memory all 不出声的
+选 r1「凭什么！」→ n11_r1｜效果 flag p_rejection_response = r1；interest valda 1；memory all 会咬人的
+选 r2「我到底哪里不合规格？」→ n11_r2｜效果 flag p_rejection_response = r2；interest moira 1；memory all 问为什么的
+选 r3「等等，求你们再看一次。」→ n11_r3｜效果 flag p_rejection_response = r3；interest sylvie 1；memory all 求过情的
+选 r4「原来神也会怕。」→ n11_r4｜效果 flag p_rejection_response = r4；impression eluen -2；impression valda 1；memory all 看穿的
+选 r5「（沉默）」→ n11_r5｜效果 flag p_rejection_response = r5；interest sylvie 1；memory all 不出声的
 选 free「（自由回应）」→ n11_free｜条件 ai_enabled
 【n11_r1】
 @立绘 valda grin 右
@@ -2050,12 +2050,12 @@ eluen：……带下去。
 narrator：（希尔薇看了你一眼。）
 → n11_coin
 【n11_free】
-输入「回应她们的判决」→ n11_response｜存入 prologue.free.rejection｜上限 200｜归类 n11_response：r1,r2,r3,r4,r5｜兜底 r5
+输入「回应她们的判决」→ n11_response｜存入 p_free.rejection｜上限 200｜归类 n11_response：r1,r2,r3,r4,r5｜兜底 r5
 【n11_coin】
 效果 item merca_coin
-效果［prologue.merca_valuation == high］ flag merca_coin.terms = interest_free
-效果［prologue.merca_valuation == mid］ flag merca_coin.terms = three_percent
-效果［NOT prologue.merca_valuation IN (high, mid)］ flag merca_coin.terms = first_free
+效果［p_merca_valuation == high］ flag merca_coin.terms = interest_free
+效果［p_merca_valuation == mid］ flag merca_coin.terms = three_percent
+效果［NOT p_merca_valuation IN (high, mid)］ flag merca_coin.terms = first_free
 @镜 12
 @乐 mus_stg_motif_merca 入
 @立绘撤
@@ -2069,11 +2069,11 @@ merca：这枚硬币先赊给你。客人，生意要做长久。
 narrator：（她把硬币按进你的掌心，凑近了，带着笑）
 merca：反正上面那位只看结果。
 merca：过程嘛，赊账也行。
-merca［prologue.merca_valuation == high］：不要利息，什么时候还都行，我信你。
-merca［prologue.merca_valuation == mid］：三分利，下次见面再算。
-merca［NOT prologue.merca_valuation IN (high, mid)］：利息照算，不过第一次见面免息，算我请客。
-narrator［next_cycle］：硬币上有一道细细的划痕。梅尔卡盯着它，皱了皱眉。
-merca［next_cycle］：这枚……我是不是赊过两次？
+merca［p_merca_valuation == high］：不要利息，什么时候还都行，我信你。
+merca［p_merca_valuation == mid］：三分利，下次见面再算。
+merca［NOT p_merca_valuation IN (high, mid)］：利息照算，不过第一次见面免息，算我请客。
+narrator［cycle >= 2］：硬币上有一道细细的划痕。梅尔卡盯着它，皱了皱眉。
+merca［cycle >= 2］：这枚……我是不是赊过两次？
 选 grip「（握紧硬币）」→ n11_coin_end
 选 ask「"只看结果"……是什么意思？」→ n11_coin_ask｜一次
 【n11_coin_ask】
@@ -2087,9 +2087,9 @@ narrator：（她眨了眨眼，蹦回自己的椅子上。）
 结束
 【n11_cycle_drop】
 效果 item merca_coin
-效果［prologue.merca_valuation == high］ flag merca_coin.terms = interest_free
-效果［prologue.merca_valuation == mid］ flag merca_coin.terms = three_percent
-效果［NOT prologue.merca_valuation IN (high, mid)］ flag merca_coin.terms = first_free
+效果［p_merca_valuation == high］ flag merca_coin.terms = interest_free
+效果［p_merca_valuation == mid］ flag merca_coin.terms = three_percent
+效果［NOT p_merca_valuation IN (high, mid)］ flag merca_coin.terms = first_free
 @镜 14
 @震 1
 narrator：没有鉴定，也没有判决。
@@ -2112,13 +2112,13 @@ merca：……这枚，我是不是赊过两次？
 | `back` | （后退一步） | `n11_back` | 无 | 无 |
 | `ask` | "没有我那一页"……是什么意思？ | `n11_ask` | 无；莫伊拉回避"剧透是不道德的。" | 无 |
 | `stand` | （站着不动） | `n11_stand` | 无 | 无 |
-| `free`（鉴定后） | （说点什么） | `n11_say` | `prologue.free.appraise` | `ai_enabled` |
+| `free`（鉴定后） | （说点什么） | `n11_say` | `p_free.appraise` | `ai_enabled` |
 | `r1` | 凭什么！ | `n11_r1` | R1；瓦尔妲兴趣 +1；全体标签"会咬人的" | 无 |
 | `r2` | 我到底哪里不合规格？ | `n11_r2` | R2；莫伊拉兴趣 +1；全体标签"问为什么的" | 无 |
 | `r3` | 等等，求你们再看一次。 | `n11_r3` | R3；希尔薇兴趣 +1；全体标签"求过情的" | 无 |
 | `r4` | 原来神也会怕。 | `n11_r4` | R4；艾琉恩好感 -2，瓦尔妲好感 +1；全体标签"看穿的" | 无 |
 | `r5` | （沉默） | `n11_r5` | R5；希尔薇兴趣 +1；全体标签"不出声的" | 无 |
-| `free`（判决后） | （自由回应） | `n11_free` | 归类到 R1 到 R5，兜底 R5；原文存 `prologue.free.rejection`（第三幕艾琉恩与瓦尔妲的题面） | `ai_enabled` |
+| `free`（判决后） | （自由回应） | `n11_free` | 归类到 R1 到 R5，兜底 R5；原文存 `p_free.rejection`（第三幕艾琉恩与瓦尔妲的题面） | `ai_enabled` |
 | `grip` | （握紧硬币） | `n11_coin_end` | 无 | 无 |
 | `ask`（硬币后） | "只看结果"……是什么意思？ | `n11_coin_ask` | 无；梅尔卡回避"那是另一笔生意。" | 一次 |
 
@@ -2129,10 +2129,10 @@ merca：……这枚，我是不是赊过两次？
 
 | 条件 | 差异 |
 | --- | --- |
-| `prologue.merca_valuation` | high：无息（"不要利息，什么时候还都行，我信你。"）；mid：三分利；low 或未定：首次免息。写入 `merca_coin.terms` |
-| `prologue.rejection_response` R1 到 R5 | 五种即时反应（见对白） |
-| `next_cycle` | A06 之后莫伊拉多一句"这里有被撕过的痕迹"；硬币带划痕，梅尔卡皱眉"这枚……我是不是赊过两次？"（`act6_review_and_epilogue.md` 第 13.2 节） |
-| `prologue.cycle_name_reaction == drop` | 走 `n11_cycle_drop`：没有鉴定与判决，A00、A06、A01、A03、A09 在这一期不出现（玩家上一期已听过）；A04、A05 照常，硬币必给 |
+| `p_merca_valuation` | high：无息（"不要利息，什么时候还都行，我信你。"）；mid：三分利；low 或未定：首次免息。写入 `p_coin_terms` |
+| `p_rejection_response` R1 到 R5 | 五种即时反应（见对白） |
+| `cycle >= 2` | A06 之后莫伊拉多一句"这里有被撕过的痕迹"；硬币带划痕，梅尔卡皱眉"这枚……我是不是赊过两次？"（`act6_review_and_epilogue.md` 第 13.2 节） |
+| `p_cycle_name_reaction == drop` | 走 `n11_cycle_drop`：没有鉴定与判决，A00、A06、A01、A03、A09 在这一期不出现（玩家上一期已听过）；A04、A05 照常，硬币必给 |
 
 #### cut_p_discard 丢弃与坠落（Caught）
 
@@ -2145,8 +2145,8 @@ merca：……这枚，我是不是赊过两次？
 | 出场 | `moira` 莫伊拉、`eluen` 艾琉恩、`sylvie` 希尔薇（低语，不出立绘）；`door_voice` 门后的声音（只有声音与一只手，不露面，不显示名字） |
 | 地点 | `divine_court`：`interview_hall`；坠落：`gap_void`（`fall`） |
 | 时长 | 约 1.5 分钟（含约 30 秒的长黑；不按"伸手"时等满 30 秒） |
-| 现有数据 | `prologue` 第 108 到 113 节点（`n12_last`、`n12_free`、`n12_drop`、`n13_fall`、`n13_caught`、`n13_end`），6 节点，16 行；扩写到 8 节点、22 行：最后一句话的复述与"没有人回答"，坠落的超时，转场字幕改用字幕层，补下一期当场丢弃分支 |
-| 写入旗标 | `prologue.last_words`（文本或四选一；下一期当场丢弃为"（没来得及说）"）、`p_discarded`、`prologue.reached_out`、`p_caught`、`eluen.believes_player_dead = true`、`seal_unrest = 10`；`compute prologue_door_hints`（汇总门提示）；收尾 `act act1` |
+| 现有数据 | `prologue` 第 108 到 113 节点（`n12_last`、`n12_free`、`n12_drop`、`n13_fall`、`n13_caught`、`n13_end`），6 节点，16 行；扩写到 8 节点、23 行：最后一句话的复述与"没有人回答"，坠落的超时，转场字幕改用字幕层，补下一期当场丢弃分支 |
+| 写入旗标 | `p_last_words`（四选一，或自由说一句时写 `free`，原话进 `p_free.last_words`；下一期当场丢弃时不写）、`p_discarded`、`p_reached_out`、`p_caught`、`p_eluen_believes_dead = true`、`seal_unrest = 10`；`compute prologue_door_hints`（汇总门提示）；收尾 `act act1` |
 | 揭示 | 锚点 A07、A02、A08、A10 依此顺序写定；`p_discarded` 解锁 M01-C01、M05-C03、M10-C01 的谈论，`p_caught` 供第一幕梦境（M01-C03、M09-C01 的前置） |
 | 音乐与音效 | 入场无乐；镜 4 地板化开时 `mus_pro_fall` 入（长时间低频）；镜 8"接住你了"时 `mus_pro_fall` 的结尾段落出现门之动机（全作第一次）；镜 9 音乐淡出，字幕在静默中出现；出场静音进入 `cut_a1_wake`。环境 `amb_fall_void`。专用音效 `sfx_cin_book_close`、`sfx_cin_floor_dissolve`、`sfx_cin_fall_wind`、`sfx_cin_hand_catch` |
 | 所需美术 | 立绘 `art_bust_moira`（smile、thinking）、`art_bust_eluen`（neutral、angry）；全屏静帧 `art_bg_cut_floor_door`；特写 `art_prop_cut_caught_hand`；特效 `art_vfx_cut_floor_door`；立牌 `art_chr_player_fall`、`art_chr_player_reach` |
@@ -2174,22 +2174,23 @@ merca：……这枚，我是不是赊过两次？
 ```text
 场景 cut_p_discard｜标题 丢弃与坠落｜幕 prologue｜地图 divine_court｜位置 interview_hall｜起点 n12_gate｜接续 cut_a1_wake｜收尾 act act1
 【n12_gate】
-分支［prologue.cycle_name_reaction == drop］→ n12_drop_now
+分支［p_cycle_name_reaction == drop］→ n12_drop_now
 → n12_last
 【n12_last】
 @镜 1
 narrator：女神们已经不再看你了。
 narrator：你还能说最后一句话。
-选 back「我会回来的。」→ n12_drop｜效果 flag prologue.last_words = 我会回来的。
-选 regret「你们会后悔的。」→ n12_drop｜效果 flag prologue.last_words = 你们会后悔的。
-选 thanks「……谢谢你的硬币。」→ n12_drop｜效果 flag prologue.last_words = ……谢谢你的硬币。
-选 silent「（什么都不说）」→ n12_drop｜效果 flag prologue.last_words = （什么都不说）
+选 back「我会回来的。」→ n12_drop｜效果 flag p_last_words = back
+选 regret「你们会后悔的。」→ n12_drop｜效果 flag p_last_words = regret
+选 thanks「……谢谢你的硬币。」→ n12_drop｜效果 flag p_last_words = thanks
+选 silent「（什么都不说）」→ n12_drop｜效果 flag p_last_words = silent
 选 free「（自由说一句）」→ n12_free｜条件 ai_enabled
 【n12_free】
-输入「最后一句话」→ n12_drop｜存入 prologue.last_words｜上限 60｜空值 （什么都不说）
+输入「最后一句话」→ n12_drop｜存入 p_free.last_words｜上限 60｜效果 flag p_last_words = free；空值时 flag p_last_words = silent
 【n12_drop】
 效果 flag p_discarded = true
-player［prologue.last_words != '（什么都不说）'］：{flag:prologue.last_words}
+player［p_last_words IN (back, regret, thanks)］：{flag:p_last_words}
+player［p_last_words == free］：{flag:p_free.last_words}
 narrator：没有人回答。
 @镜 2
 @立绘 moira smile 右
@@ -2212,7 +2213,7 @@ narrator：（坠落开始的瞬间，一个极轻的声音贴着你的耳边响
 sylvie：……别相信我们任何一个。包括我。
 → n13_fall
 【n12_drop_now】
-效果 flag p_discarded = true；flag prologue.last_words = （没来得及说）
+效果 flag p_discarded = true；flag p_last_words = （没来得及说）
 @镜 3
 @立绘 eluen angry 右
 eluen：去吧，庭间之隙会替我处理你。
@@ -2237,7 +2238,7 @@ sylvie：……别相信我们任何一个。包括我。
 @声 sfx_cin_fall_wind
 narrator：纯黑。只有风声，没有上下。
 narrator：你在下坠，或者在漂浮，分不清。
-选 reach「伸手」→ n13_caught｜效果 flag prologue.reached_out = true
+选 reach「伸手」→ n13_caught｜效果 flag p_reached_out = true
 选 still「（什么也不做）」→ n13_caught｜超时 30
 【n13_caught】
 @镜 7
@@ -2249,7 +2250,7 @@ narrator：一只手握住了你的手腕。很暖。
 door_voice：接住你了。
 → n13_end
 【n13_end】
-效果 flag p_caught = true；flag eluen.believes_player_dead = true；flag seal_unrest = 10；compute prologue_door_hints
+效果 flag p_caught = true；flag p_eluen_believes_dead = true；flag seal_unrest = 10；compute prologue_door_hints
 @镜 9
 @乐 mus_pro_fall 出
 narrator：然后，一切都暗了下去。
@@ -2262,21 +2263,21 @@ narrator：然后，一切都暗了下去。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `back` | 我会回来的。 | `n12_drop` | `prologue.last_words` | 无 |
+| `back` | 我会回来的。 | `n12_drop` | `p_last_words` | 无 |
 | `regret` | 你们会后悔的。 | `n12_drop` | 同上 | 无 |
 | `thanks` | ……谢谢你的硬币。 | `n12_drop` | 同上 | 无 |
 | `silent` | （什么都不说） | `n12_drop` | 同上 | 无 |
 | `free` | （自由说一句） | `n12_free` | 至多 60 字，空值"（什么都不说）"；女神们不回答（分幕文档第 5.4 节） | `ai_enabled` |
-| `reach` | 伸手 | `n13_caught` | `prologue.reached_out = true`；画面上没有任何反馈 | 无 |
+| `reach` | 伸手 | `n13_caught` | `p_reached_out = true`；画面上没有任何反馈 | 无 |
 | `still` | （什么也不做） | `n13_caught` | 无（`p_reached_out` 保持未写入） | 30 秒内未按"伸手"时自动选中；界面上不显示这一项，只显示"伸手"的按键提示（`ui_hud_prompt`） |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
-| `prologue.last_words` | 玩家的最后一句复述一次（"（什么都不说）"时不复述），随后"没有人回答"；第三幕艾琉恩借大主教之口说"原来你还活着"时，题面附上这句话 |
-| `prologue.reached_out` | 不改变本场画面；第一幕末的梦里，门口的女人按它多说半句（"你那时候伸手了，所以我抓得住。"或"你那时候没伸手。没关系，我抓得住。"） |
-| `prologue.cycle_name_reaction == drop` | 走 `n12_drop_now`：艾琉恩先说 A02，地板随即裂开，莫伊拉没来得及合上书就说 A07，希尔薇的 A08 照常；没有最后一句话 |
+| `p_last_words` | 玩家的最后一句复述一次（"（什么都不说）"时不复述），随后"没有人回答"；第三幕艾琉恩借大主教之口说"原来你还活着"时，题面附上这句话 |
+| `p_reached_out` | 不改变本场画面；第一幕末的梦里，门口的女人按它多说半句（"你那时候伸手了，所以我抓得住。"或"你那时候没伸手。没关系，我抓得住。"） |
+| `p_cycle_name_reaction == drop` | 走 `n12_drop_now`：艾琉恩先说 A02，地板随即裂开，莫伊拉没来得及合上书就说 A07，希尔薇的 A08 照常；没有最后一句话 |
 
 【设计】"接住你了。"（A10）是全作唯一不允许任何改写的一句：说话者 `door_voice` 只显示"门后的声音"，画面只有一只手，
 不画钥匙、袖口纹样与任何可辨认的服饰（特写 `art_prop_cut_caught_hand` 的提示词须写明），门之动机只在这一刻第一次出现。
@@ -2287,21 +2288,21 @@ narrator：然后，一切都暗了下去。
 
 | 旗标 | 类型 | 取值 | 含义 | 写入过场 |
 | --- | --- | --- | --- | --- |
-| `prologue.unsent_words` | 文本（至多 40 字，B 至多 12 字） | 玩家输入；空值 A"（没有回）"、B"（还没想好）"、C"（还没想好）"、D"（没有说出口）" | 地球最后一刻没说出口的那句话：A 回家吃饭的回复，B 猫的名字，C 结果出来时的第一句，D 对老房间说的话；终章"回地球"四开场与第六幕地球真相可回扣 | `cut_p_earth` |
-| `prologue.store_role` | 枚举 | `clerk`、`customer` | B 开场站在收银台的哪一边；顾客版默认前世取灶火 | `cut_p_earth` |
-| `prologue.waiting_for` | 文本（至多 12 字） | 玩家输入；空值"某个人" | C 开场在等谁的结果 | `cut_p_earth` |
-| `prologue.call_free_count` | 整数 | 0 到 3 | 叫号时有模型的自由提问次数 | `cut_p_call` |
-| `prologue.free.call` | 文本（至多 80 字） | 玩家输入 | 最近一次自由提问的原文 | `cut_p_call` |
-| `prologue.free.appraise` | 文本（至多 60 字） | 玩家输入 | 鉴定之后玩家说的一句话（有模型时） | `cut_p_judgement` |
+| `p_unsent_words` | 文本（至多 40 字，B 至多 12 字） | 玩家输入；空值 A"（没有回）"、B"（还没想好）"、C"（还没想好）"、D"（没有说出口）" | 地球最后一刻没说出口的那句话：A 回家吃饭的回复，B 猫的名字，C 结果出来时的第一句，D 对老房间说的话；终章"回地球"四开场与第六幕地球真相可回扣 | `cut_p_earth` |
+| `p_store_role` | 枚举 | `clerk`、`customer` | B 开场站在收银台的哪一边；顾客版默认前世取灶火 | `cut_p_earth` |
+| `p_waiting_for` | 文本（至多 12 字） | 玩家输入；空值"某个人" | C 开场在等谁的结果 | `cut_p_earth` |
+| `p_call_free_count` | 整数 | 0 到 3 | 叫号时有模型的自由提问次数 | `cut_p_call` |
+| `p_free.call` | 文本（至多 80 字） | 玩家输入 | 最近一次自由提问的原文 | `cut_p_call` |
+| `p_free.appraise` | 文本（至多 60 字） | 玩家输入 | 鉴定之后玩家说的一句话（有模型时） | `cut_p_judgement` |
 | `prologue.round_end.<神>` | 枚举（五位女神各一个） | `closed`、`soft`、`hard` | 有模型时该轮面试的结束方式；`hard` 时由莫伊拉敲桌收尾 | `cut_p_interview` |
-| `prologue.cycle_name_reaction` | 枚举 | `falter`、`drop` | 下一期在候见厅说出被禁之名时艾琉恩的反应：面试前说出为 `falter`（慌乱失误，玩家看见她的手在发抖），面试中说出为 `drop`（当场丢弃） | `cut_p_call`、`cut_p_interview` |
-| `prologue.default_past_life` | 枚举（八类前世） | `abacus`、`nightlight`、`whitecoat`、`wrench`、`hearth` | 开场默认推荐的前世；"你替我写吧"与无法归类时由它代笔（现有数据已写） | `cut_p_earth` |
-| `prologue.heard_neighbors` | 布尔 | 是、否 | 玩家至少听到一次隔壁的面试（P4 必经；现有数据已写） | `cut_p_door_white` |
-| `prologue.mirror_done` | 布尔 | 是、否 | 灵镜已完成（现有数据已写） | `cut_p_door_white` |
-| `prologue.merca_valuation` | 枚举 | `high`、`mid`、`low` | 梅尔卡的估价，决定 `merca_coin.terms`（现有数据已写） | `cut_p_interview` |
-| `prologue.free.<神>`、`prologue.free.past_life`、`prologue.free.rejection` | 文本（至多 200 字） | 玩家输入 | 有模型时各轮自由回答的原文（现有数据已写） | `cut_p_interview`、`cut_p_judgement` |
+| `p_cycle_name_reaction` | 枚举 | `falter`、`drop` | 下一期在候见厅说出被禁之名时艾琉恩的反应：面试前说出为 `falter`（慌乱失误，玩家看见她的手在发抖），面试中说出为 `drop`（当场丢弃） | `cut_p_call`、`cut_p_interview` |
+| `p_default_past_life` | 枚举（八类前世） | `abacus`、`nightlight`、`whitecoat`、`wrench`、`hearth` | 开场默认推荐的前世；"你替我写吧"与无法归类时由它代笔（现有数据已写） | `cut_p_earth` |
+| `p_heard_neighbors` | 布尔 | 是、否 | 玩家至少听到一次隔壁的面试（P4 必经；现有数据已写） | `cut_p_door_white` |
+| `p_mirror_done` | 布尔 | 是、否 | 灵镜已完成（现有数据已写） | `cut_p_door_white` |
+| `p_merca_valuation` | 枚举 | `high`、`mid`、`low` | 梅尔卡的估价，决定 `p_coin_terms`（现有数据已写） | `cut_p_interview` |
+| `prologue.free.<神>`、`p_free.past_life`、`p_free.rejection` | 文本（至多 200 字） | 玩家输入 | 有模型时各轮自由回答的原文（现有数据已写） | `cut_p_interview`、`cut_p_judgement` |
 
-本节只读取、不写入的旗标：`next_cycle`（回收结局写入，现有数据 `data/scenes/endings.json` 已用）、`ai_enabled`（运行时）。
+本节只读取、不写入的旗标：`cycle`（回收结局写入，现有数据 `data/scenes/endings.json` 已用）、`ai_enabled`（运行时）。
 
 ### 4.4 本节音效与环境声
 
@@ -2417,10 +2418,10 @@ narrator：然后，一切都暗了下去。
 | 同上 | 第 2 节开场表 | 加一列"没说出口的话"：A 回给"周末回家吃饭吗？"的消息（停在发送中）；B 给猫起的名字（没叫出声）；C 结果出来时想说的第一句；D 对老房间说的话（咽了回去）。B 行"默认推荐的前世"加注："店员取夜灯，顾客取灶火" | 落实"一个想说而没说的话"并供终章回扣；B 的两种身份各取一个推荐前世 |
 | 同上 | 第 6 节锚点表 A11 行"触发条件"之后 | 加一句："有模型时，只开玩笑、没有提到地球的 E6 回答不算触发，交给莫伊拉的追问。" | 分类器可能把不含"地球"的玩笑归入 E6，锚点不能凭空说出 |
 | 同上 | 第 7 节 N6、N7、N9、N10 | N6、N7 每类回答之后接一轮写定追问（三选一，不改数值）；N7 的 V2 反应去掉"下一个。"；N9 的 S1、S2 各接希尔薇至多一句的追问；N10 前世之后加莫伊拉"这一章的结尾，你希望是什么？"（不计分） | 节拍表要求艾琉恩、瓦尔妲至少完成一轮追问，无模型版须同样做到 |
-| 同上 | 第 8 节变量表 | 增行：`prologue.unsent_words`（文本，N1，终章回地球与第六幕）、`prologue.store_role`（clerk 或 customer，N1）、`prologue.waiting_for`（文本，N1）、`prologue.default_past_life`（N1，代笔）、`prologue.merca_valuation`（high、mid、low，N8，决定硬币条款）、`prologue.cycle_name_reaction`（falter 或 drop，下一期） | 数据与过场已在写，正典登记缺失 |
+| 同上 | 第 8 节变量表 | 增行：`p_unsent_words`（文本，N1，终章回地球与第六幕）、`p_store_role`（clerk 或 customer，N1）、`p_waiting_for`（文本，N1）、`p_default_past_life`（N1，代笔）、`p_merca_valuation`（high、mid、low，N8，决定硬币条款）、`p_cycle_name_reaction`（falter 或 drop，下一期） | 数据与过场已在写，正典登记缺失 |
 | `docs/30_story/arcs/act6_review_and_epilogue.md` | 第 13.2 节"保留什么"表 | 增行"地球遗物与开场：保留。下一期从候见厅开始，不重演地球的最后一刻；号码牌重新发放" | 回收结局最后一场直接落在候见厅，遗物与开场旗标需要明确去留 |
-| 同上 | 第 13.4 节"候见厅的新分支"行 | 把"可能……也可能……"落定为："在面试开始之前说出，艾琉恩慌乱失误：她问'你从哪里听来的'时，手在发抖（新的早期证据，`prologue.cycle_name_reaction = falter`）；在面试中说出，她当场把玩家丢进隙中（`drop`），坠落仍会被接住，硬币照给" | 两种结果都可达且由玩家时机决定，不靠随机 |
-| 同上 | 第 4.2 节证据表 E16 行 | 加注："下一期且 `prologue.cycle_name_reaction == falter` 时，候见厅记录多一条：艾琉恩问'你从哪里听来的'时手在发抖（对艾琉恩的事实防线强度 1）" | 给 13.4 的"新的早期证据"一个可在审庭使用的落点 |
+| 同上 | 第 13.4 节"候见厅的新分支"行 | 把"可能……也可能……"落定为："在面试开始之前说出，艾琉恩慌乱失误：她问'你从哪里听来的'时，手在发抖（新的早期证据，`p_cycle_name_reaction = falter`）；在面试中说出，她当场把玩家丢进隙中（`drop`），坠落仍会被接住，硬币照给" | 两种结果都可达且由玩家时机决定，不靠随机 |
+| 同上 | 第 4.2 节证据表 E16 行 | 加注："下一期且 `p_cycle_name_reaction == falter` 时，候见厅记录多一条：艾琉恩问'你从哪里听来的'时手在发抖（对艾琉恩的事实防线强度 1）" | 给 13.4 的"新的早期证据"一个可在审庭使用的落点 |
 | `docs/30_story/characters.md` | 第 4.3、4.4、4.6 节"首次登场"行 | 陆辰："序（隔壁房间的声音：'外面候见厅里还有一个人，也是跟我们一起来的吗？'）"；白石结衣："序（隔壁房间的声音：'谢谢您，我会尽力。'）"；马库斯："序（隔壁房间的大笑）" | 隔壁四个声音分配到人，界面仍不显示名字；第二幕勇者团初见可回扣 |
 | `docs/40_design/world/scene_flow.md` | 第 4.1 节"问题与修正"灵镜一条、第 8 节汇总表第 12 行 | 写作"偷听档由争吵开始前的姿态选择决定，不按位置计算，灵镜位置不需移动" | 过场已定按选择计档，问题自然关闭 |
 | `docs/40_design/world/map_briefs.md` 与 `data/world/atlas_maps.json` | 新区域 `earth` 与 `court_gap` | `earth_train`：`seat`、`opposite`、`window`、`car_door`、`gangway`；`earth_store`：`counter`、`freezer`、`entrance`、`aisle`、`stockroom`；`earth_hospital`：`chairs`、`nurse_station`、`ward_door`、`exit_sign`、`elevator`；`earth_house`：`old_chair`、`door_frame`、`wardrobe`、`window`、`stairs`；`gap_void`：`fall`。每个地球舞台入口在南、门出现的位置在北 | 过场的传送与调度引用这些位置 |
@@ -2438,13 +2439,13 @@ narrator：然后，一切都暗了下去。
 
 - **玩家心声**写作 `player：（……）`，括号表示心里的话，导入时 `kind` 记 `think`；玩家的出声台词只在选项之后复述。
 - **立绘**只给有半身立绘的十一人用 `@立绘`：夜羽、希雅、罗恩、奈拉、欧拉、卡西安、玛莎、布伦、阿什、莫斯、门口的女人（`janu`）。其余人物说话时对话框自动带头像 `art_por_<人物ID>`。
-- **条件效果**写作 `效果 <效果>［条件］`，对应数据层 `Effect.when`。条件里的中文字符串用单引号，例如 `courtyard.first_object == '一盏台灯'`。
+- **条件效果**写作 `效果 <效果>［条件］`，对应数据层 `Effect.when`。条件里的中文字符串用单引号，例如 `p_courtyard_object == lamp`。
 - **分段播放**：`cut_a1_wake`（两段）与 `cut_a1_tide`（四段）各是一个 `SceneDef`，起点节点按段旗标分支选段；每段末写自己的段旗标。引擎写的 `scene.<id>.seen` 在第一段播完时即为真，判断"整场播完"一律用段旗标。
 - **战斗插演**：不暂停战斗的短句以 `line` 效果播出，写在条目的"插演表"里（触发、说话者、台词），由首领与波次数据挂载；需要玩家决定的插演写成场景节点。
 - **自由输入的归类**：`输入` 行可加 `｜归类 <节点>：<选项…>｜兜底 <选项>`，对应数据层 `SceneInput.classify`（序章已用）。紧跟在 `输入` 行之前的 `即兴` 行，是该输入的模型应答约束；其后的台词行是写定应答（无模型版）。
 - **凡人词表（D-030）**：玩家从夜羽口中听到"澱"（`term.dian_known`，由 S14 或本节的 `cut_a1_yeyu_memory` 写入）之前，所有台词都不出现"澱"；凡人始终说灰气、灰病（荒原病）、灰晶、灰狼、灰鬼、灰巨像，夜羽在听过之后说"澱"。旁白不替魔物命名，只写"灰色的东西"。
 - **门的数值**：开门时的 `doors_opened`、`seal_looseness`、`seal_unrest`、`danger_doors_opened` 一律由门系统结算，过场只演出，不重复写入。
-- **对已有变量采用的枚举字面量**：`rumor.tide_attribution` 取 `player`、`martha`、`light`、`self_collapse`（对应第一幕 8.7 的玩家、玛莎、光、自溃）；`moss.fate` 取 `in_power`、`puppet`、`arrested`、`fled`、`dead`；`borderstone.survival` 取 `intact`、`damaged`、`ravaged`（完好、受创、重创）；`children.toby` 取 `recovered`、`dead`（病中为未写入）；`children.lin` 取 `healthy`、`recovered`、`dead`；`count_letter.variant` 取 `a`、`b`、`c`、`d`（甲乙丙丁）；以第一幕第 12 节为准；`janu.first_dream_answer` 存玩家原话（选项时存选项原文），第六幕原样引用。
+- **对已有变量采用的枚举字面量**：`a1_tide_credit` 取 `player`、`martha`、`light`、`self_collapse`（对应第一幕 8.7 的玩家、玛莎、光、自溃）；`a1_moss_fate` 取 `in_power`、`puppet`、`arrested`、`fled`、`dead`；`a1_bs_survival` 取 `intact`、`damaged`、`ravaged`（完好、受创、重创）；`a1_toby_state` 取 `recovered`、`dead`（病中为未写入）；`a1_lin_state` 取 `healthy`、`recovered`、`dead`；`a1_count_letter` 取 `a`、`b`、`c`、`d`（甲乙丙丁）；以第一幕第 12 节为准；`a1_janu_dream_answer` 存玩家原话（选项时存选项原文），第六幕原样引用。
 
 第一幕的写定节拍里，下列几项不在本节的 14 个 ID 之内，由任务目录的事件（`ev_`）与台词目录承载，本节只给出归属，避免重复制作：
 
@@ -2544,16 +2545,16 @@ narrator：地上绕着一圈字，你一个也不认得。
 @乐 mus_stg_motif_door 入
 narrator：第六个龛就在你头顶。里面刻着一个纹，形状像一扇门，不属于你在这里见过的任何东西。
 narrator：有人凿过它。凿痕很深，却没有凿干净。
-player［prologue.asked_sixth_chair］：（那把椅子……）
+player［p_asked_sixth_chair］：（那把椅子……）
 → pocket
 【pocket】
 @镜 5
 @乐 mus_stg_motif_door 出
 @动作 player 起身
-player［prologue.earth_opening == A］：（口袋里，工牌还在。照片上的人看起来很累。）
-player［prologue.earth_opening == B］：（口袋里，那张小票和那颗糖还在。）
-player［prologue.earth_opening == C］：（口袋里，探视证和半盒薄荷糖还在。那个结果，还是没有听到。）
-player［prologue.earth_opening == D］：（口袋里，那把老钥匙还在。）
+player［p_earth_opening == a］：（口袋里，工牌还在。照片上的人看起来很累。）
+player［p_earth_opening == b］：（口袋里，那张小票和那颗糖还在。）
+player［p_earth_opening == c］：（口袋里，探视证和半盒薄荷糖还在。那个结果，还是没有听到。）
+player［p_earth_opening == d］：（口袋里，那把老钥匙还在。）
 @镜 6
 player：（手心里还攥着一枚硬币。是那个吃东西的女神塞给你的。）
 narrator：硬币是温的。整座大厅里，只有它是温的。
@@ -2594,7 +2595,7 @@ narrator：廊的更深处，还有两扇门，门下透出一线光。别的门
 结束
 ```
 
-**变体**：镜 5 的口袋遗物按 `prologue.earth_opening` 四选一（数据缺失时四行都不显示，只留硬币一行）；镜 4 的"那把椅子"只在序章问过空椅子时出现。
+**变体**：镜 5 的口袋遗物按 `p_earth_opening` 四选一（数据缺失时四行都不显示，只留硬币一行）；镜 4 的"那把椅子"只在序章问过空椅子时出现。
 镜 11 的两道门缝是序章倾向最高的两扇门（门系统决定是哪两扇，本场只演出"两扇"）。
 
 #### cut_a1_ash_glimpse 灰烬室的一瞥（Glimpse of the Ash Chamber）
@@ -2853,7 +2854,7 @@ narrator：回廊里那扇门，自己开了。它没有等你。
 → purify
 【reach】
 narrator：你伸出手。
-分支［prologue.reached_out］→ reach_flash
+分支［p_reached_out］→ reach_flash
 → touch
 【reach_flash】
 @镜 6
@@ -2930,7 +2931,7 @@ narrator：巢里还有一枚磨掉了名字的公会旧铜牌。
 | `keep` | （把手合上） | `coin_keep` | 无 | 无 |
 | `handle` | 门把手？ | `handle` | 无 | 一次 |
 
-**变体**：`prologue.reached_out` 为真时插入镜 6 的闪回与"就像坠落的时候那样"；拒绝三次的玩家没有闪回。
+**变体**：`p_reached_out` 为真时插入镜 6 的闪回与"就像坠落的时候那样"；拒绝三次的玩家没有闪回。
 
 #### cut_a1_town 进镇（Into Edgestone）
 
@@ -2944,7 +2945,7 @@ narrator：巢里还有一枚磨掉了名字的公会旧铜牌。
 | 地点 | `seal_ruins` 的 `shaft_top` 与 `gate_borderstone` 外的禁碑；`borderstone` 的 `north_gate`、`plaza`、`drunk_moon` |
 | 时长 | 约 3 分 30 秒 |
 | 现有数据 | 新建。`a1_m03_town` 的开场句"下面有座镇子，人多，吵，还有吃的。"沿用到镜 3（遗迹在镇北，镇子在遗迹以南，该句前半"出口在北边"不沿用） |
-| 写入旗标 | `a1_town_entered = true`（新）；`marsha.assessment` +1（T1：接住且若无其事）；`trust.barto` +5（对卫队长说实话） |
+| 写入旗标 | `a1_town_entered = true`（新）；`npc.martha.assessment` +1（T1：接住且若无其事）；`trust.barto` +5（对卫队长说实话） |
 | 揭示 | 无线索解锁；禁碑碑文属常识层 |
 | 音乐与音效 | 镜 1 `mus_dg_ancient` 出；镜 3 `mus_town_borderstone_day` 入；镜 6 `mus_cue_comedy` 交叉；镜 7 环境 `amb_int_tavern`，`mus_town_borderstone_day` 交叉压低，延续到游戏。`sfx_cin_a1_cup_catch`、`sfx_cin_a1_cup_break` |
 | 所需美术 | 实景运镜；特写 `art_prop_cut_forbid_stele`；立绘 `art_bust_yeyu`（`neutral`、`angry`、`thinking`）、`art_bust_martha`（`smile`、`neutral`）；头像 `art_por_barto`、`art_por_jed`、`art_por_dora`、`art_por_lina` |
@@ -3051,7 +3052,7 @@ narrator：你接住了。杯底剩的那一点酒，一滴也没洒出来。
 @镜 9
 narrator：玛莎看了你的手一眼，又看了你一眼。
 martha：谢了。
-效果 add marsha.assessment 1
+效果 add npc.martha.assessment 1
 → room
 【show_off】
 @立绘 martha neutral 右
@@ -3081,7 +3082,7 @@ narrator：角落里，一个独臂的男人抬起眼睛看了你们一下，又
 | --- | --- | --- | --- | --- |
 | `truth` | （实话）我们是从遗迹里出来的。 | `truth` | `trust.barto` +5；巴托把实话当成"迷路了"（凡人不信） | 无 |
 | `vague` | （含糊）走错路了。 | `vague` | 无 | 无 |
-| `catch` 后 `casual` | （伸手接住）然后什么也不说 | `casual` | `marsha.assessment` +1（T1：下意识接住且若无其事） | 无 |
+| `catch` 后 `casual` | （伸手接住）然后什么也不说 | `casual` | `npc.martha.assessment` +1（T1：下意识接住且若无其事） | 无 |
 | `catch` 后 `show_off` | 手挺快吧？ | `show_off` | 无（接住了，但不是若无其事） | 无 |
 | `still` | （不动） | `break` | 无 | 无 |
 
@@ -3097,7 +3098,7 @@ narrator：角落里，一个独臂的男人抬起眼睛看了你们一下，又
 | 地点 | `borderstone` 的 `guild`（一楼登记处与委托板） |
 | 时长 | 约 3 分（三个可选项全点约 4 分 30 秒） |
 | 现有数据 | `a1_guild_register`（4 节点、11 行），全部沿用：`crystal` 五行、`register` 三行、`boast` 两行、`take` 一行；补桥段 1 与 2 的原句、罗恩、铜牌。扩写量见索引 |
-| 写入旗标 | `a1_guild_registered = true`（台账）；`a1_badge_returned = true`（新）；`brun.story_level = 1`（尚为 0 时）；`trust.bron` +15；黑羽按秃鹫毛价记 5 铜 |
+| 写入旗标 | `a1_guild_registered = true`（台账）；`a1_badge_returned = true`（新）；`npc.bron.story_level = 1`（尚为 0 时）；`trust.bron` +15；黑羽按秃鹫毛价记 5 铜 |
 | 揭示 | M03-C01（"无记载"，登记 F 级、Lv1、无职能）；M03-C03（公会卡永远 Lv1、无职能）；误导 MIS-06（"水晶坏了"）；S02 的铺垫（铜牌属于布伦死去的队友，本场不说破） |
 | 音乐与音效 | 环境 `amb_int_guild`；镜 1 `mus_town_borderstone_day` 入；镜 3 `mus_cue_comedy` 交叉；镜 6（铜牌）`mus_cue_comedy` 出，静；镜 8 `mus_town_borderstone_day` 交叉，延续到游戏。`sfx_cin_a1_crystal_dead`、`sfx_cin_a1_badge_set` |
 | 所需美术 | 特写 `art_prop_cut_crystal_blank`、`art_prop_cut_guild_card`、`art_prop_cut_old_badge`；立绘 `art_bust_bron`（`neutral`、`surprised`）、`art_bust_ron`（`special`、`surprised`、`smile`）、`art_bust_yeyu`（`angry`）；头像 `art_por_lina`、`art_por_dris` |
@@ -3180,7 +3181,7 @@ narrator：布伦翻簿子的手停住了。他盯着铜牌，看了很久。
 @停 3
 bron：……放这儿吧。
 narrator：他没有再说话。他用仅剩的那只手按住铜牌，按得很紧。
-效果 take old_guild_badge；add trust.bron 15；flag brun.story_level = 1［brun.story_level < 1］；flag a1_badge_returned = true
+效果 take old_guild_badge；add trust.bron 15；flag npc.bron.story_level = 1［npc.bron.story_level < 1］；flag a1_badge_returned = true
 → extras
 【take】
 @立绘 bron neutral 右
@@ -3200,7 +3201,7 @@ narrator：委托板上钉着三张 F 级委托：醉月亭地窖的老鼠，替
 | --- | --- | --- | --- | --- |
 | `boast` | 我比你们想的强。 | `boast` | 无（德里斯的嘲笑，第一幕 5.1 M3） | 一次 |
 | `feather` | （掏出巨鸦的黑羽）这个能换钱吗？ | `feather` | 记 5 铜；传闻种子"F 级捡了根秃鹫毛来领赏"由传闻系统按桥段 2 生成 | 一次；已有黑羽 |
-| `badge` | （把巢里那枚公会旧铜牌放到柜台上） | `badge` | 交出铜牌；`trust.bron` +15；`brun.story_level` 1；`a1_badge_returned` | 一次；铜牌未交还。本场不交的，第 1 周内仍可在柜台交还（任务目录按同一效果结算，台词同 `badge` 节点） |
+| `badge` | （把巢里那枚公会旧铜牌放到柜台上） | `badge` | 交出铜牌；`trust.bron` +15；`npc.bron.story_level` 1；`a1_badge_returned` | 一次；铜牌未交还。本场不交的，第 1 周内仍可在柜台交还（任务目录按同一效果结算，台词同 `badge` 节点） |
 | `take` | （收下卡，走向委托板） | `take` | `a1_guild_registered`；委托板解锁（A1-M04） | 无 |
 
 **变体**：夜羽不在队伍里时，`feather` 节点不出现夜羽那一句。桥段 14"新的水晶也坏了"（第 6 周后重测）归台词目录，台词以第一幕 6.2 为准。
@@ -3313,7 +3314,7 @@ narrator：你又去看门镜里的自己。那一行是空的。
 | 地点 | `borderstone` 的 `plaza`（审判台搭在边石旁、礼拜堂前）；平反且欧拉信任足够时转 `orphanage` 后院；尾声 `chapel`（后院神父小屋） |
 | 时长 | 约 8 分（证据全出约 12 分）；劫狱、贿赂短版约 2 分；尾声约 1 分 |
 | 现有数据 | `a1_oola_trial`（7 节点、22 行）。沿用：`square` 第 1、5 行（广场挤满人；莫斯的指控）与圣光照向玩家的两行（移入 `appraise`）；`cleared` 全部 5 行；`convicted` 第 1 行；`fled` 的"……傻孩子。"不沿用（劫狱当夜的戏归任务目录）；`orphan` 第 1、2 行。按正典重写：光之鉴是"被告手捧圣灯、灯焰转灰即为有罪"（第一幕 4.2），`square` 的白石圈与 `debunked` 的镜子把戏写成捧灯与灯焰；`convicted` 的"囚车"写成"押回拘留室待押送"（押送定在暗月夜次日）；`orphan` 的"别让神父看见你的手"写成"孩子们的手"（此时玩家手上还没有门纹）；E25 欧拉托梦记录的交付放在孤儿院节点。扩写量见索引 |
-| 写入旗标 | `a1_cassian_appraise = true`（若此前未在礼拜堂鉴定过）；`a1_oola_fate`（cleared、convicted、fled）；`a1_trial_evidence`、`a1_trial_testimony`、`a1_trial_debunk`、`a1_trial_debate`、`a1_trial_speech`、`a1_trial_brawl`、`a1_tess_covered`、`a1_noi_spoke`、`a1_cassian_report`（均为新）；`a1_orphan_mark_seen`（台账）；`refugee_children.exposed`；`cassian.doubt` +2（平反）；`trust.oola`；`church_suspicion`（平反 +5，拆穿再 +10，定罪 +15，冲突 +10，门纹暴露 +5，布伦作证 -5，周报 +5）；`marsha.assessment` +2（T5：护住欧拉或孩子）；布伦信任 80 以上时写当众担保 `a1_vouched`、`a1_vouch_by = bron` |
+| 写入旗标 | `a1_cassian_appraise = true`（若此前未在礼拜堂鉴定过）；`a1_oola_fate`（cleared、convicted、fled）；`a1_trial_evidence`、`a1_trial_testimony`、`a1_lamp_exposed`、`a1_trial_debate`、`a1_trial_speech`、`a1_trial_brawl`、`a1_tess_covered`、`a1_noi_spoke`、`a1_cassian_report`（均为新）；`a1_orphan_mark_seen`（台账）；`a1_children_exposed`；`npc.cassian.doubt` +2（平反）；`trust.oola`；`church_suspicion`（平反 +5，拆穿再 +10，定罪 +15，冲突 +10，门纹暴露 +5，布伦作证 -5，周报 +5）；`npc.martha.assessment` +2（T5：护住欧拉或孩子）；布伦信任 80 以上时写当众担保 `a1_vouched`、`a1_vouch_by = bron` |
 | 揭示 | M03-C02（卡西安的圣光鉴定失败，若在此发生）；M04-C02（病童死于荒原病，不是巫术：欧拉如实说）；M02-C03（孤儿院孩子的胎记，教会称"烙印"）；误导 MIS-19、MIS-20、MIS-05 由卡西安与贝莎真诚说出；E25 取得 |
 | 音乐与音效 | 镜 1 `mus_cue_intrigue` 入；镜 6 灯焰转灰时全曲停一拍，镜 6 末重入；冲突收场加强；孤儿院节点无乐，`amb_town_night`；尾声 `mus_cue_intrigue` 只剩低弦，结尾淡出。`sfx_cin_a1_trial_bell`、`sfx_cin_a1_grey_flame`、`sfx_cin_crowd_gasp`、`sfx_cin_a1_brawl`、`sfx_cin_a1_quill_night`；环境 `amb_crowd_tense` |
 | 所需美术 | 实景运镜；特写 `art_prop_cut_grey_lamp`（正常与转灰两帧）、`art_prop_cut_spring_water`、`art_prop_cut_tess_palm`、`art_prop_cut_cassian_report`；特效 `art_vfx_cut_a1_grey_flame`；立绘 `art_bust_cassian`（`neutral`、`pained`、`surprised`、`sad`、`thinking`）、`art_bust_oola`（`special`、`sad`、`smile`）、`art_bust_moss`（`smile`、`surprised`、`neutral`）、`art_bust_bron`（`neutral`）；头像 `art_por_bertha`、`art_por_isa`、`art_por_toma`、`art_por_greta`、`art_por_boro`、`art_por_tess`、`art_por_noi` |
@@ -3407,7 +3408,7 @@ oola：那不是巫术。那是我手上的灰，从病孩子身上沾来的。�
 narrator：没有人听她的。
 → tess_check
 【tess_check】
-分支［a1_tess_in_crowd AND NOT refugee_children.exposed］→ tess_slip
+分支［a1_tess_in_crowd AND NOT a1_children_exposed］→ tess_slip
 → defense
 【tess_slip】
 @镜 14
@@ -3424,7 +3425,7 @@ narrator：苔丝在你怀里眨眨眼，把手心藏到了背后。
 narrator：她把手心摊开。草汁洗掉了一半，一个淡淡的门形露了出来。
 bertha：烙印……那是烙印！
 narrator：伊莎修女冲上来，把孩子抱走了。可是该看见的人，都看见了。
-效果 flag refugee_children.exposed = true；add church_suspicion 5
+效果 flag a1_children_exposed = true；add church_suspicion 5
 → defense
 【defense】
 @镜 7
@@ -3435,15 +3436,15 @@ narrator：所有人都在看你。
 选 witness_toma「请钟楼上的托马说话。」→ toma｜一次｜条件 a1_toma_will_testify
 选 witness_greta「请格蕾塔院长说话。」→ greta｜一次｜条件 trust.greta >= 60
 选 witness_bron「公会的见证人在这儿。请布伦说话。」→ bron｜一次｜条件 trust.bron >= 60
-选 debunk「（指着那盏灯）光之鉴照出来的，未必是巫术。」→ debunk｜一次｜条件 a1_grey_lamp_seen AND (NOT children.toby == recovered OR a1_north_spring_found)
-选 debate「（走上台，对所有人说话）」→ debate｜一次｜条件 prologue.past_life_door == podium OR trust.cassian >= 60
+选 debunk「（指着那盏灯）光之鉴照出来的，未必是巫术。」→ debunk｜一次｜条件 a1_grey_lamp_seen AND (NOT a1_toby_state == recovered OR a1_north_spring_found)
+选 debate「（走上台，对所有人说话）」→ debate｜一次｜条件 p_past_life_door == podium OR trust.cassian >= 60
 选 plead「她只是个采药的老人。放了她。」→ plead｜一次
-选 done「（说完了）」→ verdict｜条件 COUNT(a1_trial_evidence, a1_trial_testimony, a1_trial_debunk, a1_trial_debate) >= 1
-选 silent「（沉默）」→ verdict｜条件 COUNT(a1_trial_evidence, a1_trial_testimony, a1_trial_debunk, a1_trial_debate) == 0
+选 done「（说完了）」→ verdict｜条件 COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate) >= 1
+选 silent「（沉默）」→ verdict｜条件 COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate) == 0
 【water】
 @镜 8
 narrator：你拔开瓶塞，把瓶子举高。瓶底沉着一层灰。前排的人往后缩了一下。
-narrator［a1_seep_channel_found］：你告诉他们，遗迹底下有一条暗渠，灰水就是从那里流到北泉的。
+narrator［a1_spring_source_found］：你告诉他们，遗迹底下有一条暗渠，灰水就是从那里流到北泉的。
 @立绘 oola sad 左
 oola：荒原病的灰。……我说了一个月，没人听。
 @立绘 cassian pained 右
@@ -3492,7 +3493,7 @@ moss：……公会的簿子，管不到代官府。
 narrator：你指着那盏灯。病房里的灯总是发灰，你见过不止一次。
 @立绘 cassian surprised 右
 narrator：广场上安静下来。卡西安看着你，又看着担架上的托比。
-选 touch「请神父先握一握托比的手，再自己捧这盏灯。」→ debunk_touch｜条件 NOT children.toby == recovered
+选 touch「请神父先握一握托比的手，再自己捧这盏灯。」→ debunk_touch｜条件 NOT a1_toby_state == recovered
 选 drop「（往灯罩边滴一滴北泉水）」→ debunk_drop｜条件 a1_north_spring_found
 【debunk_touch】
 narrator：卡西安犹豫了很久。然后他走下台，在托比的担架边跪下，握了握那只发灰的小手。
@@ -3503,7 +3504,7 @@ narrator：灯焰晃了晃，转灰了。比刚才还灰。
 cassian：……这不可能。
 bertha：神父……神父也是……？
 narrator：没有人把那句话说完。
-效果 flag a1_trial_debunk = true
+效果 flag a1_lamp_exposed = true
 → defense
 【debunk_drop】
 narrator：你拔开瓶塞，往灯罩边上滴了一滴北泉水。
@@ -3511,7 +3512,7 @@ narrator：你拔开瓶塞，往灯罩边上滴了一滴北泉水。
 narrator：灯焰一下子灰了，比欧拉捧着的时候还灰。
 @声 sfx_cin_crowd_gasp
 narrator：卡西安盯着那团灰色的火，很久没有说话。
-效果 flag a1_trial_debunk = true
+效果 flag a1_lamp_exposed = true
 → defense
 【debate】
 @镜 11
@@ -3530,8 +3531,8 @@ cassian：光已作证。求情改变不了灯焰的颜色。
 → defense
 【verdict】
 @镜 12
-分支［COUNT(a1_trial_evidence, a1_trial_testimony, a1_trial_debunk, a1_trial_debate) >= 2］→ cleared
-分支［forest.accord == broken］→ brawl
+分支［COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate) >= 2］→ cleared
+分支［a1_forest_accord == broken］→ brawl
 → convicted
 【cleared】
 @乐 mus_cue_intrigue 出
@@ -3546,7 +3547,7 @@ oola：省省吧。去看看托比。
 narrator：欧拉婆婆被解开绳子的时候，没有看神父，只看了你一眼。
 oola［trust.oola >= 60］：孩子，晚上来孤儿院一趟。有些东西，你该看看。
 oola［trust.oola < 60］：哼。这次算你没白长眼睛。
-效果 flag a1_oola_fate = cleared；add cassian.doubt 2；add trust.oola 30；add church_suspicion 5；add church_suspicion 10［a1_trial_debunk］
+效果 flag a1_oola_fate = cleared；add npc.cassian.doubt 2；add trust.oola 30；add church_suspicion 5；add church_suspicion 10［a1_lamp_exposed］
 分支［trust.oola >= 60］→ orphan
 → report
 【convicted】
@@ -3636,8 +3637,8 @@ letter［a1_oola_fate == cleared AND NOT a1_oola_bribed］：……疫病源于�
 letter［NOT a1_oola_fate == cleared OR a1_oola_bribed］：另有一事，晚辈不知如何禀报：镇上来了一个人，公会的鉴定水晶照不出其人，只显示"无记载"。晚辈亲眼见过此人做到常人做不到的事。
 letter［a1_oola_fate == cleared AND NOT a1_oola_bribed］：另有一事，晚辈不知如何禀报：镇上来了一个人，公会的鉴定水晶照不出其人，只显示"无记载"。
 letter［a1_oola_fate == cleared AND NOT a1_oola_bribed AND a1_trial_evidence］：北泉的病源，正是此人找到的。
-letter［a1_oola_fate == cleared AND NOT a1_oola_bribed AND NOT a1_trial_evidence AND a1_trial_debunk］：光之鉴为何转灰，是此人指给晚辈看的。
-letter［a1_oola_fate == cleared AND NOT a1_oola_bribed AND NOT a1_trial_evidence AND NOT a1_trial_debunk］：审判那日，此人站在了药草师一边。
+letter［a1_oola_fate == cleared AND NOT a1_oola_bribed AND NOT a1_trial_evidence AND a1_lamp_exposed］：光之鉴为何转灰，是此人指给晚辈看的。
+letter［a1_oola_fate == cleared AND NOT a1_oola_bribed AND NOT a1_trial_evidence AND NOT a1_lamp_exposed］：审判那日，此人站在了药草师一边。
 letter：光不会赐福给没有记载的人。晚辈祈祷时求问，未得回应。
 letter［NOT a1_oola_fate == cleared OR a1_oola_bribed］：是晚辈的信仰不够，还是此人不在光之下？
 letter［a1_oola_fate == cleared AND NOT a1_oola_bribed］：晚辈不知道，该为此人祈祷，还是该为自己祈祷。
@@ -3646,8 +3647,8 @@ letter：恳请教区示下。
 @立绘 cassian sad 右
 narrator：他把信折好，封上。然后他对着窗外跪了很久。
 narrator：没有回应。
-narrator［a1_trial_debunk］：桌角那盏小灯，他看了一眼，又看了一眼。灯焰有一点灰。
-效果 flag a1_cassian_report = convicted［a1_oola_fate == convicted］；flag a1_cassian_report = fled［a1_oola_fate == fled］；flag a1_cassian_report = cleared［a1_oola_fate == cleared］；add church_suspicion 5［NOT a1_oola_fate == cleared OR a1_oola_bribed］；add marsha.assessment 2［COUNT(a1_trial_evidence, a1_trial_testimony, a1_trial_debunk, a1_trial_debate, a1_tess_covered) >= 1］
+narrator［a1_lamp_exposed］：桌角那盏小灯，他看了一眼，又看了一眼。灯焰有一点灰。
+效果 flag a1_cassian_report = convicted［a1_oola_fate == convicted］；flag a1_cassian_report = fled［a1_oola_fate == fled］；flag a1_cassian_report = cleared［a1_oola_fate == cleared］；add church_suspicion 5［NOT a1_oola_fate == cleared OR a1_oola_bribed］；add npc.martha.assessment 2［COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate, a1_tess_covered) >= 1］
 @乐 mus_cue_intrigue 出
 结束
 ```
@@ -3657,11 +3658,11 @@ narrator［a1_trial_debunk］：桌角那盏小灯，他看了一眼，又看了
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
 | `cover` | （抢在她说完之前把她抱起来……） | `covered` | `a1_tess_covered`；`trust.oola` +10；门纹不暴露 | 苔丝在人群里（`a1_tess_in_crowd`） |
-| `stand` | （站着没动） | `exposed` | `refugee_children.exposed = true`；`church_suspicion` +5 | 同上 |
+| `stand` | （站着没动） | `exposed` | `a1_children_exposed = true`；`church_suspicion` +5 | 同上 |
 | `water` | （举起北泉的灰水） | `water` | 物证 `a1_trial_evidence`（暗渠已找到时多一句） | 一次；`a1_north_spring_found` |
 | `witness_isa`、`witness_toma`、`witness_greta` | 请证人说话 | 各自节点 | 证词 `a1_trial_testimony`（多名证人只计一项）；托马的证词附带莫斯后门见客 | 一次；伊莎、托马的旗标由 S20、S15 写入；格蕾塔信任 60 以上 |
 | `witness_bron` | 请布伦说话 | `bron` | 不计入平反（他替玩家作证，不替欧拉）；`church_suspicion` -5；信任 80 以上时记一次当众担保 | 一次；`trust.bron >= 60` |
-| `debunk` 后 `touch` 或 `drop` | 拆穿光之鉴 | `debunk_touch`、`debunk_drop` | `a1_trial_debunk`；平反时 `church_suspicion` 另 +10 | 一次；见过病房的灰灯（`a1_grey_lamp_seen`） |
+| `debunk` 后 `touch` 或 `drop` | 拆穿光之鉴 | `debunk_touch`、`debunk_drop` | `a1_lamp_exposed`；平反时 `church_suspicion` 另 +10 | 一次；见过病房的灰灯（`a1_grey_lamp_seen`） |
 | `debate` | （走上台，对所有人说话） | `debate` | 自由输入存入 `a1_trial_speech`；不是空白时计 `a1_trial_debate` | 一次；前世讲台，或卡西安信任 60 以上 |
 | `plead` | 她只是个采药的老人。放了她。 | `plead` | 无 | 一次 |
 | `done`、`silent` | （说完了）、（沉默） | `verdict` | 物证、证词、拆穿、辩论四项中成立两项及以上为平反；不足两项且林约破裂为冲突；其余为定罪 | 至少出示一项时显示"说完了"，一项都没有时显示"沉默" |
@@ -3671,8 +3672,8 @@ narrator［a1_trial_debunk］：桌角那盏小灯，他看了一眼，又看了
 | 世界状态 | 走向 | 写定的不同 |
 | --- | --- | --- |
 | `a1_oola_jailbroken`（第 7 周起劫狱成功，`a1_oola_fate` 已为 fled） | `empty` → `report` | 空审判台、断窗栏、莫斯"同谋者也在逃"；周报写"潜逃" |
-| `a1_oola_bribed`（贿赂莫斯，第一幕 4.2 节点 h） | `bribed` → `report` | 告示"证据不足，暂缓审理"；莫斯当众对玩家一笑（传闻"那人和代官一伙"由传闻系统生成）；`a1_oola_fate = cleared`，`cassian.doubt` 不变；周报写"未能审结"，后半段保持怀疑 |
-| 平反（cleared） | `cleared` →（欧拉信任 60 以上）`orphan` → `report` | 卡西安当众收回指控（`cassian.doubt` +2，第三幕信仰危机的种子）；孤儿院节点给出孩子的门纹与 E25；周报写"疫病源于北泉"并按玩家实际的作为换一句 |
+| `a1_oola_bribed`（贿赂莫斯，第一幕 4.2 节点 h） | `bribed` → `report` | 告示"证据不足，暂缓审理"；莫斯当众对玩家一笑（传闻"那人和代官一伙"由传闻系统生成）；`a1_oola_fate = cleared`，`npc.cassian.doubt` 不变；周报写"未能审结"，后半段保持怀疑 |
+| 平反（cleared） | `cleared` →（欧拉信任 60 以上）`orphan` → `report` | 卡西安当众收回指控（`npc.cassian.doubt` +2，第三幕信仰危机的种子）；孤儿院节点给出孩子的门纹与 E25；周报写"疫病源于北泉"并按玩家实际的作为换一句 |
 | 定罪（convicted） | `convicted` → `report` | 卡西安拒绝在镇上处刑；欧拉押回拘留室，押送定在暗月夜次日（兽潮之夜当夜，她的去向见 `cut_a1_tide`） |
 | 冲突（fled） | `brawl` → `report` | 东坡与妇女会、卫队冲突，礼拜堂彩窗碎；欧拉趁乱入林；伤亡与建筑受损由内核按 `a1_trial_brawl` 结算 |
 | 门纹暴露（附加） | `exposed` | 苔丝的手心被贝莎看见；与上面任一结局叠加 |
@@ -3690,7 +3691,7 @@ narrator［a1_trial_debunk］：桌角那盏小灯，他看了一眼，又看了
 | 地点 | 暗渠版 `seal_ruins_depths` 的 `seep_channel`；钟楼版 `borderstone` 的 `chapel`（钟楼顶）；场景头不设地图，钟楼版在节点里传送 |
 | 时长 | 约 2 分 30 秒 |
 | 现有数据 | 新建 |
-| 写入旗标 | `term.dian_known = true`（玩家第一次从夜羽口中听到"澱"；已由 S14 写入时保持）；`a1_yeyu_told_fall = true`（新，玩家问过遗迹为什么醒了）；`yeyu.memory_shards` +1 |
+| 写入旗标 | `term.dian_known = true`（玩家第一次从夜羽口中听到"澱"；已由 S14 写入时保持）；`a1_yeyu_told_fall = true`（新，玩家问过遗迹为什么醒了）；`npc.yeyu.memory_shards` +1 |
 | 揭示 | S01（"那扇门，是不该被打开的。可我等了好久好久。"）；M04 的局部原因（玩家第一次意识到自己的到来与孩子们的病有关）；D-030 的界面名称切换点 |
 | 音乐与音效 | 暗渠版环境 `amb_dian_low`，钟楼版环境 `amb_town_night` 加风；镜 3 `mus_cue_warmth` 入（放慢一倍、只留木管），镜 5 出 |
 | 所需美术 | 立绘 `art_bust_yeyu`（`sad`、`neutral`）；实景运镜（钟楼顶的夜，荒原尽头一线灰光） |
@@ -3745,8 +3746,8 @@ yeyu［term.dian_known］：那一线灰光，是澱。它要漫过来了。
 yeyu：那扇门，是不该被打开的。
 @停 2
 yeyu：可我等了好久好久。
-player［prologue.eavesdrop_level >= 2］：（钥匙碰到钥匙的那一声。候见厅里，第六把椅子那边。不知道为什么，你在这时候想起了它。）
-narrator［prologue.eavesdrop_level >= 3］：夜羽腰间的皮囊轻轻动了一下。她按住了它。
+player［p_eavesdrop_level >= 2］：（钥匙碰到钥匙的那一声。候见厅里，第六把椅子那边。不知道为什么，你在这时候想起了它。）
+narrator［p_eavesdrop_level >= 3］：夜羽腰间的皮囊轻轻动了一下。她按住了它。
 → ask
 【ask】
 选 which「哪扇门？」→ dont_know｜一次
@@ -3770,13 +3771,13 @@ narrator：灰，是从那天晚上开始变多的。
 @立绘 yeyu neutral 右
 yeyu：……别那样看我。我又没说是你的错。
 yeyu：我只是在等。等的人还没来，或者已经来了，我分不清。
-效果 add yeyu.memory_shards 1
+效果 add npc.yeyu.memory_shards 1
 @乐 mus_cue_warmth 出
 结束
 ```
 
 **变体**：`term.dian_known` 为假时，夜羽第一次说出"澱"，界面上的魔物名与物品名从此切换为"澱"系名称（D-030）；为真时她只说"又是澱"。
-`prologue.eavesdrop_level` 2 以上多一句玩家心声（候见厅里钥匙碰钥匙的那一声，帘幕稿第四段），3 多一句信囊动了一下；两句都只是联想，不给结论。
+`p_eavesdrop_level` 2 以上多一句玩家心声（候见厅里钥匙碰钥匙的那一声，帘幕稿第四段），3 多一句信囊动了一下；两句都只是联想，不给结论。
 钟楼版的玩家没有去过暗渠时，"墓地里那座新坟"一句照常（米洛的坟是全镇都知道的事）。
 
 #### cut_a1_tide 兽潮之夜（Night of the Beast Tide）
@@ -3785,7 +3786,7 @@ yeyu：我只是在等。等的人还没来，或者已经来了，我分不清�
 | --- | --- |
 | 幕与拍 | 第一幕，高潮（`seal_unrest` 达到 100 那周的暗月夜，默认第 10 周，内核钳制在第 8 到 10 周） |
 | 类型 | 引擎内过场，分四段（黄昏、礼拜堂的暴民、巨像、澱核），另有战斗插演 |
-| 触发 | 黄昏段：`a1_tide_night AND NOT a1_tide_dusk_seen`（日落），请求方 A1-M12（兽潮之夜）开始。暴民段：`a1_tide_stage == 2 AND a1_oola_fate == convicted AND cassian.doubt == 0 AND NOT a1_mob_seen`（第一幕 8.4 贝莎一行）。巨像段：`a1_tide_stage == 3 AND NOT a1_colossus_seen`。澱核段：`boss.dian_colossus.defeated AND NOT a1_core_choice_made`，随后直接播 `cut_a1_martha` |
+| 触发 | 黄昏段：`a1_tide_night AND NOT a1_tide_dusk_seen`（日落），请求方 A1-M12（兽潮之夜）开始。暴民段：`a1_tide_stage == 2 AND a1_oola_fate == convicted AND npc.cassian.doubt == 0 AND NOT a1_mob_seen`（第一幕 8.4 贝莎一行）。巨像段：`a1_tide_stage == 3 AND NOT a1_colossus_seen`。澱核段：`boss.dian_colossus.defeated AND NOT a1_core_choice_made`，随后直接播 `cut_a1_martha` |
 | 时机 | 日落、第二拍中段、午夜、巨像倒下；全部必经（暴民段只在条件成立时）。黄昏段播完把操作交还玩家做最后部署 |
 | 出场 | `toma`、`cassian`、`bron`、`gaspar`（加斯帕）、`gorn`（葛恩）、`yeyu`、`bertha`、`isa`、`oola`、`noi`；澱巨像（首领立牌 `art_boss_dian_colossus_parts_d`、`_r`、`_u`）；插演里另有 `barto`、`dris`、`boro`、`shiya`、`nera`、`popo`、`ron`、`moss`、`seg_oneeye`、`ed`、`jed` |
 | 地点 | `borderstone` 全图：`north_gate`、`chapel`、`guild`、`east_gate`、`east_slope`、`magistrate`（拘留室）、`orphanage`、`north_spring` |
@@ -3827,7 +3828,7 @@ yeyu：我只是在等。等的人还没来，或者已经来了，我分不清�
 【route】
 分支［boss.dian_colossus.defeated AND NOT a1_core_choice_made］→ core
 分支［a1_tide_stage == 3 AND NOT a1_colossus_seen］→ colossus
-分支［a1_tide_stage == 2 AND a1_oola_fate == convicted AND cassian.doubt == 0 AND NOT a1_mob_seen］→ mob
+分支［a1_tide_stage == 2 AND a1_oola_fate == convicted AND npc.cassian.doubt == 0 AND NOT a1_mob_seen］→ mob
 → dusk
 【dusk】
 @镜 1
@@ -3846,12 +3847,12 @@ cassian：礼拜堂的门开着！老人、孩子、病人，都进来！光会�
 bron：公会石屋！全镇墙最厚的就是这儿！别挤，一个一个进！
 @立绘撤
 @镜 5
-narrator［forest.accord == restored］：东栅打开了。加斯帕扛着斧头站在门边，东坡的猎户一个接一个走进来。
-gaspar［forest.accord == restored］：开门！放东坡的人进来！斧头都拿上！
-gaspar［forest.accord == partial］：东栅等一句话。希雅说开，我就开。
-gaspar［forest.accord == broken］：宵禁令写着呢。东栅不开。
-gorn［forest.accord == broken］：……东坡的人，回木屋。守住自己的门。
-分支［forest.accord == partial］→ east_order
+narrator［a1_forest_accord == restored］：东栅打开了。加斯帕扛着斧头站在门边，东坡的猎户一个接一个走进来。
+gaspar［a1_forest_accord == restored］：开门！放东坡的人进来！斧头都拿上！
+gaspar［a1_forest_accord == partial］：东栅等一句话。希雅说开，我就开。
+gaspar［a1_forest_accord == broken］：宵禁令写着呢。东栅不开。
+gorn［a1_forest_accord == broken］：……东坡的人，回木屋。守住自己的门。
+分支［a1_forest_accord == partial］→ east_order
 → deploy
 【east_order】
 选 order「（对加斯帕喊）开门！我说的！」→ east_open
@@ -3896,7 +3897,7 @@ narrator：有人跟着喊了起来。几个男人站起身往门口走。他们
 @镜 9
 narrator：你撞开礼拜堂的门，挡在了门口。
 bertha：让开！你跟她是一伙的！
-分支［children.toby == recovered］→ mob_toby_ok
+分支［a1_toby_state == recovered］→ mob_toby_ok
 → mob_toby_sick
 【mob_toby_sick】
 narrator：你没有让。你只是看着贝莎，看着她怀里那个灰到指节的孩子。
@@ -4040,7 +4041,7 @@ narrator：来不及了。
 | 1 中 | 同上，识才之门已开 | `narrator` | 罗恩头顶那行字，亮了一下。 |
 | 2 开始 | 罗恩：信任 60 以下（跑到南门又折回） | `narrator` | 罗恩跑到南门口，看见一群缩在墙根的孩子。 |
 | 2 开始 | 同上（紧接） | `ron` | 不可能，我又不是……啧！跟我来，都跟我来！ |
-| 2 开始 | 布伦：`brun.story_level` 2 以上 | `bron` | 这次我不躲了。 |
+| 2 开始 | 布伦：`npc.bron.story_level` 2 以上 | `bron` | 这次我不躲了。 |
 | 2 开始 | 夜羽（鸦群已不敌对，替玩家侦察） | `yeyu` | 鸦在墓地上空打转。……那边有东西爬出来了。 |
 | 2 中 | 莫斯：`in_power`（带钱箱南逃） | `moss` | 快、快走！钱箱！把钱箱抬上车！ |
 | 2 中 | 同上（紧接） | `narrator` | 南门的两个民兵被他叫走了。 |
@@ -4050,9 +4051,9 @@ narrator：来不及了。
 | 2 中 | 独眼团：已收编 | `seg_oneeye` | 南门交给我们。拿了钱，就办事。 |
 | 2 中 | 独眼团：已发生"反咬" | `narrator` | 代官宅邸那边传来砸门声。独眼团去找莫斯算账了。 |
 | 2 中 | 独眼团：活跃（薇罗趁乱劫商会后仓） | `narrator` | 商会后仓的门锁断了。有人趁乱搬走了一车盐。 |
-| 2 中 | 卡西安：欧拉在押且 `cassian.doubt` 1 以上 | `cassian` | ……出来吧。去救人。审判的事，天亮再说。 |
+| 2 中 | 卡西安：欧拉在押且 `npc.cassian.doubt` 1 以上 | `cassian` | ……出来吧。去救人。审判的事，天亮再说。 |
 | 2 中 | 同上（紧接） | `oola` | ……这才像句人话。 |
-| 2 中 | 卡西安：欧拉在押且 `cassian.doubt` 为 0 | `cassian` | 审判已定。 |
+| 2 中 | 卡西安：欧拉在押且 `npc.cassian.doubt` 为 0 | `cassian` | 审判已定。 |
 | 2 中 | 同上（诺伊独自去救，门纹暴露风险） | `narrator` | 一个小小的影子从礼拜堂侧门溜了出去，往代官宅邸跑。 |
 | 2 结束 | 托马（第二波前报出最弱面） | `narrator` | 钟声变了：三短，一长。托马在报最薄的那一面。 |
 | 3 中 | 巨像抵达孩子所在处，开始"汲门" | `narrator` | 礼拜堂的窗户里，亮起一点金光。是孩子们的纹。 |
@@ -4076,7 +4077,7 @@ narrator：来不及了。
 | `smash` | （击碎它） | `smash` | `a1_core_choice = smash`；A1-M12 照常给碎核 | 借形之门未开 |
 | `grasp` | （伸手握住它） | `grasp` | `a1_core_choice = grasp`；`dian_core`（渊契之门的序钥，消耗）；`trust.yeyu` -20；被目击时 `church_suspicion` +10 | 借形之门未开 |
 
-**变体**：借形之门已开（`door.vocation_druid`）时没有选择，澱核在伸手前自碎（第一幕 11 的互斥）。黄昏段东栅三种调度按 `forest.accord`。
+**变体**：借形之门已开（`door.vocation_druid`）时没有选择，澱核在伸手前自碎（第一幕 11 的互斥）。黄昏段东栅三种调度按 `a1_forest_accord`。
 巨像段按 `a1_colossus_target` 两种（玩家在射程内时追玩家，否则转向孩子）。灰潮扑向的一面按 `a1_tide_weakest` 四种。
 
 #### cut_a1_martha 一刀（One Cut）
@@ -4091,7 +4092,7 @@ narrator：来不及了。
 | 地点 | `borderstone`：`drunk_moon` → 最弱面（`north_gate`、`east_gate`、`south_gate`、`west_field` 之一）→ `plaza` → `chapel` → `drunk_moon` |
 | 时长 | 约 5 分（伤亡多时约 6 分） |
 | 现有数据 | `a1_tide_dawn`（1 节点、7 行）。沿用：第 2 行"玛莎提着一把旧刀走出来，围裙都没摘"、"她只挥了一刀。"、"……地窖的杯子还没擦完。"、"她回去了，像什么都没发生过。"；"第二波兽潮，从中间断开了。"写成"灰潮，从中间断开了"；第 1 行由 `cut_a1_tide` 的 `surge` 节点接管；末行"天亮了。镇上的人说法不一……"拆进黎明段与归功段。补正典的取刀（地窖长木匣）、"看见的人很多，看清的人很少"、旁观变体、伤亡、晨祷、归功与那杯酒。扩写量见索引 |
-| 写入旗标 | `marsha.revealed`；`a1_martha_strike = true`（台账，出手时）；`a1_martha_drink = true`（新）；`rumor.tide_attribution`（由 `compute tide_attribution` 写入，新的计算函数） |
+| 写入旗标 | `npc.martha.revealed`；`a1_martha_strike = true`（台账，出手时）；`a1_martha_drink = true`（新）；`a1_tide_credit`（由 `compute tide_attribution` 写入，新的计算函数） |
 | 揭示 | S02-C02（玛莎一刀斩断第二波兽潮，然后回去擦杯子）；玛莎的回避"先吃饭" |
 | 音乐与音效 | 出手：镜 1 无乐，`amb_battle_far`；镜 4 刀出鞘前全静 0.5 秒，`sfx_cin_martha_cut`，"减少闪烁和震动"开启时白闪换成 0.2 秒淡白；镜 5 余音。黎明：完好时 `mus_town_borderstone_day`，受创或重创时 `mus_cue_sorrow`；晨祷有孩子死去时 `mus_cue_sorrow` 交叉；归功段 `mus_cue_comedy`；那杯酒时 `mus_cue_comedy` 出，静 |
 | 所需美术 | 立绘 `art_bust_martha`（`neutral`、`smile`、`special`）、`art_bust_cassian`（`neutral`、`sad`）、`art_bust_ron`（`special`）；特殊动作 `art_chr_martha_strike`；特效 `art_vfx_cut_a1_martha_slash`；全屏静帧 `art_bg_cut_a1_martha_light`；特写 `art_prop_cut_martha_box`、`art_prop_cut_blade_mark`；`art_bust_shiya`（`neutral`）；头像 `art_por_dora`、`art_por_bertha`、`art_por_isa`、`art_por_greta`、`art_por_simon` |
@@ -4147,7 +4148,7 @@ narrator：灰潮，从中间断开了。
 @立绘 martha neutral 右
 martha：……地窖的杯子还没擦完。
 narrator：她回去了，像什么都没发生过。
-效果 flag marsha.revealed = true；flag a1_martha_strike = true
+效果 flag npc.martha.revealed = true；flag a1_martha_strike = true
 → dawn
 【watch】
 @镜 7
@@ -4156,13 +4157,13 @@ narrator：她回去了，像什么都没发生过。
 narrator：醉月亭门口，玛莎拄着一把拖把，一直看着那一面。
 narrator：灰潮撞上去，碎了，又撞上去。那一面没有破。
 narrator：她看完了全程，转身回店里，把拖把靠在门边。
-效果 flag marsha.revealed = false
+效果 flag npc.martha.revealed = false
 → dawn
 【dawn】
 @转场 溶
 @立绘撤
 效果 teleport borderstone plaza
-分支［borderstone.survival == intact］→ dawn_light
+分支［a1_bs_survival == intact］→ dawn_light
 → dawn_heavy
 【dawn_light】
 @镜 8
@@ -4176,17 +4177,17 @@ narrator：镇子还在。栅栏倒了几段，屋顶塌了几间，人都还在
 @光 晨
 @乐 mus_cue_sorrow 入
 narrator：天亮了。
-narrator［borderstone.survival == damaged］：镇子还在。可是有几户人家的门，今天早上没有打开。
-narrator［borderstone.survival == ravaged］：镇子还在。礼拜堂前的空地上，盖着白布的人排成了一排。
+narrator［a1_bs_survival == damaged］：镇子还在。可是有几户人家的门，今天早上没有打开。
+narrator［a1_bs_survival == ravaged］：镇子还在。礼拜堂前的空地上，盖着白布的人排成了一排。
 → dawn_common
 【dawn_common】
-narrator［NOT marsha.revealed］：昨夜最薄的那一面，地上有一道刀痕。整整齐齐，又长又直，不知道是从哪儿来的。
+narrator［NOT npc.martha.revealed］：昨夜最薄的那一面，地上有一道刀痕。整整齐齐，又长又直，不知道是从哪儿来的。
 narrator［npc.deaths HAS boro］：东栅外，博罗倒在黑脊旁边。两个都没有再起来。
 narrator［npc.deaths HAS dris］：北边的空地上，德里斯的剑断成了两截。他到最后也没有喊人帮忙。
 narrator［npc.deaths HAS barto］：北门的门洞里，巴托靠着墙坐着，矛还握在手里。
 narrator［npc.deaths HAS gaspar］：伐木场的斧头堆旁边，加斯帕没有再起来。
 narrator［a1_tide_other_dead > 0］：还有些名字，你昨天还在集市上听人喊过。
-narrator［moss.fate == fled］：代官宅邸的门敞着。马厩空了，钱箱也不见了。
+narrator［a1_moss_fate == fled］：代官宅邸的门敞着。马厩空了，钱箱也不见了。
 narrator［a1_oola_wounded］：北门外的灰地上有一串血迹，往东一直延伸到林边，就断了。旁边是鹿的蹄印。
 → prayer
 【prayer】
@@ -4198,22 +4199,22 @@ narrator：礼拜堂里在做晨祷。
 @立绘 cassian neutral 右
 cassian［church_suspicion >= 40］：光庇佑了边石镇。我们活下来，是因为光看见了我们。
 cassian［church_suspicion < 40］：感谢光，让我们看见了早晨。也感谢昨夜守在栅栏边的每一个人。
-分支［children.toby == dead OR children.lin == dead］→ prayer_dark
+分支［a1_toby_state == dead OR a1_lin_state == dead］→ prayer_dark
 → prayer_light
 【prayer_light】
-narrator［children.toby == recovered］：贝莎抱着托比坐在最前排。托比醒着，在啃一块面包。
-bertha［children.toby == recovered］：……光啊。谢谢。也谢谢……
-narrator［children.toby == recovered］：她看了你一眼，没有说完。
-narrator［children.lin == recovered］：孤儿院的琳靠在伊莎修女身上，咳了两声，又睡着了。
+narrator［a1_toby_state == recovered］：贝莎抱着托比坐在最前排。托比醒着，在啃一块面包。
+bertha［a1_toby_state == recovered］：……光啊。谢谢。也谢谢……
+narrator［a1_toby_state == recovered］：她看了你一眼，没有说完。
+narrator［a1_lin_state == recovered］：孤儿院的琳靠在伊莎修女身上，咳了两声，又睡着了。
 → attribution
 【prayer_dark】
 @乐 mus_cue_sorrow 交叉
 @立绘 cassian sad 右
-narrator［children.toby == dead］：贝莎抱着托比坐在最前排。托比没有醒。他的手指，灰到了第二个关节。
-narrator［children.lin == dead］：祭坛前多了一口小棺材。是孤儿院的琳。九岁。
+narrator［a1_toby_state == dead］：贝莎抱着托比坐在最前排。托比没有醒。他的手指，灰到了第二个关节。
+narrator［a1_lin_state == dead］：祭坛前多了一口小棺材。是孤儿院的琳。九岁。
 @停 6
 narrator：没有人说话。
-narrator［children.toby == recovered］：贝莎抱着托比坐在后排。托比醒着，把脸埋在她怀里。
+narrator［a1_toby_state == recovered］：贝莎抱着托比坐在后排。托比醒着，把脸埋在她怀里。
 → attribution
 【attribution】
 @转场 溶
@@ -4223,26 +4224,26 @@ narrator［children.toby == recovered］：贝莎抱着托比坐在后排。托�
 @环境 amb_int_tavern
 @乐 mus_cue_comedy 交叉
 narrator：醉月亭里挤满了人。每个人都在说昨夜，每个人说的都不一样。
-dora［marsha.revealed］：老板娘？老板娘只是去关窗。
+dora［npc.martha.revealed］：老板娘？老板娘只是去关窗。
 @立绘 martha neutral 右
-martha［marsha.revealed］：风太大，我去关窗。
+martha［npc.martha.revealed］：风太大，我去关窗。
 @立绘 ron special 左
 ron：巨像……巨像是自己塌的吧？对，一定是灰散了。
-shiya［rumor.tide_attribution == player］：我看见了。巨像是这个人打倒的。谁在说谎，我闻得出来。
-isa［rumor.tide_attribution == player］：孩子们都看见了。是这个人把那个大东西从孤儿院引开的。
-greta［rumor.tide_attribution == player］：孩子不会认错。
-ron［rumor.tide_attribution == player］：……好吧。可能。
-dora［rumor.tide_attribution == martha］：我亲眼看见的！老板娘一刀，把那个大家伙劈成了两半！
-townsfolk［rumor.tide_attribution == martha］：一刀！就一刀！
-martha［rumor.tide_attribution == martha］：……先吃饭。
-bertha［rumor.tide_attribution == light］：是光。神父说了，是光。
-townsfolk［rumor.tide_attribution == light］：光庇佑了边石镇。
-simon［rumor.tide_attribution == self_collapse］：哪有什么人打倒它。那种东西，灰一散，自己就塌了。
-ron［rumor.tide_attribution == self_collapse］：对、对，自己塌的。
+shiya［a1_tide_credit == player］：我看见了。巨像是这个人打倒的。谁在说谎，我闻得出来。
+isa［a1_tide_credit == player］：孩子们都看见了。是这个人把那个大东西从孤儿院引开的。
+greta［a1_tide_credit == player］：孩子不会认错。
+ron［a1_tide_credit == player］：……好吧。可能。
+dora［a1_tide_credit == martha］：我亲眼看见的！老板娘一刀，把那个大家伙劈成了两半！
+townsfolk［a1_tide_credit == martha］：一刀！就一刀！
+martha［a1_tide_credit == martha］：……先吃饭。
+bertha［a1_tide_credit == light］：是光。神父说了，是光。
+townsfolk［a1_tide_credit == light］：光庇佑了边石镇。
+simon［a1_tide_credit == self_collapse］：哪有什么人打倒它。那种东西，灰一散，自己就塌了。
+ron［a1_tide_credit == self_collapse］：对、对，自己塌的。
 → drink
 【drink】
-分支［marsha.revealed AND marsha.assessment >= 5］→ free_drink
-分支［marsha.revealed］→ no_word
+分支［npc.martha.revealed AND npc.martha.assessment >= 5］→ free_drink
+分支［npc.martha.revealed］→ no_word
 → end
 【free_drink】
 @镜 11
@@ -4268,13 +4269,13 @@ narrator：人散了以后，玛莎在擦杯子。她一句话也没有跟你说
 
 | 世界状态 | 写定的不同 |
 | --- | --- |
-| 第二波打向的那一面缺口大于 0（`a1_tide_gap_weakest > 0`） | 出手：取刀、走向最弱面（四种）、一刀；`marsha.revealed = true` |
-| 缺口为 0（镇子自己守住了） | 旁观：拖把；黎明时最弱面地上那道刀痕（她在第一波时顺手做的）；`marsha.revealed = false`。这是"镇子不靠超凡者也能挺过去"的第一次小型演示 |
-| `borderstone.survival` 完好、受创、重创 | 黎明的第一句与配乐 |
+| 第二波打向的那一面缺口大于 0（`a1_tide_gap_weakest > 0`） | 出手：取刀、走向最弱面（四种）、一刀；`npc.martha.revealed = true` |
+| 缺口为 0（镇子自己守住了） | 旁观：拖把；黎明时最弱面地上那道刀痕（她在第一波时顺手做的）；`npc.martha.revealed = false`。这是"镇子不靠超凡者也能挺过去"的第一次小型演示 |
+| `a1_bs_survival` 完好、受创、重创 | 黎明的第一句与配乐 |
 | `npc.deaths` 含博罗、德里斯、巴托、加斯帕；其他死者计数 | 各一句；其他死者只用一句不点名的旁白 |
-| `children.toby` 康复或死亡；`children.lin` 康复、死亡或未发病 | 晨祷的孩子；有孩子死去时整段静默不少于 6 秒，配乐转静钟 |
-| `rumor.tide_attribution` 四种 | 归功段的四组台词；罗恩的"不可能"在玩家版里接上"……好吧。可能。" |
-| 出手且 `marsha.assessment` 5 以上 / 5 以下 | 不收钱的那杯酒与"别让我再把那把刀拿出来。" / 只是擦杯子 |
+| `a1_toby_state` 康复或死亡；`a1_lin_state` 康复、死亡或未发病 | 晨祷的孩子；有孩子死去时整段静默不少于 6 秒，配乐转静钟 |
+| `a1_tide_credit` 四种 | 归功段的四组台词；罗恩的"不可能"在玩家版里接上"……好吧。可能。" |
+| 出手且 `npc.martha.assessment` 5 以上 / 5 以下 | 不收钱的那杯酒与"别让我再把那把刀拿出来。" / 只是擦杯子 |
 | 暴民把欧拉拖出北门 | 黎明多一句北门外的血迹与鹿的蹄印 |
 | 莫斯南逃 | 黎明多一句空马厩 |
 
@@ -4289,8 +4290,8 @@ narrator：人散了以后，玛莎在擦杯子。她一句话也没有跟你说
 | 出场 | `janu`（界面显示"门口的女人"；第六幕 `a6_name_spoken` 之前不显示其名） |
 | 地点 | `dream_doorway`（第一阶段布景：只有门口与半张脸，门缝漏暖光，`seal_looseness` 第一幕阶段）；门推开后的院子是 `inner_court` 的梦中远景（本场不传送） |
 | 时长 | 约 4 分（问遍全部问题约 6 分；有模型时自由提问另计） |
-| 现有数据 | `a1_dream`（11 节点、33 行）。沿用：`door` 全部 8 行；`ask` 的七个选项；`a_who` 到 `a_why` 的全部写定回答；`question` 的提问与三个选项（取值写成玩家原话，第一幕 12 把 `janu.first_dream_answer` 记为文本）；`gift` 全部 9 行。`wake` 节点（4 行）移入 `cut_a1_mark`；`gift` 节点的 `feature inner_court` 与 `seal_looseness` +5 交给门系统（门内庭院的两把时钥 `a1_beast_tide_cleared`、`a1_dream_door_woman` 齐后由门系统开门并结算松动度）。补：自由提问（有模型时）、对三种回答的回应、空院一物的写法、白场转场。扩写量见索引 |
-| 写入旗标 | `a1_dream_door_woman = true`（台账）；`janu.first_dream_answer`（文本，第六幕回扣）；`a1_dream_free_question`（新，文本） |
+| 现有数据 | `a1_dream`（11 节点、33 行）。沿用：`door` 全部 8 行；`ask` 的七个选项；`a_who` 到 `a_why` 的全部写定回答；`question` 的提问与三个选项（取值写成玩家原话，第一幕 12 把 `a1_janu_dream_answer` 记为文本）；`gift` 全部 9 行。`wake` 节点（4 行）移入 `cut_a1_mark`；`gift` 节点的 `feature inner_court` 与 `seal_looseness` +5 交给门系统（门内庭院的两把时钥 `a1_beast_tide_cleared`、`a1_dream_door_woman` 齐后由门系统开门并结算松动度）。补：自由提问（有模型时）、对三种回答的回应、空院一物的写法、白场转场。扩写量见索引 |
+| 写入旗标 | `a1_dream_door_woman = true`（台账）；`a1_janu_dream_answer`（文本，第六幕回扣）；`a1_dream_free_question`（新，文本） |
 | 揭示 | A10 回扣（她的声音与坠落时的"接住你了"相同：M01-C03、M09-C01）；M09-C01（"你来了""门总会开的"）；门内庭院与第一件物品（序章希尔薇题） |
 | 音乐与音效 | 镜 1 黑中 `mus_cue_dream_door` 入（第一阶段配器：只有八音盒与一支弦）；环境 `amb_dream_door`；镜 6 门推开时加第二个声部；镜 8 后白场，曲淡出。`sfx_cin_a1_dream_touch`、`sfx_door_dream_door` |
 | 所需美术 | 立绘 `art_bust_door_woman`（`neutral`、`smile`、`special`、`thinking`）；全屏静帧 `art_bg_cut_a1_dream_door`、`art_bg_cut_a1_dream_court`（门后的院子；十种第一件物品用叠层，不另画十张） |
@@ -4326,11 +4327,11 @@ narrator：前方有一扇门，开着一条缝，暖色的光从缝里漏出来
 @镜 3
 @立绘 janu neutral 右
 narrator：门口站着一个女人。她的脸有一半在阴影里。腰间挂满了钥匙，钥匙一动不动，也不响。
-janu［prologue.earth_opening == A］：你来了。这次没有错过末班车。
-janu［prologue.earth_opening == B］：你来了。雨停了。
-janu［prologue.earth_opening == C］：你来了。那边的结果，我也不知道，对不起。
-janu［prologue.earth_opening == D］：你来了。钥匙还在吧？
-janu［NOT prologue.earth_opening IN (A, B, C, D)］：你来了。
+janu［p_earth_opening == a］：你来了。这次没有错过末班车。
+janu［p_earth_opening == b］：你来了。雨停了。
+janu［p_earth_opening == c］：你来了。那边的结果，我也不知道，对不起。
+janu［p_earth_opening == d］：你来了。钥匙还在吧？
+janu［NOT p_earth_opening IN (A, B, C, D)］：你来了。
 → ask
 【ask】
 @镜 4
@@ -4349,8 +4350,8 @@ janu：一个守门的。名字……现在说出来，会有人听见。
 【a_caught】
 @立绘 janu special 右
 janu：嗯。那天我接住你了。
-janu［prologue.reached_out］：你那时候伸手了，所以我抓得住。
-janu［NOT prologue.reached_out］：你那时候没伸手。没关系，我抓得住。
+janu［p_reached_out］：你那时候伸手了，所以我抓得住。
+janu［NOT p_reached_out］：你那时候没伸手。没关系，我抓得住。
 narrator：她笑了一下。
 @立绘 janu smile 右
 janu：你比我想的重一点。
@@ -4380,13 +4381,13 @@ janu：门总会开的。
 【question】
 @立绘 janu special 右
 janu：那个镇子，你喜欢吗？
-选 like「喜欢。」→ a_like｜效果 flag janu.first_dream_answer = '喜欢。'
-选 unsure「还不知道。」→ a_unsure｜效果 flag janu.first_dream_answer = '还不知道。'
-选 dislike「不喜欢。」→ a_dislike｜效果 flag janu.first_dream_answer = '不喜欢。'
+选 like「喜欢。」→ a_like｜效果 flag a1_janu_dream_answer = '喜欢。'
+选 unsure「还不知道。」→ a_unsure｜效果 flag a1_janu_dream_answer = '还不知道。'
+选 dislike「不喜欢。」→ a_dislike｜效果 flag a1_janu_dream_answer = '不喜欢。'
 选 free_answer「（自己回答）」→ answer_free
 【answer_free】
 即兴 janu｜目的：听完玩家对"那个镇子，你喜欢吗"的回答，只回一两句，不评判｜情境：同上；她问这个，是想知道玩家会不会把那里当成自己的地方｜含义键：有人住的地方；还早｜禁区：同自由提问
-输入「那个镇子，你喜欢吗？」→ gift｜存入 janu.first_dream_answer｜上限 80｜空值 （没有回答）｜答者 janu
+输入「那个镇子，你喜欢吗？」→ gift｜存入 a1_janu_dream_answer｜上限 80｜空值 （没有回答）｜答者 janu
 janu：嗯。我记住了。
 【a_like】
 @立绘 janu smile 右
@@ -4410,9 +4411,9 @@ janu：这个先给你。别让太多人看见。
 @声 sfx_door_dream_door
 narrator：她侧身，把门推开。门后是一个小院子：一间木头小屋，一小片翻过土的园子，一棵树。
 @镜 7
-narrator［courtyard.first_object == '空院，只有一棵没开花的树'］：院子里什么也没放。只有那棵树，还没开花。
-narrator［NOT courtyard.first_object == '空院，只有一棵没开花的树'］：院子里放着一件东西：{flag:courtyard.first_object}。
-narrator［prologue.earth_opening == D］：小屋的门锁，和你口袋里那把老钥匙一模一样。
+narrator［p_courtyard_object == '空院，只有一棵没开花的树'］：院子里什么也没放。只有那棵树，还没开花。
+narrator［NOT p_courtyard_object == '空院，只有一棵没开花的树'］：院子里放着一件东西：{flag:p_courtyard_object}。
+narrator［p_earth_opening == d］：小屋的门锁，和你口袋里那把老钥匙一模一样。
 @立绘 janu special 右
 janu：这里先给你。一间小屋，一小片园子。别嫌小。
 janu：门总会开的。
@@ -4432,10 +4433,10 @@ janu：醒来吧。外面有人在等你。
 | `who`、`caught`、`where`、`want`、`ash`、`why` | 六个写定问题 | 各自回答后回到 `ask` | 无 | 各一次；`ash` 需见过阿什 |
 | `free` | （自己问） | `ask_free` | 存入 `a1_dream_free_question`；有模型时她即兴回答（受禁区约束），无模型时写定两句；归类到最近的写定问题，兜底 `why` | 不限次数 |
 | `enough` | （不再问了） | `question` | 无 | 无 |
-| `like`、`unsure`、`dislike` | 喜欢。还不知道。不喜欢。 | 各自回应后到 `gift` | `janu.first_dream_answer` 存选项原文 | 无 |
-| `free_answer` | （自己回答） | `answer_free` | `janu.first_dream_answer` 存玩家原话 | 无 |
+| `like`、`unsure`、`dislike` | 喜欢。还不知道。不喜欢。 | 各自回应后到 `gift` | `a1_janu_dream_answer` 存选项原文 | 无 |
+| `free_answer` | （自己回答） | `answer_free` | `a1_janu_dream_answer` 存玩家原话 | 无 |
 
-**变体**：第一句按 `prologue.earth_opening` 五种（A 到 D，加数据缺失时的"你来了。"）；`a_caught` 按 `prologue.reached_out` 两种；第一件物品按 `courtyard.first_object`（十种取值，其中"空院"单独一句）；开场 D 多一句门锁。
+**变体**：第一句按 `p_earth_opening` 五种（A 到 D，加数据缺失时的"你来了。"）；`a_caught` 按 `p_reached_out` 两种；第一件物品按 `p_courtyard_object`（十种取值，其中"空院"单独一句）；开场 D 多一句门锁。
 
 #### cut_a1_mark 门纹（The Door Mark）
 
@@ -4448,9 +4449,9 @@ janu：醒来吧。外面有人在等你。
 | 出场 | `yeyu`、`noi`、`bron`；`eluen` 与 `door_voice` 只在闪回里出声 |
 | 地点 | `borderstone` 的 `drunk_moon`（或按 `a1_dream_bed` 为公会石屋、礼拜堂长椅）→ `door_corridor`（醒厅）→ `inner_court`（`court_arrival`、小屋、园子）→ `borderstone` 的 `plaza` → `guild` |
 | 时长 | 约 5 分（不进庭院约 3 分 30 秒） |
-| 现有数据 | `a1_dream` 的 `wake` 节点（1 节点、4 行）与 `a1_count_letter` 的 `hand`、`glove` 两节点（2 节点、5 行）。沿用：`wake` 第 1 行（门纹浮现）、夜羽"……没什么。手洗干净再说话。"，"（千门回廊里，多了一扇已经开着的门：门内庭院。）"写成回廊镜头里的一句旁白；`hand` 全部 3 行；`glove` 的两行分别归 `glove_yes` 与 `story_1`（正典 9.3：布伦"……那个人。从灰里爬出来的那个。"属于 `brun.story_level` 1 到 2，不属于信任 40 以下）。按正典不沿用：`wake` 第 2 行"一瞬间，你想起了候见厅……轮廓，和手背上的纹一模一样。"（第一幕 9.2：闪回不加任何解说文字，本场用三个同形画面完成）。补：闪回与叠声、信囊（S01-C02）、门内庭院首访、边石一亮、诺伊、布伦的三档讲述。扩写量见索引 |
-| 写入旗标 | `a1_bron_sees_mark = true`（台账）；`brun.secret_kept`（是或否）；道具 `brun_glove`（是时）；`yeyu.memory_shards` +1；`a1_court_first_visit = true`（新） |
-| 揭示 | A00 回扣（艾琉恩之光照出的空洞、遗迹第六神纹、手背门纹三者同形，伴"这不合规格。"：M01-C01、M01-C05 的视觉对照）；A10 回扣（"接住你了"与梦里的声音叠在一起）；M01-C04（"二十年前那个人手上，也有这个。"）；S01-C02（七封打不开的信）；S07 的铺垫（`brun.story_level` 3 时"他没有脸。你有。"） |
+| 现有数据 | `a1_dream` 的 `wake` 节点（1 节点、4 行）与 `a1_count_letter` 的 `hand`、`glove` 两节点（2 节点、5 行）。沿用：`wake` 第 1 行（门纹浮现）、夜羽"……没什么。手洗干净再说话。"，"（千门回廊里，多了一扇已经开着的门：门内庭院。）"写成回廊镜头里的一句旁白；`hand` 全部 3 行；`glove` 的两行分别归 `glove_yes` 与 `story_1`（正典 9.3：布伦"……那个人。从灰里爬出来的那个。"属于 `npc.bron.story_level` 1 到 2，不属于信任 40 以下）。按正典不沿用：`wake` 第 2 行"一瞬间，你想起了候见厅……轮廓，和手背上的纹一模一样。"（第一幕 9.2：闪回不加任何解说文字，本场用三个同形画面完成）。补：闪回与叠声、信囊（S01-C02）、门内庭院首访、边石一亮、诺伊、布伦的三档讲述。扩写量见索引 |
+| 写入旗标 | `a1_bron_sees_mark = true`（台账）；`npc.bron.secret_kept`（是或否）；道具 `brun_glove`（是时）；`npc.yeyu.memory_shards` +1；`a1_court_first_visit = true`（新） |
+| 揭示 | A00 回扣（艾琉恩之光照出的空洞、遗迹第六神纹、手背门纹三者同形，伴"这不合规格。"：M01-C01、M01-C05 的视觉对照）；A10 回扣（"接住你了"与梦里的声音叠在一起）；M01-C04（"二十年前那个人手上，也有这个。"）；S01-C02（七封打不开的信）；S07 的铺垫（`npc.bron.story_level` 3 时"他没有脸。你有。"） |
 | 音乐与音效 | 镜 1 `mus_cue_zoomout` 入（第一变奏，最薄的配器）；镜 3 到 6 闪回时压到只剩门之动机的两个音；镜 9 `mus_stg_motif_door` 交叉；镜 10 `amb_inner_court`；镜 11 交叉回 `mus_cue_zoomout`；镜 15 布伦看见门纹时全曲停；镜 17 重入，结尾淡出。`sfx_door_trace_glow`、`sfx_cin_flashback`、`sfx_cin_a1_edgestone_glint`、`sfx_cin_a1_glove` |
 | 所需美术 | 特写 `art_prop_cut_door_mark`、`art_prop_cut_letter_pouch`、`art_prop_cut_edgestone_glyph`、`art_prop_cut_brun_glove`，复用 `art_prop_cut_sixth_sigil`；实景运镜；特效 `art_vfx_cut_a1_mark_glow`、`art_vfx_cut_a1_edgestone_glint`；立绘 `art_bust_yeyu`（`surprised`、`special`、`neutral`）、`art_bust_bron`（`neutral`、`surprised`、`sad`）；头像 `art_por_noi` |
 | 里程碑 | M1 |
@@ -4474,7 +4475,7 @@ janu：醒来吧。外面有人在等你。
 | 13 | 标准，中 | 井边，诺伊替伊莎修女提水，撩起后颈的头发又放下 | 晨 | 无 |
 | 14 | 溶入公会；标准，中 | 柜台后只有布伦一个人 | 窗光 | `amb_int_guild` |
 | 15 | 标准，特 | 玩家的手背；布伦的视线；空着的右袖管轻轻一晃 | 同上 | 全曲停 |
-| 16 | 标准，近 | 布伦讲述（按 `brun.story_level`） | 同上 | 静 |
+| 16 | 标准，近 | 布伦讲述（按 `npc.bron.story_level`） | 同上 | 静 |
 | 17 | 标准，特（`art_prop_cut_brun_glove`） | 旧皮手套扔在柜台上（或布伦让玩家先回去） | 同上 | `sfx_cin_a1_glove`；曲重入 |
 
 **对白**
@@ -4519,7 +4520,7 @@ narrator：夜羽蹲在窗台上。她看见了你的手背，愣了很久。
 @停 3
 @立绘 yeyu special 右
 yeyu：……没什么。手洗干净再说话。
-效果 add yeyu.memory_shards 1
+效果 add npc.yeyu.memory_shards 1
 @镜 8
 narrator：她别过头去的时候，一只手按住了腰间的皮信囊。信囊鼓鼓的，封口压着暗红的火漆。
 选 ask_pouch「那里面是什么？」→ pouch｜一次
@@ -4546,9 +4547,9 @@ narrator：你的回廊里，初门旁边多了一扇门。它已经开着了，
 @环境 amb_inner_court
 @光 晨
 narrator：一间木头小屋，一小片翻过土的园子，一棵树。和梦里一样。
-narrator［courtyard.first_object == '空院，只有一棵没开花的树'］：院子里什么也没放。那棵树还是没开花。
-narrator［NOT courtyard.first_object == '空院，只有一棵没开花的树'］：{flag:courtyard.first_object}，还放在梦里那个位置。
-narrator［prologue.earth_opening == D］：你掏出那把老钥匙，插进小屋的门锁。转得很顺。
+narrator［p_courtyard_object == '空院，只有一棵没开花的树'］：院子里什么也没放。那棵树还是没开花。
+narrator［NOT p_courtyard_object == '空院，只有一棵没开花的树'］：{flag:p_courtyard_object}，还放在梦里那个位置。
+narrator［p_earth_opening == d］：你掏出那把老钥匙，插进小屋的门锁。转得很顺。
 → court_yeyu_check
 【court_yeyu_check】
 分支［companion.yeyu.recruited］→ court_yeyu
@@ -4573,7 +4574,7 @@ narrator：你去公会交兽潮的讨伐凭证。路过广场的时候，边石
 @声 sfx_cin_a1_edgestone_glint
 narrator：只有一瞬。半个门形的纹，在晨光里亮了，又暗了。
 narrator：广场上的人走来走去，没有一个人回头。
-分支［refugee_children.safe］→ noi
+分支［a1_children_safe］→ noi
 → guild
 【noi】
 @镜 13
@@ -4597,8 +4598,8 @@ bron：二十年前那个人手上，也有这个。
 效果 flag a1_bron_sees_mark = true
 → story
 【story】
-分支［brun.story_level >= 3］→ story_3
-分支［brun.story_level >= 1］→ story_1
+分支［npc.bron.story_level >= 3］→ story_3
+分支［npc.bron.story_level >= 1］→ story_1
 → story_0
 【story_3】
 @镜 16
@@ -4628,7 +4629,7 @@ narrator：布伦什么也没解释。他很久没有说话。
 @立绘 bron neutral 右
 narrator：布伦摘下左手的旧皮手套，扔到柜台上。
 bron：戴上。在这个镇上，别让神父看见。
-效果 item brun_glove；flag brun.secret_kept = true
+效果 item brun_glove；flag npc.bron.secret_kept = true
 → end
 【glove_no】
 @镜 17
@@ -4636,7 +4637,7 @@ bron：戴上。在这个镇上，别让神父看见。
 @立绘 bron neutral 右
 bron：……你先回去。
 narrator：那天夜里，公会二楼的灯亮到很晚。
-效果 flag brun.secret_kept = false
+效果 flag npc.bron.secret_kept = false
 → end
 【end】
 @立绘撤
@@ -4659,10 +4660,10 @@ narrator：那天夜里，公会二楼的灯亮到很晚。
 | --- | --- |
 | `a1_dream_bed` 醉月亭、公会石屋、礼拜堂 | 醒来的第一句 |
 | 夜羽未同行 | 跳过镜 7、8 与庭院里夜羽的两句 |
-| `courtyard.first_object` | 庭院里第一件物品一句；开场 D 多一句老钥匙开锁 |
-| `refugee_children.safe` 为否（孩子被带走或已暴露并藏起） | 跳过诺伊一节 |
-| `brun.story_level` 3 / 1 到 2 / 0 | "他没有脸。你有。" / "……那个人。从灰里爬出来的那个。" / 长久的沉默 |
-| `trust.bron` 40 以上 / 以下 | 旧手套（`brun.secret_kept` 是）/ 二楼的灯（否：他当夜给公会大区写信，第二幕公会与教会更早注意到玩家） |
+| `p_courtyard_object` | 庭院里第一件物品一句；开场 D 多一句老钥匙开锁 |
+| `a1_children_safe` 为否（孩子被带走或已暴露并藏起） | 跳过诺伊一节 |
+| `npc.bron.story_level` 3 / 1 到 2 / 0 | "他没有脸。你有。" / "……那个人。从灰里爬出来的那个。" / 长久的沉默 |
+| `trust.bron` 40 以上 / 以下 | 旧手套（`npc.bron.secret_kept` 是）/ 二楼的灯（否：他当夜给公会大区写信，第二幕公会与教会更早注意到玩家） |
 
 #### cut_a1_letter 伯爵来信（The Count's Letter）
 
@@ -4676,7 +4677,7 @@ narrator：那天夜里，公会二楼的灯亮到很晚。
 | 地点 | `borderstone` 的 `post_station` → `guild` |
 | 时长 | 约 2 分 30 秒 |
 | 现有数据 | `a1_count_letter` 的 `letter` 节点（1 节点、4 行）。沿用：驿卒送信一行（拆为驿站与公会两镜）、信的正文（数据只写了玛莎一版，本场写全四种归功与五种莫斯结局）、"伯爵要见那个打退兽潮的 F 级。""你说，我该带谁去？"；场景末的 `act act2` 保留。扩写量见索引 |
-| 写入旗标 | `count_letter.variant`（`a`、`b`、`c`、`d`，即甲乙丙丁）；道具 `count_letter`；`act` 进入第二幕 |
+| 写入旗标 | `a1_count_letter`（`a`、`b`、`c`、`d`，即甲乙丙丁）；道具 `count_letter`；`act` 进入第二幕 |
 | 揭示 | 无台账线索；第二幕入口（"那个 F 级"：瓦伦堡总有人想见一见传闻里那个被小看的人） |
 | 音乐与音效 | 镜 1 `mus_cue_zoomout` 入（第一变奏完整版）；镜 3 读信时压低；镜 4 布伦问话后停一拍；镜 7 字幕卡时收尾淡出。`sfx_cin_a1_post_horse`、`sfx_cin_a1_letter_unfold` |
 | 所需美术 | 特写 `art_prop_cut_count_letter`；立绘 `art_bust_bron`（`neutral`、`thinking`）、`art_bust_ron`（`special`、`surprised`）、`art_bust_yeyu`（`neutral`）；头像 `art_por_ulf_lange` |
@@ -4717,18 +4718,18 @@ narrator：驿卒把那封盖着火漆的信送进了公会。布伦拆开，读
 @声 sfx_cin_a1_letter_unfold
 letter：致边石镇冒险者公会分部长布伦阁下：
 letter：据报，暗月之夜，贵镇遭兽潮侵袭。
-letter［rumor.tide_attribution == player］：赖一名登记为 F 级之冒险者力战，镇得保全。
-letter［rumor.tide_attribution == martha］：有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。
-letter［rumor.tide_attribution == light］：据贵镇神父所报，此乃光之庇佑；然亦有人言，一名登记为 F 级之冒险者曾独当巨物。
-letter［rumor.tide_attribution == self_collapse］：据报魔物自溃；然亦有人言，一名登记为 F 级之冒险者当夜在场。
+letter［a1_tide_credit == player］：赖一名登记为 F 级之冒险者力战，镇得保全。
+letter［a1_tide_credit == martha］：有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。
+letter［a1_tide_credit == light］：据贵镇神父所报，此乃光之庇佑；然亦有人言，一名登记为 F 级之冒险者曾独当巨物。
+letter［a1_tide_credit == self_collapse］：据报魔物自溃；然亦有人言，一名登记为 F 级之冒险者当夜在场。
 letter：伯爵府欲见此人。请于本月内携其至瓦伦堡。
-letter［moss.fate == arrested］：另，代官莫斯一事，本府已知，届时一并处置。
-letter［moss.fate == fled］：另，代官莫斯擅离职守，本府已发文缉拿。
-letter［moss.fate == in_power］：另，代官莫斯呈报，防御事宜皆由代官府统筹，此节亦请分部长届时一并说明。
-letter［moss.fate == puppet］：另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。
-letter［moss.fate == dead］：另，代官莫斯殒命一事，本府已知，届时一并查明。
+letter［a1_moss_fate == arrested］：另，代官莫斯一事，本府已知，届时一并处置。
+letter［a1_moss_fate == fled］：另，代官莫斯擅离职守，本府已发文缉拿。
+letter［a1_moss_fate == in_power］：另，代官莫斯呈报，防御事宜皆由代官府统筹，此节亦请分部长届时一并说明。
+letter［a1_moss_fate == puppet］：另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。
+letter［a1_moss_fate == dead］：另，代官莫斯殒命一事，本府已知，届时一并查明。
 letter：瓦伦边境伯爵府 书记处 谨启
-效果 flag count_letter.variant = a［rumor.tide_attribution == player］；flag count_letter.variant = b［rumor.tide_attribution == martha］；flag count_letter.variant = c［rumor.tide_attribution == light］；flag count_letter.variant = d［rumor.tide_attribution == self_collapse］；item count_letter
+效果 flag a1_count_letter = a［a1_tide_credit == player］；flag a1_count_letter = b［a1_tide_credit == martha］；flag a1_count_letter = c［a1_tide_credit == light］；flag a1_count_letter = d［a1_tide_credit == self_collapse］；item count_letter
 @镜 4
 @立绘 bron thinking 右
 narrator：布伦看完，哼了一声。
@@ -4788,7 +4789,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | `ron` | 带罗恩去吧。 | `ron` | 无（罗恩的反应按他兽潮夜的作为两种；同行与送行由第二幕决定） | 罗恩已招募 |
 | `push` | （把信推回去） | `push` | 无 | 无 |
 
-**变体**：信文第三句按 `rumor.tide_attribution` 四种（`count_letter.variant` 甲乙丙丁），倒数第二句按 `moss.fate` 五种（在任、傀儡、被拘、南逃、死亡）；
+**变体**：信文第三句按 `a1_tide_credit` 四种（`a1_count_letter` 甲乙丙丁），倒数第二句按 `a1_moss_fate` 五种（在任、傀儡、被拘、南逃、死亡）；
 无论哪一种，信里都出现"那个 F 级"（第一幕 8.7）。夜羽未同行时跳过 `yeyu_peek`，只有字幕卡。
 
 ### 5.3 本节新旗标
@@ -4805,7 +4806,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | `a1_badge_returned` | 布尔 | 是或否 | 巢中的公会旧铜牌已交还布伦（第 1 周内在柜台交还也写） | `cut_a1_guild` |
 | `a1_trial_evidence` | 布尔 | 是或否 | 审判时出示了物证（北泉灰水，暗渠） | `cut_a1_trial` |
 | `a1_trial_testimony` | 布尔 | 是或否 | 审判时有证词（伊莎、托马、格蕾塔任一） | `cut_a1_trial` |
-| `a1_trial_debunk` | 布尔 | 是或否 | 当场拆穿光之鉴 | `cut_a1_trial` |
+| `a1_lamp_exposed` | 布尔 | 是或否 | 当场拆穿光之鉴 | `cut_a1_trial` |
 | `a1_trial_debate` | 布尔 | 是或否 | 公开辩论成立（陈述不是空白） | `cut_a1_trial` |
 | `a1_trial_speech` | 文本 | 至多 200 字；空白记 `silent` | 玩家在审判台上的陈述原话 | `cut_a1_trial` |
 | `a1_trial_brawl` | 布尔 | 是或否 | 审判冲突发生；内核据此结算伤亡与礼拜堂受损 | `cut_a1_trial` |
@@ -4829,7 +4830,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | `a1_isa_will_testify` | 布尔 | 是或否 | 伊莎肯作证（A1-S20 完成，或她亲眼看到孩子有危险时由 A1-D02 兜底）；任务目录写入 | 读取：`cut_a1_trial`、`cut_a1_tide` |
 | `a1_toma_will_testify` | 布尔 | 是或否 | 托马肯开口（A1-S15 完成）；任务目录写入 | 读取：`cut_a1_trial` |
 | `a1_grey_lamp_seen` | 布尔 | 是或否 | 暗面节拍 D2：玩家在病房里看见灯焰发灰；任务目录 A1-M07 的病房阶段写入 | 读取：`cut_a1_trial` |
-| `a1_seep_channel_found` | 布尔 | 是或否 | A1-M07 找到渗泉暗渠；任务目录写入 | 读取：`cut_a1_trial` |
+| `a1_spring_source_found` | 布尔 | 是或否 | A1-M07 找到渗泉暗渠；任务目录写入 | 读取：`cut_a1_trial` |
 | `a1_oola_jailbroken` | 布尔 | 是或否 | 劫狱成功（A1-D02.f，第 7 周起，定罪后到押送前也可）；任务目录写入 | 读取：`cut_a1_trial` |
 | `a1_oola_bribed` | 布尔 | 是或否 | 贿赂莫斯放人（A1-D02.h）；任务目录写入 | 读取：`cut_a1_trial` |
 | `a1_tess_in_crowd` | 布尔 | 是或否 | 审判时苔丝在人群里；内核在审判开场结算：伊莎信任 60 以上、或 S19 守密、或孩子已改住磨坊时为否 | 读取：`cut_a1_trial` |
@@ -4845,7 +4846,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | `a1_dream_bed` | 枚举 | `tavern`、`guild`、`chapel` | 兽潮次夜的睡处（醉月亭客房受损时改睡公会石屋或礼拜堂）；内核写入 | 读取：`cut_a1_mark` |
 
 本节还使用两个已在数据层出现、尚未进台账的旗标：`term.dian_known`（玩家第一次从夜羽口中听到"澱"，D-030 的界面切换点，由 S14 或 `cut_a1_yeyu_memory` 写入）、`a1_ash_page`（灰里飘来的那页纸）。
-新的计算函数一个：`tide_attribution`，按第一幕 8.7 写 `rumor.tide_attribution`，判定顺序为：巨像战的具名目击者中信任 60 以上者至少四人取 `player`；
+新的计算函数一个：`tide_attribution`，按第一幕 8.7 写 `a1_tide_credit`，判定顺序为：巨像战的具名目击者中信任 60 以上者至少四人取 `player`；
 否则玛莎出手取 `martha`；否则 `church_suspicion` 40 以上（卡西安在晨祷中宣讲"光庇佑"）取 `light`；其余取 `self_collapse`。
 
 ### 5.4 本节音效与环境声
@@ -4966,15 +4967,15 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | --- | --- | --- | --- |
 | `docs/30_story/arcs/act1_borderstone.md` | 7.4 暗面节拍 D7 的"周报节选"及其后的平反说明 | D7 写成光之鉴当夜所写、第 9 周随驿车寄出。首句按结局：定罪"……北区疫病未止，第二个孩子倒下。药草师经光之鉴，灯焰转灰，已定罪，待押送教区。"；出逃"……药草师于审判之日潜逃，下落不明。"；贿赂"……药草师经代官府以'证据不足'释放，晚辈未能审结。"；平反"……疫病源于北泉，非人为。晚辈错怪了一位老人。"。"另有一事"以下各版保留原文；平反版删去"晚辈亲眼见过此人做到常人做不到的事"，在"无记载"之后接一句玩家的实际作为（找到病源、指出灯焰转灰、或站在药草师一边），末句换成"晚辈不知道，该为此人祈祷，还是该为自己祈祷。" | 节选原文"药草师已被拘，审判定于光日"写在审判之前，与节拍表的第 9 周和平反版本"晚辈错怪了一位老人"互相矛盾；"后半段不变但怀疑减弱一档"需要写定的措辞 |
 | 同上 | 4.2 结局表"平反"一行的条件 | "物证、证词、拆穿光之鉴、公开辩论四项中至少成立两项（多名证人只计一项；布伦作为公会见证人替玩家说话，不计入欧拉的平反）" | 原文"物证加上证词或拆穿光之鉴，至少两项"没有说明公开辩论（节点 g）算不算一项，过场需要可判定的规则 |
-| 同上 | 4.2 结局表"冲突"一行的条件 | "判定有罪时，若林约已破裂（`forest.accord == broken`），博罗带东坡猎户冲台" | "林地之争已升级"需要落到变量 |
-| 同上 | 4.2 介入节点 h"贿赂莫斯"的产出 | "欧拉以'证据不足'获释，`a1_oola_fate = cleared`，另记 `a1_oola_bribed`；`cassian.doubt` 不变；卡西安周报写'未能审结'；镇民传闻'他和代官一伙'" | 原文没有写这一支的 `a1_oola_fate` 取值 |
+| 同上 | 4.2 结局表"冲突"一行的条件 | "判定有罪时，若林约已破裂（`a1_forest_accord == broken`），博罗带东坡猎户冲台" | "林地之争已升级"需要落到变量 |
+| 同上 | 4.2 介入节点 h"贿赂莫斯"的产出 | "欧拉以'证据不足'获释，`a1_oola_fate = cleared`，另记 `a1_oola_bribed`；`npc.cassian.doubt` 不变；卡西安周报写'未能审结'；镇民传闻'他和代官一伙'" | 原文没有写这一支的 `a1_oola_fate` 取值 |
 | `docs/30_story/reveal_ledger.md` | 0.4 变量表 `a1_oola_fate` 的含义列 | "cleared 平反，或经贿赂以证据不足获释（另记 `a1_oola_bribed`）" | 同上，与第一幕 4.2 h 对齐 |
 | `docs/30_story/arcs/act1_borderstone.md` | 8.4 NPC 行动判定表"贝莎"第一行的贡献列 | "阻止方式：玩家丢下所在防线赶到礼拜堂（该防线本阶段失去玩家的 +40），或伊莎挡在门口（信任 60 以上，或已答应作证）。未被阻止时……（原文不变）" | 原文"玩家或伊莎可阻止"没有写怎样算阻止，过场把它落成一个有代价的选择 |
-| 同上 | 9.4 伯爵来信"按 `moss.fate` 追加一句"的括号内 | 补两种："傀儡：'另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。'；死亡：'另，代官莫斯殒命一事，本府已知，届时一并查明。'" | 第一幕 12 节 `moss.fate` 有五种取值，来信只写了三种 |
+| 同上 | 9.4 伯爵来信"按 `a1_moss_fate` 追加一句"的括号内 | 补两种："傀儡：'另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。'；死亡：'另，代官莫斯殒命一事，本府已知，届时一并查明。'" | 第一幕 12 节 `a1_moss_fate` 有五种取值，来信只写了三种 |
 | 同上 | 9.2"回扣演出"一条 | 在"画面极短地闪回序章 P12……"之后补："闪回依次是三个同形的轮廓：艾琉恩之光照出的空洞、遗迹第六神纹、手背的门纹，伴艾琉恩的一句'这不合规格。'" | 揭示台账 A00 的回扣写明"视觉对照：手背门纹与遗迹第六神纹同形"，9.2 只写了 P12 一个画面 |
 | 同上 | 7.4 暗面节拍 D6"必须发生的事"列末尾 | "若玩家此前没有从夜羽口中听过'澱'（S14 未发生），夜羽在此第一次说出'澱'（暗渠版：'这水里的东西……是澱。'；钟楼版：'那一线灰光，是澱。'），界面名称从此切换（D-030）。" | 第 0 节写明 D6 是听到"澱"的两个时机之一，但 D6 的台词里没有"澱"字 |
 | `docs/30_story/reveal_ledger.md` | 0.4 剧情标记表第一幕段 | 增一行：`term.dian_known`，"玩家第一次从夜羽口中听到'澱'（S14 或 D6），界面魔物名与物品名切换为'澱'系名称" | D-030 的切换点需要一个统一的标记，数据层已在使用 |
-| `docs/30_story/arcs/act1_borderstone.md` | 12 节表格，`rumor.tide_attribution`、`moss.fate`、`borderstone.survival`、`children.toby`、`children.lin`、`count_letter.variant` 的取值列 | 在中文取值后括注字面量：`player`、`marsha`、`light`、`collapse`；`in_power`、`puppet`、`arrested`、`fled`、`dead`；`intact`、`damaged`、`ravaged`；`sick`、`recovered`、`dead`；`healthy`、`sick`、`recovered`、`dead`；`'甲'`到`'丁'` | 条件表达式里的枚举只能用标识符（`quests_and_events.md` 4.1） |
+| `docs/30_story/arcs/act1_borderstone.md` | 12 节表格，`a1_tide_credit`、`a1_moss_fate`、`a1_bs_survival`、`a1_toby_state`、`a1_lin_state`、`a1_count_letter` 的取值列 | 在中文取值后括注字面量：`player`、`marsha`、`light`、`collapse`；`in_power`、`puppet`、`arrested`、`fled`、`dead`；`intact`、`damaged`、`ravaged`；`sick`、`recovered`、`dead`；`healthy`、`sick`、`recovered`、`dead`；`'甲'`到`'丁'` | 条件表达式里的枚举只能用标识符（`quests_and_events.md` 4.1） |
 
 **导入与引擎需求**（不属正典回写，已并入第 13 节的播放器需求与导入清单）：
 
@@ -4992,7 +4993,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 
 1. **多入口场景**：同一个 `SceneDef` 在起点节点用"分支"按进度旗标跳到不同段落，每段以"结束"收尾。引擎每播完一段都会写 `scene.<cut_id>.seen`，所以多入口场景的入口条件一律用本段的进度旗标，不用 `seen`。跨地图的多入口场景不填"地图"，播放时不移动玩家；需要换地方的段落用 `teleport` 效果。
 2. **关系档**：勇者团 `hero_rel_*`（负 100 到 100，第二幕文档 10.2）分三档：高 `>= 40`，中 `-20` 到 `39`，低 `< -20`。无模型档按此阈值结算勇者团的自主选择；有模型时由各人的 AI 在人格内决定，结果写回同名旗标。
-3. **在场写法**：夜羽在场 `companion.yeyu.recruited`（夜羽恒定同行，写条件是为了与数据层一致）；希雅在队 `companion.shiya.recruited`；罗恩在队 `companion.ron.recruited`。"罗恩可用"写作 `NOT (a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed))`，希雅同理。
+3. **在场写法**：夜羽在场 `companion.yeyu.recruited`（夜羽恒定同行，写条件是为了与数据层一致）；希雅在队 `companion.shiya.recruited`；罗恩在队 `companion.ron.recruited`。"罗恩可用"写作 `NOT (a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed))`，希雅同理。
 4. **称谓纪律**：凡人台词说"灰气、灰病、灰晶"；夜羽、冒险者、学者与旁白可说"澱"（玩家在第一幕已从夜羽口中听过，D-030）。门口的女人在脚本里的说话者 ID 是 `janu`，界面显示"门口的女人"（台账第 6 节称谓开放表，D-023），本段任何台词与字幕都不出现她的名字。无貌者在 `a2_faceless_projection` 之前显示"没有脸的人"，之后显示"无貌者"（`data/scenes/speakers.json` 已登记）；他本幕只称玩家"后来的那个"，不说"同乡"（"同乡"会提前泄露 S07-C04"他也是地球人"）。
 5. **即兴**：有模型时按"即兴"指令生成；无模型时，紧跟其后的写定台词就是完整版本（D-010）。锚点 A06、关键台词（伯爵的托付、老船夫的两句、无貌者的两句、艾登的两句、第一封信、门口的女人的两句写定梦台词）一律写定，不交给即兴。
 6. **雅努梦境硬约束**（`characters.md` 1.3，`goddess_gm.md` 12.4）：不说自己的名字；不主动说开门会松动封印；第五幕前不提无貌者；从不直接说谎，只挑选说哪一部分；本幕两次梦都不说她要什么。执行者对她的输出做禁名与台账检查，越界时回落到写定台词。
@@ -5065,7 +5066,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 @光 午
 @天气 晴
 narrator：往南的路比来时宽。驿车上有人在讲兽潮之夜的故事，讲的人每一次讲得都不一样。
-narrator［brun.secret_kept］：你左手戴着布伦给的旧皮手套。手背上的东西，藏在里面。
+narrator［npc.bron.secret_kept］：你左手戴着布伦给的旧皮手套。手背上的东西，藏在里面。
 yeyu［companion.yeyu.recruited］：城里人多，吵，还有更多吃的。还有……很多那种发光的铺子。你的手，藏好。
 shiya［companion.shiya.recruited］：我没进过这么大的城。……别看我，看路。
 ron［companion.ron.recruited］：瓦伦堡有四万人。我爹说的。他也没去过。
@@ -5199,7 +5200,7 @@ yeyu［companion.yeyu.recruited］：……也可能是炭盆。走了，门把�
 | 条件 | 差异 |
 | --- | --- |
 | `church_suspicion >= 60` | 赛琳在北门等着（第一幕卡西安的报告直送主教区，第二幕 4.2）；写入 `a2_selene_met`。`church_suspicion` 30 到 59 时她在 `cut_a2_exam` 首次照面，30 以下在 `cut_a2_heroes` |
-| `brun.secret_kept` | 路上一行旁白交代旧手套；为否时不显示，赛琳变体的"你手上戴的是什么"照常出现（她问的是任何遮手的东西） |
+| `npc.bron.secret_kept` | 路上一行旁白交代旧手套；为否时不显示，赛琳变体的"你手上戴的是什么"照常出现（她问的是任何遮手的东西） |
 | 同伴在队 | 希雅、罗恩各一句路上台词；罗恩在队时多一个盘问选项 |
 | 入口二 | 从 `summon` 开始，光为晨；其余与入口一的觐见相同 |
 
@@ -5268,7 +5269,7 @@ narrator：楼梯上走下来一个嗓门比个头还大的男人，手里捏着
 krause：我是会长，奥托·克劳泽。边石镇的老布伦给我写了封推荐信。
 krause："该员鉴定无记载，实绩如下……"下面列了一整页。
 krause：二十年了，他的字还是这么难看。
-krause［NOT brun.secret_kept］：他另写了一封给大区。我读了，锁起来了。可这城里，抄本从来不止一份。这城里有人专门看手。
+krause［NOT npc.bron.secret_kept］：他另写了一封给大区。我读了，锁起来了。可这城里，抄本从来不止一份。这城里有人专门看手。
 krause：水晶不认你，我认实绩。对练、讨伐，两样都过，我按"实绩认定"条款签字。
 → crystal_ask
 【crystal_ask】
@@ -5357,7 +5358,7 @@ selene：我叫赛琳。我们以后会再见的。
 
 | 条件 | 差异 |
 | --- | --- |
-| `NOT brun.secret_kept` | 奥托多一句"抄本从来不止一份……有人专门看手"（布伦上报大区，赛琳与奥托都更早注意到玩家，第二幕 10.1） |
+| `NOT npc.bron.secret_kept` | 奥托多一句"抄本从来不止一份……有人专门看手"（布伦上报大区，赛琳与奥托都更早注意到玩家，第二幕 10.1） |
 | `church_suspicion` 30 到 59 | 赛琳在入口三的大厅门口首次照面 |
 | 夜羽在场 | 从者登记的四行与"金狮是染的""他唱的是谁"两句；夜羽恒定同行，此条只为数据一致 |
 
@@ -5373,7 +5374,7 @@ selene：我叫赛琳。我们以后会再见的。
 | 地点 | `wallenburg`：北门 `to_north_gate` 到 `cathedral_square` 的大街；插镜 `ferry`；祭典在 `cathedral_square` |
 | 时长 | 约 5 分钟；陆辰、马库斯有模型时另计 |
 | 现有数据 | 新建；`a2_exam_done` 中勇者团的 6 行（陆辰、结衣、马库斯、艾登各一行，旁白两行）移入本场 `meet` 与 `others` 节点。扩写到 14 节点、31 行 |
-| 写入旗标 | `a2_heroes_met = true`；`a2_yui_saw_light_bend = true`（玩家站着不动时）；`a2_luchen_question`（admit、deny、deflect、silent）；`hero_rel_luchen`、`hero_rel_yui`、`hero_rel_marcus` 初值加成；`eluen_awareness`（结衣察觉 +2，向陆辰承认 +3）；`a2_selene_met = true`（变体） |
+| 写入旗标 | `a2_heroes_met = true`；`a2_yui_saw_light = true`（玩家站着不动时）；`a2_luchen_question`（admit、deny、deflect、silent）；`trust.luchen`、`trust.yui`、`trust.marcus` 初值加成；`goddess.eluen.gaze`（结衣察觉 +2，向陆辰承认 +3）；`a2_selene_met = true`（变体） |
 | 揭示 | 伪录之门的钥之一（圣光照不出玩家，第二幕 1.2）落地。S04-C01（光之耳目）在本场"发生"：向陆辰承认来历会让艾琉恩知晓度上升，玩家此时不知道原因（第三幕察觉）。赛琳变体推进 S06-C01 |
 | 音乐与音效 | 入 `mus_city_wallenburg_day`（镜 1）；镜 2 短暂交叉 `mus_cue_comedy`；镜 3 交叉 `mus_stg_motif_eluen`；镜 5 回到 `mus_city_wallenburg_day`，延续到游戏。专用音效 `sfx_cin_heroes_fanfare`、`sfx_cin_heroes_spit`、`sfx_cin_heroes_light` |
 | 所需美术 | 立绘 `art_bust_luchen`（smile、special、neutral）、`art_bust_yui`（surprised、smile）、`art_bust_marcus`（special）、`art_bust_aiden`（thinking）、`art_bust_selene`（special）、`art_bust_yeyu`（neutral）；头像 `art_por_anselm`；特效 `art_vfx_cut_heroes_light_bend`（圣光铺满前庭，唯独在玩家脚下拐弯，留下一块暗着的石板）；特殊动作 `art_chr_anselm_bless`（台阶上展开双臂） |
@@ -5435,7 +5436,7 @@ narrator：台阶下，一个系白缎带的女孩忽然转过头，看着你脚
 yui：……光，绕开了你。
 narrator：她身边的人都在欢呼，没有人听见她说了什么。
 @立绘撤
-效果 flag a2_yui_saw_light_bend = true；add eluen_awareness 2
+效果 flag a2_yui_saw_light = true；add goddess.eluen.gaze 2
 → meet
 【meet】
 @镜 5
@@ -5455,25 +5456,25 @@ luchen：……等等。你也是穿越来的？
 【m_admit】
 @立绘 luchen special 右
 luchen：我就知道！我叫陆辰。你是哪里人？……不，先别说，等打完魔王，我们慢慢聊！
-效果 flag a2_luchen_question = admit；flag a2_told_heroes_earth = true；add hero_rel_luchen 15；add eluen_awareness 3
+效果 flag a2_luchen_question = admit；flag a2_told_heroes_earth = true；add trust.luchen 8；add goddess.eluen.gaze 3
 → others
 【m_deny】
 luchen：啊……抱歉，认错人了。你看钟楼的样子，跟我刚来那天一模一样。
-效果 flag a2_luchen_question = deny；add hero_rel_luchen 5
+效果 flag a2_luchen_question = deny；add trust.luchen 3
 → others
 【m_what】
 luchen：就是……从别的世界来的。算了算了，当我没说。这剧情我熟，这种时候一般都不承认。
-效果 flag a2_luchen_question = deflect；add hero_rel_luchen 8
+效果 flag a2_luchen_question = deflect；add trust.luchen 4
 → others
 【m_silent】
 @立绘 luchen neutral 右
 luchen：……好吧。不想说也没关系。
-效果 flag a2_luchen_question = silent；add hero_rel_luchen 3
+效果 flag a2_luchen_question = silent；add trust.luchen 2
 → others
 【others】
 @立绘 yui smile 左
 yui：你受伤了吗？……我可以帮你看看。
-yui［a2_yui_saw_light_bend］：……没什么。我好像看错了。
+yui［a2_yui_saw_light］：……没什么。我好像看错了。
 @立绘 marcus special 左
 即兴 marcus｜目的：豪爽地拉玩家拼酒｜情境：祭典散场，他刚认识玩家｜含义键：下次叫上我们；今晚请喝酒；不来不算朋友｜禁区：不谈加护；不提地球上的火灾
 marcus：哈哈！下次叫上我们！今晚中城酒馆，我请。不来的不算朋友。
@@ -5481,7 +5482,7 @@ marcus：哈哈！下次叫上我们！今晚中城酒馆，我请。不来的�
 narrator：那个戴眼镜的人一直盯着你看，一句话也没说。最后，他推了推眼镜。
 aiden：有意思，但不合理。
 @立绘撤
-效果 flag a2_heroes_met = true；add hero_rel_yui 5；add hero_rel_marcus 8
+效果 flag a2_heroes_met = true；add trust.yui 3；add trust.marcus 4
 分支［church_suspicion < 30 AND NOT a2_selene_met］→ selene
 → invites
 【selene】
@@ -5508,18 +5509,18 @@ yeyu［companion.yeyu.recruited］：三个人请你吃饭。门把手，你值�
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
 | `back` | 退到人群后面 | `rite_back` | 无（结衣不察觉） | 无 |
-| `stay` | 站着不动 | `rite_stay` | `a2_yui_saw_light_bend = true`；`eluen_awareness` +2（结衣此后祈祷会提到"那个人"，第二幕 4.2 与第 8 节） | 无 |
-| `admit` | 是 | `m_admit` | `a2_luchen_question = admit`；`a2_told_heroes_earth = true`；`hero_rel_luchen` +15；`eluen_awareness` +3（光之耳目，玩家不可见） | 无 |
-| `deny` | 不是 | `m_deny` | `a2_luchen_question = deny`；`hero_rel_luchen` +5 | 无 |
-| `what` | 穿越是什么 | `m_what` | `a2_luchen_question = deflect`；`hero_rel_luchen` +8 | 无 |
-| `silent` | 不答 | `m_silent` | `a2_luchen_question = silent`；`hero_rel_luchen` +3 | 无 |
+| `stay` | 站着不动 | `rite_stay` | `a2_yui_saw_light = true`；`goddess.eluen.gaze` +2（结衣此后祈祷会提到"那个人"，第二幕 4.2 与第 8 节） | 无 |
+| `admit` | 是 | `m_admit` | `a2_luchen_question = admit`；`a2_told_heroes_earth = true`；`trust.luchen` +8；`goddess.eluen.gaze` +3（光之耳目，玩家不可见） | 无 |
+| `deny` | 不是 | `m_deny` | `a2_luchen_question = deny`；`trust.luchen` +3 | 无 |
+| `what` | 穿越是什么 | `m_what` | `a2_luchen_question = deflect`；`trust.luchen` +4 | 无 |
+| `silent` | 不答 | `m_silent` | `a2_luchen_question = silent`；`trust.luchen` +2 | 无 |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
 | `church_suspicion < 30` | 赛琳在本场首次照面（镜 6） |
-| `a2_yui_saw_light_bend` | 结衣多一句"我好像看错了"（她把察觉压在心里，第三幕之前不提） |
+| `a2_yui_saw_light` | 结衣多一句"我好像看错了"（她把察觉压在心里，第三幕之前不提） |
 | 三封请柬 | 圣徽是艾德里克，算盘蜡印是塞西莉亚，炭笔是卢卡斯；请柬内容由 A2-M05 的任务对白给出，本场只演送达 |
 
 #### cut_a2_dream_w4 第四周的梦（The Fourth-Week Dream）
@@ -5653,7 +5654,7 @@ yeyu［companion.yeyu.recruited］：你睡觉的时候在笑。很难看。
 | 地点 | 入口一在 `wallenburg` 的 `river_port`（河湾仓）与 `ferry`；入口二在瓦伦河下游河心（夜追遭遇的场地）；后半夜在 `gatefront_south` 的 `ferry_hut`；清晨在 `river_port` |
 | 时长 | 约 5 分钟（三段合计，不含遭遇） |
 | 现有数据 | 新建；`a2_no_page` 的 `ferry` 节点里老船夫的第一句（"勇者打完魔王……"）移入本场，按正典放回第 7 周。扩写到 19 节点、42 行 |
-| 写入旗标 | `a2_chase_route`（shore、ferry_boat、rat_tunnel、absent）；`a2_ferryman_reveal = true`；`a2_ferryman_cut_witnessed = true`（在场时）；`rescued_children` +3 或 +1；`trust.ferryman`（+5 到 +15）。读取 `a2_chase_survived` |
+| 写入旗标 | `a2_chase_route`（shore、ferry_boat、rat_tunnel、absent）；`a2_ferryman_reveal = true`；`a2_ferryman_cut_witnessed = true`（在场时）；`a2_rescued_children` +3 或 +1；`trust.ferryman`（+5 到 +15）。读取 `a2_chase_survived` |
 | 揭示 | M08-C02（第八代勇者没有升入光之国度，他在瓦伦堡撑船）、M08-C03（"勇者打完魔王，就没用了。我是被用完的那个。"）；误导 MIS-17 被揭穿；称谓开放表"第八代勇者"解锁（他本人仍拒绝这个称呼）。谨慎桥段 C2-1 |
 | 音乐与音效 | 入口一入 `mus_cmb_skirmish`（镜 2 起，延续到遭遇）；入口二乐停（镜 3），一刀后无乐，只有水声；清晨入 `mus_city_wallenburg_day` 延续到游戏。专用音效 `sfx_cin_ferryman_cleave`、`sfx_cin_ferryman_water_close`、`sfx_cin_ferryman_song`（船工哼唱的旋律，无词）；环境声 `amb_base_river` |
 | 所需美术 | 立绘 `art_bust_ferryman`（neutral、smile、special 斜睨）、`art_bust_yeyu`（surprised）；头像 `art_por_pia`；实景运镜（河面向两边分开，露出河床、沉船桅杆与断成两截的鲶王）；特效 `art_vfx_cut_ferryman_cut`（一道贯穿河面的刃光与两堵水墙）；特殊动作 `art_chr_ferryman_cut`（在船上站起、抽剑、一刀、坐回）；特写 `art_prop_cut_ferryman_sword`（船凳下油布裹着的普通铁剑） |
@@ -5742,11 +5743,11 @@ ferryman：勇者打完魔王，就没用了。我是被用完的那个。
 选 watch「（看着他）」→ watch
 【board】
 narrator：驳船上的人还没回过神。你砍断了笼子的锁。三个孩子缩在里面，手腕上都缠着布条。
-效果 add rescued_children 3；add trust.ferryman 5
+效果 add a2_rescued_children 3；add trust.ferryman 5
 → after
 【watch】
 narrator：你看着他，挪不开眼。等你回过神，驳船上的人已经拖着两个孩子钻进了芦苇丛。笼子里只剩一个，卡在角落里。
-效果 add rescued_children 1
+效果 add a2_rescued_children 1
 → after
 【after】
 narrator：这个醉鬼要是想杀你，你未必挡得住。
@@ -5819,8 +5820,8 @@ narrator：船工们在唱门前渡船歌。今天多了一句："一刀下去�
 | `boat` | 借老船夫的船 | `boat`，再进遭遇 | `a2_chase_route = ferry_boat`（他就在玩家身后站起） | 无 |
 | `tunnel` | 走灰鼠鼠道截在下游 | `go` | `a2_chase_route = rat_tunnel` | `a2_greyrat_deal` |
 | `stay` | 不去 | `absent` | `a2_chase_route = absent`；当夜内核结算那一刀，次日走入口三 | 无 |
-| `board` | 跳上驳船 | `board` | `rescued_children` +3；`trust.ferryman` +5 | 无 |
-| `watch` | 看着他 | `watch` | `rescued_children` +1（谨慎的代价：两个孩子被拖走，计入 `cult_keys`） | 无 |
+| `board` | 跳上驳船 | `board` | `a2_rescued_children` +3；`trust.ferryman` +5 | 无 |
+| `watch` | 看着他 | `watch` | `a2_rescued_children` +1（谨慎的代价：两个孩子被拖走，计入 `cult_keys`） | 无 |
 | `thanks` | 谢谢 | `t_thanks` | `trust.ferryman` +5 | 无 |
 | `distance` | 保持距离 | `t_distance` | 无 | 无 |
 | `later` | 今晚再去找他 | `t_later` | 再选：`brave` 时 `trust.ferryman` +5；`sit` 时 +10。第 7 周前 `trust.ferryman` 至多 30 的上限（第二幕 4.4）在本场之后解除 | 无 |
@@ -5950,13 +5951,13 @@ yeyu［companion.yeyu.recruited］：……在哪？
 | --- | --- |
 | 幕与拍 | 第二幕，暗面（第 10 周；特例第 9 周） |
 | 类型 | 写定场景（含可选战斗插演：劫法场） |
-| 触发 | `(act_week >= 10 OR (act_week >= 9 AND a2_w6_false_record_unseen)) AND NOT scene.cut_a2_selene_trial.seen`，请求方 A2-M10 阶段"开庭" |
+| 触发 | `(act_week >= 10 OR (act_week >= 9 AND a2_mirror_fooled)) AND NOT scene.cut_a2_selene_trial.seen`，请求方 A2-M10 阶段"开庭" |
 | 时机 | 第 10 周第 3 日正午；特例（第 6 周问话时用了伪录且未被看破）提前到第 9 周第 5 日正午，用来逼玩家现身（第二幕 4.2）。必经，不可错过；玩家不在城里时跳时并移到 `market` |
 | 出场 | `selene` 赛琳、`dietrich` 迪特里希·莱默、`anselm` 主教（阳台，无台词）、被告之一（`oola` 欧拉婆婆、`shiya` 希雅或 `ron` 罗恩）、`cassian` 卡西安神父、`agnes` 艾格尼丝修女（变体）、`luchen` 陆辰（勇者作证）、`fiona` 菲奥娜（递交真凶变体）、`yeyu` 夜羽；群众 |
 | 地点 | `wallenburg` 的 `market`（大市集，刑台与柴堆搭在广场正中）；主教在 `city_hall` 的阳台上 |
 | 时长 | 约 9 分钟（选不同解法时 7 到 10 分钟） |
 | 现有数据 | 新建；扩写到 28 节点、98 行 |
-| 写入旗标 | `a2_trial_defendant`（oola、shiya、ron）；`trial_outcome`（本场写 acquitted、penance、rescued_by_force；exiled_branded、executed 在 `cut_a2_funeral` 结算）；`a2_trial_postponed`；`a2_trial_sentenced`；`a2_dietrich_dismissed`；`a2_selene_deceived`；`selene_stance`；`church_verdict`；`eluen_awareness`；`selene_evidence`；`trust.selene`；`hero_rel_*`；`a1_oola_fate = cleared`（被告是欧拉且无罪获释时，D-055）。读取 `a2_false_record_exposed`（内核钩子） |
+| 写入旗标 | `a2_trial_defendant`（oola、shiya、ron）；`a2_trial_outcome`（本场写 acquitted、penance、rescued_by_force；exiled_branded、executed 在 `cut_a2_funeral` 结算）；`a2_trial_postponed`；`a2_trial_sentenced`；`a2_dietrich_dismissed`；`a2_selene_deceived`；`npc.selene.stance`；`church_verdict`；`goddess.eluen.gaze`；`npc.selene.evidence`；`trust.selene`；`hero_rel_*`；`a1_oola_fate = cleared`（被告是欧拉且无罪获释时，D-055）。读取 `a2_false_record_exposed`（内核钩子） |
 | 揭示 | S06-C01（赛琳的执着）；误导 MIS-05（"烙印者"）以审判庭的口吻出现，不纠正；C2-3（镜与伪：伪录骗不骗得过照规镜由内核判定）；"以身代之"时照规镜当众照出门形空白（不解释，第二幕 4.2） |
 | 音乐与音效 | 入 `mus_cue_intrigue`（镜 1）；镜 6 交叉 `mus_stg_motif_eluen`，镜 7 全曲骤停，只留 `sfx_cin_crowd_gasp`；镜 8 回到 `mus_cue_intrigue` 并淡出。劫法场时 `mus_cue_intrigue` 硬切，交给战斗曲。专用音效 `sfx_cin_trial_mirror`、`sfx_cin_crowd_gasp` |
 | 所需美术 | 立绘 `art_bust_selene`（special 举镜、neutral、surprised、angry）、`art_bust_luchen`（neutral）、`art_bust_oola`（neutral、smile、sad）、`art_bust_shiya`（angry、sad）、`art_bust_ron`（special、smile）、`art_bust_cassian`（pained、neutral）、`art_bust_yeyu`（neutral）；头像 `art_por_dietrich`（neutral、sad、angry）、`art_por_agnes`、`art_por_fiona`、`art_por_anselm`；实景运镜（阴天的大市集：木台、柴堆、白旗、沉默的人群，市政厅阳台上的主教）；特写 `art_prop_cut_trial_mirror`（照规镜：银框，镜面背刻经文）、`art_prop_cut_trial_dossier`（卷宗里比别的页都新的那一页）；特效 `art_vfx_cut_trial_mirror_void`（镜中照得出木台、柴堆、人群、天，玩家站的地方是一个门形的空白）；特殊动作 `art_chr_selene_mirror_raise` |
@@ -6060,9 +6061,9 @@ narrator：卷宗里那一页纸，比别的页都新。
 @立绘 cassian pained 左
 narrator：卡西安神父被请上木台。他从边石镇赶来，袍子上还有路上的土。
 cassian：我是边石镇的神父，卡西安。
-cassian［cassian.doubt >= 60］：我在边石镇的礼拜堂里站了二十年。我看见过被告做的事。……若光在这里，我想，它会替被告说话。
-cassian［cassian.doubt >= 30 AND cassian.doubt < 60］：我只能说我看见的。被告做过的事，有一半写在罪名里，另一半，罪名里没有写。
-cassian［cassian.doubt < 30］：罪名属实。光不会说谎。
+cassian［npc.cassian.doubt >= 60］：我在边石镇的礼拜堂里站了二十年。我看见过被告做的事。……若光在这里，我想，它会替被告说话。
+cassian［npc.cassian.doubt >= 30 AND npc.cassian.doubt < 60］：我只能说我看见的。被告做过的事，有一半写在罪名里，另一半，罪名里没有写。
+cassian［npc.cassian.doubt < 30］：罪名属实。光不会说谎。
 @立绘撤
 agnes［a2_agnes_witness AND a2_trial_defendant == oola］：我是慈济院的艾格尼丝。她关在静室的时候，教我怎么给发烧的孩子擦身子。那孩子的烧，退了。
 agnes［a2_agnes_witness AND a2_trial_defendant == shiya］：我是慈济院的艾格尼丝。她把猎到的鹿腿放在慈济院门口，一句话也没说就走了。
@@ -6073,9 +6074,9 @@ narrator：人群里有人小声说话。主教在阳台上咳了一声，广场
 @镜 4
 @立绘 selene neutral 右
 selene：还有人要为被告说话吗？
-选 forgery「（举起伪证的来源）这页证词是假的。」→ forgery｜条件 a2_forgery_source_found
+选 forgery「（举起伪证的来源）这页证词是假的。」→ forgery｜条件 a2_forgery_source
 选 culprit「（交出晶窟的证据）你们要找的人，在地底下。」→ culprit｜条件 a2_cage_evidence OR a2_fiona_turned
-选 hero「陆辰，你看见过的。」→ hero｜条件 hero_rel_luchen >= 40 AND a2_luchen_saw_defendant_good
+选 hero「陆辰，你看见过的。」→ hero｜条件 trust.luchen >= 70 AND a2_luchen_saw_defendant_good
 选 self「你们要找的是我。」→ self
 选 falserec「（以伪录作证）」→ falserec｜条件 door.false_record
 选 raid「（拔剑）」→ raid
@@ -6102,18 +6103,18 @@ fiona［a2_fiona_turned］：孩子们关在水道底下。关他们的人，管
 selene：（第一次停了很久）……门的信徒。在地底下。
 selene：本庭中止。被告，释放。
 selene：我要去追真正的门的信徒。
-效果 flag trial_outcome = acquitted；add trust.selene 10
+效果 flag a2_trial_outcome = acquitted；add trust.selene 10
 → stance_up
 【stance_up】
-分支［selene_stance == hunt］→ st_enforce
-分支［selene_stance == enforce］→ st_waver
-分支［NOT selene_stance］→ st_waver
+分支［npc.selene.stance == hunt］→ st_enforce
+分支［npc.selene.stance == enforce］→ st_waver
+分支［NOT npc.selene.stance］→ st_waver
 → aftermath
 【st_enforce】
-效果 flag selene_stance = enforce
+效果 flag npc.selene.stance = enforce
 → aftermath
 【st_waver】
-效果 flag selene_stance = waver
+效果 flag npc.selene.stance = waver
 → aftermath
 【hero】
 @镜 5
@@ -6126,7 +6127,7 @@ luchen［a2_trial_defendant == ron］：我和他一起下过水道。他挡在�
 narrator：台下有人开始点头。有人喊："勇者大人说的！"
 selene：勇者的证词，记录在案。
 selene：罪名有疑，不能全免。被告罚赎：向慈济院缴纳赎罪金，在主教区服役，直到伯爵大人下葬。
-效果 flag trial_outcome = penance；add hero_rel_luchen 5
+效果 flag a2_trial_outcome = penance；add trust.luchen 3
 → aftermath
 【self】
 @镜 6
@@ -6146,7 +6147,7 @@ selene：……这是什么？
 @停 2
 selene：被告，释放。
 selene：{player_name}。今天，光照不出你。我会查到底。
-效果 flag trial_outcome = acquitted；add eluen_awareness 20；add selene_evidence 2
+效果 flag a2_trial_outcome = acquitted；add goddess.eluen.gaze 20；add npc.selene.evidence 2
 → verdict_up
 【falserec】
 @镜 6
@@ -6160,7 +6161,7 @@ selene：请如实回答。
 narrator：镜子里照出一个普通的证人。冒险者，B 级，Lv1，无职能。赛琳看了很久，放下了镜子。
 selene：证词有效。
 selene：罪名有疑，不能全免。被告罚赎：向慈济院缴纳赎罪金，在主教区服役，直到伯爵大人下葬。
-效果 flag trial_outcome = penance
+效果 flag a2_trial_outcome = penance
 → aftermath
 【falserec_seen】
 @镜 7
@@ -6170,7 +6171,7 @@ narrator：镜子里先照出一个普通的证人。然后那一页裂开了一
 selene：……你在骗光。
 selene：被告，释放。真正该站在这里的人，刚刚对光撒了谎。
 selene：{player_name}，我会查到底。
-效果 flag trial_outcome = acquitted；flag a2_selene_deceived = true；add eluen_awareness 20；add selene_evidence 3；add trust.selene -10
+效果 flag a2_trial_outcome = acquitted；flag a2_selene_deceived = true；add goddess.eluen.gaze 20；add npc.selene.evidence 3；add trust.selene -10
 → verdict_up
 【verdict_up】
 分支［church_verdict == wanted］→ aftermath
@@ -6182,7 +6183,7 @@ selene：{player_name}，我会查到底。
 @乐 mus_cue_intrigue 出
 narrator：你拔剑。木台下的卫兵还没举起长矛，你已经站到了柴堆上。
 selene：退下！所有人退下！
-效果 flag trial_outcome = rescued_by_force；flag church_verdict = wanted；add hero_rel_luchen -10；add hero_rel_yui -10；add hero_rel_marcus -10；add hero_rel_aiden -10；add eluen_awareness 15；wave a2_scaffold_raid
+效果 flag a2_trial_outcome = rescued_by_force；flag church_verdict = wanted；add trust.luchen -5；add trust.yui -5；add trust.marcus -5；add trust.aiden -5；add goddess.eluen.gaze 15；wave a2_scaffold_raid
 结束
 【none】
 @停 3
@@ -6197,7 +6198,7 @@ narrator［a2_trial_defendant == ron］：罗恩冲你又摇了摇头。这一�
 【aftermath】
 @镜 8
 @立绘撤
-分支［trial_outcome == acquitted AND a2_trial_defendant == oola］→ oola_cleared
+分支［a2_trial_outcome == acquitted AND a2_trial_defendant == oola］→ oola_cleared
 → after_lines
 【oola_cleared】
 效果 flag a1_oola_fate = cleared
@@ -6206,12 +6207,12 @@ narrator［a2_trial_defendant == ron］：罗恩冲你又摇了摇头。这一�
 @乐 mus_cue_intrigue 交叉
 @光 昏
 narrator：人群散了。柴堆还在，没有点。
-oola［a2_trial_defendant == oola AND trial_outcome IN (acquitted, penance)］：你这孩子。下回别为了一个老太婆，站到光底下去。
-shiya［a2_trial_defendant == shiya AND trial_outcome IN (acquitted, penance)］：……谢谢。下次早点来。
-ron［a2_trial_defendant == ron AND trial_outcome IN (acquitted, penance)］：我就说吧。我也不信，但是真的。
+oola［a2_trial_defendant == oola AND a2_trial_outcome IN (acquitted, penance)］：你这孩子。下回别为了一个老太婆，站到光底下去。
+shiya［a2_trial_defendant == shiya AND a2_trial_outcome IN (acquitted, penance)］：……谢谢。下次早点来。
+ron［a2_trial_defendant == ron AND a2_trial_outcome IN (acquitted, penance)］：我就说吧。我也不信，但是真的。
 narrator［a2_trial_postponed］：被告被押回静室，等卷宗重审。赛琳一个人站在木台上，看着那页假证词，看了很久。
 narrator［a2_trial_sentenced］：钟还停着。离伯爵下葬，只剩几天。
-yeyu［companion.yeyu.recruited AND trial_outcome == acquitted AND selene_evidence >= 2］：那面镜子照过你一次了。下一次，它会照得更久。
+yeyu［companion.yeyu.recruited AND a2_trial_outcome == acquitted AND npc.selene.evidence >= 2］：那面镜子照过你一次了。下一次，它会照得更久。
 @乐 mus_cue_intrigue 出
 结束
 ```
@@ -6220,12 +6221,12 @@ yeyu［companion.yeyu.recruited AND trial_outcome == acquitted AND selene_eviden
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `forgery` | 揭穿伪证 | `forgery` | 迪特里希当众撤职（`a2_dietrich_dismissed`）；`a2_trial_postponed = true`（葬礼后撤销，见 `cut_a2_funeral`）；赛琳动摇一级（hunt 到 enforce，enforce 到 waver）；`trust.selene` +5 | `a2_forgery_source_found`（灰鼠、丽泽或卷宗抄本） |
-| `culprit` | 递交真凶 | `culprit` | `trial_outcome = acquitted`；赛琳中止审判转追门徒会，动摇一级；`trust.selene` +10 | `a2_cage_evidence OR a2_fiona_turned` |
-| `hero` | 勇者作证 | `hero` | `trial_outcome = penance`（罚赎）；`hero_rel_luchen` +5 | `hero_rel_luchen >= 40 AND a2_luchen_saw_defendant_good` |
-| `self` | 以身代之 | `self` | 照规镜当众照出门形空白；`trial_outcome = acquitted`；`church_verdict` 至少升到 heresy_suspect；`eluen_awareness` +20；`selene_evidence` +2 | 无 |
-| `falserec` | 伪录出庭 | `falserec` | 内核判定 `a2_false_record_exposed`：未看破则 `trial_outcome = penance`；看破则等同以身代之，另加"欺瞒"（`a2_selene_deceived`、`trust.selene` -10、`selene_evidence` +3） | `door.false_record` |
-| `raid` | 劫法场 | 战斗插演 `a2_scaffold_raid` 后结束 | `trial_outcome = rescued_by_force`；`church_verdict = wanted`；勇者团四人 `hero_rel` 各 -10（第 12 周的选择更偏向服从）；`eluen_awareness` +15 | 无 |
+| `forgery` | 揭穿伪证 | `forgery` | 迪特里希当众撤职（`a2_dietrich_dismissed`）；`a2_trial_postponed = true`（葬礼后撤销，见 `cut_a2_funeral`）；赛琳动摇一级（hunt 到 enforce，enforce 到 waver）；`trust.selene` +5 | `a2_forgery_source`（灰鼠、丽泽或卷宗抄本） |
+| `culprit` | 递交真凶 | `culprit` | `a2_trial_outcome = acquitted`；赛琳中止审判转追门徒会，动摇一级；`trust.selene` +10 | `a2_cage_evidence OR a2_fiona_turned` |
+| `hero` | 勇者作证 | `hero` | `a2_trial_outcome = penance`（罚赎）；`trust.luchen` +3 | `trust.luchen >= 70 AND a2_luchen_saw_defendant_good` |
+| `self` | 以身代之 | `self` | 照规镜当众照出门形空白；`a2_trial_outcome = acquitted`；`church_verdict` 至少升到 heresy_suspect；`goddess.eluen.gaze` +20；`npc.selene.evidence` +2 | 无 |
+| `falserec` | 伪录出庭 | `falserec` | 内核判定 `a2_false_record_exposed`：未看破则 `a2_trial_outcome = penance`；看破则等同以身代之，另加"欺瞒"（`a2_selene_deceived`、`trust.selene` -10、`npc.selene.evidence` +3） | `door.false_record` |
+| `raid` | 劫法场 | 战斗插演 `a2_scaffold_raid` 后结束 | `a2_trial_outcome = rescued_by_force`；`church_verdict = wanted`；勇者团四人 `hero_rel` 各 -10（第 12 周的选择更偏向服从）；`goddess.eluen.gaze` +15 | 无 |
 | `none` | 什么也不做 | `none` | `a2_trial_sentenced = true`：火刑定于下葬后第三日，由 `cut_a2_funeral` 结算 | 无 |
 
 **变体**
@@ -6233,12 +6234,12 @@ yeyu［companion.yeyu.recruited AND trial_outcome == acquitted AND selene_eviden
 | 条件 | 差异 |
 | --- | --- |
 | 被告规则（第二幕 4.2，由起点分支按序判定） | 1. `a1_oola_fate == convicted`：欧拉，终审。2. `a1_oola_fate == cleared AND church_suspicion >= 60`：欧拉，复审（迪特里希多一句"不作数"）。3. 希雅在队：希雅（兽灵巫术、窝藏烙印者）。4. 否则罗恩（为规格外者作伪证）。欧拉在逃（fled）时不会成为被告 |
-| `cassian.doubt` | 60 以上为被告说话；30 到 59 照实陈述；30 以下坐实罪名 |
+| `npc.cassian.doubt` | 60 以上为被告说话；30 到 59 照实陈述；30 以下坐实罪名 |
 | `a2_agnes_witness` | 艾格尼丝按被告各一句证词（第二幕 3.2：她会为被告作证） |
 | 第 9 周特例 | 开场旁白不提"钟停了七天" |
 | 罪名的一半是真的 | 三位被告的回答都承认真实的那一半（庇护过孩子；给狼灵留肉；为玩家作过证），不改写成冤案；台词不评判 |
 
-`a2_false_record_exposed` 的判定是内核钩子：选项 `falserec` 被选中时，内核按照规镜品阶与伪录熟练度结算并写入该旗标，再进入 `falserec` 节点的分支（第二幕 1.2："是否被看破由内核按照规镜品阶与伪录熟练度判定，不交给模型"）。`selene_stance` 在第二幕开幕时由内核初始化（`church_suspicion >= 60` 为 hunt，否则 enforce）；未写入时本场按 enforce 处理。
+`a2_false_record_exposed` 的判定是内核钩子：选项 `falserec` 被选中时，内核按照规镜品阶与伪录熟练度结算并写入该旗标，再进入 `falserec` 节点的分支（第二幕 1.2："是否被看破由内核按照规镜品阶与伪录熟练度判定，不交给模型"）。`npc.selene.stance` 在第二幕开幕时由内核初始化（`church_suspicion >= 60` 为 hunt，否则 enforce）；未写入时本场按 enforce 处理。
 
 #### cut_a2_funeral 静钟之下（Beneath the Silent Bell）
 
@@ -6252,7 +6253,7 @@ yeyu［companion.yeyu.recruited AND trial_outcome == acquitted AND selene_eviden
 | 地点 | `wallenburg_outskirts` 的 `silent_bell_cemetery`（静钟墓园，埃尔茨家族墓前）；行刑变体的尾声在 `wallenburg` 的 `market` |
 | 时长 | 约 8 分钟 |
 | 现有数据 | `a2_funeral`（1 节点、5 行；`onEnd` 写 3 个旗标）。无貌者两句原样保留；`onEnd` 里的 `a2_count_poison_found` 归 A2-M09、`a2_disciples_lair` 归 A2-M08，本场只写 `a2_faceless_projection`。扩写到 26 节点、67 行 |
-| 写入旗标 | `a2_faceless_projection = true`；`faceless_interest`（+1 到 +3）；`eluen_awareness`（+10，出手时再 +10）；`a2_funeral_choice`（guard_signet、chase、guard_people）；`signet_holder`（edric、lucas）或 `a2_signet_taken = true`；`a2_siege_scale_down = true`（印戒没被抢走时）；光之审结算：`trial_outcome`（acquitted、exiled_branded、executed）、`a1_oola_fate`（cleared、executed）。读取 `a2_undertaker_exposed`、`poisoner_exposed`、`a2_trial_postponed`、`a2_trial_sentenced`、`selene_stance`、`rule.ironman` |
+| 写入旗标 | `a2_faceless_projection = true`；`npc.faceless.interest`（+1 到 +3）；`goddess.eluen.gaze`（+10，出手时再 +10）；`a2_funeral_choice`（guard_signet、chase、guard_people）；`a2_signet_holder`（edric、lucas）或 `a2_signet_taken = true`；`a2_siege_scale_down = true`（印戒没被抢走时）；光之审结算：`a2_trial_outcome`（acquitted、exiled_branded、executed）、`a1_oola_fate`（cleared、executed）。读取 `a2_undertaker_exposed`、`a2_poisoner_exposed`、`a2_trial_postponed`、`a2_trial_sentenced`、`npc.selene.stance`、`ironman` |
 | 揭示 | S05-C02（真凶是门徒会：抬棺人袖口的灰晶护符）；S07-C02（投影手背的反相门纹）；M09-C03（"你就是她新挑的那个？她会像扔掉我一样扔掉你。"，误导 MIS-08）；称谓开放表"无貌者"解锁；谨慎桥段 C2-2 |
 | 音乐与音效 | 入 `mus_cue_sorrow`（镜 1）；镜 6 交叉 `mus_stg_motif_dian`；镜 9 回到 `mus_cue_sorrow`；镜 10 出场淡出；行刑变体的镜 11 无乐。专用音效 `sfx_cin_funeral_still_bell`、`sfx_cin_funeral_bomb`、`sfx_cin_funeral_projection`、`sfx_cin_funeral_kneel`、`sfx_cin_funeral_pyre`；环境声 `amb_city_night` |
 | 所需美术 | 立绘 `art_bust_edric`（neutral、surprised、sad）、`art_bust_cecilia`（neutral）、`art_bust_lucas`（angry）、`art_bust_faceless`（neutral 投影、special 抬手露出反相门纹）、`art_bust_selene`（sad、special）、`art_bust_yeyu`（neutral）、`art_bust_oola`（sad）、`art_bust_shiya`（sad）、`art_bust_ron`（smile）；头像 `art_por_rudolf`、`art_por_emil`、`art_por_anselm`；特写 `art_prop_cut_funeral_poison`（慢性毒药证物：一只药渣碗，碗底一层灰晶粉，旁边是伊尔玛账本上"特殊药材"那一行）、`art_prop_cut_funeral_signet`（伯爵印戒：鹰纹，内圈有一道齿，像钥匙）；实景运镜（家族墓顶的投影，墓园里跪倒一片，只有玩家站着）；特效 `art_vfx_cut_funeral_projection`（墨滴般的斗篷下摆、空白脸上门形裂缝透出暗紫光）、`art_vfx_cut_funeral_bomb`（灰晶爆罐的灰烟）；特殊动作 `art_chr_faceless_raise_hand` |
@@ -6288,8 +6289,8 @@ yeyu［companion.yeyu.recruited AND trial_outcome == acquitted AND selene_eviden
 narrator：送葬的队伍从鹰丘一直排到北门外。全城没有一口钟在响。
 @镜 2
 narrator［a2_count_poison_found］：药渣里查出的是慢性毒药。症状和边石镇孩子们的灰病，一模一样。
-narrator［poisoner_exposed == public］：伯爵府药师的位置空着。鲁道夫看了那个位置一眼，没有说话。
-narrator［NOT poisoner_exposed == public］：伯爵府的药师埃米尔走在家仆的队列里，一路替人分香，替哭着的老仆擦眼泪。
+narrator［a2_poisoner_exposed == public］：伯爵府药师的位置空着。鲁道夫看了那个位置一眼，没有说话。
+narrator［NOT a2_poisoner_exposed == public］：伯爵府的药师埃米尔走在家仆的队列里，一路替人分香，替哭着的老仆擦眼泪。
 → rite
 【rite】
 @镜 3
@@ -6313,7 +6314,7 @@ narrator：人群里忽然飞出几只陶罐，砸在地上。灰烟炸开。几
 lucas：这东西不能埋。埋了，就有人来挖。
 narrator：卢卡斯从伯爵手上取下印戒，攥在手心里。
 @立绘撤
-效果 flag signet_holder = lucas；flag a2_funeral_choice = guard_signet；flag a2_siege_scale_down = true
+效果 flag a2_signet_holder = lucas；flag a2_funeral_choice = guard_signet；flag a2_siege_scale_down = true
 → projection
 【attack】
 @镜 5
@@ -6322,7 +6323,7 @@ narrator：卢卡斯从伯爵手上取下印戒，攥在手心里。
 narrator：抬棺人从袖子里摸出陶罐，砸在地上。灰烟一下子炸开，呛得人睁不开眼。
 narrator：烟里，一只戴黑手套的手伸进棺木，去掰伯爵手上的印戒。
 narrator：抬棺人的袖口里，露出一串灰晶护符。和水道里那些门徒身上的，一模一样。
-narrator［NOT poisoner_exposed == public］：埃米尔不见了。
+narrator［NOT a2_poisoner_exposed == public］：埃米尔不见了。
 → choose
 【choose】
 选 signet「（扑向棺木）」→ c_signet
@@ -6334,7 +6335,7 @@ narrator：站在棺首的艾德里克接住了它。
 @立绘 edric surprised 右
 edric：……这是父亲的东西。
 @立绘撤
-效果 flag signet_holder = edric；flag a2_funeral_choice = guard_signet；flag a2_siege_scale_down = true
+效果 flag a2_signet_holder = edric；flag a2_funeral_choice = guard_signet；flag a2_siege_scale_down = true
 → projection
 【c_chase】
 narrator：那只手攥着印戒缩回了烟里。你追出去，追过三排墓碑，追到墓园后墙。墙下有一扇小门，门后是安眠葬仪社的后院。院里空了。
@@ -6369,7 +6370,7 @@ narrator：你的攻击穿过了他，像穿过一团烟。墓顶的石头裂了
 narrator：跪着的人里，有人抬起头，看见你站着，看见你出手。
 faceless：没用的。这里只有影子。
 faceless：……不过，你出手了。
-效果 add faceless_interest 1；add eluen_awareness 10
+效果 add npc.faceless.interest 1；add goddess.eluen.gaze 10
 → p_ask
 【talk_menu】
 选 who「你是谁？」→ t_who｜一次
@@ -6390,7 +6391,7 @@ faceless：让被扔下的人，来决定谁被扔下。
 → talk_menu
 【t_kids】
 faceless：在门边上。钥匙，就该放在门边上。
-效果 add faceless_interest 1
+效果 add npc.faceless.interest 1
 → talk_menu
 【p_hold】
 faceless：看够了？
@@ -6404,7 +6405,7 @@ faceless：我们还会见面的，后来的那个。下一次，在门前。
 narrator：他抬起手。手上缠着绷带，绷带的缝里露出一个门纹：反过来的，被锁链缠住的门。
 narrator：人影散了。
 @立绘撤
-效果 flag a2_faceless_projection = true；add faceless_interest 1；add eluen_awareness 10
+效果 flag a2_faceless_projection = true；add npc.faceless.interest 1；add goddess.eluen.gaze 10
 → after
 【after】
 @镜 9
@@ -6419,18 +6420,18 @@ narrator：赛琳站在墓园门口，没有跪。她的脸色比披风还白。
 selene：（低声）那才是门的信徒。
 selene：……我审错人了吗？
 @立绘撤
-分支［a2_trial_postponed AND NOT trial_outcome］→ r_drop
-分支［a2_trial_sentenced AND NOT selene_stance］→ r_exile
-分支［a2_trial_sentenced AND selene_stance IN (enforce, waver, covert_ally)］→ r_exile
+分支［a2_trial_postponed AND NOT a2_trial_outcome］→ r_drop
+分支［a2_trial_sentenced AND NOT npc.selene.stance］→ r_exile
+分支［a2_trial_sentenced AND npc.selene.stance IN (enforce, waver, covert_ally)］→ r_exile
 分支［a2_trial_sentenced AND a2_trial_defendant == oola］→ r_exec_oola
-分支［a2_trial_sentenced AND rule.ironman］→ r_exec
+分支［a2_trial_sentenced AND ironman］→ r_exec
 分支［a2_trial_sentenced］→ r_exile
 → burial
 【r_drop】
 @立绘 selene special 右
 selene：延期之案，撤销。被告，今日释放。
 @立绘撤
-效果 flag trial_outcome = acquitted
+效果 flag a2_trial_outcome = acquitted
 分支［a2_trial_defendant == oola］→ r_drop_oola
 → burial
 【r_drop_oola】
@@ -6441,7 +6442,7 @@ selene：延期之案，撤销。被告，今日释放。
 selene：火刑，撤销。
 selene：被告流放出瓦伦堡，手背烙审判庭的印。……这是我能做的。
 @立绘撤
-效果 flag trial_outcome = exiled_branded
+效果 flag a2_trial_outcome = exiled_branded
 narrator［a2_trial_defendant == oola］：欧拉婆婆被押出北门的时候说："林子里，也有人要看病。"
 narrator［a2_trial_defendant == shiya］：希雅被押出北门。她回头看了你一眼，什么也没说。
 narrator［a2_trial_defendant == ron］：罗恩被押出北门。他没回头，只把手举了举。
@@ -6450,13 +6451,13 @@ narrator［a2_trial_defendant == ron］：罗恩被押出北门。他没回头�
 @立绘 selene special 右
 selene：判决照旧。下葬后第三日，行刑。
 @立绘撤
-效果 flag trial_outcome = executed；flag a1_oola_fate = executed
+效果 flag a2_trial_outcome = executed；flag a1_oola_fate = executed
 → burial
 【r_exec】
 @立绘 selene special 右
 selene：判决照旧。下葬后第三日，行刑。
 @立绘撤
-效果 flag trial_outcome = executed
+效果 flag a2_trial_outcome = executed
 → burial
 【burial】
 @镜 10
@@ -6466,7 +6467,7 @@ narrator：黄昏，棺木终于落进了墓穴。
 narrator：静钟又敲了一下。然后，城里传来第一声钟响，第二声，第三声。白钟，钟楼，小教堂。
 narrator：全城的钟又响了。响得乱七八糟，像很多人一起憋了很久的一口气。
 @乐 mus_cue_sorrow 出
-分支［trial_outcome == executed］→ pyre
+分支［a2_trial_outcome == executed］→ pyre
 结束
 【pyre】
 @镜 11
@@ -6486,20 +6487,20 @@ narrator：那一天，钟照常报时。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `signet` | 扑向棺木（护印） | `c_signet` | 印戒落到离棺最近、反应最快的人手里：有模型时由在场继承人的 AI 自主决定（艾德里克或卢卡斯）；无模型时为站在棺首的艾德里克（按丧礼的站位），`signet_holder = edric`；`a2_siege_scale_down = true`（门徒会只能炸闸，城下潮缩小一级） | 未提前查出葬仪社 |
+| `signet` | 扑向棺木（护印） | `c_signet` | 印戒落到离棺最近、反应最快的人手里：有模型时由在场继承人的 AI 自主决定（艾德里克或卢卡斯）；无模型时为站在棺首的艾德里克（按丧礼的站位），`a2_signet_holder = edric`；`a2_siege_scale_down = true`（门徒会只能炸闸，城下潮缩小一级） | 未提前查出葬仪社 |
 | `chase` | 追那只手 | `c_chase` | `a2_signet_taken = true`；印戒在断门厅可夺回 | 同上 |
 | `people` | 护住人群 | `c_people` | `a2_signet_taken = true`；平民伤亡减少，泥巷与下城的平民声望由任务结算 | 同上 |
-| `strike` | 出手 | `p_strike` | 攻击无效；当众暴露实力：`faceless_interest` +1、`eluen_awareness` +10 | 一次 |
-| `talk` | 和他说话 | `talk_menu` | 问"孩子们在哪"时 `faceless_interest` +1 | 一次 |
+| `strike` | 出手 | `p_strike` | 攻击无效；当众暴露实力：`npc.faceless.interest` +1、`goddess.eluen.gaze` +10 | 一次 |
+| `talk` | 和他说话 | `talk_menu` | 问"孩子们在哪"时 `npc.faceless.interest` +1 | 一次 |
 | `hold` | 看着他 | `p_hold` 到 `farewell` | 无 | 无 |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
-| `a2_undertaker_exposed` | 抬棺人换成卢卡斯的兵；袭击被压住，卢卡斯取下印戒（`signet_holder = lucas`），不出现三选一 |
-| `poisoner_exposed == public` | 埃米尔的位置空着；否则他混在家仆里分香，袭击一开始就不见了 |
-| 光之审结算（按序） | 1. 延期之案（`a2_trial_postponed`）：撤销，被告释放，`trial_outcome = acquitted`，被告是欧拉时 `a1_oola_fate = cleared`。2. 已判火刑且 `selene_stance` 不低于 enforce（或未写入）：改判"流放并烙印"，`trial_outcome = exiled_branded`；希雅或罗恩本幕离队，第三幕回归（第二幕 4.2）。3. 已判火刑、`selene_stance == hunt`、被告是欧拉：行刑，`trial_outcome = executed`、`a1_oola_fate = executed`（D-055）。4. 已判火刑、`selene_stance == hunt`、被告是希雅或罗恩：铁人规则（`rule.ironman`，D-073）下行刑；默认档仍是流放并烙印 |
+| `a2_undertaker_exposed` | 抬棺人换成卢卡斯的兵；袭击被压住，卢卡斯取下印戒（`a2_signet_holder = lucas`），不出现三选一 |
+| `a2_poisoner_exposed == public` | 埃米尔的位置空着；否则他混在家仆里分香，袭击一开始就不见了 |
+| 光之审结算（按序） | 1. 延期之案（`a2_trial_postponed`）：撤销，被告释放，`a2_trial_outcome = acquitted`，被告是欧拉时 `a1_oola_fate = cleared`。2. 已判火刑且 `npc.selene.stance` 不低于 enforce（或未写入）：改判"流放并烙印"，`a2_trial_outcome = exiled_branded`；希雅或罗恩本幕离队，第三幕回归（第二幕 4.2）。3. 已判火刑、`npc.selene.stance == hunt`、被告是欧拉：行刑，`a2_trial_outcome = executed`、`a1_oola_fate = executed`（D-055）。4. 已判火刑、`npc.selene.stance == hunt`、被告是希雅或罗恩：铁人规则（`ironman`，D-073）下行刑；默认档仍是流放并烙印 |
 | 行刑变体 | 下葬后加镜 11：第三日清晨大市集的柴堆；被告是欧拉时卡西安在人群最后（他此后被提拔到主教区，第二幕 3.1） |
 
 #### cut_a2_arrest 逮捕令（The Warrant）
@@ -6514,7 +6515,7 @@ narrator：那一天，钟照常报时。
 | 地点 | `wallenburg`：`cathedral`（圣所）→ 玩家的住处（结衣报信）→ `cathedral_square`（台阶）→ `river_port`（河湾仓）→ `mud_lane`（鼠群）；白杉一句在 `wallenburg_outskirts` 的 `antler_wood` 边 |
 | 时长 | 约 8 分钟 |
 | 现有数据 | 新建；扩写到 29 节点、66 行 |
-| 写入旗标 | `church_verdict`（至少 heresy_suspect；逃或反抗时 wanted）；`a2_arrest_response`（surrender、flee_ferry、flee_tunnel、talk_delayed、resist）；`a2_player_jailed`；`a2_aiden_names_given`；`hero_rel_*`；`trust.selene`；`eluen_awareness`。读取 `hero_arrest_choice_luchen`、`hero_arrest_choice_yui`、`hero_arrest_choice_marcus`、`hero_arrest_choice_aiden`（进入本场前由内核结算，见下） |
+| 写入旗标 | `church_verdict`（至少 heresy_suspect；逃或反抗时 wanted）；`a2_arrest_response`（surrender、flee_ferry、flee_tunnel、talk_delayed、resist）；`a2_player_jailed`；`a2_aiden_names_given`；`hero_rel_*`；`trust.selene`；`goddess.eluen.gaze`。读取 `a2_arrest_choice.luchen`、`a2_arrest_choice.yui`、`a2_arrest_choice.marcus`、`a2_arrest_choice.aiden`（进入本场前由内核结算，见下） |
 | 揭示 | 无新线索。神谕原文不上屏：圣所里只有光、没有字，主教念了什么玩家听不见（台账 8.3；M01-C06 主教一栏为"否认"）。S04-C01 光之耳目在本场继续"发生" |
 | 音乐与音效 | 入 `mus_stg_motif_eluen`（镜 1），镜 1 末出；镜 3 入 `mus_cue_intrigue`；镜 8 乐出，交给夜间环境声。专用音效 `sfx_god_eluen_pillar`、`sfx_cin_arrest_proclaim`、`sfx_cin_arrest_shield`、`sfx_cin_arrest_rats` |
 | 所需美术 | 立绘 `art_bust_yui`（sad）、`art_bust_luchen`（angry、neutral、sad）、`art_bust_marcus`（neutral（立盾由立牌 `art_chr_marcus_shield_plant` 演出））、`art_bust_aiden`（neutral、thinking）、`art_bust_selene`（special、neutral）、`art_bust_ferryman`（neutral）；头像 `art_por_anselm`、`art_por_dela`、`art_por_benno_herten`、`art_por_baishan`；特写 `art_prop_cut_arrest_warrant`（台阶上的告示：主教区的朱红封蜡，下半张是宗教戒严令）；实景运镜（深夜圣所，一支蜡烛，一道白光落在跪着的主教面前）；特效 `art_vfx_cut_arrest_oracle_light`；特殊动作 `art_chr_marcus_shield_plant`（塔盾立地，站在两队人中间）、`art_chr_aiden_write`（掏本子与快用完的圆珠笔） |
@@ -6524,10 +6525,10 @@ narrator：那一天，钟照常报时。
 
 | 勇者 | 关系高（`>= 40`） | 关系中 | 关系低（`< -20`） | 修正 |
 | --- | --- | --- | --- | --- |
-| 陆辰 `hero_arrest_choice_luchen` | refused（公开拒绝："我要先听他说。"） | delayed（带人来，让玩家说完，"拖一天"） | complied（先问清楚，听完仍依令逮捕） | `trial_outcome == rescued_by_force` 时三人各降一档（偏向服从） |
-| 结衣 `hero_arrest_choice_yui` | warned（私下报信） | abstained（闭门祈祷） | complied（依令同行，替受伤的人治疗） | 同上 |
-| 马库斯 `hero_arrest_choice_marcus` | refused（"我的盾不对着朋友。"） | abstained（站在中间，谁先动手挡谁） | complied（不情愿地服从） | 同上 |
-| 艾登 `hero_arrest_choice_aiden` | delayed | delayed | delayed | 不论关系，他都借逮捕的名义单独见玩家；关系决定的是第 14 周的 `aiden_report` |
+| 陆辰 `a2_arrest_choice.luchen` | refused（公开拒绝："我要先听他说。"） | delayed（带人来，让玩家说完，"拖一天"） | complied（先问清楚，听完仍依令逮捕） | `a2_trial_outcome == rescued_by_force` 时三人各降一档（偏向服从） |
+| 结衣 `a2_arrest_choice.yui` | warned（私下报信） | abstained（闭门祈祷） | complied（依令同行，替受伤的人治疗） | 同上 |
+| 马库斯 `a2_arrest_choice.marcus` | refused（"我的盾不对着朋友。"） | abstained（站在中间，谁先动手挡谁） | complied（不情愿地服从） | 同上 |
+| 艾登 `a2_arrest_choice.aiden` | delayed | delayed | delayed | 不论关系，他都借逮捕的名义单独见玩家；关系决定的是第 14 周的 `a2_aiden_report` |
 
 **镜头脚本**
 
@@ -6557,7 +6558,7 @@ narrator：圣所里只点着一支蜡烛。主教安瑟姆一个人跪在祭坛
 narrator：一道白光从穹顶落下来，落在他面前的石板上。光里没有声音。
 narrator：可主教听见了。他的嘴唇动了动，把听见的话跟着念了一遍，然后伏下身去，很久没有起来。
 @乐 mus_stg_motif_eluen 出
-分支［hero_arrest_choice_yui == warned］→ yui_warn
+分支［a2_arrest_choice.yui == warned］→ yui_warn
 → steps
 【yui_warn】
 @镜 2
@@ -6570,7 +6571,7 @@ yui：陆辰还不知道我来了这里。我不该说的。
 yui：没事的。……我在。
 narrator：她转身跑了。白袍的下摆在楼梯口一闪，就不见了。
 @立绘撤
-效果 add hero_rel_yui 5
+效果 add trust.yui 3
 → steps
 【steps】
 @镜 3
@@ -6580,7 +6581,7 @@ narrator：她转身跑了。白袍的下摆在楼梯口一闪，就不见了。
 narrator：清晨，大教堂的台阶上挂出一张告示。一个执事站在告示旁，高声宣读。
 @镜 4
 narrator：（告示）奉圣教会瓦伦堡主教区之命：冒险者{player_name}，涉异端作乱，与邪教首领当众交谈。着即拘押，交异端审判庭讯问。勇者团协同执行。
-narrator［trial_outcome == rescued_by_force］：（告示）另：劫夺法场，罪加一等。
+narrator［a2_trial_outcome == rescued_by_force］：（告示）另：劫夺法场，罪加一等。
 narrator：（告示）即日起，瓦伦堡宗教戒严。入夜后不得聚众，不得出城。
 分支［NOT church_verdict IN (heresy_suspect, wanted)］→ v_up
 → s_heroes
@@ -6588,7 +6589,7 @@ narrator：（告示）即日起，瓦伦堡宗教戒严。入夜后不得聚众
 效果 flag church_verdict = heresy_suspect
 → s_heroes
 【s_heroes】
-分支［hero_arrest_choice_luchen == refused］→ s_luchen
+分支［a2_arrest_choice.luchen == refused］→ s_luchen
 → s_marcus
 【s_luchen】
 @立绘 luchen angry 右
@@ -6600,7 +6601,7 @@ narrator：台阶下的人都听见了。勇者大人被主教当众训斥，这
 @立绘撤
 → s_marcus
 【s_marcus】
-分支［hero_arrest_choice_marcus == refused］→ s_marcus_r
+分支［a2_arrest_choice.marcus == refused］→ s_marcus_r
 → s_selene
 【s_marcus_r】
 @立绘 marcus neutral 右
@@ -6618,13 +6619,13 @@ selene：……遵命。
 @字幕 正午。下城，河湾仓。
 @光 午
 narrator：门扉商会的仓库外面，来了一队人。
-分支［hero_arrest_choice_luchen == refused］→ e_selene
+分支［a2_arrest_choice.luchen == refused］→ e_selene
 → e_luchen
 【e_luchen】
 @立绘 luchen neutral 右
 narrator：走在最前面的是陆辰。他的剑没有出鞘。
-luchen［hero_arrest_choice_luchen == delayed］：我得带你去静室。……可你先说。你说完，我再决定今天走不走。
-luchen［hero_arrest_choice_luchen == complied］：我先问清楚。墓园里那个没有脸的人，跟你是什么关系？
+luchen［a2_arrest_choice.luchen == delayed］：我得带你去静室。……可你先说。你说完，我再决定今天走不走。
+luchen［a2_arrest_choice.luchen == complied］：我先问清楚。墓园里那个没有脸的人，跟你是什么关系？
 → e_party
 【e_selene】
 @立绘 selene special 右
@@ -6632,12 +6633,12 @@ narrator：走在最前面的是赛琳。陆辰没有来。
 selene：主教的命令。请你随我去静室。
 → e_party
 【e_party】
-narrator［hero_arrest_choice_marcus == abstained］：马库斯把塔盾往地上一立，站在两队人中间。
-marcus［hero_arrest_choice_marcus == abstained］：谁先动手，我就挡谁。我说的是谁都算。
-marcus［hero_arrest_choice_marcus == complied］：……抱歉，兄弟。命令。
-yui［hero_arrest_choice_yui == complied］：如果有人受伤，我来治。……谁都一样。
-narrator［NOT hero_arrest_choice_yui == complied］：结衣没有来。
-narrator［selene_stance IN (waver, covert_ally) AND NOT hero_arrest_choice_luchen == refused］：赛琳站在队伍最后面，手按在刺剑上，一直没有拔。
+narrator［a2_arrest_choice.marcus == abstained］：马库斯把塔盾往地上一立，站在两队人中间。
+marcus［a2_arrest_choice.marcus == abstained］：谁先动手，我就挡谁。我说的是谁都算。
+marcus［a2_arrest_choice.marcus == complied］：……抱歉，兄弟。命令。
+yui［a2_arrest_choice.yui == complied］：如果有人受伤，我来治。……谁都一样。
+narrator［NOT a2_arrest_choice.yui == complied］：结衣没有来。
+narrator［npc.selene.stance IN (waver, covert_ally) AND NOT a2_arrest_choice.luchen == refused］：赛琳站在队伍最后面，手按在刺剑上，一直没有拔。
 → aiden
 【aiden】
 @镜 6
@@ -6651,7 +6652,7 @@ aiden：把你的名字写下来。三种写法：你来这里之前的名字，
 【a_write】
 narrator：他看着你写完，把那一页撕下来，折好，放进胸前的口袋。
 aiden：城要出事了。我的问题，等城安定了再问。别死。
-效果 flag a2_aiden_names_given = true；add hero_rel_aiden 5
+效果 flag a2_aiden_names_given = true；add trust.aiden 3
 → respond
 【a_why】
 @立绘 aiden thinking 右
@@ -6690,8 +6691,8 @@ dela：……至少今天不卖。
 效果 flag a2_arrest_response = flee_tunnel
 → v_wanted
 【r_talk】
-分支［hero_arrest_choice_luchen == delayed］→ talk_luchen
-分支［hero_arrest_choice_luchen == refused AND selene_stance IN (waver, covert_ally)］→ talk_selene
+分支［a2_arrest_choice.luchen == delayed］→ talk_luchen
+分支［a2_arrest_choice.luchen == refused AND npc.selene.stance IN (waver, covert_ally)］→ talk_selene
 → talk_fail
 【talk_luchen】
 @立绘 luchen sad 右
@@ -6700,7 +6701,7 @@ luchen：我听完了。
 luchen：今天不走。我回去跟主教说，是我决定拖一天。
 luchen：明天……明天再说。
 @立绘撤
-效果 flag a2_arrest_response = talk_delayed；add hero_rel_luchen 5
+效果 flag a2_arrest_response = talk_delayed；add trust.luchen 3
 → rats
 【talk_selene】
 @立绘 selene neutral 右
@@ -6711,11 +6712,11 @@ selene：明天正午之前，我找不到你。
 效果 flag a2_arrest_response = talk_delayed；add trust.selene 5
 → rats
 【talk_fail】
-luchen［NOT hero_arrest_choice_luchen == refused］：我听完了。……可我还是得带你走。对不起。
-selene［hero_arrest_choice_luchen == refused］：你说完了。我还是要带你走。
+luchen［NOT a2_arrest_choice.luchen == refused］：我听完了。……可我还是得带你走。对不起。
+selene［a2_arrest_choice.luchen == refused］：你说完了。我还是要带你走。
 → respond
 【r_resist】
-分支［hero_arrest_choice_marcus == abstained］→ resist_marcus
+分支［a2_arrest_choice.marcus == abstained］→ resist_marcus
 → resist_go
 【resist_marcus】
 @立绘 marcus neutral 右
@@ -6726,7 +6727,7 @@ marcus：说了。谁先动手，我就挡谁。
 → resist_go
 【resist_go】
 narrator：仓库外乱成一团。灰鼠的哨声，审判庭的号令，有人喊"别伤着人"。等烟散了，你已经翻过了河港的围墙。
-效果 flag a2_arrest_response = resist；add hero_rel_luchen -15；add hero_rel_marcus -10；add eluen_awareness 10
+效果 flag a2_arrest_response = resist；add trust.luchen -8；add trust.marcus -5；add goddess.eluen.gaze 10
 → v_wanted
 【v_wanted】
 效果 flag church_verdict = wanted
@@ -6740,7 +6741,7 @@ narrator：仓库外乱成一团。灰鼠的哨声，审判庭的号令，有人
 narrator：泥巷的井口里涌出一片黑。是老鼠，成百上千，一只挨着一只，顺着墙根往城外跑。
 narrator：白钟大教堂的钟楼上，敲钟的老人本诺侧着耳朵听了很久。
 benno_herten：钟没敲。它自己在嗡。
-baishan［antler_rel >= 1］：（鹿角林边）老鼠在搬家。三天之内，城底下要出事。
+baishan［rep.antlers >= 33］：（鹿角林边）老鼠在搬家。三天之内，城底下要出事。
 结束
 ```
 
@@ -6748,25 +6749,25 @@ baishan［antler_rel >= 1］：（鹿角林边）老鼠在搬家。三天之内�
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `write` | 把三种写法写给艾登 | `a_write` | `a2_aiden_names_given = true`；`hero_rel_aiden` +5（第 14 周星笔塔他会照着这张纸逐一检索） | 无 |
+| `write` | 把三种写法写给艾登 | `a_write` | `a2_aiden_names_given = true`；`trust.aiden` +3（第 14 周星笔塔他会照着这张纸逐一检索） | 无 |
 | `why` | 为什么 | `a_why` | 无 | 无 |
 | `surrender` | 我跟你们走 | `r_surrender` | `a2_arrest_response = surrender`；`a2_player_jailed = true`；`a2_player_arrested = true`（城下潮开局在静室，赛琳放人并跟着） | 无 |
 | `ferry` | 看向河面（老船夫的船） | `r_ferry` | `a2_arrest_response = flee_ferry`；`church_verdict = wanted` | `trust.ferryman >= 50`（第二幕 4.4） |
 | `tunnel` | 退向砖洞（灰鼠的鼠道） | `r_tunnel` | `a2_arrest_response = flee_tunnel`；`church_verdict = wanted` | `a2_greyrat_deal` |
 | `talk` | 先听我说完 | `r_talk` | 陆辰 delayed 时拖一天；陆辰 refused 且赛琳 waver 或 covert_ally 时赛琳放一天；都写 `a2_arrest_response = talk_delayed`。否则对谈失败，回到 `respond`（谈话选项只能用一次） | 一次 |
-| `resist` | 拔剑 | `r_resist` | `a2_arrest_response = resist`；`church_verdict = wanted`；`hero_rel_luchen` -15、`hero_rel_marcus` -10；`eluen_awareness` +10。马库斯 abstained 时他先用塔盾挡下玩家的第一剑 | 无 |
+| `resist` | 拔剑 | `r_resist` | `a2_arrest_response = resist`；`church_verdict = wanted`；`trust.luchen` -8、`trust.marcus` -5；`goddess.eluen.gaze` +10。马库斯 abstained 时他先用塔盾挡下玩家的第一剑 | 无 |
 
 **变体**
 
 | 条件 | 差异 |
 | --- | --- |
-| `hero_arrest_choice_yui == warned` | 加前夜报信段（镜 2），结衣次日不来 |
-| `hero_arrest_choice_luchen == refused` | 台阶上公开拒绝并被训斥；河湾仓由赛琳带队 |
-| `hero_arrest_choice_luchen` 为 delayed 或 complied | 陆辰带队；delayed 先听，complied 先问后捕 |
-| `hero_arrest_choice_marcus` | refused 在台阶上说"我的盾不对着朋友"并不到场；abstained 立盾站中间；complied 一句"抱歉，兄弟" |
-| `trial_outcome == rescued_by_force` | 告示加"劫夺法场，罪加一等"；四人的选择各降一档 |
-| 艾登 | 恒定出现并要求单独问话（`hero_arrest_choice_aiden = delayed`） |
-| `antler_rel >= 1` | 白杉在鹿角林边一句预警（希尔薇借动物示警的落点，第二幕第 8 节） |
+| `a2_arrest_choice.yui == warned` | 加前夜报信段（镜 2），结衣次日不来 |
+| `a2_arrest_choice.luchen == refused` | 台阶上公开拒绝并被训斥；河湾仓由赛琳带队 |
+| `a2_arrest_choice.luchen` 为 delayed 或 complied | 陆辰带队；delayed 先听，complied 先问后捕 |
+| `a2_arrest_choice.marcus` | refused 在台阶上说"我的盾不对着朋友"并不到场；abstained 立盾站中间；complied 一句"抱歉，兄弟" |
+| `a2_trial_outcome == rescued_by_force` | 告示加"劫夺法场，罪加一等"；四人的选择各降一档 |
+| 艾登 | 恒定出现并要求单独问话（`a2_arrest_choice.aiden = delayed`） |
+| `rep.antlers >= 33` | 白杉在鹿角林边一句预警（希尔薇借动物示警的落点，第二幕第 8 节） |
 
 逮捕令在城下潮后由主教暂缓（"待城安定再议"，写 `a2_arrest_shelved`，见 `cut_a2_siege` 黎明段）；战后的舆论与勇者团的态度决定第三幕它是撤销还是转为报告。
 
@@ -6776,13 +6777,13 @@ baishan［antler_rel >= 1］：（鹿角林边）老鼠在搬家。三天之内�
 | --- | --- |
 | 幕与拍 | 第二幕，高潮（第 13 周夜到第 14 周、城下潮后第三日清晨） |
 | 类型 | 战斗插演（小队 RTS 入门 `act2_city_defense` 与断门厅迷宫首领战）加写定场景；五入口 |
-| 触发 | 入口一"潮起"：`act_week >= 13 AND scene.cut_a2_arrest.seen AND NOT a2_siege_started`，请求方 A2-M12 阶段"潮起"（`poisoner_exposed == public` 时提前一天）。入口二"前厅"：`a2_rotunda_reached AND NOT a2_hall_entered`，请求方 A2-M12 阶段"断门厅"（玩家从鹰丘旧井或泥巷水道下到 `broken_door_hall`，迷宫脚本写 `a2_rotunda_reached`）。入口三"门框"：`boss.doorsealer_construct.defeated AND NOT a2_ritual_ended`。入口四"黎明钟"：`a2_siege_result AND NOT a2_dawn_done`（战斗结算写 `a2_siege_result`）。入口五"城议"：`a2_dawn_done AND NOT a2_council_done`，请求方 A2-M13 阶段"城议" |
+| 触发 | 入口一"潮起"：`act_week >= 13 AND scene.cut_a2_arrest.seen AND NOT a2_siege_started`，请求方 A2-M12 阶段"潮起"（`a2_poisoner_exposed == public` 时提前一天）。入口二"前厅"：`a2_rotunda_reached AND NOT a2_hall_entered`，请求方 A2-M12 阶段"断门厅"（玩家从鹰丘旧井或泥巷水道下到 `broken_door_hall`，迷宫脚本写 `a2_rotunda_reached`）。入口三"门框"：`boss.doorsealer_construct.defeated AND NOT a2_ritual_ended`。入口四"黎明钟"：`a2_siege_result AND NOT a2_dawn_done`（战斗结算写 `a2_siege_result`）。入口五"城议"：`a2_dawn_done AND NOT a2_council_done`，请求方 A2-M13 阶段"城议" |
 | 时机 | 第 13 周夜，约 25 到 35 分钟实时的战斗被前四段过场切开；城议在城下潮后第三日清晨，跳时到达时强制。全部必经；玩家不下断门厅时入口二、三不播放，仪式持续到黎明，缄门者在鱼市破地而出（第二幕 7.3） |
 | 出场 | 潮起：`selene`、`ferryman`、`benno_herten`、`ron` 或 `dris`、`shiya` 或 `gregor`、`heralda`（雇佣时）、`krause`、`luchen`、`marcus`、`yeyu`。断门厅：`emil`、`faceless`（借门框的目光）、`janu`（远处的声音）、`yeyu`。黎明：`selene`、`hagen`（城破时）、`karl`（旁白）。城议：`rudolf`、`edric`、`cecilia`、`lucas`、`anselm`（旁白） |
 | 地点 | 潮起：`wallenburg_harbor_battle`（码头部署区）；被捕变体始于 `wallenburg` 的 `cathedral`（静室）；逃往南岸变体始于 `gatefront_south` 的 `ferry_landing`。断门厅：`broken_door_hall` 的 `portcullis_hall`、`rotunda`、`ancient_gateframe`。黎明：`wallenburg_harbor_battle`。城议：`wallenburg` 的 `city_hall`（`teleport` 进入） |
 | 时长 | 约 16 分钟（潮起 3、前厅 2、门框 4、黎明 4、城议 3） |
 | 现有数据 | 新建；扩写到 61 节点、151 行 |
-| 写入旗标 | `a2_siege_started`；`a2_player_jailed = false`（静室放人）；`a2_heroes_follow_command`；`a2_hall_entered`；`a2_ritual_ended`；`a2_gateframe_touched`（隔扉之门的历钥，`catalog_doors.md` 第 12 号门）；`faceless_interest`；`emil_fate`（captured、dead、escaped）；`a2_emil_custody`（selene、lucas）；`a2_signet_in_hand`；`a2_dawn_done`；`a2_selene_last_answer`；`selene_stance`（可升到 covert_ally）；`church_verdict`；`a2_arrest_shelved`；`signet_holder`；`a2_council_stance`；`wb_ruler`（`compute wb_council`）；`a2_council_done`；`trust.ron` 或 `trust.dris`、`trust.selene`、`trust.rudolf`；物品 `ky_deadframe_splinter`。读取战斗与迷宫写入的 `a2_siege_result`、`a2_siege_descended`、`a2_held_*`、`a2_bell_tower_fell`、`a2_heir_fallen`、`a2_edric_mercy_rescue`、`a2_hall_children_freed`、`a2_emil_fled`、`a2_rotunda_reached`，以及 `a2_heralda_hired`、`a2_charter_draft_found`、`a2_charter_support` |
+| 写入旗标 | `a2_siege_started`；`a2_player_jailed = false`（静室放人）；`a2_heroes_follow_command`；`a2_hall_entered`；`a2_ritual_ended`；`a2_gateframe_touched`（隔扉之门的历钥，`catalog_doors.md` 第 12 号门）；`npc.faceless.interest`；`a2_emil_fate`（captured、dead、escaped）；`a2_emil_custody`（selene、lucas）；`a2_signet_in_hand`；`a2_dawn_done`；`a2_selene_last_answer`；`npc.selene.stance`（可升到 covert_ally）；`church_verdict`；`a2_arrest_shelved`；`a2_signet_holder`；`a2_council_stance`；`a2_wb_ruler`（`compute wb_council`）；`a2_council_done`；`trust.ron` 或 `trust.dris`、`trust.selene`、`trust.rudolf`；物品 `ky_deadframe_splinter`。读取战斗与迷宫写入的 `a2_siege_result`、`a2_siege_descended`、`a2_held_*`、`a2_bell_tower_fell`、`a2_heir_fallen`、`a2_edric_mercy_rescue`、`a2_hall_children_freed`、`a2_emil_fled`、`a2_rotunda_reached`，以及 `a2_heralda_hired`、`a2_charter_found`、`a2_charter_support` |
 | 揭示 | 门框纹样与玩家手背的门纹同形（M01-C05 加深）；误导 MIS-09（"钥匙就是烙印者的血"）；S05 收束（埃米尔的自述）；"这扇门，我记得。"（门口的女人在现实中的远声，第二幕第 8 节，不显示名字）；隔扉之门的第一次残响"这扇门以前是活的，门那头是一座满是门的城"（不给名字，远期指向 M05）；谨慎桥段 C2-7（奥托会长）、C2-8（门框后面）；继承之争收场 |
 | 音乐与音效 | 潮起：镜 3 入 `mus_act2_city_tide`，延续到战斗。前厅：`mus_act2_city_tide` 出，`amb_dg_sewer`，`e_fight` 时入 `mus_act2_city_tide`。门框：镜 9 入 `mus_stg_motif_dian`，镜 10 交叉 `mus_stg_motif_door`，残响后淡出。黎明：钟声后入 `mus_city_wallenburg_day`。城议：`mus_city_wallenburg_day`，散会时淡出。专用音效 `sfx_cin_siege_hum`、`sfx_cin_siege_burst`、`sfx_cin_siege_frame_close`、`sfx_door_nm_echoes`、`sfx_cin_siege_dawn_bell` |
 | 所需美术 | 立绘 `art_bust_selene`（neutral、special）、`art_bust_ferryman`（neutral）、`art_bust_luchen`（special 握剑决意）、`art_bust_marcus`（special）、`art_bust_yeyu`（neutral、angry、sad）、`art_bust_faceless`（neutral）；头像 `art_por_benno_herten`、`art_por_ron`、`art_por_dris`、`art_por_shiya`、`art_por_gregor`、`art_por_heralda`、`art_por_krause`、`art_por_emil`（neutral、sad）、`art_por_hagen`、`art_por_rudolf`、`art_por_edric`、`art_por_cecilia`、`art_por_lucas`；全屏静帧 `art_bg_cut_siege_outlets`（夜里俯瞰下城：五个出口同时喷出灰黑的潮）、实景运镜（断门厅：崩塌的古门框，四周锁着手背发亮的孩子 等）；特写 `art_prop_cut_siege_signet_lock`（铁闸上印戒形状的锁孔）、`art_prop_cut_siege_charter`（《瓦伦堡市民自治特许状》草稿，末尾空着盖印处）；特效 `art_vfx_cut_siege_gaze`（亮起的门框，像一只睁开的眼睛）、`art_vfx_cut_siege_frame`（手按门框，门纹与纹样严丝合缝，门框暗下）；特殊动作 `art_chr_benno_herten_ring`（全身吊在钟绳上） |
@@ -6857,11 +6858,11 @@ narrator：灰黑色的潮从地底涌上来，潮里全是会爬的东西。
 【squads】
 @镜 4
 narrator：码头上，四支小队在等你的命令。
-ron［NOT (a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed))］：交给我？
-ron［NOT (a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed))］：……好。交给我。
-dris［a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed)］：罗恩不在。冒险者这一队，我来带。
-shiya［companion.shiya.recruited AND NOT (a2_trial_defendant == shiya AND trial_outcome IN (exiled_branded, executed))］：屋顶归我们。
-gregor［NOT companion.shiya.recruited OR (a2_trial_defendant == shiya AND trial_outcome IN (exiled_branded, executed))］：希雅不在。鹿角会的猎人替她上屋顶。
+ron［NOT (a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed))］：交给我？
+ron［NOT (a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed))］：……好。交给我。
+dris［a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed)］：罗恩不在。冒险者这一队，我来带。
+shiya［companion.shiya.recruited AND NOT (a2_trial_defendant == shiya AND a2_trial_outcome IN (exiled_branded, executed))］：屋顶归我们。
+gregor［NOT companion.shiya.recruited OR (a2_trial_defendant == shiya AND a2_trial_outcome IN (exiled_branded, executed))］：希雅不在。鹿角会的猎人替她上屋顶。
 narrator：门扉商会的护卫长攥着刀："仓库和人，先保哪个？"
 heralda［a2_heralda_hired］：赤鬃来了！今晚出价最高的，是你。
 narrator［NOT a2_heralda_hired］：城防军的一个队长朝你敬了个礼："统领让我听你的。"
@@ -6870,13 +6871,13 @@ narrator［NOT a2_heralda_hired］：城防军的一个队长朝你敬了个礼�
 @镜 5
 narrator：公会街口，会长奥托扛着一把斧子，站在泥魔涌来的方向上。他看上去比平时高了一截。
 krause：公会的，跟我来！
-分支［hero_rel_luchen >= 40 AND NOT hero_arrest_choice_luchen == complied］→ heroes_join
+分支［trust.luchen >= 70 AND NOT a2_arrest_choice.luchen == complied］→ heroes_join
 → ferry_help
 【heroes_join】
 @立绘 luchen special 右
 luchen：这一次，听你的。
 @立绘 marcus special 左
-marcus［NOT hero_arrest_choice_marcus == complied］：站我后面……不对，今晚我站你后面。
+marcus［NOT a2_arrest_choice.marcus == complied］：站我后面……不对，今晚我站你后面。
 @立绘撤
 效果 flag a2_heroes_follow_command = true
 → ferry_help
@@ -6895,10 +6896,10 @@ ferryman：就这一次。
 @立绘 yeyu neutral 左
 yeyu［companion.yeyu.recruited］：下面有一扇门在吐澱。不合上它，天亮之前停不下来。
 @立绘撤
-ron［NOT (a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed))］：要是你得下去……上面交给谁？
-dris［a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed)］：要是你得下去，上面交给谁？
-选 to_ron「交给你。」→ d_ron｜效果 add trust.ron 5｜条件 NOT (a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed))
-选 to_dris「交给你。」→ d_go｜效果 add trust.dris 5｜条件 a2_trial_defendant == ron AND trial_outcome IN (exiled_branded, executed)
+ron［NOT (a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed))］：要是你得下去……上面交给谁？
+dris［a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed)］：要是你得下去，上面交给谁？
+选 to_ron「交给你。」→ d_ron｜效果 add trust.ron 5｜条件 NOT (a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed))
+选 to_dris「交给你。」→ d_go｜效果 add trust.dris 5｜条件 a2_trial_defendant == ron AND a2_trial_outcome IN (exiled_branded, executed)
 选 later「到时候再说。」→ d_go
 选 stay「我不下去。」→ d_go
 【d_ron】
@@ -6921,9 +6922,9 @@ narrator：上面，交给他们了。
 narrator：圆厅中央立着一副崩塌的古门框。门框上的纹样，和你手背上的一模一样。
 narrator：门框四周锁着孩子。每个孩子的手背上都抵着一块灰晶，门纹被照得发亮。
 narrator：门框里没有门。门框里只有灰，一直在往外吐。
-emil［poisoner_exposed == public］：你在广场上喊出了我的名字。所以，我早来了一天。
-emil［poisoner_exposed == private］：你没有声张。我欠你一句谢谢。可是锁，从来锁不住药师。
-emil［NOT poisoner_exposed IN (public, private)］：上面的人，还在互相指着鼻子吧。真好。
+emil［a2_poisoner_exposed == public］：你在广场上喊出了我的名字。所以，我早来了一天。
+emil［a2_poisoner_exposed == private］：你没有声张。我欠你一句谢谢。可是锁，从来锁不住药师。
+emil［NOT a2_poisoner_exposed IN (public, private)］：上面的人，还在互相指着鼻子吧。真好。
 emil：伯爵府的药，是我配的。一味一味地配，配到他咳不出声为止。
 → emil_ask
 【emil_ask】
@@ -6964,7 +6965,7 @@ narrator：门框里的灰在涨。再过一会儿，就要漫出来了。
 【answer】
 即兴 faceless｜目的：最后一次挑衅玩家｜情境：断门厅，仪式被打断，他借门框投来目光；玩家刚对他说了一句话｜含义键：被扔下；她；等你被扔下的那天来找我｜禁区：不说自己的名字；不说"同乡"；不提地球、圣历 978 年与夜羽；不说"她"的名字；不承认自己害怕
 faceless：等你被扔下的那天，来找我。我给你留一扇门。
-效果 add faceless_interest 1
+效果 add npc.faceless.interest 1
 → hall_choice
 【near】
 narrator：你往门框里看了一眼。
@@ -6985,7 +6986,7 @@ janu：这扇门，我记得。
 narrator：那个声音很远，远得像是从另一座城传来的。
 narrator：门框暗了下去。吐了一整夜的灰，停了。
 narrator：没有脸的人影，在门框里散了。
-效果 flag a2_ritual_ended = true；flag a2_gateframe_touched = true；add faceless_interest 1；item ky_deadframe_splinter
+效果 flag a2_ritual_ended = true；flag a2_gateframe_touched = true；add npc.faceless.interest 1；item ky_deadframe_splinter
 → echo
 【echo】
 @声 sfx_door_nm_echoes
@@ -6994,7 +6995,7 @@ yeyu［companion.yeyu.recruited］：这扇门以前是活的。
 @立绘撤
 narrator：你听见了。门框后面，很远的地方，有脚步声，有人声，有很多扇门一齐开合的声音。
 narrator：门那头，是一座满是门的城。
-narrator［blank_chronicle IN (saved, in_garden)］：有人在报站名。声音被时间磨得只剩半句："……第三十七门，瓦伦渡……"
+narrator［a2_blank_chronicle IN (saved, in_garden)］：有人在报站名。声音被时间磨得只剩半句："……第三十七门，瓦伦渡……"
 @乐 mus_stg_motif_door 出
 → kids
 【kids】
@@ -7004,7 +7005,7 @@ narrator：{flag:a2_hall_children_freed} 个孩子。你数了两遍。
 → emil_choose
 【emil_gone】
 narrator：埃米尔不见了。地上留着一只空药囊，渡口水门的方向有水声。
-效果 flag emil_fate = escaped
+效果 flag a2_emil_fate = escaped
 → signet_check
 【emil_choose】
 narrator：埃米尔靠着门框坐在地上，药囊空了。他看着那副暗下去的门框，像看着一口刚封上的井。
@@ -7014,19 +7015,19 @@ emil：她没有回来。
 选 kill「（杀了他）」→ ef_kill
 【ef_selene】
 emil：审判庭。……好。让他们也看看，他们烧死的那个孩子，她父亲是什么样子。
-效果 flag emil_fate = captured；flag a2_emil_custody = selene
+效果 flag a2_emil_fate = captured；flag a2_emil_custody = selene
 → signet_check
 【ef_lucas】
 emil：卢卡斯大人的锁，会比教会的结实一点吗？
-效果 flag emil_fate = captured；flag a2_emil_custody = lucas
+效果 flag a2_emil_fate = captured；flag a2_emil_custody = lucas
 → signet_check
 【ef_kill】
 emil：……谢谢。
 narrator：他闭上了眼睛。
-效果 flag emil_fate = dead
+效果 flag a2_emil_fate = dead
 → signet_check
 【signet_check】
-分支［a2_signet_taken AND NOT emil_fate == escaped］→ signet_found
+分支［a2_signet_taken AND NOT a2_emil_fate == escaped］→ signet_found
 → climb
 【signet_found】
 narrator：埃米尔的药囊底下，压着伯爵的印戒。
@@ -7055,24 +7056,24 @@ narrator：白钟的钟楼塌了半边。城东的小钟楼替它敲响了黎明
 narrator：没有钟声。黎明是自己来的。
 narrator：鹰丘堡塌了一角，下城有一半泡在灰水里。城防军统领哈根站在北门的城楼上，下了一道令。
 hagen：没有城议。城还在冒烟。从今天起，城防军管城。
-效果 flag wb_ruler = martial_chaos；flag a2_council_done = true
+效果 flag a2_wb_ruler = martial_chaos；flag a2_council_done = true
 → report
 【report】
 @乐 mus_city_wallenburg_day 入
 narrator［a2_siege_descended］：你不在的时候，地面上发生的事，后来有人一件一件讲给你听。
-narrator［a2_held_mudlane］：泥巷井口守住了。泥巷的人会记得，是谁站在井口。
-narrator［NOT a2_held_mudlane］：泥巷井口失守了。泥巷有人没等到天亮。
-narrator［a2_held_fishmarket］：鱼市排水口守住了。
-narrator［NOT a2_held_fishmarket］：鱼市排水口失守了。鱼市的石板翻了一地。
-narrator［a2_held_harbor］：河港闸门守住了。
-narrator［NOT a2_held_harbor］：河港闸门失守了。仓库烧了两座。
+narrator［a2_held.mudlane］：泥巷井口守住了。泥巷的人会记得，是谁站在井口。
+narrator［NOT a2_held.mudlane］：泥巷井口失守了。泥巷有人没等到天亮。
+narrator［a2_held.fishmarket］：鱼市排水口守住了。
+narrator［NOT a2_held.fishmarket］：鱼市排水口失守了。鱼市的石板翻了一地。
+narrator［a2_held.harbor］：河港闸门守住了。
+narrator［NOT a2_held.harbor］：河港闸门失守了。仓库烧了两座。
 narrator：老船夫一船一船地把河港里困住的人运出去，运了三十来个。他没有替谁拔刀。
 narrator［trust.ferryman >= 80］：只有闸门最凶的那一波，他站在船头，替你挡了一次。
-narrator［a2_held_cathedral］：主教区地窖，教会卫队守住了。
+narrator［a2_held.cathedral］：主教区地窖，教会卫队守住了。
 narrator［a2_edric_mercy_rescue］：艾德里克亲自冲进慈济院，背出了两个孩子。泥巷的人也看见了。
-narrator［NOT a2_held_cathedral］：主教区地窖失守了。慈济院的屋顶上，有人举着孩子等到了天亮。
-narrator［a2_held_eaglewell］：鹰丘旧井，城防军守住了。
-narrator［NOT a2_held_eaglewell］：鹰丘旧井失守了。鹰丘堡塌了一角。
+narrator［NOT a2_held.cathedral］：主教区地窖失守了。慈济院的屋顶上，有人举着孩子等到了天亮。
+narrator［a2_held.eaglewell］：鹰丘旧井，城防军守住了。
+narrator［NOT a2_held.eaglewell］：鹰丘旧井失守了。鹰丘堡塌了一角。
 narrator［a2_heir_fallen == edric］：艾德里克死在主教区的台阶上，手里还握着剑。
 narrator［a2_heir_fallen == cecilia］：塞西莉亚死在秤街的仓库前。她在算最后一笔账。
 narrator［a2_heir_fallen == lucas］：卢卡斯死在泥巷的井口。他的兵把他抬回来的时候，没有一个人说话。
@@ -7091,13 +7092,13 @@ selene［NOT a2_ritual_ended］：鱼市底下爬出来的那个东西，一直�
 选 silent「（不答）」→ sl_silent
 【sl_truth】
 selene：……记录在案。
-效果 flag a2_selene_last_answer = truth；add trust.selene 10；add selene_evidence 1
-分支［selene_stance == waver AND trust.selene >= 50］→ sl_ally
+效果 flag a2_selene_last_answer = truth；add trust.selene 10；add npc.selene.evidence 1
+分支［npc.selene.stance == waver AND trust.selene >= 50］→ sl_ally
 → report_verdict
 【sl_ally】
 @立绘 selene special 右
 selene：这一句，我不写进报告。
-效果 flag selene_stance = covert_ally
+效果 flag npc.selene.stance = covert_ally
 → report_verdict
 【sl_evade】
 selene［a2_ritual_ended］：风不会合上门。
@@ -7115,10 +7116,10 @@ selene：沉默，也是一种回答。
 【report_verdict】
 selene：我会写报告给主教区。写什么，由我。
 @立绘撤
-分支［selene_stance IN (waver, covert_ally) AND church_verdict == wanted］→ rv_w
-分支［selene_stance IN (waver, covert_ally) AND church_verdict == heresy_suspect］→ rv_h
-分支［selene_stance == hunt AND church_verdict == suspect］→ rv_s
-分支［selene_stance == hunt AND NOT church_verdict IN (heresy_suspect, wanted)］→ rv_c
+分支［npc.selene.stance IN (waver, covert_ally) AND church_verdict == wanted］→ rv_w
+分支［npc.selene.stance IN (waver, covert_ally) AND church_verdict == heresy_suspect］→ rv_h
+分支［npc.selene.stance == hunt AND church_verdict == suspect］→ rv_s
+分支［npc.selene.stance == hunt AND NOT church_verdict IN (heresy_suspect, wanted)］→ rv_c
 → shelve
 【rv_w】
 效果 flag church_verdict = heresy_suspect
@@ -7155,22 +7156,22 @@ lucas［NOT a2_heir_fallen == lucas］：能守城者，才配说"立"。三天�
 → c_stance
 【c_hand】
 narrator：所有人都在看你手里的印戒。
-narrator［a2_charter_draft_found］：鲁道夫看了你一眼，又看了一眼你怀里那份草稿。
-选 give_edric「（把印戒交给艾德里克）」→ c_compute｜效果 flag signet_holder = edric；flag a2_council_stance = edric｜条件 NOT a2_heir_fallen == edric
-选 give_cecilia「（把印戒交给塞西莉亚）」→ c_compute｜效果 flag signet_holder = cecilia；flag a2_council_stance = cecilia｜条件 NOT a2_heir_fallen == cecilia
-选 give_lucas「（把印戒交给卢卡斯）」→ c_compute｜效果 flag signet_holder = lucas；flag a2_council_stance = lucas｜条件 NOT a2_heir_fallen == lucas
-选 give_rudolf「（把印戒交给鲁道夫）」→ c_compute｜效果 flag signet_holder = rudolf；flag a2_council_stance = regency
-选 seal「（在特许状草稿上盖印）」→ c_seal｜条件 a2_charter_draft_found AND trust.rudolf >= 60 AND a2_charter_support >= 4
+narrator［a2_charter_found］：鲁道夫看了你一眼，又看了一眼你怀里那份草稿。
+选 give_edric「（把印戒交给艾德里克）」→ c_compute｜效果 flag a2_signet_holder = edric；flag a2_council_stance = edric｜条件 NOT a2_heir_fallen == edric
+选 give_cecilia「（把印戒交给塞西莉亚）」→ c_compute｜效果 flag a2_signet_holder = cecilia；flag a2_council_stance = cecilia｜条件 NOT a2_heir_fallen == cecilia
+选 give_lucas「（把印戒交给卢卡斯）」→ c_compute｜效果 flag a2_signet_holder = lucas；flag a2_council_stance = lucas｜条件 NOT a2_heir_fallen == lucas
+选 give_rudolf「（把印戒交给鲁道夫）」→ c_compute｜效果 flag a2_signet_holder = rudolf；flag a2_council_stance = regency
+选 seal「（在特许状草稿上盖印）」→ c_seal｜条件 a2_charter_found AND trust.rudolf >= 60 AND a2_charter_support >= 4
 【c_seal】
 narrator：你展开那份草稿：《瓦伦堡市民自治特许状》。字是伯爵亲手写的，末尾空着盖印的地方。
 rudolf：伯爵大人写完它，没有盖印。他说，要等一个"为了这座城，而不是为了哪一位"的人。
 narrator：你把印戒按了下去。
-效果 flag signet_holder = charter_sealed；flag a2_council_stance = charter
+效果 flag a2_signet_holder = charter_sealed；flag a2_council_stance = charter
 → c_compute
 【c_stance】
-narrator［signet_holder == edric］：印戒在艾德里克手里。
-narrator［signet_holder == lucas］：印戒在卢卡斯手里。
-narrator［NOT signet_holder IN (edric, lucas)］：印戒不知去向。
+narrator［a2_signet_holder == edric］：印戒在艾德里克手里。
+narrator［a2_signet_holder == lucas］：印戒在卢卡斯手里。
+narrator［NOT a2_signet_holder IN (edric, lucas)］：印戒不知去向。
 选 s_edric「我支持艾德里克。」→ c_compute｜效果 flag a2_council_stance = edric｜条件 NOT a2_heir_fallen == edric
 选 s_cecilia「我支持塞西莉亚。」→ c_compute｜效果 flag a2_council_stance = cecilia｜条件 NOT a2_heir_fallen == cecilia
 选 s_lucas「我支持卢卡斯。」→ c_compute｜效果 flag a2_council_stance = lucas｜条件 NOT a2_heir_fallen == lucas
@@ -7178,10 +7179,10 @@ narrator［NOT signet_holder IN (edric, lucas)］：印戒不知去向。
 选 s_none「（不表态）」→ c_compute｜效果 flag a2_council_stance = none
 【c_compute】
 效果 compute wb_council
-分支［wb_ruler == citizen_council］→ w_citizen
-分支［wb_ruler == regency］→ w_regency
-分支［wb_ruler == cecilia］→ w_cecilia
-分支［wb_ruler == lucas］→ w_lucas
+分支［a2_wb_ruler == citizen_council］→ w_citizen
+分支［a2_wb_ruler == regency］→ w_regency
+分支［a2_wb_ruler == cecilia］→ w_cecilia
+分支［a2_wb_ruler == lucas］→ w_lucas
 → w_edric
 【w_edric】
 edric：我会守住父亲留下的城。按规矩。
@@ -7222,14 +7223,14 @@ rudolf：这座城，谢谢您。
 结束
 ```
 
-**`compute wb_council`（新计算函数，按第二幕 4.1 结局表写 `wb_ruler`，内核结算，不交给模型）**
+**`compute wb_council`（新计算函数，按第二幕 4.1 结局表写 `a2_wb_ruler`，内核结算，不交给模型）**
 
 1. `a2_siege_result == fell` 时黎明段已写 martial_chaos，城议入口不播放。
-2. `signet_holder == charter_sealed` 写 citizen_council（盖印选项本身已要求找到草稿、`trust.rudolf >= 60`、`a2_charter_support >= 4`，即公会、商会联合、城防军、工匠、鹿角会、平民中至少四方声望不低于"友善"）。
-3. `signet_holder == rudolf` 且在世继承人对玩家的声望都不低于"友善"，写 regency；否则按第 6 条。
-4. `signet_holder == cecilia` 且 `blamed_heir != cecilia`（进口药材的嫌疑已洗清）且商会联合与平民声望不低于"友善"，写 cecilia。
-5. `signet_holder == lucas` 且城防军与平民声望不低于"友善"，并压得住教会的反对（`a2_heroes_follow_command`、`selene_stance IN (waver, covert_ally)`、`a2_bishop_oracle_leverage` 三者有一），写 lucas。
-6. 其余写 edric（默认）。印戒不在任何人手里时 `signet_holder` 记为 lost，按 `a2_council_stance` 与在场势力的倾向结算（有模型时各势力 AI 计票；无模型时 `a2_council_stance` 指向的继承人若满足第 4 或第 5 条中除印戒以外的条件，则取之，否则 edric）。
+2. `a2_signet_holder == charter_sealed` 写 citizen_council（盖印选项本身已要求找到草稿、`trust.rudolf >= 60`、`a2_charter_support >= 4`，即公会、商会联合、城防军、工匠、鹿角会、平民中至少四方声望不低于"友善"）。
+3. `a2_signet_holder == rudolf` 且在世继承人对玩家的声望都不低于"友善"，写 regency；否则按第 6 条。
+4. `a2_signet_holder == cecilia` 且 `a2_blamed_heir != cecilia`（进口药材的嫌疑已洗清）且商会联合与平民声望不低于"友善"，写 cecilia。
+5. `a2_signet_holder == lucas` 且城防军与平民声望不低于"友善"，并压得住教会的反对（`a2_heroes_follow_command`、`npc.selene.stance IN (waver, covert_ally)`、`a2_oracle_edit_proof` 三者有一），写 lucas。
+6. 其余写 edric（默认）。印戒不在任何人手里时 `a2_signet_holder` 记为 lost，按 `a2_council_stance` 与在场势力的倾向结算（有模型时各势力 AI 计票；无模型时 `a2_council_stance` 指向的继承人若满足第 4 或第 5 条中除印戒以外的条件，则取之，否则 edric）。
 7. 战死的继承人不入选：第 6 条的默认人选战死时依次取在世者中的艾德里克、卢卡斯、塞西莉亚；三人都不在时写 regency（鲁道夫摄政）。
 
 **选择与后果**
@@ -7240,17 +7241,17 @@ rudolf：这座城，谢谢您。
 | `later`、`stay` | 到时候再说；我不下去 | `d_go` | 无（下不下断门厅由战斗中的行动决定） | 无 |
 | `why`、`kids` | 问埃米尔 | 回到 `emil_ask` | 无 | 各一次 |
 | `fight` | 拔剑 | 首领战 `a2_hall_keywarden`（第一阶段埃米尔，第二阶段缄门者由迷宫脚本接续） | 无 | 无 |
-| `close` | 把手按在门框上 | `close` | `a2_ritual_ended = true`（战斗停止增援）；`a2_gateframe_touched = true`；`faceless_interest` +1；物品 `ky_deadframe_splinter` | 无 |
-| `answer` | 回答他 | `answer` | `faceless_interest` +1 | 一次 |
+| `close` | 把手按在门框上 | `close` | `a2_ritual_ended = true`（战斗停止增援）；`a2_gateframe_touched = true`；`npc.faceless.interest` +1；物品 `ky_deadframe_splinter` | 无 |
+| `answer` | 回答他 | `answer` | `npc.faceless.interest` +1 | 一次 |
 | `near` | 往门框里看 | `near` | 无（C2-8，不解释） | 一次 |
-| `to_selene` | 交给赛琳 | `ef_selene` | `emil_fate = captured`；`a2_emil_custody = selene`（第三幕可审出门徒会的部分教义） | `NOT a2_emil_fled` |
-| `to_lucas` | 交给卢卡斯 | `ef_lucas` | `emil_fate = captured`；`a2_emil_custody = lucas` | 同上 |
-| `kill` | 杀了他 | `ef_kill` | `emil_fate = dead` | 同上 |
-| `truth` | 如实回答 | `sl_truth` | `trust.selene` +10；`selene_evidence` +1；`selene_stance == waver AND trust.selene >= 50` 时升到 covert_ally | 无 |
+| `to_selene` | 交给赛琳 | `ef_selene` | `a2_emil_fate = captured`；`a2_emil_custody = selene`（第三幕可审出门徒会的部分教义） | `NOT a2_emil_fled` |
+| `to_lucas` | 交给卢卡斯 | `ef_lucas` | `a2_emil_fate = captured`；`a2_emil_custody = lucas` | 同上 |
+| `kill` | 杀了他 | `ef_kill` | `a2_emil_fate = dead` | 同上 |
+| `truth` | 如实回答 | `sl_truth` | `trust.selene` +10；`npc.selene.evidence` +1；`npc.selene.stance == waver AND trust.selene >= 50` 时升到 covert_ally | 无 |
 | `evade`、`ask`、`silent` | 敷衍、反问、不答 | 各自节点 | `ask` 时 `trust.selene` +5 | 无 |
-| `give_edric`、`give_cecilia`、`give_lucas` | 把印戒交给某位继承人 | `c_compute` | `signet_holder` 与 `a2_council_stance` | 印戒在手；该继承人在世 |
-| `give_rudolf` | 交给鲁道夫 | `c_compute` | `signet_holder = rudolf`；`a2_council_stance = regency` | 印戒在手 |
-| `seal` | 在特许状草稿上盖印 | `c_seal` | `signet_holder = charter_sealed`；`a2_council_stance = charter` | 印戒在手；`a2_charter_draft_found AND trust.rudolf >= 60 AND a2_charter_support >= 4` |
+| `give_edric`、`give_cecilia`、`give_lucas` | 把印戒交给某位继承人 | `c_compute` | `a2_signet_holder` 与 `a2_council_stance` | 印戒在手；该继承人在世 |
+| `give_rudolf` | 交给鲁道夫 | `c_compute` | `a2_signet_holder = rudolf`；`a2_council_stance = regency` | 印戒在手 |
+| `seal` | 在特许状草稿上盖印 | `c_seal` | `a2_signet_holder = charter_sealed`；`a2_council_stance = charter` | 印戒在手；`a2_charter_found AND trust.rudolf >= 60 AND a2_charter_support >= 4` |
 | `s_edric`、`s_cecilia`、`s_lucas`、`s_regency`、`s_none` | 印戒不在手时的表态 | `c_compute` | `a2_council_stance` | 该继承人在世 |
 
 **变体**
@@ -7262,17 +7263,17 @@ rudolf：这座城，谢谢您。
 | 罗恩被流放或处刑 | 冒险者小队由德里斯带；"上面交给谁"由德里斯问 |
 | 希雅不在 | 猎手队由格雷戈尔的猎人替补（第二幕 7.3） |
 | `a2_heralda_hired` | 第四支小队是赤鬃佣兵；否则是城防小队 |
-| `hero_rel_luchen >= 40` 且陆辰未依令逮捕 | "这一次，听你的"：勇者团接受玩家调度一次（第三幕会被想起） |
+| `trust.luchen >= 70` 且陆辰未依令逮捕 | "这一次，听你的"：勇者团接受玩家调度一次（第三幕会被想起） |
 | `trust.ferryman >= 80` | 他替玩家守河港闸门一波，"就这一次" |
 | `a2_siege_scale_down` | 铁闸被炸开；否则铁闸上是印戒形的锁孔 |
-| `poisoner_exposed` | 埃米尔开场白三选一（揭发会让他提前一天发动） |
-| `blank_chronicle IN (saved, in_garden)` | 残响里多半句站名（约纳斯的年表让残响更完整，第二幕 1.2） |
+| `a2_poisoner_exposed` | 埃米尔开场白三选一（揭发会让他提前一天发动） |
+| `a2_blank_chronicle IN (saved, in_garden)` | 残响里多半句站名（约纳斯的年表让残响更完整，第二幕 1.2） |
 | `a2_emil_fled` | 埃米尔已从渡口水门逃走（第三幕"钥司的尾巴"）；印戒若在他身上则随之失去 |
-| `a2_siege_result == fell` | 没有黎明钟；哈根宣布军管，`wb_ruler = martial_chaos`，城议不开 |
+| `a2_siege_result == fell` | 没有黎明钟；哈根宣布军管，`a2_wb_ruler = martial_chaos`，城议不开 |
 | `a2_bell_tower_fell` | 黎明钟由城东小钟楼敲响 |
 | `NOT a2_ritual_ended` | 战报多一句：缄门者在鱼市破地而出又被砍倒；赛琳的最后一问换成"那个东西为什么往你这边爬" |
 | `a2_heir_fallen` | 战报一句；城议上空一把椅子，该继承人的台词与选项都不出现 |
-| `selene_stance` 与报告 | waver 或 covert_ally 时报告把 `church_verdict` 降一档（wanted 到 heresy_suspect，heresy_suspect 到 suspect）；hunt 时升一档（clear 到 suspect，suspect 到 heresy_suspect）；enforce 不变 |
+| `npc.selene.stance` 与报告 | waver 或 covert_ally 时报告把 `church_verdict` 降一档（wanted 到 heresy_suspect，heresy_suspect 到 suspect）；hunt 时升一档（clear 到 suspect，suspect 到 heresy_suspect）；enforce 不变 |
 
 #### cut_a2_no_page 没有那一页（No Page）
 
@@ -7286,7 +7287,7 @@ rudolf：这座城，谢谢您。
 | 地点 | `wallenburg` 的 `stylus_tower_roof`（星笔塔观星台）；`gatefront_south` 的 `ferry_hut` 与 `ferry_landing` |
 | 时长 | 约 7 分钟 |
 | 现有数据 | `a2_no_page` 的 `dawn`（5 行）与 `ferry`（3 行）两个节点。艾登两句与回声按正典移到星笔塔黄昏（现有数据放在黎明的城墙上）；老船夫"勇者打完魔王"一句归 `cut_a2_ferryman`；"第九个要来了"保留。扩写到 32 节点、60 行 |
-| 写入旗标 | `a2_aiden_no_page = true`；`aiden_report`（kept、reported）；`a2_no_page_reply`（admit、ask_back、joke、silent）；`hero_rel_aiden`；`a2_ferryman_ninth = true`；`ferryman_bond`（0 到 3，由 `trust.ferryman` 的 30、50、80 三档折算）；`trust.pia`；物品 `ferryman_old_oar`（可选） |
+| 写入旗标 | `a2_aiden_no_page = true`；`a2_aiden_report`（kept、reported）；`a2_no_page_reply`（admit、ask_back、joke、silent）；`trust.aiden`；`a2_ferryman_ninth = true`；`npc.ferryman.bond`（0 到 3，由 `trust.ferryman` 的 30、50、80 三档折算）；`trust.pia`；物品 `ferryman_old_oar`（可选） |
 | 揭示 | M03-C06（"铭录里没有你。我查过了。按这个世界的规则，你不存在。"）、M03-C07（"铭录只给在这里出生的生灵登页……"）；锚点 A06 回扣（直接兑现：书就是铭录）；M08-C04（"第九个要来了。"）；M08-C05 的一角（`trust.ferryman >= 50`："这次来得早"，原因不解释）；检索仪里一闪而过的门形墨迹（莫伊拉从别人的页面上描玩家的轮廓，第二幕第 8 节，不解释）；艾登本子上整齐得过分的星图（A2-S15 的远期伏笔，不解释） |
 | 音乐与音效 | 入 `mus_cue_zoomout`（镜 1）；镜 6 交叉 `mus_stg_motif_moira`（回声一句），句后交叉回 `mus_cue_zoomout`；门前渡延续，出场延续到 `cut_a2_barony` 的镜 1 再交叉。专用音效 `sfx_cin_no_page_crystal`、`sfx_cin_no_page_dark`、`sfx_cin_no_page_ink`、`sfx_cin_no_page_unmoor`；环境声 `amb_city_day`、`amb_base_river` |
 | 所需美术 | 立绘 `art_bust_aiden`（neutral、thinking）、`art_bust_yeyu`（special 嘴硬脸红、sad）、`art_bust_ferryman`（neutral、smile）；头像 `art_por_pia`；特写 `art_prop_cut_no_page_crystal`（铭录检索仪：黄铜支架托着水晶，三态：亮着一页、亮着残页、暗着）、`art_prop_cut_no_page_star_records`（艾登本子上的星象记录：一排排间距整齐得像尺量的点）、`art_prop_cut_no_page_names`（逮捕那天玩家写下三种名字的纸）、`art_prop_cut_no_page_oar`（老船夫留下的旧船桨）；全屏静帧 `art_bg_cut_no_page_tower`（黄昏的观星台，远处有人在修钟楼）、实景运镜（河雾里远去的小船）；特效 `art_vfx_cut_no_page_ink`（水晶里一闪而过的门形墨迹）；特殊动作 `art_chr_aiden_write` |
@@ -7318,7 +7319,7 @@ rudolf：这座城，谢谢您。
 @环境 amb_city_day
 @光 昏
 narrator：城下潮的烟还没散尽。远处有人在修钟楼，锤子声一下一下地传过来。
-narrator［hero_rel_aiden < -20］：你是被一张字条叫来的。字条上只有一句："我有个问题，只有你能回答。"
+narrator［trust.aiden < 40］：你是被一张字条叫来的。字条上只有一句："我有个问题，只有你能回答。"
 narrator：观星台中央立着一台铭录检索仪。黄铜支架托着一块水晶，水晶里有墨色的字在慢慢流动。
 @镜 2
 narrator：桌上摊着艾登的本子。翻开的那一页是星图：一排一排的点，间距整齐得像用尺子量过。
@@ -7354,10 +7355,10 @@ narrator：他写下你的名字。
 narrator：水晶暗着。
 narrator［a2_aiden_names_given］：他从胸前的口袋里掏出那张折好的纸，照着上面换了一种写法。水晶暗着。又换一种。还是暗着。
 narrator［NOT a2_aiden_names_given］：他换了一种写法。水晶暗着。
-narrator［rumor_shape == blond_knight］：最后，他写下城里人叫你的那个名字："金发骑士"。水晶暗着。
-narrator［rumor_shape == heroes_porter］：最后，他写下城里人叫你的那个名字："勇者的挑夫"。水晶暗着。
-narrator［rumor_shape == hidden_master］：最后，他写下城里人叫你的那个名字："无名高手"。水晶暗着。
-narrator［rumor_shape == spec_outsider］：最后，他写下城里人叫你的那个名字："规格外者"。水晶暗着。
+narrator［a2_rumor_shape == blond_knight］：最后，他写下城里人叫你的那个名字："金发骑士"。水晶暗着。
+narrator［a2_rumor_shape == heroes_porter］：最后，他写下城里人叫你的那个名字："勇者的挑夫"。水晶暗着。
+narrator［a2_rumor_shape == hidden_master］：最后，他写下城里人叫你的那个名字："无名高手"。水晶暗着。
+narrator［a2_rumor_shape == spec_outsider］：最后，他写下城里人叫你的那个名字："规格外者"。水晶暗着。
 → reveal
 【reveal】
 @镜 5
@@ -7390,7 +7391,7 @@ aiden：沉默，也算一种回答。
 效果 flag a2_no_page_reply = silent
 → tier
 【tier】
-分支［hero_rel_aiden >= -20］→ five_lamps
+分支［trust.aiden >= 40］→ five_lamps
 → low
 【five_lamps】
 @立绘 aiden thinking 右
@@ -7403,7 +7404,7 @@ aiden：你也是从那边来的，对吗？
 【fl_yes】
 aiden：那就好。……不，不好。但至少，不是我疯了。
 aiden：我想回家。你是我见过的唯一一个，不按规则来的东西。
-效果 add hero_rel_aiden 5
+效果 add trust.aiden 3
 → report_decide
 【fl_quiet】
 aiden：……我明白了。不说，也是一种说。
@@ -7413,14 +7414,14 @@ aiden：我会弄清楚的。
 narrator：他把检索记录折好，收进口袋。
 → report_decide
 【report_decide】
-分支［hero_rel_aiden < -20］→ rep_reported
-分支［hero_rel_aiden < 40 AND a2_no_page_reply IN (joke, silent)］→ rep_reported
+分支［trust.aiden < 40］→ rep_reported
+分支［trust.aiden < 70 AND a2_no_page_reply IN (joke, silent)］→ rep_reported
 → rep_kept
 【rep_kept】
-效果 flag aiden_report = kept
+效果 flag a2_aiden_report = kept
 → ink
 【rep_reported】
-效果 flag aiden_report = reported
+效果 flag a2_aiden_report = reported
 → ink
 【ink】
 @镜 6
@@ -7472,16 +7473,16 @@ ferryman：第九个要来了。
 分支［trust.ferryman >= 30］→ b1
 → b0
 【b3】
-效果 flag ferryman_bond = 3
+效果 flag npc.ferryman.bond = 3
 → leave
 【b2】
-效果 flag ferryman_bond = 2
+效果 flag npc.ferryman.bond = 2
 → leave
 【b1】
-效果 flag ferryman_bond = 1
+效果 flag npc.ferryman.bond = 1
 → leave
 【b0】
-效果 flag ferryman_bond = 0
+效果 flag npc.ferryman.bond = 0
 → leave
 【leave】
 @镜 9
@@ -7514,7 +7515,7 @@ narrator：河雾里，已经看不见那条船了。
 | `who` | 那你现在看见的是谁（反问） | `r_who` | `a2_no_page_reply = ask_back` | 无 |
 | `joke` | 可能是我忘了交表（玩笑） | `r_joke` | `a2_no_page_reply = joke` | 无 |
 | `silent` | 沉默 | `r_silent` | `a2_no_page_reply = silent` | 无 |
-| `yes`、`nod` | 是；点头 | `fl_yes` | `hero_rel_aiden` +5 | 艾登关系中以上 |
+| `yes`、`nod` | 是；点头 | `fl_yes` | `trust.aiden` +3 | 艾登关系中以上 |
 | `quiet` | 不答 | `fl_quiet` | 无 | 同上 |
 | `keep` | 先替你收着 | `oar_keep` | 物品 `ferryman_old_oar`；`trust.pia` +5 | 无 |
 | `hers` | 留着吧 | `oar_hers` | `trust.pia` +10 | 无 |
@@ -7525,11 +7526,11 @@ narrator：河雾里，已经看不见那条船了。
 
 | 条件 | 差异 |
 | --- | --- |
-| `hero_rel_aiden < -20` | 玩家是被字条叫来的；没有"五盏灯"，他只说"我会弄清楚的"，`aiden_report = reported` |
-| `hero_rel_aiden` 中档 | 有"五盏灯"；回应为玩笑或沉默时 `aiden_report = reported`，承认或反问时 kept |
-| `hero_rel_aiden >= 40` | 有"五盏灯"；`aiden_report = kept` |
+| `trust.aiden < 40` | 玩家是被字条叫来的；没有"五盏灯"，他只说"我会弄清楚的"，`a2_aiden_report = reported` |
+| `trust.aiden` 中档 | 有"五盏灯"；回应为玩笑或沉默时 `a2_aiden_report = reported`，承认或反问时 kept |
+| `trust.aiden >= 70` | 有"五盏灯"；`a2_aiden_report = kept` |
 | `a2_aiden_names_given` | 他照着逮捕那天的纸逐一检索（镜 4 插入 `art_prop_cut_no_page_names`） |
-| `rumor_shape` | 城里人叫玩家的名字四选一：金发骑士、勇者的挑夫、无名高手、规格外者 |
+| `a2_rumor_shape` | 城里人叫玩家的名字四选一：金发骑士、勇者的挑夫、无名高手、规格外者 |
 | `trust.ferryman` | 30 以上对玩家说"第九个要来了"；50 以上加"这次来得早"；80 以上再加"那几个孩子，替我看着点"（指勇者团）；30 以下他对着河说，玩家在岸上听见 |
 
 #### cut_a2_barony 鹰丘大厅：受封与第一封信（The Barony and the First Letter）
@@ -7555,7 +7556,7 @@ narrator：河雾里，已经看不见那条船了。
 | 镜 | 机位与运动 | 画面与调度 | 光与天气 | 声 |
 | --- | --- | --- | --- | --- |
 | 1 | 低，全，推 | 全屏静帧 `art_bg_cut_barony_hall` 溶入：王都使者在台阶上展开文书 | 晨 | `mus_city_wallenburg_day` 入；`sfx_cin_barony_herald` |
-| 2 | 标准，中，定 | 新掌权者说话（按 `wb_ruler`） | 晨，室内 | 乐延续 |
+| 2 | 标准，中，定 | 新掌权者说话（按 `a2_wb_ruler`） | 晨，室内 | 乐延续 |
 | 3 | 特 | `art_prop_cut_barony_writ`；厅里有人笑出声 | 晨 | `sfx_cin_barony_laugh`；乐出 |
 | 4 | 门扉擦除转场 | 当夜，门内庭院的小屋，炉火快熄，夜羽坐在火边数信 | 夜 | `amb_inner_court` |
 | 5 | 标准，近，推 | 信囊里一封信的火漆化开（`art_vfx_cut_barony_seal_melt`） | 夜，火光 | `sfx_cin_seal_melt` |
@@ -7577,11 +7578,11 @@ narrator：鹰丘堡的大厅里站满了人。王都来的使者站在台阶上
 @声 sfx_cin_barony_herald
 herald：国王陛下圣体违和。格兰提亚帝国大军集结于东境。诸边境领主各守其土，听候调遣。
 narrator：大厅里一阵低语。
-分支［wb_ruler == martial_chaos］→ r_martial
-分支［wb_ruler == citizen_council］→ r_citizen
-分支［wb_ruler == regency］→ r_regency
-分支［wb_ruler == cecilia］→ r_cecilia
-分支［wb_ruler == lucas］→ r_lucas
+分支［a2_wb_ruler == martial_chaos］→ r_martial
+分支［a2_wb_ruler == citizen_council］→ r_citizen
+分支［a2_wb_ruler == regency］→ r_regency
+分支［a2_wb_ruler == cecilia］→ r_cecilia
+分支［a2_wb_ruler == lucas］→ r_lucas
 → r_edric
 【r_edric】
 @镜 2
@@ -7625,8 +7626,8 @@ hagen：你去。
 【grant】
 @镜 3
 @立绘撤
-narrator［NOT wb_ruler IN (citizen_council, martial_chaos)］：（封书）灰烬边境：边石镇、旧哨村、封门遗迹，以及向北直到荒原的土地，封予{player_name}，授准男爵。
-narrator［wb_ruler IN (citizen_council, martial_chaos)］：（文书）灰烬边境：边石镇、旧哨村、封门遗迹，以及向北直到荒原的土地，交{player_name}管领。爵位，待王都确认。
+narrator［NOT a2_wb_ruler IN (citizen_council, martial_chaos)］：（封书）灰烬边境：边石镇、旧哨村、封门遗迹，以及向北直到荒原的土地，封予{player_name}，授准男爵。
+narrator［a2_wb_ruler IN (citizen_council, martial_chaos)］：（文书）灰烬边境：边石镇、旧哨村、封门遗迹，以及向北直到荒原的土地，交{player_name}管领。爵位，待王都确认。
 rudolf：边石镇的领权，前领主早年抵押给了埃尔茨家。今日收回，一并转封。
 @声 sfx_cin_barony_laugh
 narrator：厅里有人笑出了声："谁都不要的地方。"
@@ -7684,11 +7685,11 @@ narrator：千军之门。
 
 **选择与后果**
 
-本场没有玩家选项：封赏的条件由 `wb_ruler` 决定，信的开启是写定事件。
+本场没有玩家选项：封赏的条件由 `a2_wb_ruler` 决定，信的开启是写定事件。
 
 **变体**
 
-| `wb_ruler` | 说辞（含义固定，有模型时措辞由该人物的 AI 生成） | 附带条件 | 爵位 |
+| `a2_wb_ruler` | 说辞（含义固定，有模型时措辞由该人物的 AI 生成） | 附带条件 | 爵位 |
 | --- | --- | --- | --- |
 | edric（默认） | "荒原离光远一些，也离城远一些。主教区会派人去照看你。" | 教会巡察权（第三幕第 14 周要求搜查遗民与门石） | 准男爵 |
 | cecilia | "我投资的是人，不是地。那块地的产出，商会联合愿意包销。" | 商会包销契约 | 准男爵 |
@@ -7709,14 +7710,14 @@ narrator：千军之门。
 | `a2_count_audience_done` | 布尔 | true | 帘后觐见已完成 | `cut_a2_arrival` |
 | `a2_exam_refused` | 布尔 | true | 拒考，按委托积分晋升（第 8 周到 C） | `cut_a2_exam` |
 | `a2_reynard_duel` | 枚举 | crush、grace、lost | 考核对练的结果 | 读（A2-M02 的对练遭遇 `reynard_walter_duel` 写入） |
-| `a2_yui_saw_light_bend` | 布尔 | true | 结衣察觉圣光绕开了玩家 | `cut_a2_heroes` |
+| `a2_yui_saw_light` | 布尔 | true | 结衣察觉圣光绕开了玩家 | `cut_a2_heroes` |
 | `a2_luchen_question` | 枚举 | admit、deny、deflect、silent | 对"你也是穿越来的？"的回应 | `cut_a2_heroes` |
 | `a2_chase_route` | 枚举 | shore、ferry_boat、rat_tunnel、absent | 瓦伦河夜追的路线；absent 为不在场 | `cut_a2_ferryman`（不在场时由内核写 absent） |
 | `a2_chase_survived` | 布尔 | true | 在驳船上撑过沉河鲶王三轮扑击 | 读（A2-M07 的驳船遭遇 `river_catfish_king` 写入） |
 | `a2_ferryman_cut_witnessed` | 布尔 | true | 亲眼看见老船夫那一刀 | `cut_a2_ferryman` |
-| `a2_w6_false_record_unseen` | 布尔 | true | 第 6 周问话时用了伪录且未被看破（光之审提前到第 9 周） | 读（A2-M06 的静室问话 A2-D02.c 写入） |
+| `a2_mirror_fooled` | 布尔 | true | 第 6 周问话时用了伪录且未被看破（光之审提前到第 9 周） | 读（A2-M06 的静室问话 A2-D02.c 写入） |
 | `a2_trial_defendant` | 枚举 | oola、shiya、ron | 光之审的被告 | `cut_a2_selene_trial` |
-| `a2_forgery_source_found` | 布尔 | true | 拿到迪特里希伪证的来源 | 读（A2-D02.d 写入：A2-S08 的卷宗或向灰鼠买消息） |
+| `a2_forgery_source` | 布尔 | true | 拿到迪特里希伪证的来源 | 读（A2-D02.d 写入：A2-S08 的卷宗或向灰鼠买消息） |
 | `a2_cage_evidence` | 布尔 | true | 取得晶窟笼子的证据 | 读（A2-M08 写入） |
 | `a2_fiona_turned` | 布尔 | true | 菲奥娜被策反并愿作证 | 读（A2-M08 与 A2-D03 写入） |
 | `a2_luchen_saw_defendant_good` | 布尔 | true | 陆辰亲眼见过被告做好事 | 读（A2-M04 的联合攻略或 A2-S13 写入） |
@@ -7730,7 +7731,7 @@ narrator：千军之门。
 | `a2_funeral_choice` | 枚举 | guard_signet、chase、guard_people | 葬礼袭击中玩家的应对 | `cut_a2_funeral` |
 | `a2_signet_taken` | 布尔 | true | 印戒在葬礼上被门徒会夺走 | `cut_a2_funeral` |
 | `a2_siege_scale_down` | 布尔 | true | 印戒没被抢走，门徒会只能炸闸，城下潮缩小一级 | `cut_a2_funeral` |
-| `rule.ironman` | 布尔 | true | 铁人规则（开局选项，D-073） | 读（开局设置写入） |
+| `ironman` | 布尔 | true | 铁人规则（开局选项，D-073） | 读（开局设置写入） |
 | `a2_arrest_response` | 枚举 | surrender、flee_ferry、flee_tunnel、talk_delayed、resist | 玩家对逮捕令的回应 | `cut_a2_arrest` |
 | `a2_player_jailed` | 布尔 | true、false | 玩家被关在静室；城下潮开局时由赛琳放出 | `cut_a2_arrest`、`cut_a2_siege` |
 | `a2_aiden_names_given` | 布尔 | true | 逮捕那天把三种名字写给了艾登 | `cut_a2_arrest` |
@@ -7741,27 +7742,27 @@ narrator：千军之门。
 | `a2_hall_entered` | 布尔 | true | 断门厅前厅段已播 | `cut_a2_siege` |
 | `a2_ritual_ended` | 布尔 | true | 玩家用门纹合上门框，仪式终止，战斗停止增援 | `cut_a2_siege` |
 | `a2_gateframe_touched` | 布尔 | true | 触碰古门框、听见残响（隔扉之门的历钥） | `cut_a2_siege` |
-| `a2_hall_children_freed` | 整数 | 0 到 9 | 断门厅里松脱的孩子数（同时计入 `rescued_children`） | 读（迷宫脚本按缄门者被击碎的部位写入） |
+| `a2_hall_children_freed` | 整数 | 0 到 9 | 断门厅里松脱的孩子数（同时计入 `a2_rescued_children`） | 读（迷宫脚本按缄门者被击碎的部位写入） |
 | `a2_emil_fled` | 布尔 | true | 玩家拖得太久，埃米尔已从渡口水门逃走 | 读（迷宫脚本写入） |
 | `a2_emil_custody` | 枚举 | selene、lucas | 被俘的埃米尔交给谁 | `cut_a2_siege` |
 | `a2_signet_in_hand` | 布尔 | true | 印戒在玩家手里（从埃米尔身上追回） | `cut_a2_siege` |
 | `a2_siege_descended` | 布尔 | true | 玩家在战斗中下到过断门厅 | 读（战斗写入） |
 | `a2_siege_result` | 枚举 | held、fell | 城下潮结果；fell 进入军管分支 | 读（战斗写入） |
-| `a2_held_mudlane`、`a2_held_fishmarket`、`a2_held_harbor`、`a2_held_cathedral`、`a2_held_eaglewell` | 布尔 | true、false | 五个出口是否守住到黎明（上城两口由内核按 AI 友军结算） | 读（战斗写入） |
+| `a2_held.mudlane`、`a2_held.fishmarket`、`a2_held.harbor`、`a2_held.cathedral`、`a2_held.eaglewell` | 布尔 | true、false | 五个出口是否守住到黎明（上城两口由内核按 AI 友军结算） | 读（战斗写入） |
 | `a2_bell_tower_fell` | 布尔 | true | 白钟钟楼倒塌（黎明钟改由小钟楼敲） | 读（战斗写入） |
 | `a2_heir_fallen` | 枚举 | none、edric、cecilia、lucas | 战死的继承人 | 读（战斗写入） |
 | `a2_edric_mercy_rescue` | 布尔 | true | 艾德里克亲自冲进慈济院救人（民心记忆反转） | 读（战斗中 AI 自主行动写入） |
 | `a2_dawn_done` | 布尔 | true | 黎明段已播 | `cut_a2_siege` |
 | `a2_selene_last_answer` | 枚举 | truth、evade、ask_back、silent | 对赛琳最后一问的回答 | `cut_a2_siege` |
 | `a2_arrest_shelved` | 布尔 | true | 逮捕令暂缓，"待城安定再议" | `cut_a2_siege` |
-| `a2_charter_draft_found` | 布尔 | true | 找到书房里那份没盖印的特许状草稿 | 读（A2-D01.f 写入） |
+| `a2_charter_found` | 布尔 | true | 找到书房里那份没盖印的特许状草稿 | 读（A2-D01.f 写入） |
 | `a2_charter_support` | 整数 | 0 到 6 | 公会、商会联合、城防军、工匠、鹿角会、平民六方中声望不低于"友善"的数目 | 读（注册表 `derive`，由 `faction_rep_*` 计数） |
-| `a2_bishop_oracle_leverage` | 布尔 | true | 拿到主教删改神谕的把柄（"寻得，勿令其言。"） | 读（A2-S08 的卷宗有主教批注，或赛琳信任 50 以上时说出原文；卢卡斯继位的条件之一） |
+| `a2_oracle_edit_proof` | 布尔 | true | 拿到主教删改神谕的把柄（"寻得，勿令其言。"） | 读（A2-S08 的卷宗有主教批注，或赛琳信任 50 以上时说出原文；卢卡斯继位的条件之一） |
 | `a2_council_stance` | 枚举 | edric、cecilia、lucas、regency、charter、none | 城议上玩家的表态或印戒交付 | `cut_a2_siege` |
 | `a2_council_done` | 布尔 | true | 城议结束（军管分支在黎明段写入） | `cut_a2_siege` |
 | `a2_no_page_reply` | 枚举 | admit、ask_back、joke、silent | 对"铭录里没有你"的回应 | `cut_a2_no_page` |
 
-本节同时读写台账与第二幕文档已登记的变量（不重复登记）：`a2_arrive_valen`、`a2_promotion_exam`、`a2_heroes_met`、`a2_selene_met`、`a2_ferryman_reveal`、`a2_faceless_projection`、`a2_aiden_no_page`、`a2_ferryman_ninth`、`a2_barony_granted`、`yeyu_letters`、`a1_oola_fate`、`trial_outcome`、`church_verdict`、`selene_stance`、`selene_evidence`、`eluen_awareness`、`faceless_interest`、`hero_rel_*`、`hero_arrest_choice_*`、`aiden_report`、`signet_holder`、`wb_ruler`、`emil_fate`、`rescued_children`、`ferryman_bond`、`guild_rank`、`rumor_shape`、`blank_chronicle`、`poisoner_exposed`、`blamed_heir`、`antler_rel`、`trust.*`。
+本节同时读写台账与第二幕文档已登记的变量（不重复登记）：`a2_arrive_valen`、`a2_promotion_exam`、`a2_heroes_met`、`a2_selene_met`、`a2_ferryman_reveal`、`a2_faceless_projection`、`a2_aiden_no_page`、`a2_ferryman_ninth`、`a2_barony_granted`、`yeyu_letters`、`a1_oola_fate`、`a2_trial_outcome`、`church_verdict`、`npc.selene.stance`、`npc.selene.evidence`、`goddess.eluen.gaze`、`npc.faceless.interest`、`hero_rel_*`、`hero_arrest_choice_*`、`a2_aiden_report`、`a2_signet_holder`、`a2_wb_ruler`、`a2_emil_fate`、`a2_rescued_children`、`npc.ferryman.bond`、`guild_rank`、`a2_rumor_shape`、`a2_blank_chronicle`、`a2_poisoner_exposed`、`a2_blamed_heir`、`rep.antlers`、`trust.*`。
 
 附：本节引用、需在数据层登记的说话者与物品
 
@@ -7890,10 +7891,10 @@ narrator：千军之门。
 | --- | --- | --- | --- |
 | `docs/30_story/characters.md` | 第 4.8 节无貌者"必须保持"第 1 条 | "称玩家为'后来的那个'；'同乡'只在 S07-C04 解锁（`a3_martha_tale AND a4_key_theft_exposed`）之后使用。" | "同乡"会在第二幕提前泄露"他也是地球人"（台账 S07-C04 解锁在第三到四幕） |
 | `docs/30_story/arcs/act2_wallenburg.md` | 第 4.2 节"逮捕令"表下 | "四人的选择写入 `hero_arrest_choice_*`：陆辰 refused、delayed、complied；结衣 warned、abstained、complied；马库斯 refused、abstained、complied；艾登恒为 delayed（他借逮捕之名单独见玩家）。劫法场后各降一档。" | 第 10.2 节列了取值，没有写人物与取值的对应，内置 AI 需要确定的映射 |
-| `docs/30_story/arcs/act2_wallenburg.md` | 第 10.2 节 `trial_outcome` 行 | "acquitted、penance、rescued_by_force 在光之审当场写入；exiled_branded、executed 在第 11 周葬礼后结算；伪证揭穿而延期的案件在葬礼后撤销，记为 acquitted。罚赎（penance）为向慈济院缴纳赎罪金并在主教区服役至伯爵下葬，被告不离队。" | 光之审与葬礼两处结算需要同一份时序与"罚赎"的定义 |
-| `docs/30_story/arcs/act2_wallenburg.md` | 第 10.2 节 `selene_stance` 行 | "第二幕开幕时初始化：`church_suspicion >= 60` 为 hunt，否则 enforce。" | 光之审与葬礼都按"不低于执法"判定，需要明确初值 |
+| `docs/30_story/arcs/act2_wallenburg.md` | 第 10.2 节 `a2_trial_outcome` 行 | "acquitted、penance、rescued_by_force 在光之审当场写入；exiled_branded、executed 在第 11 周葬礼后结算；伪证揭穿而延期的案件在葬礼后撤销，记为 acquitted。罚赎（penance）为向慈济院缴纳赎罪金并在主教区服役至伯爵下葬，被告不离队。" | 光之审与葬礼两处结算需要同一份时序与"罚赎"的定义 |
+| `docs/30_story/arcs/act2_wallenburg.md` | 第 10.2 节 `npc.selene.stance` 行 | "第二幕开幕时初始化：`church_suspicion >= 60` 为 hunt，否则 enforce。" | 光之审与葬礼都按"不低于执法"判定，需要明确初值 |
 | `docs/30_story/arcs/act2_wallenburg.md` | 第 4.1 节事件链第 14 周行 | "城议（城下潮后第三日清晨，在中城市政厅召开）……" | 与第 9.1 节"城下潮后第三天的黄昏"星笔塔、第 9.3 节"次日清晨"受封排成一条时间线 |
-| `docs/30_story/reveal_ledger.md` | 第 3 节 S08-C03 解锁条件、第 8.2 节欧拉行 | 把 `trust.ola` 写作 `trust.oola` | 数据层人物 ID 与 `a1_oola_fate` 都用 `oola`，台账两处写 `ola`，变量注册表会把它们当成两个变量 |
+| `docs/30_story/reveal_ledger.md` | 第 3 节 S08-C03 解锁条件、第 8.2 节欧拉行 | 把 `trust.oola` 写作 `trust.oola` | 数据层人物 ID 与 `a1_oola_fate` 都用 `oola`，台账两处写 `ola`，变量注册表会把它们当成两个变量 |
 
 ## 7. 第三幕过场
 
@@ -7936,11 +7937,11 @@ narrator：千军之门。
 | 类型 | 段一：写定场景（抵领）；段二：战斗插演（举旗） |
 | 触发 | 段一：`act == 3 AND a2_barony_granted AND a3_domain_beat == arrival`，请求方 `A3-M01` 第一阶段"抵领"（第 1 周第 1 日，抵达边石镇南门时写入 `a3_domain_beat = arrival` 后请求）。段二：`a3_domain_beat == flag`，请求方 `A3-M02` 战役 0（战场剧本 `act3_bone_field`）北坡阵线将破的事件（剧本写入 `a3_domain_beat = flag` 后请求，战斗暂停，播完恢复） |
 | 时机 | 段一：第 1 周第 1 日上午到黄昏，必经，不可错过。段二：第 2 周夜，战役 0 进行中，必经；战斗按罗恩全权指挥或玩家微操都会触发（阵线将破由剧本的左翼缺口必然造成） |
-| 出场 | 玩家；`yeyu` 夜羽；`ron` 罗恩；`shiya` 希雅；`lina` 莉娜；`bron` 老布伦；`martha` 玛莎；`moss` 代官莫斯（`moss.fate` 为 in_power 或 puppet 时） |
+| 出场 | 玩家；`yeyu` 夜羽；`ron` 罗恩；`shiya` 希雅；`lina` 莉娜；`bron` 老布伦；`martha` 玛莎；`moss` 代官莫斯（`a1_moss_fate` 为 in_power 或 puppet 时） |
 | 地点 | 段一：`borderstone` 南门（位置 `south_gate`）、公会分部（`guild`）、镇广场（`plaza`）；段二：`bonefield_battle` 北坡阵线（`north_slope`） |
 | 时长 | 段一约 4 分钟；段二约 1.5 分钟（不含战斗） |
 | 现有数据 | `act3_intro`（1 节点、2 行，另带 `add seal_looseness 10`）并入段一；`a3_thousand_armies`（1 节点、5 行，写 `a3_thousand_gate`）并入段二。导入后共 15 节点、51 行台词、7 个选项。导入时不带 `act3_intro` 的封印松动 +10：封印松动只来自门与 `thousand_doors.md` 第 6.4.2 节列出的写定来源，幕切换不在其中 |
-| 写入旗标 | `territory_address`（name、lord、kneel）；`territory_seat`（borderstone、old_outpost）；`a3_thousand_gate = true`；读取 `war.first_battle_won`（千军之门的历钥，战争系统按门目录"罗恩举旗守住阵线的那一刻"在举旗时写入，战败也成立）；`push_door.door_thousand_legions`（玩家推门时）；`a3_domain_beat`（arrival_done、done） |
+| 写入旗标 | `territory_address`（name、lord、kneel）；`a3_seat`（borderstone、old_outpost）；`a3_thousand_gate = true`；读取 `war.first_battle_won`（千军之门的历钥，战争系统按门目录"罗恩举旗守住阵线的那一刻"在举旗时写入，战败也成立）；`push_door.thousand_legions`（玩家推门时）；`a3_domain_beat`（arrival_done、done） |
 | 揭示 | 无台账线索。"凡人不信" U3-5 我是不是该跪 |
 | 音乐与音效 | 段一入 `mus_town_borderstone_day`，镜 5 淡出；段二入 `mus_rts_skirmish`，镜 8 与 `mus_stg_motif_door` 交叉，镜 9 交叉回 `mus_rts_skirmish` 并延续到战斗。专用音效 `sfx_cin_flag_raise`、`sfx_door_state_ready` |
 | 所需美术 | 立绘 `art_bust_ron`（surprised、smile、neutral、special 举旗）、`art_bust_yeyu`（neutral）、`art_bust_shiya`（neutral、angry）；头像 `art_por_lina`、`art_por_bron`、`art_por_martha`、`art_por_moss`；特写 `art_prop_cut_baronet_card`；特殊动作 `art_chr_ron_flag_raise`；特效 `art_vfx_cut_company_reveal` |
@@ -8032,14 +8033,14 @@ bron：灰烬男爵。镇上的人背后都这么叫你。我先替他们赔个�
 @立绘 shiya neutral 左
 @立绘 ron neutral 右
 martha：醉月亭的账，准男爵也得付。
-narrator［moss.fate IN (in_power, puppet)］：代官莫斯站在镇公所的台阶下，帽子拿在手里，腋下夹着两本账。
-moss［moss.fate == in_power］：新领主大人。卑职有些账目，想当面呈上。
-moss［moss.fate == puppet］：大人。账……两本都在这里。卑职一本都没有藏。
+narrator［a1_moss_fate IN (in_power, puppet)］：代官莫斯站在镇公所的台阶下，帽子拿在手里，腋下夹着两本账。
+moss［a1_moss_fate == in_power］：新领主大人。卑职有些账目，想当面呈上。
+moss［a1_moss_fate == puppet］：大人。账……两本都在这里。卑职一本都没有藏。
 shiya：领主府得有个地方。
 shiya：边石镇有墙，有人，有公会。稳。
 ron：旧哨村有地，有作坊，北坡下面一大片田没人管。新。
-选 seat_town「领主府设在边石镇。」→ bone_report｜效果 flag territory_seat = borderstone
-选 seat_village「领主府设在旧哨村。」→ bone_report｜效果 flag territory_seat = old_outpost
+选 seat_town「领主府设在边石镇。」→ bone_report｜效果 flag a3_seat = borderstone
+选 seat_village「领主府设在旧哨村。」→ bone_report｜效果 flag a3_seat = old_outpost
 【bone_report】
 @镜 5
 @光 昏
@@ -8086,7 +8087,7 @@ narrator：民兵们没有退。
 @声 sfx_door_state_ready
 narrator：千门回廊里，有一扇门亮了。门框上刻着一排一排小小的人影，肩挨着肩。
 narrator：千军之门。它在等你推。
-选 push「推开它」→ opened｜效果 flag push_door.door_thousand_legions = true
+选 push「推开它」→ opened｜效果 flag push_door.thousand_legions = true
 选 wait「现在不推。让罗恩自己撑。」→ unopened
 【opened】
 @镜 9
@@ -8118,14 +8119,14 @@ ron：那就这么守。左翼，跟我来！
 | `name` | 起来。跟以前一样，叫我名字。 | `addr_name` | `territory_address = name`：领地气氛偏亲近，官员与居民的日常吠叫用名字称呼玩家 | 无 |
 | `lord` | （受他这一跪） | `addr_lord` | `territory_address = lord`：气氛偏敬畏，居民吠叫用"大人" | 无 |
 | `lift` | （等他跪稳，再伸手把他拉起来） | `addr_lift` | `territory_address = kneel`：罗恩记住这一跪，罗恩的信任与领地气氛都按"亲近"结算，称呼用"大人" | 无 |
-| `seat_town` | 领主府设在边石镇。 | `bone_report` | `territory_seat = borderstone`：起步稳（墙、人口、公会），扩张慢 | 无 |
-| `seat_village` | 领主府设在旧哨村。 | `bone_report` | `territory_seat = old_outpost`：起步新（田地、作坊），防御弱，离骨原近 | 无 |
+| `seat_town` | 领主府设在边石镇。 | `bone_report` | `a3_seat = borderstone`：起步稳（墙、人口、公会），扩张慢 | 无 |
+| `seat_village` | 领主府设在旧哨村。 | `bone_report` | `a3_seat = old_outpost`：起步新（田地、作坊），防御弱，离骨原近 | 无 |
 | `push` | 推开它 | `opened` | 推门请求，千军之门开启，战斗规模升为连队 | 无 |
 | `wait` | 现在不推。让罗恩自己撑。 | `unopened` | 门保持"可开"，战斗按小队规模继续；战后玩家可在回廊里推开 | 无 |
 
 4. **变体**
 
-- `moss.fate`：in_power 时莫斯讨好，puppet 时莫斯发抖；其余取值（arrested 等）两行都不显示。莫斯的去留在 `A3-M01` 的任务对话里处理，本过场只让他露面。
+- `a1_moss_fate`：in_power 时莫斯讨好，puppet 时莫斯发抖；其余取值（arrested 等）两行都不显示。莫斯的去留在 `A3-M01` 的任务对话里处理，本过场只让他露面。
 - 段二由战场剧本请求，罗恩"左翼留空"是剧本写定的错误。玩家若在战斗开始时已亲自补上左翼，剧本仍在第二波时制造一次缺口（缺口改在右翼），台词不变。
 - 战役 0 失败（村民退入边石镇）时，段二照常播放，千军之门的历钥照常满足（`war.first_battle_won` 由战争系统在举旗时写入），罗恩成长减半由战争系统结算。
 
@@ -8141,7 +8142,7 @@ ron：那就这么守。左翼，跟我来！
 | 地点 | `orien_isle` 帘幕寝殿（位置 `crownstone_palace`）、长廊（`crownstone_gallery`）；`orien_banks` 晨光主座堂（`dawnlight_cathedral`） |
 | 时长 | 约 6 分钟 |
 | 现有数据 | 新建。共 24 节点、58 行台词、11 个选项、1 处即兴 |
-| 写入旗标 | `a3_crest_reply`（draw、ask、yeyu）；`a3_curtain_approach`（stepped、looked、stayed）；`philip_rel` +1（`phil_you`）；`church_suspicion` +3（`gaze_ruins`）；`quest A3-S01`（纹章支线） |
+| 写入旗标 | `a3_crest_reply`（draw、ask、yeyu）；`a3_curtain_approach`（stepped、looked、stayed）；`trust.philip` +15（`phil_you`）；`church_suspicion` +3（`gaze_ruins`）；`quest A3-S01`（纹章支线） |
 | 揭示 | 无台账线索。"凡人不信" U3-1 骨头纹章。埋线：大主教打听"领地上很老的东西"（圣战真实目标只有他与贝尔托德知道，`act3_lothar_crisis.md` 第 4.2 节） |
 | 音乐与音效 | 入 `mus_city_orien`；镜 2 末与 `mus_cue_comedy` 交叉（满殿窃笑），镜 3 交叉回 `mus_city_orien`；镜 10 与 `mus_stg_motif_eluen` 交叉；镜 12 淡出。专用音效 `sfx_cin_court_titter`、`sfx_cin_curtain_hand` |
 | 所需美术 | 立绘 `art_bust_drake`（neutral、smile）、`art_por_severin`（neutral）、`art_bust_philip`（surprised、thinking）、`art_bust_yeyu`（neutral）；头像 `art_por_ernst`、`art_por_parvi_tinring`、`art_por_casimir_von_roth`；实景运镜；远景用地图实景 |
@@ -8229,7 +8230,7 @@ narrator：三个人说了三句话。帘后没有人再动。
 【approach】
 @镜 5
 选 step「（上前一步）」→ step｜效果 flag a3_curtain_approach = stepped
-选 look「（用识才之门看帘后的人）」→ look｜效果 flag a3_curtain_approach = looked｜条件 door.door_talent_sight
+选 look「（用识才之门看帘后的人）」→ look｜效果 flag a3_curtain_approach = looked｜条件 door.talent_sight
 选 stay「（留在原地）」→ stay｜效果 flag a3_curtain_approach = stayed
 【step】
 ernst：阁下！帘内三步，非召不得入！
@@ -8251,7 +8252,7 @@ narrator：你站着没动。帘后传来一声很长的呼吸，像一个人在
 narrator：长廊上，一个年轻人在咬指甲。衣服很整齐，但不合身，像是借来的。
 philip：你是……那个灰烬男爵？北边的人说，你守住了一个村子。
 philip：父王刚才抬手的时候，你看见了吗？他是在叫谁？
-选 phil_you「也许是在叫你。」→ phil_you｜效果 add philip_rel 1
+选 phil_you「也许是在叫你。」→ phil_you｜效果 add trust.philip 15
 选 phil_unknown「我不知道。」→ phil_unknown
 【phil_you】
 philip：我？……我……再想想。
@@ -8332,9 +8333,9 @@ narrator：走出主座堂时，钟又响了。今天的第三次。
 | `ask` | 那您说，该是什么？ | `crest_ask` | `a3_crest_reply = ask`；发布 `A3-S01`，司礼官提前透露他想要"像样的宫廷"（支线里他写诗的伏笔） | 无 |
 | `yeyu` | （看一眼夜羽） | `crest_yeyu` | `a3_crest_reply = yeyu`；发布 `A3-S01`；乌鸦图案在纹章候选里置顶 | `companion.yeyu.recruited` |
 | `step` | （上前一步） | `step` | `a3_curtain_approach = stepped`；司礼官记一笔"无礼"，埃森巴赫的纹章支线门槛不变 | 无 |
-| `look` | （用识才之门看帘后的人） | `look` | `a3_curtain_approach = looked` | `door.door_talent_sight` |
+| `look` | （用识才之门看帘后的人） | `look` | `a3_curtain_approach = looked` | `door.talent_sight` |
 | `stay` | （留在原地） | `stay` | `a3_curtain_approach = stayed` | 无 |
-| `phil_you` | 也许是在叫你。 | `phil_you` | `philip_rel` +1 | 无 |
+| `phil_you` | 也许是在叫你。 | `phil_you` | `trust.philip` +15 | 无 |
 | `phil_unknown` | 我不知道。 | `phil_unknown` | 无 | 无 |
 | `g_ruins` | 有一座遗迹。 | `gaze_ruins` | `church_suspicion` +3；圣战军的侦察次序把封门遗迹提前 | 无 |
 | `g_bones` | 只有骨头。 | `gaze_bones` | 无 | 无 |
@@ -8358,7 +8359,7 @@ narrator：走出主座堂时，钟又响了。今天的第三次。
 | 地点 | 现场版：`reedpond` 苇塘村（位置 `boardwalk_square`）；转述版：`borderstone` 南门（`south_gate`） |
 | 时长 | 现场版约 8 分钟（夜段约 5 分钟，黎明段约 3 分钟，不含截击战）；转述版约 4 分钟 |
 | 现有数据 | 新建。共 33 节点、116 行台词、9 个选项、1 处即兴 |
-| 写入旗标 | `a3_seen_by_lamp`；`church_suspicion`（+5 到 +35，按分支）；`a3_marcus_shield_dark = true`；`a3_massacre_witnessed = true`；`a3_cassian_refused = true`（`div_beat_a3_cassian_fade` 的触发）；`a3_reedpond_act`（intercept、shield_marcus、fog_lead、record）；`a3_reedpond_record`；`hero_state_marcus`（defected、wavering）；`hero_rel_luchen`、`hero_rel_marcus`；`reedpond_outcome`（saved、partial、massacred）；`cult_keys`（+1 到 +5）；`a3_reedpond_beat`（dawn、done） |
+| 写入旗标 | `a3_seen_by_lamp`；`church_suspicion`（+5 到 +35，按分支）；`a3_marcus_shield_dark = true`；`a3_massacre_witnessed = true`；`a3_cassian_refused = true`（`div_beat_a3_cassian_fade` 的触发）；`a3_reedpond_act`（intercept、shield_marcus、fog_lead、record）；`a3_reedpond_record`；`hero_state.marcus`（defected、wavering）；`trust.luchen`、`trust.marcus`；`a3_reedpond_outcome`（saved、partial、massacred）；`cult_keys`（+1 到 +5）；`a3_reedpond_beat`（dawn、done） |
 | 揭示 | S04-C03（马库斯的盾熄灭，庇护限定）；S06-C02（赛琳坚持"先审后刑"）。写定神行 `div_beat_a3_reed_fog`（希尔薇的大雾与鹿群） |
 | 音乐与音效 | 现场版入 `mus_cue_intrigue`，镜 13 与 `mus_cmb_skirmish` 交叉（截击），镜 14 与 `mus_stg_motif_sylvie` 交叉（雾），镜 17 与 `mus_cue_sorrow` 交叉，镜 20 淡出。转述版入 `mus_cue_intrigue`，镜 23 与 `mus_cue_sorrow` 交叉，淡出。环境 `amb_base_river`。专用音效 `sfx_cin_lamp_sweep`、`sfx_cin_shield_dark`、`sfx_cin_fog_roll` |
 | 所需美术 | 立绘 `art_bust_selene`（special）、`art_bust_luchen`（sad）、`art_bust_yui`（special、sad、surprised（愣住））、`art_bust_marcus`（angry、surprised、smile、sad）、`art_bust_cassian`（pained）；头像 `art_por_berthold_klan`、`art_por_hanna`；特写 `art_prop_cut_dark_shield`（熄灭的盾）、`art_prop_cut_yui_notebook`、`art_prop_cut_name_list`；特效 `art_vfx_cut_lamp_marks`、`art_vfx_cut_reed_fog`；实景运镜；特殊动作 `art_chr_marcus_arms_wide` |
@@ -8421,7 +8422,7 @@ berthold_klan：烙印者。……这么多。
 @镜 4
 narrator：灯光扫到了你。你的手背也亮了。
 berthold_klan：这一个，也有。
-分支［selene_stance == covert_ally］→ lamp_cover
+分支［npc.selene.stance == covert_ally］→ lamp_cover
 → lamp_seen
 【lamp_cover】
 效果 add church_suspicion 5
@@ -8441,9 +8442,9 @@ selene：首席。按审判庭的规矩：先审，后刑。
 selene：没有审，就没有刑。
 berthold_klan：格特鲁德老师要是看见你现在这个样子……
 selene：老师教的，就是这一条。
-selene［selene_stance == hunt］：把孩子带到我这边来。只有孩子。
-selene［selene_stance == enforce］：把孩子和老人带到我这边来。我一个一个审。
-selene［selene_stance IN (waver, covert_ally)］：把所有人带到我这边来。我一个一个审，审到天亮。
+selene［npc.selene.stance == hunt］：把孩子带到我这边来。只有孩子。
+selene［npc.selene.stance == enforce］：把孩子和老人带到我这边来。我一个一个审。
+selene［npc.selene.stance IN (waver, covert_ally)］：把所有人带到我这边来。我一个一个审，审到天亮。
 → lu
 【lu】
 @镜 6
@@ -8501,17 +8502,17 @@ narrator：卡西安没有站到一边去。祷文册掉进泥里，他没有捡
 @镜 12
 @立绘撤
 narrator：剑已经举起来了。你只来得及做一件事。
-选 intercept「（拔剑，截住处刑）」→ go_fight｜效果 flag a3_reedpond_act = intercept；flag hero_state_marcus = defected；add church_suspicion 20；add hero_rel_luchen 5；add hero_rel_marcus 20
-选 shield_marcus「（冲到马库斯身前）」→ go_shield｜效果 flag a3_reedpond_act = shield_marcus；flag hero_state_marcus = defected；add church_suspicion 10；add hero_rel_marcus 20
-选 fog_lead「（趁乱把人往芦苇深处带）」→ go_fog｜效果 flag a3_reedpond_act = fog_lead；flag hero_state_marcus = wavering
-选 record「（拉住卡西安：记下每一个名字）」→ go_record｜效果 flag a3_reedpond_act = record；flag a3_reedpond_record = true；flag hero_state_marcus = wavering
+选 intercept「（拔剑，截住处刑）」→ go_fight｜效果 flag a3_reedpond_act = intercept；flag hero_state.marcus = defected；add church_suspicion 20；add trust.luchen 3；add trust.marcus 10
+选 shield_marcus「（冲到马库斯身前）」→ go_shield｜效果 flag a3_reedpond_act = shield_marcus；flag hero_state.marcus = defected；add church_suspicion 10；add trust.marcus 10
+选 fog_lead「（趁乱把人往芦苇深处带）」→ go_fog｜效果 flag a3_reedpond_act = fog_lead；flag hero_state.marcus = wavering
+选 record「（拉住卡西安：记下每一个名字）」→ go_record｜效果 flag a3_reedpond_act = record；flag a3_reedpond_record = true；flag hero_state.marcus = wavering
 【go_fight】
 @镜 13
 @乐 mus_cmb_skirmish 交叉
 narrator：你的剑先到了。执行官的剑断在半空。
-berthold_klan［aiden_report == reported］：从门里出来的东西。好。好得很。
-berthold_klan［NOT aiden_report == reported］：带门之瑕的。好。好得很。
-selene［selene_stance IN (waver, covert_ally)］：首席，退后。这是审判庭的命令：退后。
+berthold_klan［a2_aiden_report == reported］：从门里出来的东西。好。好得很。
+berthold_klan［NOT a2_aiden_report == reported］：带门之瑕的。好。好得很。
+selene［npc.selene.stance IN (waver, covert_ally)］：首席，退后。这是审判庭的命令：退后。
 效果 flag a3_reedpond_beat = dawn；wave a3_reedpond_inquisition
 结束
 【go_shield】
@@ -8557,17 +8558,17 @@ narrator：天亮的时候，雾散了一半。
 分支［a3_reedpond_act == record AND NOT a3_reedpond_evacuated］→ dawn_massacred
 → dawn_partial
 【dawn_saved】
-效果 flag reedpond_outcome = saved；add cult_keys 1
+效果 flag a3_reedpond_outcome = saved；add cult_keys 1
 narrator：苇塘村的人，大部分在鼠道的另一头。留下来的老人里，活下来的比倒下的多。
 hanna：七十年了。今天，我们还是不存在。……可我们活着。
 → heroes
 【dawn_partial】
-效果 flag reedpond_outcome = partial；add cult_keys 3
+效果 flag a3_reedpond_outcome = partial；add cult_keys 3
 narrator：烧掉的苇屋还在冒烟。活下来的人蹲在芦苇深处，一个一个数人数。数到一半，有人不数了。
 hanna：够了。剩下的，等能哭的时候再数。
 → heroes
 【dawn_massacred】
-效果 flag reedpond_outcome = massacred；add cult_keys 5
+效果 flag a3_reedpond_outcome = massacred；add cult_keys 5
 narrator：苇塘村没有了。
 narrator：跟着鹿走出来的，十二个人。
 narrator：卡西安坐在烧黑的泥地上，膝盖上摊着那几页纸。他的炭笔写断了，他换了一截，接着写。
@@ -8580,10 +8581,10 @@ narrator：白石结衣坐在一截倒下的苇墙上，膝盖上摊着那本手
 narrator：她翻到新的一页，在中间画了一条竖线，在右边写下一栏新的标题：没救下的人。
 yui：请让我看看伤口。（她对着空气说完这句，才发现身边没有人）
 @立绘撤
-selene［selene_stance == hunt］：我拦下了几个孩子。规矩就是规矩。
-selene［selene_stance == enforce］：我拦下了一些人。不够。
-selene［selene_stance IN (waver, covert_ally)］：我拦下了能拦下的。……光不会说谎。可昨夜的光，什么都没说。
-分支［hero_state_marcus == defected］→ marcus_def
+selene［npc.selene.stance == hunt］：我拦下了几个孩子。规矩就是规矩。
+selene［npc.selene.stance == enforce］：我拦下了一些人。不够。
+selene［npc.selene.stance IN (waver, covert_ally)］：我拦下了能拦下的。……光不会说谎。可昨夜的光，什么都没说。
+分支［hero_state.marcus == defected］→ marcus_def
 → marcus_wav
 【marcus_def】
 @镜 19
@@ -8606,8 +8607,8 @@ narrator：担架往南去了。
 即兴 luchen｜目的：说出他拒绝了却没有拦住的愧疚，向玩家要一个答案｜情境：苇塘屠村后的黎明，先遣队要继续北上，他是勇者团的队长｜含义键：我没拦住；勇者该做的事｜禁区：不得说出加护的隐藏条款；不得说"光在看"；不得决定倒戈（倒戈与放下剑留到灰烬防线）
 luchen：我没拦住。
 luchen：我是勇者。我……没拦住。
-选 lu_comfort「你拒绝了。那不是没有用。」→ lu_end｜效果 add hero_rel_luchen 10
-选 lu_hard「下一次，别只是拒绝。」→ lu_end｜效果 add hero_rel_luchen 5
+选 lu_comfort「你拒绝了。那不是没有用。」→ lu_end｜效果 add trust.luchen 5
+选 lu_hard「下一次，别只是拒绝。」→ lu_end｜效果 add trust.luchen 3
 选 lu_silent「（沉默）」→ lu_end
 【lu_end】
 luchen：……这就是勇者该做的事吗。
@@ -8617,7 +8618,7 @@ narrator：他没有等你回答。先遣队的号角响了，他跟着队伍走
 结束
 【told】
 @镜 21
-效果 teleport borderstone south_gate；flag a3_massacre_witnessed = true；flag a3_marcus_shield_dark = true；flag a3_cassian_refused = true；flag hero_state_marcus = wavering
+效果 teleport borderstone south_gate；flag a3_massacre_witnessed = true；flag a3_marcus_shield_dark = true；flag a3_cassian_refused = true；flag hero_state.marcus = wavering
 @乐 mus_cue_intrigue 入
 @光 昏
 narrator：第十三周。领地南边的路上，来了一队浑身是泥的人。
@@ -8635,19 +8636,19 @@ hanna：那是我孙子的朋友。十四岁。
 hanna：有个大个子挡在孩子们前面。他的盾原本是亮的，后来灭了。他把盾扔了，用身子挡。
 hanna：后来他们把他抬走了，背上全是血。他挡住的孩子，活下来五个。
 hanna：一个黑头发的年轻人说了"我不干"。他说了。没有人听他的。
-hanna［selene_stance == hunt］：一个女审判官把孩子叫到她那边，一个一个地问。她只要孩子。
-hanna［NOT selene_stance == hunt］：一个女审判官让他们排队，一个一个地审。她审得很慢。慢一点，就少死一点。
+hanna［npc.selene.stance == hunt］：一个女审判官把孩子叫到她那边，一个一个地问。她只要孩子。
+hanna［NOT npc.selene.stance == hunt］：一个女审判官让他们排队，一个一个地审。她审得很慢。慢一点，就少死一点。
 hanna：还有一个神父，不肯念经。他就站在那里，一直站着。
 hanna：然后雾来了。鹿来了。我们跟着鹿走。
 分支［a3_reedpond_evacuated］→ told_evac
 → told_main
 【told_main】
-效果 flag reedpond_outcome = massacred；add cult_keys 5
+效果 flag a3_reedpond_outcome = massacred；add cult_keys 5
 hanna：走出来的，十二个人。
 hanna：雾里还有一些穿灰衣服的人，抓走了几个手上发光的，往别的方向去了。
 → told_end
 【told_evac】
-效果 flag reedpond_outcome = partial；add cult_keys 2
+效果 flag a3_reedpond_outcome = partial；add cult_keys 2
 hanna：大部分人早从鼠道走了，九十多个。留下来的老人，没有一个走出来。
 hanna：雾里还有一些穿灰衣服的人，抓走了两个手上发光的，往别的方向去了。
 → told_end
@@ -8677,12 +8678,12 @@ narrator：你点了点头。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `intercept` | （拔剑，截住处刑） | `go_fight`，截击战后黎明段 | `a3_reedpond_act = intercept`；马库斯 defected；`church_suspicion` +20；`hero_rel_luchen` +5、`hero_rel_marcus` +20；开截击战 `a3_reedpond_inquisition`；已疏散时 `reedpond_outcome = saved`，否则 partial | 无 |
-| `shield_marcus` | （冲到马库斯身前） | `go_shield` | `a3_reedpond_act = shield_marcus`；马库斯 defected；`church_suspicion` +10；`hero_rel_marcus` +20；结果档同上，不开战 | 无 |
+| `intercept` | （拔剑，截住处刑） | `go_fight`，截击战后黎明段 | `a3_reedpond_act = intercept`；马库斯 defected；`church_suspicion` +20；`trust.luchen` +3、`trust.marcus` +10；开截击战 `a3_reedpond_inquisition`；已疏散时 `a3_reedpond_outcome = saved`，否则 partial | 无 |
+| `shield_marcus` | （冲到马库斯身前） | `go_shield` | `a3_reedpond_act = shield_marcus`；马库斯 defected；`church_suspicion` +10；`trust.marcus` +10；结果档同上，不开战 | 无 |
 | `fog_lead` | （趁乱把人往芦苇深处带） | `go_fog` | `a3_reedpond_act = fog_lead`；马库斯 wavering（重伤）；已疏散时 saved，否则 partial；玩家不与审判庭正面冲突 | 无 |
 | `record` | （拉住卡西安：记下每一个名字） | `go_record` | `a3_reedpond_act = record`；`a3_reedpond_record = true`（卡西安的名单，灰烬防线说服路线的证据之一）；马库斯 wavering；已疏散时 partial，否则 massacred | 无 |
-| `lu_comfort` | 你拒绝了。那不是没有用。 | `lu_end` | `hero_rel_luchen` +10 | 无 |
-| `lu_hard` | 下一次，别只是拒绝。 | `lu_end` | `hero_rel_luchen` +5；陆辰人格题面写入"被要求不只是拒绝"，灰烬防线对决时他先开口 | 无 |
+| `lu_comfort` | 你拒绝了。那不是没有用。 | `lu_end` | `trust.luchen` +5 | 无 |
+| `lu_hard` | 下一次，别只是拒绝。 | `lu_end` | `trust.luchen` +3；陆辰人格题面写入"被要求不只是拒绝"，灰烬防线对决时他先开口 | 无 |
 | `lu_silent` | （沉默） | `lu_end` | 无 | 无 |
 | `t_yes` | 有。 | `told_yes` | 无（幸存者入领由 `A3-M07` 与官员结算） | 无 |
 | `t_where` | 那些带灯的人，往哪里去了？ | `told_where` | 无 | 无 |
@@ -8691,9 +8692,9 @@ narrator：你点了点头。
 
 4. **变体**
 
-- `selene_stance`：hunt 时她只拦孩子；enforce 时拦孩子与老人；waver、covert_ally 时拦所有人并"审到天亮"；covert_ally 另在镜 4 替玩家遮掩照规灯（`church_suspicion` 只加 5，不写 `a3_seen_by_lamp`）。
+- `npc.selene.stance`：hunt 时她只拦孩子；enforce 时拦孩子与老人；waver、covert_ally 时拦所有人并"审到天亮"；covert_ally 另在镜 4 替玩家遮掩照规灯（`church_suspicion` 只加 5，不写 `a3_seen_by_lamp`）。
 - `a3_reedpond_evacuated`：已疏散时开场旁白换成"留下来的老人"，结果档整体上调一档（见上表）。
-- `aiden_report`：reported 时艾琉恩已在第 9 周确认玩家身份，贝尔托德说的是第二道神谕的措辞"从门里出来的东西"；kept 时用第二幕神谕的"带门之瑕"。
+- `a2_aiden_report`：reported 时艾琉恩已在第 9 周确认玩家身份，贝尔托德说的是第二道神谕的措辞"从门里出来的东西"；kept 时用第二幕神谕的"带门之瑕"。
 - 转述版的屠村事实全部写死：马库斯 wavering（重伤）、卡西安拒绝祝祷、照规灯没有照到玩家。
 - 结衣的悲剧时刻、熄灭的盾、陆辰的拒绝、卡西安的拒绝四件事在所有分支都发生；玩家的选择只改变"还有谁活下来"与"谁记下了这一夜"。
 
@@ -8935,7 +8936,7 @@ ash：……
 narrator：坑沿上一座残存的门框，断面上有一点很小的反光。像金属。
 @镜 19
 narrator：然后你看见，坑底的黑里，有东西在动。
-narrator［door.door_tide_sight］：你在心里推开观澜之门。读数只有一个字：？
+narrator［door.tide_sight］：你在心里推开观澜之门。读数只有一个字：？
 yeyu［companion.yeyu.recruited］：别看太久。
 选 away「（移开视线）」→ roof_end
 选 again「（再看一眼）」→ roof_burn
@@ -8984,7 +8985,7 @@ ash：下去吧。我还有一句话要说。
 - `a3_static_ash_night`：真时开场是静灰夜，阿什说"你挑对了日子"；假时（第 15 到 19 周晚到）开场是灰暴，阿什说"你错过了那一夜"。讲述内容一字不变。
 - 夜羽不在队（`companion.yeyu.recruited` 为假，正常流程不会发生）时跳过认出信使的整段；`yeyu_address` 不写，等夜羽回队后在第一次对话里补上"开门的"。
 - `a3_archive_sealed_room` 与 `a2_archivist_met` 决定第 6 段之后的旁白：进过七锁库的玩家想起"空白纪"三个字；只去过学院分院的玩家想起年表的五十年空白；两者都没有时不加旁白。
-- `door.door_tide_sight`：开过观澜之门时，镜 19 叠出"？"读数；没有时只写"有东西在动"。
+- `door.tide_sight`：开过观澜之门时，镜 19 叠出"？"读数；没有时只写"有东西在动"。
 
 #### cut_a3_warning 每开一扇门（Every Door You Open）
 
@@ -8997,8 +8998,8 @@ ash：下去吧。我还有一句话要说。
 | 出场 | 玩家；`ash` 阿什；`yeyu` 夜羽；`janu` 门口的女人（界面显示名"门口的女人"） |
 | 地点 | 书库段：`thousand_gates_archive` 正厅（`reading_hall`）；遗迹段：`seal_ruins_depths` 灰烬之厅前（`ash_chamber`）；梦：`dream_doorway`（第 2.6 节的布景，布景按 `seal_looseness` 分阶段）；休整：`inner_court` |
 | 时长 | 书库段约 5 分钟；遗迹段约 2 分钟；两场梦各约 2.5 分钟 |
-| 现有数据 | `a3_ash_sundering` 的 `warning`、`who` 两个节点与三个选项并入书库段。导入后共 34 节点、71 行台词、24 个选项、1 处自由输入。原稿的立誓选项写的是 `a3_danger_door_vow`，而这个键在 `data/doors/doors.json` 里是誓光之门的历钥（`thousand_doors.md` 第 9 节已定名 `a3_vow_kept_reed_bridge`，C91），两处冲突：本场改写为新键 `a3_danger_stance`；原稿"她是谁"一问并入 `cut_a3_sundering` 的追问 |
-| 写入旗标 | `a3_ash_warning_doors = true`；`ash_relation`（entrusted、warned、distant）；`blank_era_fragments` +1 与 `a3_ash_fragment_given`、`a3_archive_open`（受托时）；`a3_danger_stance`（forsworn、continue、undecided）；道具 `ky_archive_ring`；`push_door.door_echoes`（推门时）；`a3_seal_aware`（`seal_looseness >= 30` 时）；`a3_yeyu_consent_whisper`；`a3_dream_w15_asked`（release、vague）；`a3_dream_words`；`a3_warning_beat`（w6_done、done） |
+| 现有数据 | `a3_ash_sundering` 的 `warning`、`who` 两个节点与三个选项并入书库段。导入后共 34 节点、71 行台词、24 个选项、1 处自由输入。原稿的立誓选项同时写 `a3_vow_taken` 与誓光之门的历钥 `a3_vow_kept_reed_bridge`（`thousand_doors.md` 第 9 节，C91），会让誓光之门在警告这一夜就能开：本场只写表态 `a3_danger_stance`，誓光之门的历钥只由 `cut_a3_ashen_line` 的 `vow` 节点写入；原稿"她是谁"一问并入 `cut_a3_sundering` 的追问 |
+| 写入旗标 | `a3_ash_warning_doors = true`；`a3_ash_relation`（entrusted、warned、distant）；`a3_blank_era_fragments` +1 与 `a3_ash_fragment_given`、`a3_archive_open`（受托时）；`a3_danger_stance`（forsworn、continue、undecided）；道具 `ky_archive_ring`；`push_door.echoes`（推门时）；`a3_seal_aware`（`seal_looseness >= 30` 时）；`a3_yeyu_consent_whisper`；`a3_dream_w15_asked`（release、vague）；`a3_dream_words`；`a3_warning_beat`（w6_done、done） |
 | 揭示 | M09-C04（"你每开一扇门，她就离出来更近一步"）；M09-C05（察觉：门纹发热、遗民孩子共鸣、梦中她只答"是的"）。写定神行 `div_beat_a3_dream_week6`、`div_beat_a3_dream_week15`。谨慎桥段 C3-8 门缝里的风 |
 | 音乐与音效 | 书库段入 `mus_stg_motif_door`，镜 6 出；遗迹段入 `mus_dg_ancient`，镜 10 末出；两场梦入 `mus_cue_dream_door`（第 15 周加声部：钥匙的铃），醒时出。环境 `amb_dg_archive`、`amb_dg_ruins`。专用音效 `sfx_cin_ash_freeze`、`sfx_cin_door_draft`、`sfx_door_trace_glow`、`sfx_god_door_woman_keys` |
 | 所需美术 | 立绘 `art_bust_ash`（neutral、smile）、`art_bust_yeyu`（neutral）、`art_bust_door_woman`（smile、special，与第一、二幕梦境共用）；特写 `art_prop_cut_archive_ring`、`art_prop_cut_blank_page5`；特效 `art_vfx_cut_door_draft`（回廊门旁的"风痕"标记）、`art_vfx_cut_ash_freeze`；实景运镜（她身后的窄门）、`art_bg_cut_a1_dream_door`（层层叠叠的门） |
@@ -9060,12 +9061,12 @@ ash：你还是来了。来听完它。
 → respond
 【respond】
 @镜 3
-选 how「我该怎么做？」→ entrusted｜效果 flag ash_relation = entrusted
+选 how「我该怎么做？」→ entrusted｜效果 flag a3_ash_relation = entrusted
 选 what_if「放她出来，会怎样？」→ what_if｜一次
-选 self「我只想知道，我还能不能回家。」→ self_only｜效果 flag ash_relation = warned
-选 silent「（沉默）」→ silent｜效果 flag ash_relation = warned
-选 threat「你是在威胁我？」→ distant｜效果 flag ash_relation = distant
-选 draw「（手按上武器）」→ distant｜效果 flag ash_relation = distant
+选 self「我只想知道，我还能不能回家。」→ self_only｜效果 flag a3_ash_relation = warned
+选 silent「（沉默）」→ silent｜效果 flag a3_ash_relation = warned
+选 threat「你是在威胁我？」→ distant｜效果 flag a3_ash_relation = distant
+选 draw「（手按上武器）」→ distant｜效果 flag a3_ash_relation = distant
 【what_if】
 ash：我不知道。
 ash：我只知道，上一次门开着的时候，这里住着一百万人。
@@ -9075,7 +9076,7 @@ ash：我只知道，上一次门开着的时候，这里住着一百万人。
 ash：这一行，你想自己写。好。
 narrator：他把手伸进身边的灰里，抽出一页纸。纸边烧焦了，字还在。
 ash：拿着。它在灰里等了很久。
-效果 add blank_era_fragments 1；flag a3_ash_fragment_given = true；flag a3_archive_open = true
+效果 add a3_blank_era_fragments 1；flag a3_ash_fragment_given = true；flag a3_archive_open = true
 ash：门有代价。我不替你付，也不替你选。想来看书，书库不锁。
 → stance
 【self_only】
@@ -9098,8 +9099,8 @@ yeyu［companion.yeyu.recruited］：他以前不这样。抄书的人，从来�
 → stance
 【stance】
 @镜 5
-narrator［NOT ash_relation == distant］：阿什看着你的手背。
-ash［NOT ash_relation == distant］：她不说谎。她只挑说哪一半。你也一样，可以挑。
+narrator［NOT a3_ash_relation == distant］：阿什看着你的手背。
+ash［NOT a3_ash_relation == distant］：她不说谎。她只挑说哪一半。你也一样，可以挑。
 选 forswear「我不会再开危险的门。」→ ring｜效果 flag a3_danger_stance = forsworn
 选 go_on「门是我的。我会继续开。」→ ring｜效果 flag a3_danger_stance = continue
 选 undecided「我还没想好。」→ ring｜效果 flag a3_danger_stance = undecided
@@ -9119,7 +9120,7 @@ narrator：门边，有一道你以前没见过的细痕。
 narrator：门缝里有风。
 narrator：你回头看。回廊里每一扇你开过的门旁边，都多了这样一道细痕。有的风小，有的风大。
 @镜 8
-选 e_push「推开残响之门」→ e_pushed｜效果 flag push_door.door_echoes = true
+选 e_push「推开残响之门」→ e_pushed｜效果 flag push_door.echoes = true
 选 e_wait「现在不推」→ e_waited
 【e_pushed】
 narrator：你把手放在门上，推了下去。风从门缝里吹出来，吹到你的手背上。是暖的。
@@ -9158,7 +9159,7 @@ ash：门的孩子。
 @立绘 ash neutral 右
 ash：你每开一扇门，她就离出来更近一步。
 ash：你确定要放她出来吗？
-效果 flag a3_ash_warning_doors = true；flag ash_relation = warned
+效果 flag a3_ash_warning_doors = true；flag a3_ash_relation = warned
 ash：想知道，就去书库。
 narrator：你眨了一下眼。门前只剩一堆灰。
 @立绘撤
@@ -9277,11 +9278,11 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `how` | 我该怎么做？ | `entrusted` | `ash_relation = entrusted`；空白纪碎片五（`blank_era_fragments` +1）；书库此后随时可进 | 无 |
+| `how` | 我该怎么做？ | `entrusted` | `a3_ash_relation = entrusted`；空白纪碎片五（`a3_blank_era_fragments` +1）；书库此后随时可进 | 无 |
 | `what_if` | 放她出来，会怎样？ | `what_if` | 无 | 一次 |
-| `self` | 我只想知道，我还能不能回家。 | `self_only` | `ash_relation = warned` | 无 |
-| `silent` | （沉默） | `silent` | `ash_relation = warned`（默认） | 无 |
-| `threat` | 你是在威胁我？ | `distant` | `ash_relation = distant`：第五幕之前阿什不主动现身；`cut_a3_map` 段一走空厅版本 | 无 |
+| `self` | 我只想知道，我还能不能回家。 | `self_only` | `a3_ash_relation = warned` | 无 |
+| `silent` | （沉默） | `silent` | `a3_ash_relation = warned`（默认） | 无 |
+| `threat` | 你是在威胁我？ | `distant` | `a3_ash_relation = distant`：第五幕之前阿什不主动现身；`cut_a3_map` 段一走空厅版本 | 无 |
 | `draw` | （手按上武器） | `distant` | 同上 | 无 |
 | `forswear`、`r_forswear` | 我不会再开危险的门。 | `ring` 或 `aware` | `a3_danger_stance = forsworn`：之后每开一扇禁门，夜羽与阿什（非疏远时）各有一句"你说过的"；不锁门 | 无 |
 | `go_on`、`r_go_on` | 门是我的。我会继续开。 | 同上 | `a3_danger_stance = continue` | 无 |
@@ -9297,7 +9298,7 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 
 4. **变体**
 
-- 书库段与遗迹段的先后：玩家第 15 周前完成远征，只播书库段（`warn` 分支）；第 15 周先在遗迹听到警告、之后才远征，书库段走 `archive_again` 分支（阿什不重复警告，直接让玩家回应），`ash_relation` 以书库段的回应为准。
+- 书库段与遗迹段的先后：玩家第 15 周前完成远征，只播书库段（`warn` 分支）；第 15 周先在遗迹听到警告、之后才远征，书库段走 `archive_again` 分支（阿什不重复警告，直接让玩家回应），`a3_ash_relation` 以书库段的回应为准。
 - `seal_looseness`：警告当时不低于 30 则立即置 `a3_seal_aware`；当时不足 30，内核在之后松动度达到 30 的那一刻置真（台账 M09-C05），并在下一次入睡时补一场 15 秒的短梦（钥匙第一次响），由 `div_janu_dream` 的常规入梦承担，不占本场。
 - 第 15 周之梦的提问随 `a3_seal_aware` 二选一：察觉后才能问"开门会放你出来吗"，她只答"是的"；未察觉时只能问得含糊，她带着笑答"门总会开的"。
 - 梦的布景按 `seal_looseness` 阶段：第 6 周多一扇窄门与更多钥匙；第 15 周层层叠叠的门、钥匙一把挨一把，察觉后钥匙作响。
@@ -9308,13 +9309,13 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 | --- | --- |
 | 幕与拍 | 第三幕，暗面（第 4 场） |
 | 类型 | 写定场景三段：城门段（远方镜头，玩家在哪里都看得到）、临终段、次晨段；城门段与临终段之间可插朝阳门之战 |
-| 触发 | 城门段：`a3_crown_beat == gate`，请求方 `A3-M10`（第 16 周夜；`debt_holder == player` 时提前到第 15 周夜；宰相已在第 15 周被揭发、`drake_fate == fled_to_empire` 时为同一周的"老王之夜"）。临终段：`a3_crown_beat IN (deathbed, deathbed_mid)`；玩家参战并抵达帘幕寝殿时由战场剧本写入 `a3_king_bedside = true` 与 `a3_crown_beat = deathbed_mid` 后请求，战斗暂停；玩家参战但未抵达寝殿时，战斗结束后剧本写入 `deathbed` 后请求；不参战时场景内接续。次晨段：`a3_crown_beat IN (morning, after_bed)`，战斗结束后由剧本写入 `morning` 后请求；不参战时场景内接续 |
+| 触发 | 城门段：`a3_crown_beat == gate`，请求方 `A3-M10`（第 16 周夜；`a3_debt_holder == player` 时提前到第 15 周夜；宰相已在第 15 周被揭发、`a3_drake_fate == fled_to_empire` 时为同一周的"老王之夜"）。临终段：`a3_crown_beat IN (deathbed, deathbed_mid)`；玩家参战并抵达帘幕寝殿时由战场剧本写入 `a3_king_bedside = true` 与 `a3_crown_beat = deathbed_mid` 后请求，战斗暂停；玩家参战但未抵达寝殿时，战斗结束后剧本写入 `deathbed` 后请求；不参战时场景内接续。次晨段：`a3_crown_beat IN (morning, after_bed)`，战斗结束后由剧本写入 `morning` 后请求；不参战时场景内接续 |
 | 时机 | 第 16 周（或第 15 周）深夜到次日清晨，必经；朝阳门之战是可选战役 |
-| 出场 | 玩家；`drake` 宰相冯·德雷克；`oswald` 老王奥斯瓦尔德四世；`olive` 宫廷史官奥丽芙；`sigrid` 御医西格丽德（`a3_sigrid_witness` 时，无台词）；`joachim` 约阿希姆；`philip` 腓力；`severin` 大主教（说话者 `archbishop`）；`casimir_von_roth` 卡西米尔（宰相被擒的分支） |
+| 出场 | 玩家；`drake` 宰相冯·德雷克；`oswald` 老王奥斯瓦尔德四世；`olive` 宫廷史官奥丽芙；`sigrid` 御医西格丽德（`a3_physician_testimony` 时，无台词）；`joachim` 约阿希姆；`philip` 腓力；`severin` 大主教（说话者 `archbishop`）；`casimir_von_roth` 卡西米尔（宰相被擒的分支） |
 | 地点 | `orien_banks` 宰相府书房（位置 `chancellor_house`）、朝阳门（`sunrise_gate`）；`orien_isle` 帘幕寝殿（`crownstone_palace`）、冠石宫阳台（`crownstone_balcony`）；参战时 `sunrise_gate_battle` |
 | 时长 | 约 8 分钟（城门段约 2.5 分钟，临终段约 2 分钟，次晨段约 3.5 分钟），不含朝阳门之战 |
 | 现有数据 | 新建。共 27 节点、68 行台词、5 个选项 |
-| 写入旗标 | `a3_sunrise_fought`；`a3_king_entrusted`（老王把那句话托付给玩家）；`a3_king_bedside`（由战场剧本或本场的揭发分支写入）；`a3_king_died = true`；`philip_fate`（揭发分支写 crowned；默认写 puppet；宰相被擒而腓力未获救写 captive；exile_with_player 与 dead 由战场剧本写入，本场只读）；`a3_crown_beat`（deathbed、after_bed、done） |
+| 写入旗标 | `a3_sunrise_fought`；`a3_king_entrusted`（老王把那句话托付给玩家）；`a3_king_bedside`（由战场剧本或本场的揭发分支写入）；`a3_king_died = true`；`a3_philip_fate`（揭发分支写 crowned；默认写 puppet；宰相被擒而腓力未获救写 captive；exile_with_player 与 dead 由战场剧本写入，本场只读）；`a3_crown_beat`（deathbed、after_bed、done） |
 | 揭示 | 无台账线索。写定神行 `div_beat_a3_record_king`（奥丽芙的笔记下最后一个字）。老王最后一个字"留"的四种解读按 `act3_lothar_crisis.md` 第 4.1 节写定 |
 | 音乐与音效 | 入 `mus_cue_intrigue`，镜 5 交叉；镜 7 与 `mus_cue_sorrow` 交叉；次晨段 `mus_cue_sorrow` 延续，镜 15 与 `mus_cue_intrigue` 交叉，镜 16 末淡出。环境 `amb_city_night`。专用音效 `sfx_cin_gate_bar`、`sfx_cin_last_breath`、`sfx_cin_crown_fall` |
 | 所需美术 | 立绘 `art_bust_drake`（neutral、smile）、`art_bust_oswald`（special、neutral）、`art_bust_philip`（sad、thinking）、`art_por_severin`（neutral）；头像 `art_por_olive`、`art_por_joachim`、`art_por_casimir_von_roth`、`art_por_brigitte`（只用于信纸落款的小像）；特写 `art_prop_cut_crownstone_seal`、`art_prop_cut_crown_floor`（落地的王冠）、`art_prop_cut_last_word`（奥丽芙记录簿上的"留"）、`art_prop_cut_brigitte_letter`；实景运镜（朝阳门外两列火把 等） |
@@ -9348,7 +9349,7 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 【entry】
 分支［a3_crown_beat IN (morning, after_bed)］→ morning
 分支［a3_crown_beat IN (deathbed, deathbed_mid)］→ deathbed
-分支［drake_fate == fled_to_empire］→ exposed
+分支［a3_drake_fate == fled_to_empire］→ exposed
 → gate
 【gate】
 @镜 1
@@ -9356,7 +9357,7 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 @环境 amb_city_night
 @光 深夜
 @字幕 冬末。王都奥瑞恩，北岸旧城，宰相府。
-narrator［debt_holder == player］：债券在你手里。他手里的筹码没了，他等不到下一周。
+narrator［a3_debt_holder == player］：债券在你手里。他手里的筹码没了，他等不到下一周。
 @立绘 drake neutral 右
 narrator：宰相府的书房里，灯一直亮着。冯·德雷克坐在账本前，单片眼镜摘下来放在桌上。
 @镜 2
@@ -9372,8 +9373,8 @@ drake：今夜死的人，会是最少的。从大局看。
 narrator：南岸，朝阳门。门闩是一根比人还粗的橡木。它被抬起来的时候，几乎没有声音。
 @镜 4
 narrator：城门外，火把排成两列。帝国的护送使团穿着使节的外衣，外衣下面是甲。
-narrator［debt_holder == player］：两列火把，比该有的短了一半。
-narrator［NOT debt_holder == player］：两列火把，一直排到王道的尽头。
+narrator［a3_debt_holder == player］：两列火把，比该有的短了一半。
+narrator［NOT a3_debt_holder == player］：两列火把，一直排到王道的尽头。
 → chamber
 【chamber】
 @镜 5
@@ -9382,8 +9383,8 @@ narrator［NOT debt_holder == player］：两列火把，一直排到王道的�
 效果 flag a3_crown_beat = deathbed
 narrator：同一时刻，王岛，帘幕寝殿。
 narrator：老王的呼吸，一声比一声长。床头那把骑士剑，在烛光里一动不动。
-narrator［a3_sigrid_witness］：御医西格丽德跪在床边，手指按在他的手腕上。她在数，没有停。
-narrator［NOT a3_sigrid_witness］：御医已经三天没有被放进来了。
+narrator［a3_physician_testimony］：御医西格丽德跪在床边，手指按在他的手腕上。她在数，没有停。
+narrator［NOT a3_physician_testimony］：御医已经三天没有被放进来了。
 narrator：宫廷史官奥丽芙·冯·特恩坐在床尾的矮凳上，膝盖上摊着记录簿。笔尖悬着，没有落下。
 分支［a3_sunrise_route IN (in_capital, waystone, messenger)］→ offer
 → deathbed
@@ -9482,24 +9483,24 @@ narrator：丧钟敲了很久。全城的人都知道了：老王最后说了一
 → readings
 【readings】
 @镜 12
-分支［drake_fate == fled_to_empire］→ r_bishop
+分支［a3_drake_fate == fled_to_empire］→ r_bishop
 → r_drake
 【r_drake】
 @立绘 drake neutral 右
-drake［NOT drake_fate == captured］：留得青山。陛下是这个意思。从大局看，留住人，比留住旗要紧。
-drake［drake_fate == captured］：（他被两个民兵押着，单片眼镜碎了一边）留得青山。陛下是这个意思。你们早晚会明白，我是对的。
+drake［NOT a3_drake_fate == captured］：留得青山。陛下是这个意思。从大局看，留住人，比留住旗要紧。
+drake［a3_drake_fate == captured］：（他被两个民兵押着，单片眼镜碎了一边）留得青山。陛下是这个意思。你们早晚会明白，我是对的。
 @立绘撤
 → r_bishop
 【r_bishop】
 @立绘 severin neutral 左
 archbishop：留在光里。陛下临终，心向着光。
 @立绘撤
-分支［philip_fate == dead］→ r_north
+分支［a3_philip_fate == dead］→ r_north
 → r_philip
 【r_philip】
 @立绘 philip sad 右
-philip［philip_fate IN (exile_with_player, crowned)］：让我留下。他是想让我留下。（他咬着指甲，咬出了血）
-philip［NOT philip_fate IN (exile_with_player, crowned)］：（隔着一扇有人看守的窗）……让我留下。他是想让我留下。
+philip［a3_philip_fate IN (exile_with_player, crowned)］：让我留下。他是想让我留下。（他咬着指甲，咬出了血）
+philip［NOT a3_philip_fate IN (exile_with_player, crowned)］：（隔着一扇有人看守的窗）……让我留下。他是想让我留下。
 @立绘撤
 → r_north
 【r_north】
@@ -9511,13 +9512,13 @@ narrator：奥丽芙的记录簿上，那一页只有一个字。
 narrator：留。
 @镜 15
 @乐 mus_cue_intrigue 交叉
-分支［drake_fate == fled_to_empire］→ f_exposed
-分支［philip_fate == exile_with_player］→ f_exile
-分支［philip_fate == dead］→ f_dead
-分支［drake_fate == captured］→ f_captive
+分支［a3_drake_fate == fled_to_empire］→ f_exposed
+分支［a3_philip_fate == exile_with_player］→ f_exile
+分支［a3_philip_fate == dead］→ f_dead
+分支［a3_drake_fate == captured］→ f_captive
 → f_puppet
 【f_puppet】
-效果 flag philip_fate = puppet
+效果 flag a3_philip_fate = puppet
 @立绘 drake smile 右
 narrator：宰相站在冠石宫的阳台上宣读诏书。他用的是"摄政"这个词。
 drake：自今日起，洛萨王国接受格兰提亚帝国的保护。王太子殿下，安然无恙。
@@ -9536,12 +9537,12 @@ narrator：冠石宫的火烧到天亮才灭。腓力没有走出来。约阿希
 narrator：宰相在阳台上宣读诏书，宣布洛萨接受帝国的保护。诏书里有一句"王太子殿下不幸殉难"，念得很快。
 → f_common
 【f_captive】
-效果 flag philip_fate = captive
+效果 flag a3_philip_fate = captive
 narrator：宰相在你的人手里，冠石印也是。可王岛上插的是帝国的旗。腓力在帝国兵的看守下，被送去了东岸。
 casimir_von_roth：王国需要一个保护者。帝国愿意承担。（他念诏书的样子，比宰相更短）
 → f_common
 【f_exposed】
-效果 flag philip_fate = crowned
+效果 flag a3_philip_fate = crowned
 @立绘 philip thinking 右
 narrator：老王下葬的第二天，腓力在冠石宫即位。加冕礼定在开春。
 philip：我……再想想。（他停了一下）……不。我不想了。
@@ -9563,7 +9564,7 @@ narrator：从这一天起，洛萨有了好几个中心。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `go` | 去王岛 | `go`，进入朝阳门之战 | `a3_sunrise_fought = true`；开战场剧本 `act3_sunrise_gate`（小队战，目标见 `act3_lothar_crisis.md` 第 7.4 节战役 3）；`philip_fate`、冠石印、档案馆碎片、艾登的去留由战斗结算 | `a3_sunrise_route` 为 in_capital、waystone 或 messenger |
+| `go` | 去王岛 | `go`，进入朝阳门之战 | `a3_sunrise_fought = true`；开战场剧本 `act3_sunrise_gate`（小队战，目标见 `act3_lothar_crisis.md` 第 7.4 节战役 3）；`a3_philip_fate`、冠石印、档案馆碎片、艾登的去留由战斗结算 | `a3_sunrise_route` 为 in_capital、waystone 或 messenger |
 | `no_go` | （不去） | `no_go` | 默认走向：腓力被俘，宰相摄政 | 同上 |
 | `k_promise` | 我答应你。 | `last` | 无数值；`a3_king_entrusted` 已在进入节点时写入，后日谈引用这句话 | `a3_king_bedside` |
 | `k_why` | 为什么告诉我？ | `k_why` | 无 | 同上 |
@@ -9571,8 +9572,8 @@ narrator：从这一天起，洛萨有了好几个中心。
 
 4. **变体**
 
-- `debt_holder == player`：开城提前到第 15 周，入城兵力减半；开场多一句"他等不到下一周"，火把短一半。
-- `drake_fate == fled_to_empire`（第 15 周评议会揭发成功）：不开城，走 `exposed` 分支；玩家人在王都时老王召见玩家（`summoned`），老王把那句话托付给玩家；腓力在王都即位（`philip_fate = crowned`），加冕礼在 `cut_a3_map` 段二举行。
+- `a3_debt_holder == player`：开城提前到第 15 周，入城兵力减半；开场多一句"他等不到下一周"，火把短一半。
+- `a3_drake_fate == fled_to_empire`（第 15 周评议会揭发成功）：不开城，走 `exposed` 分支；玩家人在王都时老王召见玩家（`summoned`），老王把那句话托付给玩家；腓力在王都即位（`a3_philip_fate = crowned`），加冕礼在 `cut_a3_map` 段二举行。
 - 老王的托付只出现在玩家到了床边的分支（参战抵达寝殿，或揭发分支被召见）；其余分支他只说出"留"。
 - 次晨段的四种"留"：宰相（在王都或被擒时）"留得青山"、大主教"留在光里"、腓力（活着时）"让我留下"、布丽吉特"留守"；奥丽芙只写一个字，没有注释（`act3_lothar_crisis.md` 第 4.1 节）。
 - 结尾五种走向：揭发（腓力即位）、流亡（腓力在玩家马车里）、殉难（腓力与约阿希姆死于冠石宫）、宰相被擒（帝国借卡西米尔宣布保护，腓力被押往东岸）、默认（宰相摄政，腓力为傀儡）。
@@ -9584,13 +9585,13 @@ narrator：从这一天起，洛萨有了好几个中心。
 | --- | --- |
 | 幕与拍 | 第三幕，高潮 |
 | 类型 | 战前夜：写定场景；对决、对决后、净化之光、终局：战斗插演（战斗暂停播放，播完恢复或结算）；失败：写定场景 |
-| 触发 | 战前夜：`a3_ashline_beat == eve`，请求方 `A3-M11` 末阶段（第 19 周末到第 20 周，圣战军主力抵苇桥对岸、玩家人在苇桥时写入后请求）。以下各段由战场剧本 `act3_ash_line` 写入段落旗标后请求：对决 `duel`（第三阶段，第二日午后，陆辰出阵）；对决后 `duel_end`（对决分出结果）；净化之光 `pillar`（第四阶段，第二日黄昏，写定神行 `div_beat_a3_pillar` 执行时）；终局 `end`（剧本先写入 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`eluen_violation_evidence`）；失败 `fallen`（防线被突破，剧本写入 `a3_ashline_route = fallen`） |
+| 触发 | 战前夜：`a3_ashline_beat == eve`，请求方 `A3-M11` 末阶段（第 19 周末到第 20 周，圣战军主力抵苇桥对岸、玩家人在苇桥时写入后请求）。以下各段由战场剧本 `act3_ash_line` 写入段落旗标后请求：对决 `duel`（第三阶段，第二日午后，陆辰出阵）；对决后 `duel_end`（对决分出结果）；净化之光 `pillar`（第四阶段，第二日黄昏，写定神行 `div_beat_a3_pillar` 执行时）；终局 `end`（剧本先写入 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `a3_archbishop_fate`、`hero_state_*`、`a3_church_verdict`、`a3_eluen_violation`）；失败 `fallen`（防线被突破，剧本写入 `a3_ashline_route = fallen`） |
 | 时机 | 第 20 到 21 周，早春；战前夜、净化之光、终局或失败必经；对决在陆辰出阵时必经（陆辰本幕不会死） |
-| 出场 | 玩家；`ron` 罗恩；`shiya` 希雅；`aiden` 艾登（`hero_state_aiden == with_player`）；`ursak`、`konrad`、`lucas`（第二战线的人选）；`luchen` 陆辰；`severin` 大主教（说话者 `archbishop`）；`marcus` 马库斯；`sasha` 萨莎；`hanna` 汉娜；`yui` 结衣（defected 时）；`jorg` 约尔格；`ulrich_von_eisen` 乌尔里希；`martha` 玛莎、`ash` 阿什（失败分支） |
+| 出场 | 玩家；`ron` 罗恩；`shiya` 希雅；`aiden` 艾登（`hero_state.aiden == with_player`）；`ursak`、`konrad`、`lucas`（第二战线的人选）；`luchen` 陆辰；`severin` 大主教（说话者 `archbishop`）；`marcus` 马库斯；`sasha` 萨莎；`hanna` 汉娜；`yui` 结衣（defected 时）；`jorg` 约尔格；`ulrich_von_eisen` 乌尔里希；`martha` 玛莎、`ash` 阿什（失败分支） |
 | 地点 | `reedbridge_battle` 苇桥东岸桥头堡（位置 `bridgehead`）、石桥（`stone_bridge`）、东北丘陵（`ne_hills`）；失败分支 `borderstone` 南门（`south_gate`）、`seal_ruins` 入口前（`outer_ring`） |
 | 时长 | 战前夜约 5 分钟；对决约 1.5 分钟；对决后约 1 分钟；净化之光约 2.5 分钟；终局约 4 分钟；失败约 3 分钟 |
 | 现有数据 | 新建（战场剧本 `act3_ash_line` 已在 `data/warfare/scenarios.json`）。共 37 节点、131 行台词、15 个选项、1 处即兴 |
-| 写入旗标 | `a3_second_front_general`（ursak、konrad、lucas、ron、shiya）；`a3_lu_duel_choice`（full、holdback）；`lu_lowered_sword`、`hero_state_lu`（wavering、loyal）、`hero_rel_luchen`；`a3_holy_war_miracle = true`；`a3_marcus_crossed`；`a3_sasha_threw`；`a3_pillar_response`（interrupt、close、endure）；`a3_vow_kept_reed_bridge = true`（誓光之门的历钥，`thousand_doors.md` C91）；`push_door.door_vocation_paladin`；失败时 `ash_exile = true`、`church_verdict_3 = demon_precursor`；`a3_ashline_beat`（battle、done）；效果 `scene cut_a3_eluen_speaks` |
+| 写入旗标 | `a3_second_front_general`（ursak、konrad、lucas、ron、shiya）；`a3_lu_duel_choice`（full、holdback）；`a3_luchen_lowered_sword`、`hero_state.luchen`（wavering、loyal）、`trust.luchen`；`a3_holy_war_miracle = true`；`a3_marcus_crossed`；`a3_sasha_threw`；`a3_pillar_response`（interrupt、close、endure）；`a3_vow_kept_reed_bridge = true`（誓光之门的历钥，`thousand_doors.md` C91）；`push_door.vocation_paladin`；失败时 `a3_ash_exile = true`、`a3_church_verdict = demon_precursor`；`a3_ashline_beat`（battle、done）；效果 `scene cut_a3_eluen_speaks` |
 | 揭示 | 写定神行 `div_beat_a3_pillar`（置 `a3_holy_war_miracle`；越约窗口 `div_breach_eluen_pillar`）、`div_beat_a3_recall`（回光）、`div_beat_a3_sasha_stone`、`div_beat_a3_close_light`（合光）。谨慎桥段 C3-5 回光、C3-6 净化之光。M04-C07 的余波放在 `cut_a3_eluen_speaks` 尾声 |
 | 音乐与音效 | 战前夜入 `mus_town_borderstone_day`，镜 3 与 `mus_act3_ash_line` 交叉并延续进战斗；对决入 `mus_boss_standard`，对决后出；净化之光入 `mus_stg_motif_eluen`，镜 12 与 `mus_stg_motif_valda` 交叉，镜 13 与 `mus_act3_ash_line` 交叉；终局：击溃与不杀而胜让 `mus_act3_ash_line` 淡出，说服入 `mus_cue_sorrow`；誓光之门 `mus_stg_motif_door`；失败入 `mus_cue_intrigue`。环境 `amb_camp`。专用音效 `sfx_cin_recall_light`、`sfx_cin_pillar_rise`、`sfx_god_eluen_pillar`、`sfx_cin_mark_burn`、`sfx_cin_millstone`、`sfx_cin_close_light`、`sfx_cin_martha_cut`、`sfx_cin_ash_burial` |
 | 所需美术 | 立绘 `art_bust_ron`（neutral）、`art_bust_shiya`（neutral）、`art_bust_aiden`（thinking）、`art_bust_luchen`（neutral、sad（放下剑））、`art_por_severin`（smile（举柱的狂热））、`art_bust_marcus`（angry、smile）、`art_bust_sasha`（special）、`art_bust_martha`（neutral）、`art_bust_ash`（neutral）；头像 `art_por_ursak`、`art_por_konrad`、`art_por_lucas`、`art_por_jorg`、`art_por_ulrich_von_eisen`、`art_por_hanna`、`art_por_yui`；实景运镜；特写 `art_prop_cut_lu_cloak`（桥栏上的红披风）、`art_prop_cut_names_board`（桥头的木板）、`art_prop_cut_vow_door`；特效 `art_vfx_cut_dawnpillar`、`art_vfx_cut_recall_light`、`art_vfx_cut_close_light`、`art_vfx_cut_ash_burial`；特殊动作 `art_chr_severin_raise_pillar`、`art_chr_sasha_throw`、`art_chr_marcus_arms_wide`、`art_chr_martha_strike` |
@@ -9653,22 +9654,22 @@ ron［a3_ron_confessed］：那年我跑了。这次不跑。
 @立绘 shiya neutral 左
 shiya：东北的丘陵上，有人在看。
 shiya：三面黑红的旗。一个哨都没放。
-shiya［sasha_result IN (defeated, draw, repelled)］：是她。红头发的那个。
+shiya［a3_sasha_result IN (defeated, draw, repelled)］：是她。红头发的那个。
 @立绘撤
 → allies
 【allies】
-narrator［wb_ruler == lucas］：卢卡斯从瓦伦堡带来了五百人。他本人站在第一排。
-narrator［wb_ruler == cecilia］：瓦伦堡来了两百个雇佣兵，领头的递上塞西莉亚的信：钱已付清，人随你用。
-narrator［wb_ruler == regency］：瓦伦堡的城议投了票。来了三百人。
-narrator［wb_ruler == citizen_council］：瓦伦堡的市民民兵来了三百个，扛着从城门上拆下来的门板当盾。
-narrator［wb_ruler == martial_chaos］：哈根带着两百个老兵来了。他说，能站的都来了。
-narrator［wb_ruler == edric］：瓦伦堡没有派人来。艾德里克开了城门，给圣战军补了粮。
-narrator［migrants_status IN (integrated, allied)］：百帐营的三百个兽人战士到了。乌尔萨克在营地中间生了一堆很大的火。
-narrator［north_status == allied_with_player］：北境来了三百个灰墙兵，冈特带队。他带来布丽吉特的一句话：守住了，算她欠你的。……不对，算你欠她的。
-narrator［door.door_resonance］：遗民之谷来了三十个门守。他们手背上的纹，在夜里是亮的。
-narrator［philip_fate == exile_with_player］：腓力在帐篷里算粮。算了一整夜，算得比克拉拉还快。
-narrator［hero_state_marcus == defected］：马库斯在给民兵分汤。他没有盾，背上背着一口锅。
-分支［hero_state_aiden == with_player］→ aiden
+narrator［a2_wb_ruler == lucas］：卢卡斯从瓦伦堡带来了五百人。他本人站在第一排。
+narrator［a2_wb_ruler == cecilia］：瓦伦堡来了两百个雇佣兵，领头的递上塞西莉亚的信：钱已付清，人随你用。
+narrator［a2_wb_ruler == regency］：瓦伦堡的城议投了票。来了三百人。
+narrator［a2_wb_ruler == citizen_council］：瓦伦堡的市民民兵来了三百个，扛着从城门上拆下来的门板当盾。
+narrator［a2_wb_ruler == martial_chaos］：哈根带着两百个老兵来了。他说，能站的都来了。
+narrator［a2_wb_ruler == edric］：瓦伦堡没有派人来。艾德里克开了城门，给圣战军补了粮。
+narrator［a3_migrants_status IN (integrated, allied)］：百帐营的三百个兽人战士到了。乌尔萨克在营地中间生了一堆很大的火。
+narrator［a3_north_status == allied_with_player］：北境来了三百个灰墙兵，冈特带队。他带来布丽吉特的一句话：守住了，算她欠你的。……不对，算你欠她的。
+narrator［door.resonance］：遗民之谷来了三十个门守。他们手背上的纹，在夜里是亮的。
+narrator［a3_philip_fate == exile_with_player］：腓力在帐篷里算粮。算了一整夜，算得比克拉拉还快。
+narrator［hero_state.marcus == defected］：马库斯在给民兵分汤。他没有盾，背上背着一口锅。
+分支［hero_state.aiden == with_player］→ aiden
 → second_front
 【aiden】
 @立绘 aiden thinking 右
@@ -9681,8 +9682,8 @@ aiden：有意思，但不合理。一根柱子，凭什么只认一双手。
 @镜 3
 @乐 mus_act3_ash_line 交叉
 narrator：东边送来急报：帝国的先锋沿瓦伦河谷北上，正往瓦伦堡去。
-narrator［empire_view >= 2］：急报上说，只是小股的游骑。帝国的将军在报告里写过一句：别惹那个人。
-narrator［NOT empire_view >= 2］：急报上说，三千人。
+narrator［a3_empire_view >= 2］：急报上说，只是小股的游骑。帝国的将军在报告里写过一句：别惹那个人。
+narrator［NOT a3_empire_view >= 2］：急报上说，三千人。
 @立绘 ron neutral 右
 ron：瓦伦堡要是丢了，我们的粮道，他们的退路，一起断。
 ron：得有人去。你不能去，你得在这里。
@@ -9726,9 +9727,9 @@ narrator：一个穿白金铠甲的年轻人从圣骑士的阵里走出来。他
 @镜 5
 @立绘 luchen neutral 右
 luchen：{player_name}。
-luchen［hero_rel_luchen >= 40］：我们非得这样吗？
-luchen［NOT hero_rel_luchen >= 40］：他们说你是异端。我得自己确认。
-luchen［heroes_saw_power == hidden］：在旧水道的时候，你一直没认真过。对吧。
+luchen［trust.luchen >= 70］：我们非得这样吗？
+luchen［NOT trust.luchen >= 70］：他们说你是异端。我得自己确认。
+luchen［a2_heroes_saw_power == hidden］：在旧水道的时候，你一直没认真过。对吧。
 luchen：跟我打一场。就我们两个。
 选 full「（拔剑，全力）」→ duel_go｜效果 flag a3_lu_duel_choice = full
 选 holdback「（拔剑，但留手）」→ duel_go｜效果 flag a3_lu_duel_choice = holdback
@@ -9747,7 +9748,7 @@ narrator：两把剑碰在一起的声音，两岸都听见了。
 【duel_end】
 @镜 6
 @乐 mus_boss_standard 交叉
-分支［a3_lu_duel_choice == holdback AND hero_rel_luchen >= 40 AND a3_massacre_witnessed］→ lu_lower
+分支［a3_lu_duel_choice == holdback AND trust.luchen >= 70 AND a3_massacre_witnessed］→ lu_lower
 → lu_recall
 【lu_lower】
 @立绘 luchen sad 右
@@ -9755,7 +9756,7 @@ narrator：他的剑第三次被你挑开的时候，他没有再去捡。
 luchen：你一直在留手。
 luchen：我还是勇者。
 luchen：可我要自己去看清楚。
-效果 flag lu_lowered_sword = true；flag hero_state_lu = wavering；add hero_rel_luchen 15
+效果 flag a3_luchen_lowered_sword = true；flag hero_state.luchen = wavering；add trust.luchen 8
 narrator：他转身走回圣骑士的阵里，手里没有剑。没有人拦他，也没有人看他。
 @立绘撤
 @乐 mus_boss_standard 出
@@ -9763,7 +9764,7 @@ narrator：他转身走回圣骑士的阵里，手里没有剑。没有人拦他
 【lu_recall】
 @镜 7
 @立绘撤
-效果 flag hero_state_lu = loyal
+效果 flag hero_state.luchen = loyal
 narrator：他倒下的时候，身上亮了一下，像有什么东西替他挡了最后一击。又灭了。
 @声 sfx_cin_recall_light
 @光 神光
@@ -9772,10 +9773,10 @@ narrator：像被收回的东西。
 narrator：桥栏上，只剩他的红披风。
 narrator：你不知道那是什么。你只知道，这个勇者有一张他自己都看不见的牌。
 @乐 mus_boss_standard 出
-分支［hero_rel_luchen >= 0］→ lu_wav
+分支［trust.luchen >= 50］→ lu_wav
 结束
 【lu_wav】
-效果 flag hero_state_lu = wavering
+效果 flag hero_state.luchen = wavering
 结束
 【pillar】
 @镜 8
@@ -9799,12 +9800,12 @@ narrator：对岸的圣战军一起抬起头。他们的眼睛亮了，枪尖也
 @声 sfx_cin_mark_burn
 @震 2
 narrator：你手背上的门纹，像被烙铁按住。
-narrator［door.door_resonance］：桥头堡里，三十个门守同时跪了下去，捂着手背。
+narrator［door.resonance］：桥头堡里，三十个门守同时跪了下去，捂着手背。
 narrator［a3_pillar_breach］：光扫过兽人的阵地。他们抬手挡眼睛。有几个倒下去，没有再起来。
 narrator：这不是能打赢的东西。只能打断举着它的人，或者撑过去。
 @立绘撤
-分支［hero_state_marcus == wavering AND NOT a3_reedpond_present］→ marcus_runs
-分支［hero_state_marcus == defected］→ marcus_ours
+分支［hero_state.marcus == wavering AND NOT a3_reedpond_present］→ marcus_runs
+分支［hero_state.marcus == defected］→ marcus_ours
 → sasha_check
 【marcus_runs】
 @镜 11
@@ -9825,7 +9826,7 @@ marcus：没人会被落下。
 @立绘撤
 → sasha_check
 【sasha_check】
-分支［sasha_interest >= 2］→ stone
+分支［a3_sasha_interest >= 2］→ stone
 → respond
 【stone】
 @镜 12
@@ -9845,7 +9846,7 @@ narrator：她不是在帮你。她是在给那道光添堵。
 @镜 13
 @乐 mus_act3_ash_line 交叉
 选 interrupt「（冲过桥去，打断他）」→ r_interrupt｜效果 flag a3_pillar_response = interrupt
-选 close「（让门守的门纹和你的连起来，合上光）」→ r_close｜效果 flag a3_pillar_response = close｜条件 door.door_resonance AND seal_looseness >= 30
+选 close「（让门守的门纹和你的连起来，合上光）」→ r_close｜效果 flag a3_pillar_response = close｜条件 door.resonance AND seal_looseness >= 30
 选 endure「（守住阵线，撑过去）」→ r_endure｜效果 flag a3_pillar_response = endure
 【r_interrupt】
 narrator：你冲上了桥。光照在你身上，像在推你回去。
@@ -9872,8 +9873,8 @@ narrator：你退回桥头堡的墙后面。门纹烧得你握不住剑，你就
 narrator：天黑之前，圣战军的阵线散了。
 narrator：圣誓志愿军冲得最快，也倒得最快。征召兵扔下长枪往南跑，圣骑士护着他们退，一步一步退，没有乱。
 narrator：灰溪里漂着很多东西。你没有去数。
-narrator［church_verdict_3 == demon_precursor］：后来，南方的檄文说：规格外者在苇桥屠尽了光的子民。它不再叫你异端，它叫你魔王的先驱。
-narrator［church_verdict_3 == heretic］：后来，南方的檄文说：异端在苇桥抗拒了光。
+narrator［a3_church_verdict == demon_precursor］：后来，南方的檄文说：规格外者在苇桥屠尽了光的子民。它不再叫你异端，它叫你魔王的先驱。
+narrator［a3_church_verdict == heretic］：后来，南方的檄文说：异端在苇桥抗拒了光。
 → vow
 【end_persuade】
 @镜 16
@@ -9881,15 +9882,15 @@ narrator［church_verdict_3 == heretic］：后来，南方的檄文说：异端
 narrator：你没有让人冲锋。你让人在桥头立起一块木板，正对着对岸。
 narrator：汉娜站到木板前，一个名字一个名字地念。苇塘村的名字。
 narrator［a3_reedpond_record］：她念的，是卡西安那一夜写在纸上的：谁下的令，谁动的手，谁倒在哪里。
-narrator［hero_state_yui == defected］：白石结衣站在汉娜旁边。她还穿着圣女的白衣。
-yui［hero_state_yui == defected］：我是圣女。那一夜我在苇塘。我治好了一个兵。他转身，杀了一个孩子。
-yui［hero_state_yui == defected］：请让我看看伤口。这句话，我对每一个人都说过。那一夜，我也对他说过。
+narrator［hero_state.yui == defected］：白石结衣站在汉娜旁边。她还穿着圣女的白衣。
+yui［hero_state.yui == defected］：我是圣女。那一夜我在苇塘。我治好了一个兵。他转身，杀了一个孩子。
+yui［hero_state.yui == defected］：请让我看看伤口。这句话，我对每一个人都说过。那一夜，我也对他说过。
 narrator［a3_oracle_public］：你把赛琳寄来的那页纸念了出来。光对大主教说的，不是"净化荒原"。是"找到那扇门，毁掉它"。
 @镜 17
 narrator：对岸征召兵的阵里，起了一阵骚动。
-jorg［a3_jorg_spared］：我妹妹在那边。
-jorg［a3_jorg_spared］：她嫁到边石镇了。我去看过她。他们没有角。他们给了我一碗水。
-narrator［NOT a3_jorg_spared］：一个征召兵把长枪放在了地上。他说，他妹妹嫁到了边石镇。
+jorg［a3_jorg_home_visit］：我妹妹在那边。
+jorg［a3_jorg_home_visit］：她嫁到边石镇了。我去看过她。他们没有角。他们给了我一碗水。
+narrator［NOT a3_jorg_home_visit］：一个征召兵把长枪放在了地上。他说，他妹妹嫁到了边石镇。
 narrator：一个百人连队，放下了长枪。然后是第二个。
 narrator：征召兵们成队地往南走。没有人追他们。
 @镜 18
@@ -9906,7 +9907,7 @@ narrator：大主教一个人站在曙光圣柱下面。他身边的人，越来
 @乐 mus_act3_ash_line 出
 narrator：这一仗，你没有让他们流多少血。
 narrator［a3_supply_cut］：他们的粮在冬末就断了。从瓦伦堡来的补给车，一车一车地"在路上耽搁"。
-narrator［a3_supply_cut AND wb_ruler == cecilia］：塞西莉亚的信上写：路不好走，没有办法。信封里还夹着一张收据。
+narrator［a3_supply_cut AND a2_wb_ruler == cecilia］：塞西莉亚的信上写：路不好走，没有办法。信封里还夹着一张收据。
 narrator［a3_archbishop_seized］：夜里，你从门里走出来，站在大主教的帐篷里。他醒来的时候，你的剑已经横在他面前。
 narrator［NOT a3_archbishop_seized］：第三天早上，圣战军的营地里没有起炊烟。士气比粮先断了。
 narrator：他们走了。走的时候，还排着队。
@@ -9922,7 +9923,7 @@ narrator：没有人为你祈祷过。你在这里站了两天，用的是你自
 @光 门光
 narrator：千门回廊里，一扇门亮了。门板是锁甲的纹，正中刻着一面盾。盾上没有任何神的纹。誓光之门。
 narrator［a3_ash_warning_doors］：门边的风痕很浅。风几乎没有。
-选 v_push「推开它」→ v_pushed｜效果 flag push_door.door_vocation_paladin = true
+选 v_push「推开它」→ v_pushed｜效果 flag push_door.vocation_paladin = true
 选 v_wait「现在不推」→ v_waited
 【v_pushed】
 narrator：你把手放在门上。没有光从天上落下来。光是从你自己手里亮起来的。
@@ -9963,7 +9964,7 @@ narrator：先锋追到了封门遗迹前。
 narrator：大主教骑在马上，曙光圣柱横在马鞍上。他要找的门，就在前面。
 @立绘 ash neutral 右
 narrator：遗迹的入口前，坐着一副骨头。
-narrator［ash_relation == distant］：他没有看你。他看着的是那些马。
+narrator［a3_ash_relation == distant］：他没有看你。他看着的是那些马。
 ash：还不是时候。
 @镜 24
 @天气 灰暴
@@ -9972,7 +9973,7 @@ ash：还不是时候。
 narrator：灰卷了起来。不是风卷的。
 narrator：先锋连人带马，被埋进了灰里。
 @立绘撤
-效果 flag ash_exile = true；flag church_verdict_3 = demon_precursor；flag a3_ashline_beat = done；scene cut_a3_eluen_speaks
+效果 flag a3_ash_exile = true；flag a3_church_verdict = demon_precursor；flag a3_ashline_beat = done；scene cut_a3_eluen_speaks
 结束
 ```
 
@@ -9990,26 +9991,26 @@ narrator：先锋连人带马，被埋进了灰里。
 | `sf_ron` | 罗恩，你去。 | `sf_ron` | 由罗恩带常备队二百（稳健，最可靠）；苇桥主阵失去罗恩的士气与阵型加成 | 无 |
 | `sf_shiya` | 希雅，你去。 | `sf_shiya` | 由希雅带猎兵（机动，靠袭扰拖延）；苇桥主阵失去猎兵的夜袭与侦察 | 无 |
 | `full`、`full2` | （拔剑，全力） | `duel_go` | `a3_lu_duel_choice = full`：对决后必走回光 | 无 |
-| `holdback`、`holdback2` | （拔剑，但留手） | `duel_go` | `a3_lu_duel_choice = holdback`：关系高时陆辰放下剑（`lu_lowered_sword`），否则仍走回光 | 无 |
+| `holdback`、`holdback2` | （拔剑，但留手） | `duel_go` | `a3_lu_duel_choice = holdback`：关系高时陆辰放下剑（`a3_luchen_lowered_sword`），否则仍走回光 | 无 |
 | `talk` | 我不想跟你打。 | `duel_talk` | 无数值；陆辰说完仍要对决 | 一次 |
 | `interrupt` | （冲过桥去，打断他） | `r_interrupt` | `a3_pillar_response = interrupt`：玩家英雄单位转为突击大主教；艾登 with_player 时突破路线标出"他的手" | 无 |
-| `close` | （让门守的门纹和你的连起来，合上光） | `r_close` | `a3_pillar_response = close`：执行写定神行 `div_beat_a3_close_light`，门纹灼烧终止，圣化保留 | `door.door_resonance AND seal_looseness >= 30` |
+| `close` | （让门守的门纹和你的连起来，合上光） | `r_close` | `a3_pillar_response = close`：执行写定神行 `div_beat_a3_close_light`，门纹灼烧终止，圣化保留 | `door.resonance AND seal_looseness >= 30` |
 | `endure` | （守住阵线，撑过去） | `r_endure` | `a3_pillar_response = endure`：光柱持续到时，伤亡与越约风险最高 | 无 |
 | `v_push` | 推开它 | `v_pushed` | 推门请求 `door_vocation_paladin`（誓光之门） | 无 |
 | `v_wait` | 现在不推 | `v_waited` | 门保持可开 | 无 |
 
 4. **变体**
 
-- 援军：按 `wb_ruler`（六种）、`migrants_status`、`north_status`、`door.door_resonance`、`philip_fate`、`hero_state_marcus` 分别加一句；全部写在 `allies` 节点，互不排斥。
-- 第二战线的规模：`empire_view >= 2` 时是小股游骑，否则约三千人；人选的去留只在本场决定，战果由战争系统结算（玩家本人不在那里）。
-- 陆辰：关系高、留手、苇塘之后（`a3_massacre_witnessed`）三者都满足时放下剑，`hero_state_lu = wavering` 并记 `lu_lowered_sword`；否则被回光带走，关系不低于 0 时 wavering，低于 0 时 loyal。他本幕不会死（`div_beat_a3_recall` 必达）。
+- 援军：按 `a2_wb_ruler`（六种）、`a3_migrants_status`、`a3_north_status`、`door.resonance`、`a3_philip_fate`、`hero_state.marcus` 分别加一句；全部写在 `allies` 节点，互不排斥。
+- 第二战线的规模：`a3_empire_view >= 2` 时是小股游骑，否则约三千人；人选的去留只在本场决定，战果由战争系统结算（玩家本人不在那里）。
+- 陆辰：关系高、留手、苇塘之后（`a3_massacre_witnessed`）三者都满足时放下剑，`hero_state.luchen = wavering` 并记 `a3_luchen_lowered_sword`；否则被回光带走，关系不低于 0 时 wavering，低于 0 时 loyal。他本幕不会死（`div_beat_a3_recall` 必达）。
 - 结衣：defected 时出现在说服路线的木板前作证；wavering 时由战争系统在两岸各治一侧伤员（无插演）；loyal 时留在圣战军（无插演）。
 - 马库斯：wavering 且玩家第 12 周不在苇塘村时，他在净化之光里越过战线（`a3_marcus_crossed`）；光柱未被及时打断（`a3_pillar_response == endure` 且未合光）时，战争系统把他记为 dead，否则重伤存活；defected 时他站在玩家一侧，不会死。
 - 艾登：with_player 时战前夜说出圣柱的原理；rear 与 tempted 时不出场。
-- 萨莎：`sasha_interest >= 2` 时掷石，光柱持续缩短；否则只在丘陵上看。
-- 兽人伤亡：战场剧本在光柱致死第一个兽人信徒时写 `a3_pillar_breach = true`（越约窗口 `div_breach_eluen_pillar`），镜 10 加一句兽人倒下；证据等级 `eluen_violation_evidence` 由战争系统按目击者结算。
+- 萨莎：`a3_sasha_interest >= 2` 时掷石，光柱持续缩短；否则只在丘陵上看。
+- 兽人伤亡：战场剧本在光柱致死第一个兽人信徒时写 `a3_pillar_breach = true`（越约窗口 `div_breach_eluen_pillar`），镜 10 加一句兽人倒下；证据等级 `a3_eluen_violation` 由战争系统按目击者结算。
 - 终局三路线：击溃（定性由战争系统写 heretic，杀戮过重写 demon_precursor）；说服（木板、名字、结衣、神谕、约尔格、乌尔里希，按持有的证据逐句显示）；不杀而胜（断粮或夜擒大主教，或士气崩溃）。三条路线都进入誓光之门与 `cut_a3_eluen_speaks`。
-- 失败：玛莎出手一次，阿什在遗迹前埋住先锋，写 `ash_exile = true` 与 `church_verdict_3 = demon_precursor`，随后进入 `cut_a3_eluen_speaks` 的失败版本；誓光之门不亮。
+- 失败：玛莎出手一次，阿什在遗迹前埋住先锋，写 `a3_ash_exile = true` 与 `a3_church_verdict = demon_precursor`，随后进入 `cut_a3_eluen_speaks` 的失败版本；誓光之门不亮。
 
 #### cut_a3_eluen_speaks 规格外的东西（Out of Specification）
 
@@ -10022,7 +10023,7 @@ narrator：先锋连人带马，被埋进了灰里。
 | 出场 | 玩家；`severin` 大主教（说话者 `archbishop`，光借他开口，即兴由 `eluen` 的人格题面生成）；`eluen`、`valda`（只作序章录音的回声）；`yeyu` 夜羽；`cassian` 卡西安；`sasha` 萨莎；`letter` 信 |
 | 地点 | 胜利：`reedbridge_battle` 桥头（`bridgehead`）；失败：`seal_ruins` 入口前（`outer_ring`）。场景不带地图头，沿用玩家所在的地图 |
 | 时长 | 约 7 分钟 |
-| 现有数据 | `a3_eluen_speaks`（2 节点、10 行）扩写为本场。导入后共 17 节点、66 行台词、4 个选项、2 处即兴、1 处自由输入。导入时修正：原稿写萨莎"扛着刀"，本场按 `characters.md` 第 5.2 节写作铁拳套；原稿在本场发放 `evidence_e35`，按台账第 7 节 E35 的取得条件是第六幕传唤勇者团作证，本场不发；`evidence_e36` 只在 `eluen_violation_evidence` 为 witnessed 或 recorded 时发放；`a3_holy_war_miracle` 移到 `cut_a3_ashen_line` 的净化之光段写入；`onEnd act act4` 移到 `cut_a3_map` 段二末尾 |
+| 现有数据 | `a3_eluen_speaks`（2 节点、10 行）扩写为本场。导入后共 17 节点、66 行台词、4 个选项、2 处即兴、1 处自由输入。导入时修正：原稿写萨莎"扛着刀"，本场按 `characters.md` 第 5.2 节写作铁拳套；原稿在本场发放 `evidence_e35`，按台账第 7 节 E35 的取得条件是第六幕传唤勇者团作证，本场不发；`evidence_e36` 只在 `a3_eluen_violation` 为 witnessed 或 recorded 时发放；`a3_holy_war_miracle` 移到 `cut_a3_ashen_line` 的净化之光段写入；`onEnd act act4` 移到 `cut_a3_map` 段二末尾 |
 | 写入旗标 | `a3_eluen_speaks = true`；`a3_eluen_reply`（why、defy、words、silent）；`a3_eluen_words`（自由输入）；`a3_cassian_saw_voice = true`（`A3-S11` 的转折点）；`a3_sasha_retreat_line = true`；`yeyu_letters = 2`；道具 `evidence_e36`（条件） |
 | 揭示 | 锚点 A02 回扣：M01-C07（"原来你还活着。规格外的东西，就该待在规格外。"，她当初就想让玩家死）；锚点 A03 回扣完成：M05-C08（"看走眼"的词语回声把"那件事"与大断绝连起来）；S04-C01（光之耳目，玩家察觉：她隔着勇者的眼睛看过自己）；S01-C06（第二封信，锚点 A04 的伏笔）；M04-C07（净化之光之后荒原的澱肉眼可见地暴涨，教会说是"邪神的反扑"） |
 | 音乐与音效 | 入 `mus_cue_zoomout`；镜 2 与 `mus_stg_motif_eluen` 交叉；镜 7 交叉回 `mus_cue_zoomout`；镜 9 与 `mus_stg_motif_valda` 交叉；镜 11 与 `mus_cue_warmth` 交叉，信文出现时与 `mus_stg_motif_merca` 交叉四小节；镜 12 交叉回 `mus_cue_zoomout`，末尾淡出。专用音效 `sfx_cin_choir_layer`、`sfx_cin_flashback`、`sfx_cin_light_out`、`sfx_cin_shield_drum`、`sfx_cin_seal_melt` |
@@ -10053,7 +10054,7 @@ narrator：先锋连人带马，被埋进了灰里。
 ```text
 场景 cut_a3_eluen_speaks｜标题 规格外的东西｜幕 act3｜起点 entry
 【entry】
-分支［ash_exile］→ f_open
+分支［a3_ash_exile］→ f_open
 → open
 【open】
 @镜 1
@@ -10063,9 +10064,9 @@ narrator：光柱熄灭了。
 narrator［a3_pillar_response == interrupt］：你的剑柄砸在他的手腕上。曙光圣柱从他手里滑下去，砸进了泥里。
 narrator［a3_pillar_response == close］：光被合上了。柱子还在他手里，可它只是一根柱子了。
 narrator［a3_pillar_response == endure］：光一点一点暗下去，像一盏油尽的灯。
-narrator［archbishop_fate == captured］：大主教被按倒在桥头的泥里。
-narrator［archbishop_fate == dead］：大主教倒在桥头。他胸口的起伏，越来越慢。
-narrator［archbishop_fate IN (retreated, south_regent)］：大主教被他剩下的骑士围在中间，退到了桥头。
+narrator［a3_archbishop_fate == captured］：大主教被按倒在桥头的泥里。
+narrator［a3_archbishop_fate == dead］：大主教倒在桥头。他胸口的起伏，越来越慢。
+narrator［a3_archbishop_fate IN (retreated, south_regent)］：大主教被他剩下的骑士围在中间，退到了桥头。
 → possess
 【f_open】
 @镜 14
@@ -10104,7 +10105,7 @@ eluen：去吧，庭间之隙会替我处理你。
 yeyu［companion.yeyu.recruited］：那不是流放。
 yeyu［companion.yeyu.recruited］：她是想让你死在隙里。
 player［NOT companion.yeyu.recruited］：（那不是流放。她是想让我死在隙里。）
-narrator［heroes_saw_power IN (partial, full)］：她看你的样子，不像是第一次看见。你想起旧水道里，勇者们看着你出手时的眼睛。她早就看过了，隔着别人的眼睛。
+narrator［a2_heroes_saw_power IN (partial, full)］：她看你的样子，不像是第一次看见。你想起旧水道里，勇者们看着你出手时的眼睛。她早就看过了，隔着别人的眼睛。
 → reply
 【reply】
 @镜 6
@@ -10137,11 +10138,11 @@ archbishop：你不该在这里。
 @光 昏
 @声 sfx_cin_light_out
 narrator：光熄灭了。影子不转了。大主教往前一栽，昏了过去。
-narrator［archbishop_fate == dead］：他没有再醒来。
+narrator［a3_archbishop_fate == dead］：他没有再醒来。
 @立绘撤
 @镜 8
-narrator［NOT ash_exile］：人群边上，随军神父卡西安一直站在那里。
-narrator［ash_exile］：灰堆旁边，卡西安神父一直站在那里。
+narrator［NOT a3_ash_exile］：人群边上，随军神父卡西安一直站在那里。
+narrator［a3_ash_exile］：灰堆旁边，卡西安神父一直站在那里。
 @立绘 cassian pained 右
 narrator：光对大主教说话了。
 narrator：光从来没有对他说过一句。
@@ -10154,14 +10155,14 @@ cassian：它看见了。它只是，不跟我说话。
 @镜 9
 @乐 mus_stg_motif_valda 交叉
 @声 sfx_cin_shield_drum
-narrator［NOT ash_exile］：东北的丘陵上，爆出一声大笑。
-narrator［ash_exile］：很远很远的地方，传来一声大笑。
+narrator［NOT a3_ash_exile］：东北的丘陵上，爆出一声大笑。
+narrator［a3_ash_exile］：很远很远的地方，传来一声大笑。
 narrator：然后是兵器敲盾的声音。整条丘陵的魔族，一起在敲。
 @立绘 sasha smile 右
 narrator：萨莎站在最高的那块石头上，铁拳套往天上一举。她冲着光消失的方向，仰起了头。
 sasha：老太婆，你又看走眼了！
 效果 flag a3_sasha_retreat_line = true
-sasha［sasha_interest >= 1］：喂！灰烬的！下一回合，换个地方打！
+sasha［a3_sasha_interest >= 1］：喂！灰烬的！下一回合，换个地方打！
 narrator：红牙军撤了。黑红色的旗，没进北方的残雪里。
 @立绘撤
 → echo
@@ -10208,15 +10209,15 @@ yeyu［companion.yeyu.recruited］：是她的字。我记得她的字。
 narrator：荒原的灰暴，一天比一天密。
 narrator：骨原上夜里走动的骨头，比往年多了一倍。拾遗营撤回了界石线以内。
 narrator：南方送来的檄文上说：这是邪神的反扑。
-narrator［ash_exile］：檄文上还有一句：规格外者与亡灵为伍。它不再叫你异端。它叫你魔王的先驱。
-分支［eluen_violation_evidence IN (witnessed, recorded)］→ scar
+narrator［a3_ash_exile］：檄文上还有一句：规格外者与亡灵为伍。它不再叫你异端。它叫你魔王的先驱。
+分支［a3_eluen_violation IN (witnessed, recorded)］→ scar
 → close
 【scar】
 @镜 13
 效果 item evidence_e36
 narrator：苇桥的桥头，曙光圣柱落下的地方，地上留着一道烧黑的纹。光蚀的纹。
 narrator：它压着几个兽人战士倒下的位置。柱身上，也多了一道烧黑的裂纹。
-narrator［eluen_violation_evidence == recorded］：有人把这一页记了下来：时辰，地点，倒下的人的名字。
+narrator［a3_eluen_violation == recorded］：有人把这一页记了下来：时辰，地点，倒下的人的名字。
 → close
 【close】
 @乐 mus_cue_zoomout 出
@@ -10241,11 +10242,11 @@ narrator［eluen_violation_evidence == recorded］：有人把这一页记了下
 4. **变体**
 
 - 胜利与失败两个开场（第 9.1、9.2 节）：失败版从封门遗迹前的灰里开始，台词不变，萨莎的笑声"从很远的地方"传来，尾声多一句"魔王的先驱"。
-- `a3_pillar_response` 三种光柱熄灭方式与 `archbishop_fate` 四种状态各一句；`archbishop_fate == dead` 时他在光熄灭后没有再醒来（濒死者在这一刻断气，第 9.1 节第 6 步）。
+- `a3_pillar_response` 三种光柱熄灭方式与 `a3_archbishop_fate` 四种状态各一句；`a3_archbishop_fate == dead` 时他在光熄灭后没有再醒来（濒死者在这一刻断气，第 9.1 节第 6 步）。
 - 夜羽不在队时，第 5 步换成玩家的一行内心字幕；"那件事就是那一夜"同样用内心字幕。
-- `heroes_saw_power` 为 partial 或 full 时多一句旁白，玩家察觉"她隔着勇者的眼睛看过自己"（S04-C01）；hidden 时不加。
-- `sasha_interest >= 1` 时萨莎多喊一句"下一回合，换个地方打！"。
-- `eluen_violation_evidence`：none 时不播镜 13，不发 E36；witnessed 时播光蚀纹与裂纹并发 E36；recorded 时另加"有人把这一页记了下来"。
+- `a2_heroes_saw_power` 为 partial 或 full 时多一句旁白，玩家察觉"她隔着勇者的眼睛看过自己"（S04-C01）；hidden 时不加。
+- `a3_sasha_interest >= 1` 时萨莎多喊一句"下一回合，换个地方打！"。
+- `a3_eluen_violation`：none 时不播镜 13，不发 E36；witnessed 时播光蚀纹与裂纹并发 E36；recorded 时另加"有人把这一页记了下来"。
 
 #### cut_a3_map 封门遗迹第 23 周：大陆展开（She Is Afraid of You）
 
@@ -10253,13 +10254,13 @@ narrator［eluen_violation_evidence == recorded］：有人把这一页记了下
 | --- | --- |
 | 幕与拍 | 第三幕，拉远（第 2 场，本幕最后一场） |
 | 类型 | 写定场景两段：段一（第 23 周，灰烬之厅前）；段二（第 24 周，王国结局与大陆地图） |
-| 触发 | 段一：`a3_map_beat == ash`，请求方 `A3-M12` 第二阶段（第 23 周玩家第一次走到 `seal_ruins_depths` 灰烬之厅前时写入后请求；前置 `a3_ash_tells_sundering AND a3_eluen_speaks`）。段二：`a3_map_beat == map`，请求方 `A3-M13`（"三顶王冠"的谈判结束、内核写入 `lothar_ending` 之后） |
+| 触发 | 段一：`a3_map_beat == ash`，请求方 `A3-M12` 第二阶段（第 23 周玩家第一次走到 `seal_ruins_depths` 灰烬之厅前时写入后请求；前置 `a3_ash_tells_sundering AND a3_eluen_speaks`）。段二：`a3_map_beat == map`，请求方 `A3-M13`（"三顶王冠"的谈判结束、内核写入 `a3_lothar_ending` 之后） |
 | 时机 | 第 23 周与第 24 周，早春；必经 |
-| 出场 | 玩家；`ash` 阿什（`ash_relation` 不为 distant 时）；`yeyu` 夜羽；`eluen`（序章回声）；`philip` 腓力（残存弱国）；`drake` 冯·德雷克（帝国藩属）；`casimir_von_roth` 卡西米尔（残存弱国且 `empire_view >= 2`） |
-| 地点 | 段一：`seal_ruins_depths` 灰烬之厅前（位置 `ash_chamber`）；灰烬流亡时先过 `borderstone` 远景。段二：结局画面按 `lothar_ending`（加冕礼在 `orien_isle` 或 `wallenburg`；分治的长桌；冠石宫阳台），随后 `seal_ruins` 入口前（`outer_ring`）与大陆地图界面 |
+| 出场 | 玩家；`ash` 阿什（`a3_ash_relation` 不为 distant 时）；`yeyu` 夜羽；`eluen`（序章回声）；`philip` 腓力（残存弱国）；`drake` 冯·德雷克（帝国藩属）；`casimir_von_roth` 卡西米尔（残存弱国且 `a3_empire_view >= 2`） |
+| 地点 | 段一：`seal_ruins_depths` 灰烬之厅前（位置 `ash_chamber`）；灰烬流亡时先过 `borderstone` 远景。段二：结局画面按 `a3_lothar_ending`（加冕礼在 `orien_isle` 或 `wallenburg`；分治的长桌；冠石宫阳台），随后 `seal_ruins` 入口前（`outer_ring`）与大陆地图界面 |
 | 时长 | 段一约 3 分钟；段二约 5 分钟 |
 | 现有数据 | 新建。共 19 节点、61 行台词、5 个选项 |
-| 写入旗标 | `a3_ash_she_fears = true`；`a3_philip_crown_answer`（wear、refuse、yours）与 `philip_rel`；`a3_autonomy_charter = true`（残存弱国：腓力授灰烬边境永久自治特许）；`feature continent_map`；`door_hint.door_founding = true`（立国之门的门影）；`a3_map_beat`（ash_done、done）；效果 `act act4` |
+| 写入旗标 | `a3_ash_she_fears = true`；`a3_philip_crown_answer`（wear、refuse、yours）与 `trust.philip`；`a3_autonomy_charter = true`（残存弱国：腓力授灰烬边境永久自治特许）；`feature continent_map`；`door_hint.founding = true`（立国之门的门影）；`a3_map_beat`（ash_done、done）；效果 `act act4` |
 | 揭示 | 锚点 A00 第二层、A01 第一层回扣：M01-C08（"她不是嫌弃你。她是怕你。"，嫌恶是恐惧的伪装）。王国结局按 `act3_lothar_crisis.md` 第 4.8 节呈现；莫伊拉的预言"三顶王冠落在一张桌上"（`div_beat_a3_three_crowns`）在这里兑现为画面 |
 | 音乐与音效 | 段一入 `mus_cue_zoomout`，镜 4 静音回声，镜 4 末恢复，段末淡出（或延续到空厅版结束）。段二入 `mus_city_orien`；镜 11 与 `mus_cue_zoomout` 交叉；镜 14 与 `mus_stg_motif_door` 交叉；镜 15 淡出。专用音效 `sfx_cin_flashback`、`sfx_cin_map_unfold` |
 | 所需美术 | 立绘 `art_bust_ash`（neutral、smile）、`art_bust_yeyu`（sad）、`art_bust_philip`（thinking、smile、special 王冠太大：双手扶着王冠）、`art_bust_drake`（smile）；头像 `art_por_casimir_von_roth`；实景运镜（与灰烬防线共用 等）、实景运镜、`art_bg_cut_a3_map`（大陆地图展开）；特写 `art_prop_cut_three_crowns`（一张桌上的三顶王冠）、`art_prop_cut_founding_shadow`（立国之门的门影） |
@@ -10294,7 +10295,7 @@ narrator［eluen_violation_evidence == recorded］：有人把这一页记了下
 → seg_a
 【seg_a】
 @乐 mus_cue_zoomout 入
-分支［ash_exile］→ burning
+分支［a3_ash_exile］→ burning
 → hall
 【burning】
 @镜 1
@@ -10309,7 +10310,7 @@ narrator：人们在封门遗迹前的空地上搭起了帐篷。再往北，就
 @环境 amb_dg_ruins
 @光 昏
 @字幕 第二十三周。封门遗迹，灰烬之厅前。
-分支［ash_relation == distant］→ empty_hall
+分支［a3_ash_relation == distant］→ empty_hall
 narrator：阿什坐在灰里，像你第一次见到他的时候那样。
 @镜 3
 @立绘 ash neutral 右
@@ -10362,18 +10363,18 @@ yeyu［companion.yeyu.recruited］：他会等的。抄书的人，最会等。
 @光 午
 @字幕 第二十四周，早春。
 narrator：史官说过的那句话，你还记得：三顶王冠落在一张桌上。
-分支［lothar_ending == rump_kingdom］→ c_rump
-分支［lothar_ending == partitioned］→ c_part
+分支［a3_lothar_ending == rump_kingdom］→ c_rump
+分支［a3_lothar_ending == partitioned］→ c_part
 → c_vassal
 【c_rump】
-narrator［drake_fate == fled_to_empire］：加冕礼在冠石宫。
-narrator［NOT drake_fate == fled_to_empire］：加冕礼在瓦伦堡。冠石宫在别人手里，王冠是从王都带出来的那一顶。
+narrator［a3_drake_fate == fled_to_empire］：加冕礼在冠石宫。
+narrator［NOT a3_drake_fate == fled_to_empire］：加冕礼在瓦伦堡。冠石宫在别人手里，王冠是从王都带出来的那一顶。
 @立绘 philip thinking 右
 narrator：腓力站在你面前，王冠捧在手里，没有戴。
 philip：你说，我该不该戴？
-选 wear「戴上。」→ r_wear｜效果 flag a3_philip_crown_answer = wear；add philip_rel 1
+选 wear「戴上。」→ r_wear｜效果 flag a3_philip_crown_answer = wear；add trust.philip 15
 选 refuse「不戴，也能当王。」→ r_refuse｜效果 flag a3_philip_crown_answer = refuse
-选 yours「这是你自己的事。」→ r_yours｜效果 flag a3_philip_crown_answer = yours；add philip_rel 1
+选 yours「这是你自己的事。」→ r_yours｜效果 flag a3_philip_crown_answer = yours；add trust.philip 15
 【r_wear】
 @立绘 philip smile 右
 philip：好。（王冠还是有点大）我戴着。重的话，我扶着。
@@ -10390,14 +10391,14 @@ philip：我自己的事。（他咬了一下指甲，又停下了）……好�
 philip：灰烬边境，永久自治。这是我能给你的，最大的东西。
 @立绘撤
 narrator：帝国的使者在议和的条约上签了字。东境的一角，从洛萨的地图上剪了下去。
-casimir_von_roth［empire_view >= 2］：阁下的名字，值得记住。
+casimir_von_roth［a3_empire_view >= 2］：阁下的名字，值得记住。
 → wb
 【c_part】
 @镜 7
 narrator：那张桌子很长。桌上摆着三顶王冠。
 narrator：一顶是帝国的总督带来的。一顶是大主教派人送来的。一顶是用北境的铁临时打的，布丽吉特没有来，只派人把它放在了桌上。
 narrator：帝国拿走了东境和王都。南方，"守信摄政"占着光径以南。北方，布丽吉特守着北境，谁的王冠也不戴。
-narrator［philip_fate IN (puppet, captive)］：腓力被留在冠石宫里。帝国给了他一间朝南的屋子。
+narrator［a3_philip_fate IN (puppet, captive)］：腓力被留在冠石宫里。帝国给了他一间朝南的屋子。
 narrator：桌边没有给你留位子。
 → wb
 【c_vassal】
@@ -10407,19 +10408,19 @@ narrator：冠石宫的阳台上，冯·德雷克穿上了帝国总督的礼服�
 drake：洛萨王国，自今日起，为格兰提亚帝国西部行省。
 drake：从大局看，这是死人最少的一条路。
 drake：灰烬边境的那位，拒绝效忠。自今日起，以叛逆论。
-narrator［philip_fate == puppet］：阳台后面，腓力站在帘子后面，咬着指甲。
+narrator［a3_philip_fate == puppet］：阳台后面，腓力站在帘子后面，咬着指甲。
 @立绘撤
 → wb
 【wb】
 @镜 9
-narrator［wb_status == ally］：瓦伦堡的城主派人来问：灰烬边境，要不要一起过日子。
-narrator［wb_status == independent_city］：瓦伦堡关上了城门，自己管自己。
-narrator［wb_status == imperial］：瓦伦堡的城楼上，换了帝国的旗。
-narrator［wb_status == church］：瓦伦堡的钟楼上，挂起了南方教会的白幡。
-narrator［wb_status == ruined］：瓦伦堡已经没有城楼了。
-narrator［north_status == allied_with_player］：北境来信只有一句：路通了，来喝酒。
-narrator［lothar_ending IN (partitioned, imperial_vassal)］：你的领地，没有人封，也没有人管。三面都是新邻居。
-分支［ash_exile］→ exile
+narrator［a3_wb_status == ally］：瓦伦堡的城主派人来问：灰烬边境，要不要一起过日子。
+narrator［a3_wb_status == independent_city］：瓦伦堡关上了城门，自己管自己。
+narrator［a3_wb_status == imperial］：瓦伦堡的城楼上，换了帝国的旗。
+narrator［a3_wb_status == church］：瓦伦堡的钟楼上，挂起了南方教会的白幡。
+narrator［a3_wb_status == ruined］：瓦伦堡已经没有城楼了。
+narrator［a3_north_status == allied_with_player］：北境来信只有一句：路通了，来喝酒。
+narrator［a3_lothar_ending IN (partitioned, imperial_vassal)］：你的领地，没有人封，也没有人管。三面都是新邻居。
+分支［a3_ash_exile］→ exile
 → rise
 【exile】
 @镜 10
@@ -10456,7 +10457,7 @@ narrator：最远的地方，一圈灰白色的雾，把这一切围在里面。
 @光 门光
 narrator：千门回廊的尽头，多了一扇门的影子。
 narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
-效果 flag door_hint.door_founding = true
+效果 flag door_hint.founding = true
 @镜 15
 @淡 黑 2
 @乐 mus_stg_motif_door 出
@@ -10473,31 +10474,31 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `fear_what` | 怕什么？ | `a_fear` | 无（台词进日志） | `ash_relation` 不为 distant |
+| `fear_what` | 怕什么？ | `a_fear` | 无（台词进日志） | `a3_ash_relation` 不为 distant |
 | `a_silent` | （沉默） | `echoes` | 无 | 同上 |
-| `wear` | 戴上。 | `r_wear` | `a3_philip_crown_answer = wear`；`philip_rel` +1（腓力的自信） | `lothar_ending == rump_kingdom` |
+| `wear` | 戴上。 | `r_wear` | `a3_philip_crown_answer = wear`；`trust.philip` +15（腓力的自信） | `a3_lothar_ending == rump_kingdom` |
 | `refuse` | 不戴，也能当王。 | `r_refuse` | `a3_philip_crown_answer = refuse`；第四幕腓力以"不戴冠的王"出席会盟 | 同上 |
-| `yours` | 这是你自己的事。 | `r_yours` | `a3_philip_crown_answer = yours`；`philip_rel` +1；腓力"学会授权"的弧线提前一步（第四幕他主动召开议会的前置之一） | 同上 |
+| `yours` | 这是你自己的事。 | `r_yours` | `a3_philip_crown_answer = yours`；`trust.philip` +15；腓力"学会授权"的弧线提前一步（第四幕他主动召开议会的前置之一） | 同上 |
 
-玩家的回答只影响腓力的自信与 `philip_rel`，不提供"玩家称王"的分支（`act3_lothar_crisis.md` 第 4.8 节）。
+玩家的回答只影响腓力的自信与 `trust.philip`，不提供"玩家称王"的分支（`act3_lothar_crisis.md` 第 4.8 节）。
 
 4. **变体**
 
-- `ash_relation == distant`：段一走空厅版本，"她是怕你"这一层回扣推迟到第四幕，由别的禁忌之知者说出（第 9.3 节）；A00、A01 的回声不播。
-- `ash_exile`：段一先过燃烧的边石镇（第 9.2 节"镜头的起点是燃烧的边石镇"）；段二在结局画面后加流亡营地一镜。
-- `lothar_ending` 三种结局画面：残存弱国（加冕，地点按 `drake_fate` 在冠石宫或瓦伦堡，腓力问"该不该戴"，授永久自治特许，东境一角割给帝国）；被瓜分（一张桌上三顶王冠，桌边没有玩家的位子）；帝国藩属（冯·德雷克任总督，宣布玩家为叛逆）。灰烬流亡可与任一结局叠加。
-- `wb_status` 五种与 `north_status == allied_with_player` 各一句。
-- 段二的地图与门影在所有分支都播；立国之门本身在第四幕开启，门影只写 `door_hint.door_founding`（千门系统按提示旗标显出门缝，不显门相）。
+- `a3_ash_relation == distant`：段一走空厅版本，"她是怕你"这一层回扣推迟到第四幕，由别的禁忌之知者说出（第 9.3 节）；A00、A01 的回声不播。
+- `a3_ash_exile`：段一先过燃烧的边石镇（第 9.2 节"镜头的起点是燃烧的边石镇"）；段二在结局画面后加流亡营地一镜。
+- `a3_lothar_ending` 三种结局画面：残存弱国（加冕，地点按 `a3_drake_fate` 在冠石宫或瓦伦堡，腓力问"该不该戴"，授永久自治特许，东境一角割给帝国）；被瓜分（一张桌上三顶王冠，桌边没有玩家的位子）；帝国藩属（冯·德雷克任总督，宣布玩家为叛逆）。灰烬流亡可与任一结局叠加。
+- `a3_wb_status` 五种与 `a3_north_status == allied_with_player` 各一句。
+- 段二的地图与门影在所有分支都播；立国之门本身在第四幕开启，门影只写 `door_hint.founding`（千门系统按提示旗标显出门缝，不显门相）。
 
 ### 7.3 本节新旗标
 
-台账第 0.4 节与 `act3_lothar_crisis.md` 第 10.2 节已有的变量（`ash_relation`、`reedpond_outcome`、`hero_state_*`、`hero_rel_*`、`philip_fate`、`drake_fate`、`archbishop_fate`、`lothar_ending`、`ash_exile`、`church_verdict_3`、`eluen_violation_evidence`、`lu_lowered_sword`、`blank_era_fragments`、`cult_keys`、`yeyu_letters` 等）与千门系统已定名的 `a3_vow_kept_reed_bridge`、`door_hint.<门 ID>` 不在此表。
+台账第 0.4 节与 `act3_lothar_crisis.md` 第 10.2 节已有的变量（`a3_ash_relation`、`a3_reedpond_outcome`、`hero_state_*`、`hero_rel_*`、`a3_philip_fate`、`a3_drake_fate`、`a3_archbishop_fate`、`a3_lothar_ending`、`a3_ash_exile`、`a3_church_verdict`、`a3_eluen_violation`、`a3_luchen_lowered_sword`、`a3_blank_era_fragments`、`cult_keys`、`yeyu_letters` 等）与千门系统已定名的 `a3_vow_kept_reed_bridge`、`door_hint.<门 ID>` 不在此表。
 
 | 旗标 | 类型 | 取值 | 含义 | 写入过场 |
 | --- | --- | --- | --- | --- |
 | `a3_domain_beat` | 枚举 | arrival、flag、arrival_done、done | `cut_a3_domain` 的段落旗标 | 请求方 `A3-M01`、剧本 `act3_bone_field`；`cut_a3_domain` |
 | `territory_address` | 枚举 | name、lord、kneel | 领地对玩家的称呼与气氛（U3-5） | `cut_a3_domain` |
-| `territory_seat` | 枚举 | borderstone、old_outpost | 领主府选址 | `cut_a3_domain` |
+| `a3_seat` | 枚举 | borderstone、old_outpost | 领主府选址 | `cut_a3_domain` |
 | `a3_thousand_gate` | 布尔 | true | 罗恩在骨原举旗（现有数据已在用，在此登记） | `cut_a3_domain` |
 | `push_door.<门 ID>` | 布尔 | true | 过场里的推门请求；千门系统在过场结束时按开门结算处理并清除 | `cut_a3_domain`、`cut_a3_warning`、`cut_a3_ashen_line` |
 | `a3_crest_reply` | 枚举 | draw、ask、yeyu | 觐见时对"一根骨头？"的回应 | `cut_a3_audience` |
@@ -10524,14 +10525,14 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | `a3_crown_beat` | 枚举 | gate、deathbed、deathbed_mid、after_bed、morning、done | `cut_a3_crown_falls` 的段落旗标 | 请求方 `A3-M10`、剧本 `act3_sunrise_gate`；`cut_a3_crown_falls` |
 | `a3_sunrise_route` | 枚举 | in_capital、waystone、messenger、none | 朝阳门之夜玩家能否到场及途径 | `A3-M10` 写入 |
 | `a3_sunrise_fought` | 布尔 | true | 玩家参加了朝阳门之战 | `cut_a3_crown_falls` |
-| `a3_sigrid_witness` | 布尔 | true | 御医愿意作证并回到床边（`A3-S03`） | `A3-S03` 写入 |
+| `a3_physician_testimony` | 布尔 | true | 御医愿意作证并回到床边（`A3-S03`） | `A3-S03` 写入 |
 | `a3_king_bedside` | 布尔 | true | 玩家到了老王床边 | 剧本 `act3_sunrise_gate`、`cut_a3_crown_falls` |
 | `a3_king_entrusted` | 布尔 | true | 老王把"别让北境的孩子再去当勇者的垫脚石"托付给玩家；离手结局后日谈引用 | `cut_a3_crown_falls` |
 | `a3_king_died` | 布尔 | true | 老王驾崩 | `cut_a3_crown_falls` |
 | `a3_ashline_beat` | 枚举 | eve、battle、duel、duel_end、pillar、end、fallen、done | `cut_a3_ashen_line` 的段落旗标 | 请求方 `A3-M11`、剧本 `act3_ash_line`；`cut_a3_ashen_line` |
 | `a3_ashline_route` | 枚举 | rout、persuade、bloodless、fallen | 灰烬防线的收场路线 | 剧本 `act3_ash_line` 写入；`cut_a3_ashen_line`、`cut_a3_eluen_speaks` 读 |
 | `a3_second_front_general` | 枚举 | ursak、konrad、lucas、ron、shiya | 第二战线的将领 | `cut_a3_ashen_line` |
-| `general.<人物 ID>` | 布尔 | true | 该将领在可用名单里（`act3_lothar_crisis.md` 第 10.2 节 `generals` 集合的布尔镜像，供条件表达式使用） | 领地与战争系统 |
+| `general.<人物 ID>` | 布尔 | true | 该将领在可用名单里（`act3_lothar_crisis.md` 第 10.2 节 `war.generals` 集合的布尔镜像，供条件表达式使用） | 领地与战争系统 |
 | `a3_lu_duel_choice` | 枚举 | full、holdback | 与陆辰对决时是否留手 | `cut_a3_ashen_line` |
 | `a3_marcus_crossed` | 布尔 | true | 马库斯在净化之光里越过战线（战争系统据此结算他的生死） | `cut_a3_ashen_line` |
 | `a3_sasha_threw` | 布尔 | true | 萨莎把石头掷进光柱 | `cut_a3_ashen_line` |
@@ -10540,7 +10541,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | `a3_supply_cut` | 布尔 | true | 不杀而胜：断了圣战军的粮 | 剧本 `act3_ash_line` 写入 |
 | `a3_archbishop_seized` | 布尔 | true | 不杀而胜：夜擒大主教 | 剧本 `act3_ash_line` 写入 |
 | `a3_oracle_public` | 布尔 | true | 玩家选择公开赛琳寄来的神谕原文（`A3-S19` 的"公开"） | `A3-S19` 写入 |
-| `a3_jorg_spared` | 布尔 | true | 玩家放约尔格去边石镇看妹妹（U3-4） | U3-4 事件写入 |
+| `a3_jorg_home_visit` | 布尔 | true | 玩家放约尔格去边石镇看妹妹（U3-4） | U3-4 事件写入 |
 | `a3_bodric_wall` | 布尔 | true | 桥头段升级为灰石垒（`A3-S20`） | `A3-S20` 写入 |
 | `a3_ron_confessed` | 布尔 | true | 罗恩已坦白当年逃跑的事（第 7.2 节的夜谈） | 台词目录的夜谈写入 |
 | `a3_eluen_reply` | 枚举 | why、defy、words、silent | 对借大主教之口的光的回应 | `cut_a3_eluen_speaks` |
@@ -10672,15 +10673,15 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | `docs/30_story/arcs/act3_lothar_crisis.md` | 第 7.4 节战役 4"誓光之门"行 | "玩家守住苇桥（任一胜利路线），即满足……的钥，誓光之门可开（终局插演中由玩家推开）" | 同上；`cut_a3_ashen_line` 的 `vow` 节点 |
 | `docs/30_story/reveal_ledger.md` | 第 7 节表 E08 行"取得条件"列 | "`a3_defaced_stele_found` 之后，第五幕进入凿碑台时拓印（第三幕只能远望）" | `act3_lothar_crisis.md` 第 2.2 节：千门都核心本幕只能远望；现有数据在第三幕发放 E08 与此冲突 |
 | `docs/40_design/systems/thousand_doors.md` | 第 3.4 节第 2 条之后加一条 | "过场里的推门以请求旗标 `push_door.<门 ID> = true` 提交；千门系统把过场结束的那一刻（含战斗插演）视为安全时刻，按 3.5 节结算开门并清除该键；开门演出在过场之后接着播放" | 本节三扇门（千军、残响、誓光）都在过场里给出"推开它／现在不推" |
-| `docs/40_design/content/catalog_warfare_strategy.md` | 第三幕战场剧本 | 新增剧本 `act3_sunrise_gate`（朝阳门之夜，小队战，目标与胜负按 `act3_lothar_crisis.md` 第 7.4 节战役 3；抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`；结束时写 `philip_fate`、`a3_crown_beat = morning` 并请求）；`act3_bone_field` 在左翼缺口事件写 `a3_domain_beat = flag` 并请求 `cut_a3_domain`；`act3_ash_line` 按本节 `cut_a3_ashen_line` 的触发栏写段落旗标、`a3_ashline_route`、`a3_pillar_breach`、`a3_supply_cut`、`a3_archbishop_seized` 并在对应时刻请求 | 过场与战场剧本的接口；`data/world/atlas_maps.json` 的 `sunrise_gate_battle` 目前没有剧本字段 |
-| `docs/40_design/content/catalog_quests_acts1_3.md` | `A3-M01`、`A3-M07`、`A3-M08`、`A3-M09`、`A3-M10`、`A3-M11`、`A3-M12`、`A3-M13`、`A3-S03`、`A3-S19`、`A3-S20`、U3-4 | 各请求方写入本节"新旗标"表里标明由任务写入的键（`a3_reedpond_present`、`a3_reedpond_evacuated`、`a3_archive_reached`、`a3_static_ash_night`、`a3_sunrise_route`、`a3_sigrid_witness`、`a3_oracle_public`、`a3_bodric_wall`、`a3_jorg_spared` 与各段落旗标）后请求对应过场；新增遭遇 `a3_reedpond_inquisition`（审判庭执行官约二十名与贝尔托德·克兰，精英阶，夜、芦苇沼，目标为击退而非全歼） | 过场的请求方与读取的旗标 |
+| `docs/40_design/content/catalog_warfare_strategy.md` | 第三幕战场剧本 | 新增剧本 `act3_sunrise_gate`（朝阳门之夜，小队战，目标与胜负按 `act3_lothar_crisis.md` 第 7.4 节战役 3；抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`；结束时写 `a3_philip_fate`、`a3_crown_beat = morning` 并请求）；`act3_bone_field` 在左翼缺口事件写 `a3_domain_beat = flag` 并请求 `cut_a3_domain`；`act3_ash_line` 按本节 `cut_a3_ashen_line` 的触发栏写段落旗标、`a3_ashline_route`、`a3_pillar_breach`、`a3_supply_cut`、`a3_archbishop_seized` 并在对应时刻请求 | 过场与战场剧本的接口；`data/world/atlas_maps.json` 的 `sunrise_gate_battle` 目前没有剧本字段 |
+| `docs/40_design/content/catalog_quests_acts1_3.md` | `A3-M01`、`A3-M07`、`A3-M08`、`A3-M09`、`A3-M10`、`A3-M11`、`A3-M12`、`A3-M13`、`A3-S03`、`A3-S19`、`A3-S20`、U3-4 | 各请求方写入本节"新旗标"表里标明由任务写入的键（`a3_reedpond_present`、`a3_reedpond_evacuated`、`a3_archive_reached`、`a3_static_ash_night`、`a3_sunrise_route`、`a3_physician_testimony`、`a3_oracle_public`、`a3_bodric_wall`、`a3_jorg_home_visit` 与各段落旗标）后请求对应过场；新增遭遇 `a3_reedpond_inquisition`（审判庭执行官约二十名与贝尔托德·克兰，精英阶，夜、芦苇沼，目标为击退而非全歼） | 过场的请求方与读取的旗标 |
 | `docs/40_design/content/catalog_dialogue_lines.md` | 罗恩的夜谈 | 罗恩坦白当年逃跑的那段夜谈结束时写 `a3_ron_confessed = true` | `cut_a3_ashen_line` 战前夜引用 |
 | `docs/40_design/world/map_briefs.md` | 第三幕相关地图的位置清单 | 登记位置 ID：`borderstone` 的 `south_gate`、`guild`、`plaza`；`bonefield_battle` 的 `north_slope`；`orien_isle` 的 `crownstone_palace`、`crownstone_gallery`、`crownstone_balcony`；`orien_banks` 的 `dawnlight_cathedral`、`chancellor_house`、`sunrise_gate`；`reedpond` 的 `boardwalk_square`；`thousand_gates_archive` 的 `reading_hall`、`archive_roof`；`seal_ruins` 的 `outer_ring`；`seal_ruins_depths` 的 `ash_chamber`；`reedbridge_battle` 的 `bridgehead`、`stone_bridge`、`ne_hills` | 过场的 `teleport` 与地点栏引用 |
 | `docs/40_design/ux_and_onboarding.md` | 功能解锁表 | 新增 `feature.continent_map`：大陆地图界面，由 `cut_a3_map` 段二解锁 | 第三幕拉远"大陆地图展开（界面）" |
 | `data/scenes/speakers.json` | 说话者表 | 新增：`oswald` 老王奥斯瓦尔德四世；`philip` 王太子腓力；`drake` 宰相冯·德雷克；`ernst` 司礼官埃森巴赫；`parvi_tinring` 帕尔维；`casimir_von_roth` 卡西米尔·冯·罗特；`olive` 宫廷史官奥丽芙；`joachim` 约阿希姆；`berthold_klan` 审判官贝尔托德；`ulrich_von_eisen` 乌尔里希；`jorg` 约尔格；`hanna` 汉娜；`ursak` 乌尔萨克；`konrad` 康拉德；`lucas` 卢卡斯；`eluen`、`valda`（`kind` 为 divine，用于序章回声）；`janu`（显示名"门口的女人"，`revealedName` 雅努，`revealWhen` `a6_name_spoken`）。`archbishop` 保留为大主教塞维林·莫兰德的说话者，与人物 ID `severin` 对应 | 本节的台词说话者 |
 | `data/scenes/evidence.json` | `E01` | 第六幕之前道具栏的说明只显示阿什在第三幕说过的话："千门都，一百万人，没来得及走。她们害怕了。"；`presentText` 只在第六幕呈证时显示 | 现有 `presentText` 写着"光与剑""五位司掌者事先串联"，第三幕玩家不该从道具说明里读到（台账第 8.4 节） |
 | `data/party/companions.json` | `yeyu` 的 `title` | "从者：门之信使"；称呼另由 `yeyu_address` 决定 | 第三幕起她改口叫"开门的" |
-| `data/doors/doors.json` | `door_vocation_paladin` 的钥 | 历钥键名用 `a3_vow_kept_reed_bridge`（`thousand_doors.md` C91） | 现有键 `a3_danger_door_vow` 同时被现有场景当作"不开危险之门"的誓言写入，会误开誓光之门；本节只写新键 `a3_danger_stance` 与 `a3_vow_kept_reed_bridge` |
+| `data/doors/doors.json` | `door_vocation_paladin` 的钥 | 历钥键名用 `a3_vow_kept_reed_bridge`（`thousand_doors.md` C91） | 现有数据的阿什警告场景把"不开危险之门"的誓言也写成这个键，会误开誓光之门；本节只写 `a3_danger_stance`（警告）与 `a3_vow_kept_reed_bridge`（守住苇桥） |
 
 ## 8. 第四幕过场
 
@@ -10693,7 +10694,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 
 本幕沿用第三幕一节的"段落"写法：同一个 `SceneDef` 被请求方在不同时刻请求多次，入口节点按段落旗标 `a4_<slug>_beat` 分支；
 请求方在请求前写入段落旗标，过场在末节点把它写成 `<段>_done` 或 `done`（`scene.<cut_id>.seen` 在第一次播完时就写入，条件一律读段落旗标）。
-推门沿用 `push_door.<门 ID> = true` 的请求写法（第三幕一节请求回写的约定，键用门目录代号，例 `push_door.door_founding`），玩家始终可以选"现在不推"；门的状态与是否已开按注册表用门的数据 ID 读（例 `door_state.founding`、`door.beyond_door`）。
+推门沿用 `push_door.<门 ID> = true` 的请求写法（第三幕一节请求回写的约定，键用门的数据 ID，例 `push_door.founding`），玩家始终可以选"现在不推"；门的状态与是否已开按注册表用门的数据 ID 读（例 `door_state.founding`、`door.beyond_door`）。
 
 **说话者**：`narrator`、`player`（只在夜羽不在场时作内心字幕）、`letter`（信、诏书、请柬）、神的 ID（`eluen`、`valda`、`merca`、`sylvie`、`moira`；
 `janu` 只在梦里，界面名"门口的女人"），其余为人物目录 ID。新出场的说话者（`guild_registrar`、`league_clerk`、`bobby_lind`、`deacon`、`aurelius_vent`、
@@ -10744,7 +10745,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | 地点 | 段一：`borderstone` 镇公所（位置 `town_hall`）；`a3_ash_exile` 时为 `seal_ruins` 遗迹前的帐篷（`outer_ring`）。段二：`borderstone` 公会分部（`guild`）。段三、段四：`seal_ruins` 遗迹前广场（`outer_ring`）；段四插入镜头在 `divine_court` |
 | 时长 | 段一约 3 分钟；段二约 2.5 分钟；段三约 4 分钟；段四约 2.5 分钟 |
 | 现有数据 | `act4_intro`（1 节点、2 行，带 `add seal_looseness 10`）的字幕并入段一。导入时不带封印松动 +10：幕切换不是封印松动的写定来源（与第三幕一节对 `act3_intro` 的处理相同）。导入后共 22 节点、83 行台词、9 个选项、1 处自由输入 |
-| 写入旗标 | `a4_claim`（claimed、awaiting、silent）；`a4_f_king`（accepted、protested）；`a4_oath_reader`（player、elder）；`push_door.door_founding`（推门时）；`a4_nation_name`（文本）；`territory_autonomy` 加 2（请长者念誓时）；`a4_founding_beat`（claim_done、registry_done、oath_done、done）。`a4_nation_founded` 由立国之门的开门结算写入，不由本过场写 |
+| 写入旗标 | `a4_claim`（claimed、awaiting、silent）；`a4_f_king`（accepted、protested）；`a4_oath_reader`（player、elder）；`push_door.founding`（推门时）；`a4_nation_name`（文本）；`territory_autonomy` 加 2（请长者念誓时）；`a4_founding_beat`（claim_done、registry_done、oath_done、done）。`a4_nation_founded` 由立国之门的开门结算写入，不由本过场写 |
 | 揭示 | 无台账线索。界石誓最后一句是第六幕"离手"的伏笔（分幕 4.2）。"凡人不信"的喜剧：F 级国主、"账上没有这个国" |
 | 音乐与音效 | 段一入 `mus_town_borderstone_day`，镜 3 淡出。段二入 `mus_cue_comedy`，段末淡出。段三入环境声 `amb_ash_rim`，镜 6 入 `mus_stg_motif_door`，段末淡出。段四入 `mus_nation_capital_day`（本曲第一次出现），镜 11 与 `mus_pro_antechamber` 交叉，镜 13 交叉回 `mus_nation_capital_day` 并延续到游戏。专用音效 `sfx_cin_exam_crystal`、`sfx_cin_stone_set`、`sfx_door_state_ready`（第三幕已登记，沿用） |
 | 所需美术 | 立绘 `art_bust_ron`（neutral、surprised、smile）、`art_bust_yeyu`（neutral、special 嘴硬脸红）、`art_bust_bron`（neutral、thinking）、`art_bust_merca`（thinking）、`art_bust_moira`（surprised）、`art_bust_eluen`（neutral）；头像 `art_por_tavi`、`art_por_razg`、`art_por_guild_registrar`、`art_por_league_clerk`；特写 `art_prop_cut_f_king_card`（底卡上的"F 级，Lv1，无职能"与新添的"国主"）、`art_prop_cut_home_stones`（垒起的故乡石）、`art_prop_cut_people_register`（人簿第一页）；实景运镜（凿痕满布的门 等） |
@@ -10916,7 +10917,7 @@ narrator：……照样立着。
 narrator：千门回廊里，那道锁了一冬的门影，亮了。
 narrator：门上没有花纹，只有很多很多凿痕。像是很多只手，一人凿了一下。
 narrator：立国之门。它在等你推。
-选 push「推开它」→ pushed｜效果 flag push_door.door_founding = true
+选 push「推开它」→ pushed｜效果 flag push_door.founding = true
 选 wait「现在不推。」→ wait_door
 【pushed】
 narrator：门开了一道缝。缝里的光，是早上的光。
@@ -11024,8 +11025,8 @@ narrator：遗迹前，罗恩在石堆顶上插了一面新旗。旗挂歪了。
 | 出场 | 玩家；`yeyu` 夜羽（在场时）；`ron` 罗恩（段一）；`herald` 帝国军使；`emperor` 剑帝雷欧哈特三世；`night_queen` 夜后维丝佩拉；`sasha` 萨莎；`elwin` 长老艾尔温；`hart` 金冠哈特；`bobby_lind` 波比·林德 |
 | 地点 | 段一：国都（`borderstone` 镇公所 `town_hall`；流亡时 `seal_ruins` 的 `outer_ring`）。段二：`crownless_hall` 长桌（位置 `long_table`）与宫外回廊（`moon_gallery`） |
 | 时长 | 段一约 1 分钟；段二约 14 分钟（含全部分支约 18 分钟，不含即兴） |
-| 现有数据 | `a4_feast`（4 节点、11 行）扩写为段二。导入时修正：`hall` 节点的两个选项（接下、让三招）换成一剑问的五种回应，`emperor_respect` 写作 `npc.emperor.respect`；`hart` 节点并入第三轮，`hart_state` 的 rival、pending 两个写入删去（注册表第 11 节：第四幕值集只有 hostile、routed、reconciled、allied，由经济战结算）；`elwin` 节点只保留第四轮那句锚点，作证内容与 `a4_elwin_testimony`、`a4_sanctuary_found`、`evidence_e03` 移到"森林的秘密"`A4-D03.d`，军营祭坛的旁白与 `evidence_e23` 移到 `cut_a4_valda_offer`；`scholars` 节点（`a4_star_records`、`a4_aiden_reads_charter`、E14、E20、拓片）移到 `A4-S03`、`A4-S04`。导入后共 35 节点、115 行台词、27 个选项、2 处即兴 |
-| 写入旗标 | `a4_feast_answer`（parry、dodge、trust、fearless、counter、feign）与 `npc.emperor.respect`；`a4_emperor_duel`；`a4_sasha_stance`（nemesis、duel_pledge、mutual_respect）；`a4_feast_emperor_ask`（refuse_road、ally、his_call）与 `stance.grantia`；`a4_vespera_sincere`、`trust.night_queen`、`stance.night`；`a4_hart_offer`（accepted、refused、mortal_pact）、`a4_hart_clause_read`；`a4_elwin_invited`、`trust.elwin`；`a4_night_pact`；`a4_feast_of_strong = true`；`a4_feast_beat`（invited、done） |
+| 现有数据 | `a4_feast`（4 节点、11 行）扩写为段二。导入时修正：`hall` 节点的两个选项（接下、让三招）换成一剑问的五种回应，`npc.emperor.respect` 写作 `npc.emperor.respect`；`hart` 节点并入第三轮，`a4_hart_state` 的 rival、pending 两个写入删去（注册表第 11 节：第四幕值集只有 hostile、routed、reconciled、allied，由经济战结算）；`elwin` 节点只保留第四轮那句锚点，作证内容与 `a4_elwin_testimony`、`a4_sanctuary_found`、`evidence_e03` 移到"森林的秘密"`A4-D03.d`，军营祭坛的旁白与 `evidence_e23` 移到 `cut_a4_valda_offer`；`scholars` 节点（`a4_star_records`、`a4_aiden_reads_charter`、E14、E20、拓片）移到 `A4-S03`、`A4-S04`。导入后共 35 节点、115 行台词、27 个选项、2 处即兴 |
+| 写入旗标 | `a4_feast_answer`（parry、dodge、trust、fearless、counter、feign）与 `npc.emperor.respect`；`a4_emperor_duel`；`a4_sasha_stance`（nemesis、duel_pledge、mutual_respect）；`a4_feast_emperor_ask`（refuse_road、ally、his_call）与 `stance.grantia`；`a4_night_queen_sincere`、`trust.night_queen`、`stance.night`；`a4_hart_offer`（accepted、refused、mortal_pact）、`a4_hart_clause_read`；`a4_elwin_invited`、`trust.elwin`；`a4_night_pact`；`a4_feast_of_strong = true`；`a4_feast_beat`（invited、done） |
 | 揭示 | M07-C03（教会版与夜境版魔王史的矛盾，解锁条件 `a4_feast_of_strong`）；8.6 节"瓦尔妲的魔王设计露出一角"的第一块拼图（夜后之问，不置 `lie_exposed.valda`）；MIS-23 的种子（剑帝"天花板上的钉子"）；艾尔温的门形耳坠（看得见的线索，不解释） |
 | 音乐与音效 | 段一入 `mus_nation_capital_day`，段末淡出。段二入 `mus_pro_interview`（序章面试的室内乐再出现：玩家又一次被掂量），镜 6 与 `mus_stg_motif_valda` 交叉，镜 10 交叉回 `mus_pro_interview`，镜 14 淡出并入 `mus_stg_motif_door`，镜 15 换 `mus_cue_comedy`，回廊段换环境声 `amb_city_night`。环境 `amb_int_palace`。专用音效 `sfx_cin_crown_hook`、`sfx_cin_tile_crack`、`sfx_door_state_ready`（沿用） |
 | 所需美术 | 立绘 `art_bust_emperor`（neutral、smile、surprised、special 大笑收剑）、`art_bust_night_queen`（neutral、thinking、special 合上手记）、`art_bust_elwin`（neutral、surprised（睁眼））、`art_bust_hart`（smile、thinking、special 转笔）、`art_bust_sasha`（special）、`art_bust_yeyu`（neutral、special）、`art_bust_ron`（surprised）；头像 `art_por_bobby_lind`；特写 `art_prop_cut_invitation`（只有一行字的请柬）、`art_prop_cut_crown_hook`（两帧：铁钩上的皇冠；挂上去的 F 座签）、`art_prop_cut_hart_contract`（第十九条）；实景运镜（长桌座次俯视）；特殊动作 `art_chr_emperor_slash`（慢拔剑与一剑）；特效 `art_vfx_cut_tile_crack` |
@@ -11227,8 +11228,8 @@ emperor：这句话，我听了五十年。第一次从外人嘴里听到。
 narrator：夜后合上那本手记。她说话很慢，像是怕惊动什么。
 @立绘 night_queen neutral 左
 night_queen：每一代魔王死后，夜境都要死很多人。勇者们从来不提这件事。你呢？
-选 remember「我会记得。我不会拿"讨伐夜境"当理由打仗。」→ n_true｜效果 flag a4_vespera_sincere = true；add trust.night_queen 15；add stance.night 10
-选 count「死的人，我会让人记下来。一个一个。」→ n_true｜效果 flag a4_vespera_sincere = true；add trust.night_queen 10；add stance.night 8
+选 remember「我会记得。我不会拿"讨伐夜境"当理由打仗。」→ n_true｜效果 flag a4_night_queen_sincere = true；add trust.night_queen 15；add stance.night 10
+选 count「死的人，我会让人记下来。一个一个。」→ n_true｜效果 flag a4_night_queen_sincere = true；add trust.night_queen 10；add stance.night 8
 选 demon「魔王就是魔王。」→ n_false｜效果 add stance.night -10
 【n_true】
 即兴 night_queen｜目的：夜后掂量这句回答是不是真心；她只问不答｜情境：强者之宴第三轮，地图上夜境那一块被剑帝的酒杯压着｜含义键：我们记得、从没有人替我们数过、族人的存续｜禁区：不提《堕勇手记》的内容；不说魔王是什么、从哪里来；不说瓦尔妲的坏话；不说澱
@@ -11317,7 +11318,7 @@ narrator：然后他回到长桌，拿起末座那张写着 F 的座签，顺手
 emperor：这东西以后挂在这里。等哪天公会肯改了，再来取。
 yeyu［companion.yeyu.state == active］：……挂得比他的冠还高。
 效果 flag a4_feast_of_strong = true
-分支［a4_vespera_sincere］→ moon
+分支［a4_night_queen_sincere］→ moon
 → end
 【moon】
 @镜 16
@@ -11363,7 +11364,7 @@ night_queen：谨慎。……我们记得这个回答，也记得上一个。
 | `road` | 不借路。就够了。 | `q_night` | `a4_feast_emperor_ask = refuse_road`；帝国立场 +10；敬意 +5；会盟上剑帝"拒绝借道"的倾向 | 无 |
 | `ally` | 跟我一起顶住教国。 | `e_ally` | `a4_feast_emperor_ask = ally`；帝国立场 +8；敬意高时剑帝答"可以谈" | 无 |
 | `his` | 做对帝国最好的事。 | `e_his` | `a4_feast_emperor_ask = his_call`；帝国立场 +5；敬意 +8 | 无 |
-| `remember` | 我会记得。我不会拿"讨伐夜境"当理由打仗。 | `n_true` | `a4_vespera_sincere = true`；夜后信任 +15；夜境立场 +10；宴后回廊的月下之约开放 | 无 |
+| `remember` | 我会记得。我不会拿"讨伐夜境"当理由打仗。 | `n_true` | `a4_night_queen_sincere = true`；夜后信任 +15；夜境立场 +10；宴后回廊的月下之约开放 | 无 |
 | `count` | 死的人，我会让人记下来。一个一个。 | `n_true` | 同上，信任 +10，立场 +8 | 无 |
 | `demon` | 魔王就是魔王。 | `n_false` | 夜境立场 -10；月下之约不开放 | 无 |
 | `sign` | 签。 | `h_sign` | `a4_hart_offer = accepted`；隐藏条款"债随地走"随合同生效，经济战从"债随地走"那一步开始（`A4-D01.b`） | 无 |
@@ -11373,7 +11374,7 @@ night_queen：谨慎。……我们记得这个回答，也记得上一个。
 | `quiet` | （不辩解，也不把手收回去。让他看。） | `e_quiet` | `a4_elwin_invited = true`；艾尔温信任 +15；解锁"森林的秘密"的完整分支（分幕 5.6） | 无 |
 | `deny` | 那不是我。 | `e_deny` | 艾尔温信任 +3；"森林的秘密"走不带邀请的分支 | 无 |
 | `boast` | 那又怎样？我现在坐在这里。 | `e_boast` | 艾尔温信任 -5；同上 | 无 |
-| `pact` | 成交。月亮作证。 | `m_yes` | `a4_night_pact = true`（秘约，被揭露会引发信任危机）；夜后信任 +10 | `a4_vespera_sincere` |
+| `pact` | 成交。月亮作证。 | `m_yes` | `a4_night_pact = true`（秘约，被揭露会引发信任危机）；夜后信任 +10 | `a4_night_queen_sincere` |
 | `decline` | 我不立秘约。 | `m_no` | 月下之约此后仍可在夜境外交里重提一次 | 同上 |
 
 4. **变体**
@@ -11395,7 +11396,7 @@ night_queen：谨慎。……我们记得这个回答，也记得上一个。
 | 出场 | 段一 `merca`；段二 `eluen`（光像）、`cassian`（`a3_cassian_state` 为 stays_without_grace 或 regains 时）；段三 `sylvie`（不显形，只有声音）与半鹿半狼的兽（立牌）；段四 `moira`（化身） |
 | 地点 | 段一：默认 `goldbay` 金秤广场的茶摊（`tea_stall`）；玩家在别的城市的市场里时就在那里的茶摊。段二：国都难民礼拜堂（`borderstone` 的 `refugee_chapel`）；`a3_ash_exile` 时为 `seal_ruins` 流亡营地（`outer_ring`）。段三：`world_tree` 灵泉下游、春天才醒的草地（`spring_meadow`；兽引路，不受"外族不得近前"的限制）。段四：`endless_stacks` 最底层的书梯（`book_ladder`） |
 | 时长 | 每段约 4 分钟 |
-| 现有数据 | `a4_goddess_versions`（6 节点、20 行）拆开：`eluen` 节点（3 行、2 个选项）扩为段二，`eluen_page = false` 不写（`a4_eluen_page` 只由副署成立写入，D-037），`eluen_page_considered` 写作 `a4_eluen_page_considered`；`sylvie` 节点（4 行）扩为段三，"……我反对过。"按台账 MIS-13 落在"我投了'不'。然后……"；`merca` 节点的钥匙求助移到 `cut_a4_key_theft`，本过场段一按分幕 6.3 新写；`valda` 节点移到 `cut_a4_valda_offer`；`moira` 节点的同构与交易移到 `cut_a4_isomorphism`，本过场段四按分幕 6.5 新写；`lies` 节点删去（谎言的拆穿只由证据对质写入，分幕 8.6）。`a4_goddess_versions_heard` 的定值写入（1 到 5）换成每段 `add 1`。导入后共 28 节点、93 行台词、14 个选项、2 处即兴 |
+| 现有数据 | `a4_goddess_versions`（6 节点、20 行）拆开：`eluen` 节点（3 行、2 个选项）扩为段二，`a4_eluen_page = false` 不写（`a4_eluen_page` 只由副署成立写入，D-037），`a4_eluen_page_considered` 写作 `a4_eluen_page_considered`；`sylvie` 节点（4 行）扩为段三，"……我反对过。"按台账 MIS-13 落在"我投了'不'。然后……"；`merca` 节点的钥匙求助移到 `cut_a4_key_theft`，本过场段一按分幕 6.3 新写；`valda` 节点移到 `cut_a4_valda_offer`；`moira` 节点的同构与交易移到 `cut_a4_isomorphism`，本过场段四按分幕 6.5 新写；`lies` 节点删去（谎言的拆穿只由证据对质写入，分幕 8.6）。`a4_goddess_versions_heard` 的定值写入（1 到 5）换成每段 `add 1`。导入后共 28 节点、93 行台词、14 个选项、2 处即兴 |
 | 写入旗标 | `a4_goddess_versions_heard` 每段加 1；`a4_version_heard.<司>`（merca、eluen、sylvie、moira）；`a4_eluen_pitch`（accepted、refused、deferred）、`a4_eluen_page_considered`；`a4_refused_to_let_go`；女神关系与记忆（`relation`、`memory`）；`a4_versions_beat`（`<司>_done`） |
 | 揭示 | M07-C04（解锁 `a4_goddess_versions_heard >= 3`）、M10-C06 的解读部分；MIS-10（招安与"我会让书里有你的一页"）、MIS-12（"钥匙？什么钥匙？"）、MIS-13（"我投了'不'"）、MIS-14 的推翻（莫伊拉自己说"我留了一份"）；A08 的回声（希尔薇段末那句，兑现在 `cut_a4_revelation`）；锚点 A05 在梅尔卡段再说一次（第一层的兑现在 `cut_a4_revelation`） |
 | 音乐与音效 | 段一 `mus_stg_motif_merca`、段二 `mus_stg_motif_eluen`、段三 `mus_stg_motif_sylvie`、段四 `mus_stg_motif_moira`，各段入场即入，段末淡出。环境：`amb_metropolis_day`、`amb_int_chapel`、`amb_base_ancient_forest`、`amb_dg_archive`。专用音效 `sfx_cin_coin_hot`、`sfx_cin_light_out`（沿用）、`sfx_god_moira_page`（沿用） |
@@ -12645,7 +12646,7 @@ player［NOT companion.yeyu.state == active］：（我有页了。她们，都�
 | 出场 | 玩家；`yeyu`（在场时）；`emperor`；`aurelius_vent` 国务枢机（教皇特使）；`philip`（`a3_lothar_ending == rump_kingdom` 时）；`florin_caspari` 同盟议长（`hart` 随行）；`elwin`（`a4_refuge_state IN (public, migrated)` 时）或 `othelan_deeproot`（其余）；风牙按 `a4_beast_king`：`nitira_moonhorn`、`ursa_stonebreaker`、`shiya`；`night_queen` 与 `sasha`；`tavi`；`viktor_lampart` 公会总会长；`lune_beck` 会盟书记（莫伊拉借她的笔开口，说话者写 `moira`）；`league_clerk` |
 | 地点 | `seven_seats` 七席石与第七碑（位置 `seven_seats_ring`）；云阶道的营地在同图边缘（`summit_camp`） |
 | 时长 | 段一约 5 分钟；段二约 9 分钟；段三约 5 分钟（不含营地里的私下谈话） |
-| 现有数据 | `a4_conclave`（4 节点、5 行、3 个选项）扩写为三段。导入时修正：`a4_alliance` 的 broad、narrow、broken 换成 `a4_summit_result`，且结果由大战略的 `compute summit_result` 结算，不由选项直接写（选项写的是它的输入：`autonomy_bonus`、`a4_summit_bloodshed`）；`slg.summit_bloodshed` 写作 `a4_summit_bloodshed`，`a4_conclave_scene_done` 写作 `a4_conclave_done`（注册表 7.7）；`already` 节点删去（会盟只有过场这一种进行方式）；`selene` 节点移到 `cut_a4_edict` 段三；原稿"七国使者坐在同一张圆桌边，教国的位置空着"按分幕 9.3 换成七席石与列席；夜后那句"说吧，规格外的人"保留为段一她入席后的台词的底稿。导入后共 34 节点、132 行台词、18 个选项 |
+| 现有数据 | `a4_conclave`（4 节点、5 行、3 个选项）扩写为三段。导入时修正：`a4_summit_result` 的 broad、narrow、broken 换成 `a4_summit_result`，且结果由大战略的 `compute summit_result` 结算，不由选项直接写（选项写的是它的输入：`autonomy_bonus`、`a4_summit_bloodshed`）；`a4_summit_bloodshed` 写作 `a4_summit_bloodshed`，`a4_conclave_done` 写作 `a4_conclave_done`（注册表 7.7）；`already` 节点删去（会盟只有过场这一种进行方式）；`selene` 节点移到 `cut_a4_edict` 段三；原稿"七国使者坐在同一张圆桌边，教国的位置空着"按分幕 9.3 换成七席石与列席；夜后那句"说吧，规格外的人"保留为段一她入席后的台词的底稿。导入后共 34 节点、132 行台词、18 个选项 |
 | 写入旗标 | `a4_night_seated`；`a4_tavi_seated`；`stance.night`、`stance.holysee`；`autonomy_bonus`（塔维入席 +3、发言 +5）；`a4_monopoly_deal`（accepted、better、refused）与 `econ_indep`；`a4_elwin_witness = public`（公证时）；`a4_crusade_authorized`（由 `compute summit_motion` 写入）；`a4_summit_bloodshed`；`continent` -5（玩家拔刀时）；`a4_summit_result`、`a4_allies`、`a4_heresy_state`（由 `compute summit_result` 写入）；`a4_conclave_done = true`；`a4_conclave_beat`（summit_done、debate_done、done）；`a4_revelation_beat = stele` 并以 `scene cut_a4_revelation` 接续 |
 | 揭示 | 同构的重演（分幕 9.6 "同构的高光时刻"：梅尔卡的交易原样重演、闭关派"森林不参与"、学院"记录不投票"）；莫伊拉借书记之口"九百五十一年，第六位就站在你现在的位置。她输了。"（`a4_moira_isomorphism` 之后才播）；E03 的公证（`a4_elwin_witness`）；原龙"看不透的呼吸" |
 | 音乐与音效 | 段一入环境 `amb_base_cold_highland`，镜 2 加 `amb_pt_dragon_far`，镜 3 入 `mus_act4_conclave`（审庭的室内乐：这是一场审判的预演），段末淡出。段二入 `mus_act4_conclave`，镜 9 与 `mus_cue_intrigue` 交叉，镜 10 交叉回 `mus_act4_conclave`，镜 12 与 `mus_cue_intrigue` 交叉，段末淡出。段三入 `mus_act4_conclave`，镜 15 淡出，最后一行静音，碑亮的一刻交给 `cut_a4_revelation` 的 `mus_god_maker`。专用音效 `sfx_cin_mountain_breath`、`sfx_cin_hand_catch`（沿用）、`sfx_god_moira_quill`（沿用） |
@@ -13290,11 +13291,11 @@ ash：上面那位，也在看。
 | `a4_founding_beat` | 枚举 | claim、claim_done、registry、registry_done、stone、oath_done、door、done | `cut_a4_founding` 的段落旗标（door 由千门系统在立国之门开启后写入） | 请求方 `A4-M01`、立国链第 3 序、`A4-M04`、千门系统；`cut_a4_founding` |
 | `a4_oath_reader` | 枚举 | player、elder | 界石誓由谁念 | `cut_a4_founding` |
 | `a4_nation_name` | 文本 | 玩家输入，空值"庭外之国" | 国名（显示用插槽，不进条件） | `cut_a4_founding` |
-| `push_door.door_founding` | 布尔 | true | 立国之门的推门请求（第三幕一节约定的 `push_door.<门 ID>`） | `cut_a4_founding` |
+| `push_door.founding` | 布尔 | true | 立国之门的推门请求（第三幕一节约定的 `push_door.<门 ID>`） | `cut_a4_founding` |
 | `a4_feast_beat` | 枚举 | invite、invited、hall、done | `cut_a4_feast` 的段落旗标 | 请求方立国链第 7 序、强者之宴主线；`cut_a4_feast` |
 | `a4_emperor_duel` | 布尔 | true | 一剑问答"不怕"：剑帝约定战后决斗（后日谈内容池，`trial_emperor_hook` 提前开放） | `cut_a4_feast` |
 | `a4_feast_emperor_ask` | 枚举 | refuse_road、ally、his_call | 第三轮对剑帝之问的回答（会盟上帝国"拒绝借道"的倾向读它） | `cut_a4_feast` |
-| `a4_vespera_sincere` | 布尔 | true | 夜后把玩家对第三轮之问的回答判为真心（月下之约的前置，分幕 5.6） | `cut_a4_feast` |
+| `a4_night_queen_sincere` | 布尔 | true | 夜后把玩家对第三轮之问的回答判为真心（月下之约的前置，分幕 5.6） | `cut_a4_feast` |
 | `a4_hart_offer` | 枚举 | accepted、refused、mortal_pact | 宴上对哈特贸易协定的回应（经济战起点，分幕 5.6、8.1） | `cut_a4_feast` |
 | `a4_hart_clause_read` | 布尔 | true | 让波比·林德把条款念全 | `cut_a4_feast` |
 | `a4_elwin_invited` | 布尔 | true | 艾尔温"来森林"的邀请（"森林的秘密"完整分支的钥） | `cut_a4_feast` |
@@ -13772,7 +13773,7 @@ janu：好。门开着。想问的时候，再来。
 | 出场 | 段一：`dian_watcher` 澱哨哨长、`lotha_noble` 洛萨贵族、`ron`、`yeyu`；段二：`faceless_king` 无貌之王（只有声音与远景）、`tavi`、`keybearer`、`yeyu`，插入镜头 `night_queen`；段三：`eska`、`ron`、`yeyu`、`soldier`；段四：`emperor`、`night_queen`、`viktor_lampart`、`haldin_stonewitness`、`philip`、`ron`、`yeyu`；段五、段六：`eska` |
 | 地点 | 段一：`borderstone` 澱哨台（`dian_post`），插入镜头洛萨的宴厅（按 `a3_lothar_ending`：`orien_isle` 王宫宴厅 `longtable_hall`；三分时为三座庄园；宰相总督府）；段二：`main_gate_crater` 湖心石台（`lake_arena`）、`duskcrown` 暗夜王座（`night_throne_palace`）、门民营地与玩家所在地；段二补：`inner_court` 井沿（`court_pond`）；段三：玩家所在地一镜，其后 `borderstone` 上空，蒙太奇经 `main_gate_crater`、`world_tree`、`windfang_rock`、`duskcrown`、`ash_waste`；段四：`borderstone_north` 联军冬营（`winter_camp`）；段五、段六：`seven_seats` 银巢（`silver_nest`） |
 | 时长 | 段一约 2 分钟；段二约 3.5 分钟（补段约 2 分钟）；段三约 2.5 分钟；段四约 5 分钟；段五约 2.5 分钟；段六约 1 分钟 |
-| 现有数据 | `a5_demon_king_born` 的 `born` 节点（1 节点 4 行，写 `a5_demon_king_born`）并入段二；其中"如果当年她接住的是我"一句移到 `cut_a5_final_war` 的 70% 转阶段（它属于分幕 2.4 场景 C）。`eska` 节点（1 节点 3 行、2 个选项，写 `eska_consent` 与 E30）拆开：银降的那一句并入段三；后一句提问与两个选项移到段五，按分幕 4.1 重写（原龙在银降时只说一句；她只问"清洗还是消化"；旗标用规范名 `a5_eska_consent`）。导入后共 46 节点、121 行台词、8 个选项 |
+| 现有数据 | `a5_demon_king_born` 的 `born` 节点（1 节点 4 行，写 `a5_demon_king_born`）并入段二；其中"如果当年她接住的是我"一句移到 `cut_a5_final_war` 的 70% 转阶段（它属于分幕 2.4 场景 C）。`eska` 节点（1 节点 3 行、2 个选项，写 `a5_eska_consent` 与 E30）拆开：银降的那一句并入段三；后一句提问与两个选项移到段五，按分幕 4.1 重写（原龙在银降时只说一句；她只问"清洗还是消化"；旗标用规范名 `a5_eska_consent`）。导入后共 46 节点、121 行台词、8 个选项 |
 | 写入旗标 | `a5_demon_king_born = true`（段二）；物品 `ky_unclasped_talon`（段二或补段）；`a5_eska_descends = true`（段三）；`a5_eska_consent`（段五、段六）；`a5_eska_wait`、`a5_eska_closed`；物品 `evidence_e30`（同意时）；`a5_eska_beat`（quiet_done、crown_done、descent_done、tent_done、question_done、done） |
 | 揭示 | S01-C09（夜羽想起 978 年没接住的人，`a5_demon_king_born` 解锁）；称谓开放：第九代魔王从此可称"无貌之王"；"清洗"的双关只留不安，不解释（分幕 4.1）；"凡人不信"的喜剧：洛萨贵族庆祝危机已过、三百条凡约、剑帝与夜后同帐；罗恩第一次对一位国王（或皇帝）说"不可能" |
 | 音乐与音效 | 段一入 `mus_cue_comedy`（L1，镜 2 加到 L2），段末 `mus_stg_rumor_twist`。段二入 `mus_cue_intrigue` L1，镜 6 叠 `mus_stg_motif_faceless`，夜羽的记忆交叉到 `mus_cue_sorrow` L1，段末淡出。段三先静默 2 秒，镜 11 入 `mus_reg_sleepscale` L1，段末淡出。段四入 `mus_cue_comedy` L1，镜 15 交叉到 `mus_cue_warmth` L1。段五、段六入 `mus_reg_sleepscale` L1，她开口时加到 L2，段末淡出。环境 `amb_crowd_festival`、`amb_dian_low`、`amb_inner_court`、`amb_pt_dragon_far`、`amb_camp`、`amb_wx_snow`、`amb_base_mountain`。音效 `sfx_cin_crowd_cheer`、`sfx_door_trace_glow`、`sfx_boss_faceless_presence`、`sfx_door_key_object`、`sfx_cin_eska_descent`、`sfx_cin_crowd_gasp` |
@@ -15133,7 +15134,7 @@ narrator：灰墙散开了一道口子。他没有回头，依旧坐在坑沿上
 | 出场 | 段一：玩家；`ron`、`yeyu`、`tavi`、`aiden`（在场条件）、`luchen`（只在远景）；段二：`ash`；段三：`tavi`、`emperor`（倒戈时）、`sasha`（互敬时）、`luchen`（卸光时）、`ron`、`yeyu` |
 | 地点 | 段一：`wallenburg` 河港边的军议大帐（`river_council`），夜；段二：`seal_ruins_depths` 灰烬之厅（`ash_chamber`）；段三：`thousand_gates_core` 万门广场边的联军营地（`coalition_outpost`），远景是 `main_gate_crater` 坑沿的众门环 |
 | 时长 | 段一约 4 分钟；段二约 2.5 分钟；段三约 5 分钟 |
-| 现有数据 | `a5_route_choice`（4 节点、9 行、4 个选项）全部并入：`choose` 节点的三行旁白进段一（"终光斩王"一词在 `a5_truth_purge_cycle` 之前不出现，按"勇者一击，砸碎罐子"改写）；`drawer` 节点进段二（物件按分幕 2.1 统一为"被灰浸透的钱包：一张照片、一张车票"，旗标 `a5_ash_drawer` 与 E17 不变；条件从 `a3_ash_tells_sundering` 换成"阿什的信任与玩家自己的遗物"，分幕 2.5 第 1 条）；`god`、`people` 节点进段一的两个回应。导入时去掉 `choose` 节点直接写 `purge_route` 与 `gate_ring` 的效果：`a5_purge_route` 只在最后一扇门之后由 `act5_resolution` 写入，`a5_gate_ring` 只在第五回合结束时由 `act5_outcome` 写入（分幕 6.3"抉择不是一次点击"）；本段只写意向 `a5_route_plan`。导入后共 30 节点、73 行台词、6 个选项 |
+| 现有数据 | `a5_route_choice`（4 节点、9 行、4 个选项）全部并入：`choose` 节点的三行旁白进段一（"终光斩王"一词在 `a5_truth_purge_cycle` 之前不出现，按"勇者一击，砸碎罐子"改写）；`drawer` 节点进段二（物件按分幕 2.1 统一为"被灰浸透的钱包：一张照片、一张车票"，旗标 `a5_ash_drawer` 与 E17 不变；条件从 `a3_ash_tells_sundering` 换成"阿什的信任与玩家自己的遗物"，分幕 2.5 第 1 条）；`god`、`people` 节点进段一的两个回应。导入时去掉 `choose` 节点直接写 `a5_purge_route` 与 `a5_gate_ring` 的效果：`a5_purge_route` 只在最后一扇门之后由 `act5_resolution` 写入，`a5_gate_ring` 只在第五回合结束时由 `act5_outcome` 写入（分幕 6.3"抉择不是一次点击"）；本段只写意向 `a5_route_plan`。导入后共 30 节点、73 行台词、6 个选项 |
 | 写入旗标 | `a5_route_plan`（ring、both、god）；`hero_state.aiden = scholar`（把勘建交给艾登时）；`a5_ash_drawer = true` 与物品 `evidence_e17`（段二）；`a5_emperor_turned = true`（段三倒戈时）；`a5_ring_built`（段三入口由 `a5_ring_tally` 计算）；效果 `quest A5-R01`（开工时）、`war bat_a5_final_war`（段三末，打开部署屏）；`a5_route_beat`（plans_done、drawer_done、done） |
 | 揭示 | 分幕第 6 节两条路线的代价与好处在军议上摆开（不预言成败，M04-C11）；E17 无貌者的旧物（978 年她的尝试与放弃的物证）；S07-C04 的旁证（车票上印着玩家看得懂的字）；罗恩"不可能"的口头禅第一次被他自己咽回去一半（第九幕穿门时收束） |
 | 音乐与音效 | 段一入 `mus_slg_war` L1，镜 3 加到 L2，回应时交叉到 `mus_cue_warmth` L1，段末淡出。段二入 `mus_dg_ancient` L1，抽屉拉开时静默 1 秒，段末淡出。段三入 `mus_cue_warmth` L1，众门环静帧时加到 L2，镜 14 交叉到 `mus_act5_ashen_final` L1 并延续到部署屏。环境 `amb_strategy_table`、`amb_dg_ruins`、`amb_camp`、`amb_thousand_gates`。音效 `sfx_door_key_object`（遗物放在灰上）、`sfx_cin_memory_chime`（钱包打开）、`sfx_war_rally_drum`（段末） |
@@ -15748,7 +15749,7 @@ yeyu［companion.yeyu.state == active］：别进那扇门！那不是回家的�
 | 出场 | 玩家；`faceless_king` 无貌之王（救赎后为 `faceless`）；`janu` 门口的女人（第一次在现实里）；`keybearer`；条件出场 `luchen`、`yui`；终局战报里的 `martha`、`marcus`、`sasha` 等只有旁白 |
 | 地点 | `main_gate_crater` 湖心石台（`lake_arena`）；归无的一瞬在 `gap_void`（最后一扇门的门后） |
 | 时长 | 约 6 分钟（终光、毁灭）到 9 分钟（救赎·生，含输入名字） |
-| 现有数据 | `a5_final`（6 节点、15 行、2 个选项，`face`、`final_light`、`redeemed`、`destroyed`、`janu` 等节点）全部并入并扩写：`face` 的首行进 `stop`；救赎与毁灭的两个选项按分幕 2.4 的结局台词重写，救赎条件改读本节"救赎条件齐"（原条件少了"问过名字""倾向""梦境任务"三项）；`final_light` 节点从"按 `purge_route == god` 直接跳转"改由玩家在 5% 的选择进入（分幕 6.3）；`janu` 节点按规模拆成 `receive`、`seal` 两节点，"沈望"一行只在救赎分支出现（原稿在所有结局都叫名字，与 DB-A5-12"救赎条件满足"不符）；`yeyu_letters = 5` 移到 `cut_a5_trial_called` 的信件节点；`compute act5_outcome` 前移到 `stop`（第五回合锁定战线，并定出 `a5_janu_act`），另加 `compute act5_resolution`（定出路线与结局后的结算）。导入后共 25 节点、110 行台词、5 个选项、1 处自由输入、1 处即兴 |
+| 现有数据 | `a5_final`（6 节点、15 行、2 个选项，`face`、`final_light`、`redeemed`、`destroyed`、`janu` 等节点）全部并入并扩写：`face` 的首行进 `stop`；救赎与毁灭的两个选项按分幕 2.4 的结局台词重写，救赎条件改读本节"救赎条件齐"（原条件少了"问过名字""倾向""梦境任务"三项）；`final_light` 节点从"按 `a5_purge_route == god` 直接跳转"改由玩家在 5% 的选择进入（分幕 6.3）；`janu` 节点按规模拆成 `receive`、`seal` 两节点，"沈望"一行只在救赎分支出现（原稿在所有结局都叫名字，与 DB-A5-12"救赎条件满足"不符）；`yeyu_letters = 5` 移到 `cut_a5_trial_called` 的信件节点；`compute act5_outcome` 前移到 `stop`（第五回合锁定战线，并定出 `a5_janu_act`），另加 `compute act5_resolution`（定出路线与结局后的结算）。导入后共 25 节点、110 行台词、5 个选项、1 处自由输入、1 处即兴 |
 | 写入旗标 | `a5_redeem_ready`（救赎条件齐时）；`a5_faceless_end`（redeemed、destroyed、final_light）；`a5_faceless_named = true`（救赎时）；`a5_faceless_register_name`（文本，空值"无名"）；`a5_faceless_survived`（true 或 false）；`hero_state.luchen = final_light`（陆辰执行时）；`janu_faith` 加 5（接人）或加 35（封隙）；物品 `evidence_e32`、`evidence_e18`（救赎·生）、`evidence_e28`、`evidence_e29`（`a5_purify_success` 时）；`a5_final_battle_done = true`；计算 `act5_outcome`（开头）、`act5_resolution`（结尾）；效果 `scene cut_a5_trial_called` |
 | 揭示 | M09-C09（她第一次在现实中出手，半边身体是门框，封印的形状被所有人看见）；M02-C09 的兑现（同上）；A10 的第二层收束与 S07-C05（救赎时她叫出"沈望"）；MIS-08 的回答（她接住了玩家；对他说"那一次，我没有接住你"）；E32；第六幕"放手不是丢弃"的伏笔（她在接人与封隙之间被众生做了多少所决定）；M04-C11（众生的办法是否有效，只在结算之后由战报给出） |
 | 音乐与音效 | `stop` 时首领曲 `mus_boss_faceless` L3 硬切，静默 2 秒；最后一扇门打开时入环境 `amb_fall_void`；接住的一瞬 `sfx_cin_hand_catch` 之后入 `mus_stg_motif_door`（八音盒，序章坠落那一遍的回声）。封隙时叠 `sfx_god_door_woman_manifest`。救赎入 `mus_cue_sorrow` L1，叫出名字时加到 L2；毁灭入 `mus_cue_sorrow` L1；终光入 `mus_stg_motif_eluen`。终局战报入 `mus_act5_ashen_final` L1，淡出后接 `cut_a5_trial_called` 的静默。音效：`sfx_cin_fall_wind`、`sfx_cin_hand_catch`、`sfx_god_door_woman_keys`、`sfx_god_dian_emit`、`sfx_cin_crowd_gasp`、`sfx_god_purify_spring`、`sfx_boss_faceless_end`、`sfx_cin_memory_chime`；新起 `sfx_cin_final_light`、`sfx_cin_ash_burst`（请求登记） |
@@ -16385,7 +16386,7 @@ yeyu：门开了。这一次，是往上的。
 | `docs/40_design/world_state_registry.md` | 第 8.4、8.5 节 | 登记 9.3 表的全部新旗标；族 `front_wait.<线>`（第五幕战线待令） | 本节新登记 |
 | `docs/40_design/systems/thousand_doors.md` | 第 6.4.2 节"门以外的来源"表 | "无貌者撕开封印一角（`a5_seal_torn`，写定）\| +10"；新增一行"灰中对谈里动摇（`a5_faceless_waver`，一次）\| +3" | 撕封的标记与戴冠分开；动摇的封印上升需要一个写定数值（分幕 2.4"`seal_looseness` 上升"） |
 | `docs/30_story/arcs/act5_war_of_races.md` | 第 2.5 节"救赎后"一段 | "救赎后：门口的女人叫出他的名字，他听着像别人的名字；脸回来了，名字没有回来，他请玩家在人簿上替他写一个名字（可写她叫出的那个、写一个新的，或写'无名'）。众门环守住不少于 5 个节点时他活下来（救赎·生，第六幕可传唤，E18）；恰为 4 个时脸回来片刻，随后随灰散去，最后一句'……原来她记得。'（救赎·逝，无 E18）。" | 现稿"名字没有回来"与台账 S07-C05、女神目录 DB-A5-12"叫出名字"表面冲突；角色设定集 4.8 另有"救赎·逝"，按众门环的节点数把两种去向落地 |
-| `docs/30_story/arcs/act5_war_of_races.md` | 第 6.3 节 `purge_route` 判定 | 补一句："未发生终光而救赎的，记为'众生'（`gate_ring` 为 4 时 `a5_purify_success` 为假，即'半成'）。" | 现稿三条规则不覆盖"四个节点下的救赎" |
+| `docs/30_story/arcs/act5_war_of_races.md` | 第 6.3 节 `a5_purge_route` 判定 | 补一句："未发生终光而救赎的，记为'众生'（`a5_gate_ring` 为 4 时 `a5_purify_success` 为假，即'半成'）。" | 现稿三条规则不覆盖"四个节点下的救赎" |
 | `docs/30_story/arcs/act5_war_of_races.md` | 第 6.1 节"执行者"一行 | 补："勇者团是教国直取主门坑的突击队：玩家备了神的办法时联军给他们让路，否则只有南线失守他们才闯得进坑底；南线守住而玩家未备神的办法时，陆辰被挡在苇桥，终光不会发生。" | 7.4"南线失守，勇者会尝试终光"与 6.1"默认陆辰"之间缺一条在场规则 |
 | `docs/30_story/characters.md` | 第 4.8 节"救赎条件"与"结局命运" | 救赎条件写为"见第五幕分幕 2.5"；"救赎·生"的去向写为"脸回来了，名字没有回来，人簿上的名字由玩家替他写；他去荒原收拾残留的古澱"；"救赎·逝"补触发条件"众门环恰守住 4 个节点" | 与分幕 2.5 的条件与结果一致 |
 | `docs/30_story/arcs/act6_review_and_epilogue.md` | 第 4.2 节 E10 行"取得途径" | 补"全录之日的铭录页附一，或莫伊拉私下给玩家看的同一页" | 本节在段四发 E10 |
@@ -16610,8 +16611,8 @@ narrator：她半边身体仍是门框，另一半的脸，第一次完全在光
 valda：……好久不见。
 janu：你的剑还断着。
 @立绘 janu smile 右
-janu［prologue.player_name != '无名氏'］：{player_name}。你来了。
-janu［prologue.player_name == '无名氏'］：你来了。
+janu［player.name != '无名氏'］：{player_name}。你来了。
+janu［player.name == '无名氏'］：你来了。
 narrator：这个声音你听过。坠落的时候，有一只手握住了你的手腕。那时它说：接住你了。
 narrator：现在，它有名字了。
 @立绘撤
@@ -16701,16 +16702,16 @@ narrator：你走上证人台。台角那盏小灯，亮了。
 @声 sfx_god_moira_page
 moira：审期记录，第一页。
 narrator：她翻开的书里，写着候见厅里发生过的一切，包括你当时的每一句回答。
-moira［prologue.player_name == '无名氏'］：客人，名字一栏：无名氏。我到今天也没改。
-moira［prologue.player_name != '无名氏'］：客人，{player_name}。名字是本人报的，笔画我写得很慢。
+moira［player.name == '无名氏'］：客人，名字一栏：无名氏。我到今天也没改。
+moira［player.name != '无名氏'］：客人，{player_name}。名字是本人报的，笔画我写得很慢。
 moira：鉴定：规格外。判定：瑕疵品。判定人：光与秩序之司。
-moira［prologue.rejection_response == R1］：被判之后，客人说："凭什么！"
-moira［prologue.rejection_response == R2］：被判之后，客人问："我到底哪里不合规格？"
-moira［prologue.rejection_response == R3］：被判之后，客人说："等等，求你们再看一次。"
-moira［prologue.rejection_response == R4］：被判之后，客人说："原来神也会怕。"
-moira［prologue.rejection_response == R5］：被判之后，客人没有说话。
-moira［prologue.last_words == '（什么都不说）'］：落下去之前，客人什么也没说。
-moira［prologue.last_words != '（什么都不说）'］：落下去之前，客人最后说的是：{flag:prologue.last_words}
+moira［p_rejection_response == r1］：被判之后，客人说："凭什么！"
+moira［p_rejection_response == r2］：被判之后，客人问："我到底哪里不合规格？"
+moira［p_rejection_response == r3］：被判之后，客人说："等等，求你们再看一次。"
+moira［p_rejection_response == r4］：被判之后，客人说："原来神也会怕。"
+moira［p_rejection_response == r5］：被判之后，客人没有说话。
+moira［p_last_words == '（什么都不说）'］：落下去之前，客人什么也没说。
+moira［p_last_words != '（什么都不说）'］：落下去之前，客人最后说的是：{flag:p_last_words}
 @立绘 moira thinking 右
 moira：这一页的页边，还有一行旁注，是我自己写的：规格外……我的书里，没有你那一页。有意思。
 moira：那一页不是没有。是留着的。门的接口，有一半是我留的。
@@ -16878,7 +16879,7 @@ moira：从这一场起，镜子里出什么事，我们只能看。
 4. **变体**
 
 - **庭之席判定**由 `compute court_seat` 结算（第六幕 2.2）：`a5_purge_route == people`，或 `a5_gate_ring >= 4` 且第五幕联盟的种族数不少于 5（`a5_alliance_races`，见请求回写）时写 `a6_court_seat = seated`；否则写 `witness`，同时写 `a6_witness_for`：`a4_eluen_page` 为真时是 `eluen`，否则取 `goddess.<司>.relation` 最高的一位在任女神（并列时按艾琉恩、瓦尔妲、梅尔卡、希尔薇、莫伊拉的顺序取第一位）。雅努不参与传唤，她是当事人。
-- **审期记录第一页**按序章的实际回答播放：`prologue.player_name`（"无名氏"或本名）、`prologue.rejection_response`（R1 到 R5 各一句）、`prologue.last_words`（输入的原句；"（什么都不说）"另有一句）。有模型时，莫伊拉可以多念一句该周目序章里女神对玩家的原话（取自 `prologue.free.<神>`），只念不评。
+- **审期记录第一页**按序章的实际回答播放：`player.name`（"无名氏"或本名）、`p_rejection_response`（R1 到 R5 各一句）、`p_last_words`（输入的原句；"（什么都不说）"另有一句）。有模型时，莫伊拉可以多念一句该周目序章里女神对玩家的原话（取自 `prologue.free.<神>`），只念不评。
 - **艾斯卡的一只眼**只在 `a5_eska_consent` 时出现；台账 M10-C09 的那一句在这里第一次说出，完整的证词留给 `cut_a6_joint_reading`。
 - **希尔薇对玩家的指控**只在 `goddess.sylvie.enmity`（渡魂之门已开）时多一句"你撕了我的循环。"；回答它属于质证（传唤被渡回者），不在本过场。
 - **证人身份**时没有立案菜单；段二以 `ch_witness` 收尾。
@@ -17762,10 +17763,10 @@ janu：你一直都知道它的名字。你只是从来没往那边想过。
 @立绘撤
 narrator：她在庭镜旁开了一扇门。门外是庭间之隙，黑得没有底。
 narrator：隙中远远悬着一座庭。没有终雾，没有天穹的墙。星辰不整齐地散在四面八方，像有人把一把沙随手撒了出去。
-narrator［prologue.earth_opening == A］：那颗星的夜面上有一道细细的光线在走。像末班车的车窗。
-narrator［prologue.earth_opening == B］：那颗星的夜面上有一小块亮着，雨里那种亮法。像一家通宵的店。
-narrator［prologue.earth_opening == C］：那颗星的夜面上有一排很淡的灯，一盏也不灭。像凌晨的走廊。
-narrator［prologue.earth_opening == D］：那颗星的夜面上有一扇窗还亮着，只有一扇。像一个快要搬空的房间。
+narrator［p_earth_opening == a］：那颗星的夜面上有一道细细的光线在走。像末班车的车窗。
+narrator［p_earth_opening == b］：那颗星的夜面上有一小块亮着，雨里那种亮法。像一家通宵的店。
+narrator［p_earth_opening == c］：那颗星的夜面上有一排很淡的灯，一盏也不灭。像凌晨的走廊。
+narrator［p_earth_opening == d］：那颗星的夜面上有一扇窗还亮着，只有一扇。像一个快要搬空的房间。
 @立绘 yeyu surprised 左
 yeyu：……没有墙的庭。还有这种东西？
 → ash_q
@@ -17865,7 +17866,7 @@ narrator：门关上了。那颗星还在你眼睛里亮了一会儿。
 
 - **阿什在与不在**：已在审期里被传唤过（质证或本场）时直接播 `ash_here`；就座、存活、讲述过大断绝而尚未传唤时出现传唤选项；证人身份、阿什已消散（`npc.ash.dead`，第五幕守门战失败）或玩家不传唤时整段不播；雅努"我需要一个习惯了没有神的人"（M11-C05）不随阿什的有无变化，总在锚点之后说出。阿什不跨进审庭，只站在庭镜之门的门槛上（人物目录 3.9"不进神庭，留在门边"）。
 - **E33 交出与未交出**：第四幕交出档 `a4_moira_memory_taken` 为真时，莫伊拉读客卷，锚句"没有神，人们就自己给自己讲故事"由读懂的那一刻说出；未交出时玩家亲口讲，有模型时莫伊拉即兴回应，无模型时播写定的三句，锚句同样落地。
-- **四个开场**（`prologue.earth_opening` A 到 D）各一句"那颗星的夜面上"的旁白，与序章的地球开场呼应；它只是一处光，不出现地名、城市名与任何现实品牌。
+- **四个开场**（`p_earth_opening` A 到 D）各一句"那颗星的夜面上"的旁白，与序章的地球开场呼应；它只是一处光，不出现地名、城市名与任何现实品牌。
 - 梅尔卡那一句只在 `merca_offerings >= 5`（台账 M11-C04）时出现。
 
 #### cut_a6_ask_back 回问（The Questions Returned）
@@ -17881,7 +17882,7 @@ narrator：门关上了。那颗星还在你眼睛里亮了一会儿。
 | 时长 | 约 6 分钟 |
 | 现有数据 | `a6_court` 的 `final_verdicts`、`askback`、`janu_ask` 的提问（3 节点、17 行）；`janu_lets_go`、`janu_refuses` 的第一句回答移入本过场；问答沿用 `data/scenes/defenses.json` 的 `askBack`（五位）并补齐雅努一问。导入后共 26 节点、65 行台词、12 个选项 |
 | 写入旗标 | `compute court_verdicts`（回问前先结算一次，回答按结算播放）；女神记忆 `memory <司> 被问回` |
-| 揭示 | 回扣序章五问（P7 到 P11，`prologue.answers`）；A09 的伏笔（"那场面试，被面试的，是我们"留到冬至） |
+| 揭示 | 回扣序章五问（P7 到 P11，`p_answers`）；A09 的伏笔（"那场面试，被面试的，是我们"留到冬至） |
 | 音乐与音效 | 入 `mus_pro_interview` L1（序章面试曲的回声），每一问叠被问者的动机种子，回答时 L2；问雅努时交叉 `mus_god_door_woman` L1；段末淡出。音效 `sfx_god_moira_page`、`sfx_god_court_testimony`（每个回答在大厅里回荡）、`sfx_god_valda_laugh`（她被说服时）、`sfx_god_merca_coin_flip`（她报数时） |
 | 所需美术 | 立绘 `art_bust_eluen`（pained 光环停转，请求追加；special）、`art_bust_valda`（special、thinking）、`art_bust_merca`（sad、special）、`art_bust_sylvie`（tender、neutral）、`art_bust_moira`（sad、smile）、`art_bust_door_woman`（smile、neutral；放手后为全貌档）、`art_bust_yeyu`（special） |
 | 里程碑 | M3 |
@@ -17915,12 +17916,12 @@ moira：书记官照记。问吧。
 @镜 2
 @立绘撤
 @立绘 eluen special 左
-narrator［prologue.answers HAS E1］：审期记录：那一天她问你凭什么值得被选中，你答"我不确定我值得。但只要给我机会，我会学。"
-narrator［prologue.answers HAS E2］：审期记录：那一天她问你凭什么值得被选中，你答"因为我比他们四个都强。"
-narrator［prologue.answers HAS E3］：审期记录：那一天她问你凭什么值得被选中，你答"我没求着被你们选。"
-narrator［prologue.answers HAS E4］：审期记录：那一天她问你凭什么值得被选中，你答"……我不知道。"
-narrator［prologue.answers HAS E5］：审期记录：那一天她问你凭什么值得被选中，你答"能见到您，已经是我的荣幸。"
-narrator［prologue.answers HAS E6］：审期记录：那一天她问你凭什么值得被选中，你答"在我们地球，面试官一般会先自我介绍。"
+narrator［p_answers HAS E1］：审期记录：那一天她问你凭什么值得被选中，你答"我不确定我值得。但只要给我机会，我会学。"
+narrator［p_answers HAS E2］：审期记录：那一天她问你凭什么值得被选中，你答"因为我比他们四个都强。"
+narrator［p_answers HAS E3］：审期记录：那一天她问你凭什么值得被选中，你答"我没求着被你们选。"
+narrator［p_answers HAS E4］：审期记录：那一天她问你凭什么值得被选中，你答"……我不知道。"
+narrator［p_answers HAS E5］：审期记录：那一天她问你凭什么值得被选中，你答"能见到您，已经是我的荣幸。"
+narrator［p_answers HAS E6］：审期记录：那一天她问你凭什么值得被选中，你答"在我们地球，面试官一般会先自我介绍。"
 选 ask「你凭什么值得被选中？」→ a_eluen｜效果 memory eluen 被问回
 选 skip「（不问她）」→ q_valda
 【a_eluen】
@@ -17942,12 +17943,12 @@ eluen：……我不必被选中。
 @镜 2
 @立绘撤
 @立绘 valda thinking 左
-narrator［prologue.answers HAS V1］：审期记录：那一天她问你打过架没有、输过没有，你答"输过。被打趴下过，后来又站起来了。"
-narrator［prologue.answers HAS V2］：审期记录：那一天她问你打过架没有、输过没有，你答"我从来没输过。"
-narrator［prologue.answers HAS V3］：审期记录：那一天她问你打过架没有、输过没有，你答"我不喜欢打架。真要打，我会想别的办法赢。"
-narrator［prologue.answers HAS V4］：审期记录：那一天她问你打过架没有、输过没有，你答"……不想说。"
-narrator［prologue.answers HAS V5］：审期记录：那一天她问你打过架没有、输过没有，你反问她："你呢？你输过吗？"她没有回答。
-narrator［prologue.answers HAS V6］：审期记录：那一天她问你打过架没有、输过没有，你没有说话。
+narrator［p_answers HAS V1］：审期记录：那一天她问你打过架没有、输过没有，你答"输过。被打趴下过，后来又站起来了。"
+narrator［p_answers HAS V2］：审期记录：那一天她问你打过架没有、输过没有，你答"我从来没输过。"
+narrator［p_answers HAS V3］：审期记录：那一天她问你打过架没有、输过没有，你答"我不喜欢打架。真要打，我会想别的办法赢。"
+narrator［p_answers HAS V4］：审期记录：那一天她问你打过架没有、输过没有，你答"……不想说。"
+narrator［p_answers HAS V5］：审期记录：那一天她问你打过架没有、输过没有，你反问她："你呢？你输过吗？"她没有回答。
+narrator［p_answers HAS V6］：审期记录：那一天她问你打过架没有、输过没有，你没有说话。
 选 ask「你打过架吗？输过吗？」→ a_valda｜效果 memory valda 被问回
 选 skip「（不问她）」→ q_merca
 【a_valda】
@@ -17966,18 +17967,18 @@ narrator：第六把椅子上，有人笑了一声。
 @立绘 valda special 左
 valda：输过。输给她，也输给你们。
 valda：……输了还能站起来，这才叫打架。
-valda［prologue.answers HAS V1］：这是你那天的答案。我抄你的，不付钱。
+valda［p_answers HAS V1］：这是你那天的答案。我抄你的，不付钱。
 → q_merca
 【q_merca】
 @镜 2
 @立绘撤
 @立绘 merca thinking 右
-narrator［prologue.answers HAS M1］：审期记录：那一天她问你能带来什么，你答"我会做饭，也懂一些我们那边的手艺和做法。"
-narrator［prologue.answers HAS M2］：审期记录：那一天她问你能带来什么，你答"你先说你出什么价。"
-narrator［prologue.answers HAS M3］：审期记录：那一天她问你能带来什么，你拿出了从地球带来的东西。
-narrator［prologue.answers HAS M4］：审期记录：那一天她问你能带来什么，你答"我什么都没有。"
-narrator［prologue.answers HAS M5］：审期记录：那一天她问你能带来什么，你答"我能带来的，是我这个人的信用。"
-narrator［prologue.answers HAS M6］：审期记录：那一天她问你能带来什么，你反问她："那你们能给我什么？"
+narrator［p_answers HAS M1］：审期记录：那一天她问你能带来什么，你答"我会做饭，也懂一些我们那边的手艺和做法。"
+narrator［p_answers HAS M2］：审期记录：那一天她问你能带来什么，你答"你先说你出什么价。"
+narrator［p_answers HAS M3］：审期记录：那一天她问你能带来什么，你拿出了从地球带来的东西。
+narrator［p_answers HAS M4］：审期记录：那一天她问你能带来什么，你答"我什么都没有。"
+narrator［p_answers HAS M5］：审期记录：那一天她问你能带来什么，你答"我能带来的，是我这个人的信用。"
+narrator［p_answers HAS M6］：审期记录：那一天她问你能带来什么，你反问她："那你们能给我什么？"
 选 ask「你能带来什么？」→ a_merca｜效果 memory merca 被问回
 选 skip「（不问她）」→ q_sylvie
 【a_merca】
@@ -18001,12 +18002,12 @@ merca：这笔买卖，我认。
 @镜 2
 @立绘撤
 @立绘 sylvie neutral 左
-narrator［prologue.answers HAS S1］：审期记录：那一天她问你想念什么，你答"一个人。"
-narrator［prologue.answers HAS S2］：审期记录：那一天她问你想念什么，你答"一个地方，或者一样东西。"
-narrator［prologue.answers HAS S3］：审期记录：那一天她问你想念什么，你答"什么都不想。"
-narrator［prologue.answers HAS S4］：审期记录：那一天她问你想念什么，你答"想念没有神管的日子。"
-narrator［prologue.answers HAS S5］：审期记录：那一天她问你想念什么，你反问她想念什么。她没有回答。
-narrator［prologue.answers HAS S6］：审期记录：那一天她问你想念什么，你很久没有说话。
+narrator［p_answers HAS S1］：审期记录：那一天她问你想念什么，你答"一个人。"
+narrator［p_answers HAS S2］：审期记录：那一天她问你想念什么，你答"一个地方，或者一样东西。"
+narrator［p_answers HAS S3］：审期记录：那一天她问你想念什么，你答"什么都不想。"
+narrator［p_answers HAS S4］：审期记录：那一天她问你想念什么，你答"想念没有神管的日子。"
+narrator［p_answers HAS S5］：审期记录：那一天她问你想念什么，你反问她想念什么。她没有回答。
+narrator［p_answers HAS S6］：审期记录：那一天她问你想念什么，你很久没有说话。
 选 ask「你想念什么？」→ a_sylvie｜效果 memory sylvie 被问回
 选 skip「（不问她）」→ q_moira
 【a_sylvie】
@@ -18027,12 +18028,12 @@ sylvie：……可他们已经长大了。
 @镜 2
 @立绘撤
 @立绘 moira neutral 右
-narrator［prologue.answers HAS O1］：审期记录：那一天她问你的故事从哪一页开始，你答"从我出生那天。"
-narrator［prologue.answers HAS O2］：审期记录：那一天她问你的故事从哪一页开始，你答"从我推开那扇门。"
-narrator［prologue.answers HAS O3］：审期记录：那一天她问你的故事从哪一页开始，你答"从我失去某样东西的那天。"
-narrator［prologue.answers HAS O4］：审期记录：那一天她问你的故事从哪一页开始，你答"普通地上班上学，没什么好讲的。"
-narrator［prologue.answers HAS O5］：审期记录：那一天她问你的故事从哪一页开始，你答"还没开始。就从这一页开始。"
-narrator［prologue.answers HAS O6］：审期记录：那一天她问你的故事从哪一页开始，你答"我不想被你写进去。"
+narrator［p_answers HAS O1］：审期记录：那一天她问你的故事从哪一页开始，你答"从我出生那天。"
+narrator［p_answers HAS O2］：审期记录：那一天她问你的故事从哪一页开始，你答"从我推开那扇门。"
+narrator［p_answers HAS O3］：审期记录：那一天她问你的故事从哪一页开始，你答"从我失去某样东西的那天。"
+narrator［p_answers HAS O4］：审期记录：那一天她问你的故事从哪一页开始，你答"普通地上班上学，没什么好讲的。"
+narrator［p_answers HAS O5］：审期记录：那一天她问你的故事从哪一页开始，你答"还没开始。就从这一页开始。"
+narrator［p_answers HAS O6］：审期记录：那一天她问你的故事从哪一页开始，你答"我不想被你写进去。"
 moira：这几行，是我自己念自己的记录。
 选 ask「你的故事，是从哪一页开始的？」→ a_moira｜效果 memory moira 被问回
 选 skip「（不问她）」→ q_janu
@@ -18057,7 +18058,7 @@ moira：从我把笔放下的那一页。
 @立绘 janu neutral 右
 @停 1
 narrator：审期记录：那一天，第六把椅子上的人什么也没有问。那把椅子，只有你看得见。
-narrator［prologue.asked_sixth_chair］：审期记录：那一天，你问过那把空椅子是谁的。没有人回答你。
+narrator［p_asked_sixth_chair］：审期记录：那一天，你问过那把空椅子是谁的。没有人回答你。
 选 ask「你为什么开门？」→ a_janu｜效果 memory janu 被问回
 选 skip「（不问她）」→ close
 【a_janu】
@@ -18097,7 +18098,7 @@ moira：回问，记录在案。
 4. **变体**
 
 - **被说服的判定**：五位以 `verdict.<司> == voluntary` 为"被说服"（与 `defenses.json` 的 `askBack.persuaded` 一致）；雅努以 `a6_janu_release` 为准。被判离手、拒绝与争掌一律播"未被说服"的那一句。
-- **审期记录的回声**：每问之前播一句玩家在序章里的原答（`prologue.answers` 里该女神的代码，E、V、M、S、O 各一）；有模型时序章是自由回答，`prologue.extract` 归入的类别同样有代码，照此播放。瓦尔妲被说服而玩家当年答的是 V1 时，她多一句"我抄你的"。
+- **审期记录的回声**：每问之前播一句玩家在序章里的原答（`p_answers` 里该女神的代码，E、V、M、S、O 各一）；有模型时序章是自由回答，`prologue.extract` 归入的类别同样有代码，照此播放。瓦尔妲被说服而玩家当年答的是 V1 时，她多一句"我抄你的"。
 - **证人身份**同样可以回问：问话属于"陈述亲历"（证人的权限，第六幕 2.3），不需要庭之席。理由：这是全作的角色反转，不应被席位门槛挡掉；回问不改任何结算。
 
 #### cut_a6_verdicts 终审与量处（The Final Sitting）
@@ -19001,7 +19002,7 @@ narrator：庭镜里，最后一块光灭了。
 | 地点 | `divine_court` 的候见厅 `antechamber`，长椅 `bench`（序章等叫号的那条长椅）；诸神之战版在崩塌中的 `interview_hall` |
 | 时长 | 常规版约 6 分钟；诸神之战版约 1.5 分钟 |
 | 现有数据 | `a6_court` 的 `open` 节点里那一条 `a6_letter7_delivered` 的写入（条件 `companion.yeyu.recruited AND yeyu_letters >= 4`）移到本过场，作为审定前夜的必经过场；场景的 `onEnd`（`compute ending` 与十条结局分支）移到本过场末尾，结局场景改名为 `cut_end_*`。新建：导入后共 32 节点、64 行台词、4 个选项、1 处自由输入 |
-| 写入旗标 | 台账标记 `a6_letter7_delivered`；物品 `ky_last_wax`（第七封的火漆屑，离手之门 `door_release` 的物钥）；`prologue.player_name`（玩家此刻才报名时，沿用序章一节的 `name` 效果）；`compute ending` |
+| 写入旗标 | 台账标记 `a6_letter7_delivered`；物品 `ky_last_wax`（第七封的火漆屑，离手之门 `door_release` 的物钥）；`player.name`（玩家此刻才报名时，沿用序章一节的 `name` 效果）；`compute ending` |
 | 揭示 | S01-C12 与 M09-C12（第七封信"给下一个开门的人"：千年前的她预料到自己会想回来，请求那个人"关上我"）；S01-C11（第六封信的火漆永远打不开，内容是全程禁区）；夜羽"第一次叫出玩家的名字"（人物目录 3.1 必须保持第 1 条）；MIS-08 翻面（她接住了你，并请你关上她） |
 | 音乐与音效 | 入 `mus_inner_court_night` L1（门扉动机的慢速八音盒），镜 3 叫名字前静默 2 秒，叫名字时 `mus_stg_motif_hero`；镜 5 信文入 `mus_god_door_woman` L1；镜 8 拉远入 `mus_cue_zoomout` 全部 6 层，播完淡出接结局。音效 `sfx_cin_wax_crack`（请求登记）、`sfx_cin_maker_letter`（展开信）、`sfx_god_door_woman_keys`、`sfx_cin_zoomout_whoosh`；环境 `amb_divine_court`。诸神之战版：`sfx_cin_court_crumble` 底下压着 `mus_stg_motif_hero` |
 | 所需美术 | 全屏静帧 `art_bg_cut_a6_letter7`（递信那一刻）；立绘 `art_bust_yeyu`（neutral、sad、special 啧、tender 叫名字的那一刻，请求追加）；特写 `art_prop_cut_letter7`（信纸与暗红火漆，落款处一扇半开的门，不画可读字）；立牌 `art_chr_door_woman_manifest_idle`（门口的剪影，不上立绘） |
@@ -19049,16 +19050,16 @@ yeyu：第七封。给下一个开门的人。
 yeyu：她写这封的时候，我就在旁边。她没告诉我是给谁的。我只知道，要等。
 yeyu：我等了很久。久到我忘了自己在等什么，忘了自己是谁，忘了她。
 yeyu：……可是信，我没丢。
-分支［prologue.player_name == '无名氏'］→ ask_name
+分支［player.name == '无名氏'］→ ask_name
 → call
 【ask_name】
 @立绘 yeyu special 左
 yeyu：书记官的书上，你那一栏写的是"无名氏"。
 yeyu：那不是名字。那是她偷懒。
-输入「你的名字」→ named｜存入 prologue.player_name｜上限 12｜空值 无名氏｜答者 yeyu
+输入「你的名字」→ named｜存入 player.name｜上限 12｜空值 无名氏｜答者 yeyu
 【named】
-效果 name prologue.player_name
-分支［prologue.player_name == '无名氏'］→ call_nameless
+效果 name player.name
+分支［player.name == '无名氏'］→ call_nameless
 → call
 【call_nameless】
 @镜 3
@@ -19240,7 +19241,7 @@ narrator：再抬头的时候，她已经扑回了崩塌的光里，去接下一
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| 自由输入 | 你的名字 | `named` | `prologue.player_name`（至多 12 字，空值"无名氏"）；`name` 效果设定玩家名 | `prologue.player_name == '无名氏'` |
+| 自由输入 | 你的名字 | `named` | `player.name`（至多 12 字，空值"无名氏"）；`name` 效果设定玩家名 | `player.name == '无名氏'` |
 | `what` | ……你叫我什么？ | `hand_what` | 无 | 无 |
 | `take` | （接过信） | `hand_take` | `ky_last_wax`；`a6_letter7_delivered = true` | 无 |
 | `tell` | （把信念给她听） | `after_tell` | `a6_letter7_told = true`：后日谈里夜羽的条目可以写"她听过那封信" | 无 |
@@ -19348,7 +19349,7 @@ narrator：再抬头的时候，她已经扑回了崩塌的光里，去接下一
 | `docs/40_design/world_state_registry.md` | 第 8 节第六幕出口量与族 | 登记 10.3 全部新旗标；另登记 `a5_alliance_races`（整数 0 到 7，第五幕决战结算写入，联盟中的种族数）与计算函数 `court_seat`（写 `a6_court_seat`、`a6_witness_for`）、`court_veto_claimant`、`court_sentence_default` | 庭之席判定（第六幕 2.2"联盟中至少五个种族"）现在没有变量可读；新计算函数要有登记 |
 | `docs/40_design/content/catalog_quests_acts4_6.md` | 第六幕主线与下庭 | "A6-M01 开庭（`cut_a6_court_open` 段一）；A6-M02 指控（段二）；A6-M03 质证一、A6-M04 质证二（玩法场景 `a6_cross_exam`）；A6-M05 复原之门（`cut_a6_janu_intent` 段一）；A6-M06 共读（需要时先 `cut_a6_final_battles` 冬眠，再 `cut_a6_joint_reading`）；A6-M07 地球的真相（`cut_a6_earth_truth`，接续 `cut_a6_janu_intent` 段二）；A6-M08 陈述（诸神与庭之陈述，末尾 `cut_a6_ask_back`）；A6-M09 终审（`cut_a6_verdicts` 段二）；A6-M10 终战（`cut_a6_final_battles` 排队）；A6-M11 审定前夜（`cut_a6_letter7`）；A6-M12 冬至审定（`cut_end_*`）。下庭：A6-C01 无光之祷、A6-C02 残澱之潮、A6-C03 契约停摆、A6-C04 冬前之荒、A6-C05 铭录静默（均请求 `cut_a6_descent`）。诸神之战 F-W01 请求 `cut_a6_final_battles` 的 `godwar_*` 与 `cut_a6_letter7` 的短版" | 本节的请求方编号要与任务目录一致；该目录第六幕各节尚未展开 |
 | `docs/40_design/content/catalog_doors.md` | 第 5 节 `door_court_mirror` 一行"效果"列末 | "下庭之门在证人身份下同样出现（第六幕 2.4 不限席位）；传唤证人仍要求就座" | 第六幕 2.4 写的是"每场危机发生时，庭镜上会出现一扇门"，没有席位限制；门目录把下庭绑在就座的钥上，证人玩家会失去全作最重要的两难 |
-| `docs/40_design/systems/thousand_doors.md` | 第 12 节路径 A 末句之后 | "终审时争掌者仍不少于两位而否决不可用，不论倒计时剩几，冬至前夜都写 `god_war` 为真：审定只有一个冬至，两位争掌者不能同时掌庭。" | 倒计时按审期回合递减，终审已是最后一场，原文没有说终审时倒计时未到 0 怎么办 |
+| `docs/40_design/systems/thousand_doors.md` | 第 12 节路径 A 末句之后 | "终审时争掌者仍不少于两位而否决不可用，不论倒计时剩几，冬至前夜都写 `a6_god_war` 为真：审定只有一个冬至，两位争掌者不能同时掌庭。" | 倒计时按审期回合递减，终审已是最后一场，原文没有说终审时倒计时未到 0 怎么办 |
 | `docs/30_story/arcs/act6_review_and_epilogue.md` | 2.4"下庭"代价第一条之后 | "若当场是指控，玩家本场不能立案，艾琉恩对玩家的指控无人反驳地记入审期记录；若当场是陈述，该危机领域的女神做最后陈述无人回应，她的必要防线厚度加一。" | 原文只写了质证场的缺席代价，第一场危机在指控、后两场在陈述 |
 | `docs/30_story/arcs/act6_review_and_epilogue.md` | 3.5 量处表之后 | "自愿离手者无论量处为何都完成交接；被判离手者只在凡行与交接令下交接，逐与赦都不交接，其领域在冬至当天骤断。" | 让"放手与丢弃"的区别在量处上有可见的后果，结局过场按此选交接段 |
 | `docs/30_story/characters.md` | 3.9 阿什"各幕弧线"第六幕一行 | "（若存续）不进神庭，留在门边；被传唤时站在庭镜之门的门槛上作证，不跨进审庭" | 与第六幕 3.3 的可传唤者表（阿什存活即可传唤）对齐 |
@@ -19357,7 +19358,7 @@ narrator：再抬头的时候，她已经扑回了崩塌的光里，去接下一
 | `assets/prompts/specs/props.json`、`assets/prompts/specs/vfx.json` | 新增条目 | 10.5 中标"新增"的七张特写与三组特效 | 同上 |
 | `docs/40_design/audio_direction.md` | 7.15 过场表末尾 | 新增 10.4 中六条 `sfx_cin_*`（M3） | 本节的写定音效 |
 | `docs/40_design/world/map_briefs.md` | 第六幕与相关地图的位置清单 | 登记位置：`elmfair` 的 `elmfair_square`；`borderstone_north` 的 `boundary_stones`；`goldbay` 的 `goldscale_square`；`world_tree` 的 `wellspring`；`borderstone` 的 `guild`；`door_corridor` 的 `corridor_mid`、`restoration_door`；`endless_stacks` 的变体位置 `rewrite_stacks`（"改写的书库"：书架上是玩家走过的场景） | 下庭落点与终战场地 |
-| `src/systems/scenes/court.ts`（实现批次） | `verdictFor`、`computeVerdicts`、`januReleases` | `computeVerdicts` 写 `court.contenders`，处理 `a6_veto`（被否决者三道全破为 judged，否则 refuse），两位争掌时的 `god_war` 交给倒计时与终审规则；`verdictFor` 在 `a6_fb_result.hibernate == won` 时保留 `verdict.sylvie = voluntary`；`januReleases` 的遗民一条写成"塔维被传唤且 `remnants >= 40`"，阿什一条写成"存活且 `witness_called.ash`"；新增计算 `court_seat`、`court_veto_claimant`、`court_sentence_default` | 第六幕 2.2、3.5、6.2 的原文与本节的写法 |
+| `src/systems/scenes/court.ts`（实现批次） | `verdictFor`、`computeVerdicts`、`januReleases` | `computeVerdicts` 写 `court.contenders`，处理 `a6_veto`（被否决者三道全破为 judged，否则 refuse），两位争掌时的 `a6_god_war` 交给倒计时与终审规则；`verdictFor` 在 `a6_fb_result.hibernate == won` 时保留 `verdict.sylvie = voluntary`；`januReleases` 的遗民一条写成"塔维被传唤且 `remnants >= 40`"，阿什一条写成"存活且 `witness_called.ash`"；新增计算 `court_seat`、`court_veto_claimant`、`court_sentence_default` | 第六幕 2.2、3.5、6.2 的原文与本节的写法 |
 | `src/game/autoplay/scene_policy.ts`（实现批次） | 第六幕的选择策略 | 场景 ID 从 `a6_court` 换成 `cut_a6_descent`（`descend` 与 `stay` 不变）与玩法场景 `a6_cross_exam`（`x_` 节点不变） | 拆分后自动通关策略仍要命中 |
 
 ## 11. 终章：结局过场
@@ -21294,7 +21295,7 @@ narrator：有一颗星，稍微偏离了它该在的位置。
 - `rel_town_tavern`、`rel_comp_martha` 加 `NOT companion.martha.lost`；`rel_comp_shiya` 限定为希雅调停（正文写她是第一任召集人）。
 - 第一幕八人的存亡守卫：`rel_comp_ron_*`、`rel_comp_nera*`、存活的三条 `rel_comp_oola_*` 加 lost 守卫，`rel_comp_oola_executed` 加 `OR companion.oola.lost`。
 - `rel_comp_cassian`、`rel_comp_martha`、`rel_comp_brun_faceless`、`rel_comp_brun` 在数据里是权重条目，本表为必写（第一幕八人）。
-- `rel_player_returned` 的插槽 `{flag:courtyard.first_object}` 导入时写 `{flag:p_courtyard_object}`，并由插槽填充读取文本键 `var.p_courtyard_object.<值>` 的显示名（枚举值本身是英文代号）。
+- `rel_player_returned` 的插槽 `{flag:p_courtyard_object}` 导入时写 `{flag:p_courtyard_object}`，并由插槽填充读取文本键 `var.p_courtyard_object.<值>` 的显示名（枚举值本身是英文代号）。
 
 **新增条目**（112 条）
 
@@ -21978,7 +21979,7 @@ narrator：有一颗星，稍微偏离了它该在的位置。
 | 笑点 | 每局不少于三条带轻快笑点的条目，各节导语列出 |
 | 层列 | 诸神 `gods`、诸族 `races`、诸国 `nations`、王国 `kingdom`、城市 `city`、小镇 `town`、同伴 `companions`、玩家 `player` |
 
-**共享条目的导入口径**：`rule_town_tavern` 与 `rule_comp_brun` 的正文用 `{flag:epilogue.ruler}` 在多个结局里复用同一句话，
+**共享条目的导入口径**：`rule_town_tavern` 与 `rule_comp_brun` 的正文用 `{flag:ep_ruler}` 在多个结局里复用同一句话，
 与"五种之治之间不复制同一句话"冲突，导入时两条的 `endings` 都收窄为只有 `rule_eluen`（文字与艾琉恩之治的规矩感最合），
 其余四种之治的醉月亭与老布伦由各自的新增条目承担。
 

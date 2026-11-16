@@ -41,18 +41,18 @@
 
 | 显示编号 | 数据编号 | 写在谁的包里 |
 | --- | --- | --- |
-| A1-M02 | `q_a1_m02_raven_nest` | 夜羽 |
-| A1-M03 | `q_a1_m03_unrecorded` | 莉娜 |
-| A1-M04 | `q_a1_m04_f_rank_rules` | 布伦；三件委托的进度在玛莎、欧拉、卡西安 |
+| A1-M02 | `q_a1_m02_raven` | 夜羽 |
+| A1-M03 | `q_a1_m03_register`（后段；前段 `q_a1_m03_town` 无台词槽） | 莉娜 |
+| A1-M04 | `q_a1_m04_hunt` | 布伦；三件委托的进度在玛莎、欧拉、卡西安 |
 | A1-M05 | `q_a1_m05_grey_wolf` | 希雅；葛恩备选 |
-| A1-M06 | `q_a1_m06_one_night_mine` | 罗恩 |
-| A1-M07 | `q_a1_m07_north_spring` | 欧拉 |
-| A1-M08 | `q_a1_m08_summons` | 莫斯（传讯） |
-| A1-M09 | `q_a1_m09_lamp_of_light` | 卡西安（审判）；莫斯包里写在 `q_a1_m09_lamp_of_light` 下的传讯句，归 `q_a1_m08_summons` |
-| A1-M11 | `q_a1_m11_before_dark_moon` | 玛莎（备战）；写在 `q_a1_m12_tide_night` 下的 offer、accept、progress 句归本任务 |
-| A1-M12 | `q_a1_m12_tide_night` | 玛莎、夜羽、巴托、瑟格，同伴各写进度与之后 |
-| A1-M13 | `q_a1_m13_woman_at_door`（阶段 `letter`） | 布伦、乌尔夫 |
-| A1-S01 到 A1-S23 | `q_a1_s01_owen_wagon`、`q_a1_s02_blade_mark`、`q_a1_s03_dice_house`、`q_a1_s04_pact_oak`、`q_a1_s05_burned_shed`、`q_a1_s06_arm_wrestle`、`q_a1_s07_hurt_logger`、`q_a1_s08_salt_price`、`q_a1_s09_coin_origin`、`q_a1_s10_lisa_bundle`、`q_a1_s11_otto_will`、`q_a1_s12_copper_bell`、`q_a1_s13_yeyu_hoard`、`q_a1_s14_grave_lights`、`q_a1_s15_bell_tower`、`q_a1_s16_c_rank_face`、`q_a1_s17_moon_cellar`、`q_a1_s18_bron_drinks`、`q_a1_s19_door_in_you`、`q_a1_s20_nun_testimony`、`q_a1_s21_captain_home`、`q_a1_s22_broken_door_slope`、`q_a1_s23_deer_spring` | 各支线发布者；S12 在 `ln_tpl_peddler` |
+| A1-M06 | `q_a1_m06_mine` | 罗恩 |
+| A1-M07 | `q_a1_m07_spring` | 欧拉 |
+| A1-M08 | 并入 `q_a1_m09_trial`（前段） | 莫斯（传讯） |
+| A1-M09 | `q_a1_m09_trial` | 卡西安（审判）；莫斯包里写在 `q_a1_m09_trial` 下的传讯句属于 A1-M08 段 |
+| A1-M11 | 并入 `q_a1_m12_tide`（前段） | 玛莎（备战）；写在 `q_a1_m12_tide` 下的 offer、accept、progress 句属于本段 |
+| A1-M12 | `q_a1_m12_tide` | 玛莎、夜羽、巴托、瑟格，同伴各写进度与之后 |
+| A1-M13 | `q_a1_m13_letter`（后段） | 布伦、乌尔夫 |
+| A1-S01 到 A1-S23 | `q_a1_s01_owen_wagon`、`q_a1_s02_blade_mark`、`q_a1_s03_dice_house`、`q_a1_s04_pact_oak`、`q_a1_s05_burned_shed`、`q_a1_s06_arm_wrestle`、`q_a1_s07_hurt_logger`、`q_a1_s08_salt_price`、`q_a1_s09_coin`、`q_a1_s10_lisa_bundle`、`q_a1_s11_otto_will`、`q_a1_s12_copper_bell`、`q_a1_s13_yeyu_hoard`、`q_a1_s14_grave_lights`、`q_a1_s15_bell_tower`、`q_a1_s16_c_rank_face`、`q_a1_s17_moon_cellar`、`q_a1_s18_bron_drinks`、`q_a1_s19_door_in_you`、`q_a1_s20_nun_testimony`、`q_a1_s21_captain_home`、`q_a1_s22_broken_door_slope`、`q_a1_s23_deer_spring` | 各支线发布者；S12 在 `ln_tpl_peddler` |
 | A1-D01 到 A1-D09 | `q_a1_d01_tax_and_bandits`、`q_a1_d02_witch_trial`、`q_a1_d03_salt_and_potions`、`q_a1_d04_forest_dispute`、`q_a1_d05_tavern_eyes`、`q_a1_d06_bron_old_wound`、`q_a1_d07_bakery_betrothal`、`q_a1_d08_otto_mill`、`q_a1_d09_market_theft` | 纷争节点的句子写在参与者的 `progress` 与 `after`，用 `when` 区分节点与结局 |
 
 A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽；A1-M01 灰烬室的写定台词在阿什的包里，A1-M10 由门的界面呈现。
@@ -426,16 +426,16 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.goddess_invoked | 1. 别喊那些名字。／2. 她们听见了也不会来。 |
 | react.earth_talk | 1. 你那边的门是什么样的？／2. 会飞的铁？……乌鸦不信。 |
 | react.earth_refuse | 1. 一点就炸的东西？不行。会吓到鸟。／2. 纸做的门资？那叫废纸。 |
-| quest.q_a1_m02_raven_nest.complete | 1. 〔when: a1_yeyu_bound〕……你打赢了。契约就是契约。／2. 我叫夜羽。门口那位给的名字。我想不起来门口那位是谁。 |
-| quest.q_a1_m02_raven_nest.after | 1. 巢里那个铜牌，给你了。我不喜欢不亮的东西。／2. 别跟别人说你打赢过我。 |
+| quest.q_a1_m02_raven.complete | 1. 〔when: a1_yeyu_bound〕……你打赢了。契约就是契约。／2. 我叫夜羽。门口那位给的名字。我想不起来门口那位是谁。 |
+| quest.q_a1_m02_raven.after | 1. 巢里那个铜牌，给你了。我不喜欢不亮的东西。／2. 别跟别人说你打赢过我。 |
 | quest.q_a1_s13_yeyu_hoard.offer | 1. 窗台上的那些，是我捡的。……你要我还？／2. 他们不要的东西，我捡了，有什么错？ |
 | quest.q_a1_s13_yeyu_hoard.progress | 1. 这家的铜勺，那家的扣子……我都记得。／2. 夜里偷偷放回去。白天去，丢脸。 |
 | quest.q_a1_s13_yeyu_hoard.complete | 1. 〔when: npc.yeyu.memory_shards >= 1〕钥匙……要交给开门的人。……我刚才说了什么？／2. 还完了。就剩这把锈钥匙。它不还。 |
 | quest.q_a1_s13_yeyu_hoard.after | 1. 他们现在叫我"那只会偷东西的乌鸦精"。……哼。／2. 那把锈钥匙，我收着。别问为什么。 |
 | quest.q_a1_s14_grave_lights.progress | 1. 〔when: a1_yeyu_bound〕这是澱。坟里的人身上带着灰。……难受。离远点。 |
-| quest.q_a1_m12_tide_night.offer | 1. 〔when: seal_unrest >= 80〕风不对。林子里的鸟全飞了。快了。／2. 〔when: seal_unrest >= 80〕暗月那天晚上，别睡。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕我在上面看着，左边，左边多！／2. 〔when: a1_beast_tide_started〕那个大的……是澱聚起来的。别让它进镇子。 |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_tide_credit == player〕他们说是你。……也不全错。／2. 〔when: a1_tide_credit != player〕他们说是别人。随便。我看见了。 |
+| quest.q_a1_m12_tide.offer | 1. 〔when: seal_unrest >= 80〕风不对。林子里的鸟全飞了。快了。／2. 〔when: seal_unrest >= 80〕暗月那天晚上，别睡。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕我在上面看着，左边，左边多！／2. 〔when: a1_beast_tide_started〕那个大的……是澱聚起来的。别让它进镇子。 |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_tide_credit == player〕他们说是你。……也不全错。／2. 〔when: a1_tide_credit != player〕他们说是别人。随便。我看见了。 |
 | bark.combat | 1. 啧，来！／2. 鸦群，上！／3. 别挡我。 |
 | bark.hurt | 1. 啧……羽毛掉了。／2. 疼。别看我。／3. 还能飞。 |
 | bark.victory | 1. 完了。走。／2. 就这点？／3. 亮的归我。 |
@@ -553,8 +553,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | quest.q_a1_d04_forest_dispute.after | 1. 〔when: a1_forest_accord == restored〕林约回来了。祖灵在上。／2. 〔when: a1_forest_accord == partial〕一半。总比没有好。／3. 〔when: a1_forest_accord == broken〕……东坡要走了。我……还没想好跟不跟。 |
 | quest.q_a1_d02_witch_trial.progress | 1. 欧拉婆婆没害人。我闻得出来。／2. 他们要把她关起来？凭什么。 |
 | quest.q_a1_d02_witch_trial.after | 1. 〔when: a1_oola_fate == cleared〕婆婆回家了。好。／2. 〔when: a1_oola_fate IN (convicted, fled)〕婆婆不在了。东坡的药，以后找谁。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕林缘我守。它们从林子里来，我认得路。／2. 〔when: a1_beast_tide_started〕东坡的人进栅子了吗？快！ |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_bs_survival == intact〕镇子还在。东坡也还在。／2. 〔when: a1_bs_survival != intact〕……烧了好多房子。东坡的熏肉棚也没了。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕林缘我守。它们从林子里来，我认得路。／2. 〔when: a1_beast_tide_started〕东坡的人进栅子了吗？快！ |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_bs_survival == intact〕镇子还在。东坡也还在。／2. 〔when: a1_bs_survival != intact〕……烧了好多房子。东坡的熏肉棚也没了。 |
 | bark.combat | 1. 祖灵在上！／2. 别动，我瞄准了。／3. 左边！ |
 | bark.hurt | 1. 呜……没事。／2. 擦破皮。／3. 还能拉弓。 |
 | bark.victory | 1. 倒了。／2. 好。收箭。／3. 剥皮的活归我。 |
@@ -582,7 +582,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | greet.warm.day | 1. {player}！正找你呢。今天我们……先说好，干安全的。／2. 来了来了，我把盾擦亮了。为什么擦？不知道，紧张。／3. 你在就好。不是说你能打，就是……你在就好。 |
 | greet.warm.night | 1. 坐吧，炉子还热。今天的事我还没缓过来。／2. 睡不着？我也是。我们说点无聊的事吧。／3. 你回来了。我数了一遍人，都在。 |
 | farewell | 1. 走好。别死。我说真的。／2. 明天见。如果明天还在的话。开玩笑的。／3. 我去看看委托板，有安全的给你留着。 |
-| acts.act1.greet.neutral | 1. 〔first〕新来的？F 级？没事，大家都从 F 级开始。／2. 〔when: act_week <= 4〕我叫罗恩，D 级。别问为什么一直是 D 级。／3. 〔when: quest.q_a1_m06_one_night_mine〕矿道那件事……我到现在还觉得在做梦。 |
+| acts.act1.greet.neutral | 1. 〔first〕新来的？F 级？没事，大家都从 F 级开始。／2. 〔when: act_week <= 4〕我叫罗恩，D 级。别问为什么一直是 D 级。／3. 〔when: quest.q_a1_m06_mine〕矿道那件事……我到现在还觉得在做梦。 |
 | acts.act1.greet.warm | 1. 〔when: a1_beast_tide_cleared〕那天晚上我没跑。你看见了吧？我没跑。／2. 〔when: a1_beast_tide_cleared〕镇上的人现在跟我打招呼了。叫我"守门的罗恩"。怪别扭的。 |
 | unbelief.deny | 1. 不可能。／2. 不可能，一个人？那个大小？不可能。／3. 你是在跟我开玩笑，对吧？对吧？ |
 | unbelief.explain | 1. 不可能。……那东西肯定早被独眼团打残了。／2. 不可能。……你是不是跟公会串通了？／3. 你其实是哪家的少爷吧？有护卫偷偷跟着那种？ |
@@ -602,7 +602,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.secret_ron_wolf.K0 | 1. 〔when: trust.ron >= 60〕跟你说个秘密：我从没一个人打赢过一只狼。一只都没有。／2. 〔when: trust.ron >= 60〕我接的委托都是靠计划、靠拉人干完的。这不算本事吧？ |
 | topic.lore_guild_ranks.K1 | 1. F 是新人，E 是不那么新的新人，D 是我，C 是德里斯那样的，B 以上我们这儿没有。／2. A 级？那是传说。我们镇上……没有 A 级。没有吧？ |
 | topic.lore_ranks.K1 | 1. 凡阶、精英阶、英雄阶……普通人一辈子在凡阶。我也是普通人。／2. 鉴定水晶能读出等级。读不出来的……水晶坏了吧。 |
-| topic.place_old_mine.K0 | 1. 东北的旧矿，两年前塌了。塌得很彻底。／2. 〔when: quest.q_a1_m06_one_night_mine〕……一夜打通了。我到现在都不知道怎么回事。 |
+| topic.place_old_mine.K0 | 1. 东北的旧矿，两年前塌了。塌得很彻底。／2. 〔when: quest.q_a1_m06_mine〕……一夜打通了。我到现在都不知道怎么回事。 |
 | topic.person_dris.K0 | 1. 德里斯人不坏，就是……嘴硬。C 级的面子很重要。／2. 〔when: a1_dris_duel_won〕他现在见你就绕道。我觉得他其实挺服你的。 |
 | topic.person_martha.K0 | 1. 玛莎老板娘？好人。做的饭好吃。别惹她，我也说不清为什么。 |
 | react.feat_seen | 1. 不、不可能……／2. 你、你刚才……我什么都没看见。我什么都看见了。 |
@@ -654,14 +654,14 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.goddess_invoked | 1. 你喊谁？……我也喊一下，保险。／2. 别乱喊，我的护符会打架的。 |
 | react.earth_talk | 1. 会自己跑的车？……不可能。……好吧，你那边可能。／2. 你们那边的人都这么敢想吗？ |
 | react.earth_refuse | 1. 一点就炸？教会会烧掉你的，还有我。／2. 纸做的钱？那我的钱袋岂不是一淋雨就没了。 |
-| quest.q_a1_m06_one_night_mine.offer | 1. 旧矿上层的掘穴虫，委托板上挂了一个月了。我们俩……去看看？就看看。／2. 我找了几个人，都说忙。你忙吗？说不忙。 |
-| quest.q_a1_m06_one_night_mine.accept | 1. 好，先说好：看到不对劲就跑。／2. 我带了火把、绳子、三天的干粮，还有五个护符。 |
-| quest.q_a1_m06_one_night_mine.decline | 1. 好吧……那我再去问问德里斯。他会笑我的。 |
-| quest.q_a1_m06_one_night_mine.progress | 1. 不可能。塌了两年的矿道，石头比我们俩加起来都大。／2. 塌方后面有风……有风就是有路。可那不是我们该走的路。／3. 都往后退！左边那块要掉！快！ |
-| quest.q_a1_m06_one_night_mine.complete | 1. ……我一定是在做梦。／2. 一夜。一夜打通。我回去怎么跟布伦说？说矿道自己开了？ |
-| quest.q_a1_m06_one_night_mine.after | 1. 镇上都说矿道里有矮人的机关。……我没反驳。反驳了也没人信。／2. 那张运货单，你收好。上面那个火漆印，我好像在哪见过。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕北门！大家跟我来！拿得动东西的都来！／2. 〔when: a1_beast_tide_started〕别慌！排成一排！盾在前，叉子在后！ |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_tide_credit IN (player, martha)〕巨像……巨像是自己塌的吧？对，一定是灰散了。／2. 〔when: a1_beast_tide_cleared〕我没跑。这次我没跑。 |
+| quest.q_a1_m06_mine.offer | 1. 旧矿上层的掘穴虫，委托板上挂了一个月了。我们俩……去看看？就看看。／2. 我找了几个人，都说忙。你忙吗？说不忙。 |
+| quest.q_a1_m06_mine.accept | 1. 好，先说好：看到不对劲就跑。／2. 我带了火把、绳子、三天的干粮，还有五个护符。 |
+| quest.q_a1_m06_mine.decline | 1. 好吧……那我再去问问德里斯。他会笑我的。 |
+| quest.q_a1_m06_mine.progress | 1. 不可能。塌了两年的矿道，石头比我们俩加起来都大。／2. 塌方后面有风……有风就是有路。可那不是我们该走的路。／3. 都往后退！左边那块要掉！快！ |
+| quest.q_a1_m06_mine.complete | 1. ……我一定是在做梦。／2. 一夜。一夜打通。我回去怎么跟布伦说？说矿道自己开了？ |
+| quest.q_a1_m06_mine.after | 1. 镇上都说矿道里有矮人的机关。……我没反驳。反驳了也没人信。／2. 那张运货单，你收好。上面那个火漆印，我好像在哪见过。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕北门！大家跟我来！拿得动东西的都来！／2. 〔when: a1_beast_tide_started〕别慌！排成一排！盾在前，叉子在后！ |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_tide_credit IN (player, martha)〕巨像……巨像是自己塌的吧？对，一定是灰散了。／2. 〔when: a1_beast_tide_cleared〕我没跑。这次我没跑。 |
 | quest.q_a1_s16_c_rank_face.progress | 1. 德里斯要跟你比？别，他下手没轻重。……算了，你也没轻重。 |
 | bark.combat | 1. 盾！盾在这！／2. 右边，右边来了！／3. 别乱，听我的！ |
 | bark.hurt | 1. 啊啊，疼疼疼！／2. 我没事！我有事！我没事！／3. 护符……护符掉了一个…… |
@@ -691,7 +691,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | greet.warm.night | 1. 坐近点，夜里凉，人老了怕冷，你也别逞强。／2. 你来了，我心里就踏实一点。／3. 喝碗汤，苦的。良药都苦。 |
 | farewell | 1. 去吧，小崽子，别摔着。／2. 草长一季，人活一世。别浪费。／3. 走吧，记得喝水。 |
 | acts.act1.greet.neutral | 1. 〔first〕你就是那个让水晶没反应的？……嗯，眼睛倒是干净。／2. 〔when: a1_witch_trial_started AND a1_oola_fate != cleared〕他们说我是魔女。你也这么想？／3. 〔when: a1_oola_fate == cleared〕神父来道歉了。哼，还算有点骨头。 |
-| acts.act1.greet.warm | 1. 〔when: quest.q_a1_m07_north_spring〕北泉的事，多亏你。孩子们能喝干净水了。／2. 〔when: a1_oola_fate == cleared〕我还活着，还能骂人。托你的福。 |
+| acts.act1.greet.warm | 1. 〔when: quest.q_a1_m07_spring〕北泉的事，多亏你。孩子们能喝干净水了。／2. 〔when: a1_oola_fate == cleared〕我还活着，还能骂人。托你的福。 |
 | unbelief.deny | 1. 本事大不大，我不看传闻，我看手。／2. 镇上说你这样那样，我只当耳旁风。／3. 外头的话，三分真七分草。 |
 | unbelief.explain | 1. 你这身本事，不是从这片土里长出来的。／2. 运气？我活了七十多年，没见过这么好的运气。／3. 我不问你从哪来。你也别问我知道多少。 |
 | unbelief.waver | 1. 我活得够久了，看人不看传闻，看眼睛。你的眼睛没撒谎。／2. 我信我看见的。我看见了。／3. 你不是坏人。这就够了。 |
@@ -765,18 +765,18 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.goddess_invoked | 1. 别乱喊名字，小崽子，有的名字会招来眼睛。／2. 喊了也没用，她们忙。 |
 | react.earth_talk | 1. 你那边的药，比我的好吗？／2. 能治荒原病的药？有就好了。 |
 | react.earth_refuse | 1. 炸东西的粉？那是害人的。我不听。／2. 纸钱？那是给死人烧的。 |
-| quest.q_a1_m04_f_rank_rules.progress | 1. 银叶草长在林缘背阴的地方，叶子背面发白。别采根。／2. 采回来了？嗯，还行，小崽子手不笨。 |
-| quest.q_a1_m07_north_spring.offer | 1. 〔when: trust.oola >= 50〕北区的孩子一个一个倒下。我知道是水。没人信我。你信吗？／2. 夜里去北泉，看看水。带上那个不说话的男孩，他知道路。 |
-| quest.q_a1_m07_north_spring.accept | 1. 好。小心，别喝那水，别碰那灰。 |
-| quest.q_a1_m07_north_spring.progress | 1. 这水发灰。底下有东西在渗。／2. 暗渠往北，往遗迹那边。我就知道。 |
-| quest.q_a1_m07_north_spring.complete | 1. 这是证据。拿着它，神父就不能再说是巫术了。／2. 〔when: a1_north_spring_found〕堵上了？孩子们……孩子们能喝干净水了。 |
-| quest.q_a1_m07_north_spring.after | 1. 荒原病还在，可至少不从泉里来了。／2. 小崽子，你做了一件大事。别告诉别人是我说的。 |
+| quest.q_a1_m04_hunt.progress | 1. 银叶草长在林缘背阴的地方，叶子背面发白。别采根。／2. 采回来了？嗯，还行，小崽子手不笨。 |
+| quest.q_a1_m07_spring.offer | 1. 〔when: trust.oola >= 50〕北区的孩子一个一个倒下。我知道是水。没人信我。你信吗？／2. 夜里去北泉，看看水。带上那个不说话的男孩，他知道路。 |
+| quest.q_a1_m07_spring.accept | 1. 好。小心，别喝那水，别碰那灰。 |
+| quest.q_a1_m07_spring.progress | 1. 这水发灰。底下有东西在渗。／2. 暗渠往北，往遗迹那边。我就知道。 |
+| quest.q_a1_m07_spring.complete | 1. 这是证据。拿着它，神父就不能再说是巫术了。／2. 〔when: a1_north_spring_found〕堵上了？孩子们……孩子们能喝干净水了。 |
+| quest.q_a1_m07_spring.after | 1. 荒原病还在，可至少不从泉里来了。／2. 小崽子，你做了一件大事。别告诉别人是我说的。 |
 | quest.q_a1_s23_deer_spring.offer | 1. 〔when: trust.oola >= 40〕净泉草，林子深处的鹿泉边才有。我给你画个图。 |
 | quest.q_a1_s23_deer_spring.complete | 1. 净泉草！你找着了。鹿带你去的？那就好，鹿认得好人。／2. 这草能救孩子。 |
 | quest.q_a1_d02_witch_trial.progress | 1. 〔when: a1_witch_trial_started〕他们要审我。我不怕死，我怕孩子们没人管。／2. 〔when: a1_witch_trial_started〕我说了是水，没人听。我不能说太多，说多了孩子就危险了。 |
 | quest.q_a1_d02_witch_trial.after | 1. 〔when: a1_oola_fate == cleared〕光之鉴还算公道一回。……是你让它公道的。／2. 〔when: a1_oola_fate == fled〕我得走了，去林子里。孩子们……拜托你了。／3. 〔when: a1_oola_fate == convicted〕他们要押我去瓦伦堡。别哭，小崽子，老太婆没那么容易死。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started AND a1_oola_fate == cleared〕伤员往我这儿抬！快！／2. 〔when: a1_beast_tide_started〕孩子们呢？先把孩子们藏好！ |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_children_safe〕孩子们都在。都在。／2. 〔when: a1_bs_survival != intact〕又要熬好多药了。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started AND a1_oola_fate == cleared〕伤员往我这儿抬！快！／2. 〔when: a1_beast_tide_started〕孩子们呢？先把孩子们藏好！ |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_children_safe〕孩子们都在。都在。／2. 〔when: a1_bs_survival != intact〕又要熬好多药了。 |
 | bark.combat | 1. 小崽子，躲我后面！／2. 草根缠住它！／3. 别硬碰！ |
 | bark.hurt | 1. 老骨头……还撑得住。／2. 哎哟，这一下。／3. 不碍事。 |
 | bark.victory | 1. 完了？伤的过来，我看看。／2. 好，都活着。／3. 歇一口气。 |
@@ -831,8 +831,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | quest.q_a1_s16_c_rank_face.decline | 1. 我就知道。胆小鬼。／2. 怕了吧。 |
 | quest.q_a1_s16_c_rank_face.complete | 1. 〔when: a1_dris_duel_won〕……木桩断了。早就朽了。我早就说该换了。／2. 〔when: NOT a1_dris_duel_won〕哼，C 级就是 C 级。……你让我？你敢让我？ |
 | quest.q_a1_s16_c_rank_face.after | 1. 〔when: a1_dris_duel_won〕下回再比。新木桩是铁木的。／2. 〔when: NOT a1_dris_duel_won〕你欠我一个面子……不对，是我欠你的。别说了。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕C 级的跟我上！别让 F 级的抢了风头！／2. 〔when: a1_beast_tide_started〕这东西……比狼窝大多了…… |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_beast_tide_cleared〕那天你也在。我看见了。……我不说。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕C 级的跟我上！别让 F 级的抢了风头！／2. 〔when: a1_beast_tide_started〕这东西……比狼窝大多了…… |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_beast_tide_cleared〕那天你也在。我看见了。……我不说。 |
 | bark.combat | 1. 看我的！／2. C 级的本事，看好了！ |
 | bark.hurt | 1. 呃……小伤。／2. 别看我，我没事！ |
 | bark.victory | 1. 我打残的。记清楚。／2. 赢了，没悬念。 |
@@ -869,7 +869,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.gen_past.cold | 1. 过去的事不值钱，客人。／2. 换个话题，我请你喝茶。 |
 | topic.gen_past.warm | 1. 我十二岁就进了商会。……别的不说了，说了也不值钱。／2. 我的家在草原那边。现在的家在账本上。 |
 | topic.self_nera_ledger.K1 | 1. 账上写着呢。谁欠谁，一笔都跑不了。／2. 我的账本比我的记性好。 |
-| topic.self_nera_coin.K1 | 1. 这枚硬币？商人的护身符，客人。／2. 〔when: quest.q_a1_s09_coin_origin〕你那枚跟我这枚……一模一样。客人真会开玩笑。 |
+| topic.self_nera_coin.K1 | 1. 这枚硬币？商人的护身符，客人。／2. 〔when: quest.q_a1_s09_coin〕你那枚跟我这枚……一模一样。客人真会开玩笑。 |
 | topic.event_salt_price.K1 | 1. 魔物季前盐价涨，这是行情，不是我定的。／2. 做生意嘛，客人。 |
 | topic.lore_grey_crystal.K1 | 1. 灰晶不能私卖，得经持证的工坊净炼。私卖的，抓到要坐牢。／2. 有人找过我分销那种东西。我没答应。……也没多问。 |
 | topic.person_moss.K1 | 1. 代官大人是个……很会算账的人。／2. 他的账，我不碰。 |
@@ -891,14 +891,14 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.haggle_no | 1. 这个价我已经贴了运费，客人。／2. 魔物季，盐比命贵。 |
 | react.deny | 1. 我？我就是个卖盐的。／2. 客人，你想多了。 |
 | react.evade | 1. 这个话题不在今天的价目上。／2. 我们聊聊生意吧，客人。 |
-| quest.q_a1_s09_coin_origin.offer | 1. 客人，你这枚硬币……能让我看看吗？就看看。／2. 这东西，你从哪儿来的？ |
-| quest.q_a1_s09_coin_origin.progress | 1. 〔when: a1_coin_story〕女神给的？……客人真会开玩笑。／2. 编个故事也行，我爱听故事。 |
-| quest.q_a1_s09_coin_origin.complete | 1. 好吧。不管它从哪来，神龛认它。高级兑换，给你开。／2. 客人，你让我今晚睡不着了。 |
-| quest.q_a1_s09_coin_origin.after | 1. 神龛那边，你常去吧。我……也常去。 |
+| quest.q_a1_s09_coin.offer | 1. 客人，你这枚硬币……能让我看看吗？就看看。／2. 这东西，你从哪儿来的？ |
+| quest.q_a1_s09_coin.progress | 1. 〔when: a1_coin_story〕女神给的？……客人真会开玩笑。／2. 编个故事也行，我爱听故事。 |
+| quest.q_a1_s09_coin.complete | 1. 好吧。不管它从哪来，神龛认它。高级兑换，给你开。／2. 客人，你让我今晚睡不着了。 |
+| quest.q_a1_s09_coin.after | 1. 神龛那边，你常去吧。我……也常去。 |
 | quest.q_a1_s08_salt_price.progress | 1. 盐价？我也想降，客人。可总号的信写得很清楚。／2. 〔when: npc.nera.stance == partner〕好吧。我们来算一笔：降一点价，换一个长期的客人。 |
 | quest.q_a1_d03_salt_and_potions.after | 1. 〔when: npc.nera.stance == partner〕合作愉快，客人。这才刚开始。／2. 〔when: npc.nera.stance == hostile〕客人，你坏了我的生意。账上写着呢。／3. 〔when: npc.nera.stance == bought〕价钱谈好了，我就是你的人。……在账面上。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕药水全拿出来！不要钱！……记账，回头再算！ |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_beast_tide_cleared〕客人，这一夜的药钱，我不收了。别声张。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕药水全拿出来！不要钱！……记账，回头再算！ |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_beast_tide_cleared〕客人，这一夜的药钱，我不收了。别声张。 |
 | bark.work | 1. 这得算算……／2. 盐还剩四十袋。 |
 | bark.eat | 1. 吃饭也要看账，没办法。／2. 醉月亭的饭，性价比不错。 |
 | bark.chat | 1. 酒馆里的消息，一半是钱。／2. 客人们今天说什么了？ |
@@ -958,11 +958,11 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.bribe_refuse | 1. 光不收贿赂。把钱捐给穷人吧。／2. 阁下，这是对光的侮辱。 |
 | react.deny | 1. 报告的内容，不便透露。／2. 没有这回事。 |
 | react.evade | 1. 圣典上说，有些事要等时候到了才明白。／2. 这个……我还没想清楚。 |
-| quest.q_a1_m04_f_rank_rules.progress | 1. 这封信是给我的？谢谢。……是公会转来的教区来函。／2. 你是新登记的冒险者？愿光照着你，这位旅人。 |
-| quest.q_a1_m09_lamp_of_light.progress | 1. 〔when: a1_witch_trial_started〕审判定于光日。光之鉴会照出真相。／2. 〔when: a1_witch_trial_started〕诸位，请安静。光在看着我们每一个人。 |
-| quest.q_a1_m09_lamp_of_light.complete | 1. 〔when: a1_oola_fate == cleared〕……光之鉴照出的，是我的错。我向欧拉女士道歉。当着诸位的面。／2. 〔when: a1_oola_fate == convicted〕光已作出裁决。愿她在瓦伦堡得到公正。／3. 〔when: a1_oola_fate == fled〕她逃了。……我不知道这是光的意思，还是我的失败。 |
-| quest.q_a1_m09_lamp_of_light.after | 1. 〔when: a1_oola_fate == cleared〕我每天去她那里一个时辰，学认草。圣典上没写这些。／2. 〔when: a1_oola_fate != cleared〕我还是每天祈祷。只是……不知道为什么祈祷了。 |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_tide_credit == light〕是光庇佑了边石镇。……是这样的，对吧？／2. 〔when: a1_tide_credit != light〕我在报告里写了实话。实话里有你。 |
+| quest.q_a1_m04_hunt.progress | 1. 这封信是给我的？谢谢。……是公会转来的教区来函。／2. 你是新登记的冒险者？愿光照着你，这位旅人。 |
+| quest.q_a1_m09_trial.progress | 1. 〔when: a1_witch_trial_started〕审判定于光日。光之鉴会照出真相。／2. 〔when: a1_witch_trial_started〕诸位，请安静。光在看着我们每一个人。 |
+| quest.q_a1_m09_trial.complete | 1. 〔when: a1_oola_fate == cleared〕……光之鉴照出的，是我的错。我向欧拉女士道歉。当着诸位的面。／2. 〔when: a1_oola_fate == convicted〕光已作出裁决。愿她在瓦伦堡得到公正。／3. 〔when: a1_oola_fate == fled〕她逃了。……我不知道这是光的意思，还是我的失败。 |
+| quest.q_a1_m09_trial.after | 1. 〔when: a1_oola_fate == cleared〕我每天去她那里一个时辰，学认草。圣典上没写这些。／2. 〔when: a1_oola_fate != cleared〕我还是每天祈祷。只是……不知道为什么祈祷了。 |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_tide_credit == light〕是光庇佑了边石镇。……是这样的，对吧？／2. 〔when: a1_tide_credit != light〕我在报告里写了实话。实话里有你。 |
 | bark.pray | 1. 光啊，照着这座镇子。／2. 求你回应我，一次就好。 |
 | bark.sermon | 1. 诸位，请静一静。／2. 圣典上说：光照之处，秩序生焉。 |
 | bark.work | 1. 灯芯又该剪了。这灯油总是不好。／2. 孩子们今天念到第三页了。 |
@@ -1017,12 +1017,12 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | quest.q_a1_s17_moon_cellar.accept | 1. 好。灯在楼梯口。 |
 | quest.q_a1_s17_moon_cellar.complete | 1. 干净了。不坏，脚步挺稳。／2. 〔when: npc.martha.assessment >= 1〕你没碰那个匣子。好孩子。 |
 | quest.q_a1_s17_moon_cellar.after | 1. 楼上那间房，以后就是你的。 |
-| quest.q_a1_m04_f_rank_rules.progress | 1. 布伦让你来清地窖？好，正好。 |
+| quest.q_a1_m04_hunt.progress | 1. 布伦让你来清地窖？好，正好。 |
 | quest.q_a1_d05_tavern_eyes.progress | 1. 〔when: act_week <= 1〕哎呀，手滑了。／2. 〔when: act_week >= 5 AND act_week <= 7〕孩子，你晚上做梦吗？／3. 〔when: act_week >= 5 AND act_week <= 7〕你是从北边来的吧？ |
 | quest.q_a1_d05_tavern_eyes.after | 1. 〔when: npc.martha.assessment >= 5〕我看了你很久。你能看住门。／2. 〔when: npc.martha.assessment < 5〕还行。再看看。 |
-| quest.q_a1_m12_tide_night.offer | 1. 〔when: seal_unrest >= 80〕北边的风变了。今晚把门窗关好。／2. 〔when: seal_unrest >= 80〕孩子，暗月那天，你别睡死。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕孩子们上楼！朵拉，关后门！／2. 〔when: a1_martha_strike〕……退后。 |
-| quest.q_a1_m12_tide_night.after | 1. 〔when: a1_martha_strike〕风太大，我去关窗。／2. 〔when: a1_beast_tide_cleared〕都还活着？好。先吃饭。 |
+| quest.q_a1_m12_tide.offer | 1. 〔when: seal_unrest >= 80〕北边的风变了。今晚把门窗关好。／2. 〔when: seal_unrest >= 80〕孩子，暗月那天，你别睡死。 |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕孩子们上楼！朵拉，关后门！／2. 〔when: a1_martha_strike〕……退后。 |
+| quest.q_a1_m12_tide.after | 1. 〔when: a1_martha_strike〕风太大，我去关窗。／2. 〔when: a1_beast_tide_cleared〕都还活着？好。先吃饭。 |
 | bark.work | 1. 杯子要擦亮。／2. 这锅汤再炖一刻钟。 |
 | bark.eat | 1. 自己做的饭，自己尝一口。／2. 盐放多了。……还行。 |
 | bark.sleep | 1. ……把门看住……／2. ……铃…… |
@@ -1075,19 +1075,19 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.belief_worship | 1. 我不跪人。不过你那一页……我写得很仔细。／2. 簿子记不下你，我记。 |
 | react.deny | 1. 我没说过。／2. 醉话不算数。 |
 | react.evade | 1. 再来一杯。／2. 簿子上没写的事，我不说。 |
-| quest.q_a1_m03_unrecorded.after | 1. F 级，Lv1，无职能。……簿子上就这么写。 |
-| quest.q_a1_m04_f_rank_rules.offer | 1. 三件 F 级委托：地窖老鼠、采银叶草、送信去礼拜堂。干完了再来。／2. 新来的都从这儿开始。别嫌丢人。 |
-| quest.q_a1_m04_f_rank_rules.accept | 1. 好。别迷路。 |
-| quest.q_a1_m04_f_rank_rules.progress | 1. 还差几件？自己数。 |
-| quest.q_a1_m04_f_rank_rules.complete | 1. 三件都干完了。……行，簿子上给你记一笔。／2. 现在你可以看板上的别的活了。 |
-| quest.q_a1_m04_f_rank_rules.after | 1. F 级的规矩你懂了。别给分部丢脸。 |
+| quest.q_a1_m03_register.after | 1. F 级，Lv1，无职能。……簿子上就这么写。 |
+| quest.q_a1_m04_hunt.offer | 1. 三件 F 级委托：地窖老鼠、采银叶草、送信去礼拜堂。干完了再来。／2. 新来的都从这儿开始。别嫌丢人。 |
+| quest.q_a1_m04_hunt.accept | 1. 好。别迷路。 |
+| quest.q_a1_m04_hunt.progress | 1. 还差几件？自己数。 |
+| quest.q_a1_m04_hunt.complete | 1. 三件都干完了。……行，簿子上给你记一笔。／2. 现在你可以看板上的别的活了。 |
+| quest.q_a1_m04_hunt.after | 1. F 级的规矩你懂了。别给分部丢脸。 |
 | quest.q_a1_s18_bron_drinks.offer | 1. 〔when: hour >= 19〕坐下，陪我喝一杯。 |
 | quest.q_a1_s18_bron_drinks.progress | 1. 那地方，不是给活人去的……／2. 〔when: npc.bron.story_level >= 2〕没有脸的人……你没见过……你不会想见…… |
 | quest.q_a1_s18_bron_drinks.after | 1. 我昨晚说什么了？没说什么。你听错了。 |
-| quest.q_a1_m02_raven_nest.after | 1. 这铜牌……放这儿吧。 |
-| quest.q_a1_m13_woman_at_door.offer | 1. 伯爵要见那个打退兽潮的 F 级。……你说，我该带谁去？ |
-| quest.q_a1_m13_woman_at_door.complete | 1. 收拾收拾，去瓦伦堡。簿子我会带着。 |
-| quest.q_a1_m13_woman_at_door.after | 1. 〔when: npc.bron.secret_kept〕手套戴好。在城里，别让神父看见。／2. 〔when: NOT npc.bron.secret_kept〕……你先去吧。我还有封信要写。 |
+| quest.q_a1_m02_raven.after | 1. 这铜牌……放这儿吧。 |
+| quest.q_a1_m13_letter.offer | 1. 伯爵要见那个打退兽潮的 F 级。……你说，我该带谁去？ |
+| quest.q_a1_m13_letter.complete | 1. 收拾收拾，去瓦伦堡。簿子我会带着。 |
+| quest.q_a1_m13_letter.after | 1. 〔when: npc.bron.secret_kept〕手套戴好。在城里，别让神父看见。／2. 〔when: NOT npc.bron.secret_kept〕……你先去吧。我还有封信要写。 |
 | quest.q_a1_d06_bron_old_wound.after | 1. 〔when: npc.bron.secret_kept〕戴上。在这个镇上，别让神父看见。／2. 〔when: NOT npc.bron.secret_kept〕……你先回去。 |
 | bark.work | 1. 簿子……簿子……／2. 凭证呢？没凭证不发钱。 |
 | bark.eat | 1. 饭就饭，别跟我说委托。 |
@@ -1189,8 +1189,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.bribe_refuse | 1. 当着人？收起来。／2. 这么点？你打发谁呢。 |
 | react.deny | 1. 我不知道你在说什么。／2. 没有的事。 |
 | react.evade | 1. 这事得按规矩来，改日再议。／2. 这位，有些事不该问。 |
-| quest.q_a1_m09_lamp_of_light.offer | 1. 〔when: act_week >= 7〕这位……告示看了吧？请到代官府说明。／2. 〔when: act_week >= 7〕有人报你夜里出入北郊禁地。还与药草师往来甚密。 |
-| quest.q_a1_m09_lamp_of_light.progress | 1. 我也是为镇上着想。说清楚就好。／2. 那只鸟……你的同伴？自称是乌鸦？这可不像正经人。 |
+| quest.q_a1_m09_trial.offer | 1. 〔when: act_week >= 7〕这位……告示看了吧？请到代官府说明。／2. 〔when: act_week >= 7〕有人报你夜里出入北郊禁地。还与药草师往来甚密。 |
+| quest.q_a1_m09_trial.progress | 1. 我也是为镇上着想。说清楚就好。／2. 那只鸟……你的同伴？自称是乌鸦？这可不像正经人。 |
 | quest.q_a1_d01_tax_and_bandits.progress | 1. 〔when: act_week >= 5〕匪患加剧，开征井税附加，这是不得已。／2. 〔when: a1_moss_exposed〕你……你想要什么？我们可以商量。 |
 | quest.q_a1_d01_tax_and_bandits.after | 1. 〔when: a1_moss_fate == arrested〕我是被冤枉的……伯爵大人会明白的。／2. 〔when: a1_moss_fate == puppet〕好、好，都听您的。税率我降。／3. 〔when: a1_moss_fate == in_power〕防御事宜皆由代官府统筹。这是事实。 |
 | bark.work | 1. 账……账要对上。／2. 这事得按规矩来。 |
@@ -1224,9 +1224,9 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.self_lina_wallenburg.K0 | 1. 我想去瓦伦堡，那里的公会好大好大！／2. 嫁去瓦伦堡……啊，我什么都没说！ |
 | topic.event_crystal_broke.K0 | 1. 新来的那位把水晶弄坏了！好厉害！／2. 水晶这个月坏了三次，布伦大叔说拿去给侯克修。 |
 | topic.quest_board.K0 | 1. F 级的委托在左边！清老鼠、采草药、送信，都很安全！ |
-| quest.q_a1_m03_unrecorded.offer | 1. 来，手放在水晶上！别紧张！ |
-| quest.q_a1_m03_unrecorded.complete | 1. 登记好了！F 级，Lv1，无职能。……别难过，水晶修好了再测！／2. 这是您的公会卡，收好哦。 |
-| quest.q_a1_m03_unrecorded.after | 1. 您是这个月第三个让水晶坏掉的人！不对，是唯一一个！ |
+| quest.q_a1_m03_register.offer | 1. 来，手放在水晶上！别紧张！ |
+| quest.q_a1_m03_register.complete | 1. 登记好了！F 级，Lv1，无职能。……别难过，水晶修好了再测！／2. 这是您的公会卡，收好哦。 |
+| quest.q_a1_m03_register.after | 1. 您是这个月第三个让水晶坏掉的人！不对，是唯一一个！ |
 | bark.work | 1. 下一位！／2. 凭证收到，请稍等。 |
 | bark.wander | 1. 洗衣溪那边今天好多人。 |
 | bark.chat | 1. 我跟你说，新来的那个……好厉害！ |
@@ -1606,7 +1606,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | quest.q_a1_s21_captain_home.accept | 1. 醉月亭或者公会石屋。哪里都行，只要不是我家。 |
 | quest.q_a1_s21_captain_home.complete | 1. 她们安全了。……谢谢。 |
 | quest.q_a1_s21_captain_home.after | 1. 现在我可以守北门了。守到最后。 |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started〕北门！关门！弓手上墙！／2. 〔when: a1_beast_tide_started AND quest.q_a1_s21_captain_home〕守住！我家里人不在这条街上，我不退！ |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started〕北门！关门！弓手上墙！／2. 〔when: a1_beast_tide_started AND quest.q_a1_s21_captain_home〕守住！我家里人不在这条街上，我不退！ |
 | bark.patrol | 1. 栅子又松了。／2. 北边没动静。 |
 | bark.tired | 1. 两天没合眼了。 |
 
@@ -1683,7 +1683,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.event_old_watch_908.K1 | 1. 九百零八年。村子烧了一夜。我祖上就在里面。 |
 | quest.q_a1_d01_tax_and_bandits.progress | 1. 〔when: act_week >= 6〕想跟我谈？先打赢我。／2. 〔when: a1_seg_duel_won〕你赢了。说吧，你要什么。 |
 | quest.q_a1_d01_tax_and_bandits.after | 1. 〔when: a1_oneeye_fate == absorbed〕镇外巡队。哼，名字难听，活还行。／2. 〔when: a1_oneeye_fate == destroyed〕……（他没再说话） |
-| quest.q_a1_m12_tide_night.progress | 1. 〔when: a1_beast_tide_started AND a1_oneeye_fate == absorbed〕弟兄们，守南门！这回不是为了领主！ |
+| quest.q_a1_m12_tide.progress | 1. 〔when: a1_beast_tide_started AND a1_oneeye_fate == absorbed〕弟兄们，守南门！这回不是为了领主！ |
 | bark.camp | 1. 酒呢？／2. 别吵，守夜的守好。 |
 | bark.combat | 1. 独眼团，上！ |
 
@@ -1939,7 +1939,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.gen_work.K0 | 1. 收信、送信、租马。／2. 王国的驿务，不分贵贱。 |
 | topic.self_ulf_lange_horses.K0 | 1. 这匹老马跟了我十二年。／2. 马不认得你是几级，它只认得你给不给燕麦。 |
 | topic.secret_ulf_lange_letters.K0 | 1. 〔when: trust.ulf_lange >= 60〕……代官寄往瓦伦堡的信，我拆过一封。写的是"矿石"，收件仓是哈伯的。／2. 〔when: trust.ulf_lange >= 60〕驿卒不该拆信。我就拆过那一回。 |
-| quest.q_a1_m13_woman_at_door.progress | 1. 〔when: a1_count_letter IN (a, b, c, d)〕伯爵府的火漆。给公会的布伦。年轻人，你帮我送过去？ |
+| quest.q_a1_m13_letter.progress | 1. 〔when: a1_count_letter IN (a, b, c, d)〕伯爵府的火漆。给公会的布伦。年轻人，你帮我送过去？ |
 | bark.work | 1. 吁……慢点。／2. 这袋信是北边来的。 |
 
 #### `ln_knut_naumann` 克努特·瑙曼（其余有名；首登第一幕；本批 34 句）
@@ -2364,7 +2364,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | 4 | shiya | 那就跑。 |
 | 5 | ron | ……这个我擅长。 |
 
-#### `party.a1_mine_morning` 一夜之后（cast：ron、yeyu；trigger：事件之后；when：`quest.q_a1_m06_one_night_mine`；once）
+#### `party.a1_mine_morning` 一夜之后（cast：ron、yeyu；trigger：事件之后；when：`quest.q_a1_m06_mine`；once）
 
 | 序 | 说话者 | 句 |
 | --- | --- | --- |
@@ -2511,7 +2511,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | 1 | yeyu | 你手上那个…… |
 | 2 | yeyu | ……没什么。手洗干净再说话。 |
 
-#### `party.a1_act_end` 去瓦伦堡（cast：ron、shiya、yeyu；trigger：幕次；when：`quest.q_a1_m13_woman_at_door`；once）
+#### `party.a1_act_end` 去瓦伦堡（cast：ron、shiya、yeyu；trigger：幕次；when：`quest.q_a1_m13_letter == done`；once）
 
 | 序 | 说话者 | 句 |
 | --- | --- | --- |
@@ -2560,7 +2560,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.place_bs_dice_house.K1 | 1. 骰子屋是荒原那帮人开的，你自己掂量。 |
 | topic.place_east_forest.K0 | 1. 镇东的林子，越往里树越老。／2. 林子里有棵老橡树，叫约树。 |
 | topic.place_east_forest.K1 | 1. 伐区和猎径挨着，伐木的跟东坡的老吵架。 |
-| topic.place_old_mine.K0 | 1. 东北丘陵的旧铁矿，两年前塌了。／2. 〔when: quest.q_a1_m06_one_night_mine〕听说一夜之间打通了，矿道里有矮人的机关。 |
+| topic.place_old_mine.K0 | 1. 东北丘陵的旧铁矿，两年前塌了。／2. 〔when: quest.q_a1_m06_mine〕听说一夜之间打通了，矿道里有矮人的机关。 |
 | topic.place_old_mine.K1 | 1. 塌方是两年前代官说的。塌得也太巧了。 |
 | topic.place_old_watch.K0 | 1. 旧哨村，往东半天路，早没人住了。／2. 现在是荒原那帮匪的窝。 |
 | topic.place_old_watch.K1 | 1. 九百零八年魔王军南下，旧哨村被烧，领主的援兵没来。 |
@@ -2632,7 +2632,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.event_salt_price.K1 | 1. 商会囤着盐呢，等魔物季卖高价。 |
 | topic.event_burned_shed.K0 | 1. 〔when: act_week >= 4〕东坡的猎棚被人烧了。 |
 | topic.event_market_theft.K0 | 1. 〔when: act_week >= 4〕集上丢了个铜铃，说是东坡那小崽子拿的。／2. 〔when: a1_jed_exposed〕铜铃是民兵杰德偷的。冤枉了那孩子。 |
-| topic.event_mine_opened.K0 | 1. 〔when: quest.q_a1_m06_one_night_mine〕旧矿道一夜打通了！说是有矮人的机关，一按就开。／2. 〔when: quest.q_a1_m06_one_night_mine〕连矮人都急了，那就是真有机关。 |
+| topic.event_mine_opened.K0 | 1. 〔when: quest.q_a1_m06_mine〕旧矿道一夜打通了！说是有矮人的机关，一按就开。／2. 〔when: quest.q_a1_m06_mine〕连矮人都急了，那就是真有机关。 |
 | topic.event_beast_tide.K0 | 1. 〔when: a1_tide_credit == player〕那个 F 级打退了兽潮！／2. 〔when: a1_tide_credit == martha〕老板娘一刀斩了巨像！……她说她去关窗了。／3. 〔when: a1_tide_credit == light〕是光庇佑了边石镇。／4. 〔when: a1_tide_credit == self_collapse〕那巨像是自己塌的，灰散了。 |
 | topic.event_beast_tide.K1 | 1. 〔when: a1_beast_tide_cleared〕暗月夜，狼和灰鬼从北边涌过来，后面跟着个大家伙。镇子守住了。 |
 | topic.event_otto_will.K0 | 1. 〔when: act_week >= 3〕老奥托的磨坊，孤儿院和维克在争。／2. 〔when: a1_mill_owner == orphanage〕磨坊归孤儿院了。 |

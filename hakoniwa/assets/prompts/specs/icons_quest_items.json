@@ -321,6 +321,17 @@
       "notes": "挂坠盒是合着的，不画里面的画像。整体是一个小布包，轮廓要简单。"
     },
     {
+      "id": "art_ico_item_ferryman_old_oar",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支旧船桨：细长的木桨斜放着，桨叶边缘磨得发白，带着几道细小的裂纹，桨柄被手掌磨得油亮发黑，柄头缠着一圈褪色的麻绳，木头上还沾着一点干了的河泥。",
+        "en": "An old oar: a long, slender wooden oar laid on a slant, the blade edges worn pale with a few fine cracks, the shaft polished dark and glossy by hands, a loop of faded hemp rope wound around the grip, and a little dried river mud still on the wood."
+      },
+      "ref": "ferryman_old_oar",
+      "milestone": "M2",
+      "notes": "老船夫留下、皮娅攥着的那支旧船桨，与过场特写 art_prop_cut_no_page_oar 是同一件物。只画桨，不画船与河水，不画任何字；桨上不画灰晶与门纹。"
+    },
+    {
       "id": "art_ico_item_rl_crownstone_seal",
       "template": "ico_item",
       "subject": {

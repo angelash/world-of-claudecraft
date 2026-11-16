@@ -705,6 +705,7 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 | `acts`、`hubOf` | 可玩的幕（含回访）；作为可达性起点的幕 |
 | `style`、`stylePlan` | 风格包，或规划中的风格包编号；不写时用区域的 |
 | `sky` | 天幕包：某个有天幕的风格包编号或特殊天幕名（[地图简报](map_briefs.md)第 1.7 节）；不写时用本图风格包，本图风格包没有天幕时用区域的；室内与地下图不显示天幕 |
+| `battleSky` | 战场远山层：`art_bg_battle_<名>`（[地图简报](map_briefs.md)第 1.7 节），只替换天幕包的远山层，中景与云带照旧；`role: battle` 的图总是用，众门环节点所在的图只在节点战斗时用；不写时用天幕包的远山层；地下的节点图不写 |
 | `sediment`、`levels`、`size` | 正典澱度 0 到 5；等级段；尺寸（已建与战场网格写实际，规划写建议） |
 | `scenario`、`optional`、`source`、`note` | 战场网格 id（战场图另写其 `bat_` 剧本，[战争目录](../content/catalog_warfare_strategy.md)第 5.24 节）；可选内容；正典出处；说明 |
 | `music`、`musicNight` | 地点曲的昼与夜编号（`mus_`）；`musicNight` 可空，空则按减层规则（[音频方向](../audio_direction.md)第 5.1 节） |
@@ -728,7 +729,7 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 
 1. **已建条目与内容地图一一对应**（`testfield` 除外）：每张内容地图都有 `built` 条目，每个 `built` 条目都有内容地图，尺寸一致；规划与战场网格条目不得与内容地图同 id。
 2. **每个已建地图的每个出口都被一条路线引用**（`fromExit`，或双向路线的 `toExit`），被引用的出口存在且通向另一端；已建的步与区路线必须写出口。
-3. **风格包合法**：地图与区域的 `style` 是 `STYLE_IDS` 之一；每张图在自身或区域上至少有风格包或规划中的风格包编号；`sky` 是 12 个室外风格包或 5 套特殊天幕之一。
+3. **风格包合法**：地图与区域的 `style` 是 `STYLE_IDS` 之一；每张图在自身或区域上至少有风格包或规划中的风格包编号；`sky` 是 12 个室外风格包或 5 套特殊天幕之一；`battleSky` 以 `art_bg_battle_` 开头。
 4. **引用存在**：区域、父区域、路线两端、省份、大陆图区域、战场网格；战场网格的尺寸与 `battle_scenarios` 一致；地图的省份与区域落在同一个大陆图区域。
 5. **编号**：`code` 符合 P、X、A 到 F 加数字（可带 `-序号`）且全表唯一；`covers` 同格式。
 6. **每幕从枢纽出发全部可达**：每幕恰好一个枢纽；按该幕开放的路线（单向路线只按方向）走，世界图开放的幕再按省份连线走；该幕每张图都要走得到。

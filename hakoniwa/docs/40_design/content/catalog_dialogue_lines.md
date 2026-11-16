@@ -338,7 +338,7 @@
 | `place_bs_west_fields` | 地方 | 地区；本人：西蒙 | | knowledge：K0 | | 无 | 麦田与农舍；新税的痛处 |
 | `place_bs_dice_house` | 地方 | 地区；本人：薇罗、杰德 | | knowledge：K0、K1 | 30 | 无 | 盐巷尽头旧货仓后屋的赌局；K1 版知道是独眼团的人开的 |
 | `place_east_forest` | 地方 | 地区；本人：希雅、葛恩 | | knowledge：K0、K1 | | 无 | 林缘、猎径、约树 |
-| `place_old_mine` | 地方 | 地区；本人：罗恩 | | knowledge：K0、K1 | | M04-C03（K1 后半） | 两年前塌方的旧铁矿；`quest.q_a1_m06_one_night_mine` 后有"矮人机关"的传闻版 |
+| `place_old_mine` | 地方 | 地区；本人：罗恩 | | knowledge：K0、K1 | | M04-C03（K1 后半） | 两年前塌方的旧铁矿；`quest.q_a1_m06_mine` 后有"矮人机关"的传闻版 |
 | `place_old_watch` | 地方 | 地区；本人：瑟格 | | knowledge：K0、K1 | | 无 | 908 年被焚的废村，独眼团的据点 |
 | `place_waste_rim` | 地方 | 地区 | | knowledge：K0、mis | | MIS-02 | 灰沙、枯树、碎石 |
 | `place_sealed_ruins` | 地方 | 地区；本人：夜羽、阿什、布伦 | | knowledge：K0、K1 | | M02-C01、M05-C02 | 凡人禁地、教会禁碑；K1 版有二十年前的探索队 |
@@ -371,7 +371,7 @@
 | `event_salt_price` | 事件 | 地区；本人：奈拉、西蒙、波波 | | knowledge：K0、K1 | | S03-C01 | 魔物季前盐价上涨 |
 | `event_burned_shed` | 事件 | 地区；本人：希雅、加斯帕 | `act_week >= 4` | knowledge：K0 | | 无 | 东坡猎棚被烧 |
 | `event_market_theft` | 事件 | 地区；本人：阿柯、杰德 | `act_week >= 4` | knowledge：K0；按 `a1_jed_exposed` 分句 | | 无 | 集市铜铃失窃 |
-| `event_mine_opened` | 事件 | 地区；本人：罗恩、巴尔加 | `quest.q_a1_m06_one_night_mine` | knowledge：K0 | | 桥段 4 | "矿道里有矮人的机关"及巴尔加的当众否认 |
+| `event_mine_opened` | 事件 | 地区；本人：罗恩、巴尔加 | `quest.q_a1_m06_mine` | knowledge：K0 | | 桥段 4 | "矿道里有矮人的机关"及巴尔加的当众否认 |
 | `event_beast_tide` | 事件 | 地区 | `a1_beast_tide_cleared` | knowledge：K0、K1；按 `a1_tide_credit` 分句 | | M04-C04 | 兽潮之夜与四种归功 |
 | `event_otto_will` | 事件 | 地区；本人：格蕾塔、维克、侯克 | `act_week >= 3` | knowledge：K0；按 `a1_mill_owner` 分句 | | 无 | 磨坊遗嘱之争 |
 | `event_bakery_engagement` | 事件 | 地区；本人：佩德、莉莎、尼克 | `act_week >= 5` | knowledge：K0；按 `a1_lisa_nick` 分句 | | 无 | 面包房的婚约 |
@@ -408,11 +408,11 @@
 
 | 编号 | 类别 | 范围 | 首次可谈 | 版本 | 信任下限 | 台账 | 能答者与要点 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `faith_eluen` | 信仰 | 通用；本人：卡西安、伊莎、贝莎 | | knowledge：K0、K1 | | MIS-01、MIS-04 | 光之女神、圣教 |
-| `faith_valda` | 信仰 | 通用 | | knowledge：K0、mis | | MIS-01 | 教会说她是邪神、魔族之母；战士私下战前祈祷 |
-| `faith_merca` | 信仰 | 通用；本人：奈拉、巴尔加 | | knowledge：K0 | | 无 | 商人与矮人拜的；契约加护 |
-| `faith_sylvie` | 信仰 | 通用；本人：欧拉、葛恩 | | knowledge：K0 | | 无 | 林子与兽人的女神 |
-| `faith_moira` | 信仰 | 通用；本人：侯克 | | knowledge：K0 | | 无 | 记录与学问 |
+| `faith.eluen` | 信仰 | 通用；本人：卡西安、伊莎、贝莎 | | knowledge：K0、K1 | | MIS-01、MIS-04 | 光之女神、圣教 |
+| `faith.valda` | 信仰 | 通用 | | knowledge：K0、mis | | MIS-01 | 教会说她是邪神、魔族之母；战士私下战前祈祷 |
+| `faith.merca` | 信仰 | 通用；本人：奈拉、巴尔加 | | knowledge：K0 | | 无 | 商人与矮人拜的；契约加护 |
+| `faith.sylvie` | 信仰 | 通用；本人：欧拉、葛恩 | | knowledge：K0 | | 无 | 林子与兽人的女神 |
+| `faith.moira` | 信仰 | 通用；本人：侯克 | | knowledge：K0 | | 无 | 记录与学问 |
 | `faith_nameless` | 信仰 | 个人：欧拉、诺伊、苔丝、散居遗民模板 | | knowledge：K1 | 60 | M02-C02 | 遗民的"开门的母亲"；只低声 |
 | `faith_light_mirror` | 信仰 | 地区；本人：卡西安 | | knowledge：K0 | | 无 | 圣灯"光之鉴"与神明裁判 |
 | `faith_holy_day` | 信仰 | 通用 | | knowledge：K0 | | 无 | 礼拜日、什一、洗礼与临终礼 |
@@ -435,18 +435,18 @@
 
 | 编号 | 类别 | 范围 | 首次可谈 | 版本 | 信任下限 | 台账 | 能答者与要点 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `quest_board` | 任务 | 地区；本人：布伦、莉娜 | `a1_guild_registered` | knowledge：K0 | | 无 | F 级的规矩；接出 `q_a1_m04_f_rank_rules` |
+| `quest_board` | 任务 | 地区；本人：布伦、莉娜 | `a1_guild_registered` | knowledge：K0 | | 无 | F 级的规矩；接出 `q_a1_m04_hunt` |
 | `quest_cellar` | 任务 | 个人：玛莎 | | knowledge：K0 | | 无 | 地窖的老鼠；接出 `q_a1_s17_moon_cellar` |
 | `quest_grey_wolf` | 任务 | 地区；本人：希雅、葛恩 | `act_week >= 2` | knowledge：K0 | | 无 | 接出 `q_a1_m05_grey_wolf` |
-| `quest_old_mine` | 任务 | 地区；本人：罗恩 | `act_week >= 4` | knowledge：K0 | | 无 | 接出 `q_a1_m06_one_night_mine` |
+| `quest_old_mine` | 任务 | 地区；本人：罗恩 | `act_week >= 4` | knowledge：K0 | | 无 | 接出 `q_a1_m06_mine` |
 | `quest_owen_cart` | 任务 | 个人：欧文 | `act_week >= 4` | knowledge：K0 | | 无 | 接出 `q_a1_s01_owen_wagon` |
 | `quest_salt` | 任务 | 地区；本人：西蒙 | `act_week >= 5` | knowledge：K0 | | 无 | 接出 `q_a1_s08_salt_price` |
 | `quest_otto_will` | 任务 | 个人：格蕾塔 | `act_week >= 3` | knowledge：K0 | | 无 | 接出 `q_a1_s11_otto_will` |
 | `quest_copper_bell` | 任务 | 地区（集市摊贩） | `act_week >= 4` | knowledge：K0 | | 无 | 接出 `q_a1_s12_copper_bell` |
 | `quest_c_rank_duel` | 任务 | 个人：德里斯 | `act_week >= 3` | knowledge：K0 | | 无 | 接出 `q_a1_s16_c_rank_face` |
 | `quest_seg_duel` | 任务 | 个人：瑟格 | `act_week >= 6` | knowledge：K0 | | 无 | 单挑；落在 `q_a1_d01_tax_and_bandits` 的节点 f |
-| `quest_tide_prep` | 任务 | 地区；本人：玛莎、夜羽 | `seal_unrest >= 80` | knowledge：K0 | | 无 | 暗月之前的准备；接出 `q_a1_m12_tide_night` |
-| `quest_count_summons` | 任务 | 个人：布伦 | `a1_count_letter IN (a, b, c, d)` | knowledge：K0 | | 无 | 伯爵要见人；接出 `q_a1_m13_woman_at_door` |
+| `quest_tide_prep` | 任务 | 地区；本人：玛莎、夜羽 | `seal_unrest >= 80` | knowledge：K0 | | 无 | 暗月之前的准备；接出 `q_a1_m12_tide` |
+| `quest_count_summons` | 任务 | 个人：布伦 | `a1_count_letter IN (a, b, c, d)` | knowledge：K0 | | 无 | 伯爵要见人；接出 `q_a1_m13_letter` |
 
 **个人与秘密（本人包）**
 
@@ -538,7 +538,7 @@
 | `event_promotion_exam` | 事件 | 地区 | `a2_promotion_exam` | knowledge：K0 | | M03-C04 | B 级晋升考核里水晶又没亮 |
 | `event_heroes_arrive` | 事件 | 地区 | `a2_heroes_arrived` | knowledge：K0、K1 | | M11-C02 | 圣教勇者团进城 |
 | `event_light_trial` | 事件 | 地区 | `a2_trial_outcome` | knowledge：K0；按 `a2_trial_outcome` 分句 | | MIS-19 的延续 | 光之审 |
-| `event_city_tide` | 事件 | 地区 | `quest.q_a2_m12_tide_under_city` | knowledge：K0；按 `a2_wb_damage` 分句 | | 无 | 城下潮 |
+| `event_city_tide` | 事件 | 地区 | `quest.q_a2_m12_defense` | knowledge：K0；按 `a2_wb_damage` 分句 | | 无 | 城下潮 |
 | `event_door_company` | 事件 | 地区 | `a2_company_partner` | knowledge：K0 | | 无 | 门扉商会开张 |
 | `event_faceless_projection` | 事件 | 个人：玛莎、布伦、无貌者在场者 | `a2_faceless_projection` | knowledge：K2 | | M09-C03、S07-C02 | 投影事件；"没有脸的人"在此之后可称"无貌者" |
 | `lore_blank_years` | 世界 | 个人：学院史官、约纳斯、希尔德加德 | `a2_archivist_met` | knowledge：K1、K2、mis | 50 | M06-C01、MIS-03 | 学院年表圣历元年前五十年空白；`mis` 为"蒙昧时代" |
@@ -560,7 +560,7 @@
 | `event_holy_war` | 事件 | 地区 | `act >= 3` | knowledge：K0、mis | | MIS-07 雏形 | 圣战号召；教会说"异端引来了灾祸" |
 | `event_dawn_pillar` | 事件 | 地区 | `a3_holy_war_miracle` | knowledge：K0、K1 | | M04-C07 | 曙光圣柱与之后荒原的变化 |
 | `event_reedpond` | 事件 | 个人：在场者、遗民、结衣、马库斯 | `a3_massacre_witnessed` | knowledge：K1；按 `a3_reedpond_outcome` 分句 | | S06-C02、S04-C03 | 苇塘村事件 |
-| `event_ashline` | 事件 | 地区 | `quest.q_a3_m11_ash_line` | knowledge：K0 | | 无 | 灰烬防线之战 |
+| `event_ashline` | 事件 | 地区 | `quest.q_a3_m11_ashline` | knowledge：K0 | | 无 | 灰烬防线之战 |
 | `event_sasha_duel` | 事件 | 地区 | `a3_sasha_result` | knowledge：K0 | | M05-C08 | 与萨莎的决斗、撤军时那句话 |
 | `event_eluen_voice` | 事件 | 个人：在场者 | `a3_eluen_speaks` | knowledge：K1、K4 | | M01-C07 | 大主教口中艾琉恩的那句话（锚点 A02 的回扣） |
 | `event_capital_coup` | 事件 | 地区 | `a3_drake_fate` | knowledge：K0 | | 无 | 宰相投敌前后；事前只有宰相本人知道 |

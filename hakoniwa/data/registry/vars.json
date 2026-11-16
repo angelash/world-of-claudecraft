@@ -1210,7 +1210,7 @@
         "in_power",
         "puppet",
         "arrested",
-        "fled_south",
+        "fled",
         "dead",
         "retained",
         "dismissed",
@@ -2311,6 +2311,25 @@
       "source": "8.4"
     },
     {
+      "name": "a2_aiden_stars",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["ledger"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_aiden_stars",
+      "source": "8.7"
+    },
+    {
       "name": "a2_archivist_met",
       "kind": "flag",
       "scope": "act_flag",
@@ -2461,6 +2480,25 @@
       "ai": "ledger",
       "label": "var.a2_blank_chronicle",
       "source": "8.4"
+    },
+    {
+      "name": "a2_buyer_traced",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_buyer_traced",
+      "source": "8.7"
     },
     {
       "name": "a2_cage_evidence",
@@ -3033,6 +3071,25 @@
       "source": "8.8.3"
     },
     {
+      "name": "a2_ferryman_met_luchen",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_ferryman_met_luchen",
+      "source": "8.7"
+    },
+    {
       "name": "a2_ferryman_ninth",
       "kind": "flag",
       "scope": "act_flag",
@@ -3221,6 +3278,25 @@
       "ai": "ledger",
       "label": "var.a2_greyrat_deal",
       "source": "8.3"
+    },
+    {
+      "name": "a2_greyroad_cut",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_greyroad_cut",
+      "source": "8.7"
     },
     {
       "name": "a2_haber_exposed",
@@ -3525,6 +3601,44 @@
       "ai": "ledger",
       "label": "var.a2_luchen_saw_defendant_good",
       "source": "8.8.3"
+    },
+    {
+      "name": "a2_marcus_shiya_friends",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_marcus_shiya_friends",
+      "source": "8.7"
+    },
+    {
+      "name": "a2_merca_loan",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_merca_loan",
+      "source": "8.7"
     },
     {
       "name": "a2_mirror_fooled",
@@ -4292,6 +4406,25 @@
       "ai": "ledger",
       "label": "var.a2_wb_ruler",
       "source": "8.4"
+    },
+    {
+      "name": "a2_yui_herbs",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": 2,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a2_yui_herbs",
+      "source": "8.7"
     },
     {
       "name": "a2_yui_saw_light",
@@ -6659,7 +6792,7 @@
       "values": null,
       "aliases": [],
       "writers": ["content"],
-      "readers": [],
+      "readers": ["content"],
       "derive": null,
       "monotone": false,
       "act": 3,
@@ -12036,6 +12169,25 @@
       "source": "8.5"
     },
     {
+      "name": "npc.ron.command_growth",
+      "kind": "int",
+      "scope": "family",
+      "range": [0, 3],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.npc.ron.command_growth",
+      "source": "8.5"
+    },
+    {
       "name": "npc.selene.evidence",
       "kind": "int",
       "scope": "family",
@@ -12547,7 +12699,7 @@
       "range": null,
       "step": null,
       "default": null,
-      "values": ["back", "regret", "thanks", "silent"],
+      "values": ["back", "regret", "thanks", "silent", "free"],
       "aliases": ["prologue.last_words"],
       "writers": ["content"],
       "readers": ["content"],
@@ -13642,7 +13794,7 @@
         {
           "name": "act",
           "domain": "act",
-          "keys": ["act1", "act2", "act3", "act4", "act5", "act6"]
+          "keys": ["act1", "act2", "act3", "act4", "act5"]
         }
       ]
     },
@@ -15400,7 +15552,8 @@
             "past_life",
             "rejection",
             "call",
-            "appraise"
+            "appraise",
+            "last_words"
           ]
         }
       ]
@@ -16385,6 +16538,9 @@
       "乙": "b",
       "甲": "a"
     },
+    "a1_moss_fate": {
+      "fled_south": "fled"
+    },
     "a1_tide_credit": {
       "collapse": "self_collapse",
       "collapsed": "self_collapse",
@@ -16405,7 +16561,9 @@
       "是": "true"
     },
     "a4_summit_result": {
+      "alliance": "league",
       "broad": "league",
+      "divided": "accord",
       "narrow": "accord",
       "分化": "accord",
       "圣战联军": "crusade",
@@ -16490,6 +16648,7 @@
       "你们会后悔的。": "regret",
       "我会回来的": "back",
       "我会回来的。": "back",
+      "自由说一句": "free",
       "谢谢你的硬币": "thanks",
       "（什么都不说）": "silent"
     },
