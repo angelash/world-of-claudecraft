@@ -102,6 +102,7 @@
 | D-092 | 2026-11-16 | 野外澱巢的编号是 `nest_` 加巢主 ID，与迷宫共用镜像族 `dg.<迷宫或巢>.<字段>`；灰路是走私线而不是势力，`route_state.<路>` 的键是图集路线或商路的 ID，风险档 3 是断路 | 悬空引用要落到已有的实体与编号体系上 | `../40_design/content/catalog_bestiary.md` 第 6 节、`../40_design/world_state_registry.md` 第 8.6、8.7 节 |
 | D-093 | 2026-11-16 | 天幕归属：地图经图集字段 `sky` 取风格包的天幕；战场与众门环地上节点另以 `battleSky` 换远山层（`art_bg_battle_<剧本>`），地下节点没有天幕 | 一个风格包一套天幕与一个战场一张远景并不矛盾，只换远山层即可两全 | `../40_design/world/map_briefs.md` 第 1.7 节、`../40_design/content/catalog_warfare_strategy.md` 第 13.5 节 |
 | D-094 | 2026-11-16 | 变量口径补正：莫斯南逃取 `fled`（`fled_south` 为值别名）；序章自由说的最后一句存 `p_free.last_words`，`p_last_words` 记 `free`；越约只发生在第一到第五幕；`slg.convene` 是命令不是变量；会盟的内部结果 alliance、divided 写成 `league`、`accord`；女神反应表的开门事件词用 `player.opened_door` | 分幕正典优先于注册表；变量只记状态，命令与原话各归其位 | `../40_design/world_state_registry.md` 第 1.2、7.6、8.4、8.5 节、`../40_design/content/catalog_goddess_interventions.md` 第 6.1 节 |
+| D-095 | 2026-11-16 | 标题页是活的场景：用 HD-2D 渲染器把最近一次存档停下的地图按存档的时刻与天气铺满窗口（无存档时画序章候见厅），推近加横向慢漂，可赏景换时刻与天气，渲染器当场拍封面供下次先垫；不再另画按幕的标题插画 `art_key_title_*`。大模型的入口是一个共用的连接弹层 `ui_pop_llm_connect`（首次启动"关于 AI"页、标题提示卡、新游戏页、修复按钮共用），连不连都能开局 | 参照 my_ai_town 的选镇页、"还差一步"提示卡与连接弹层；活场景只画玩家到过的地方，天然不剧透，美术未到位时也比静态主视觉更早可用；本作没有模型时由内置 AI 驱动完整体验（D-010），所以连接永远可选 | `../40_design/ux_and_onboarding.md` 第 3.2、3.3 节、`../10_research/art_style/my_ai_town_visual_and_client.md` 第 8.5 节、`../50_tech/llm_providers.md` 第 5.1 节 |
 
 ## 2. 未决问题
 

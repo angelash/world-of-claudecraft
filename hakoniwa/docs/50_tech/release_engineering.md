@@ -556,7 +556,7 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
   "savedAt": "2027-03-02T12:00:00Z",
   "tick": 1234567,
   "flags": { "ironman": false, "demo": false, "tainted": false, "recovered": false },
-  "summary": { "act": "act2", "map": "wallenburg", "level": 21, "doorStage": 6, "playSeconds": 54000, "aiPreset": "off" },
+  "summary": { "act": "act2", "map": "wallenburg", "level": 21, "doorStage": 6, "playSeconds": 54000, "aiPreset": "off", "minute": 1050, "weather": "clear" },
   "files": {
     "snapshot": { "sha256": "…64 位十六进制…", "bytes": 1830211 },
     "segments": [{ "kind": "history", "sha256": "…", "fromTick": 0, "toTick": 604800 }],
@@ -575,7 +575,7 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 | 锚点 | 某个过去时刻的完整快照，与普通快照同格式 | 同快照 |
 
 - 锚点：每 7 个游戏日一份，保留最近 4 份；铁人局另在每次幕次变化时留一份。
-- 缩略图与 `summary` 只用于槽位列表，读档不依赖它们。
+- 缩略图与 `summary` 只用于槽位列表与标题场景（`minute` 是一天里的分钟，`weather` 是存档时的天气，标题按它们打光，[ux_and_onboarding.md](../40_design/ux_and_onboarding.md) 第 3.3.2 节），读档不依赖它们。
 - 世界哈希（`src/core/save.ts` 的 `worldHash`）只覆盖快照里的 `slices` 与 `meta`，与容器无关。
 
 ### 5.4 写入顺序与原子性

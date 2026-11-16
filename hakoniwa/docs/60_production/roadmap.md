@@ -104,7 +104,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 目标 | 1. 验证 [game_framework.md](../40_design/game_framework.md) 第 15 节的六个核心假设：序章女神对话、边石镇 AI 社会、"凡人不信"、战斗手感、千门发掘感、无模型完整通关。<br>2. 证明生产管线可复用：每类内容都走正式管线，从目录到数据、从提示词到入库素材。<br>3. 产出每单位内容的工时与成本，作为 M2、M3 重估的依据。 |
-| 范围 | 第 5 节 MoSCoW；[development_plan.md](development_plan.md) 第 4.2 节的 43 个包 |
+| 范围 | 第 5 节 MoSCoW；[development_plan.md](development_plan.md) 第 4.2 节的 44 个包 |
 | 进入标准 | 1. M0 退出。<br>2. PT-07 通过，M1 素材批次的顺序已排定（[development_plan.md](development_plan.md) 第 5.2 节）。<br>3. 切片范围（第 5.1 节 MoSCoW）由用户批准并登记。 |
 | 退出标准 | 1. 第 4 节验收矩阵 M1 列与第 5.3 节 VS-01 到 VS-14 全部 PASS（"目标"类 FAIL 须用户书面接受）。<br>2. [development_plan.md](development_plan.md) 第 9.2 节清单全部通过。<br>3. 切片后决策（第 5.5 节）写进决策日志。 |
 | 内部检查点 | VS-A 与 VS-B（第 5.2 节） |
