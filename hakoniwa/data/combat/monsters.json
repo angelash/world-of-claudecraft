@@ -56,7 +56,7 @@
     ],
     "money": [1, 3],
     "appearance": {
-      "base": "beast",
+      "base": "rat",
       "colors": ["#6b6359", "#4a443d", "#c9a9a0", "#2a2622"],
       "scale": 0.5
     }
@@ -222,7 +222,7 @@
     ],
     "money": [3, 8],
     "appearance": {
-      "base": "beast",
+      "base": "boar",
       "colors": ["#5d4a3a", "#3e3127", "#9c8b7a", "#201914"],
       "scale": 0.95
     }
@@ -251,7 +251,7 @@
     ],
     "money": [3, 8],
     "appearance": {
-      "base": "beast",
+      "base": "spider",
       "colors": ["#3a3f37", "#23261f", "#a9b29a", "#121410"],
       "scale": 0.85
     }
@@ -279,7 +279,7 @@
     ],
     "money": [3, 9],
     "appearance": {
-      "base": "beast",
+      "base": "worm",
       "colors": ["#7a6a55", "#4e4336", "#c8b89a", "#2a241c"],
       "scale": 0.9
     }
@@ -408,7 +408,7 @@
     ],
     "money": [60, 120],
     "appearance": {
-      "base": "beast",
+      "base": "bear",
       "colors": ["#1f1d1b", "#3d3833", "#7a6f64", "#0c0b0a"],
       "scale": 1.5
     }
@@ -478,7 +478,7 @@
     ],
     "money": [40, 80],
     "appearance": {
-      "base": "beast",
+      "base": "beetle",
       "colors": ["#6a6f7a", "#9fb4c8", "#d9e4ef", "#2a2d33"],
       "scale": 1.6
     }
@@ -769,7 +769,7 @@
     ],
     "money": [10, 24],
     "appearance": {
-      "base": "beast",
+      "base": "leech",
       "colors": ["#3b2a2e", "#24191b", "#7a4a52", "#100a0b"],
       "scale": 0.8
     }
@@ -825,7 +825,7 @@
     ],
     "money": [16, 34],
     "appearance": {
-      "base": "beast",
+      "base": "centipede",
       "colors": ["#4a5866", "#2b333c", "#a8c4dc", "#14181c"],
       "scale": 1
     }
@@ -927,7 +927,7 @@
     "money": [100, 200],
     "xpMult": 2,
     "appearance": {
-      "base": "beast",
+      "base": "rat",
       "colors": ["#5e544a", "#3a332c", "#c9a9a0", "#1e1a16"],
       "scale": 1.9
     }
@@ -980,7 +980,7 @@
     "money": [300, 600],
     "xpMult": 2,
     "appearance": {
-      "base": "beast",
+      "base": "centipede",
       "colors": ["#3c4a58", "#7fa6c6", "#d6ecff", "#12171c"],
       "scale": 2.2
     }
@@ -1041,7 +1041,7 @@
     ],
     "money": [26, 55],
     "appearance": {
-      "base": "spirit",
+      "base": "elemental",
       "colors": ["#5a5652", "#34312e", "#c8c0b8", "#1a1816"],
       "scale": 1.2
     }
@@ -1105,7 +1105,7 @@
     ],
     "money": [90, 180],
     "appearance": {
-      "base": "beast",
+      "base": "drake",
       "colors": ["#5a2e24", "#2e1813", "#c8784a", "#140a08"],
       "scale": 1.8
     }
@@ -1192,7 +1192,7 @@
     ],
     "money": [80, 160],
     "appearance": {
-      "base": "demon",
+      "base": "ogre",
       "colors": ["#8a3a2a", "#4a2a24", "#c8644a", "#1a1010"],
       "scale": 1.25
     }
@@ -1319,7 +1319,7 @@
     ],
     "money": [40, 90],
     "appearance": {
-      "base": "spirit",
+      "base": "shade",
       "colors": ["#1c1c22", "#0c0c10", "#5a5a6a", "#000000"],
       "scale": 1.2
     }
@@ -1467,7 +1467,7 @@
     "range": 6,
     "school": "fire",
     "appearance": {
-      "base": "demon",
+      "base": "imp",
       "colors": ["#a83a1a", "#5a1a0a", "#ffb060", "#200800"],
       "scale": 0.55
     }

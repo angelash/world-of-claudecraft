@@ -91,8 +91,10 @@ export class UnitFrame {
       return;
     }
     const look = lookFromEntity(entity);
-    if (look.key !== this.lookKey) {
-      this.lookKey = look.key;
+    // The portrait art reference is part of what the frame shows (art_pipeline.md 3.6).
+    const lookKey = `${look.key}|${look.art?.portrait ?? ''}`;
+    if (lookKey !== this.lookKey) {
+      this.lookKey = lookKey;
       const c = portraitCanvas(this.sprites, look, 48);
       c.className = 'hk-portrait-canvas';
       this.portrait.replaceChildren(c);

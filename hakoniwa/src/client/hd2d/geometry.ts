@@ -160,13 +160,162 @@ export interface RoofMesh {
   chimneyAt: V3;
 }
 
-export const ROOF_PITCH_DEG: Record<RoofShape, number> = { gable: 36, hip: 30, flat: 0 };
+/** Slope pitch in degrees; for the dome it is the slope at the dome's foot. */
+export const ROOF_PITCH_DEG: Record<RoofShape, number> = {
+  gable: 36,
+  hip: 30,
+  flat: 0,
+  dome: 90,
+  cone: 32,
+  spire: 62,
+};
+
+/** Facets around the revolved roofs: smooth enough for a tent or a dome, eight for a spire. */
+export const ROOF_SEGMENTS: Readonly<Record<'dome' | 'cone' | 'spire', number>> = {
+  dome: 16,
+  cone: 16,
+  spire: 8,
+};
+
+/** Dome profile: rings of [radius fraction, height fraction] from the foot to the crown. */
+const DOME_RINGS: readonly [number, number][] = [
+  [1, 0],
+  [0.92, 0.38],
+  [0.71, 0.71],
+  [0.38, 0.92],
+  [0, 1],
+];
+
+/**
+ * A roof of revolution over the rect (art_pipeline.md 1.7): rings around the rect's centre
+ * whose facets enclose the ellipse through the shell corners grown by the overhang, so the
+ * eave stands above the wall top at every corner; rings are joined by quads (triangles at the
+ * apex). The slopes texture wraps once around (u) and runs from the apex (v 0) to the
+ * eave (v 1), like the gable slopes. The dome sits on a flat slab and spans the shorter side.
+ */
+function revolvedRoof(
+  rect: Rect,
+  wallH: number,
+  shape: 'dome' | 'cone' | 'spire',
+  slopes: MeshData,
+): { wPx: number; lPx: number; ridgeY: number } {
+  const oh = ROOF_OVERHANG;
+  const cx = rect.x + rect.w / 2;
+  const cz = rect.y + rect.h / 2;
+  const n = ROOF_SEGMENTS[shape];
+  let rings: [number, number, number][];
+  if (shape === 'dome') {
+    const r = Math.min(rect.w, rect.h) / 2;
+    const foot = wallH + 0.12;
+    rings = DOME_RINGS.map(([k, h]) => [r * k, r * k, foot + r * 0.9 * h]);
+  } else {
+    // The facets are chords of the ring: grow it so the polygon, not just its corners,
+    // encloses the ellipse through the shell corners plus the overhang.
+    const grow = 1 / Math.cos(Math.PI / n);
+    const rx = ((rect.w / 2) * Math.SQRT2 + oh) * grow;
+    const rz = ((rect.h / 2) * Math.SQRT2 + oh) * grow;
+    const tan = Math.tan((ROOF_PITCH_DEG[shape] * Math.PI) / 180);
+    const eaveY = wallH - oh * tan;
+    rings = [
+      [rx, rz, eaveY],
+      [0, 0, eaveY + Math.max(rx, rz) * tan],
+    ];
+  }
+  // Slant length along the profile sets the texture height; the eave ring sets its width.
+  let slant = 0;
+  for (let i = 1; i < rings.length; i++) {
+    const [ax, , ay] = rings[i - 1] as [number, number, number];
+    const [bx, , by] = rings[i] as [number, number, number];
+    slant += Math.hypot(ax - bx, ay - by);
+  }
+  const [erx, erz] = rings[0] as [number, number, number];
+  const around = Math.PI * (erx + erz);
+  const at = (ring: [number, number, number], k: number): V3 => {
+    const a = (k / n) * Math.PI * 2 + Math.PI / n;
+    return [cx + Math.cos(a) * ring[0], ring[2], cz + Math.sin(a) * ring[1]];
+  };
+  let v0 = 0;
+  for (let i = 0; i < rings.length - 1; i++) {
+    const lo = rings[i] as [number, number, number];
+    const hi = rings[i + 1] as [number, number, number];
+    const step = Math.hypot(lo[0] - hi[0], lo[2] - hi[2]) / slant;
+    const vLo = 1 - v0;
+    const vHi = 1 - v0 - step;
+    for (let k = 0; k < n; k++) {
+      const mid = ((k + 0.5) / n) * Math.PI * 2 + Math.PI / n;
+      const out: V3 = [Math.cos(mid), 0.6, Math.sin(mid)];
+      const u0 = k / n;
+      const u1 = (k + 1) / n;
+      if (hi[0] === 0 && hi[1] === 0) {
+        addPolygon(
+          slopes,
+          [at(lo, k), at(lo, k + 1), at(hi, k)],
+          [
+            [u0, vLo],
+            [u1, vLo],
+            [(u0 + u1) / 2, Math.max(0, vHi)],
+          ],
+          out,
+        );
+      } else {
+        addPolygon(
+          slopes,
+          [at(lo, k), at(lo, k + 1), at(hi, k + 1), at(hi, k)],
+          [
+            [u0, vLo],
+            [u1, vLo],
+            [u1, vHi],
+            [u0, vHi],
+          ],
+          out,
+        );
+      }
+    }
+    v0 += step;
+  }
+  if (shape === 'dome') {
+    // The slab the dome stands on, with a low lip, as on a flat roof.
+    const top = wallH + 0.12;
+    addPolygon(
+      slopes,
+      [
+        [rect.x - 0.1, top, rect.y + rect.h + 0.1],
+        [rect.x + rect.w + 0.1, top, rect.y + rect.h + 0.1],
+        [rect.x + rect.w + 0.1, top, rect.y - 0.1],
+        [rect.x - 0.1, top, rect.y - 0.1],
+      ],
+      [
+        [0, 1],
+        [1, 1],
+        [1, 0.9],
+        [0, 0.9],
+      ],
+      [0, 1, 0],
+    );
+  }
+  const crown = rings[rings.length - 1] as [number, number, number];
+  return {
+    wPx: Math.max(4, Math.round(around * TILE_PX)),
+    lPx: Math.max(4, Math.round(slant * TILE_PX)),
+    ridgeY: crown[2],
+  };
+}
 
 /** Roof over a shell rect whose walls are `wallH` metres tall. */
 export function roofMesh(rect: Rect, wallH: number, shape: RoofShape, ridge: 'x' | 'z'): RoofMesh {
   const slopes = emptyMesh();
   const gables = emptyMesh();
   const oh = ROOF_OVERHANG;
+  if (shape === 'dome' || shape === 'cone' || shape === 'spire') {
+    const r = revolvedRoof(rect, wallH, shape, slopes);
+    // A chimney stands off-centre on the slab or the slope.
+    return {
+      slopes,
+      gables,
+      ...r,
+      chimneyAt: [rect.x + rect.w * 0.2, wallH + 0.12, rect.y + rect.h * 0.25],
+    };
+  }
   if (shape === 'flat') {
     const top = wallH + 0.12;
     const x0 = rect.x - 0.1;

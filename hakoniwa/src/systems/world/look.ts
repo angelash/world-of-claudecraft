@@ -5,7 +5,12 @@
 
 import { BLOCKING_TILES, type TileKind } from './types';
 
-/** Style packs (art_pipeline.md 1.4): one per landscape family. */
+/**
+ * Style packs (art_pipeline.md 1.4): one per landscape family, the same ids as the `styles`
+ * of assets/prompts/templates.json. The first six paint the built maps; the national packs
+ * (holy_see_white to sleepscale_snow) arrive with act 4, forge_deep with the rust ridge mine,
+ * door_corridor with the corridor of doors and earth_modern with the prologue's Earth scenes.
+ */
 export const STYLE_IDS = [
   'lothar_plain',
   'valen_city',
@@ -13,24 +18,57 @@ export const STYLE_IDS = [
   'sealed_ruins',
   'ash_waste',
   'divine_court',
+  'holy_see_white',
+  'grantia_ochre',
+  'mercato_coast',
+  'silva_canopy',
+  'windfang_steppe',
+  'night_basalt',
+  'sleepscale_snow',
+  'forge_deep',
+  'door_corridor',
+  'earth_modern',
 ] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
-/** Map region (docs/20_world/geography.md) to its default style pack. */
+/**
+ * Region to its default style pack. The keys are the atlas regions of
+ * data/world/atlas_regions.json (their `style`, or the `stylePlan` of a region whose pack
+ * arrives later; the continent has none), followed by the geography.md region names the
+ * built maps still carry until their `region` moves to atlas regions (development plan
+ * PK-M1-16). tests/look_layer.test.ts keeps the atlas half equal to the atlas data.
+ */
 export const REGION_STYLE: Readonly<Record<string, StyleId>> = {
+  divine_realm: 'divine_court',
+  court_gap: 'divine_court',
+  edgestone_area: 'lothar_plain',
+  valen_valley: 'valen_city',
+  lotha_realm: 'lothar_plain',
+  ashen_waste: 'ash_waste',
+  holy_see: 'holy_see_white',
+  grantia: 'grantia_ochre',
+  mercato: 'mercato_coast',
+  silva: 'silva_canopy',
+  windfang: 'windfang_steppe',
+  nightrealm: 'night_basalt',
+  sleepscale: 'sleepscale_snow',
+  // geography.md names on the built maps
   borderstone_region: 'lothar_plain',
   lotha_north: 'lothar_plain',
   lothar_north: 'lothar_plain',
-  valen_valley: 'valen_city',
   wallenburg: 'valen_city',
   borderstone_wilds: 'wild_forest',
   ash_waste: 'ash_waste',
-  court_gap: 'divine_court',
   divine_court: 'divine_court',
   divine: 'divine_court',
 };
 
-export const ROOF_SHAPES = ['gable', 'hip', 'flat'] as const;
+/**
+ * Roof geometry (art_pipeline.md 1.7 and 2.6): gable, hip and flat for the first acts; dome
+ * (white-stone domes), cone (round felt tents) and spire (bell and basalt towers) for the
+ * national packs of act 4.
+ */
+export const ROOF_SHAPES = ['gable', 'hip', 'flat', 'dome', 'cone', 'spire'] as const;
 export type RoofShape = (typeof ROOF_SHAPES)[number];
 
 export const ROOFINGS = ['tile', 'slate', 'shingle', 'thatch', 'gold_leaf', 'scorched'] as const;

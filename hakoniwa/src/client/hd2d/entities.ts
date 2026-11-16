@@ -1,13 +1,15 @@
 // Dynamic layer of the HD-2D scene (art_pipeline.md 2.4 and 3.7): one standee per visible
 // entity showing its current paper-doll frame, a pixel contact shadow under it, the
 // selection and hover rings, the click-to-move marker and the building placement tiles.
-// Frame textures are cached by sprite key with a bounded LRU; standee quads are shared
-// per frame size.
+// Frame textures are cached by frame key with a bounded LRU; standee quads are shared
+// per frame size. Frames come from approved art when the asset resolver has it, else from the
+// procedural generator (src/client/assets/runtime.ts).
 
 import * as THREE from 'three';
+import { buildFrame, frameKey } from '../assets/runtime';
 import { MOVE_PULSE_MS } from '../render/frame_signals';
 import type { PlacementOverlay, SceneEntity } from '../render/scene';
-import { generateFrame, type SpriteFrame, spriteKey } from '../sprites/generate';
+import type { SpriteFrame } from '../sprites/generate';
 import { groundQuad, type MeshData, standeeMesh } from './geometry';
 import {
   pixelTexture,
@@ -84,14 +86,14 @@ export class EntityLayer {
   }
 
   private entry(e: SceneEntity): FrameEntry {
-    const key = spriteKey(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
+    const key = frameKey(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
     const hit = this.frames.get(key);
     if (hit) {
       this.frames.delete(key);
       this.frames.set(key, hit);
       return hit;
     }
-    const frame = generateFrame(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
+    const frame = buildFrame(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
     const entry = { frame, tex: pixelTexture(frame.matrix) };
     this.frames.set(key, entry);
     if (this.frames.size > this.frameLimit) {
@@ -127,7 +129,7 @@ export class EntityLayer {
     for (const e of items) {
       seen.add(e.id);
       const entry = this.entry(e);
-      const key = spriteKey(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
+      const key = frameKey(e.look, e.anim.anim, e.anim.dir, e.anim.frame);
       let v = this.views.get(e.id);
       if (!v) {
         const mat = standeeMaterial(this.shared, entry.tex);

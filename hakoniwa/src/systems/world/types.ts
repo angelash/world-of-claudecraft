@@ -113,15 +113,67 @@ export type MapRespawnRole = 'door' | 'wake';
 
 export type EntityKind = 'player' | 'npc' | 'monster' | 'companion' | 'object' | 'unit';
 
-/** Procedural sprite description consumed by the client renderer. */
+/**
+ * How an entity looks (art_pipeline.md 3.1). `base`, `colors`, `scale` and `glyph` drive the
+ * procedural placeholder and the paper-doll recolouring; the asset fields name AI art by asset
+ * id (art_pipeline.md 6.5). Only the client reads any of it: the kernel copies it from content
+ * to entities and never branches on it, and a missing or unapproved asset falls back to the
+ * procedural placeholder.
+ */
 export interface Appearance {
-  /** body archetype: human, elf, dwarf, halfling, beast, demon, undead, slime, wolf, bird, golem, spirit, goddess, object, ... */
+  /**
+   * body archetype or a body alias: human, elf, dwarf, halfling, beastkin, demon, undead,
+   * slime, wolf, bird, golem, spirit, goddess, object, or a creature body such as rat, boar,
+   * bear, spider, centipede, leech, worm, drake (art_pipeline.md 3.2 and 3.8)
+   */
   base: string;
   /** palette: [primary, secondary, skin/accent, hair/detail] as #rrggbb */
   colors: string[];
   scale?: number;
   /** optional single glyph drawn on objects (e.g. a sign) */
   glyph?: string;
+  /** frame sheet of a main character: the asset id without the strip suffix (art_chr_yeyu) */
+  sheet?: string;
+  /** paper-doll recipe (everyone with a body who has no sheet) */
+  doll?: DollRecipe;
+  /** portrait expression sheet (art_por_<subject>) */
+  portrait?: string;
+  /** half-body portrait (art_bust_<subject>; expressions in <id>_expr) */
+  bust?: string;
+  /**
+   * state variants keyed by a ledger condition (art_pipeline.md 3.1): while the condition
+   * holds, the variant's assets replace the base ones; fields it leaves out keep the base
+   */
+  variants?: Record<string, AppearanceVariant>;
+}
+
+/** Paper-doll body (art_pipeline.md 3.2): standard, small and big humanoid mannequins. */
+export type DollBody = 'h' | 'hs' | 'hb';
+
+/**
+ * A paper-doll recipe (art_pipeline.md 3.3): the mannequin body plus one asset id per layer
+ * (art_doll_...); the outfit names the strip family (art_doll_gear_garb, whose strips are
+ * art_doll_gear_garb_idle and so on). `swatch` picks the colour row the key colours map to.
+ */
+export interface DollRecipe {
+  body: DollBody;
+  outfit?: string;
+  head?: string;
+  hair?: string;
+  /** ears or horns */
+  ears?: string;
+  headwear?: string;
+  beard?: string;
+  back?: string;
+  mainHand?: string;
+  offHand?: string;
+  swatch?: string;
+}
+
+export interface AppearanceVariant {
+  sheet?: string;
+  portrait?: string;
+  bust?: string;
 }
 
 export interface Waypoint {

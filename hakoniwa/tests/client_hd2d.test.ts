@@ -4,11 +4,13 @@
 // the three.js renderer only executes what these modules decide.
 
 import { describe, expect, it } from 'vitest';
+import templatesJson from '../assets/prompts/templates.json';
 import { sunDirection, sunSkyAt } from '../src/client/hd2d/daylight';
 import {
   addPolygon,
   boxMesh,
   emptyMesh,
+  ROOF_SEGMENTS,
   roofMesh,
   standeeMesh,
   wallMesh,
@@ -16,7 +18,15 @@ import {
 import { paintGround, waterMask } from '../src/client/hd2d/ground';
 import { buildingAt, buildLayout, DOOR_HEIGHT } from '../src/client/hd2d/layout';
 import { LIGHTMAP_PX, lightsKey, paintLightmap, steppedFalloff } from '../src/client/hd2d/lightmap';
-import { QUALITY_TIERS, resolveQuality, tierPixelRatio } from '../src/client/hd2d/quality';
+import {
+  isQualityId,
+  QUALITY_IDS,
+  QUALITY_TIER_IDS,
+  QUALITY_TIERS,
+  resolveQuality,
+  tierPixelRatio,
+  UNRELEASED_TIERS,
+} from '../src/client/hd2d/quality';
 import { standeeHitBox, standeeQuad } from '../src/client/hd2d/standee';
 import { resolveLook, STYLE_PACKS, stylePackFor } from '../src/client/hd2d/style_packs';
 import {
@@ -51,15 +61,19 @@ import { AnimTracker } from '../src/client/render/anim_state';
 import { decorSprite, shopSignSprite } from '../src/client/render/decor_art';
 import { dirFromFacing } from '../src/client/sprites/anim_spec';
 import { getAlpha, getPixel, matrixHash, opaqueCount } from '../src/client/sprites/pixels';
+import { buildContent } from '../src/content';
 import { calendarAt, tickAtDay } from '../src/core/time';
 import {
   DECOR_KINDS,
   lookProblems,
+  ROOF_SHAPES,
   SIGN_KINDS,
   STYLE_IDS,
   styleOf,
 } from '../src/systems/world/look';
 import type { MapDef } from '../src/systems/world/types';
+import baseline from './fixtures/procedural_baseline.json';
+import { fnv, mapDigest, stable } from './procedural_digest';
 
 const TOWN: MapDef = {
   id: 'town',
@@ -221,7 +235,7 @@ describe('style packs and the look layer', () => {
     const bad = lookProblems({
       ...TOWN,
       style: 'neon',
-      looks: { ghost: { roof: 'dome' as never, roofColors: ['red'] }, tavern: { wallHeight: 40 } },
+      looks: { ghost: { roof: 'onion' as never, roofColors: ['red'] }, tavern: { wallHeight: 40 } },
       decor: [
         { kind: 'rocket' as never, x: 1, y: 1 },
         { kind: 'lamp', x: 99, y: 1 },
@@ -617,5 +631,179 @@ describe('review follow-ups', () => {
     expect(Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])).toBeLessThan(0.02);
     expect(dir(22)[0]).toBeLessThan(0); // moon in the west early in the night
     expect(dir(4.5)[0]).toBeGreaterThan(0); // and in the east before dawn
+  });
+});
+
+describe('the sixteen style packs (art_pipeline.md 1.4)', () => {
+  const styles = (templatesJson as unknown as { styles: Record<string, unknown> }).styles;
+
+  it('has exactly the style packs of the prompt library, each with a full render pack', () => {
+    expect(STYLE_IDS).toHaveLength(16);
+    expect([...STYLE_IDS].sort()).toEqual(Object.keys(styles).sort());
+    const categories = Object.keys(STYLE_PACKS.lothar_plain.buildings).sort();
+    for (const id of STYLE_IDS) {
+      const p = STYLE_PACKS[id];
+      expect(p.id).toBe(id);
+      expect(Object.keys(p.buildings).sort(), id).toEqual(categories);
+      for (const b of Object.values(p.buildings)) {
+        expect(ROOF_SHAPES, id).toContain(b.roof);
+        expect(b.roofColors.length, id).toBeGreaterThan(0);
+        expect(b.wallHeight, id).toBeGreaterThanOrEqual(1);
+      }
+      expect(p.trees.leaves.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('puts the three new roofs on the national packs and keeps the first six packs unchanged', () => {
+    const roofs = (id: (typeof STYLE_IDS)[number]) =>
+      new Set(Object.values(STYLE_PACKS[id].buildings).map((b) => b.roof));
+    expect(roofs('holy_see_white').has('dome')).toBe(true);
+    expect(roofs('windfang_steppe').has('cone')).toBe(true);
+    expect(roofs('night_basalt').has('spire')).toBe(true);
+    for (const id of STYLE_IDS.slice(0, 6)) {
+      for (const r of roofs(id)) expect(['gable', 'hip', 'flat'], id).toContain(r);
+    }
+    expect(styleOf({ region: 'holy_see' })).toBe('holy_see_white');
+    expect(styleOf({ region: 'edgestone_area' })).toBe('lothar_plain');
+    expect(styleOf({ region: 'borderstone_wilds' })).toBe('wild_forest');
+  });
+
+  it('builds dome, cone and spire roofs that cover the shell and face up and out', () => {
+    const rect = { x: 2, y: 3, w: 4, h: 4 };
+    for (const shape of ['dome', 'cone', 'spire'] as const) {
+      const m = roofMesh(rect, 3, shape, 'x');
+      const n = ROOF_SEGMENTS[shape];
+      const tris = m.slopes.indices.length / 3;
+      // quads are two triangles, the apex ring single triangles; the dome adds its slab
+      if (shape === 'dome') expect(tris).toBe(n * 2 * 3 + n + 2);
+      else expect(tris).toBe(n);
+      expect(m.gables.positions).toHaveLength(0);
+      for (let i = 1; i < m.slopes.normals.length; i += 3)
+        expect(m.slopes.normals[i], shape).toBeGreaterThanOrEqual(0);
+      const ys = m.slopes.positions.filter((_, i) => i % 3 === 1);
+      expect(Math.max(...ys)).toBeCloseTo(m.ridgeY);
+      expect(m.ridgeY, shape).toBeGreaterThan(3);
+      const xs = m.slopes.positions.filter((_, i) => i % 3 === 0);
+      const zs = m.slopes.positions.filter((_, i) => i % 3 === 2);
+      // the eave (or the dome's slab) reaches past every wall
+      expect(Math.min(...xs), shape).toBeLessThan(rect.x);
+      expect(Math.max(...xs), shape).toBeGreaterThan(rect.x + rect.w);
+      expect(Math.min(...zs), shape).toBeLessThan(rect.y);
+      expect(Math.max(...zs), shape).toBeGreaterThan(rect.y + rect.h);
+      expect(m.wPx).toBeGreaterThan(4);
+      expect(m.lPx).toBeGreaterThan(4);
+      for (const uv of m.slopes.uvs) expect(uv).toBeGreaterThanOrEqual(0);
+    }
+    expect(roofMesh(rect, 3, 'spire', 'x').ridgeY).toBeGreaterThan(
+      roofMesh(rect, 3, 'cone', 'x').ridgeY,
+    );
+  });
+
+  it('keeps every shell corner under the roof, however long or wide the shell', () => {
+    /** Highest roof surface above a ground point (null when no facet covers it). */
+    const roofAt = (md: ReturnType<typeof roofMesh>['slopes'], x: number, z: number) => {
+      let best: number | null = null;
+      const p = md.positions;
+      for (let i = 0; i < md.indices.length; i += 3) {
+        const v = [0, 1, 2].map((k) => (md.indices[i + k] as number) * 3);
+        const [ax, ay, az] = [
+          p[v[0] as number],
+          p[(v[0] as number) + 1],
+          p[(v[0] as number) + 2],
+        ] as number[];
+        const [bx, by, bz] = [
+          p[v[1] as number],
+          p[(v[1] as number) + 1],
+          p[(v[1] as number) + 2],
+        ] as number[];
+        const [cx, cy, cz] = [
+          p[v[2] as number],
+          p[(v[2] as number) + 1],
+          p[(v[2] as number) + 2],
+        ] as number[];
+        const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+        if (Math.abs(d) < 1e-9) continue;
+        const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d;
+        const l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d;
+        const l3 = 1 - l1 - l2;
+        if (l1 < -1e-9 || l2 < -1e-9 || l3 < -1e-9) continue;
+        const y = l1 * ay + l2 * by + l3 * cy;
+        if (best === null || y > best) best = y;
+      }
+      return best;
+    };
+    for (const rect of [
+      { x: 0, y: 0, w: 4, h: 4 },
+      { x: 1, y: 2, w: 6, h: 3 },
+      { x: 0, y: 0, w: 10, h: 10 },
+      { x: 0, y: 0, w: 2, h: 7 },
+    ]) {
+      for (const shape of ['dome', 'cone', 'spire'] as const) {
+        const m = roofMesh(rect, 3, shape, 'x');
+        for (const [x, z] of [
+          [rect.x, rect.y],
+          [rect.x + rect.w, rect.y],
+          [rect.x, rect.y + rect.h],
+          [rect.x + rect.w, rect.y + rect.h],
+        ] as [number, number][]) {
+          const y = roofAt(m.slopes, x, z);
+          expect(y, `${shape} ${rect.w}x${rect.h} at ${x},${z}`).not.toBeNull();
+          expect(y as number, `${shape} ${rect.w}x${rect.h} at ${x},${z}`).toBeGreaterThanOrEqual(
+            3 - 1e-6,
+          );
+        }
+      }
+    }
+  });
+
+  it('never puts a chimney on a dome, a tent or a spire', () => {
+    const pack = STYLE_PACKS.windfang_steppe;
+    for (let i = 0; i < 12; i++) {
+      const loc = { id: `yurt_${i}`, kind: 'home' };
+      expect(resolveLook(pack, loc, { chimney: true }).chimney).toBe(false);
+      expect(resolveLook(pack, loc, { roof: 'gable', chimney: true }).chimney).toBe(true);
+    }
+  });
+});
+
+describe('quality tiers: ultra exists but is not offered yet (D-078, M3)', () => {
+  it('knows ultra as the richest tier and keeps it out of the settings menu', () => {
+    expect(QUALITY_TIER_IDS).toEqual(['ultra', 'high', 'mid', 'low', 'flat']);
+    expect(QUALITY_TIERS.ultra).toMatchObject({
+      tier: 'ultra',
+      shadowMap: 4096,
+      softShadows: true,
+    });
+    expect(QUALITY_TIERS.ultra.shadowMap).toBeGreaterThan(QUALITY_TIERS.high.shadowMap);
+    expect(UNRELEASED_TIERS.has('ultra')).toBe(true);
+    expect(QUALITY_IDS as readonly string[]).not.toContain('ultra');
+    expect(isQualityId('ultra')).toBe(false);
+    for (const id of QUALITY_IDS) {
+      for (const touch of [false, true])
+        expect(resolveQuality(id, { touch, webgl: true }).tier).not.toBe('ultra');
+    }
+    expect(tierPixelRatio(QUALITY_TIERS.ultra, 3)).toBe(1.5);
+  });
+});
+
+describe('no art: the built maps draw as in the first round', () => {
+  const b = baseline as unknown as {
+    maps: Record<string, { pack: string; layout: string; roofs: string }>;
+    quality: string;
+  };
+  const content = buildContent();
+
+  it('keeps the style pack, scene layout and roof meshes of every built map', () => {
+    expect(Object.keys(b.maps)).toHaveLength(10);
+    for (const [id, want] of Object.entries(b.maps)) {
+      const map = content.maps.find((m) => m.id === id);
+      if (!map) throw new Error(`no map ${id}`);
+      expect(mapDigest(map), id).toEqual(want);
+    }
+  });
+
+  it('keeps the four released quality tiers as they were', () => {
+    const { ultra: _ultra, ...released } = QUALITY_TIERS;
+    expect(fnv(stable(released))).toBe(b.quality);
   });
 });

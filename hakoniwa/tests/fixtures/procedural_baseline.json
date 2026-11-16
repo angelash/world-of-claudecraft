@@ -1,0 +1,1309 @@
+{
+  "about": "Procedural render inputs of the first round (captured before PK-M0-10 with the pre-change code): per entity the digest of every frame key, pixel hash, size, anchor, height, lift and glow over idle, walk, attack, hit and death in four directions; per built map the digest of its style pack, scene layout and roof meshes; the digest of the quality tiers high to flat. tests/client_assets.test.ts and tests/client_hd2d.test.ts recompute them with no art installed.",
+  "entities": [
+    {
+      "id": "monster:dian_dreg",
+      "kind": "monster",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#5c5a57", "#3a3836", "#8b8885", "#22201f"],
+        "scale": 0.7
+      },
+      "look": "6c09e9d1",
+      "frames": "cd777576",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_rat",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#6b6359", "#4a443d", "#c9a9a0", "#2a2622"],
+        "scale": 0.5
+      },
+      "look": "c0616d41",
+      "frames": "6a3cd10b",
+      "count": 80
+    },
+    {
+      "id": "monster:raven_flock",
+      "kind": "monster",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "look": "68505d6c",
+      "frames": "64713faa",
+      "count": 80
+    },
+    {
+      "id": "monster:grey_wolf",
+      "kind": "monster",
+      "appearance": {
+        "base": "wolf",
+        "colors": ["#8a8d8f", "#5f6264", "#d8d4cc", "#2b2b2b"],
+        "scale": 0.9
+      },
+      "look": "4c14ba2f",
+      "frames": "94ae7b77",
+      "count": 80
+    },
+    {
+      "id": "monster:split_ear",
+      "kind": "monster",
+      "appearance": {
+        "base": "wolf",
+        "colors": ["#6e6a63", "#47443f", "#b33a2a", "#1a1a1a"],
+        "scale": 1.15
+      },
+      "look": "05613e09",
+      "frames": "b71bab23",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_wolf",
+      "kind": "monster",
+      "appearance": {
+        "base": "wolf",
+        "colors": ["#58585c", "#3b3b3f", "#9aa0a6", "#1b1b1d"],
+        "scale": 1
+      },
+      "look": "6befc18b",
+      "frames": "e434e878",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_boar",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#5d4a3a", "#3e3127", "#9c8b7a", "#201914"],
+        "scale": 0.95
+      },
+      "look": "a3809313",
+      "frames": "c7244c81",
+      "count": 80
+    },
+    {
+      "id": "monster:edge_spider",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#3a3f37", "#23261f", "#a9b29a", "#121410"],
+        "scale": 0.85
+      },
+      "look": "291cc9e9",
+      "frames": "8cff1935",
+      "count": 80
+    },
+    {
+      "id": "monster:burrow_worm",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#7a6a55", "#4e4336", "#c8b89a", "#2a241c"],
+        "scale": 0.9
+      },
+      "look": "83b139ab",
+      "frames": "b393d47a",
+      "count": 80
+    },
+    {
+      "id": "monster:oneeye_bandit",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a4632", "#2f2a24", "#e0b896", "#3a2a1c"]
+      },
+      "look": "58fddf29",
+      "frames": "0c7a5a24",
+      "count": 80
+    },
+    {
+      "id": "monster:wandering_bones",
+      "kind": "monster",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#d8d0bc", "#9c947e", "#3c3a34", "#1d1c19"]
+      },
+      "look": "5f12d56e",
+      "frames": "b68234e8",
+      "count": 80
+    },
+    {
+      "id": "monster:waste_wraith",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#9fb3c2", "#5e7180", "#e6eef3", "#2a343c"]
+      },
+      "look": "078b2c72",
+      "frames": "256a711f",
+      "count": 80
+    },
+    {
+      "id": "monster:black_ridge",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#1f1d1b", "#3d3833", "#7a6f64", "#0c0b0a"],
+        "scale": 1.5
+      },
+      "look": "038e610d",
+      "frames": "6f38ba75",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_spirit",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#4b4f5a", "#2c2f36", "#a7adbd", "#15161a"]
+      },
+      "look": "c4e2709a",
+      "frames": "b65730b5",
+      "count": 80
+    },
+    {
+      "id": "monster:crystal_mother",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#6a6f7a", "#9fb4c8", "#d9e4ef", "#2a2d33"],
+        "scale": 1.6
+      },
+      "look": "1ce6b10f",
+      "frames": "eeb76130",
+      "count": 80
+    },
+    {
+      "id": "monster:vero",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3b2f4a", "#1f1a26", "#efc6a8", "#7a1f2b"]
+      },
+      "look": "e207ed9b",
+      "frames": "bc962a2c",
+      "count": 80
+    },
+    {
+      "id": "monster:seg_oneeye",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#4a3a2a", "#2b211a", "#d6a888", "#141414"],
+        "scale": 1.15
+      },
+      "look": "40c9fc85",
+      "frames": "90ca4dbd",
+      "count": 80
+    },
+    {
+      "id": "monster:guardian_raven",
+      "kind": "monster",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#141418", "#3a3a44", "#c8a24a", "#c0c8d0"],
+        "scale": 2
+      },
+      "look": "1b137e74",
+      "frames": "f9eebd85",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_colossus",
+      "kind": "monster",
+      "appearance": {
+        "base": "golem",
+        "colors": ["#4d4a46", "#2a2826", "#8c857c", "#b8c4d0"],
+        "scale": 2.4
+      },
+      "look": "fd117562",
+      "frames": "008264d8",
+      "count": 80
+    },
+    {
+      "id": "monster:sewer_sludge",
+      "kind": "monster",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#4f5a34", "#323a20", "#8c9a5c", "#1a1f10"]
+      },
+      "look": "c0267a27",
+      "frames": "42327ce1",
+      "count": 80
+    },
+    {
+      "id": "monster:drowned",
+      "kind": "monster",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#5a6b6e", "#34403f", "#a9b8b2", "#1a2020"]
+      },
+      "look": "67018522",
+      "frames": "81fcf582",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_leech",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#3b2a2e", "#24191b", "#7a4a52", "#100a0b"],
+        "scale": 0.8
+      },
+      "look": "42450907",
+      "frames": "68aeccf4",
+      "count": 80
+    },
+    {
+      "id": "monster:ash_bookwraith",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#8a7a5a", "#4f4533", "#e8d9b0", "#2a241a"]
+      },
+      "look": "319f8334",
+      "frames": "f583bbff",
+      "count": 80
+    },
+    {
+      "id": "monster:crystal_centipede_young",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#4a5866", "#2b333c", "#a8c4dc", "#14181c"],
+        "scale": 1
+      },
+      "look": "aea67899",
+      "frames": "d9afc97c",
+      "count": 80
+    },
+    {
+      "id": "monster:disciple_cultist",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#56565c", "#2c2c30", "#e2c2a6", "#8a2a2a"]
+      },
+      "look": "e54dfdeb",
+      "frames": "ce6b374b",
+      "count": 80
+    },
+    {
+      "id": "monster:rat_king",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#5e544a", "#3a332c", "#c9a9a0", "#1e1a16"],
+        "scale": 1.9
+      },
+      "look": "1f6da06b",
+      "frames": "20fc90f2",
+      "count": 80
+    },
+    {
+      "id": "monster:crystal_centipede",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#3c4a58", "#7fa6c6", "#d6ecff", "#12171c"],
+        "scale": 2.2
+      },
+      "look": "6dd1b27d",
+      "frames": "4b7dc300",
+      "count": 80
+    },
+    {
+      "id": "monster:waste_ghoul",
+      "kind": "monster",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#6b6660", "#3f3b37", "#b8b0a4", "#1d1b19"]
+      },
+      "look": "1f5037b8",
+      "frames": "b95c247e",
+      "count": 80
+    },
+    {
+      "id": "monster:ash_elemental",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#5a5652", "#34312e", "#c8c0b8", "#1a1816"],
+        "scale": 1.2
+      },
+      "look": "2906e1f0",
+      "frames": "084db683",
+      "count": 80
+    },
+    {
+      "id": "monster:ashen_knight",
+      "kind": "monster",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#4a4744", "#2b2927", "#9a948c", "#c84a2a"],
+        "scale": 1.2
+      },
+      "look": "e2bbaaba",
+      "frames": "db6adddb",
+      "count": 80
+    },
+    {
+      "id": "monster:dian_drake",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#5a2e24", "#2e1813", "#c8784a", "#140a08"],
+        "scale": 1.8
+      },
+      "look": "06b6f911",
+      "frames": "c16a1bf5",
+      "count": 80
+    },
+    {
+      "id": "monster:crusader_soldier",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#e8e4da", "#a8a294", "#e0b896", "#c8a24a"]
+      },
+      "look": "629f7257",
+      "frames": "243f5219",
+      "count": 80
+    },
+    {
+      "id": "monster:crusader_inquisitor",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#f2efe6", "#7a1f2b", "#e6c2a2", "#c8a24a"]
+      },
+      "look": "179f101b",
+      "frames": "07d1392f",
+      "count": 80
+    },
+    {
+      "id": "monster:redfang_brute",
+      "kind": "monster",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#8a3a2a", "#4a2a24", "#c8644a", "#1a1010"],
+        "scale": 1.25
+      },
+      "look": "9c417fbb",
+      "frames": "729fab3a",
+      "count": 80
+    },
+    {
+      "id": "monster:wing_demon_scout",
+      "kind": "monster",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#3a3446", "#221e2a", "#9a8ab0", "#100e14"],
+        "scale": 0.85
+      },
+      "look": "b4548399",
+      "frames": "e2534f8d",
+      "count": 80
+    },
+    {
+      "id": "monster:night_demon_caster",
+      "kind": "monster",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#2e3446", "#1a1e2a", "#b4c0d8", "#c0c8d0"]
+      },
+      "look": "2e57efb7",
+      "frames": "9e80d4bd",
+      "count": 80
+    },
+    {
+      "id": "monster:disciple_guide",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3a3a40", "#1c1c20", "#d8b89a", "#6a2a8a"]
+      },
+      "look": "5769f905",
+      "frames": "f96b83c0",
+      "count": 80
+    },
+    {
+      "id": "monster:faceless_soldier",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#1c1c22", "#0c0c10", "#5a5a6a", "#000000"],
+        "scale": 1.2
+      },
+      "look": "6469b7b2",
+      "frames": "9f1717da",
+      "count": 80
+    },
+    {
+      "id": "monster:sasha",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#8a1f1f", "#2a2a2a", "#e8c0a0", "#c83a2a"],
+        "scale": 1.1
+      },
+      "look": "e9161ee9",
+      "frames": "913bde7a",
+      "count": 80
+    },
+    {
+      "id": "monster:faceless_king",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#0e0e12", "#2a2a34", "#e8e8f0", "#6a2a8a"],
+        "scale": 1.6
+      },
+      "look": "c5478095",
+      "frames": "eae1ab7c",
+      "count": 80
+    },
+    {
+      "id": "monster:contract_imp",
+      "kind": "monster",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#a83a1a", "#5a1a0a", "#ffb060", "#200800"],
+        "scale": 0.55
+      },
+      "look": "137c424d",
+      "frames": "ca35a2a2",
+      "count": 80
+    },
+    {
+      "id": "companion:yeyu",
+      "kind": "companion",
+      "appearance": {
+        "base": "human",
+        "colors": ["#1c1c22", "#d8d8d0", "#e0b896", "#c8a24a"],
+        "scale": 0.9
+      },
+      "look": "ad51b59f",
+      "frames": "7c2c3a36",
+      "count": 80
+    },
+    {
+      "id": "companion:shiya",
+      "kind": "companion",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3f5a3a", "#8a6a4a", "#e6c8a8", "#b8bcc0"]
+      },
+      "look": "c1ee8e81",
+      "frames": "758d44cb",
+      "count": 80
+    },
+    {
+      "id": "companion:ron",
+      "kind": "companion",
+      "appearance": {
+        "base": "human",
+        "colors": ["#6a5a44", "#7a7a80", "#e6c2a0", "#5a3a22"]
+      },
+      "look": "4ffcc22d",
+      "frames": "92c4e5e9",
+      "count": 80
+    },
+    {
+      "id": "companion:nera",
+      "kind": "companion",
+      "appearance": {
+        "base": "human",
+        "colors": ["#2e4a3a", "#c8a24a", "#f0d0b0", "#d8642a"]
+      },
+      "look": "3a4ef1ab",
+      "frames": "35953c33",
+      "count": 80
+    },
+    {
+      "id": "companion:oola",
+      "kind": "companion",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a4a3a", "#3a5a3a", "#e0c0a0", "#d0d0c8"]
+      },
+      "look": "c347c4ef",
+      "frames": "cfd7a7d6",
+      "count": 80
+    },
+    {
+      "id": "npc:shiya",
+      "kind": "npc",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#5a4632", "#8c6b45", "#d9b08c", "#9a9a9a"]
+      },
+      "look": "4a31540d",
+      "frames": "da37b951",
+      "count": 80
+    },
+    {
+      "id": "npc:ron",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#6b7a4a", "#a8925a", "#f0c8a0", "#8a5a2a"]
+      },
+      "look": "6171c32b",
+      "frames": "e721d54e",
+      "count": 80
+    },
+    {
+      "id": "npc:nera",
+      "kind": "npc",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#7a3b2a", "#d4a24a", "#e8a060", "#c8602a"]
+      },
+      "look": "b3abc8e3",
+      "frames": "4edfff3e",
+      "count": 80
+    },
+    {
+      "id": "npc:oola",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#4a5a3a", "#7a6a4a", "#e0c0a0", "#d8d8d8"]
+      },
+      "look": "278d3c5d",
+      "frames": "fc02fc24",
+      "count": 80
+    },
+    {
+      "id": "npc:cassian",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#e8e2d0", "#c8a84a", "#f0d0b0", "#3a2a1a"]
+      },
+      "look": "3d892ec1",
+      "frames": "31e94e26",
+      "count": 80
+    },
+    {
+      "id": "npc:martha",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#8a3a2a", "#e0d0b0", "#f0c8a0", "#5a3a2a"]
+      },
+      "look": "44bca8bb",
+      "frames": "033fe728",
+      "count": 80
+    },
+    {
+      "id": "npc:bron",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#4a4a5a", "#7a6a5a", "#e0b894", "#9a8a7a"]
+      },
+      "look": "54f7931d",
+      "frames": "4941e3bb",
+      "count": 80
+    },
+    {
+      "id": "npc:moss",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a2a4a", "#c8a84a", "#f0c8a0", "#2a2a2a"]
+      },
+      "look": "b25f354d",
+      "frames": "2d29dd55",
+      "count": 80
+    },
+    {
+      "id": "npc:lina",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a7aa0", "#e0e0e0", "#f8d8b8", "#c8803a"]
+      },
+      "look": "90d08079",
+      "frames": "d405cd5b",
+      "count": 80
+    },
+    {
+      "id": "npc:hock",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3a3a4a", "#8a8a7a", "#e8c8a8", "#e0e0e0"]
+      },
+      "look": "52d1347f",
+      "frames": "c32dd6b4",
+      "count": 80
+    },
+    {
+      "id": "npc:isa",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#2a2a3a", "#e8e8e8", "#f0d0b8", "#6a4a2a"]
+      },
+      "look": "6ccd8951",
+      "frames": "bfa15a05",
+      "count": 80
+    },
+    {
+      "id": "npc:toma",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a4a3a", "#8a7a6a", "#e0b894", "#c8c8c8"]
+      },
+      "look": "773e4703",
+      "frames": "ef7b655b",
+      "count": 80
+    },
+    {
+      "id": "npc:bertha",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3a3a3a", "#6a5a4a", "#e8c0a0", "#b0b0b0"]
+      },
+      "look": "d4352451",
+      "frames": "4cda4982",
+      "count": 80
+    },
+    {
+      "id": "npc:greta",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#6a5a7a", "#d8c8b0", "#f0c8a8", "#a0a0a0"]
+      },
+      "look": "826d3493",
+      "frames": "05cfa030",
+      "count": 80
+    },
+    {
+      "id": "npc:noi",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a5a6a", "#8a8a9a", "#f0d8c0", "#2a2a3a"],
+        "scale": 0.75
+      },
+      "look": "7575714d",
+      "frames": "381f08b5",
+      "count": 80
+    },
+    {
+      "id": "npc:tess",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#c8a0b0", "#e8d8d0", "#f8e0c8", "#4a3a2a"],
+        "scale": 0.65
+      },
+      "look": "dcde477f",
+      "frames": "5f4a681b",
+      "count": 80
+    },
+    {
+      "id": "npc:barga",
+      "kind": "npc",
+      "appearance": {
+        "base": "dwarf",
+        "colors": ["#6a3a2a", "#3a3a3a", "#e0a080", "#a03a1a"]
+      },
+      "look": "936045ed",
+      "frames": "2f84ab07",
+      "count": 80
+    },
+    {
+      "id": "npc:gaspar",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#7a4a2a", "#5a5a3a", "#e0b080", "#3a2a1a"]
+      },
+      "look": "0b05e181",
+      "frames": "8c0f2e8b",
+      "count": 80
+    },
+    {
+      "id": "npc:nick",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#5a6a3a", "#7a5a3a", "#e8c098", "#5a3a1a"]
+      },
+      "look": "95b32e29",
+      "frames": "638d591e",
+      "count": 80
+    },
+    {
+      "id": "npc:gorn",
+      "kind": "npc",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#4a3a2a", "#6a5a3a", "#c8a080", "#6a6a6a"]
+      },
+      "look": "c79023a7",
+      "frames": "c01dfd4a",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:human",
+      "kind": "npc",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "f99e2287",
+      "frames": "3187e4a6",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:human",
+      "kind": "monster",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "c13e8a9d",
+      "frames": "fcf1dca8",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:elf",
+      "kind": "npc",
+      "appearance": {
+        "base": "elf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "158c842e",
+      "frames": "b05b86be",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:elf",
+      "kind": "monster",
+      "appearance": {
+        "base": "elf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "d126df9c",
+      "frames": "875b22e2",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:dwarf",
+      "kind": "npc",
+      "appearance": {
+        "base": "dwarf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "e01471af",
+      "frames": "e536fd27",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:dwarf",
+      "kind": "monster",
+      "appearance": {
+        "base": "dwarf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "2f075af9",
+      "frames": "a1bce0a6",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:halfling",
+      "kind": "npc",
+      "appearance": {
+        "base": "halfling",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "4bb4593b",
+      "frames": "c41383fe",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:halfling",
+      "kind": "monster",
+      "appearance": {
+        "base": "halfling",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "206971f3",
+      "frames": "9f3eb41a",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:beastkin",
+      "kind": "npc",
+      "appearance": {
+        "base": "beastkin",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "3fdaa89f",
+      "frames": "a443c7fe",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:beastkin",
+      "kind": "monster",
+      "appearance": {
+        "base": "beastkin",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "b87e7c0f",
+      "frames": "cad1a7fc",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:demon",
+      "kind": "npc",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "6f556693",
+      "frames": "5ef3e4f9",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:demon",
+      "kind": "monster",
+      "appearance": {
+        "base": "demon",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "a926d101",
+      "frames": "513e1525",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:undead",
+      "kind": "npc",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "99c595da",
+      "frames": "86432884",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:undead",
+      "kind": "monster",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "64aa555e",
+      "frames": "014e49d7",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:slime",
+      "kind": "npc",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "00f89515",
+      "frames": "39442013",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:slime",
+      "kind": "monster",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "81016503",
+      "frames": "a3e61590",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:wolf",
+      "kind": "npc",
+      "appearance": {
+        "base": "wolf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "27b36daf",
+      "frames": "d63433d9",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:wolf",
+      "kind": "monster",
+      "appearance": {
+        "base": "wolf",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "ab15c9e7",
+      "frames": "814a07e0",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:bird",
+      "kind": "npc",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "387d7b72",
+      "frames": "f745df2a",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:bird",
+      "kind": "monster",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "47d1bf76",
+      "frames": "0c57d0e6",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:golem",
+      "kind": "npc",
+      "appearance": {
+        "base": "golem",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "92a4c808",
+      "frames": "78ed57af",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:golem",
+      "kind": "monster",
+      "appearance": {
+        "base": "golem",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "7ef20f44",
+      "frames": "b7d77c5a",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:spirit",
+      "kind": "npc",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "5a0a3e9d",
+      "frames": "3eed9fb5",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:spirit",
+      "kind": "monster",
+      "appearance": {
+        "base": "spirit",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "7c4b0481",
+      "frames": "92bdd7b8",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:goddess",
+      "kind": "npc",
+      "appearance": {
+        "base": "goddess",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "e5b76d0c",
+      "frames": "f334b58f",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:goddess",
+      "kind": "monster",
+      "appearance": {
+        "base": "goddess",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "2e9e7dba",
+      "frames": "4f9f1b74",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:object",
+      "kind": "npc",
+      "appearance": {
+        "base": "object",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "f245dc5b",
+      "frames": "c4a55dee",
+      "count": 20
+    },
+    {
+      "id": "synthetic:monster:object",
+      "kind": "monster",
+      "appearance": {
+        "base": "object",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "c176c5eb",
+      "frames": "664e4725",
+      "count": 20
+    },
+    {
+      "id": "synthetic:npc:beast",
+      "kind": "npc",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "3fdaa89f",
+      "frames": "a443c7fe",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:beast",
+      "kind": "monster",
+      "appearance": {
+        "base": "beast",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "ab15c9e7",
+      "frames": "814a07e0",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:boar",
+      "kind": "npc",
+      "appearance": {
+        "base": "boar",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "27b36daf",
+      "frames": "d63433d9",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:boar",
+      "kind": "monster",
+      "appearance": {
+        "base": "boar",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "ab15c9e7",
+      "frames": "814a07e0",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:bear",
+      "kind": "npc",
+      "appearance": {
+        "base": "bear",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "27b36daf",
+      "frames": "d63433d9",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:bear",
+      "kind": "monster",
+      "appearance": {
+        "base": "bear",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "ab15c9e7",
+      "frames": "814a07e0",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:crow",
+      "kind": "npc",
+      "appearance": {
+        "base": "crow",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "387d7b72",
+      "frames": "f745df2a",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:crow",
+      "kind": "monster",
+      "appearance": {
+        "base": "crow",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "47d1bf76",
+      "frames": "0c57d0e6",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:ooze",
+      "kind": "npc",
+      "appearance": {
+        "base": "ooze",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "00f89515",
+      "frames": "39442013",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:ooze",
+      "kind": "monster",
+      "appearance": {
+        "base": "ooze",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "81016503",
+      "frames": "a3e61590",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:orc",
+      "kind": "npc",
+      "appearance": {
+        "base": "orc",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "6f556693",
+      "frames": "5ef3e4f9",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:orc",
+      "kind": "monster",
+      "appearance": {
+        "base": "orc",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "a926d101",
+      "frames": "513e1525",
+      "count": 80
+    },
+    {
+      "id": "synthetic:npc:???",
+      "kind": "npc",
+      "appearance": {
+        "base": "???",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "look": "f99e2287",
+      "frames": "3187e4a6",
+      "count": 80
+    },
+    {
+      "id": "synthetic:monster:???",
+      "kind": "monster",
+      "appearance": {
+        "base": "???",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "scale": 1.5
+      },
+      "look": "c13e8a9d",
+      "frames": "fcf1dca8",
+      "count": 80
+    },
+    {
+      "id": "synthetic:object:glyph",
+      "kind": "object",
+      "appearance": {
+        "base": "object",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"],
+        "glyph": "酒"
+      },
+      "look": "167adbc5",
+      "frames": "11383052",
+      "count": 20
+    }
+  ],
+  "maps": {
+    "divine_court": {
+      "pack": "241d406b",
+      "layout": "4b310a0e",
+      "roofs": "811c9dc5"
+    },
+    "seal_ruins": {
+      "pack": "e03d9400",
+      "layout": "2438095b",
+      "roofs": "811c9dc5"
+    },
+    "seal_ruins_depths": {
+      "pack": "e03d9400",
+      "layout": "76d748a0",
+      "roofs": "811c9dc5"
+    },
+    "borderstone": {
+      "pack": "4563b726",
+      "layout": "5d75a641",
+      "roofs": "7616b214"
+    },
+    "forest_edge": {
+      "pack": "6df6113a",
+      "layout": "823a10ad",
+      "roofs": "811c9dc5"
+    },
+    "old_outpost": {
+      "pack": "4563b726",
+      "layout": "9bc5a11f",
+      "roofs": "811c9dc5"
+    },
+    "ash_waste": {
+      "pack": "489a8dbf",
+      "layout": "7ed15a37",
+      "roofs": "811c9dc5"
+    },
+    "inner_court": {
+      "pack": "241d406b",
+      "layout": "1d21a3d5",
+      "roofs": "d5d27235"
+    },
+    "wallenburg": {
+      "pack": "e9a93c8f",
+      "layout": "96f5b2eb",
+      "roofs": "92777608"
+    },
+    "wallenburg_sewers": {
+      "pack": "e03d9400",
+      "layout": "696f20a9",
+      "roofs": "811c9dc5"
+    }
+  },
+  "quality": "f86cda34"
+}

@@ -2,7 +2,7 @@
 // (quadruped Q), bird (flyer F), slime and spirit (blobs), and world objects. Each draws
 // one pose into a shape grid; shapes scale by pixel count, not by image scaling. Pure.
 
-import type { AnimName, Dir } from './anim_spec';
+import type { Dir, ProceduralPose } from './anim_spec';
 import { SHADE } from './palette';
 import { hash3 } from './pixels';
 import {
@@ -20,7 +20,7 @@ type FacingDir = Exclude<Dir, 'left'>;
 const kk = (s: number) => (n: number) => Math.max(1, Math.round(n * s));
 
 /** Walk leg phase shared by the creature templates: -1, 0 or 1. */
-function legPhase(anim: AnimName, frame: number): number {
+function legPhase(anim: ProceduralPose, frame: number): number {
   if (anim !== 'walk') return 0;
   return [1, 1, 0, -1, -1, 0][frame % 6] as number;
 }
@@ -30,7 +30,7 @@ function legPhase(anim: AnimName, frame: number): number {
 
 export function drawGolem(
   g: ShapeGrid,
-  anim: AnimName,
+  anim: ProceduralPose,
   frame: number,
   dir: FacingDir,
   cx: number,
@@ -153,7 +153,7 @@ export function drawGolem(
 
 export function drawWolf(
   g: ShapeGrid,
-  anim: AnimName,
+  anim: ProceduralPose,
   frame: number,
   dir: FacingDir,
   cx: number,
@@ -264,7 +264,7 @@ export function drawWolf(
 // Bird (F): small flyer; the renderer lifts it above its ground shadow.
 
 /** Hover height in pixels for flyers and floaters (drawn above the anchor). */
-export function liftFor(archetype: string, anim: AnimName, frame: number, s: number): number {
+export function liftFor(archetype: string, anim: ProceduralPose, frame: number, s: number): number {
   if (anim === 'death') return 0;
   if (archetype === 'bird') return Math.round((8 + (frame % 2)) * s);
   if (archetype === 'spirit') return Math.round((5 + ([0, 1, 2, 1][frame % 4] as number)) * s);
@@ -273,7 +273,7 @@ export function liftFor(archetype: string, anim: AnimName, frame: number, s: num
 
 export function drawBird(
   g: ShapeGrid,
-  anim: AnimName,
+  anim: ProceduralPose,
   frame: number,
   dir: FacingDir,
   cx: number,
@@ -342,7 +342,7 @@ export function drawBird(
 
 export function drawSlime(
   g: ShapeGrid,
-  anim: AnimName,
+  anim: ProceduralPose,
   frame: number,
   dir: FacingDir,
   cx: number,
@@ -380,7 +380,7 @@ export function drawSlime(
 
 export function drawSpirit(
   g: ShapeGrid,
-  anim: AnimName,
+  anim: ProceduralPose,
   frame: number,
   dir: FacingDir,
   cx: number,

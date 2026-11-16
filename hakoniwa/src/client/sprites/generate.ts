@@ -1,9 +1,11 @@
 // Sprite frame generator: SpriteLook + animation + direction + frame index to a pixel
 // matrix with its ground anchor. Shapes are drawn per template, lit from the upper left,
 // outlined with deepened neighbour colours and coloured through the look's palette.
-// Left frames mirror right frames (art_pipeline.md 3.5). Pure and deterministic.
+// Left frames mirror right frames (art_pipeline.md 3.5). Animations without a drawing of
+// their own borrow the nearest procedural pose (anim_spec.ts proceduralPose). Pure and
+// deterministic.
 
-import { ANIM_SPECS, type AnimName, type Dir } from './anim_spec';
+import { ANIM_SPECS, type AnimName, type Dir, proceduralPose } from './anim_spec';
 import {
   drawBird,
   drawGolem,
@@ -15,7 +17,7 @@ import {
   objectVariant,
 } from './creatures';
 import { drawHumanoid, humanoidBuild, humanoidPose } from './humanoid';
-import { bodyTemplate, paletteFor, type SpriteLook } from './look';
+import { type Archetype, bodyTemplate, paletteFor, type SpriteLook } from './look';
 import type { Rgb } from './pixels';
 import { mirrorX, opaqueBounds, type PixelMatrix } from './pixels';
 import { autoShade, colorize, createShape, outline } from './shape';
@@ -60,6 +62,28 @@ export function spriteKey(look: SpriteLook, anim: AnimName, dir: Dir, frame: num
   return `${look.key}|${anim}|${dir}|${frame}`;
 }
 
+/**
+ * Render-state effects baked into a standee frame (art_pipeline.md 3.4 and 3.8): spirits and
+ * slimes are translucent and fade while they fall, and the first frame of a hit flashes white
+ * (block and dodge do not). The placeholder and art frames share them, so the feedback a
+ * player reads does not change when art arrives.
+ */
+export function frameEffects(
+  archetype: Archetype,
+  anim: AnimName,
+  frame: number,
+): { alpha: number; flash: number } {
+  const p = proceduralPose(anim, frame);
+  let alpha = 255;
+  if (archetype === 'spirit') alpha = 215;
+  else if (archetype === 'slime') alpha = 235;
+  if (p.pose === 'death' && (archetype === 'spirit' || archetype === 'slime')) {
+    alpha = Math.round(alpha * (1 - p.frame * 0.22));
+  }
+  const flash = anim === 'hit' && p.frame === 0 ? 0.55 : 0;
+  return { alpha, flash };
+}
+
 export function generateFrame(
   look: SpriteLook,
   anim: AnimName,
@@ -69,52 +93,41 @@ export function generateFrame(
   const s = look.scale;
   const { w, h, ax, ay } = frameSize(look);
   const frames = frameCountFor(look, anim);
-  const frame = Math.max(0, Math.min(frames - 1, Math.floor(frameIndex)));
+  const clamped = Math.max(0, Math.min(frames - 1, Math.floor(frameIndex)));
+  const pose = proceduralPose(anim, clamped);
+  const p = pose.pose;
+  const frame = frames === 1 ? 0 : pose.frame;
   const drawDir = dir === 'left' ? 'right' : dir;
-  const lift = liftFor(look.archetype, anim, frame, s);
+  const lift = liftFor(look.archetype, p, frame, s);
   const groundY = ay - lift;
   const g = createShape(w, h);
   const arch = look.archetype;
   switch (arch) {
     case 'golem':
-      drawGolem(g, anim, frame, drawDir, ax, groundY, s);
+      drawGolem(g, p, frame, drawDir, ax, groundY, s);
       break;
     case 'wolf':
-      drawWolf(g, anim, frame, drawDir, ax, groundY, s);
+      drawWolf(g, p, frame, drawDir, ax, groundY, s);
       break;
     case 'bird':
-      drawBird(g, anim, frame, drawDir, ax, groundY, s);
+      drawBird(g, p, frame, drawDir, ax, groundY, s);
       break;
     case 'slime':
-      drawSlime(g, anim, frame, drawDir, ax, groundY, s);
+      drawSlime(g, p, frame, drawDir, ax, groundY, s);
       break;
     case 'spirit':
-      drawSpirit(g, anim, frame, drawDir, ax, groundY, s);
+      drawSpirit(g, p, frame, drawDir, ax, groundY, s);
       break;
     case 'object':
       drawObject(g, objectVariant(look.key, !!look.glyph), ax, groundY, s);
       break;
     default:
-      drawHumanoid(
-        g,
-        humanoidBuild(arch, s),
-        humanoidPose(anim, frame, s),
-        drawDir,
-        ax,
-        groundY,
-        s,
-      );
+      drawHumanoid(g, humanoidBuild(arch, s), humanoidPose(p, frame, s), drawDir, ax, groundY, s);
   }
   autoShade(g);
   outline(g, bodyTemplate(arch) === 'HL' || s >= 1.5);
 
-  let alpha = 255;
-  if (arch === 'spirit') alpha = 215;
-  else if (arch === 'slime') alpha = 235;
-  if (anim === 'death' && (arch === 'spirit' || arch === 'slime')) {
-    alpha = Math.round(alpha * (1 - frame * 0.22));
-  }
-  const flash = anim === 'hit' && frame === 0 ? 0.55 : 0;
+  const { alpha, flash } = frameEffects(arch, anim, frames === 1 ? 0 : clamped);
   let matrix = colorize(g, paletteFor(look), { alpha, flash, glow: look.glow });
   if (dir === 'left') matrix = mirrorX(matrix);
   const bounds = opaqueBounds(matrix);

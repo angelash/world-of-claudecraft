@@ -1,18 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import specMonsters from '../assets/prompts/specs/monsters.json';
+import templatesJson from '../assets/prompts/templates.json';
+import monstersJson from '../data/combat/monsters.json';
 import {
+  ACTION_STRIPS,
   ANIM_SPECS,
   ANIMS,
+  type AnimName,
   DIRS,
   type Dir,
   dirFromFacing,
   frameAt,
+  MAIN_ONLY_STRIPS,
+  PROCEDURAL_POSES,
+  proceduralPose,
+  stripFrame,
 } from '../src/client/sprites/anim_spec';
 import { frameCountFor, frameSize, generateFrame, spriteKey } from '../src/client/sprites/generate';
 import {
   ARCHETYPES,
+  BODY_TEMPLATE,
+  bodyOf,
   bodyTemplate,
+  CREATURE_BODIES,
   clampScale,
   lookFromAppearance,
+  lookFromEntity,
   resolveArchetype,
 } from '../src/client/sprites/look';
 import { luminance, parseHex, shadeRamp, toHex } from '../src/client/sprites/palette';
@@ -24,6 +37,8 @@ import {
   opaqueBounds,
   opaqueCount,
 } from '../src/client/sprites/pixels';
+import { ART_ALIASES } from '../tools/assets/core/aliases';
+import { frameCells, importSpecFor, type TemplateLike } from '../tools/assets/core/template_specs';
 
 const look = (base: string, scale?: number) =>
   lookFromAppearance({ base, colors: ['#3b4a6b', '#c9b38a', '#f1c9a5', '#2b2b2b'], scale });
@@ -115,10 +130,10 @@ describe('client sprites: frame generation', () => {
     }
   });
 
-  it('draws a visible body for every archetype, animation, direction and frame', () => {
+  it('draws a visible body for every archetype, procedural pose, direction and frame', () => {
     for (const arch of ARCHETYPES) {
       const l = look(arch);
-      for (const anim of ANIMS) {
+      for (const anim of PROCEDURAL_POSES) {
         for (const dir of DIRS) {
           for (let f = 0; f < frameCountFor(l, anim); f++) {
             const fr = generateFrame(l, anim, dir, f);
@@ -215,5 +230,205 @@ describe('client sprites: animation timing', () => {
     expect(frameAt('idle', 880 + 10)).toBe(0);
     expect(frameAt('death', 100000)).toBe(ANIM_SPECS.death.frames - 1);
     expect(frameAt('attack', 85)).toBe(1);
+  });
+});
+
+describe('client sprites: the action strip vocabulary (art_pipeline.md 3.3 and 3.4)', () => {
+  const templates = (templatesJson as unknown as { templates: Record<string, TemplateLike> })
+    .templates;
+  const stripTemplates = Object.keys(templates)
+    .filter((t) => t.startsWith('chr_') && t !== 'chr_turnaround')
+    .map((t) => t.slice(4));
+
+  it('lists the 13 mannequin strips plus the two main-character strips, one per chr template', () => {
+    expect(ACTION_STRIPS).toHaveLength(13);
+    expect([...ACTION_STRIPS, ...MAIN_ONLY_STRIPS].sort()).toEqual([...stripTemplates].sort());
+    expect(new Set(ANIMS.map((a) => ANIM_SPECS[a].strip))).toEqual(
+      new Set([...ACTION_STRIPS, ...MAIN_ONLY_STRIPS]),
+    );
+  });
+
+  it('names every animation as its strip does, with the strip frame count and timing', () => {
+    for (const anim of ANIMS) {
+      const spec = ANIM_SPECS[anim];
+      const tpl = `chr_${spec.strip}`;
+      const imp = importSpecFor(tpl, templates[tpl] as TemplateLike, `art_chr_test_${spec.strip}`);
+      const cells = frameCells(imp).filter(
+        (c) => c.def.anim === spec.sheetAnim && (c.def.dir === 'down' || imp.dirAxis === 'none'),
+      );
+      expect(cells.length, anim).toBe(spec.frames);
+      const ms = cells.sort((a, b) => a.def.i - b.def.i).map((c) => c.def.ms);
+      // distance-driven cycles (walk, run, ride) carry no duration in the strip, and revive
+      // plays the death frames backwards at its own pace (3.4)
+      if (!spec.reverse && ms.every((m) => m !== null)) expect(spec.frameMs, anim).toEqual(ms);
+      expect(imp.anims.find((a) => a.name === spec.sheetAnim)?.loop ?? false, anim).toBe(
+        spec.loop && !spec.reverse,
+      );
+    }
+  });
+
+  it('keeps the five first-round poses as they were and borrows them for the rest', () => {
+    for (const pose of PROCEDURAL_POSES) {
+      for (let f = 0; f < ANIM_SPECS[pose].frames; f++)
+        expect(proceduralPose(pose, f)).toEqual({ pose, frame: f });
+    }
+    expect(proceduralPose('run', 5)).toEqual({ pose: 'walk', frame: 5 });
+    expect(proceduralPose('melee', 2)).toEqual({ pose: 'attack', frame: 2 });
+    expect(proceduralPose('thrust', 4)).toEqual({ pose: 'attack', frame: 3 });
+    expect(proceduralPose('block', 1)).toEqual({ pose: 'hit', frame: 1 });
+    expect(proceduralPose('revive', 0)).toEqual({ pose: 'death', frame: 3 });
+    expect(proceduralPose('sit', 1)).toEqual({ pose: 'idle', frame: 1 });
+    expect(stripFrame('revive', 1)).toBe(2);
+    expect(stripFrame('attack', 9)).toBe(3);
+    // attack is the generic cue: the melee strip's frames and timing
+    expect(ANIM_SPECS.attack).toMatchObject({ strip: 'attack_melee', sheetAnim: 'melee' });
+    expect(ANIM_SPECS.attack.frameMs).toEqual(ANIM_SPECS.melee.frameMs);
+  });
+
+  it('draws every animation with the pixels of the pose it borrows', () => {
+    for (const arch of ['human', 'wolf', 'spirit', 'object'] as const) {
+      const l = look(arch);
+      for (const anim of ANIMS) {
+        for (let f = 0; f < frameCountFor(l, anim); f++) {
+          const p = proceduralPose(anim, f);
+          const own = generateFrame(l, anim, 'right', f);
+          const borrowed = generateFrame(l, p.pose, 'right', arch === 'object' ? 0 : p.frame);
+          if (anim === 'hit' || p.pose !== 'hit' || p.frame !== 0) {
+            expect(matrixHash(own.matrix), `${arch} ${anim} ${f}`).toBe(
+              matrixHash(borrowed.matrix),
+            );
+          } else {
+            // block and dodge borrow the hit pose without the hit flash
+            expect(matrixHash(own.matrix)).not.toBe(matrixHash(borrowed.matrix));
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('client sprites: looks by art body (art_pipeline.md 3.2 and 3.8)', () => {
+  const colors = ['#3b4a6b', '#c9b38a', '#f1c9a5', '#2b2b2b'];
+  const monster = (base: string, ref = 'test_mob') =>
+    lookFromEntity({ appearance: { base, colors, scale: 1.25 }, kind: 'monster', ref });
+
+  it('maps bases to art bodies, by kind where it matters', () => {
+    expect(bodyOf('rat', 'monster')).toBe('small');
+    expect(bodyOf('wolf', 'monster')).toBe('medium');
+    expect(bodyOf('beast', 'monster')).toBe('medium');
+    expect(bodyOf('beast', 'npc')).toBe('h');
+    expect(bodyOf('bear', 'monster')).toBe('large');
+    expect(bodyOf('spider', 'monster')).toBe('multileg');
+    expect(bodyOf('leech', 'monster')).toBe('serpentine');
+    expect(bodyOf('drake', 'monster')).toBe('drake');
+    expect(bodyOf('bird', 'monster')).toBe('flying');
+    expect(bodyOf('slime', 'monster')).toBe('amorphous');
+    expect(bodyOf('undead', 'monster')).toBe('medium');
+    expect(bodyOf('undead', 'npc')).toBe('h');
+    expect(bodyOf('dwarf', 'npc')).toBe('hs');
+    expect(bodyOf('ogre', 'monster')).toBe('hb');
+    expect(bodyOf('orc', 'npc')).toBe('h');
+    expect(bodyOf('imp', 'monster')).toBe('small');
+    expect(resolveArchetype('imp')).toBe('demon');
+    expect(resolveArchetype('ogre')).toBe('demon');
+    expect(bodyOf('object', 'object')).toBe('object');
+    expect(bodyOf('human', 'monster')).toBe('h');
+  });
+
+  it('draws every creature body without its own drawing as the first-round four-legged creature', () => {
+    const generic = monster('beast');
+    for (const base of [
+      'rat',
+      'boar',
+      'bear',
+      'spider',
+      'centipede',
+      'beetle',
+      'worm',
+      'leech',
+      'drake',
+    ]) {
+      const l = monster(base);
+      expect(CREATURE_BODIES.has(l.body), base).toBe(true);
+      expect(l.archetype, base).toBe('wolf');
+      expect(l.key, base).toBe(generic.key);
+      expect(matrixHash(generateFrame(l, 'walk', 'right', 3).matrix)).toBe(
+        matrixHash(generateFrame(generic, 'walk', 'right', 3).matrix),
+      );
+    }
+    // the elemental and the shade keep their spirit placeholder on bigger creature sheets
+    expect([monster('elemental').archetype, monster('elemental').body]).toEqual([
+      'spirit',
+      'large',
+    ]);
+    expect([monster('shade').archetype, monster('shade').body]).toEqual(['spirit', 'medium']);
+  });
+
+  it('gives creatures their content id as art subject and people their art references', () => {
+    expect(monster('rat', 'dian_rat').art).toEqual({ subject: 'dian_rat' });
+    const bandit = lookFromEntity({
+      appearance: { base: 'human', colors },
+      kind: 'monster',
+      ref: 'b',
+    });
+    expect(bandit.body).toBe('h');
+    expect(bandit.art).toBeUndefined();
+    const yeyu = lookFromEntity({
+      appearance: {
+        base: 'human',
+        colors,
+        sheet: 'art_chr_yeyu',
+        portrait: 'art_por_yeyu',
+        bust: 'art_bust_yeyu',
+        variants: { 'flag.x': { portrait: 'art_por_yeyu_crowned' } },
+      },
+      kind: 'companion',
+      ref: 'yeyu',
+    });
+    expect(yeyu.art).toEqual({
+      sheet: 'art_chr_yeyu',
+      portrait: 'art_por_yeyu',
+      bust: 'art_bust_yeyu',
+      variants: { 'flag.x': { portrait: 'art_por_yeyu_crowned' } },
+    });
+    // art references never touch the placeholder key
+    expect(yeyu.key).toBe(lookFromAppearance({ base: 'human', colors }).key);
+    const doll = lookFromAppearance({
+      base: 'dwarf',
+      colors,
+      doll: { body: 'hs', outfit: 'art_doll_gear_garb' },
+    });
+    expect(doll.art?.doll?.body).toBe('hs');
+    expect(doll.body).toBe('hs');
+  });
+
+  it('writes every monster base so its art body matches its prompt spec template', () => {
+    const specOf = new Map<string, string>();
+    for (const it of (specMonsters as unknown as { items: { ref?: string; template: string }[] })
+      .items) {
+      if (it.ref && it.template.startsWith('mon_') && it.template !== 'mon_turnaround')
+        specOf.set(it.ref, it.template);
+    }
+    const mons = monstersJson as unknown as { id: string; appearance: { base: string } }[];
+    let checked = 0;
+    for (const m of mons) {
+      expect(m.appearance.base, m.id).not.toBe('beast');
+      const tpl = specOf.get(ART_ALIASES[m.id] ?? m.id);
+      if (!tpl) continue;
+      expect(BODY_TEMPLATE[bodyOf(m.appearance.base, 'monster')], m.id).toBe(tpl);
+      checked++;
+    }
+    expect(checked).toBeGreaterThanOrEqual(20);
+  });
+});
+
+describe('client sprites: animation names are total', () => {
+  it('has a spec with one duration per frame for every name', () => {
+    const names: AnimName[] = [...ANIMS];
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toHaveLength(36);
+    for (const a of names) expect(ANIM_SPECS[a].frameMs, a).toHaveLength(ANIM_SPECS[a].frames);
+    expect(frameAt('revive', 10000)).toBe(3);
+    expect(frameAt('sit', 450 + 10)).toBe(1);
   });
 });

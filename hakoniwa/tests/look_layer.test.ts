@@ -5,9 +5,25 @@
 // then hold the shipped maps to the same rules plus the scene-flow conventions.
 
 import { describe, expect, it } from 'vitest';
+import atlasRegions from '../data/world/atlas_regions.json';
 import { buildContent, validateContent } from '../src/content';
-import { DECOR_KINDS, type DecorDef, lookProblems, styleOf } from '../src/systems/world/look';
-import { BLOCKING_TILES, type MapDef, type TileKind } from '../src/systems/world/types';
+import { appearanceProblems, DOLL_LAYERS } from '../src/systems/world/appearance';
+import {
+  DECOR_KINDS,
+  type DecorDef,
+  isStyleId,
+  lookProblems,
+  REGION_STYLE,
+  ROOF_SHAPES,
+  STYLE_IDS,
+  styleOf,
+} from '../src/systems/world/look';
+import {
+  type Appearance,
+  BLOCKING_TILES,
+  type MapDef,
+  type TileKind,
+} from '../src/systems/world/types';
 
 // Row 0 holds one tile of every walkable kind except the door; row 1 one tile of every
 // blocking kind, then a door, a plain tile and an exit tile; '?' is not in the legend.
@@ -201,5 +217,108 @@ describe('the shipped maps follow the scene-flow decor rules', () => {
         expect(near, `${id} exit ${e.id}`).toBe(true);
       }
     }
+  });
+});
+
+describe('the region table follows the atlas regions (art_pipeline.md 1.4)', () => {
+  const regions = atlasRegions as unknown as { id: string; style?: string; stylePlan?: string }[];
+
+  it('maps every atlas region to its style or planned style, and the continent to none', () => {
+    let mapped = 0;
+    for (const r of regions) {
+      const want = r.style ?? r.stylePlan;
+      if (want === undefined) {
+        expect(Object.hasOwn(REGION_STYLE, r.id), r.id).toBe(false);
+        continue;
+      }
+      expect(isStyleId(want), `${r.id} plans ${want}`).toBe(true);
+      expect(REGION_STYLE[r.id], r.id).toBe(want);
+      expect(styleOf({ region: r.id }), r.id).toBe(want);
+      mapped++;
+    }
+    expect(mapped).toBe(13);
+  });
+
+  it('names only style packs, and every national pack has a region', () => {
+    for (const [region, style] of Object.entries(REGION_STYLE))
+      expect(isStyleId(style), region).toBe(true);
+    const used = new Set(Object.values(REGION_STYLE));
+    for (const id of STYLE_IDS.slice(6, 13)) expect(used.has(id), id).toBe(true);
+  });
+
+  it('accepts the dome, cone and spire roofs in building looks', () => {
+    expect(ROOF_SHAPES).toEqual(['gable', 'hip', 'flat', 'dome', 'cone', 'spire']);
+    for (const roof of ['dome', 'cone', 'spire'] as const)
+      expect(lookProblems({ ...PLAZA, looks: { square: { roof } } }), roof).toEqual([]);
+    expect(lookProblems({ ...PLAZA, looks: { square: { roof: 'onion' as never } } })).toEqual([
+      "map plaza_test: look square unknown roof 'onion'",
+    ]);
+  });
+});
+
+describe('appearance asset references (art_pipeline.md 3.1 and 6.5)', () => {
+  const base: Appearance = { base: 'human', colors: ['#3b4a6b'] };
+
+  it('accepts sheets, dolls, portraits, busts and variants that name assets of their category', () => {
+    const a: Appearance = {
+      ...base,
+      sheet: 'art_chr_yeyu',
+      portrait: 'art_por_yeyu',
+      bust: 'art_bust_yeyu',
+      doll: {
+        body: 'hs',
+        outfit: 'art_doll_gear_garb',
+        head: 'art_doll_head_base_hs_dwarf',
+        mainHand: 'art_doll_held_dagger_low',
+        swatch: 'warm_03',
+      },
+      variants: { 'act >= act5': { sheet: 'art_chr_luchen_cloakless', bust: 'art_bust_luchen_b' } },
+    };
+    expect(appearanceProblems('npc x', a)).toEqual([]);
+    expect(appearanceProblems('mob', { ...base, sheet: 'art_mon_dian_rat' })).toEqual([]);
+    expect(DOLL_LAYERS[0]).toBe('back');
+  });
+
+  it('reports ids of the wrong category, malformed ids, bad bodies and empty variants', () => {
+    const out = appearanceProblems('npc x', {
+      ...base,
+      sheet: 'art_por_yeyu',
+      portrait: 'Yeyu Portrait',
+      bust: 'art_chr_yeyu',
+      doll: { body: 'xl' as never, outfit: 'art_chr_garb', swatch: '' },
+      variants: { '': { portrait: 'art_por_x' }, 'flag.y': {} },
+    });
+    expect(out).toEqual([
+      "npc x: appearance sheet 'art_por_yeyu' should start with art_chr_ or art_mon_ or art_boss_ or art_pet_",
+      "npc x: appearance portrait 'Yeyu Portrait' is not an asset id",
+      "npc x: appearance bust 'art_chr_yeyu' should start with art_bust_",
+      "npc x: appearance doll body 'xl' is not h, hs or hb",
+      "npc x: appearance doll.outfit 'art_chr_garb' should start with art_doll_",
+      'npc x: appearance doll swatch must be a non-empty string',
+      'npc x: appearance variant with an empty condition',
+      "npc x: appearance variant 'flag.y' replaces nothing",
+    ]);
+  });
+
+  it('finds no problem in any appearance the content ships', () => {
+    const content = buildContent();
+    const rows: [string, Appearance][] = [
+      ...content.monsters.map((m) => [`monster ${m.id}`, m.appearance] as [string, Appearance]),
+      ...(content.combatFixtures ?? []).map(
+        (x) => [`fixture ${x.id}`, x.appearance] as [string, Appearance],
+      ),
+      ...(content.companions ?? []).map(
+        (c) => [`companion ${c.id}`, c.appearance] as [string, Appearance],
+      ),
+      ...(content.npcs ?? []).map(
+        (p) =>
+          [`npc ${p.id}`, (p as unknown as { appearance: Appearance }).appearance] as [
+            string,
+            Appearance,
+          ],
+      ),
+    ];
+    expect(rows.length).toBeGreaterThan(90);
+    for (const [who, a] of rows) if (a) expect(appearanceProblems(who, a)).toEqual([]);
   });
 });

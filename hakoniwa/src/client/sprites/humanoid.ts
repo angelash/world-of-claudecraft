@@ -3,7 +3,7 @@
 // grid from parametric parts (legs, torso, arms, head, hair, racial features), so a
 // larger `scale` means more pixels, never image scaling. Pure.
 
-import type { AnimName, Dir } from './anim_spec';
+import type { Dir, ProceduralPose } from './anim_spec';
 import type { Archetype } from './look';
 import { SHADE } from './palette';
 import {
@@ -113,7 +113,7 @@ export interface HumanoidPose {
   fall: 0 | 1 | 2 | 3;
 }
 
-export function humanoidPose(anim: AnimName, frame: number, s: number): HumanoidPose {
+export function humanoidPose(anim: ProceduralPose, frame: number, s: number): HumanoidPose {
   const p: HumanoidPose = {
     bob: 0,
     headBob: 0,

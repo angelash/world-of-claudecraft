@@ -1,8 +1,11 @@
 // Normalise a world Appearance (base, colors, scale) into a SpriteLook: a canonical
 // archetype, a palette of slot ramps, and a stable cache key. Unknown bases fall back
-// deterministically. Pure.
+// deterministically. A look also carries its art body (the imported template family its
+// AI art uses, art_pipeline.md 3.2) and the asset references the asset resolver reads
+// (src/client/assets/); the archetype and the key only describe the procedural
+// placeholder, so they never change when art arrives. Pure.
 
-import type { Appearance } from '../../systems/world/types';
+import type { Appearance, AppearanceVariant, DollRecipe } from '../../systems/world/types';
 import { parseHex, shadeRamp } from './palette';
 import type { Rgb } from './pixels';
 import { SLOT, type SlotPalette } from './shape';
@@ -26,7 +29,12 @@ export const ARCHETYPES = [
 
 export type Archetype = (typeof ARCHETYPES)[number];
 
-/** Bases other systems may write, mapped onto the archetype that draws them. */
+/**
+ * Bases other systems may write, mapped onto the archetype that draws them. Creature bodies
+ * without a drawing of their own (rats, spiders, worms, drakes) are drawn as the four-legged
+ * creature, as the generic 'beast' monsters were in the first round (art_pipeline.md 3.8);
+ * their own silhouettes come from their art.
+ */
 const ALIASES: Record<string, Archetype> = {
   beast: 'beastkin',
   wolfkin: 'beastkin',
@@ -39,11 +47,25 @@ const ALIASES: Record<string, Archetype> = {
   zombie: 'undead',
   ghoul: 'undead',
   ghost: 'spirit',
+  shade: 'spirit',
   wisp: 'spirit',
   fairy: 'spirit',
   elemental: 'spirit',
   boar: 'wolf',
   bear: 'wolf',
+  rat: 'wolf',
+  hare: 'wolf',
+  spider: 'wolf',
+  centipede: 'wolf',
+  beetle: 'wolf',
+  crab: 'wolf',
+  scorpion: 'wolf',
+  worm: 'wolf',
+  leech: 'wolf',
+  snake: 'wolf',
+  eel: 'wolf',
+  drake: 'wolf',
+  wyrm: 'wolf',
   deer: 'wolf',
   dog: 'wolf',
   fox: 'wolf',
@@ -94,6 +116,128 @@ export function bodyTemplate(a: Archetype): BodyTemplate {
   }
 }
 
+/**
+ * Art body of a look (art_pipeline.md 3.2): the template family its AI art is drawn on. People
+ * use the paper-doll mannequins (h, hs, hb; main characters draw their own strips on the same
+ * frame), creatures one mon_* template each, objects are props.
+ */
+export const BODY_TYPES = [
+  'h',
+  'hs',
+  'hb',
+  'small',
+  'medium',
+  'large',
+  'multileg',
+  'serpentine',
+  'flying',
+  'amorphous',
+  'drake',
+  'object',
+] as const;
+export type BodyType = (typeof BODY_TYPES)[number];
+
+/** Creature bodies (one sheet per display direction, art_pipeline.md 3.8). */
+export const CREATURE_BODIES: ReadonlySet<BodyType> = new Set<BodyType>([
+  'small',
+  'medium',
+  'large',
+  'multileg',
+  'serpentine',
+  'flying',
+  'amorphous',
+  'drake',
+]);
+
+/**
+ * Import template of each creature body (art_pipeline.md 3.2 and 11) for ordinary monsters;
+ * bosses draw on boss_sheet and mounts on pet_mount whatever their body.
+ */
+export const BODY_TEMPLATE: Readonly<Partial<Record<BodyType, string>>> = {
+  small: 'mon_small',
+  medium: 'mon_medium',
+  large: 'mon_large',
+  multileg: 'mon_multileg',
+  serpentine: 'mon_serpentine',
+  flying: 'mon_flying',
+  amorphous: 'mon_amorphous',
+  drake: 'mon_drake',
+};
+
+/** Body aliases a base may name directly (monsters.json writes the creature ones). */
+const BODY_OF_BASE: Readonly<Record<string, BodyType>> = {
+  rat: 'small',
+  hare: 'small',
+  fox: 'small',
+  wolf: 'medium',
+  boar: 'medium',
+  deer: 'medium',
+  dog: 'medium',
+  hound: 'medium',
+  bear: 'large',
+  spider: 'multileg',
+  centipede: 'multileg',
+  beetle: 'multileg',
+  crab: 'multileg',
+  scorpion: 'multileg',
+  worm: 'serpentine',
+  leech: 'serpentine',
+  snake: 'serpentine',
+  eel: 'serpentine',
+  drake: 'drake',
+  wyrm: 'drake',
+  // a hulking elemental mass and a two-legged shade take creature sheets of their size
+  elemental: 'large',
+  shade: 'medium',
+  ogre: 'hb',
+  // a contract imp is a small creature on the mon_small sheet of its summoned kin
+  imp: 'small',
+};
+
+/** Body of an archetype when the base names no body of its own. */
+function archetypeBody(a: Archetype, kind: string): BodyType {
+  switch (a) {
+    case 'dwarf':
+    case 'halfling':
+      return 'hs';
+    case 'wolf':
+      return 'medium';
+    case 'bird':
+      return 'flying';
+    case 'slime':
+    case 'spirit':
+      return 'amorphous';
+    case 'golem':
+      return 'large';
+    case 'object':
+      return 'object';
+    case 'undead':
+      // Undead monsters (bones, ghouls) use creature sheets; an undead person is a person.
+      return kind === 'monster' ? 'medium' : 'h';
+    default:
+      return 'h';
+  }
+}
+
+/** The art body of an appearance on an entity of `kind` (art_pipeline.md 3.2 and 3.8). */
+export function bodyOf(base: string | undefined, kind: string): BodyType {
+  const b = (base ?? '').trim().toLowerCase();
+  if (Object.hasOwn(BODY_OF_BASE, b)) return BODY_OF_BASE[b] as BodyType;
+  if (kind === 'monster' && b === 'beast') return 'medium';
+  return archetypeBody(resolveArchetype(b), kind);
+}
+
+/** Asset references of a look, copied from its Appearance (art_pipeline.md 3.1). */
+export interface LookArt {
+  sheet?: string;
+  doll?: DollRecipe;
+  portrait?: string;
+  bust?: string;
+  variants?: Readonly<Record<string, AppearanceVariant>>;
+  /** content id whose creature sheets the look uses (a monster's id) */
+  subject?: string;
+}
+
 export interface SpriteLook {
   archetype: Archetype;
   /** integer-friendly size multiplier; more pixels, never runtime scaling */
@@ -104,8 +248,12 @@ export interface SpriteLook {
   hair: Rgb;
   glow: Rgb;
   glyph?: string;
-  /** stable cache key */
+  /** stable cache key of the procedural placeholder */
   key: string;
+  /** art body: which template family the look's AI art uses */
+  body: BodyType;
+  /** asset references, when the appearance names any or the entity has creature sheets */
+  art?: LookArt;
 }
 
 const DEFAULTS: Record<Archetype, [Rgb, Rgb, Rgb, Rgb]> = {
@@ -159,7 +307,32 @@ export function lookFromAppearance(a: Appearance): SpriteLook {
   const glow = archetype === 'spirit' ? mixToward(primary, 0xffffff, 0.6) : GLOW[archetype];
   const glyph = a.glyph ? Array.from(a.glyph)[0] : undefined;
   const key = [archetype, scale, primary, secondary, skin, hair].map(String).join(':');
-  return { archetype, scale, primary, secondary, skin, hair, glow, glyph, key };
+  const body = bodyOf(a.base, 'npc');
+  const art = artOf(a, undefined);
+  return {
+    archetype,
+    scale,
+    primary,
+    secondary,
+    skin,
+    hair,
+    glow,
+    glyph,
+    key,
+    body,
+    ...(art ? { art } : {}),
+  };
+}
+
+function artOf(a: Appearance, subject: string | undefined): LookArt | undefined {
+  const art: LookArt = {};
+  if (a.sheet) art.sheet = a.sheet;
+  if (a.doll) art.doll = a.doll;
+  if (a.portrait) art.portrait = a.portrait;
+  if (a.bust) art.bust = a.bust;
+  if (a.variants && Object.keys(a.variants).length > 0) art.variants = a.variants;
+  if (subject) art.subject = subject;
+  return Object.keys(art).length > 0 ? art : undefined;
 }
 
 function mixToward(a: Rgb, b: Rgb, t: number): Rgb {
@@ -205,13 +378,25 @@ export function paletteFor(look: SpriteLook): SlotPalette {
 }
 
 /**
- * Look for a world entity. Monsters written with the generic base 'beast' (rats, boars,
- * spiders, drakes) are four-legged creatures; residents with 'beast' are beastkin.
+ * Look for a world entity, by art body (art_pipeline.md 3.2 and 3.8). Creature bodies take
+ * creature sheets named after the entity's content id (`ref`) and draw as their placeholder
+ * archetype (every creature body without a drawing of its own is the four-legged creature);
+ * people keep their archetype and take a frame sheet or a paper doll; objects are props. A
+ * monster still written with the generic base 'beast' is a medium four-legged creature, while
+ * a resident written 'beast' is beastkin.
  */
-export function lookFromEntity(e: { appearance: Appearance; kind: string }): SpriteLook {
+export function lookFromEntity(e: {
+  appearance: Appearance;
+  kind: string;
+  ref?: string;
+}): SpriteLook {
   const a = e.appearance;
-  if (e.kind === 'monster' && (a.base ?? '').trim().toLowerCase() === 'beast') {
-    return lookFromAppearance({ ...a, base: 'wolf' });
+  const body = bodyOf(a.base, e.kind);
+  if (CREATURE_BODIES.has(body)) {
+    const generic = e.kind === 'monster' && (a.base ?? '').trim().toLowerCase() === 'beast';
+    const look = lookFromAppearance(generic ? { ...a, base: 'wolf' } : a);
+    const art = artOf(a, e.ref);
+    return { ...look, body, ...(art ? { art } : {}) };
   }
-  return lookFromAppearance(a);
+  return { ...lookFromAppearance(a), body };
 }

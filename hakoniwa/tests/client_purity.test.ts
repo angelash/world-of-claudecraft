@@ -1,9 +1,9 @@
 // Guards the client's pure cores: modules that hold the client's rules (HD-2D view math,
-// style packs, scene layout, procedural textures, light map, camera, sprite generation,
-// ground and decor art, lighting, weather, roofs, scene, frame scheduling, input rules,
-// formatting, window availability, save slots) must not touch the DOM, three.js or real
-// randomness, so they stay Node-testable and deterministic. DOM and GPU work lives in the
-// thin painters, the renderers and the windows.
+// style packs, scene layout, procedural textures, light map, camera, sprite generation, the
+// asset resolver, ground and decor art, lighting, weather, roofs, scene, frame scheduling,
+// input rules, formatting, window availability, save slots) must not touch the DOM, three.js
+// or real randomness, so they stay Node-testable and deterministic. DOM and GPU work lives in
+// the thin painters, the renderers, the windows and the asset loader.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,6 +20,11 @@ export const CLIENT_PURE_CORES = [
   'app/clock.ts',
   'app/config.ts',
   'app/sandbox.ts',
+  'assets/frames.ts',
+  'assets/resolver.ts',
+  'assets/runtime.ts',
+  'assets/sprite_source.ts',
+  'assets/types.ts',
   'audio/audio_director.ts',
   'audio/bus_model.ts',
   'audio/cue_map.ts',
@@ -111,6 +116,9 @@ describe('client pure cores', () => {
       'window_manager',
       'session',
       'shared_ui/dom',
+      '/loader',
+      'assets/index',
+      'assets',
     ];
     for (const file of CLIENT_PURE_CORES) {
       const imports = [...code(file).matchAll(/from '([^']+)'/g)].map((m) => m[1] as string);
