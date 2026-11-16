@@ -7011,6 +7011,25 @@
       "source": "8.4"
     },
     {
+      "name": "a4_coalition_splits",
+      "kind": "int",
+      "scope": "act_exit",
+      "range": [0, 7],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": null,
+      "monotone": false,
+      "act": 4,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a4_coalition_splits",
+      "source": "8.10"
+    },
+    {
       "name": "a4_conclave_beat",
       "kind": "enum",
       "scope": "act_exit",
@@ -7066,6 +7085,25 @@
       "ai": "ledger",
       "label": "var.a4_crusade_authorized",
       "source": "8.8.5"
+    },
+    {
+      "name": "a4_days_since_founding",
+      "kind": "int",
+      "scope": "act_exit",
+      "range": [0, null],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["strategy"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": 4,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a4_days_since_founding",
+      "source": "8.10"
     },
     {
       "name": "a4_econ_vassal",
@@ -8415,7 +8453,16 @@
       "range": null,
       "step": null,
       "default": null,
-      "values": ["_done"],
+      "values": [
+        "merca",
+        "merca_done",
+        "eluen",
+        "eluen_done",
+        "sylvie",
+        "sylvie_done",
+        "moira",
+        "moira_done"
+      ],
       "aliases": [],
       "writers": ["content"],
       "readers": ["content"],
@@ -8426,6 +8473,25 @@
       "ai": "ledger",
       "label": "var.a4_versions_beat",
       "source": "8.8.5"
+    },
+    {
+      "name": "a4_warchief_boast_heard",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content", "quests"],
+      "derive": null,
+      "monotone": true,
+      "act": 4,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a4_warchief_boast_heard",
+      "source": "8.10"
     },
     {
       "name": "a4_white_writ",
@@ -8905,6 +8971,25 @@
       "ai": "ledger",
       "label": "var.a5_final_battle_done",
       "source": "8.3"
+    },
+    {
+      "name": "a5_front_collapsed",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": "front.north == collapsed OR front.east == collapsed OR front.south == collapsed OR front.ring == collapsed OR front.rear == collapsed",
+      "monotone": false,
+      "act": 5,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a5_front_collapsed",
+      "source": "8.10"
     },
     {
       "name": "a5_fw_beat",
@@ -9992,6 +10077,44 @@
       "source": "8.4"
     },
     {
+      "name": "a6_gods_out",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": "verdict.eluen IN (voluntary, judged) AND verdict.valda IN (voluntary, judged) AND verdict.merca IN (voluntary, judged) AND verdict.sylvie IN (voluntary, judged) AND verdict.moira IN (voluntary, judged)",
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_gods_out",
+      "source": "8.10"
+    },
+    {
+      "name": "a6_holdouts",
+      "kind": "int",
+      "scope": "act_exit",
+      "range": [0, 5],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": "COUNT(verdict.eluen IN (refuse, contend), verdict.valda IN (refuse, contend), verdict.merca IN (refuse, contend), verdict.sylvie IN (refuse, contend), verdict.moira IN (refuse, contend))",
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_holdouts",
+      "source": "8.10"
+    },
+    {
       "name": "a6_intent_beat",
       "kind": "enum",
       "scope": "act_exit",
@@ -10258,6 +10381,63 @@
       "source": "8.4"
     },
     {
+      "name": "a6_power_tie",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["core"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_power_tie",
+      "source": "8.10"
+    },
+    {
+      "name": "a6_release_bar",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": "a5_purify_success AND NOT a5_front_collapsed AND a5_held_unaided >= 3 AND a5_janu_act == receive AND continent >= 50 AND a6_review_score >= 0.6 AND autonomy >= 60",
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_release_bar",
+      "source": "8.10"
+    },
+    {
+      "name": "a6_release_core",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": "a6_gods_out AND a6_janu_release AND NOT a6_player_absorb AND NOT a6_god_war",
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_release_core",
+      "source": "8.10"
+    },
+    {
       "name": "a6_release_tone",
       "kind": "enum",
       "scope": "act_exit",
@@ -10351,6 +10531,25 @@
       "ai": "ledger",
       "label": "var.a6_rewrite_fixed",
       "source": "8.8.7"
+    },
+    {
+      "name": "a6_rule_pick",
+      "kind": "enum",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": ["eluen", "valda", "merca", "sylvie", "moira"],
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": 6,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a6_rule_pick",
+      "source": "8.10"
     },
     {
       "name": "a6_sitting",
@@ -11911,7 +12110,7 @@
       "default": null,
       "values": ["monarchy", "doorcourt", "federation", "guild_republic", "charter", "masterless"],
       "aliases": ["nat_polity"],
-      "writers": [],
+      "writers": ["content", "strategy"],
       "readers": ["content"],
       "derive": null,
       "monotone": false,
@@ -14648,7 +14847,7 @@
       "values": null,
       "aliases": [],
       "writers": ["compute:a5_confession_faith", "content"],
-      "readers": [],
+      "readers": ["warfare"],
       "derive": null,
       "monotone": false,
       "act": null,
@@ -14665,7 +14864,7 @@
         {
           "name": "mod",
           "domain": null,
-          "keys": null
+          "keys": ["force", "command", "synergy", "supply", "morale", "works", "enemy_force"]
         }
       ]
     },
@@ -14951,6 +15150,32 @@
         {
           "name": "goddess",
           "domain": "goddess",
+          "keys": null
+        }
+      ]
+    },
+    {
+      "name": "handover.<door>",
+      "kind": "text",
+      "scope": "family",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.handover.door",
+      "source": "8.10",
+      "slots": [
+        {
+          "name": "door",
+          "domain": "door",
           "keys": null
         }
       ]

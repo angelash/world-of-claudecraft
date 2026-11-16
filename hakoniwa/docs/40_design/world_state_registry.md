@@ -164,6 +164,11 @@
 | `npc.ferryman.bond`（第二幕"老船夫信任"0 到 3） | `trust.ferryman` 0 到 24 为 0，25 到 49 为 1，50 到 74 为 2，≥ 75 为 3 |
 | `evidence_set` | 全部为真的 `evidence.E*` 组成的集合（只作显示与 `HAS` 读取） |
 | `npc_deaths` | 全部为真的 `npc.*.dead` 组成的集合 |
+| `a5_front_collapsed` | `front.north == collapsed OR front.east == collapsed OR front.south == collapsed OR front.ring == collapsed OR front.rear == collapsed`，决战结算后有值 |
+| `a6_gods_out` | `verdict.eluen IN (voluntary, judged) AND verdict.valda IN (voluntary, judged) AND verdict.merca IN (voluntary, judged) AND verdict.sylvie IN (voluntary, judged) AND verdict.moira IN (voluntary, judged)` |
+| `a6_holdouts` | `COUNT(verdict.eluen IN (refuse, contend), verdict.valda IN (refuse, contend), verdict.merca IN (refuse, contend), verdict.sylvie IN (refuse, contend), verdict.moira IN (refuse, contend))` |
+| `a6_release_core` | `a6_gods_out AND a6_janu_release AND NOT a6_player_absorb AND NOT a6_god_war` |
+| `a6_release_bar` | `a5_purify_success AND NOT a5_front_collapsed AND a5_held_unaided >= 3 AND a5_janu_act == receive AND continent >= 50 AND a6_review_score >= 0.6 AND autonomy >= 60` |
 
 ### 2.9 计算函数
 
@@ -979,7 +984,7 @@
 | `evidence.<编号>` | 第 7.5 节 | 标记 | `E01` 到 `E36` | 取得物证或证词 | 审庭、台账第 7 节 |
 | `evidence.<编号>.shown` | 无 | 标记 | | 审庭呈示（court） | 防线 |
 | `front.<线>` | `front_<线>` | 枚举 | `north`、`east`、`south`、`ring`、`rear`；`held`、`stalemate`、`lost`、`collapsed` | 决战结算（quests 的 `act5_outcome`） | 真结局、E28 |
-| `front_mod.<线>.<项>` | 无 | 小数 | 战线修正（任务目录（后）第 8.2 节） | 战线链任务 | 战线结算 |
+| `front_mod.<线>.<项>` | 无 | 小数 | `force`、`command`、`synergy`、`supply`、`morale`、`works`、`enemy_force`；战线修正，整数：`force` 与 `supply` 为百分数，`command` 与 `works` 为等级，`synergy` 为百分点，`morale` 为士气点，`enemy_force` 为敌方兵力的百分数（负值为削弱）；前六项作用于我方，`enemy_force` 作用于敌方（任务目录（后）第 8.2 节） | 战线链任务、第五幕支线 | 战线结算（`src/systems/warfare/fronts.ts`） |
 | `ring_node.<节点>` | 无 | 枚举 | `R01` 到 `R07`；`unsurveyed`、`surveyed`、`building`、`built`、`held`、`fallen` | 众门环节点任务 | `a5_gate_ring`（决战结束时为 `held` 的节点数） |
 | `ring_node.<节点>.integrity` | 无 | 整数 | `R01` 到 `R07`；0 到 100 | 众门环守备 `bat_a5_ring_node`（[战争目录][war]） | 战线结算 |
 | `ring_node.<节点>.built` | 无 | 派生标记 | `ring_node.<节点>` 为 `built` 或 `held` | 派生 | 国家事件 `nev_crisis_ring_works` |
@@ -1017,7 +1022,7 @@
 | `econ.company_founded` | 无 | 标记 | | economy 商会成立 | `data/city/buildings.json`、配方、`q`、`s25`、审期 |
 | `econ.house_scale` | `house_scale` | 整数 | 0 到 5 | economy | 第二幕出口、第三幕 |
 | `nation.power` | `nat_power` | 整数 | 0 到 100 | strategy | 第五幕 |
-| `nation.polity` | `nat_polity` | 枚举 | 第 7.6 节 | 立国 | 自治度成长、待令 |
+| `nation.polity` | `nat_polity` | 枚举 | 第 7.6 节 | 立国（strategy）；任务目录（后）A4-M05 第一部法的效果 | 自治度成长、待令 |
 | `nation.legit` | `nat_legit` | 整数 | 0 到 7 | strategy 外交 | 会盟 |
 | `director.tension` | 无 | 整数 | 0 到 100 | director | 导演菜单 |
 | `director.<菜单项>` | 无 | 标记 | `enemy_slip`、`lost_item`、`old_friend`、`passing_merchant`、`rumor_hint` | 导演菜单项（`gd` 的 `director_menu.json`） | 冷却与日志 |
@@ -1352,7 +1357,7 @@
 | `a4_hart_offer` | 无 | 出口 | 枚举 | `accepted`、`refused`、`mortal_pact`；默认未写入 | `cut_a4_feast` | 经济战的起点（`a4_hart_state`、`a4_econ_vassal`） | 宴上对哈特贸易协定的回应（经济战起点，分幕 5.6、8.1） |
 | `a4_hart_clause_read` | 无 | 标记 | 标记 | 默认假 | `cut_a4_feast` | 哈特的台词与经济战条款 | 让波比·林德把条款念全 |
 | `a4_elwin_invited` | 无 | 标记 | 标记 | 默认假 | `cut_a4_feast` | "森林的秘密"（`A4-D03.d`）完整分支的钥 | 艾尔温"来森林"的邀请（"森林的秘密"完整分支的钥） |
-| `a4_versions_beat` | 无 | 段落 | 枚举 | merca、eluen、sylvie、moira 与各自的 `_done`；默认未写入 | 女神 GM 的 DB-A4-01、02、04、05，`A4-S07`；`cut_a4_versions` | `cut_a4_versions` | `cut_a4_versions` 的段落旗标 |
+| `a4_versions_beat` | 无 | 段落 | 枚举 | `merca`、`merca_done`、`eluen`、`eluen_done`、`sylvie`、`sylvie_done`、`moira`、`moira_done`；默认未写入 | 女神 GM 的 DB-A4-01、02、04、05，`A4-M07`、`A4-G04`；`cut_a4_versions` | `cut_a4_versions` | `cut_a4_versions` 的段落旗标 |
 | `a4_version_heard.<司>` | 无 | 族 | 标记 | 键：`eluen`、`valda`、`merca`、`sylvie`、`moira`；默认假 | `cut_a4_versions`、`cut_a4_valda_offer` | `cut_a4_key_theft`、`cut_a4_isomorphism` | 听过某位女神的版本（对照页按此逐列填入；`a4_goddess_versions_heard` 是它的计数）；每置真一位，同一效果把 `a4_goddess_versions_heard` 加 1 |
 | `a4_eluen_pitch` | 无 | 出口 | 枚举 | `accepted`、`refused`、`deferred`；默认未写入 | `cut_a4_versions` | `cut_a4_versions`、`cut_a4_edict`；女神 GM（发 `pitch.accepted` 或 `pitch.refused`）、`a4_eluen_page_considered` | 对艾琉恩招安的回应；女神 GM 据此发 `pitch.accepted` 或 `pitch.refused`；`a4_eluen_page` 只在副署成立后写 |
 | `a4_key_beat` | 无 | 段落 | 枚举 | `night`、`night_done`、`plea`、`plea_done`、`chase`、`chase_done`、`fate`、`fate_done`；默认未写入 | 请求方 `A4-D05.a`、`.b`、`.d`、`.e`；`cut_a4_key_theft` | `cut_a4_key_theft` | `cut_a4_key_theft` 的段落旗标 |
@@ -1563,6 +1568,24 @@
 | `combat.wave.<波次>` | 枚举 | `go` | quests 的 `wave` 效果 | combat 生成波次后清除，状态转入 `combat.wave.<波次>.state` |
 | `order.moral_tag` | 枚举 | `kill_surrender`、`rob_civilians`、`break_pact`、`desecrate`、`harm_children` | 队伍命令处理器（读后即清） | 同伴拒绝命令的台词与羁绊结算（[同伴 8.5][cmp]、[内置 AI 11.2][bai]） |
 
+### 8.10 任务目录（第四幕到终章）登记的变量
+
+由 [任务目录（后）][qa46] 的条目写入；含义、写入点与取值的详细说明以该目录为准。列同第 8.4 节。派生量的公式见第 2.8 节。
+
+| 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
+| --- | --- | --- | --- | --- | --- |
+| `a4_days_since_founding` | 无 | 整数 | ≥ 0；立国前不写入 | strategy（立国当日置 0，此后每个游戏日加 1） | 任务目录（后）A4-M05、A4-M06、A4-M09 的窗口与前置 |
+| `a4_warchief_boast_heard` | 无 | 标记 | | 任务目录（后）`A4-D04.c`（战首的夸口被玩家亲耳听到） | 证据系统：与 `a4_feast_of_strong` 同时为真时置 `lie_exposed.valda`（任务目录（后）第 3.7 节） |
+| `a4_coalition_splits` | 无 | 整数 | 0 到 7；默认 0 | `A4-D02.g`（每成一项分化 +1；赛琳作证或归附、结衣与马库斯动摇各自动计 1） | `A4-D02` 链结局（0 到 1 成形、2 到 3 分裂、4 以上未成） |
+| `a5_front_collapsed` | 无 | 派生布尔 | | 派生（灰烬决战结算后） | 结局判定、结局路线表 |
+| `a6_gods_out` | 无 | 派生布尔 | | 派生 | 结局判定、结局路线表 |
+| `a6_holdouts` | 无 | 派生整数 | 0 到 5 | 派生 | 结局判定、结局路线表 |
+| `a6_release_core` | 无 | 派生布尔 | | 派生 | 结局判定、`cut_end_release_unfinished` |
+| `a6_release_bar` | 无 | 派生布尔 | | 派生 | 结局判定、`cut_end_release_unfinished`（莫伊拉念出不成立的项） |
+| `a6_rule_pick` | 无 | 枚举 | `eluen`、`valda`、`merca`、`sylvie`、`moira` | 结局判定（候选为拒绝或争掌的在任女神；五司围门败北而无候选时为五位全部；取信仰最高者，并列取神力高者，再并列按固定顺序） | 结局判定第 4 行、`cut_end_rule_<司>` |
+| `a6_power_tie` | 无 | 布尔 | | 内核（五司围门败北时，残存女神神力前两位相差不到一成） | 诸神之战判定（[千门][td] 12 路径 C）、结局路线表 |
+| `handover.<门>` | 无 | 文本 | 键：门 ID；值：接受者的人物 ID，或 `nation`、`remnants`、`academy` | 离手之门（任务目录（后）`F-E01`） | 后日谈（`sep`）、开发者的信 |
+
 ## 9. `data/registry/vars.json`
 
 ### 9.1 结构
@@ -1730,6 +1753,7 @@
 [cmp]: systems/companions_and_party.md
 [best]: content/catalog_bestiary.md
 [qa13]: content/catalog_quests_acts1_3.md
+[qa46]: content/catalog_quests_acts4_6.md
 [cut]: content/catalog_cutscenes.md
 [dgb]: content/catalog_dungeons_bosses.md
 [bai]: systems/builtin_ai.md
