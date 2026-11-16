@@ -323,7 +323,9 @@ export class ClientSaves {
       const saver = new RunSaver({
         backend: this.opts.backend,
         runId: this.opts.newRunId(),
-        versions: { ...this.opts.versions, contentVersion: 'c-legacy' },
+        // Pre-registry localStorage saves carry old names: renameVersion 0 makes the next load
+        // apply every rename.
+        versions: { ...this.opts.versions, renameVersion: 0, contentVersion: 'c-legacy' },
       });
       const res = await saver.save(
         { world, drainLog: () => [] },

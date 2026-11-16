@@ -11,6 +11,7 @@ import { hostname } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import type { BrowserWindowConstructorOptions, CustomScheme } from 'electron';
 import { parseCallSpec } from '../src/ai/providers/call_spec';
+import { RENAME_VERSION } from '../src/core/save/renames';
 import { serveAppRequest } from './app_protocol';
 import { HK, type HkResult, KEY_ENTRY } from './ipc/channels';
 import { guardCall } from './ipc/guard';
@@ -369,9 +370,7 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     saves = openDesktopSaves(layout.savesDir, {
       now: () => Date.now(),
       writer: { id: `w-${installId}`, name: hostname() },
-      // renameVersion 0 until PK-M0-18 lands RENAME_VERSION, as in the page (0 applies every
-      // rename on load, which leaves a current world as it is).
-      versions: { gameVersion: build.version, renameVersion: 0, build: build.build },
+      versions: { gameVersion: build.version, renameVersion: RENAME_VERSION, build: build.build },
     });
 
     registerGameChannels({

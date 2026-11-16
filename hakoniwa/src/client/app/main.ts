@@ -8,7 +8,7 @@
 import '../client.css';
 import { version as gameVersion } from '../../../package.json';
 import type { Engine } from '../../core/engine';
-import { runIdFromBytes } from '../../core/save';
+import { RENAME_VERSION, runIdFromBytes } from '../../core/save';
 import type { World } from '../../core/world';
 import { MemoryKeyValue, selectPlatformHost } from '../../platform';
 import { fmt, T } from '../../shared_ui/text';
@@ -36,9 +36,7 @@ const root = document.getElementById('app') ?? document.body;
 const pageKv = pageStorage(window);
 const kv = pageKv ?? new MemoryKeyValue();
 const webBuild = import.meta.env.DEV ? 'dev' : 'web';
-// renameVersion 0 until PK-M0-18 lands RENAME_VERSION (0 applies every rename on load, which
-// leaves a current world as it is).
-const webVersions = { gameVersion, renameVersion: 0, build: webBuild };
+const webVersions = { gameVersion, renameVersion: RENAME_VERSION, build: webBuild };
 // window.hk exists only inside the desktop shell (its preload bridge).
 const host = selectPlatformHost(window as Window & { readonly hk?: unknown }, {
   version: gameVersion,
