@@ -30,6 +30,8 @@ const DOM_MODULES = [
   'ledger/ledger_ui.ts',
   'quests/quest_graph_ui.ts',
   'balance/balance_ui.ts',
+  'batch/batch_ui.ts',
+  'registry/registry_ui.ts',
 ];
 
 function files(dir: string, ext: RegExp): string[] {

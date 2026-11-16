@@ -1,0 +1,13 @@
+{
+  "note": "Reviewed reveal-ledger hits that block from a later milestone (V5). Each entry is a real finding in a data file this package may not edit; it is reported as a warning until the milestone named in `until` (exclusive) and as an error from then on. Remove the entry with the fix; an entry that matches no hit is a stale entry (error).",
+  "entries": [
+    {
+      "table": "monsters",
+      "row": "guardian_raven",
+      "path": "desc",
+      "term": "雅努",
+      "until": "M1",
+      "reason": "The act 1 tutorial boss's description names Janu (locked until a6_name_spoken, reveal_ledger.md 6 and 8.2). Fix in data/combat/monsters.json (combat data, currently edited by the asset resolver package): describe it as a messenger of the door without the name."
+    }
+  ]
+}

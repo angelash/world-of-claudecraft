@@ -1,6 +1,7 @@
 // Client for the dev service (docs/50_tech/architecture.md 9):
 //   GET  /api/data?file=<path under data/>   read a JSON data file
 //   PUT  /api/data?file=<path under data/>   write it back (JSON body)
+//   DELETE /api/data?file=<path under data/_staging/>   remove a staged batch file
 //   GET  /api/llm/status                     model proxy status
 // The fetch function is injected so the response interpretation is unit-tested.
 // A missing route is told apart from a missing file: the dev service answers in JSON,
@@ -33,6 +34,8 @@ export type LlmStatus = { reachable: false; message: string } | { reachable: tru
 export interface DataApi {
   read(file: string): Promise<ReadResult>;
   write(file: string, data: unknown): Promise<WriteResult>;
+  /** Remove a file (the dev service only removes staged batch files under data/_staging/). */
+  remove(file: string): Promise<WriteResult>;
   llmStatus(): Promise<LlmStatus>;
 }
 
@@ -69,6 +72,18 @@ export function createDataApi(
   base = '',
   messages = { network: 'network error', notJson: 'not JSON', http: (s: number) => `HTTP ${s}` },
 ): DataApi {
+  /** A write or remove response: a JSON error body is the service's refusal. */
+  async function writeOutcome(res: FetchResponseLike): Promise<WriteResult> {
+    if (res.ok) return { ok: true };
+    const text = await res.text().catch(() => '');
+    const parsed = parseJson(text);
+    if (!isJsonResponse(res) || !parsed.ok) {
+      return { ok: false, reason: 'unavailable', message: messages.http(res.status) };
+    }
+    const message = errorText(parsed.value, messages.http(res.status));
+    return { ok: false, reason: res.status === 403 ? 'unavailable' : 'error', message };
+  }
+
   return {
     async read(file) {
       let res: FetchResponseLike;
@@ -104,14 +119,17 @@ export function createDataApi(
       } catch {
         return { ok: false, reason: 'unavailable', message: messages.network };
       }
-      if (res.ok) return { ok: true };
-      const text = await res.text().catch(() => '');
-      const parsed = parseJson(text);
-      if (!isJsonResponse(res) || !parsed.ok) {
-        return { ok: false, reason: 'unavailable', message: messages.http(res.status) };
+      return writeOutcome(res);
+    },
+
+    async remove(file) {
+      let res: FetchResponseLike;
+      try {
+        res = await fetchFn(dataUrl(base, file), { method: 'DELETE', headers: JSON_HEADERS });
+      } catch {
+        return { ok: false, reason: 'unavailable', message: messages.network };
       }
-      const message = errorText(parsed.value, messages.http(res.status));
-      return { ok: false, reason: res.status === 403 ? 'unavailable' : 'error', message };
+      return writeOutcome(res);
     },
 
     async llmStatus() {

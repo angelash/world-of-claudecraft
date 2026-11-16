@@ -1,0 +1,23 @@
+{
+  "note": "Reviewed proper-noun hits (V10) that block from a later milestone. Each entry names a data file and a main-project name found in it, with the package that renames it; the hit warns until the milestone in `until` (exclusive) and blocks from then on. Remove the entry with the rename; an entry that matches no hit is stale (error). Never add an entry for new content.",
+  "entries": [
+    {
+      "file": "combat/abilities.json",
+      "name": "十字军打击",
+      "until": "M1",
+      "reason": "first-round ability display name shared with the main project's skill names; renamed with the sk_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "file": "combat/abilities.json",
+      "name": "心灵尖啸",
+      "until": "M1",
+      "reason": "first-round ability display name shared with the main project's skill names; renamed with the sk_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "file": "warfare/abilities.json",
+      "name": "烈焰风暴",
+      "until": "M1",
+      "reason": "first-round hero ability display name shared with the main project's skill names; renamed with the act 3 warfare batch (content_act3_warfare_01)"
+    }
+  ]
+}

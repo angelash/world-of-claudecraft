@@ -723,7 +723,9 @@ pre.json {
 
 .audit-tool,
 .ledger-tool,
-.balance-tool {
+.balance-tool,
+.batch-tool,
+.registry-tool {
   height: 100%;
   overflow: auto;
 }

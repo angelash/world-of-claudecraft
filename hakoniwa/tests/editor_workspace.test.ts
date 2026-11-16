@@ -61,6 +61,12 @@ class FakeApi implements DataApi {
     this.writes.push({ file, data });
     return { ok: true };
   }
+  async remove(file: string): Promise<WriteResult> {
+    if (this.down) return { ok: false, reason: 'unavailable', message: 'down' };
+    if (!(file in this.files)) return { ok: false, reason: 'error', message: 'not_found' };
+    delete this.files[file];
+    return { ok: true };
+  }
   async llmStatus() {
     return { reachable: false as const, message: 'n/a' };
   }

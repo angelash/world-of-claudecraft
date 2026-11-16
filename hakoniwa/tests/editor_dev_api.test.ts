@@ -1,6 +1,7 @@
 // Contract test: the editor's data client and workspace against the real dev service
 // middleware (tools/dev_api.ts) over HTTP, on a temporary data root.
 
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -65,6 +66,55 @@ describe('editor against tools/dev_api.ts', () => {
     expect(await api.write('new/dir/x.json', [{ id: 'x' }])).toEqual({ ok: true });
     const text = await readFile(join(root, 'data', 'new', 'dir', 'x.json'), 'utf8');
     expect(JSON.parse(text)).toEqual([{ id: 'x' }]);
+  });
+
+  it('removes staged batch files only (DELETE /api/data)', async () => {
+    const api = createDataApi(fetchLike, base);
+    const staging = join(root, 'data', '_staging');
+    await mkdir(join(staging, 'content_dir_items_01.json'), { recursive: true });
+    await writeFile(join(staging, 'index.json'), '{"batches":[]}', 'utf8');
+    const staged = join(staging, 'content_test_items_01.json');
+    await writeFile(staged, '{"batch":"content_test_items_01"}', 'utf8');
+    expect(await api.remove('_staging/content_test_items_01.json')).toEqual({ ok: true });
+    expect(existsSync(staged)).toBe(false);
+    // gone now: 404
+    const again = await fetch(`${base}/api/data?file=_staging%2Fcontent_test_items_01.json`, {
+      method: 'DELETE',
+    });
+    expect(again.status).toBe(404);
+    expect(await again.json()).toMatchObject({ ok: false, error: 'not_found' });
+    expect(await api.remove('_staging/content_none_items_01.json')).toMatchObject({
+      ok: false,
+      reason: 'error',
+      message: 'not_found',
+    });
+    // the batch index and files not named like a batch stay
+    expect(await api.remove('_staging/index.json')).toMatchObject({
+      ok: false,
+      message: 'not_staging',
+    });
+    expect(existsSync(join(staging, 'index.json'))).toBe(true);
+    expect(await api.remove('_staging/none.json')).toMatchObject({
+      ok: false,
+      message: 'not_staging',
+    });
+    // any other data file is refused and stays on disk
+    const refused = await fetch(`${base}/api/data?file=test%2Fitems.json`, { method: 'DELETE' });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ ok: false, error: 'not_staging' });
+    expect(await api.remove('test/items.json')).toMatchObject({
+      ok: false,
+      message: 'not_staging',
+    });
+    expect(existsSync(join(root, 'data', 'test', 'items.json'))).toBe(true);
+    expect(await api.remove('_staging/../test/items.json')).toMatchObject({
+      ok: false,
+      message: 'traversal',
+    });
+    expect(await api.remove('_staging/content_dir_items_01.json')).toMatchObject({
+      ok: false,
+      message: 'not_file',
+    });
   });
 
   it('is told apart from a server without the dev service', async () => {

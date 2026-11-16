@@ -9,6 +9,7 @@ import { allPacks, allSchemas, buildContent } from '../content';
 import { createDataApi, fetchAuditPage } from './api/data_client';
 import { AuditTool } from './audit/audit_ui';
 import { BalanceTool } from './balance/balance_ui';
+import { BatchTool } from './batch/batch_ui';
 import { ChecksTool } from './checks/checks_ui';
 import { ContentTool } from './content/content_ui';
 import { AiControls } from './inspector/ai_controls';
@@ -16,6 +17,7 @@ import { InspectorTool } from './inspector/inspector_ui';
 import { LedgerTool } from './ledger/ledger_ui';
 import { MapTool } from './map/map_ui';
 import { QuestGraphTool } from './quests/quest_graph_ui';
+import { RegistryTool } from './registry/registry_ui';
 import { h } from './shell/dom';
 import { Shell } from './shell/shell_ui';
 import { GameSession } from './state/game_session';
@@ -73,6 +75,8 @@ async function start(): Promise<void> {
       new QuestGraphTool(),
       new BalanceTool(),
       new ChecksTool(),
+      new BatchTool(api),
+      new RegistryTool(),
     ],
     later: [],
     defaultTool: 'content',

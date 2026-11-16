@@ -1,0 +1,50 @@
+{
+  "note": "Ids that predate the namespace table (content_bible.md 12.2) and carry another owner's prefix. Each entry names the table, the id and the batch or package that renames it; renames go through data/registry/renames.json. Never add an entry for new content; remove an entry when its id is renamed (validator V3 reports stale entries).",
+  "entries": [
+    {
+      "table": "abilities",
+      "id": "door_strike",
+      "reason": "first-round ability id; sk_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "table": "abilities",
+      "id": "door_step",
+      "reason": "first-round ability id; sk_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "table": "auras",
+      "id": "door_step",
+      "reason": "first-round aura id; aur_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "table": "auras",
+      "id": "door_mirror",
+      "reason": "first-round aura id; aur_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "table": "auras",
+      "id": "door_fatigue",
+      "reason": "first-round aura id; aur_ numbering in content_act1_abilities_01 (PK-M1-26, RE-27)"
+    },
+    {
+      "table": "city_buildings",
+      "id": "door_node",
+      "reason": "first-round building id; bld_ mapping in content_act2_buildings_01 (PK-M2-06)"
+    },
+    {
+      "table": "items",
+      "id": "door_charm",
+      "reason": "first-round item id; renamed by the item batches of the relics catalog"
+    },
+    {
+      "table": "sceneSpeakers",
+      "id": "door_voice",
+      "reason": "first-round speaker id; scene speakers have no namespace yet (catalog_cutscenes.md)"
+    },
+    {
+      "table": "revelations",
+      "id": "trial_called",
+      "reason": "first-round revelation id; revelations move to the goddess catalog numbering (catalog_goddess_interventions.md)"
+    }
+  ]
+}

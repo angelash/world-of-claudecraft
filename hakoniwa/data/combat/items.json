@@ -464,5 +464,59 @@
     "quality": 1,
     "value": 0,
     "desc": "巨鸦巢里混在闪亮小物中的一枚公会铜牌，二十年前的。"
+  },
+  {
+    "id": "src_pale_1",
+    "name": "瓷骨屑",
+    "kind": "material",
+    "quality": 1,
+    "value": 60,
+    "desc": "苍白、薄，像碎瓷。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "src_war_1",
+    "name": "赤角屑",
+    "kind": "material",
+    "quality": 1,
+    "value": 50,
+    "desc": "赤黑碎角。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "src_pact_1",
+    "name": "拟金屑",
+    "kind": "material",
+    "quality": 1,
+    "value": 40,
+    "desc": "假金箔。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "src_bloom_1",
+    "name": "灰孢",
+    "kind": "material",
+    "quality": 1,
+    "value": 40,
+    "desc": "灰色孢子粉。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "src_script_1",
+    "name": "残页屑",
+    "kind": "material",
+    "quality": 1,
+    "value": 70,
+    "desc": "带字的灰屑。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "src_hollow_1",
+    "name": "空隙骨",
+    "kind": "material",
+    "quality": 1,
+    "value": 50,
+    "desc": "有门形空洞的骨。",
+    "tags": ["tainted"]
   }
 ]

@@ -11,6 +11,7 @@
 //   GET  /api/data?file=   read a JSON file under hakoniwa/data/
 //   PUT  /api/data?file=   write a JSON file under hakoniwa/data/ (the editor's formatJson:
 //                          2-space indent, short values kept on one line, trailing newline)
+//   DELETE /api/data?file= remove a staged batch file (only data/_staging/<batch>.json)
 //   POST /api/audit        append one AI audit record to hakoniwa/.local/audit.jsonl
 //   GET  /api/audit        page through that log (?offset=&limit=&order=desc|asc&rotated=1)
 // Credentials stay in this process's environment. By default only loopback clients are
@@ -18,7 +19,17 @@
 // lets LAN devices spend the model budget and write data files).
 // See docs/50_tech/architecture.md 9 and docs/50_tech/ai_architecture.md 11.1.
 
-import { appendFile, mkdir, readFile, realpath, rename, stat, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  lstat,
+  mkdir,
+  readFile,
+  realpath,
+  rename,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -327,6 +338,28 @@ export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
       // The editor's formatter keeps the hand-written style of the data files.
       await writeFile(tmp, formatJson(value), 'utf8');
       await rename(tmp, p.path);
+      send(res, 200, { ok: true, file: p.rel });
+    },
+
+    // Only staged batch files (release_engineering.md 7.3): a promotion removes its file.
+    'DELETE /api/data': async (_req, res, url) => {
+      const p = resolveDataPath(dataRoot, url.searchParams.get('file'));
+      if (!p.ok) return send(res, 400, { ok: false, error: p.reason });
+      // only a staged batch file (_staging/<batch>.json), never the index or a nested file
+      if (!/^_staging\/content_[a-z0-9]+_[a-z0-9_]+_[0-9]{2}\.json$/.test(p.rel))
+        return send(res, 400, { ok: false, error: 'not_staging' });
+      if (
+        !(await insideRealRoot(dataRoot, p.path)) ||
+        !(await insideRealRoot(join(dataRoot, '_staging'), p.path))
+      )
+        return send(res, 400, { ok: false, error: 'not_staging' });
+      try {
+        if (!(await lstat(p.path)).isFile())
+          return send(res, 400, { ok: false, error: 'not_file' });
+      } catch {
+        return send(res, 404, { ok: false, error: 'not_found' });
+      }
+      await unlink(p.path);
       send(res, 200, { ok: true, file: p.rel });
     },
 

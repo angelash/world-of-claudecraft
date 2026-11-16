@@ -519,7 +519,12 @@ describe('dev api middleware', () => {
       status: 403,
     });
     expect(await call(mw, 'GET', '/index.html')).toBe('next');
-    expect(await call(mw, 'DELETE', '/api/data?file=a.json')).toBe('next');
+    expect(await call(mw, 'PATCH', '/api/data?file=a.json')).toBe('next');
+    // DELETE /api/data is routed, and only removes staged batch files
+    expect(await call(mw, 'DELETE', '/api/data?file=a.json')).toMatchObject({
+      status: 400,
+      body: { ok: false, error: 'not_staging' },
+    });
     expect(isLoopback('::ffff:127.0.0.1')).toBe(true);
     expect(isLoopback('10.0.0.2')).toBe(false);
   });

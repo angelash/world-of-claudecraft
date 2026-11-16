@@ -1,7 +1,8 @@
 // Content ID guard (release_engineering.md 13.2, RE-12): systems read content ids from
 // data, never from code. Collects the entity ids of data/ (maps, sites, markets, persons,
 // goddesses, items, monsters, doors, quests, scenes, plus nations, provinces, regions and
-// act 6 evidence) and fails on any string literal in src/systems/** or src/core/** equal
+// act 6 evidence; the kind table is src/content/entity_kinds.ts, shared with the namespace
+// validator V3) and fails on any string literal in src/systems/** or src/core/** equal
 // to one, unless tests/fixtures/content_id_allowlist.json lists it (the systems list is
 // pinned empty). The autoplayer (src/game/autoplay/) has its own list; its route tables
 // live in data/autoplay/routes.json, checked here against the content.
@@ -19,56 +20,15 @@ import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
-import type { ContentMap } from '../src/core/contracts';
+import {
+  type EntityIdIndex as IdIndex,
+  entityIdIndex as indexContent,
+} from '../src/content/entity_kinds';
 import { ENDING_ROUTES } from '../src/game/autoplay';
 import { routeProblems } from '../src/game/autoplay/routes';
 import allowlist from './fixtures/content_id_allowlist.json';
 
 const ROOT = join(__dirname, '..');
-
-/** Entity tables of the guard: table name, kind label, and whether it can be vocabulary. */
-const KINDS: { table: keyof ContentMap; kind: string; protectedKind: boolean }[] = [
-  { table: 'maps', kind: 'map', protectedKind: false },
-  { table: 'atlas_maps', kind: 'map', protectedKind: false },
-  { table: 'atlas_regions', kind: 'region', protectedKind: false },
-  { table: 'slg_provinces', kind: 'province', protectedKind: false },
-  { table: 'items', kind: 'item', protectedKind: false },
-  { table: 'monsters', kind: 'monster', protectedKind: false },
-  { table: 'doors', kind: 'door', protectedKind: false },
-  { table: 'city_sites', kind: 'site', protectedKind: true },
-  { table: 'markets', kind: 'market', protectedKind: true },
-  { table: 'npcs', kind: 'person', protectedKind: true },
-  { table: 'companions', kind: 'person', protectedKind: true },
-  { table: 'goddesses', kind: 'goddess', protectedKind: true },
-  { table: 'quests', kind: 'quest', protectedKind: true },
-  { table: 'scenes', kind: 'scene', protectedKind: true },
-  { table: 'slg_nations', kind: 'nation', protectedKind: true },
-  { table: 'evidence', kind: 'evidence', protectedKind: true },
-];
-
-interface IdIndex {
-  /** id -> kinds it names */
-  kinds: Map<string, Set<string>>;
-  /** ids that can never be a vocabulary word */
-  protectedIds: Set<string>;
-}
-
-function indexContent(content: ContentMap): IdIndex {
-  const kinds = new Map<string, Set<string>>();
-  const protectedIds = new Set<string>();
-  for (const k of KINDS) {
-    const rows = (content as unknown as Record<string, unknown>)[k.table];
-    if (!Array.isArray(rows)) continue;
-    for (const row of rows) {
-      const id = (row as { id?: unknown }).id;
-      if (typeof id !== 'string' || id === '') continue;
-      if (!kinds.has(id)) kinds.set(id, new Set());
-      kinds.get(id)?.add(k.kind);
-      if (k.protectedKind) protectedIds.add(id);
-    }
-  }
-  return { kinds, protectedIds };
-}
 
 interface Hit {
   /** path relative to the project root, with forward slashes */

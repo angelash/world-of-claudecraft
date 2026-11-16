@@ -1,0 +1,273 @@
+{
+  "batch": "content_act1_items_01",
+  "status": "promoted",
+  "scope": "catalog_gathering_crafting.md 3.8: the six grade-1 sediment source materials (src_<source>_1), drops of the act 1 bestiary",
+  "depends": [],
+  "sources": [
+    {
+      "mapping": "gathering.dian_sources",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.8"
+    }
+  ],
+  "files": [
+    "combat/items.json"
+  ],
+  "added": [
+    "src_pale_1",
+    "src_war_1",
+    "src_pact_1",
+    "src_bloom_1",
+    "src_script_1",
+    "src_hollow_1"
+  ],
+  "changed": [],
+  "removed": [],
+  "diff": [
+    {
+      "file": "combat/items.json",
+      "table": "items",
+      "added": [
+        "src_pale_1",
+        "src_war_1",
+        "src_pact_1",
+        "src_bloom_1",
+        "src_script_1",
+        "src_hollow_1"
+      ],
+      "changed": [],
+      "unchanged": []
+    }
+  ],
+  "unmapped": [
+    {
+      "id": "src_pale_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_pale_1",
+      "column": "典型来源地带",
+      "value": "圣地周边的\"试炼之兽\"、城镇下的光澱",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_pale_1",
+      "column": "去处",
+      "value": "光相附纹、圣器白釉；教会收购",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_pale_1",
+      "column": "价值",
+      "value": "divine、econ、craft",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "src_pale_1",
+      "column": "备注",
+      "value": "【真相】教会以\"圣遗物\"之名收购，送进圣骨堂（总纲 5.2，第四幕之前不点破）",
+      "note": "designer notes; truths stay out of player text"
+    },
+    {
+      "id": "src_war_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_war_1",
+      "column": "典型来源地带",
+      "value": "魔物潮的先锋、长垒一线",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_war_1",
+      "column": "去处",
+      "value": "`rcp_battle_elixir`、锋纹、夜境军需",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_war_1",
+      "column": "价值",
+      "value": "war、craft",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "src_pact_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_pact_1",
+      "column": "典型来源地带",
+      "value": "醉月亭地窖、城市下水道的拟态魔物",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_pact_1",
+      "column": "去处",
+      "value": "`rcp_ink` 稳定剂；黑市伪币原料",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_pact_1",
+      "column": "价值",
+      "value": "craft、econ",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "src_pact_1",
+      "column": "备注",
+      "value": "拿它冒充金箔是诈骗（`cog`）",
+      "note": "designer notes; truths stay out of player text"
+    },
+    {
+      "id": "src_bloom_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_bloom_1",
+      "column": "典型来源地带",
+      "value": "生澱异兽、菌化魔物",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_bloom_1",
+      "column": "去处",
+      "value": "炼剂（毒、药）、`rcp_fertilizer`（有风险）",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_bloom_1",
+      "column": "价值",
+      "value": "craft、manage",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "src_script_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_script_1",
+      "column": "典型来源地带",
+      "value": "学院地下、书库里的残页幽灵",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_script_1",
+      "column": "去处",
+      "value": "`mat_record_ink`、鉴定器具",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_script_1",
+      "column": "价值",
+      "value": "craft、story",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "src_script_1",
+      "column": "备注",
+      "value": "可用 `burnt_page`（已有）替代一份",
+      "note": "designer notes; truths stay out of player text"
+    },
+    {
+      "id": "src_hollow_1",
+      "column": "档",
+      "value": "1",
+      "note": "the grade is part of the id (src_<source>_<grade>)"
+    },
+    {
+      "id": "src_hollow_1",
+      "column": "典型来源地带",
+      "value": "荒原外缘到中层的古澱亡灵",
+      "note": "drop sources belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "src_hollow_1",
+      "column": "去处",
+      "value": "门标辅料、行路之门辅钥候选",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "src_hollow_1",
+      "column": "价值",
+      "value": "key、story",
+      "note": "value channels have no item field"
+    }
+  ],
+  "validation": {
+    "milestone": "M0",
+    "at": "2026-11-16",
+    "ok": true,
+    "results": [
+      { "id": "V1", "title": "schema", "errors": 0, "warnings": 0 },
+      { "id": "V2", "title": "references", "errors": 0, "warnings": 0 },
+      { "id": "V3", "title": "namespaces", "errors": 0, "warnings": 0 },
+      { "id": "V4", "title": "variable registry", "errors": 0, "warnings": 337 },
+      { "id": "V5", "title": "reveal ledger", "errors": 0, "warnings": 9 },
+      { "id": "V6", "title": "numeric bands", "errors": 0, "warnings": 19 },
+      { "id": "V7", "title": "asset references", "errors": 0, "warnings": 3 },
+      { "id": "V8", "title": "text", "errors": 0, "warnings": 0 },
+      { "id": "V9", "title": "reachability", "errors": 0, "warnings": 9 },
+      { "id": "V10", "title": "proper nouns", "errors": 0, "warnings": 3 }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "scope",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts extract --mapping gathering.dian_sources --batch content_act1_items_01 --ids src_pale_1,src_war_1,src_pact_1,src_bloom_1,src_script_1,src_hollow_1 --scope \"catalog_gathering_crafting.md 3.8: the six grade-1 sediment source materials (src_<source>_1), drops of the act 1 bestiary\"",
+      "note": "catalog_gathering_crafting.md 3.8: the six grade-1 sediment source materials (src_<source>_1), drops of the act 1 bestiary"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts extract --mapping gathering.dian_sources --batch content_act1_items_01 --ids src_pale_1,src_war_1,src_pact_1,src_bloom_1,src_script_1,src_hollow_1 --scope \"catalog_gathering_crafting.md 3.8: the six grade-1 sediment source materials (src_<source>_1), drops of the act 1 bestiary\"",
+      "note": "6 records, 27 unmapped cells, 0 fields to fill"
+    },
+    {
+      "step": 3,
+      "name": "fill",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts fill --batch content_act1_items_01 --note \"author pass: descriptions end as sentences like the other item texts; no mechanical field was missing (kind and quality from the mapping, value from the base price, tainted from catalog 3.8)\"",
+      "note": "author pass: descriptions end as sentences like the other item texts; no mechanical field was missing (kind and quality from the mapping, value from the base price, tainted from catalog 3.8)"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts validate --batch content_act1_items_01 --warnings",
+      "note": "V1 to V10 green"
+    },
+    {
+      "step": 5,
+      "name": "promote",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts promote --batch content_act1_items_01",
+      "note": "into combat/items.json"
+    },
+    {
+      "step": 6,
+      "name": "verify",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts verify --batch content_act1_items_01 --note \"node tools/content/validate.ts: V1 to V10 green at M0 after promotion; world hashes of the no-model release route identical with and without the batch at ten checkpoints over 300,000 ticks; npm run playthrough: 4 files passed, 1 skipped (text golden capture), 7 tests passed; npm test: 1835 passed, 15 failed, none from this batch (10 from tr is not defined in src/systems/economy/market.ts, another package's text migration in progress; 6 timeouts under parallel load that pass when rerun alone, 155 of 155); npx vitest run tests/content_validation.test.ts: 45 passed. No balance simulation: the batch adds unreferenced materials only\"",
+      "note": "node tools/content/validate.ts: V1 to V10 green at M0 after promotion; world hashes of the no-model release route identical with and without the batch at ten checkpoints over 300,000 ticks; npm run playthrough: 4 files passed, 1 skipped (text golden capture), 7 tests passed; npm test: 1835 passed, 15 failed, none from this batch (10 from tr is not defined in src/systems/economy/market.ts, another package's text migration in progress; 6 timeouts under parallel load that pass when rerun alone, 155 of 155); npx vitest run tests/content_validation.test.ts: 45 passed. No balance simulation: the batch adds unreferenced materials only"
+    },
+    {
+      "step": 7,
+      "name": "report",
+      "at": "2026-11-16",
+      "command": "node tools/content/import_catalog.ts report --batch content_act1_items_01"
+    }
+  ]
+}
