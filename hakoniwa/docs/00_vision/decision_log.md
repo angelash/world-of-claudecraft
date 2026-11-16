@@ -110,13 +110,9 @@
 
 ## 3. 详细设计待办
 
-以下三份设计在 M0 的首批设计实施包里完成（`../60_production/development_plan.md`）；其余跨文档缺口已由本轮的系统文档、内容目录、变量注册表与地图简报关闭。
+以下待办在 M0 的设计实施包里完成（`../60_production/development_plan.md`）；其余跨文档缺口已由本轮的系统文档、内容目录、变量注册表与地图简报关闭。
 
 | 编号  | 待办 | 来源 |
 | ----- | ---- | ---- |
 | B-001 | 完成 `../40_design/systems/combat_and_classes.md`（已写战斗模型、公式与部分职能；续写其余职能、首领机制库、魔物机制字段注册表、物品实例与耐久结算、状态与控制、平衡目标与验收），并新写 `../40_design/content/catalog_abilities_talents.md`（九职能 1 到 60 级技能、天赋树、27 流派两阶、15 合技、编外者门技能、光环 `aur_` 全表、旧编号对照） | 本轮 |
-| B-006 | 澄流之门、聆灵之门在第四幕的任务落点（随 B-016） | `../40_design/content/content_outline.md` |
-| B-007 | 第六幕证据 E02（主门剑尖）与 E08（凿碑台拓片）的取得任务（随 B-016） | 同上 |
-| B-008 | 揭示台账中尚无写入任务的标记：`a4_star_records`、`a4_aiden_reads_charter`、`a4_yui_purify_truth`、`a4_shiya_father_truth`、`a4_nera_exposed`、`a4_valda_alliance_offer`、`a5_yui_descent`、`a5_faceless_named`（随 B-016） | `../30_story/reveal_ledger.md` |
-| B-009 | 第六幕各女神防线清单与证据标签对齐（例如 E13、E29）（随 B-016） | `../30_story/arcs/act6_review_and_epilogue.md` |
-| B-016 | 完成 `../40_design/content/catalog_quests_acts4_6.md`：第四幕到终章的编号主线与支线、第四幕战役与必经战斗、第五幕六条战线的任务链、众门环、立国事件链、第六幕审前准备与证据收集、委托板与动态事件，经验按 D-069 的预算核算 | 本轮 |
+| B-009 | 第六幕证据标签 E13（瓦尔妲·正当）、E28（希尔薇·必要）、E31（莫伊拉·正当）的取舍：各女神的防线清单已在 `../40_design/content/catalog_quests_acts4_6.md` 第 12.2 节按第六幕第 4.2 节落定，这三处见该目录第 18.2 节第 3 项 | `../30_story/arcs/act6_review_and_epilogue.md` |
