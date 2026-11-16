@@ -4626,6 +4626,23 @@
       "notes": "光轮与金饰用暖金 #ffd58a 一类，不用门扉金；神光由特效另出，素材本身不发光。"
     },
     {
+      "id": "art_prop_dawnpillar_relic_broken",
+      "template": "prop_large",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "曙光圣柱：一根约 2.5 米长、双手才举得起的白石金饰圣柱，柱身刻着螺旋光纹，柱顶是一枚镂空的光轮，柱脚包着金箍，立在一座白布覆盖的木架上。",
+        "en": "The Dawnpillar: a white stone pillar trimmed in gold, about 2.5 m long and needing both hands to lift, its shaft carved with spiraling rays, a pierced halo wheel at the top, a gold band around its foot, standing in a wooden stand draped with white cloth."
+      },
+      "extra": {
+        "zh": "这一张是圣柱在首领战里的四档损毁，四格都立在木架上，白布已经落下：第 1 格完好的圣柱；第 2 格柱身一道斜裂纹，光轮缺了一角；第 3 格裂纹爬满柱身，柱顶的光轮断落一半；第 4 格只剩木架上的一截残柱与散落在架脚的白石碎块。",
+        "en": "This sheet shows the four damage stages of the pillar in the boss fight, all four upright in the stand with the white cloth already fallen: cell 1, the intact pillar; cell 2, one slanting crack down the shaft and a chip missing from the halo wheel; cell 3, cracks all over the shaft and half of the halo wheel broken off; cell 4, only a stump of the pillar left in the stand with white stone fragments scattered at its foot."
+      },
+      "ref": "rl_dawnpillar",
+      "deps": ["art_style_lothar_plain", "art_prop_dawnpillar_relic"],
+      "milestone": "M2",
+      "notes": "首领战 archbishop_dawnpillar 里圣柱有独立血量、可被击碎：四格按血量从满到碎依次切换。裂纹是石面的裂，素材本身不发光；神光与灼痕由特效 art_vfx_cut_dawnpillar 与 art_vfx_boss_archbishop_dawnpillar_pillar_sweep 另画。光轮与金饰用暖金 #ffd58a 一类，不用门扉金。附 art_prop_dawnpillar_relic 作参照，圣柱的外形、刻纹与配色一致。"
+    },
+    {
       "id": "art_prop_siege_catapult",
       "template": "prop_large",
       "style": "lothar_plain",

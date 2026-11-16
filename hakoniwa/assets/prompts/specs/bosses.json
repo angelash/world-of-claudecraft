@@ -50,6 +50,7 @@
       "ref": "guardian_raven",
       "deps": ["art_boss_guardian_raven_ref"],
       "milestone": "M1",
+      "anchor": "flying",
       "notes": "飞行首领。第三阶段的狂暴只用色样行加深眼色，不另出图；黑灰剥落、露出银色羽根的样子只画在倒地帧的末两帧。金色小物只占几个像素，不要画成项链。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -67,6 +68,7 @@
       "ref": "guardian_raven",
       "deps": ["art_boss_guardian_raven_ref"],
       "milestone": "M1",
+      "anchor": "flying",
       "notes": "飞行首领。第三阶段的狂暴只用色样行加深眼色，不另出图；黑灰剥落、露出银色羽根的样子只画在倒地帧的末两帧。金色小物只占几个像素，不要画成项链。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -84,6 +86,7 @@
       "ref": "guardian_raven",
       "deps": ["art_boss_guardian_raven_ref"],
       "milestone": "M1",
+      "anchor": "flying",
       "notes": "飞行首领。第三阶段的狂暴只用色样行加深眼色，不另出图；黑灰剥落、露出银色羽根的样子只画在倒地帧的末两帧。金色小物只占几个像素，不要画成项链。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -2504,7 +2507,7 @@
       },
       "ref": "archbishop_dawnpillar",
       "milestone": "M2",
-      "notes": "先出三视图，主审通过后再出动作表与插画。人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（需要单独的物件素材）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。"
+      "notes": "先出三视图，主审通过后再出动作表与插画。人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（物件素材是 art_prop_dawnpillar_relic，首领战的损毁四档是 art_prop_dawnpillar_relic_broken）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。"
     },
     {
       "id": "art_boss_archbishop_dawnpillar_d",
@@ -2521,7 +2524,7 @@
       "ref": "archbishop_dawnpillar",
       "deps": ["art_boss_archbishop_dawnpillar_ref"],
       "milestone": "M2",
-      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（需要单独的物件素材）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
+      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（物件素材是 art_prop_dawnpillar_relic，首领战的损毁四档是 art_prop_dawnpillar_relic_broken）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
       "id": "art_boss_archbishop_dawnpillar_r",
@@ -2538,7 +2541,7 @@
       "ref": "archbishop_dawnpillar",
       "deps": ["art_boss_archbishop_dawnpillar_ref"],
       "milestone": "M2",
-      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（需要单独的物件素材）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
+      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（物件素材是 art_prop_dawnpillar_relic，首领战的损毁四档是 art_prop_dawnpillar_relic_broken）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
       "id": "art_boss_archbishop_dawnpillar_u",
@@ -2555,7 +2558,7 @@
       "ref": "archbishop_dawnpillar",
       "deps": ["art_boss_archbishop_dawnpillar_ref"],
       "milestone": "M2",
-      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（需要单独的物件素材）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
+      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（物件素材是 art_prop_dawnpillar_relic，首领战的损毁四档是 art_prop_dawnpillar_relic_broken）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
       "id": "art_boss_archbishop_dawnpillar_card",
@@ -2572,7 +2575,7 @@
       "ref": "archbishop_dawnpillar",
       "deps": ["art_boss_archbishop_dawnpillar_ref"],
       "milestone": "M2",
-      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（需要单独的物件素材）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照；插画不画背景与边框。"
+      "notes": "人形首领。曙光圣柱是有独立血量的场上物件，不画进动作表（物件素材是 art_prop_dawnpillar_relic，首领战的损毁四档是 art_prop_dawnpillar_relic_broken）；光柱扫场的读条画在第 5 行特殊技：高举权杖的长预备。附三视图作参照；插画不画背景与边框。"
     },
     {
       "id": "art_boss_rogo_breakchain_duel_ref",
@@ -4453,6 +4456,7 @@
       "ref": "iron_horn_crown",
       "deps": ["art_boss_iron_horn_crown_ref"],
       "milestone": "M3",
+      "anchor": "flying",
       "notes": "首领本体就是一顶冠，没有身体。它左右对称、会旋转，只出正面一张动作表；第 2 行移动画成飞行时的倾斜与旋转，第 5 行特殊技画飞向目标的加冕俯冲。四只角的位置固定，供导入工具标注可碎部位。附三视图作参照，配色与辨识特征与三视图一致。"
     },
     {
@@ -5410,6 +5414,7 @@
       "ref": "skyrend_afterimage",
       "deps": ["art_boss_skyrend_afterimage_ref"],
       "milestone": "M3",
+      "anchor": "flying",
       "notes": "飞行首领，本体画在格子上半部。俯冲画在第 5 行特殊技。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -5427,6 +5432,7 @@
       "ref": "skyrend_afterimage",
       "deps": ["art_boss_skyrend_afterimage_ref"],
       "milestone": "M3",
+      "anchor": "flying",
       "notes": "飞行首领，本体画在格子上半部。俯冲画在第 5 行特殊技。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -5444,6 +5450,7 @@
       "ref": "skyrend_afterimage",
       "deps": ["art_boss_skyrend_afterimage_ref"],
       "milestone": "M3",
+      "anchor": "flying",
       "notes": "飞行首领，本体画在格子上半部。俯冲画在第 5 行特殊技。附三视图作参照，三个朝向的配色与辨识特征一致。"
     },
     {
@@ -6233,7 +6240,8 @@
       },
       "ref": "faceless_king",
       "milestone": "M3",
-      "notes": "先出三视图，主审通过后再出动作表与插画。绝不要画五官。身后的门扉用炭黑与澱紫，不用门扉金；动作表里门扉画成附在背后的一体剪影，展开的大场面只在登场插画里画。"
+      "notes": "先出三视图，主审通过后再出动作表与插画。绝不要画五官。身后的门扉用炭黑与澱紫，不用门扉金；动作表里门扉画成附在背后的一体剪影，展开的大场面只在登场插画里画。 这是无貌者的状态变体：附无貌者三视图 art_chr_faceless_ref 作参照，层叠斗篷、空白的脸与门形细缝的辨识特征保持一致，只把体型放大为巨型。",
+      "deps": ["art_chr_faceless_ref"]
     },
     {
       "id": "art_boss_faceless_king_d",
@@ -6603,6 +6611,7 @@
       },
       "ref": "five_courts_siege",
       "milestone": "M3",
+      "body": "hs",
       "notes": "主要角色：整套帧图由人物类负责。这两条动作条用于五司围庭、五司围门与代理之战的梅尔卡阶段；她没有单独的登场插画。账本上不画字。附本人的三视图作参照；三行依次是面向镜头、朝右、背向镜头。",
       "deps": ["art_chr_merca_ref"]
     },
@@ -6620,6 +6629,7 @@
       },
       "ref": "five_courts_siege",
       "milestone": "M3",
+      "body": "hs",
       "notes": "主要角色：整套帧图由人物类负责。这两条动作条用于五司围庭、五司围门与代理之战的梅尔卡阶段；她没有单独的登场插画。账本上不画字。附本人的三视图作参照；三行依次是面向镜头、朝右、背向镜头。",
       "deps": ["art_chr_merca_ref"]
     },

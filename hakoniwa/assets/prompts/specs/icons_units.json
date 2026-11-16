@@ -1630,67 +1630,11 @@
       "notes": "画质档与色觉辅助模式下都要靠形状认出状态。"
     },
     {
-      "id": "art_ico_regstate_wavering",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "兵团状态（动摇）：一面小旗的旗杆向右倾斜约三十度，旗面卷皱着往下垂，旗杆底端有两道晃动的短线，旗色土黄 #C8A04A，旗杆深褐。",
-        "en": "Regiment state (wavering): a small flag whose pole leans about thirty degrees to the right, the cloth crumpled and drooping, two short wobble lines at the foot of the pole, ochre-yellow #C8A04A cloth on a dark brown pole."
-      },
-      "extra": {
-        "zh": "兵团状态图标：同组 10 枚同批生成，线条粗细与外形大小一致；它显示在兵团卡与兵团旗标上，形状本身就要能区分，不只靠颜色。",
-        "en": "Regiment state icon: generate the 10 icons of this set in one batch with the same line weight and overall size; it appears on regiment cards and banners, so the shape itself must tell the states apart, not only the color."
-      },
-      "milestone": "M2",
-      "notes": "画质档与色觉辅助模式下都要靠形状认出状态。"
-    },
-    {
-      "id": "art_ico_regstate_routing",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "兵团状态（溃退）：一根折成两截的旗杆，上半截连同旗面掉落下来斜挂着，断口参差，下半截仍立着，旗色暗红 #A8543A。",
-        "en": "Regiment state (routing): a flagpole snapped in two, the upper half falling and hanging askew together with its cloth, a jagged break, the lower half still standing, dark red #A8543A cloth."
-      },
-      "extra": {
-        "zh": "兵团状态图标：同组 10 枚同批生成，线条粗细与外形大小一致；它显示在兵团卡与兵团旗标上，形状本身就要能区分，不只靠颜色。",
-        "en": "Regiment state icon: generate the 10 icons of this set in one batch with the same line weight and overall size; it appears on regiment cards and banners, so the shape itself must tell the states apart, not only the color."
-      },
-      "milestone": "M2",
-      "notes": "画质档与色觉辅助模式下都要靠形状认出状态。"
-    },
-    {
       "id": "art_ico_regstate_rallying",
       "template": "ico_ui",
       "subject": {
         "zh": "兵团状态（重整）：一只手握住旗杆，把一面小旗重新竖起来，旗面正在扬起，旗杆旁有一道向上的弧线，旗色钢蓝 #5A6E8C。",
         "en": "Regiment state (rallying): a hand gripping a flagpole and raising a small flag upright again, the cloth just lifting, an upward arc beside the pole, steel-blue #5A6E8C cloth."
-      },
-      "extra": {
-        "zh": "兵团状态图标：同组 10 枚同批生成，线条粗细与外形大小一致；它显示在兵团卡与兵团旗标上，形状本身就要能区分，不只靠颜色。",
-        "en": "Regiment state icon: generate the 10 icons of this set in one batch with the same line weight and overall size; it appears on regiment cards and banners, so the shape itself must tell the states apart, not only the color."
-      },
-      "milestone": "M2",
-      "notes": "画质档与色觉辅助模式下都要靠形状认出状态。"
-    },
-    {
-      "id": "art_ico_regstate_surrounded",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "兵团状态（陷阵）：中间一个小圆点，上下左右四个三角形的尖端同时向内指着它，三角形与圆点之间留着一圈空隙，颜色橙红 #D86A4A。",
-        "en": "Regiment state (surrounded): a small dot in the middle with four triangles above, below, left and right all pointing inward at it, a ring of space left between them and the dot, in orange-red #D86A4A."
-      },
-      "extra": {
-        "zh": "兵团状态图标：同组 10 枚同批生成，线条粗细与外形大小一致；它显示在兵团卡与兵团旗标上，形状本身就要能区分，不只靠颜色。",
-        "en": "Regiment state icon: generate the 10 icons of this set in one batch with the same line weight and overall size; it appears on regiment cards and banners, so the shape itself must tell the states apart, not only the color."
-      },
-      "milestone": "M2",
-      "notes": "画质档与色觉辅助模式下都要靠形状认出状态。"
-    },
-    {
-      "id": "art_ico_regstate_disordered",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "兵团状态（混乱）：一团打结缠绕的线，像一个乱麻团，三个线头向外乱翘，整团线微微歪斜，颜色橙黄 #E8A04A，描边深褐。",
-        "en": "Regiment state (disordered): a knotted, tangled ball of line like a snarl of twine with three loose ends sticking out at odd angles, the whole ball slightly askew, orange-yellow #E8A04A with a dark brown outline."
       },
       "extra": {
         "zh": "兵团状态图标：同组 10 枚同批生成，线条粗细与外形大小一致；它显示在兵团卡与兵团旗标上，形状本身就要能区分，不只靠颜色。",
@@ -2229,90 +2173,6 @@
       "ref": "protect",
       "milestone": "M2",
       "notes": "箭头只是图形，不写字母与数字。"
-    },
-    {
-      "id": "art_ico_weather_clear",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（晴）：一个圆形的太阳居中，周围八道短光芒，光芒长短一致、间隔均匀，颜色暖黄 #FFD58A，边缘一级橙色。",
-        "en": "Battlefield weather (clear): a round sun in the center with eight short rays of equal length and even spacing around it, warm yellow #FFD58A with a one-step orange edge."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_weather_fog",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（雾）：三道上下错开的横向波浪长线，中间那道最长，上下两道稍短，颜色浅灰 #B8BCC4，线条柔缓，没有云也没有太阳。",
-        "en": "Battlefield weather (fog): three long horizontal wavy lines staggered one above another, the middle one the longest and the outer two a little shorter, pale gray #B8BCC4, gentle strokes, no cloud and no sun."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_weather_rain",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（雨）：一朵圆鼓鼓的灰色云 #8A8E96，云底平直，云下落着五道斜向的短雨线，雨线方向一致、长短相同，颜色水蓝 #6AA0D8。",
-        "en": "Battlefield weather (rain): a puffy gray cloud #8A8E96 with a flat base and five short slanting rain streaks falling beneath it, all at the same angle and length, water blue #6AA0D8."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_weather_snow",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（雪）：一朵浅灰色的云，云下散落着五六个白色的小雪点，每个雪点是一个小十字形，雪点之间留开空隙。",
-        "en": "Battlefield weather (snow): a pale gray cloud with five or six small white snowflakes scattered beneath it, each flake a tiny cross shape with gaps between them."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_weather_blizzard",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（暴风雪）：几道从左向右斜飞的长风线夹着白色雪点，风线末端打一个卷，没有云，风线是冰蓝色 #A8C8E4。",
-        "en": "Battlefield weather (blizzard): several long wind lines flying at a slant from left to right with white snowflakes caught among them, each line curling at its end, no cloud, the lines ice blue #A8C8E4."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_weather_ashstorm",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "战场天气（灰暴）：一股灰色的旋风 #8A8580 从地面卷起，越往上越宽，旋风里夹着几粒橙色的余烬 #FF9A4A，不画云也不画太阳。",
-        "en": "Battlefield weather (ash storm): a gray whirlwind #8A8580 twisting up from the ground and widening as it rises, a few orange embers #FF9A4A caught inside it, no cloud and no sun."
-      },
-      "extra": {
-        "zh": "战场天气图标：同组 6 枚同批生成，线条粗细一致，在战前情报与战场主界面上显示。",
-        "en": "Battlefield weather icon: generate the 6 icons of this set in one batch with the same line weight; shown on the pre-battle briefing and the battle screen."
-      },
-      "milestone": "M2",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
     },
     {
       "id": "art_ico_flag_lothar",
@@ -2995,20 +2855,6 @@
       "notes": "旗面保持浅灰单色，便于界面按势力换色。"
     },
     {
-      "id": "art_ico_cty_siege",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "郡图标记（围城）：一座小城堡的剪影被一圈尖头木桩团团围住，木桩尖朝外，木桩褐色 #6B4A32，城堡石灰色 #8A8E8A，描边加粗。",
-        "en": "County map marker (siege): the silhouette of a small castle hemmed in by a ring of outward-pointing wooden stakes, the stakes brown #6B4A32 and the castle stone gray #8A8E8A, heavy outline."
-      },
-      "extra": {
-        "zh": "郡图标记：同组 8 枚同批生成，叠在大陆郡图上显示，主体轮廓要粗、对比要强，压在任何地形底色上都看得清。",
-        "en": "County map marker: generate the 8 icons of this set in one batch; they sit on top of the continental county map, so give the main shape a thick outline and strong contrast that reads over any terrain color."
-      },
-      "milestone": "M3",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
       "id": "art_ico_cty_fort",
       "template": "ico_ui",
       "subject": {
@@ -3105,62 +2951,6 @@
       },
       "milestone": "M3",
       "notes": "不用神光白金，也不偏向任何一位女神的配色。"
-    },
-    {
-      "id": "art_ico_cty_layer_sediment",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "郡图图层（澱）：一滴下垂的暗紫色浓滴 #4A3A62，滴尖拖着一丝细线，周围散着三个小暗点，浓滴顶部有一点暗灰高光。",
-        "en": "County map layer (sediment): a hanging drop of thick dark purple #4A3A62 trailing a fine thread from its tip, three small dark dots scattered around it and a dull gray highlight on its top."
-      },
-      "extra": {
-        "zh": "郡图的图层开关图标：同组 5 枚同批生成，线条粗细一致，排成一列显示在地图边上。",
-        "en": "County map layer toggle icon: generate the 5 icons of this set in one batch with the same line weight; they are shown in a column at the edge of the map."
-      },
-      "milestone": "M3",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_cty_layer_faith",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "郡图图层（信仰）：一支点燃的白蜡烛立在一只小铜烛台上，烛火暖黄 #FFD58A，火苗笔直，蜡烛象牙白，烛泪沿一侧流下。",
-        "en": "County map layer (faith): a lit white candle standing in a small brass candlestick, a straight warm yellow flame #FFD58A, an ivory candle with wax running down one side."
-      },
-      "extra": {
-        "zh": "郡图的图层开关图标：同组 5 枚同批生成，线条粗细一致，排成一列显示在地图边上。",
-        "en": "County map layer toggle icon: generate the 5 icons of this set in one batch with the same line weight; they are shown in a column at the edge of the map."
-      },
-      "milestone": "M3",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_cty_layer_supply",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "郡图图层（补给容量）：一只装满的麻袋旁立着一根分成三格的刻度条，刻度条下面两格已经填满草绿色 #5A8A3A。",
-        "en": "County map layer (supply capacity): a full sack with a gauge bar of three segments standing beside it, the lower two segments filled in grass green #5A8A3A."
-      },
-      "extra": {
-        "zh": "郡图的图层开关图标：同组 5 枚同批生成，线条粗细一致，排成一列显示在地图边上。",
-        "en": "County map layer toggle icon: generate the 5 icons of this set in one batch with the same line weight; they are shown in a column at the edge of the map."
-      },
-      "milestone": "M3",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
-    },
-    {
-      "id": "art_ico_cty_layer_aggression",
-      "template": "ico_ui",
-      "subject": {
-        "zh": "郡图图层（侵略扩张值）：一只握着短剑的拳头，剑尖朝上，拳头上方一支笔直向上的粗箭头，点缀色赤红 #B83A2A。",
-        "en": "County map layer (aggressive expansion): a fist gripping a short sword point up with a thick arrow pointing straight upward above it, accent scarlet #B83A2A."
-      },
-      "extra": {
-        "zh": "郡图的图层开关图标：同组 5 枚同批生成，线条粗细一致，排成一列显示在地图边上。",
-        "en": "County map layer toggle icon: generate the 5 icons of this set in one batch with the same line weight; they are shown in a column at the edge of the map."
-      },
-      "milestone": "M3",
-      "notes": "同组同批生成，符号形状之间要一眼可分。"
     },
     {
       "id": "art_ico_summit_seat",

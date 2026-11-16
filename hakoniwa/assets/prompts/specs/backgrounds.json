@@ -12,7 +12,8 @@
     "docs/30_story/arcs/act3_lothar_crisis.md",
     "docs/30_story/arcs/act4_continental_board.md",
     "docs/30_story/arcs/act5_war_of_races.md",
-    "docs/30_story/arcs/act6_review_and_epilogue.md"
+    "docs/30_story/arcs/act6_review_and_epilogue.md",
+    "docs/40_design/content/catalog_warfare_strategy.md"
   ],
   "items": [
     {
@@ -796,6 +797,295 @@
       "deps": ["art_style_mercato_coast", "art_bg_sky_mist_edge_far"],
       "milestone": "M3",
       "notes": "特殊天幕。结局演出用；雾墙占据远层的整个上半，越往上越接近洋红天空的位置时直接截断。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_undertide",
+      "template": "bg_layer",
+      "style": "valen_city",
+      "subject": {
+        "zh": "瓦伦堡下城河港的远景：北面高处是上城的剪影，岩丘上伯爵城堡的方塔与大教堂的钟楼立在最高处，蓝灰石板瓦屋顶 #56657a 一层层叠下到城墙线；南面隔着宽阔的河面是低平的芦苇滩与远处灰蓝的丘陵 #7e7a72",
+        "en": "Far view of the lower city and river harbor of Valenburg: the upper city stands high to the north in silhouette, the square tower of the count's castle on its rock and the cathedral bell tower at the very top, blue-gray slate roofs #56657a stepping down tier after tier to the line of the city wall; to the south, across the broad river, low reed flats and distant blue-gray hills #7e7a72"
+      },
+      "extra": {
+        "zh": "这是城下潮战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Undertide, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a2_undertide",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a2_undertide 的战场 wallenburg_harbor_battle（地图简报 B3-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。城里的灯火与守军火盆由场景表现，不画进天幕。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_bonefield",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "骨原北坡的远景：北面是起伏的灰白丘陵，丘顶散着一堆堆白骨冢的低矮剪影，最远的地平线上一线冷白的玻璃反光；南面与东面是暗绿的铁杉林带 #2e5a30 连成一道低矮的林脊",
+        "en": "Far view of the northern slope by the Bone Plain: rolling pale gray hills to the north with low silhouettes of bone mounds on their crests and a thin line of cold white glassy glare on the farthest horizon; to the south and east a dark green ironhemlock belt #2e5a30 joining into a low wooded ridge"
+      },
+      "extra": {
+        "zh": "这是骨原夜袭战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the night raid on the Bone Plain, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_bonefield",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_bonefield 的战场 bonefield_battle（地图简报 C1-2）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。拾遗营夜袭 bat_a3_salvage_raid 用同一张战场图的北部变体，也用这张。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_deer_ford",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "鹿渡的远景：东面隔着银灰色的河是平缓的褐黄丘陵 #9a866c 与稀疏的林线；西面是苍榆林地初冬的落叶林冠，赭褐 #846a4c 与残绿 #4a7a3a 相间，林冠之上一座小山丘顶着方形石墙要塞的灰色剪影；北面河道在远处转弯，河谷两侧是灰蓝的远山 #3a4a5a",
+        "en": "Far view of Deer Ford: to the east, beyond the silver-gray river, gentle tan hills #9a866c with a thin treeline; to the west the early winter canopy of the Greyelm Weald in ochre brown #846a4c mixed with the last green #4a7a3a, a small hill above it bearing the gray silhouette of a square-walled fortress; to the north the river bends away between blue-gray far hills #3a4a5a"
+      },
+      "extra": {
+        "zh": "这是鹿渡之战战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Battle of Deer Ford, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_deer_ford",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_deer_ford 的战场 deer_ford_battle（地图简报 C6-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_frostridge",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "霜脊堡的远景：北面是一望无际的雪原，地平线上是覆雪的低矮山脊，冷蓝的阴面 #3a4a5a 与雪白的亮面两级大色块，最北的天边两侧灰白的山影向中间收窄；南面与两侧是积雪压枝的暗绿针叶林带 #2e5a30",
+        "en": "Far view of Frostridge: an endless snowfield to the north with low snow-covered ridges along the horizon in two large steps of cold blue shadow #3a4a5a and snow-white light, pale gray mountain shapes closing in from both sides at the far north; to the south and on both flanks a belt of dark green conifers #2e5a30 weighed down with snow"
+      },
+      "extra": {
+        "zh": "这是霜脊堡之战战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Battle of Frostridge, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_frostridge",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_frostridge 的战场 frostridge_battle（地图简报 C5-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。本包以冬季雪地外观出图：白里一定要有冷蓝的阴面，不要画成纯白。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_sunrise_gate",
+      "template": "bg_layer",
+      "style": "valen_city",
+      "subject": {
+        "zh": "王都的远景：宽阔河面两岸铺开的城郭剪影，北岸旧城高处是主座堂的钟楼与贵族区的尖顶，南岸新城是密密的蓝灰石板瓦屋顶 #56657a，东南的城门楼方塔高出城墙，城外是平缓的丘陵",
+        "en": "Far view of the royal capital: city silhouettes spreading over both banks of a broad river, the cathedral bell tower and the spires of the noble quarter high on the old north bank, a dense mass of blue-gray slate roofs #56657a on the new south bank, the square towers of the southeast gatehouse rising above the wall, gentle hills beyond the city"
+      },
+      "extra": {
+        "zh": "这是朝阳门之夜战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Night of the Sunrise Gate, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_sunrise_gate",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_sunrise_gate 的战场 sunrise_gate_battle（地图简报 C3-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。档案馆的火与街灯由场景与特效表现，不画进天幕。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_reedbridge",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "苇桥的远景：灰溪两岸是早春的开阔田地，翻耕的褐土 #6b4a32 与刚返青的草地相间，东北方向田地渐渐升成灰绿的缓丘 #5a8a3a；沿河上下游是一片片枯黄的芦苇沼 #c9b98f，西南方向是远处灰蓝的丘陵 #4e5a6e",
+        "en": "Far view of Reedbridge: open fields of early spring on both sides of the gray stream, plowed brown earth #6b4a32 alternating with freshly greening meadow, the fields rising gently to gray-green downs #5a8a3a in the northeast; dry yellow reed marshes #c9b98f along the stream up and down its course, and distant blue-gray hills #4e5a6e to the southwest"
+      },
+      "extra": {
+        "zh": "这是灰烬防线之战（苇桥）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Ash Line at Reedbridge, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_reedbridge",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_reedbridge 的战场 reedbridge_battle（地图简报 C11）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。南线 bat_a5_front_south 的标定复用这张战场图。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_second_front",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "瓦伦平野的远景：平坦的农田向四面铺开，早春翻耕的褐土 #6b4a32 与返青的麦田 #8fb35a 一块块相间，田间点着几处陶红屋顶的村落 #a8543a；北面是低缓的绿丘，西面地平线上露出一座设防大城的灰色城墙与钟楼剪影",
+        "en": "Far view of the Valen fields: flat farmland spreading in every direction, early spring plots of plowed brown earth #6b4a32 alternating with greening wheat #8fb35a, a few villages with terracotta roofs #a8543a among the fields; low green hills to the north, and on the western horizon the gray wall and bell tower silhouette of a fortified city"
+      },
+      "extra": {
+        "zh": "这是第二战线（瓦伦平野）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Second Front on the Valen fields, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a3_second_front",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M2",
+      "notes": "战场天幕：bat_a3_second_front 的战场 valen_fields_battle（地图简报 A10-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_boundary_war",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "界石垒的远景：北面坡顶之后是封门遗迹的剪影，倒塌的柱廊与一副巨大的石门框 #6e7270 立在灰白的荒原边缘前，荒原上散着石化枯树的细枝；东面是灰溪沿岸的灰化地与更远处灰白的荒原地平线；西北是锈红色的丘岭 #846a4c；南面是暗绿的铁杉幼林 #2e5a30 与矮丘上一座小镇钟楼的剪影",
+        "en": "Far view of the Boundary Cairn: beyond the crest of the slope to the north, the silhouette of the sealed gate ruins, a collapsed colonnade and one colossal stone doorframe #6e7270 standing before the pale rim of the waste with thin petrified branches scattered over it; to the east ash-grayed land along the gray stream and a pale waste horizon beyond; rust-red ridges #846a4c to the northwest; to the south young dark green ironhemlock #2e5a30 and the bell tower silhouette of a small town on a low hill"
+      },
+      "extra": {
+        "zh": "这是界石之战（界石垒）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the battle at the Boundary Cairn, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a4_boundary_war",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a4_boundary_war 的战场 boundary_cairn_battle（地图简报 A1-1）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。封印躁动的紫光由场景与特效表现，不画进天幕。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_rootcourt",
+      "template": "bg_layer",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "深根谷的远景：谷地四周一圈巨根弯成的拱形幕墙 #5a4a3a，根拱高低参差，根拱之间透出雾白的空气 #e8eee8 与更远处参天巨树的银色树干 #a8b4bc，根脚下零星亮着淡绿的光苔 #c8e0a0",
+        "en": "Far view of the Deeproot Vale: a ring of colossal roots #5a4a3a arching around the hidden valley like a curtain wall, the root arches high and low, misty white air #e8eee8 and the silver trunks #a8b4bc of farther towering trees showing between them, faint pale green glowmoss #c8e0a0 lit here and there at their feet"
+      },
+      "extra": {
+        "zh": "这是根下庭之夜战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Night at the Rootcourt, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a4_rootcourt_night",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a4_rootcourt_night 的战场 rootcourt_battle（地图简报 E4-2）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。林火与焦土由特效与地面瓦片表现，不画进天幕。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_redtent",
+      "template": "bg_layer",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "红帐营外的远景：四面是起伏到天边的黄草原 #c8b46a，北面季节河对岸是一片圆形毡帐的小剪影，毡门帘点着红色 #b83a2a，西北是几座长满草的圆形墓丘 #7a8a4a，最远的地平线是一线淡蓝灰的低丘 #a8cce8",
+        "en": "Far view outside the red tent camp: yellow steppe #c8b46a rolling to the horizon on every side, a cluster of small round felt tent silhouettes across the seasonal river to the north with dots of red door felt #b83a2a, a few grass-grown round barrows #7a8a4a to the northwest, a pale blue-gray line of low hills #a8cce8 on the farthest horizon"
+      },
+      "extra": {
+        "zh": "这是红帐血战（兽王台）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Red Tent blood fight below the Beast King's Dais, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a4_redtent_bloodfight",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a4_redtent_bloodfight 的战场 windfang_rock_battle（地图简报 D5-2）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。风牙岩与兽王台在战场图上，不画进天幕。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_ring_r01",
+      "template": "bg_layer",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "主门坑坑沿的远景：对面极远处是巨坑另一侧灰白的坑壁 #b9b4a8，坑壁上一圈圈下行的螺旋道细线，坑沿上立着几副断裂的巨大门框剪影 #45403e，坑沿以外是平缓的灰白荒原，地平线上一线冷白的反光",
+        "en": "Far view from the rim of the Main Gate Crater: the pale gray wall #b9b4a8 of the far side of the vast crater in the far distance, the thin line of a spiral path winding down it ring after ring, a few colossal broken doorframe silhouettes #45403e standing on the rim, flat pale waste beyond the rim and a thin line of cold white glare on the horizon"
+      },
+      "extra": {
+        "zh": "这是众门环守备（主门坑节点）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Gate Ring defense at the Main Gate Crater node, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_ring_node",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_ring_node 的战场 main_gate_crater（地图简报 E2）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。节点一（核心）。门环线 bat_a5_front_ring 的逐节点战场同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_ring_r02",
+      "template": "bg_layer",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "世界树根下的远景：参天巨树的银色树干 #a8b4bc 像一排排巨柱向远处退去，越远越淡入雾白 #e8eee8，树干脚下盘结着拱起的外根 #5a4a3a，根拱之间点点淡绿的光苔 #c8e0a0，巨柱上方是深绿的低垂枝叶 #2e5a3a 连成参差的冠线",
+        "en": "Far view at the roots of the World Tree: silver trunks #a8b4bc of towering trees receding row after row like giant pillars, fading into misty white #e8eee8 with distance, arched outer roots #5a4a3a knotted at their feet with specks of pale green glowmoss #c8e0a0 between them, low-hanging deep green boughs #2e5a3a above the pillars joining into a ragged crown line"
+      },
+      "extra": {
+        "zh": "这是众门环守备（世界树根下节点）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Gate Ring defense at the World Tree roots node, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_ring_node",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_ring_node 的战场 world_tree（地图简报 E4）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。节点二。世界树本身在战场图上，不画进天幕；与根下庭天幕区分：这里是巨树树干的柱列，不是根拱幕墙。门环线 bat_a5_front_ring 的逐节点战场同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_ring_r04",
+      "template": "bg_layer",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "祖灵石的远景：春天的草原新绿 #7a8a4a 夹着去年的黄草 #c8b46a 起伏到天边，西北方向较近处一根獠牙状的巨岩 #6a6460 占据画面的一段，岩顶平台的轮廓清楚，岩脚一圈圆形毡帐的小剪影，岩脚一侧是几座长草的圆形墓丘，草原上远远立着几块风化的灰色立石 #8a6a4a",
+        "en": "Far view at the Ancestor Stone: spring steppe of new green #7a8a4a mixed with last year's yellow grass #c8b46a rolling to the horizon, a fang-shaped rock #6a6460 fairly near to the northwest filling one stretch of the strip with the flat platform on its summit clearly outlined, a ring of small round felt tents at its foot and a few grass-grown round barrows to one side, a few weathered gray standing stones #8a6a4a far out on the grass"
+      },
+      "extra": {
+        "zh": "这是众门环守备（祖灵石节点）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Gate Ring defense at the Ancestor Stone node, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_ring_node",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_ring_node 的战场 windfang_rock（地图简报 D5）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。节点四，风牙岩东南的草原石圈；与风牙草原的通用远景区分：这里是春天的新绿，巨岩更近更大。门环线 bat_a5_front_ring 的逐节点战场同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_ring_r05",
+      "template": "bg_layer",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "月井的远景：火山盆地四周一圈黑色的火山 #2e2a2c 剪影，最高的火山口透着暗红的光 #8a2a22；西面是黑色玄武岩的尖塔与宫城剪影，窗口点着暗红的灯 #b33a2a；盆地里几处温泉冒着青白色的白汽 #c8e8e4",
+        "en": "Far view at the Moon Well: a ring of black volcano silhouettes #2e2a2c around the volcanic basin, the tallest crater lit dark red #8a2a22; to the west the black basalt spires and palace silhouette of the city with dark red lamps #b33a2a in its windows; plumes of pale blue-white steam #c8e8e4 rising from hot springs in the basin"
+      },
+      "extra": {
+        "zh": "这是众门环守备（月井节点）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Gate Ring defense at the Moon Well node, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_ring_node",
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_ring_node 的战场 duskcrown（地图简报 D8）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。节点五，黯冠城宫城东侧的月井区。门环线 bat_a5_front_ring 的逐节点战场同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_ring_r07",
+      "template": "bg_layer",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "七席石峰顶的远景：脚下极远处铺着一整片白色云海 #f6fafc，云海里探出一座座冰蓝的雪峰尖 #7aa0c4，都比这里低；东面远处一道银白的冰崖弧，西面云海的缝隙里隐约露出暗色的山谷 #2a3e52",
+        "en": "Far view from the summit of the Seven Seats: a whole sea of white cloud #f6fafc spread far below, ice-blue snow peaks #7aa0c4 breaking through it one after another, all lower than this summit; a silver-white arc of ice cliffs far to the east, dark valleys #2a3e52 faintly visible through gaps in the clouds to the west"
+      },
+      "extra": {
+        "zh": "这是众门环守备（眠鳞碑下节点）战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Gate Ring defense at the Sleepscale Foot node, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_ring_node",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_ring_node 的战场 seven_seats（地图简报 D6）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。节点七；与眠鳞雪岭的通用远景区分：这里站在最高峰上，四周的雪峰都在脚下。门环线 bat_a5_front_ring 的逐节点战场同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_final_war",
+      "template": "bg_layer",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰烬决战的远景：灰白的荒原 #b9b4a8 向四面铺开，北面是通往夜境山口的黑色山脊 #3a2e28，东面是起伏的灰丘与几处门站残墟的断墙剪影，南面远处一线淡淡的灰绿低地，其中一段是主门坑外缘隆起的灰色坑唇，荒原上立着几道细细的灰色烟柱",
+        "en": "Far view of the Ashen Final Battle: pale gray waste #b9b4a8 spreading in every direction, black ridges #3a2e28 of the pass toward the Nightrealm to the north, rolling ash hills and the broken wall silhouettes of ruined gate stations to the east, a faint gray-green line of lowland far to the south, the raised gray lip of the Main Gate Crater's outer rim along one stretch, a few thin gray columns of smoke rising over the waste"
+      },
+      "extra": {
+        "zh": "这是灰烬决战战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the Ashen Final Battle, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_final_war",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_final_war 的战场 ashen_final_battle（地图简报 E3）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。北线、东线、南线的态势图同用。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_battle_front_rear",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "边石后方的远景：北面坡上是灰白的荒原边缘，一排小小的界石剪影横在灰与绿的交界，界石后是封门遗迹巨大石门框的灰色剪影 #8a8780；东面是暗青色的铁杉林带 #1e2a1c；西北是锈红的丘岭 #a8543a；南面是绿色的田野与缓丘 #5a8a3a 一直伸向远方",
+        "en": "Far view behind Edgestone: the pale rim of the waste on the slopes to the north, a row of small boundary stone silhouettes along the line where gray meets green, the gray silhouette of the colossal stone doorframe of the sealed gate ruins #8a8780 beyond them; a dark teal ironhemlock belt #1e2a1c to the east; rust-red ridges #a8543a to the northwest; green fields and gentle downs #5a8a3a running far away to the south"
+      },
+      "extra": {
+        "zh": "这是边石后方战场天幕的远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer of the backdrop for the rear line at Edgestone, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "bat_a5_front_rear",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M3",
+      "notes": "战场天幕：bat_a5_front_rear 的战场 borderstone_rear_battle（地图简报 A1-2）用；本条只替换远山层，中景与云带仍用本风格包的天幕层。与界石之战的天幕区分：这里站在镇上，遗迹与界石都在远处。按白天的固有色画，夜战、黄昏与天气由渲染层乘色。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
     },
     {
       "id": "art_bg_cut_floor_door",

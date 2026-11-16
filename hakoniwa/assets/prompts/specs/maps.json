@@ -5,7 +5,8 @@
     "docs/50_tech/art_pipeline.md",
     "docs/40_design/world/world_map.md",
     "docs/20_world/geography.md",
-    "docs/40_design/content/catalog_relics_lore.md"
+    "docs/40_design/content/catalog_relics_lore.md",
+    "docs/40_design/content/catalog_warfare_strategy.md"
   ],
   "items": [
     {
@@ -277,6 +278,176 @@
       "ref": "lb_mist_edge_chart",
       "milestone": "M3",
       "notes": "史料道具的展开图（在书籍与收藏界面里看）。不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_county_tex_plain",
+      "template": "tile_ground",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "平原郡的地形底纹：一块块不规则的麦田 #d8b45a、#e8cf86 与草地 #7a6a4a 拼成的田块网，田块之间是细细的深色田埂，点着零星的小树丛，整体平坦明快",
+        "en": "Terrain pattern of a plains county: a patchwork of irregular wheat fields #d8b45a, #e8cf86 and pasture #7a6a4a, thin dark field margins between the plots and a few tiny copses dotted about, flat and bright overall"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:plain",
+      "deps": ["art_style_grantia_ochre"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"平原\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。平原郡以帝国最多，选赭红帝国的麦田平原作代表。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是平原。"
+    },
+    {
+      "id": "art_map_county_tex_hills",
+      "template": "tile_ground",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "丘陵郡的地形底纹：一个个圆缓的小丘挨在一起，丘顶浅绿 #8fb35a、坡脚暗绿 #3d6b3a，用色阶深浅表示起伏，丘间是浅色的谷地与零星的深绿林块 #1e2a1c，起伏均匀",
+        "en": "Terrain pattern of a hill county: rounded low hills packed together, pale green #8fb35a on the crests and dark green #3d6b3a at their feet, relief shown only by lighter and darker color steps, pale valleys and a few dark green wood patches #1e2a1c between them, evenly undulating"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:hills",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"丘陵\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。丘陵郡遍布各国，选洛萨乡野的绿丘作通用底色（前三幕的舞台也在这里）；起伏只靠色阶深浅，不画方向投影。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是丘陵。"
+    },
+    {
+      "id": "art_map_county_tex_forest",
+      "template": "tile_ground",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "森林郡的地形底纹：密密挤在一起的圆形树冠小团，深绿 #2e5a3a 与翠绿 #4a7a4a 两级，冠团边缘一点银灰的亮色 #a8b4bc，冠团之间只露出很少的深色林隙 #0e1a14，铺满整块",
+        "en": "Terrain pattern of a forest county: small round tree crowns crowded tightly together in two steps of deep green #2e5a3a and jade #4a7a4a, a touch of silver-gray light #a8b4bc on the crown edges, only a few dark gaps #0e1a14 showing between them, filling the whole tile"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:forest",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"森林\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。森林郡以希尔瓦大森林最多，选林冠秘境作代表。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是森林。"
+    },
+    {
+      "id": "art_map_county_tex_steppe",
+      "template": "tile_ground",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "草原郡的地形底纹：大片起伏的黄草 #c8b46a 与浅草黄 #e0d08e 以长长的风纹笔触横向铺开，间杂几片绿草洼 #7a8a4a 与零星的灰色碎石小点，开阔空旷",
+        "en": "Terrain pattern of a steppe county: broad rolling yellow grass #c8b46a and pale straw #e0d08e laid out in long sideways strokes of wind ripple, a few hollows of green grass #7a8a4a and scattered small gray stones among them, open and empty"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:steppe",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"草原\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。草原郡几乎都在风牙。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是草原。"
+    },
+    {
+      "id": "art_map_county_tex_mountain",
+      "template": "tile_ground",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "山地郡的地形底纹：交错的灰色岩脊 #5a6670、#8a9aa8 像折皱一样排开，脊顶覆着一线白雪 #f6fafc，谷里是暗绿的松林小点 #6a8a6a，岩脊的走向多变，不排成行列",
+        "en": "Terrain pattern of a mountain county: interlocking gray rock ridges #5a6670, #8a9aa8 laid out like folds, a thin line of white snow #f6fafc along their crests, small dark green pine patches #6a8a6a in the valleys, the ridges running in varied directions rather than in rows"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:mountain",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"山地\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。山地郡以眠鳞山脉最多；与雪地底纹区分：这里以灰色岩脊为主，只有脊顶积雪。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是山地。"
+    },
+    {
+      "id": "art_map_county_tex_swamp",
+      "template": "tile_ground",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "沼泽郡的地形底纹：灰蓝的积水洼 #3a4a5a 与暗绿的苔草丛 #3a6a34、褐色的泥滩 #5a3e2a 交错成网，水洼形状不规则，间杂零星的枯树小点",
+        "en": "Terrain pattern of a swamp county: gray-blue pools of standing water #3a4a5a woven into a net with dark green sedge tussocks #3a6a34 and brown mud flats #5a3e2a, the pools irregular in shape, a few small dead trees dotted among them"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:swamp",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"沼泽\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。沼泽郡分在洛萨、同盟与夜境，选边地野林的湿地色作通用底色。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是沼泽。"
+    },
+    {
+      "id": "art_map_county_tex_waste",
+      "template": "tile_ground",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "荒原郡的地形底纹：灰白的灰地 #b9b4a8 上起伏着浅浅的灰丘纹，夹着焦黑的岩块小点 #3a2e28 与铁锈色的岩层细条 #b0603a，零星几粒淡紫的晶点 #c6b5e0，荒凉而低饱和",
+        "en": "Terrain pattern of a waste county: pale gray ash ground #b9b4a8 with faint rolling ripples of ash hills, small charred black rocks #3a2e28 and thin rust-colored strata #b0603a among them, a few pale lilac crystal specks #c6b5e0, desolate and low in saturation"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:waste",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"荒原\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。荒原郡全在灰烬荒原；淡紫晶点只点几粒，不用澱紫。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是荒原。"
+    },
+    {
+      "id": "art_map_county_tex_tundra",
+      "template": "tile_ground",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "冻原郡的地形底纹：灰褐的冻土 #5e5652 与深灰的碎石滩 #45403e 交错，冻土上淡淡可见多边形的冻裂纹，散着灰白的霜斑 #d8d0c8 与小小的青白融水洼 #8ac8c4",
+        "en": "Terrain pattern of a tundra county: gray-brown frozen ground #5e5652 alternating with dark gray gravel flats #45403e, faint polygonal frost cracks on the frozen ground, scattered pale gray frost patches #d8d0c8 and small pale cyan meltwater pools #8ac8c4"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:tundra",
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"冻原\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。冻原郡全在夜境。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是冻原。"
+    },
+    {
+      "id": "art_map_county_tex_coast",
+      "template": "tile_ground",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "海岸郡的地形底纹：沙黄的滩地 #f0e6d0 与灰绿的咸草甸 #8a7a5a 相间，散着小小的海蓝潟湖水洼 #5aa0c8 与深色礁石小点 #3a3e44，沙地上有浅浅的风纹",
+        "en": "Terrain pattern of a coastal county: sandy flats #f0e6d0 alternating with gray-green salt meadow #8a7a5a, small sea-blue lagoon pools #5aa0c8 and dark rock specks #3a3e44 scattered about, faint wind ripples in the sand"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:coast",
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"海岸\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。海岸郡以海港同盟最多；海面由郡图另画，这里只画沿海的陆地。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是海岸。"
+    },
+    {
+      "id": "art_map_county_tex_snow",
+      "template": "tile_ground",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "雪地郡的地形底纹：大片起伏的雪原，雪白 #f6fafc 的亮面与冰蓝 #a8c8e4 的阴面两级色块交替，风吹出长条的雪纹，零星露出灰色的岩点 #8a9aa8 与积雪的小松林团 #6a8a6a",
+        "en": "Terrain pattern of a snow county: broad rolling snowfields in alternating steps of snow-white light #f6fafc and ice-blue shade #a8c8e4, long streaks of wind-blown snow, scattered gray rock specks #8a9aa8 and small clumps of snow-laden pines #6a8a6a"
+      },
+      "extra": {
+        "zh": "这是战略层郡图的地形底纹：从极高处以地图比例俯视一大片地形，不是 4 米见方的地面小块，地貌缩成细小的笔触与色块；四方无缝，平铺填满郡的轮廓；没有边界线，没有任何符号、标记与文字，也不画道路与聚落。",
+        "en": "This is the terrain fill pattern of the strategy county map: a wide stretch of land seen from very far above at map scale, not a 4 meter ground patch, its landforms shrunk to small strokes and color patches; seamlessly tileable to fill a county's outline; no borders, no symbols, markers or lettering, and no roads or settlements."
+      },
+      "ref": "county_terrain:snow",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "郡图地形底纹（郡表的地形\"雪地\"）：界面把它平铺在郡的轮廓里，郡界、道路、据点、归属色与名称都由界面另画。雪地以眠鳞雪岭作代表（郡表里的雪地是森林与丘陵的雪地变体）；白里一定要有冰蓝的阴面，不要画成纯白。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；缩到 64 像素时仍认得出是雪地。"
     }
   ]
 }

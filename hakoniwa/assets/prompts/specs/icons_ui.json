@@ -977,7 +977,7 @@
       },
       "ref": "morale.wavering",
       "milestone": "M2",
-      "notes": "状态与士气图标：同批生成；"
+      "notes": "状态与士气图标：同批生成；兵团状态共用本图标（不另出 art_ico_regstate_wavering）。"
     },
     {
       "id": "art_ico_sys_mood_routed",
@@ -988,7 +988,7 @@
       },
       "ref": "morale.routed",
       "milestone": "M2",
-      "notes": "状态与士气图标：同批生成；"
+      "notes": "状态与士气图标：同批生成；兵团状态共用本图标（不另出 art_ico_regstate_routing）。"
     },
     {
       "id": "art_ico_sys_mood_engaged",
@@ -999,7 +999,7 @@
       },
       "ref": "engaged",
       "milestone": "M2",
-      "notes": "状态与士气图标：同批生成；"
+      "notes": "状态与士气图标：同批生成；兵团状态共用本图标（不另出 art_ico_regstate_surrounded）。"
     },
     {
       "id": "art_ico_sys_mood_disordered",
@@ -1010,7 +1010,7 @@
       },
       "ref": "disordered",
       "milestone": "M2",
-      "notes": "状态与士气图标：同批生成；浅紫灰，不是澱紫。"
+      "notes": "状态与士气图标：同批生成；浅紫灰，不是澱紫。兵团状态共用本图标（不另出 art_ico_regstate_disordered）。"
     },
     {
       "id": "art_ico_sys_mood_fatigue",
@@ -1318,7 +1318,7 @@
       },
       "ref": "clear",
       "milestone": "M1",
-      "notes": "天气图标：时钟旁的天气，同批生成；"
+      "notes": "天气图标：时钟旁的天气，同批生成；战场天气共用本图标（不另出 art_ico_weather_clear）。"
     },
     {
       "id": "art_ico_sys_wx_cloudy",
@@ -1340,7 +1340,7 @@
       },
       "ref": "rain",
       "milestone": "M1",
-      "notes": "天气图标：时钟旁的天气，同批生成；"
+      "notes": "天气图标：时钟旁的天气，同批生成；战场天气共用本图标（不另出 art_ico_weather_rain）。"
     },
     {
       "id": "art_ico_sys_wx_storm",
@@ -1362,7 +1362,7 @@
       },
       "ref": "fog",
       "milestone": "M1",
-      "notes": "天气图标：时钟旁的天气，同批生成；"
+      "notes": "天气图标：时钟旁的天气，同批生成；战场天气共用本图标（不另出 art_ico_weather_fog）。"
     },
     {
       "id": "art_ico_sys_wx_snow",
@@ -1373,7 +1373,7 @@
       },
       "ref": "snow",
       "milestone": "M1",
-      "notes": "天气图标：时钟旁的天气，同批生成；"
+      "notes": "天气图标：时钟旁的天气，同批生成；战场天气共用本图标（不另出 art_ico_weather_snow）。"
     },
     {
       "id": "art_ico_sys_wx_ashfall",
@@ -1395,7 +1395,18 @@
       },
       "ref": "ashstorm",
       "milestone": "M1",
-      "notes": "天气图标：时钟旁的天气，同批生成；荒原的灰暴天气，与落灰区分：这里是旋风。"
+      "notes": "天气图标：时钟旁的天气，同批生成；荒原的灰暴天气，与落灰区分：这里是旋风。战场天气共用本图标（不另出 art_ico_weather_ashstorm）。"
+    },
+    {
+      "id": "art_ico_sys_wx_blizzard",
+      "template": "ico_ui",
+      "subject": {
+        "zh": "暴风雪：几道斜飞的长风线夹着白色雪点，风线末端打一个卷，冰蓝与白，天气图标同组，平涂色块，放在时钟旁一眼可辨。",
+        "en": "Blizzard: a few long slanting wind lines carrying white snow dots, each line curling at its end, ice blue and white, one of the weather set, flat color blocks, readable at a glance."
+      },
+      "ref": "blizzard",
+      "milestone": "M2",
+      "notes": "天气图标：时钟旁的天气，同批生成；战场天气也用本组图标。"
     },
     {
       "id": "art_ico_sys_time_dawn",
@@ -4145,7 +4156,7 @@
       },
       "ref": "faith",
       "milestone": "M2",
-      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。烛光用中性暖白，不用任何女神色。"
+      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。烛光用中性暖白，不用任何女神色。郡图的图层开关共用本图标（不另出 art_ico_cty_layer_faith）。"
     },
     {
       "id": "art_ico_res_appeal",
@@ -4376,7 +4387,7 @@
       },
       "ref": "sed",
       "milestone": "M2",
-      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。澱相关，允许澱紫并配亮一阶轮廓。"
+      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。澱相关，允许澱紫并配亮一阶轮廓。郡图的图层开关共用本图标（不另出 art_ico_cty_layer_sediment）。"
     },
     {
       "id": "art_ico_res_troops",
@@ -4409,7 +4420,7 @@
       },
       "ref": "supply",
       "milestone": "M2",
-      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。"
+      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。郡图的图层开关共用本图标（不另出 art_ico_cty_layer_supply）。"
     },
     {
       "id": "art_ico_res_siege",
@@ -4420,7 +4431,7 @@
       },
       "ref": "siege",
       "milestone": "M2",
-      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。"
+      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。郡图的围城标记共用本图标（不另出 art_ico_cty_siege）。"
     },
     {
       "id": "art_ico_res_front",
@@ -4475,7 +4486,7 @@
       },
       "ref": "aggressiveExpansion",
       "milestone": "M3",
-      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。地图片上不写字。"
+      "notes": "城建与战略读数图标：领主视图状态条、大陆视图与兵团卡上的一个读数，旁边由界面写数字；同批生成，线条粗细一致；不写字与数字。地图片上不写字。郡图的图层开关共用本图标（不另出 art_ico_cty_layer_aggression）。"
     },
     {
       "id": "art_ico_res_intel",

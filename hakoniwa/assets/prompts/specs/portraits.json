@@ -127,8 +127,8 @@
         "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：嗤之以鼻的\"啧\"：撇嘴，眼神斜睨。右眼的瞳孔是细长的钥孔形。",
-        "en": "Panel 8 is the character's signature expression: a scornful tsk: lips twisted, a sidelong glare. The pupil of her right eye is a slender keyhole shape."
+        "zh": "第 8 格的角色专属表情：嘴硬：撇嘴别过脸，眼睛斜着看回来，耳尖发红。右眼的瞳孔是细长的钥孔形。",
+        "en": "Panel 8 is the character's signature expression: a stubborn front: lips twisted as she turns her face away, eyes sliding back toward the viewer, the tips of her ears flushed. The pupil of her right eye is a slender keyhole shape."
       },
       "ref": "yeyu",
       "deps": ["art_chr_yeyu_ref"],
@@ -1428,13 +1428,13 @@
       "template": "por_npc",
       "style": "valen_city",
       "subject": {
-        "zh": "三十二岁的人族冒险者，高大英俊，下巴方正，笑容张扬，鼻梁上一道被刻意保留的小疤。金色长发像鬃毛一样披在肩后，琥珀色眼睛。镀金的狮纹胸甲 #c8a040 罩着淡金衬袍 #e8d8a0，肩披狮皮披风，腰佩一柄华丽长剑。自命不凡。",
-        "en": "A thirty-two-year-old human adventurer, tall and handsome with a square jaw, a flashy smile, a small scar on the bridge of his nose kept carefully on show. Golden long hair falling behind his shoulders like a mane, amber eyes. A gilded lion-crest breastplate #c8a040 over a pale gold tunic #e8d8a0, a lion-hide cloak, an ornate longsword at his hip. Full of himself."
+        "zh": "三十出头的人族剑士，金色长发梳得一丝不乱，修剪整齐的短须，下巴抬得很高；穿擦得锃亮的钢胸甲，左肩是金色狮首护肩（#c8a04a），深红披风（#8a2a22）镶着金边，右手长剑，左手圆盾上画着一头金狮。",
+        "en": "A human swordsman in his early thirties, long golden hair combed perfectly in place, a neatly trimmed short beard, chin held high; a polished steel breastplate, a golden lion-head pauldron (#c8a04a) on the left shoulder, a deep red cape (#8a2a22) with gold trim, a longsword in his right hand and a round shield painted with a golden lion on his left arm."
       },
       "ref": "reynard",
-      "deps": [],
+      "deps": ["art_boss_reynard_walter_duel_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外号金狮：发型像鬃毛，全身偏金；不画任何兽人特征。"
+      "notes": "附首领三视图 art_boss_reynard_walter_duel_ref（重点看第 4 格胸像）作参照，他在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外号金狮：全身偏金，狮子纹样只画图形；不画任何兽人特征。"
     },
     {
       "id": "art_por_liese",
@@ -1467,13 +1467,13 @@
       "template": "por_npc",
       "style": "valen_city",
       "subject": {
-        "zh": "三十来岁的狮族兽人女佣兵团长，中相：脸上覆着金褐短绒毛，带狮子的鼻吻轮廓，圆耳，身后长尾末端有簇毛。高大健壮，赤红鬃发蓬张披到背上，金色竖瞳。镶钉黑皮甲 #3a2a22 配赤红披风 #a83a22，肩扛双手大剑。",
-        "en": "A lion beastfolk mercenary captain around thirty, middle aspect: short golden-brown fur on her face with a leonine muzzle outline, round ears, a long tail with a tufted tip. Tall and powerful, a bristling crimson mane falling down her back, golden slit pupils. Studded black leather armor #3a2a22 with a crimson cloak #a83a22, a two-handed greatsword on her shoulder."
+        "zh": "斑影部狮相的兽人女战士，中相：脸上有短毛与狮形鼻吻，一头蓬张的赤红鬃发（#b33a2a）披到肩背，金色竖瞳，身后一条带黑色尾簇的狮尾；穿皮与锁片的混合轻甲，护臂上有斑纹烙印，双手持一柄宽刃长柄战斧。",
+        "en": "A lion-aspect beastfolk warrior woman of the Dappleshade tribe, middle aspect: short fur and a lion-like muzzle on her face, a flared crimson mane (#b33a2a) down her shoulders and back, gold slit pupils, a lion tail with a black tuft; light armor of leather and mail plates, spotted brands on her bracers, a broad-bladed long-hafted battle axe in both hands."
       },
       "ref": "heralda",
-      "deps": [],
+      "deps": ["art_boss_herada_duel_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外号赤鬃：鬃发是赤红色；狮相要和狼、狐分清，耳朵圆、尾端有簇毛。"
+      "notes": "附首领三视图 art_boss_herada_duel_ref（重点看第 4 格胸像）作参照，她在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外号赤鬃：鬃发是赤红色；狮相要和狼、狐分清，尾端有黑色簇毛。"
     },
     {
       "id": "art_por_bruna",
@@ -1597,13 +1597,13 @@
       "template": "por_npc",
       "style": "valen_city",
       "subject": {
-        "zh": "五十岁上下的人族药师，中等身材，瘦削，面容温和斯文，眼角细纹，嘴角总有一丝安抚人的笑。灰褐短发整齐，鼻梁上一副圆眼镜，浅褐眼睛。墨绿药师长袍 #2a4a3a，领口别一枚研钵形银章，腰挂一排小药瓶与药匙。",
-        "en": "A human apothecary around fifty, medium height and thin, a mild, gentlemanly face with fine lines at the eyes, always a soothing little smile. Neat grey-brown short hair, round glasses on his nose, light brown eyes. A dark green apothecary's robe #2a4a3a, a mortar-shaped silver badge at the collar, a row of small vials and a dosing spoon at his belt."
+        "zh": "四十多岁的人族药师，身形清瘦，灰白的鬓角梳得服帖，戴细框圆眼镜，神情温和而空洞；深灰长外套外系着有药渍的皮围裙，腰带上插满彩色药瓶，左手背画着一道门形记号，右手捏着一只装淡紫晶屑的爆罐。",
+        "en": "A human apothecary in his forties, slender, graying temples combed flat, thin round spectacles, a gentle but hollow expression; a dark gray long coat with a stained leather apron over it, colored potion vials stuck all along his belt, a door-shaped mark painted on the back of his left hand, a burst jar of pale purple crystal grit pinched in his right hand."
       },
       "ref": "emil",
-      "deps": [],
+      "deps": ["art_boss_emil_keywarden_fight_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外表温和可信，不要画成阴险的样子。"
+      "notes": "附首领三视图 art_boss_emil_keywarden_fight_ref（重点看第 4 格胸像）作参照，他在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外表温和可信，不要画成阴险的样子；手背的门形记号与爆罐在头像里看不见，不画。"
     },
     {
       "id": "art_por_fiona",
@@ -2531,15 +2531,15 @@
     {
       "id": "art_por_hedwig",
       "template": "por_npc",
-      "style": "ash_waste",
+      "style": "sealed_ruins",
       "subject": {
-        "zh": "三十五岁上下的人族女子，瘦高，脸色苍白，眼神狂热，嘴角挂着神经质的笑，像总在倾听什么。暗红长发披散，一侧编着细辫，灰绿眼睛。深灰长斗篷 #34343a 里是暗红内衬 #6a2a2a，腰挂一串用绳子穿起的铁钥匙，戴黑手套。",
-        "en": "A human woman around thirty-five, tall and thin, pale, a fervent gaze and a nervous smile, as if always listening for something. Loose dark red long hair with a thin braid on one side, grey-green eyes. A long dark grey cloak #34343a with a dark red lining #6a2a2a, a string of iron keys on a cord at her waist, black gloves."
+        "zh": "三十多岁的人族女人，瘦削，眼神狂热，深色长发编成一条粗辫；穿灰色兜帽长袍，袍下是便于行动的皮马甲，双手手背都画着门形记号，腰间挂着一串拓着门纹的布片，右手握一根缠着铜线的引导长杖。",
+        "en": "A thin human woman in her thirties with fervent eyes, long dark hair in one thick braid; a gray hooded robe over a practical leather vest, door-shaped marks painted on the backs of both hands, a string of cloth rubbings of door patterns hanging at her waist, a long channeling staff wrapped in copper wire in her right hand."
       },
       "ref": "hedwig",
-      "deps": [],
+      "deps": ["art_boss_hedwig_seal_ritual_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 钥匙是生铁色；不画任何组织标志。"
+      "notes": "附首领三视图 art_boss_hedwig_seal_ritual_ref（重点看第 4 格胸像）作参照，她在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 手背的门形记号只是两三格暗色像素；不画任何组织标志。"
     },
     {
       "id": "art_por_jorg",
@@ -3025,28 +3025,28 @@
     {
       "id": "art_por_oriana_west",
       "template": "por_npc",
-      "style": "grantia_ochre",
+      "style": "lothar_plain",
       "subject": {
-        "zh": "四十岁上下的人族女将军，高挑精悍，脸庞冷峻，颧骨高，一道细疤横过鼻梁，眼神冷静如钢。铂金短发剪得利落，灰蓝眼睛。打磨光亮的钢甲 #a8acb4 外披赭红短斗篷 #8a3a22，胸前军团铁徽，腰佩一柄细长的骑士剑。",
-        "en": "A human woman general around forty, tall and lean, a cold face with high cheekbones and a thin scar across the bridge of her nose, eyes as calm as steel. Platinum short hair cut sharp, grey-blue eyes. Polished steel armor #a8acb4 under a short ochre-red cape #8a3a22, an iron legion badge on her chest, a slender knightly sword at her hip."
+        "zh": "帝国第七军团的女将军，约四十岁，银灰短发贴着头皮，面容冷硬，眼神像在估量对手；穿赭红与钢灰相间的制式板甲（#8a3a26、#6a6e74），肩甲刻着军团徽记，披一件短披风，右手一柄窄长的军剑，左臂绑着小圆盾。",
+        "en": "A general of the imperial Seventh Legion, about forty, close-cropped silver-gray hair, a cold hard face, eyes that seem to be measuring her opponent; regulation plate armor in ochre-red and steel gray (#8a3a26, #6a6e74), the legion emblem carved on her pauldron, a short cape, a narrow long military sword in her right hand and a small round shield strapped to her left arm."
       },
       "ref": "oriana_west",
-      "deps": [],
+      "deps": ["art_boss_oriana_vest_duel_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外号冷钢：神情冷静；军团铁徽只是图形，不写数字。"
+      "notes": "附首领三视图 art_boss_oriana_vest_duel_ref（重点看第 4 格胸像）作参照，她在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外号冷钢：神情冷静；军团徽记只是图形，不写数字。"
     },
     {
       "id": "art_por_rogo_breakchain",
       "template": "por_npc",
-      "style": "night_basalt",
+      "style": "lothar_plain",
       "subject": {
-        "zh": "鬼人副将，比常人高出一头，肌肉夸张，铁灰色厚皮，额上一支粗短的独角，下颌短獠牙，眼神莽撞好斗，橙黄眼睛。黑发剃成一道冠。黑红轻甲 #1e1a1a、#8a1c22，双腕各挂一截断开的铁枷锁，肩扛一柄粗重的狼牙棒。",
-        "en": "An oni lieutenant a head taller than an ordinary man, exaggerated muscles, thick iron-grey hide, one thick short horn on his brow, short tusks in his lower jaw, reckless combative orange-yellow eyes. Black hair shaved into a crest. Black and red light armor #1e1a1a, #8a1c22, a broken iron shackle hanging from each wrist, a heavy spiked club on his shoulder."
+        "zh": "高大的鬼人副将，约两米二，赭红色厚皮（#a85a3a），额上两支粗黑的角，一支角尖缠着红布，下颌两颗短獠牙，肌肉夸张；穿夜境的黑红半身甲，双腕各套着一只被砸断的铁枷，断链拖在手边，双手抡一柄粗重的狼牙棒。",
+        "en": "A towering oni lieutenant about two point two meters tall, thick ochre-red skin (#a85a3a), two thick black horns on his brow with red cloth wound around one tip, two short tusks on his lower jaw, massive muscles; black-and-red night-realm half plate, a smashed iron shackle on each wrist with the broken chain dragging by his hands, a heavy spiked club swung in both hands."
       },
       "ref": "rogo_breakchain",
-      "deps": [],
+      "deps": ["art_boss_rogo_breakchain_duel_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外号断枷：手腕上的断枷是标志；红牙军的黑红配色。"
+      "notes": "附首领三视图 art_boss_rogo_breakchain_duel_ref（重点看第 4 格胸像）作参照，他在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外号断枷：腕上的断枷是标志；红牙军的黑红配色。"
     },
     {
       "id": "art_por_hiska",

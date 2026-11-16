@@ -80,6 +80,24 @@
       "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 断的是右角；断剑的剑身只剩一半。"
     },
     {
+      "id": "art_bust_valda_grin",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "争斗女神的模样：高大健硕的女战士，古铜肤色上满是旧伤疤，暗红蓬乱长发，金红色眼睛，笑起来露出尖牙。头上一对弯角，右角断了半截。红黑战甲 #8a1c1c、#1e1a1a，肩甲满是刀痕，肩上扛着一把断剑。豪爽好斗。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是第八种表情大笑，不画中性表情：取景、姿势与基础立绘完全一致，只改表情：仰头张口大笑，尖牙全露，眼睛笑成两道弯缝。",
+        "en": "This is the eighth expression, grin, not the neutral one: framing and pose exactly match the base bust, only the expression changes: head tipped back in an open-mouthed laugh, every fang showing, her eyes narrowed into two curved slits."
+      },
+      "ref": "valda",
+      "deps": ["art_chr_valda_ref", "art_bust_valda"],
+      "milestone": "M1",
+      "exprKey": "grin",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 grin。 争斗女神\"爱笑\"是她的正典特征：序章到第六幕过场里她的大笑（grin 与尖牙大笑、开怀大笑）都取这一张。 断的是右角；断剑的剑身只剩一半。"
+    },
+    {
       "id": "art_bust_merca",
       "template": "bust_base",
       "style": "divine_court",
@@ -241,8 +259,8 @@
         "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：嗤之以鼻的\"啧\"：撇嘴，眼神斜睨。右眼的瞳孔是细长的钥孔形。",
-        "en": "Panel 6 is the character's signature expression: a scornful tsk: lips twisted, a sidelong glare. The pupil of her right eye is a slender keyhole shape."
+        "zh": "第 6 格的角色专属表情：嘴硬：撇嘴别过脸，眼睛斜着看回来，耳尖发红。右眼的瞳孔是细长的钥孔形。",
+        "en": "Panel 6 is the character's signature expression: a stubborn front: lips twisted as she turns her face away, eyes sliding back toward the viewer, the tips of her ears flushed. The pupil of her right eye is a slender keyhole shape."
       },
       "ref": "yeyu",
       "deps": ["art_chr_yeyu_ref", "art_bust_yeyu"],
@@ -418,6 +436,24 @@
       "deps": ["art_chr_cassian_ref", "art_bust_cassian"],
       "milestone": "M1",
       "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 袍子白而旧，袖口的补丁一定要在；圣典上没有字。"
+    },
+    {
+      "id": "art_bust_cassian_pained",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十六岁的人族年轻神父，高瘦，站姿笔直。金发剪得一丝不苟，浅蓝眼睛，神情真诚而紧绷。熨得笔挺的白色神父袍 #e8e2d0，袖口打着补丁，胸前挂光环几何纹的圣徽，浅金与灰蓝点缀 #c8a84a、#7a8aa0，手里一本翻烂、夹满书签的圣典。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-six-year-old human young priest, tall and thin with a straight back. Neatly trimmed blond hair, pale blue eyes, sincere but tense. A crisply pressed white priest's robe #e8e2d0 with patched cuffs, a holy symbol of geometric halo design on his chest, pale gold and grey-blue accents #c8a84a, #7a8aa0, a battered scripture stuffed with bookmarks in his hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是第八种表情痛，不画中性表情：取景、姿势与基础立绘完全一致，只改表情：眉头拧紧，嘴唇抿得发白，眼神里是强忍的痛苦与动摇，捧着圣典的手指收紧。",
+        "en": "This is the eighth expression, pained, not the neutral one: framing and pose exactly match the base bust, only the expression changes: brows knotted tight, lips pressed white, suppressed anguish and doubt in his eyes, his fingers tightening on the scripture."
+      },
+      "ref": "cassian",
+      "deps": ["art_chr_cassian_ref", "art_bust_cassian"],
+      "milestone": "M1",
+      "exprKey": "pained",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 pained。 信仰被光拷问是他的主线：光之鉴、兽潮之夜、一刀与第二到第四幕的审判场面都取这一张。 袍子白而旧，袖口的补丁一定要在；圣典上没有字。"
     },
     {
       "id": "art_bust_martha",
@@ -1471,6 +1507,7 @@
       "ref": "door_woman",
       "deps": ["art_chr_door_woman_ref", "art_bust_door_woman_unveiled"],
       "milestone": "M3",
+      "exprKey": "tender",
       "notes": "附全貌档半身立绘 art_bust_door_woman_unveiled 作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 画面里不出现任何名字与文字；钥匙是黄铜、铁与骨的旧钥匙。"
     },
     {
@@ -1488,6 +1525,7 @@
       "ref": "eluen",
       "deps": ["art_chr_eluen_ref", "art_bust_eluen"],
       "milestone": "M3",
+      "exprKey": "pained",
       "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 pained。 用于第六幕（catalog_cutscenes.md 第 10.5 节）。 光环是几何纹的齿轮状，不是圆形光圈；衣饰必须左右对称。"
     },
     {
@@ -1505,6 +1543,7 @@
       "ref": "sylvie",
       "deps": ["art_chr_sylvie_ref", "art_bust_sylvie"],
       "milestone": "M3",
+      "exprKey": "tender",
       "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 用于 cut_a6_joint_reading、cut_a6_ask_back、cut_a6_verdicts 与结局。 身边的半鹿半狼兽是另一个素材，不画进来；脚上不穿鞋。"
     },
     {
@@ -1522,6 +1561,7 @@
       "ref": "yeyu",
       "deps": ["art_chr_yeyu_ref", "art_bust_yeyu"],
       "milestone": "M3",
+      "exprKey": "tender",
       "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 只用于 cut_a6_letter7。 左鬓白发与琥珀色左眼都在角色自己的左侧；左向镜像后若换边，由导入工具出头部修正件；信囊的暗红火漆是全身唯一的暖色。"
     }
   ]

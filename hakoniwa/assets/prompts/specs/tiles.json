@@ -7,7 +7,8 @@
     "docs/20_world/geography.md",
     "src/systems/world/types.ts",
     "src/client/hd2d/style_packs.ts",
-    "assets/prompts/templates.json"
+    "assets/prompts/templates.json",
+    "docs/40_design/content/catalog_warfare_strategy.md"
   ],
   "items": [
     {
@@ -673,6 +674,57 @@
       "deps": ["art_style_wild_forest"],
       "milestone": "M2",
       "notes": "生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。"
+    },
+    {
+      "id": "art_tile_wild_forest_battle_ice_01",
+      "template": "tile_ground",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "战场冰面：青灰色的厚冰 #3a4a5a，冰下隐约可见暗色气泡，冰面散着薄薄的积雪带，四边无缝",
+        "en": "Battlefield ice: thick blue-gray ice #3a4a5a with dark bubbles faintly visible beneath, thin bands of snow lying across the surface, seamless on all four sides"
+      },
+      "extra": {
+        "zh": "这是三档裂纹的第 1 档（完好）：冰面平整，只有几道浅白的细划痕，没有贯穿的裂缝。三档是同一片冰：材质、色阶与颗粒大小完全一致，只有裂纹一档比一档重，游戏按冰面受损的程度依次替换。",
+        "en": "This is stage 1 of 3 (intact): the surface is level with only a few faint white scratches and no cracks running through. All three stages are the same ice with exactly the same material, color steps and grain size, only the cracking grows heavier from stage to stage, and the game swaps them in turn as the ice takes damage."
+      },
+      "ref": "ice",
+      "deps": ["art_style_wild_forest", "art_tile_wild_forest_frozen_river_01"],
+      "milestone": "M2",
+      "notes": "战场地形 ice（战争目录 5.1 的新地形；霜脊堡之战的冻铃河冰面，生成战场的冻原也会用）：移动 0.8，受到 2,000 点攻城或魔法伤害后整片破碎为水。与 art_tile_wild_forest_frozen_river_01 是同一条冻河的冰，冰色以它为参照；三档要一眼分得出完好、开裂、将碎。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。附上 art_tile_wild_forest_frozen_river_01 作冰色参照。"
+    },
+    {
+      "id": "art_tile_wild_forest_battle_ice_02",
+      "template": "tile_ground",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "战场冰面：青灰色的厚冰 #3a4a5a，冰下隐约可见暗色气泡，冰面散着薄薄的积雪带，四边无缝",
+        "en": "Battlefield ice: thick blue-gray ice #3a4a5a with dark bubbles faintly visible beneath, thin bands of snow lying across the surface, seamless on all four sides"
+      },
+      "extra": {
+        "zh": "这是三档裂纹的第 2 档（开裂）：白色的蛛网裂纹布满冰面，裂纹连成不规则的大块，裂缝边缘泛白，几处缝里渗出深色的水。三档是同一片冰：材质、色阶与颗粒大小完全一致，只有裂纹一档比一档重，游戏按冰面受损的程度依次替换。",
+        "en": "This is stage 2 of 3 (cracked): white cobweb cracks cover the surface and join into large irregular plates, the crack edges turning white, dark water seeping up through a few of them. All three stages are the same ice with exactly the same material, color steps and grain size, only the cracking grows heavier from stage to stage, and the game swaps them in turn as the ice takes damage."
+      },
+      "ref": "ice",
+      "deps": ["art_style_wild_forest", "art_tile_wild_forest_battle_ice_01"],
+      "milestone": "M2",
+      "notes": "战场地形 ice（战争目录 5.1 的新地形；霜脊堡之战的冻铃河冰面，生成战场的冻原也会用）：移动 0.8，受到 2,000 点攻城或魔法伤害后整片破碎为水。与 art_tile_wild_forest_frozen_river_01 是同一条冻河的冰，冰色以它为参照；三档要一眼分得出完好、开裂、将碎。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。附上第 1 档作参照。"
+    },
+    {
+      "id": "art_tile_wild_forest_battle_ice_03",
+      "template": "tile_ground",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "战场冰面：青灰色的厚冰 #3a4a5a，冰下隐约可见暗色气泡，冰面散着薄薄的积雪带，四边无缝",
+        "en": "Battlefield ice: thick blue-gray ice #3a4a5a with dark bubbles faintly visible beneath, thin bands of snow lying across the surface, seamless on all four sides"
+      },
+      "extra": {
+        "zh": "这是三档裂纹的第 3 档（将碎）：冰面已碎成一块块松动的冰板，冰板之间是宽宽的近黑冷水缝 #121c10，冰板边缘翘起发白，缝里漂着碎冰碴。三档是同一片冰：材质、色阶与颗粒大小完全一致，只有裂纹一档比一档重，游戏按冰面受损的程度依次替换。",
+        "en": "This is stage 3 of 3 (about to break): the ice has broken into loose plates with wide seams of near-black cold water #121c10 between them, the plate edges lifted and whitened, chips of ice floating in the seams. All three stages are the same ice with exactly the same material, color steps and grain size, only the cracking grows heavier from stage to stage, and the game swaps them in turn as the ice takes damage."
+      },
+      "ref": "ice",
+      "deps": ["art_style_wild_forest", "art_tile_wild_forest_battle_ice_01"],
+      "milestone": "M2",
+      "notes": "战场地形 ice（战争目录 5.1 的新地形；霜脊堡之战的冻铃河冰面，生成战场的冻原也会用）：移动 0.8，受到 2,000 点攻城或魔法伤害后整片破碎为水。与 art_tile_wild_forest_frozen_river_01 是同一条冻河的冰，冰色以它为参照；三档要一眼分得出完好、开裂、将碎。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。附上第 1 档作参照。"
     },
     {
       "id": "art_tile_wild_forest_detail_undergrowth",
@@ -3992,6 +4044,40 @@
       "deps": ["art_style_silva_canopy"],
       "milestone": "M3",
       "notes": "生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。"
+    },
+    {
+      "id": "art_tile_silva_canopy_scorched_01",
+      "template": "tile_ground",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "林火烧过的焦土：焦黑的地面 #0e1a14 上铺着一层灰白的木灰 #d0d8dc，散落烧断的焦黑根须与枝段 #5a4a3a，几片烧卷的巨大落叶只剩灰色的叶脉，零星两三点将熄的暗橙余烬，四边无缝",
+        "en": "Scorched ground after a forest fire: charred black soil #0e1a14 under a layer of gray-white wood ash #d0d8dc, burnt-off black roots and branch pieces #5a4a3a strewn about, a few curled giant leaves burned down to gray veins, two or three dying dull orange embers here and there, seamless on all four sides"
+      },
+      "extra": {
+        "zh": "同一地块共 2 个变体，这是第 1 个。",
+        "en": "This is variant 1 of 2 for this ground."
+      },
+      "ref": "ash",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "战场地形 ash（战争目录 5.1 的新地形）：根下庭之夜审判官放火后，烧过的森林格变为焦土（移动 1.0、无林隐、疲劳 ×1.2）。叶片尺度沿用本包的巨树落叶；不要画成荒原的灰地（那是 art_tile_ash_waste_ash_ground_01）。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。"
+    },
+    {
+      "id": "art_tile_silva_canopy_scorched_02",
+      "template": "tile_ground",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "林火烧过的焦土：焦黑的地面 #0e1a14 上铺着一层灰白的木灰 #d0d8dc，散落烧断的焦黑根须与枝段 #5a4a3a，几片烧卷的巨大落叶只剩灰色的叶脉，零星两三点将熄的暗橙余烬，四边无缝",
+        "en": "Scorched ground after a forest fire: charred black soil #0e1a14 under a layer of gray-white wood ash #d0d8dc, burnt-off black roots and branch pieces #5a4a3a strewn about, a few curled giant leaves burned down to gray veins, two or three dying dull orange embers here and there, seamless on all four sides"
+      },
+      "extra": {
+        "zh": "同一地块共 2 个变体，这是第 2 个：材质、色阶、颗粒大小与第 1 个完全一致，只改变图案的排布，两张混铺时看不出差别。",
+        "en": "This is variant 2 of 2 for this ground: same material, color steps and grain size as variant 1, only the arrangement of the pattern differs, so the two can be mixed without a visible difference."
+      },
+      "ref": "ash",
+      "deps": ["art_style_silva_canopy", "art_tile_silva_canopy_scorched_01"],
+      "milestone": "M3",
+      "notes": "战场地形 ash（战争目录 5.1 的新地形）：根下庭之夜审判官放火后，烧过的森林格变为焦土（移动 1.0、无林隐、疲劳 ×1.2）。叶片尺度沿用本包的巨树落叶；不要画成荒原的灰地（那是 art_tile_ash_waste_ash_ground_01）。生成后把图 2×2 拼起来检查：接缝处看不出来，也没有一眼可见的重复中心；不画方向阴影与投影。附上本地块第 1 个变体作参照。"
     },
     {
       "id": "art_tile_silva_canopy_detail_canopy",

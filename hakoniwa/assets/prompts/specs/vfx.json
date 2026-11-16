@@ -13,7 +13,8 @@
     "data/combat/abilities.json",
     "data/combat/monsters.json",
     "docs/20_world/power_system.md",
-    "docs/40_design/content/catalog_cutscenes.md"
+    "docs/40_design/content/catalog_cutscenes.md",
+    "docs/40_design/content/catalog_warfare_strategy.md"
   ],
   "items": [
     {
@@ -5013,6 +5014,287 @@
       "deps": ["art_vfx_door_open"],
       "milestone": "M1",
       "notes": "白要纯，暖金 #f0d890 只在开头的门缝边缘；之后接白场 1.5 秒；与 sfx_cin_white_in 同步。"
+    },
+    {
+      "id": "art_vfx_volley",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "齐射箭雨：一整排密密的白色箭影从左上方斜斜落下，箭影是带灰边的细长亮线，平行排成一片箭幕，落地处一线细小的白色命中点与扬起的尘点此起彼伏，最后只剩几缕尘淡去。",
+        "en": "Volley of arrows: a whole rank of dense white arrow streaks falling at a slant from the upper left, thin bright lines with gray edges set parallel into a sheet of arrows, a line of tiny white hit points and kicked-up dust specks popping up where they land, until only a few wisps of dust fade away."
+      },
+      "extra": {
+        "zh": "箭幕在格子里横向铺满，左右两端不收头，导入时按兵团的宽度横向拉伸。",
+        "en": "The sheet of arrows spans the full width of the cell with no tapering at either end, so it can be stretched horizontally to the regiment's width on import."
+      },
+      "ref": "volley",
+      "deps": ["art_vfx_sig_hunter_volley"],
+      "milestone": "M2",
+      "notes": "战场特效：兵团齐射（特性 volley，长弓民兵；齐射令 volley_call 也用这张）。箭影与 art_vfx_sig_hunter_volley 同一画法，但这张是一整个兵团正面的箭幕，不是技能的落点范围；只用白、浅灰与尘土的淡褐，不带学派色；中心通透。"
+    },
+    {
+      "id": "art_vfx_area_blast",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "魔导范围法术：中心一点亮光猛然膨胀成一团圆形的爆发，一圈明亮的冲击环贴地向外扩开，环上迸出放射状的细碎光屑，爆心升起几缕上卷的光雾，冲击环扩到边缘后变淡，光屑落尽。",
+        "en": "Battle-mage area spell: a point of light at the center swelling suddenly into a round burst, a bright shock ring spreading outward along the ground, fine radial flecks of light bursting from the ring, a few curling wisps of glowing haze rising from the blast center, the ring fading at the edge as the flecks settle."
+      },
+      "extra": {
+        "zh": "只用白与浅灰的亮度阶画，不上颜色；颜色由游戏按法术配色着色。",
+        "en": "Draw it only in steps of white and pale gray with no hue; the game tints it by the spell's color scheme."
+      },
+      "ref": "area_blast",
+      "milestone": "M2",
+      "notes": "战场特效：魔导兵的范围法术（特性 area_blast，帝国战法师、灵语者、夜魔施法者，命中半径 1.2 格）。焰、霜、夜三种配色形状相同，只出这一张中性亮度的图，由渲染层的特效色阶着色（焰：亮黄、橙、深红；霜：白、冰蓝；夜：深靛、冷青白）；夜的配色不用澱紫，三种都不用门扉金；中心通透。"
+    },
+    {
+      "id": "art_vfx_close_light",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "合光拱幕：地面一圈小小的门形光点彼此连成暖金的细线，细线向上弯成一道道拱，拱与拱交叠成一顶半透明的拱形光幕罩住中间，光幕表面的门形纹缓缓流动，亮度平稳起伏。",
+        "en": "Arch of closing light: a ring of small door-shaped motes on the ground linked by fine warm gold lines, the lines bending upward into arches that overlap into a translucent arched canopy over the middle, door-shaped patterns flowing slowly across its surface, brightness rising and falling gently."
+      },
+      "ref": "close_the_light",
+      "deps": ["art_vfx_div_close_light"],
+      "milestone": "M2",
+      "notes": "战场特效：执钥人护卫的合光（特性 close_the_light：引导 5 秒后，半径 3 格内的门纹持有者受神圣伤害减半，持续 30 秒）；这张是持续段的光幕。门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。门形光点与细线的画法照 art_vfx_div_close_light；光幕要通透，罩下的兵团立牌清楚可见；导入时放大到半径 3 格。"
+    },
+    {
+      "id": "art_vfx_ice_break",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冰面破碎与落水：中心的冰面先绽开白色的蛛网裂纹，紧接着炸成大块的冰板向四周翘起倾斜，冰板间翻起白色的水花与碎冰碴，水花落下后只剩几圈涟漪与漂浮的碎冰。",
+        "en": "Ice breaking and plunge: white cobweb cracks first bursting open in the ice at the center, then the ice shattering into large slabs that tilt and lift outward, white spray and chips of ice churning up between them, until the spray falls back leaving only a few rings of ripples and floating shards."
+      },
+      "ref": "ice",
+      "deps": ["art_vfx_boss_rogo_breakchain_duel_ice_break_charge"],
+      "milestone": "M2",
+      "notes": "战场特效：战场地形 ice 的破冰（特性 heavy_on_ice 的落水，以及冰面受 2,000 点攻城或魔法伤害后整片破碎）；以一个战场格为单位，整片破碎时按格铺开播放。冰与战场冰面瓦片 art_tile_wild_forest_battle_ice_01 到 _03 是同一种冰，加色混合下亮部用冰白 #e8f4ff 与淡青 #a8d0e8；冰板碎裂的画法照 art_vfx_boss_rogo_breakchain_duel_ice_break_charge，但没有冲锋尘带；中心通透。"
+    },
+    {
+      "id": "art_vfx_fire_spread",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "林火：一片烧着的林地，橙黄的火舌顺着树干窜上树冠，火头高低起伏，带着火星的烟向上翻卷，火脚下是一层通红的余烬，亮度随火势平缓起伏。",
+        "en": "Forest fire: a stretch of burning woodland, orange-yellow tongues of flame climbing the trunks into the crowns, the fire front rising and falling, smoke full of sparks rolling upward, a layer of glowing red embers at the base, brightness swelling and easing with the blaze."
+      },
+      "ref": "ash",
+      "deps": ["art_vfx_school_fire_zone"],
+      "milestone": "M3",
+      "notes": "战场特效：根下庭之夜的林火（每 60 秒向相邻森林格扩一格，烧过的森林格变为焦土 ash，焦土地面是 art_tile_silva_canopy_scorched_01、_02）；导入时每个燃烧的森林格放一张，熄灭时淡出、地面换成焦土。与火系燃烧地面 art_vfx_school_fire_zone 同一套火色（亮黄 #ffd25a、橙 #ff9a3c、深红 #c8321e），但这张是高过树冠的林火，不是贴地的矮火；加色混合下烟只画被火光照亮的亮边。"
+    },
+    {
+      "id": "art_vfx_rout_dust",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "溃退的扬尘：一大片土黄的尘土贴地向左拖散，尘里翻滚着几件被丢下的长枪、圆盾与头盔的亮边轮廓，它们落地后向左滑出画面，新的尘团不断从右侧涌起，像一支队伍正掉头奔逃。",
+        "en": "Dust of a rout: a broad pall of tawny dust trailing low to the left, the bright-edged outlines of a few dropped spears, round shields and helmets tumbling in it, landing and sliding off to the left, new clouds of dust welling up from the right, like a body of troops turned and fleeing."
+      },
+      "milestone": "M2",
+      "notes": "战场特效：兵团溃退时持续播放（溃退是可行动信息，追击与重整都看它；状态图标是 art_ico_regstate_routing），导入时跟随溃退兵团、按逃跑方向旋转（逃向画面右方，尘向左拖）。尘用土黄 #c8a878 与灰褐 #9a8a76；丢下的兵器只画亮边轮廓（加色混合下实色看不见）；不画人物。"
+    },
+    {
+      "id": "art_vfx_charge_impact",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冲锋撞阵：一道贴地的尘土楔从左侧猛冲进来，楔尖撞上中间时炸开一大圈白色的冲击环，环里迸出橙白的金属火花与翻飞的碎土，冲击环外扩时被撞开的尘浪向两侧翻卷，最后尘土落定。",
+        "en": "Charge into the line: a low wedge of dust driving in hard from the left, its point bursting into a large white shock ring as it hits the middle, orange-white sparks of steel and flying clods inside the ring, waves of dust thrown aside rolling out to both flanks as the ring expands, until the dust settles."
+      },
+      "ref": "charge_shock",
+      "deps": ["art_vfx_sig_warrior_rush"],
+      "milestone": "M2",
+      "notes": "战场特效：重骑、角兽骑兵与魔狼骑的冲锋接触（特性 charge_shock；英雄的冲锋 charge 也可用）；导入时按冲锋方向旋转。尘土与冲击的画法照 art_vfx_sig_warrior_rush，放大到兵团的规模；只用白、浅黄、橙白火花与尘土的淡褐，不带学派色；中心通透。"
+    },
+    {
+      "id": "art_vfx_siege_shot_stone",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "投石的飞石：一块不规则的灰褐巨石在飞行中翻滚，石块边缘有一圈亮边，身后拖着两三道灰白的尘尾，四帧里石块转过四分之一圈。",
+        "en": "A trebuchet stone in flight: an irregular gray-brown boulder tumbling as it flies, a bright rim along its edges, two or three gray-white trails of dust behind it, the stone turning a quarter turn over the four frames."
+      },
+      "ref": "siege_engine",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "战场特效：投石机组的弹道（特性 siege_engine；抛物线轨迹与远近缩放由代码处理）；加色混合下石块本身要带亮边才显形；只用灰白与浅褐，不带学派色。"
+    },
+    {
+      "id": "art_vfx_siege_shot_stone_hit",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "飞石落地：中心猛地炸开一团土黄的尘爆，碎石块与土块向四周飞溅，一圈低矮的冲击尘环贴地扩开到格子边缘，最后尘土缓缓落下，地上留几粒碎石的亮点。",
+        "en": "Stone impact: a tawny burst of dust exploding at the center, broken rock and clods flying in every direction, a low ring of shock-dust spreading along the ground to the edge of the cell, the dust finally settling slowly with a few glints of rubble left on the ground."
+      },
+      "ref": "splash",
+      "deps": ["art_vfx_siege_shot_stone"],
+      "milestone": "M2",
+      "notes": "战场特效：投石的命中（特性 splash：命中点半径 1.5 格内承受一半伤害，所以尘环要扩满格子）；只用土黄 #c8a878、灰白与浅褐，不带学派色；中心通透。"
+    },
+    {
+      "id": "art_vfx_siege_shot_bolt",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "弩车的巨矢：一支粗长的铁头巨矢笔直飞行，矢头一点亮白，矢杆是带亮边的深灰长线，矢尾的三片尾羽后拖着几道淡灰的速度线，四帧里速度线长短交替。",
+        "en": "A ballista bolt: a thick, long iron-headed bolt flying dead straight, a bright white point at the head, the shaft a long dark gray line with a bright rim, a few pale gray speed lines trailing behind its three fletchings, alternating in length over the four frames."
+      },
+      "ref": "siege_engine",
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M2",
+      "notes": "战场特效：攻城弩车组的弹道（特性 siege_engine；平射，对密集阵贯穿）；矢头朝右；比箭矢 art_vfx_school_phys_projectile 粗长得多；只用白与灰，不带学派色。"
+    },
+    {
+      "id": "art_vfx_siege_shot_bolt_hit",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "巨矢命中：巨矢扎进中心的一刻迸出一簇白色的冲击星芒，木屑与碎土沿飞行方向成一条扇面喷出，一道贯穿的白色细线向右穿过整个格子，最后碎屑落下。",
+        "en": "Bolt impact: a cluster of white impact starburst flashing as the bolt drives into the center, splinters and clods spraying out in a fan along the line of flight, a thin white streak of the pierce running right through the whole cell, then the debris falls."
+      },
+      "ref": "siege_engine",
+      "deps": ["art_vfx_siege_shot_bolt"],
+      "milestone": "M2",
+      "notes": "战场特效：弩车的命中（对密集阵贯穿，没有溅射）；导入时按弹道方向旋转（来向在左）；只用白、浅黄与浅褐，不带学派色。"
+    },
+    {
+      "id": "art_vfx_siege_shot_crystal",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "晶炮的火舌弹：一团青白色的炽亮弹芯向右飞行，身后拖着一条长长的青白火舌，火舌外缘是淡青，里面夹着几粒细碎的晶屑闪光，四帧里火舌轻微翻卷。",
+        "en": "A crystal cannon shot: a blazing cyan-white core flying to the right, a long cyan-white tongue of flame trailing behind it, pale cyan along its edges with a few fine crystal glints inside, the flame curling slightly over the four frames."
+      },
+      "ref": "siege_engine",
+      "milestone": "M3",
+      "notes": "战场特效：赤砧山晶炮的弹道（特性 siege_engine、crystal_fuel；晶炮第四幕凡约后才有）。战争目录 13.4 指定青白火舌：白 #ffffff、青白 #c8f4ff、淡青 #7ad8f0；不用澱紫（炮击留下的余澱由战场澱度表现，不画在这张里），也不用门扉金；头部在右。"
+    },
+    {
+      "id": "art_vfx_siege_shot_crystal_hit",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晶炮命中：中心炸开一团青白的强光，一圈青白火环贴地扩开，环上迸出细碎的晶屑与亮白火星，爆心升起一股淡青的热气，火环扩到边缘后熄灭，晶屑闪两下消失。",
+        "en": "Crystal cannon impact: a burst of intense cyan-white light at the center, a cyan-white ring of fire spreading along the ground, fine crystal shards and bright white sparks bursting from the ring, a plume of pale cyan heat rising from the blast center, the ring dying out at the edge and the shards glinting twice before vanishing."
+      },
+      "ref": "splash",
+      "deps": ["art_vfx_siege_shot_crystal"],
+      "milestone": "M3",
+      "notes": "战场特效：晶炮的命中（特性 splash，半径 1.5 格）；配色同 art_vfx_siege_shot_crystal；不用澱紫与门扉金；中心通透。"
+    },
+    {
+      "id": "art_vfx_terraform_root_bind",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "根缚：一大片地面上钻出密密的深褐树根，根须彼此缠成一张起伏的网，网上冒着嫩绿的小叶与淡绿光点，根网缓慢收紧又微微松开，持续不停。",
+        "en": "Root bind: dense dark brown roots breaking out across a wide patch of ground, their tendrils knotting into an undulating net with tender green leaflets and pale green motes on it, the net slowly tightening and loosening slightly, without stopping."
+      },
+      "ref": "terraform",
+      "deps": ["art_vfx_gen_root"],
+      "milestone": "M3",
+      "notes": "战场特效：德鲁伊的地形术之一（特性 terraform：根缚，3×3 格移动 -70%，持续 10 秒）；这是可行动信息，任何画质档都显示。画法与配色照 art_vfx_gen_root（绿褐粗藤与淡绿光点），但铺成一片区域，导入时拉伸到 3×3 格；根要带亮边。"
+    },
+    {
+      "id": "art_vfx_terraform_forest_growth",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "林生：地面上一片嫩绿的光点同时亮起，一株株小树苗从光点里猛地拔高、舒枝展叶，叶片与光屑向上旋起，树形长成后光芒收拢，只剩几片落叶飘下。",
+        "en": "Forest growth: a field of tender green motes lighting up at once on the ground, sapling after sapling shooting up out of them, spreading branches and leaves, leaves and flecks of light swirling upward, the light drawing in once the trees have taken shape until only a few falling leaves remain."
+      },
+      "ref": "terraform",
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M3",
+      "notes": "战场特效：德鲁伊的地形术之一（特性 terraform：林生，把 3×3 平原格变为森林 120 秒）；这张只是长成的一刻，长出的森林由场景换成森林格的树木。自然配色：叶绿 #7ad04a、嫩绿 #c8f07a、土褐 #8a6a3a（同 art_vfx_school_nature_cast）；中心通透。"
+    },
+    {
+      "id": "art_vfx_terraform_fog_wall",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "雾障：一堵浓厚的灰白雾墙在地面上缓慢翻涌，雾团一层压一层地向上卷起又落下，雾里看不见任何东西，雾墙边缘有一圈稍亮的雾丝向外飘散又被拉回。",
+        "en": "Fog wall: a thick gray-white wall of mist churning slowly over the ground, banks of fog rolling up layer over layer and sinking back, nothing visible inside it, a rim of slightly brighter wisps drifting out at its edge and being drawn back."
+      },
+      "ref": "terraform",
+      "milestone": "M3",
+      "notes": "战场特效：德鲁伊的地形术之一（特性 terraform：雾障，5×5 格视线遮断 60 秒）；导入时拉伸到 5×5 格。配色雾白 #e8eee8 与冷灰 #b8c8b0；与林雾 art_vfx_sig_combo_grove_mist 区分：这里是挡住视线的雾墙，不带术式光点；地面预警与选择环由渲染层画在雾上面。"
+    },
+    {
+      "id": "art_vfx_totem_raise",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "图腾立起：中心的地面先绽开一圈土褐色的裂纹，一道苍绿的光柱从裂纹中央冲起又收细，几块碎土与小石屑随光柱抛起后落下，最后光柱缩成一点贴地的光。",
+        "en": "Raising the totem: a ring of earth-brown cracks first opening in the ground at the center, a pale green beam of light shooting up from the middle and narrowing, a few clods and rock flecks thrown up with it and falling back, the beam finally shrinking to a point of light on the ground."
+      },
+      "ref": "totem",
+      "deps": ["art_vfx_sig_shaman_totem_earth"],
+      "milestone": "M2",
+      "notes": "战场特效：灵语者与萨满图腾立起图腾的一刻（特性 totem：每 90 秒立一根，持续 60 秒）；图腾本体由兵团立牌与道具表现，这里不画。配色土褐 #a07840（同 art_vfx_sig_shaman_totem_earth）与苍绿 #a8e0b0；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_totem_aura",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "图腾光环：以中心为圆心，一圈苍绿的细光环贴地缓缓扩开，环上浮着几粒土褐色的光屑，扩到边缘后淡去，新的一圈又从中心升起，节奏平稳。",
+        "en": "Totem aura: a thin pale green ring of light spreading slowly along the ground from the center, a few earth-brown flecks of light floating on it, fading at the edge as a new ring rises from the center, in a steady rhythm."
+      },
+      "ref": "totem",
+      "deps": ["art_vfx_sig_shaman_totem_earth"],
+      "milestone": "M2",
+      "notes": "战场特效：图腾生效范围的提示（特性 totem：半径 3 格内友军伤害 +8%、士气 +5）；画法照萨满图腾脉动 art_vfx_sig_shaman_totem_earth 的细环，但不分元素，导入时放大到半径 3 格。配色苍绿 #a8e0b0 与土褐 #a07840；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_rune_ward",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "护甲符文：地面一圈由短直刻线组成的符文环缓缓转动，刻线像刚从砧上敲出的橙红铁纹，一明一暗地依次亮起，环内向上浮起几片小小的方形光片，光片升高时变亮再淡去。",
+        "en": "Armor runes: a ring of runes made of short straight incised strokes turning slowly on the ground, the strokes glowing orange-red like iron marks fresh from the anvil and lighting up one after another, a few small square flakes of light floating upward inside the ring, brightening as they rise and then fading."
+      },
+      "ref": "rune_ward",
+      "milestone": "M3",
+      "notes": "战场特效：符文匠师的护甲光环（特性 rune_ward：半径 3 格内友军兵团护甲 +10%）。符文是不可读的几何刻线，绝不能像任何文字；配色炉火橙 #e88a3a、亮橙 #ffc070，刻线带铁灰 #8e969c 的亮边；不用门扉金与澱紫；不借女神之力，不画神迹的光轮。"
+    },
+    {
+      "id": "art_vfx_ashstorm",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "灰暴：满格的灰与细沙被狂风横着卷过，灰流从左向右成一道道斜带奔涌，带与带之间打着旋，夹着零星的橙色余烬，远处的灰浓而模糊，近处的灰粒大而清楚，密度一阵浓一阵淡。",
+        "en": "Ash storm: ash and fine grit driven sideways across the whole cell by a gale, streams of ash surging from left to right in slanting bands with eddies between them and scattered orange embers inside, the far ash dense and blurred, the near grains large and clear, the density thickening and thinning in gusts."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import."
+      },
+      "deps": ["art_vfx_cut_static_ash"],
+      "milestone": "M3",
+      "notes": "战场天气：灰暴（荒原专有，视野 2 格，非本地兵团士气每分钟 -1；天气图标是 art_ico_weather_ashstorm）。用 vfx_loop 不用 vfx_overlay：灰暴是持续流动的全屏层，vfx_overlay 是贴在立牌与墙面轮廓里的静态灰度纹样。配色照 art_vfx_cut_static_ash（灰白 #d8d4cc、冷灰 #8a8a90），余烬橙 #ff9a4a 只点几粒；不用澱紫。渲染层给天气层设不透明度上限，地面预警与选择环在灰暴里仍清楚可辨。"
+    },
+    {
+      "id": "art_vfx_holy_aura",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "治愈光轮：中心上方悬着一圈白金色的光轮，轮上分成整齐的几何小段缓缓转动，光轮下洒落细细的白金光屑，地面一圈淡淡的光环随光轮一同起伏。",
+        "en": "Healing halo: a white-gold halo of light hanging above the center, divided into orderly geometric segments that turn slowly, fine white-gold flecks sprinkling down beneath it, a faint ring of light on the ground rising and falling with the halo."
+      },
+      "ref": "holy_aura",
+      "deps": ["art_vfx_div_pillar_light"],
+      "milestone": "M2",
+      "notes": "女神加护的可见光环（特性 holy_aura，圣骑士重骑：半径 2 格内友军兵团每 10 秒回收倒下者的 20%；加护来源艾琉恩，计入神迹账）；只画现象，不画女神本人。艾琉恩的颜色：神光白金加几何纹样，是这一色的合法用途，光环画法照 art_vfx_div_pillar_light；不用门扉金（暖金）与澱紫；导入时放大到半径 2 格。"
+    },
+    {
+      "id": "art_vfx_berserk_aura",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "狂战加护的光环：脚下一圈暗红的光环，环上排着一道道红色的断剑纹，断剑纹随火苗般的红光一明一暗地向上蹿起又落回，外缘一圈亮红轮廓，像压不住的怒意。",
+        "en": "Berserk blessing aura: a dark red ring of light at the feet lined with red broken-sword marks, the marks flaring upward and falling back with flame-like red light, brightening and dimming, a bright red outline around the rim, like anger that cannot be held down."
+      },
+      "ref": "berserk",
+      "deps": ["art_vfx_div_berserk_flame"],
+      "milestone": "M2",
+      "notes": "女神加护的可见光环（特性 berserk，断剑会狂战士与狂战士：士气不低于 25、不会溃退；加护来源瓦尔妲，计入神迹账）；只画现象，不画女神本人。瓦尔妲的颜色：暗红 #8a1a1a、亮红 #e04030，同 art_vfx_div_berserk_flame；断剑纹是一柄从中间断开的剑的剪影，不是文字；加色混合下暗红部分必须带亮边才显形；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_contract_aura",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "契约加护的光环：脚下一圈金色的细光环，环上等距排着几枚小小的天平纹，天平的两只秤盘轮流微微下沉又回平，环上浮起几粒金色光点，金光平稳地一明一暗。",
+        "en": "Contract blessing aura: a thin gold ring of light at the feet with a few small balance-scale marks set evenly along it, the two pans of each scale dipping slightly in turn and leveling again, a few gold motes floating up from the ring, the gold light brightening and dimming steadily."
+      },
+      "ref": "contract_morale",
+      "deps": ["art_vfx_div_pact_glyph"],
+      "milestone": "M3",
+      "notes": "女神加护的可见光环（特性 contract_morale，金秤佣兵与契约神官：按时付饷则士气不低于 30；加护来源梅尔卡，计入神迹账）；只画现象，不画女神本人。梅尔卡的金：币金 #e0a832 与亮黄 #ffe080（同 art_vfx_div_pact_glyph 与 art_vfx_div_coin_warm），不用门扉金；天平纹是图形，不是文字。两个兵种都在第四幕登场，所以排 M3。"
     }
   ]
 }

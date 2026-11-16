@@ -26,7 +26,28 @@ export interface StyleDef {
   zh: string;
   en: string;
   palette?: string[];
+  /**
+   * Creature-only anchor variant: the pack's colors and materials for a creature or figure,
+   * with no scenery words, so a standee prompt does not paint a background
+   * (art_pipeline.md 15.3, reason code background).
+   */
+  creature?: Bilingual;
 }
+
+/** Which anchor of a style fills {style}: the scene anchor (default) or the creature variant. */
+export type StyleVariant = 'scene' | 'creature';
+/** Humanoid body templates other than the standard H (art_pipeline.md 3.2; import bodyOf). */
+export const BODY_TYPES = ['hs', 'hb'] as const;
+export type BodyType = (typeof BODY_TYPES)[number];
+/** Import anchor overrides an entry may declare (import AnchorKind). */
+export const ANCHOR_OVERRIDES = ['flying'] as const;
+export type AnchorOverride = (typeof ANCHOR_OVERRIDES)[number];
+/**
+ * Expression keys a bust_base entry may stand for as a character's eighth expression
+ * (art_pipeline.md 3.6): the importer crops its head and shoulders into that key's cell.
+ */
+export const EXPR_KEYS = ['grin', 'cold', 'tender', 'pained'] as const;
+export type ExprKey = (typeof EXPR_KEYS)[number];
 
 export interface TemplateDef {
   kind: 'image' | 'audio';
@@ -48,6 +69,8 @@ export interface TemplateDef {
   en: string;
   /** true: append the file's global negative prompt; an object overrides it. */
   negative?: boolean | Bilingual;
+  /** 'creature': {style} takes the style's creature variant (creature and figure standees). */
+  styleVariant?: StyleVariant;
 }
 
 export interface TemplateFile {
@@ -67,6 +90,16 @@ export interface SpecItem {
   deps?: string[];
   milestone: string;
   notes?: string;
+  /** Overrides the template's style variant (a rework moves one standee to 'creature'). */
+  styleVariant?: StyleVariant;
+  /** Humanoid body template of a character sheet that is not the standard H (chr_* only). */
+  body?: BodyType;
+  /** Import anchor override: 'flying' keeps the drawn height instead of the ground baseline. */
+  anchor?: AnchorOverride;
+  /** 1-based grid rows the sheet leaves empty; the importer treats their cells as blank. */
+  blankRows?: number[];
+  /** bust_base only: this image is the character's eighth expression with this key. */
+  exprKey?: ExprKey;
 }
 
 export interface SpecFile {
@@ -104,6 +137,10 @@ export interface Entry {
   ref?: string;
   deps: string[];
   notes?: string;
+  body?: BodyType;
+  anchor?: AnchorOverride;
+  blankRows?: number[];
+  exprKey?: ExprKey;
   zh: string;
   en: string;
   negativeZh: string;
@@ -159,6 +196,73 @@ function textProblems(where: string, value: unknown, out: string[]): void {
   }
 }
 
+/** The anchor variant an entry uses: its own, else its template's, else the scene anchor. */
+export function styleVariantOf(
+  item: Pick<SpecItem, 'styleVariant'>,
+  t?: Pick<TemplateDef, 'styleVariant'>,
+): StyleVariant {
+  return item.styleVariant ?? t?.styleVariant ?? 'scene';
+}
+
+function gridRows(t: Pick<TemplateDef, 'grid'> | undefined): number {
+  const m = /^(\d+)x(\d+)$/.exec((t?.grid ?? '1x1').trim());
+  return m ? Number(m[2]) : 1;
+}
+
+/** The structured fields of an entry: styleVariant, and body, anchor, blankRows and exprKey for the importer. */
+function importFieldProblems(
+  where: string,
+  item: SpecItem,
+  t: TemplateDef | undefined,
+  library: Library,
+): string[] {
+  const out: string[] = [];
+  if (
+    item.styleVariant !== undefined &&
+    item.styleVariant !== 'scene' &&
+    item.styleVariant !== 'creature'
+  )
+    out.push(`${where}: styleVariant must be scene or creature`);
+  const style = item.style ? library.styles[item.style] : undefined;
+  if (style && styleVariantOf(item, t) === 'creature') {
+    if (!style.creature?.zh?.trim() || !style.creature?.en?.trim())
+      out.push(`${where}: style ${item.style} has no creature anchor variant (zh and en)`);
+  }
+  const imageInGame = t?.kind === 'image' && (t.final ?? '').trim() !== 'ref';
+  if (item.body !== undefined) {
+    if (!(BODY_TYPES as readonly string[]).includes(item.body))
+      out.push(`${where}: body must be one of ${BODY_TYPES.join(', ')}`);
+    if (!item.template.startsWith('chr_'))
+      out.push(`${where}: body applies to chr_* templates only`);
+  }
+  if (item.anchor !== undefined) {
+    if (!(ANCHOR_OVERRIDES as readonly string[]).includes(item.anchor))
+      out.push(`${where}: anchor must be one of ${ANCHOR_OVERRIDES.join(', ')}`);
+    if (t && !imageInGame) out.push(`${where}: anchor needs an in-game image template`);
+  }
+  if (item.blankRows !== undefined) {
+    const rows = gridRows(t);
+    if (!Array.isArray(item.blankRows) || item.blankRows.length === 0) {
+      out.push(`${where}: blankRows must be a non-empty list of row numbers`);
+    } else {
+      for (const r of item.blankRows) {
+        if (!Number.isInteger(r) || r < 1 || r > rows)
+          out.push(`${where}: blankRows ${r} is outside the template's rows 1 to ${rows}`);
+      }
+      if (new Set(item.blankRows).size !== item.blankRows.length)
+        out.push(`${where}: blankRows lists a row twice`);
+      if (item.blankRows.length >= rows) out.push(`${where}: blankRows leaves no row to draw`);
+    }
+    if (t && !imageInGame) out.push(`${where}: blankRows needs an in-game image template`);
+  }
+  if (item.exprKey !== undefined) {
+    if (!(EXPR_KEYS as readonly string[]).includes(item.exprKey))
+      out.push(`${where}: exprKey must be one of ${EXPR_KEYS.join(', ')}`);
+    if (item.template !== 'bust_base') out.push(`${where}: exprKey applies to bust_base only`);
+  }
+  return out;
+}
+
 export function validateLibrary(
   library: Library,
   specs: { name: string; data: SpecFile }[],
@@ -176,6 +280,8 @@ export function validateLibrary(
       problems.push(`${where}: image templates need canvas and final sizes`);
     if (t.kind === 'audio' && t.duration === undefined)
       problems.push(`${where}: audio templates need a duration`);
+    if (t.styleVariant !== undefined && t.styleVariant !== 'scene' && t.styleVariant !== 'creature')
+      problems.push(`${where}: styleVariant must be scene or creature`);
   }
   for (const [id, s] of Object.entries(library.styles)) textProblems(`style ${id}`, s, problems);
 
@@ -200,6 +306,7 @@ export function validateLibrary(
         problems.push(`${where}: subject needs both zh and en`);
       if (!(MILESTONES as readonly string[]).includes(item.milestone))
         problems.push(`${where}: milestone must be one of ${MILESTONES.join(', ')}`);
+      problems.push(...importFieldProblems(where, item, t, library));
     }
   }
   for (const { name, data } of specs) {
@@ -233,14 +340,16 @@ export function expand(library: Library, spec: SpecFile, item: SpecItem): Entry 
   const t = library.templates[item.template];
   if (!t) throw new Error(`unknown template ${item.template}`);
   const style = item.style ? library.styles[item.style] : undefined;
+  const styleAnchor =
+    style && styleVariantOf(item, t) === 'creature' && style.creature ? style.creature : style;
   const zh = fill(t.zh, {
     subject: item.subject.zh,
-    style: style?.zh ?? '',
+    style: styleAnchor?.zh ?? '',
     extra: item.extra?.zh ?? '',
   });
   const en = fill(t.en, {
     subject: item.subject.en,
-    style: style?.en ?? '',
+    style: styleAnchor?.en ?? '',
     extra: item.extra?.en ?? '',
   });
   const negativeZh = t.negativeText?.zh ?? '';
@@ -267,6 +376,10 @@ export function expand(library: Library, spec: SpecFile, item: SpecItem): Entry 
     ref: item.ref,
     deps: item.deps ?? [],
     notes: item.notes,
+    ...(item.body ? { body: item.body } : {}),
+    ...(item.anchor ? { anchor: item.anchor } : {}),
+    ...(item.blankRows ? { blankRows: [...item.blankRows] } : {}),
+    ...(item.exprKey ? { exprKey: item.exprKey } : {}),
     zh,
     en,
     negativeZh,
@@ -311,6 +424,16 @@ function specLine(e: Entry): string {
   return parts.join('，');
 }
 
+/** The import fields of an entry in words for the generator (empty when it has none). */
+function importFieldsLine(e: Pick<Entry, 'body' | 'anchor' | 'blankRows' | 'exprKey'>): string {
+  const parts: string[] = [];
+  if (e.body) parts.push(`体型 ${e.body.toUpperCase()}`);
+  if (e.anchor === 'flying') parts.push('飞行锚点（保留画出的高度，不对齐地面基线）');
+  if (e.blankRows?.length) parts.push(`第 ${e.blankRows.join('、')} 行留空`);
+  if (e.exprKey) parts.push(`第八种表情 ${e.exprKey}（裁出头肩作该键的差分格）`);
+  return parts.join('；');
+}
+
 export function renderMarkdown(
   title: string,
   intro: string,
@@ -328,6 +451,8 @@ export function renderMarkdown(
     if (e.ref) meta.push(`对应内容 \`${e.ref}\``);
     if (e.deps.length) meta.push(`先生成 ${e.deps.map((d) => `\`${d}\``).join('、')}`);
     lines.push(`- ${meta.join('；')}`);
+    const importLine = importFieldsLine(e);
+    if (importLine) lines.push(`- 导入：${importLine}`);
     if (e.notes) lines.push(`- 说明：${e.notes}`);
     lines.push(
       '',
@@ -415,6 +540,11 @@ export interface ManifestRow {
   template: string;
   promptHash: string;
   ref?: string;
+  /** Import fields (present only when the entry declares them). */
+  body?: BodyType;
+  anchor?: AnchorOverride;
+  blankRows?: number[];
+  exprKey?: ExprKey;
 }
 
 export function manifestOf(entries: Entry[]): ManifestRow[] {
@@ -427,6 +557,10 @@ export function manifestOf(entries: Entry[]): ManifestRow[] {
     template: e.template,
     promptHash: e.promptHash,
     ...(e.ref ? { ref: e.ref } : {}),
+    ...(e.body ? { body: e.body } : {}),
+    ...(e.anchor ? { anchor: e.anchor } : {}),
+    ...(e.blankRows ? { blankRows: e.blankRows } : {}),
+    ...(e.exprKey ? { exprKey: e.exprKey } : {}),
   }));
 }
 

@@ -24,7 +24,11 @@
         "#7a6a52",
         "#4e5a6e",
         "#ffd58a"
-      ]
+      ],
+      "creature": {
+        "zh": "洛萨乡野的色调：土褐、苔绿、麦黄与暖灰，毛皮与鞣革的质感，受光带一点傍晚的暖金；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "Lotha countryside coloring: earth brown, moss green, wheat yellow and warm gray, textures of fur and tanned leather, a touch of warm evening gold on the lit side; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "valen_city": {
       "name": "瓦伦城邑",
@@ -45,7 +49,11 @@
         "#8a3e30",
         "#d8d0c0",
         "#ffd58a"
-      ]
+      ],
+      "creature": {
+        "zh": "瓦伦城邑的色调：冷灰、蓝灰、砖红与烟褐，带一点煤灰与污渍；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "Valen city coloring: cool gray, blue gray, brick red and smoky brown, with a touch of soot and grime; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "wild_forest": {
       "name": "边地野林",
@@ -64,7 +72,11 @@
         "#6e7270",
         "#3a4a5a",
         "#e0d8a0"
-      ]
+      ],
+      "creature": {
+        "zh": "边地野林的色调：深绿、苔绿、湿褐与树皮灰，毛皮带着湿气与青苔，受光是林下斑驳的冷光；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "wild frontier forest coloring: deep green, moss green, damp brown and bark gray, fur damp and touched with moss, cool dappled light on the lit side; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "sealed_ruins": {
       "name": "封印遗迹",
@@ -83,7 +95,11 @@
         "#c6b5e0",
         "#f0d890",
         "#ffc070"
-      ]
+      ],
+      "creature": {
+        "zh": "封印遗迹的色调：冷灰、骨白、苔青与水渍暗褐，石与骨的质感，冷色微光里夹一点暖色火光；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "sealed ruins coloring: cold gray, bone white, moss teal and water-stained dark brown, textures of stone and bone, a cold faint glow with a touch of warm firelight; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "ash_waste": {
       "name": "灰烬荒原",
@@ -103,7 +119,11 @@
         "#ff9a4a",
         "#5a3a48",
         "#c6b5e0"
-      ]
+      ],
+      "creature": {
+        "zh": "灰烬荒原的色调：焦黑、灰白、铁锈红与淡紫晶色，主体身上可以沾着灰与余烬，受光泛红灰；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "ashen wasteland coloring: scorched black, pale ash, rust red and pale violet crystal tones, ash and embers may cling to the subject, reddish gray light; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "divine_court": {
       "name": "神庭",
@@ -122,7 +142,11 @@
         "#7ab868",
         "#8cbc74",
         "#f0e0f0"
-      ]
+      ],
+      "creature": {
+        "zh": "神庭的色调：白、象牙、柔金与浅天青，洁净无瑕的质感，柔和恒定的光；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "divine court coloring: white, ivory, soft gold and pale sky blue, immaculate textures, soft constant light; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "holy_see_white": {
       "name": "白石教国",
@@ -142,7 +166,11 @@
         "#6b7a3a",
         "#8c9a52",
         "#a9b878"
-      ]
+      ],
+      "creature": {
+        "zh": "白石教国的色调：白、金、橄榄绿与日晒的暖褐，强烈阳光下明暗清楚；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "white-stone holy state coloring: white, gold, olive green and sunbaked warm brown, crisp light and shadow under strong sun; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "grantia_ochre": {
       "name": "赭红帝国",
@@ -162,7 +190,11 @@
         "#d8b45a",
         "#e8cf86",
         "#ffd08a"
-      ]
+      ],
+      "creature": {
+        "zh": "赭红帝国的色调：赭红、钢灰、麦黄与尘土褐，粗砺尚武的质感；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "ochre empire coloring: ochre red, steel gray, wheat yellow and dust brown, rough martial textures; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "mercato_coast": {
       "name": "海港同盟",
@@ -182,7 +214,11 @@
         "#8a7a5a",
         "#e85a2a",
         "#3a3e44"
-      ]
+      ],
+      "creature": {
+        "zh": "海港同盟的色调：海蓝、赤陶、盐白与金色点缀，带一点海水与盐渍的光泽；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "merchant harbor league coloring: sea blue, terracotta, salt white and gold accents, a sheen of seawater and salt crust; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "silva_canopy": {
       "name": "林冠秘境",
@@ -202,7 +238,11 @@
         "#5a4a3a",
         "#7a6a52",
         "#6a8aa0"
-      ]
+      ],
+      "creature": {
+        "zh": "林冠秘境的色调：深绿、银灰、雾白与发光苔的浅青绿，古老而静谧的质感；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "ancient canopy forest coloring: deep green, silver gray, mist white and the pale teal of glowing moss, ancient and quiet textures; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "windfang_steppe": {
       "name": "风牙草原",
@@ -222,7 +262,11 @@
         "#b83a2a",
         "#d86a4a",
         "#e8dcc4"
-      ]
+      ],
+      "creature": {
+        "zh": "风牙草原的色调：草黄、沙褐、天蓝与毡红点缀，毛发被风吹得蓬松；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "windswept steppe coloring: grass yellow, sand brown, sky blue and felt red accents, hair and fur tousled by wind; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "night_basalt": {
       "name": "黑岩夜境",
@@ -242,7 +286,11 @@
         "#8ac8c4",
         "#c8e8e4",
         "#d8d0c8"
-      ]
+      ],
+      "creature": {
+        "zh": "黑岩夜境的色调：玄武黑、暗红、骨白与温泉的青白，幽暗而带一点熔岩的暗光；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "basalt night realm coloring: basalt black, dark red, bone white and the pale blue-white of hot springs, dim with a faint lava glow; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "sleepscale_snow": {
       "name": "眠鳞雪岭",
@@ -263,7 +311,11 @@
         "#6a8a6a",
         "#b8a070",
         "#e8f0d8"
-      ]
+      ],
+      "creature": {
+        "zh": "眠鳞雪岭的色调：冰蓝、雪白、岩灰与冷银，霜与冰晶的质感，清冷透亮的光；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "sleeping-scale snow range coloring: ice blue, snow white, rock gray and cold silver, textures of frost and ice crystals, crisp clear cold light; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "forge_deep": {
       "name": "炉火地底",
@@ -283,7 +335,11 @@
         "#c8a04a",
         "#e88a3a",
         "#ffc070"
-      ]
+      ],
+      "creature": {
+        "zh": "炉火地底的色调：铁灰、锈红、黄铜与炉火的橙光，金属、矿渣与湿苔的质感；只画主体本身，不画任何景物与地面；中世纪奇幻",
+        "en": "forge depths coloring: iron gray, rust red, brass and the orange glow of furnaces, textures of metal, slag and damp moss; draw only the subject itself, no scenery and no ground; medieval fantasy"
+      }
     },
     "door_corridor": {
       "name": "门廊幽境",
@@ -302,7 +358,11 @@
         "#8a7448",
         "#c8a860",
         "#f0d890"
-      ]
+      ],
+      "creature": {
+        "zh": "门廊幽境的色调：深夜蓝、墨黑与暖白偏金的微光，安静得像一场梦；只画主体本身，不画任何景物与地面；奇幻",
+        "en": "corridor of doors coloring: midnight blue, ink black and a faint warm white-gold glow, quiet as a dream; draw only the subject itself, no scenery and no ground; fantasy"
+      }
     },
     "earth_modern": {
       "name": "地球日常",
@@ -322,7 +382,11 @@
         "#6a5a4a",
         "#a89070",
         "#2e3a2e"
-      ]
+      ],
+      "creature": {
+        "zh": "当代地球的色调：日常的自然色，荧光灯下偏冷的受光与雨水的湿润反光；只画主体本身，不画任何景物与地面；身上没有任何文字",
+        "en": "present-day Earth coloring: everyday natural colors, cool fluorescent light and wet rain reflections on the subject; draw only the subject itself, no scenery and no ground; no lettering anywhere"
+      }
     }
   },
   "templates": {
@@ -702,7 +766,8 @@
       "ext": "png",
       "zh": "{subject}。生物设定稿：同一只生物的三视图加特写，干净平涂，线条清晰，色块分明，体型轮廓一眼可辨。{style}。四格从左到右：面向镜头的正面、朝画面右方的侧面、背向镜头的背面、辨识特征的特写。前三格的大小、比例、配色与特征完全一致，全身完整入画，着地的生物脚底在同一条基线上。浅灰色平涂背景。{extra}",
       "en": "{subject}. Creature model sheet: a turnaround of one creature plus a close-up, clean flat colors, crisp lines, clear color blocks, an instantly readable body silhouette. {style}. Four panels from left to right: front view facing the viewer, side view facing screen right, back view facing away, close-up of the identifying features. Size, proportions, colors and features identical in the first three panels, whole body inside the frame, grounded creatures stand on one baseline. Flat light gray background. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_small": {
       "kind": "image",
@@ -716,7 +781,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：小型生物，体长或身高约 0.5 到 1.5 米，约占格高的四成到六成。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a small creature about 0.5 to 1.5 meters long or tall, filling about 40 to 60 percent of the cell height. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame move, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_medium": {
       "kind": "image",
@@ -730,7 +796,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：中型生物，体长或身高约 1.5 到 2.5 米，约占格高的五成到七成。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a medium creature about 1.5 to 2.5 meters long or tall, filling about 50 to 70 percent of the cell height. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame move, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_large": {
       "kind": "image",
@@ -744,7 +811,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：大型生物，体长或身高约 2.5 到 4 米，约占格高的六成到八成，动作沉重有分量。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），受光侧轮廓提亮一级，光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a large creature about 2.5 to 4 meters long or tall, filling about 60 to 80 percent of the cell height, heavy weighty motion. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), the lit side of the outline one step brighter, light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame move, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_huge": {
       "kind": "image",
@@ -758,7 +826,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：巨型生物，体长或身高约 4 到 7 米，约占格高的七成到九成，动作缓慢而沉重，攻击有明显的预备姿势。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），受光侧轮廓提亮一级，光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a huge creature about 4 to 7 meters long or tall, filling about 70 to 90 percent of the cell height, slow heavy motion, attacks with a clear wind-up pose. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), the lit side of the outline one step brighter, light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame move, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_multileg": {
       "kind": "image",
@@ -772,7 +841,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：多足生物（蛛、蜈、甲虫、蟹一类），身体贴地，腿的数量在每一帧保持一致，爬行时腿按波浪交替起落，绝不画成四足兽的样子。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行爬行 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接翻倒 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物居中，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a many-legged creature (spider, centipede, beetle or crab type), body low to the ground, the same number of legs in every frame, legs rising and falling in a wave while crawling, never drawn like a four-legged beast. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame crawl, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 frames of flipping over, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_serpentine": {
       "kind": "image",
@@ -786,7 +856,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：长躯无足生物（蛇、水蛭、蠕虫一类），没有腿，移动时身体呈 S 形蜿蜒起伏，攻击时先把身体蓄成弓形再弹出咬击，绝不画成四足兽的样子。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行蜿蜒移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物居中，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a long limbless creature (snake, leech or worm type), no legs, the body undulates in an S curve while moving, it coils into a bow before springing forward to bite, never drawn like a four-legged beast. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame slither, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_flying": {
       "kind": "image",
@@ -800,7 +871,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：飞行生物（鸟、蝠、飞虫一类），翅膀拍动清楚，身体画在每格的上半部，格子下方留空。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行悬停 4 帧，第 2 行飞行 6 帧，第 3 行俯冲攻击 4 帧，第 4 行受击 2 帧接坠落 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a flying creature (bird, bat or flying insect type), clear wingbeats, the body drawn in the upper half of each cell with empty space below. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame hover, row 2 a 6-frame flight, row 3 a 4-frame diving attack, row 4 is 2 hit frames followed by 4 falling frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_amorphous": {
       "kind": "image",
@@ -814,7 +886,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：无定形生物（软泥、灵体、元素一类），待机时挤压回弹，倒下时溃散成碎块或烟缕后消失；像素本身画成不透明的实色，不画半透明与外发光。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行移动 6 帧，第 3 行攻击 4 帧，第 4 行受击 2 帧接溃散 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物居中，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: an amorphous creature (slime, spirit or elemental type), squashing and rebounding while idle, breaking into chunks or wisps that vanish when it dies; draw the pixels as opaque solid colors, no translucency and no outer glow. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame move, row 3 a 4-frame attack, row 4 is 2 hit frames followed by 4 dissolving frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "mon_drake": {
       "kind": "image",
@@ -828,7 +901,8 @@
       "ext": "png",
       "zh": "{subject}。像素画魔物动作表：亚龙或飞龙，后腿双足站立，前肢化为翼或短小，长颈长尾，鳞片与角清楚，绝不画成狼或犬的四足兽形。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），受光侧轮廓提亮一级，光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：4 行 6 列，第 1 行待机 4 帧，第 2 行行走或低飞 6 帧，第 3 行扑咬 4 帧，第 4 行受击 2 帧接倒地 4 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，生物水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art monster animation sheet: a drake or wyvern standing on two hind legs, forelimbs turned into wings or kept small, long neck and long tail, clear scales and horns, never drawn as a wolf-like or dog-like quadruped. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), the lit side of the outline one step brighter, light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 4 rows by 6 columns, row 1 is a 4-frame idle, row 2 a 6-frame walk or low glide, row 3 a 4-frame lunging bite, row 4 is 2 hit frames followed by 4 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, creature centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "boss_sheet": {
       "kind": "image",
@@ -842,7 +916,8 @@
       "ext": "png",
       "zh": "{subject}。像素画首领动作表：一位首领的完整动作，身形压迫感强，每个大招都有清楚可读的预备姿势。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），受光侧轮廓提亮一级，光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影、地面与法术特效。网格排布：6 行 8 列，第 1 行待机 6 帧，第 2 行移动 6 帧，第 3 行攻击甲 8 帧，第 4 行攻击乙 8 帧，第 5 行特殊技 8 帧（前 3 帧是长预备），第 6 行受击 2 帧接倒地 6 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，首领水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art boss animation sheet: the full move set of one boss, an imposing presence, every big attack has a clearly readable wind-up pose. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), the lit side of the outline one step brighter, light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground, no spell effects. Grid layout: 6 rows by 8 columns, row 1 a 6-frame idle, row 2 a 6-frame move, row 3 an 8-frame attack A, row 4 an 8-frame attack B, row 5 an 8-frame special move (the first 3 frames are a long wind-up), row 6 is 2 hit frames followed by 6 death frames, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, boss centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "boss_parts": {
       "kind": "image",
@@ -856,7 +931,8 @@
       "ext": "png",
       "zh": "{subject}。像素画首领部件拆图：把这只巨型首领拆成可以分别活动的部件（躯干、头、颈、各条肢体、尾、翼等，按补充说明），每个部件单独完整地画出，分开平铺在画面上，互不重叠，部件之间留出明显空白，关节处多画一点重叠的余量。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，不画投影与地面；整张图的部件都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art boss part sheet: split this giant boss into separately animated parts (torso, head, neck, each limb, tail, wings and so on, as listed in the extra notes), draw each part complete on its own, laid out apart on the canvas with no overlap and clear gaps between parts, with a little extra overlap margin at the joints. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, no cast shadow, no ground; every part in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "boss_card": {
       "kind": "image",
@@ -870,7 +946,8 @@
       "ext": "png",
       "zh": "{subject}。像素画首领插画：首领摆出最有威慑力的姿态，构图饱满，身形占画面七成以上，略带仰视，辨识特征清楚。{style}。高精度像素画，硬边像素，不抗锯齿，1 像素深色描边（不用纯黑），光从左上方照来，约 48 色以内，有清楚的明暗面，不画背景与边框。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art boss illustration: the boss in its most intimidating pose, a full composition with the body filling over 70 percent of the frame, seen slightly from below, clear identifying features. {style}. High-detail pixel art, hard-edged pixels, no anti-aliasing, 1-pixel dark outline (never pure black), light from the upper left, about 48 colors or fewer, clear light and shadow planes, no background and no frame. Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "pet_mount": {
       "kind": "image",
@@ -884,7 +961,8 @@
       "ext": "png",
       "zh": "{subject}。像素画坐骑动作表：一匹可骑乘的坐骑，背上配好鞍具，鞍上不画骑手，步态自然。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：3 行 6 列，第 1 行待机 4 帧，第 2 行行走 6 帧，第 3 行奔跑 6 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，坐骑水平居中，蹄或脚对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art mount animation sheet: a rideable mount wearing its saddle and tack, no rider on the saddle, natural gait. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 3 rows by 6 columns, row 1 a 4-frame idle, row 2 a 6-frame walk, row 3 a 6-frame gallop, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, mount centered horizontally, hooves or feet on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "pet_mount_large": {
       "kind": "image",
@@ -898,7 +976,8 @@
       "ext": "png",
       "zh": "{subject}。像素画大型坐骑动作表：一头体型高大的可骑乘坐骑，背上配好鞍具或驮架，鞍上不画骑手，步伐沉稳有力。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），受光侧轮廓提亮一级，光从左上方照来，色数有限，体型轮廓一眼可辨，不画投影与地面。网格排布：3 行 6 列，第 1 行待机 4 帧，第 2 行行走 6 帧，第 3 行奔跑 6 帧，用不到的格子保持背景色；每行从左到右是连续帧，每格大小一致、等距，坐骑水平居中，蹄或脚对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art large mount animation sheet: a tall rideable beast wearing a saddle or pack frame, no rider, steady powerful stride. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), the lit side of the outline one step brighter, light from the upper left, limited palette, instantly readable silhouette, no cast shadow, no ground. Grid layout: 3 rows by 6 columns, row 1 a 4-frame idle, row 2 a 6-frame walk, row 3 a 6-frame gallop, unused cells stay background color; each row reads left to right as consecutive frames, equal cells evenly spaced, mount centered horizontally, hooves or feet on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "tile_ground": {
       "kind": "image",
@@ -1158,12 +1237,12 @@
       "canvas": "1024x1024",
       "final": "48x48",
       "grid": "1x1",
-      "frames": "单枚徽章居中；徽章外形按事迹类别（圆章、盾章、星形章、卷轴章），中央纹样表现这条事迹",
+      "frames": "单枚徽章居中；徽章外形按成就组（圆章、盾章、多角章、卷轴章），中央纹样表现这项成就",
       "background": "#ff00ff",
       "outDir": "art/icons/deeds",
       "ext": "png",
-      "zh": "{subject}。像素画事迹徽章：一枚纪念徽章，外形按补充说明的类别（圆章、盾章、多角章或卷轴章），中央是表现这条事迹的小纹样，金属边缘有磨损质感，在 48 像素下纹样清楚，硬边像素，不抗锯齿，1 像素深色描边（不用纯黑），光从左上方照来，色数有限，不写文字与数字。{style}。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
-      "en": "{subject}. Pixel art deed badge: a commemorative badge whose shape follows the category in the extra notes (round medal, shield badge, multi-pointed badge or scroll badge), with a small central motif that depicts this deed, a worn metal rim, the motif clear at 48 pixels, hard-edged pixels, no anti-aliasing, 1-pixel dark outline (never pure black), light from the upper left, limited palette, no lettering and no numbers. {style}. Solid flat magenta #FF00FF background with nothing else on it. {extra}",
+      "zh": "{subject}。像素画成就图标：一枚纪念章，外形按补充说明的成就组（圆章、盾章、多角章或卷轴章），中央是表现这项成就的小纹样，金属边缘有磨损质感，在 64 像素下纹样清楚，硬边像素，不抗锯齿，1 像素深色描边（不用纯黑），光从左上方照来，色数有限，不写文字与数字。{style}。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
+      "en": "{subject}. Pixel art achievement icon: a commemorative badge whose shape follows the achievement group in the extra notes (round medal, shield badge, multi-pointed badge or scroll badge), with a small central motif that depicts this achievement, a worn metal rim, the motif clear at 64 pixels, hard-edged pixels, no anti-aliasing, 1-pixel dark outline (never pure black), light from the upper left, limited palette, no lettering and no numbers. {style}. Solid flat magenta #FF00FF background with nothing else on it. {extra}",
       "negative": true
     },
     "ico_ui": {
@@ -1374,7 +1453,8 @@
       "ext": "png",
       "zh": "{subject}。像素画兵团立牌动作表：一名士兵或一件兵器的简化动作，轮廓清楚，装备一眼可辨兵种，细节比主要角色少，适合成百上千个同屏。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，Q 版约 1.7 头身（人形时），每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，不画投影与地面。网格排布：4 行 4 列，第 1 行行军 4 帧，第 2 行攻击 4 帧，第 3 行待机 2 帧接受击 2 帧，第 4 行倒地 4 帧；每行从左到右是连续帧，每格大小一致、等距，主体水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art troop standee sheet: simplified motions of one soldier or one war machine, clear silhouette, gear that identifies the troop type at a glance, less detail than main characters, suited to hundreds on screen at once. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, chibi proportions about 1.7 heads tall when humanoid, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, no cast shadow, no ground. Grid layout: 4 rows by 4 columns, row 1 a 4-frame march, row 2 a 4-frame attack, row 3 is 2 idle frames followed by 2 hit frames, row 4 a 4-frame death; each row reads left to right as consecutive frames, equal cells evenly spaced, subject centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "unit_sheet_large": {
       "kind": "image",
@@ -1388,7 +1468,8 @@
       "ext": "png",
       "zh": "{subject}。像素画大型兵团立牌动作表：一名骑兵、一头战兽或一台攻城器械的简化动作，轮廓清楚，一眼可辨兵种，细节比主要角色少，适合成批同屏。{style}。像素画，高清像素微缩场景里的立牌，带现代光影的像素立体透视场景风格，略带俯视的视角，每米约 16 像素，硬边像素，不抗锯齿，1 像素深色描边（取邻近色的深色，不用纯黑），光从左上方照来，色数有限，不画投影与地面。网格排布：4 行 4 列，第 1 行行军 4 帧，第 2 行攻击或发射 4 帧，第 3 行待机 2 帧接受击 2 帧，第 4 行倒地或损毁 4 帧；每行从左到右是连续帧，每格大小一致、等距，主体水平居中，着地部位对齐同一条基线，格间不画分隔线；整张图的所有帧都朝同一个方向（见补充说明）。纯洋红色 #FF00FF 平涂背景，背景上没有任何别的东西。{extra}",
       "en": "{subject}. Pixel art large troop standee sheet: simplified motions of one cavalryman, war beast or siege engine, clear silhouette, the troop type readable at a glance, less detail than main characters, suited to many on screen at once. {style}. Pixel art, standee for a high-definition pixel diorama scene with modern lighting, slightly elevated view, about 16 pixels per meter, hard-edged pixels, no anti-aliasing, 1-pixel dark outline made of darkened neighbor colors (never pure black), light from the upper left, limited palette, no cast shadow, no ground. Grid layout: 4 rows by 4 columns, row 1 a 4-frame march, row 2 a 4-frame attack or volley, row 3 is 2 idle frames followed by 2 hit frames, row 4 a 4-frame death or wreck; each row reads left to right as consecutive frames, equal cells evenly spaced, subject centered horizontally, grounded parts on the same baseline, no grid lines; every frame in this sheet faces the same direction (see extra notes). Solid flat magenta #FF00FF background with nothing else on it. {extra}",
-      "negative": true
+      "negative": true,
+      "styleVariant": "creature"
     },
     "map_world": {
       "kind": "image",
@@ -1476,7 +1557,7 @@
     },
     "ico_achievement": {
       "kind": "image",
-      "title": "Steam 成就图标（64×64，满幅，未达成灰图由打包脚本生成）",
+      "title": "Steam 成就图标（64×64，洋红抠色后由打包脚本合成在深色底上，未达成的灰图由打包脚本生成）",
       "canvas": "1024x1024",
       "final": "64x64",
       "grid": "1x1",
