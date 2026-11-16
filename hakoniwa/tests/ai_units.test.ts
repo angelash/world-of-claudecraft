@@ -8,7 +8,8 @@ import { findLeaks, findLeaksIn } from '../src/ai/leak';
 import { recoverJson, tidyLine, validateProposal } from '../src/ai/output';
 import { costUsd, DEFAULT_TIER_MODELS, estimateCallUsd } from '../src/ai/pricing';
 import { buildOutputSchema, cleanValue, renderContext, sanitizePlayerText } from '../src/ai/prompt';
-import { MockProvider, ProxyProvider } from '../src/ai/providers';
+import { MockProvider, TransportProvider } from '../src/ai/providers';
+import { DevProxyTransport } from '../src/ai/transports/dev_proxy';
 import {
   COMMON_RULES,
   createRoleRegistry,
@@ -281,94 +282,107 @@ describe('budget and pricing', () => {
 });
 
 describe('providers', () => {
-  it('ProxyProvider maps a success body to an LlmResult', async () => {
-    let posted: HttpRequestInit | undefined;
-    const p = new ProxyProvider({
-      baseUrl: 'http://dev',
-      transport: async (_url, init) => {
-        posted = init;
-        return {
-          status: 200,
-          json: async () => ({
-            ok: true,
-            json: { commands: [] },
-            text: '{"commands":[]}',
-            usage: {
-              inputTokens: 10,
-              outputTokens: 5,
-              cacheReadInputTokens: 100,
-              cacheCreationInputTokens: 0,
-            },
-            model: 'claude-haiku-5-5',
-            stopReason: 'end_turn',
-            costUsd: 0.0001,
-          }),
-        };
-      },
-    });
-    const req = {
-      tier: 'low' as const,
-      system: 's',
-      context: 'c',
-      schema: {},
-      maxTokens: 10,
-      purpose: 'p',
-    };
-    const r = await p.complete(req);
+  const devDefaults = {
+    provider: 'anthropic' as const,
+    connectionId: 'dev_proxy',
+    tierModels: { low: 'claude-haiku-5-5', mid: 'claude-sonnet-5-5' },
+  };
+  const req = (tier: 'low' | 'mid' = 'low') => ({
+    tier,
+    system: 's',
+    context: 'c',
+    schema: {},
+    maxTokens: 10,
+    purpose: 'p',
+  });
+
+  it('TransportProvider over the dev transport sends a spec and maps the receipt to an LlmResult', async () => {
+    let posted: { url: string; init: HttpRequestInit } | undefined;
+    const p = new TransportProvider(
+      new DevProxyTransport({
+        baseUrl: 'http://dev',
+        transport: async (url, init) => {
+          posted = { url, init };
+          return {
+            status: 200,
+            json: async () => ({
+              ok: true,
+              json: { commands: [] },
+              text: '{"commands":[]}',
+              usage: {
+                inputTokens: 10,
+                outputTokens: 5,
+                cacheReadInputTokens: 100,
+                cacheCreationInputTokens: 0,
+              },
+              servedModel: 'claude-haiku-5-5',
+              rawStopReason: 'end_turn',
+              costUsd: 0.0001,
+              latencyMs: 7,
+            }),
+          };
+        },
+      }),
+      { defaults: devDefaults },
+    );
+    const r = await p.complete(req());
     expect(r).toMatchObject({
       ok: true,
       model: 'claude-haiku-5-5',
       costUsd: 0.0001,
       json: { commands: [] },
+      stopReason: 'end_turn',
+      latencyMs: 7,
     });
-    expect(posted?.method).toBe('POST');
-    expect(JSON.parse(posted?.body ?? '{}')).toMatchObject({ tier: 'low', system: 's' });
+    expect(posted?.url).toBe('http://dev/api/llm');
+    expect(posted?.init.method).toBe('POST');
+    expect(JSON.parse(posted?.init.body ?? '{}')).toMatchObject({
+      connectionId: 'dev_proxy',
+      model: 'claude-haiku-5-5',
+      slot: 'low',
+      segments: [
+        { role: 'rules', text: 's' },
+        { role: 'turn', text: 'c' },
+      ],
+    });
   });
 
-  it('ProxyProvider goes unavailable on no_credentials or a missing proxy, and rechecks later', async () => {
-    const c = clock(0);
-    let status = 503;
-    const p = new ProxyProvider({
-      clock: c,
-      recheckMs: 1000,
-      transport: async () => ({
-        status,
-        json: async () => ({ ok: false, error: 'no_credentials', message: 'x' }),
+  it('TransportProvider reports a missing dev proxy as not configured, and a tier without a model never sends', async () => {
+    let sent = 0;
+    const p = new TransportProvider(
+      new DevProxyTransport({
+        transport: async () => {
+          sent += 1;
+          return { status: 404, json: async () => ({}) };
+        },
       }),
+      { defaults: { ...devDefaults, tierModels: { low: 'claude-haiku-5-5' } } },
+    );
+    expect(await p.complete(req())).toMatchObject({
+      ok: false,
+      error: 'no_credentials',
+      problem: 'not_configured',
     });
-    const req = {
-      tier: 'low' as const,
-      system: 's',
-      context: 'c',
-      schema: {},
-      maxTokens: 10,
-      purpose: 'p',
-    };
-    expect(await p.complete(req)).toMatchObject({ ok: false, error: 'no_credentials' });
-    expect(p.available()).toBe(false);
-    c.t = 1000;
-    expect(p.available()).toBe(true);
-    status = 404;
-    expect(await p.complete(req)).toMatchObject({ ok: false, error: 'no_proxy' });
-    expect(p.available()).toBe(false);
+    expect(sent).toBe(1);
+    expect(await p.complete(req('mid'))).toMatchObject({ ok: false, problem: 'not_configured' });
+    expect(sent).toBe(1);
   });
 
-  it('ProxyProvider reports network failures and reads the status tiers', async () => {
-    const failing = new ProxyProvider({
-      transport: async () => {
-        throw new Error('down');
-      },
+  it('TransportProvider reports network failures, and the dev transport reads the status tiers', async () => {
+    const failing = new TransportProvider(
+      new DevProxyTransport({
+        transport: async () => {
+          throw new Error('down');
+        },
+      }),
+      { defaults: devDefaults },
+    );
+    expect(await failing.complete(req('mid'))).toMatchObject({
+      ok: false,
+      error: 'network',
+      problem: 'network',
     });
-    const req = {
-      tier: 'mid' as const,
-      system: 's',
-      context: 'c',
-      schema: {},
-      maxTokens: 10,
-      purpose: 'p',
-    };
-    expect(await failing.complete(req)).toMatchObject({ ok: false, error: 'network' });
-    const ok = new ProxyProvider({
+    const ok = new DevProxyTransport({
       transport: async () => ({
         status: 200,
         json: async () => ({
@@ -377,8 +391,12 @@ describe('providers', () => {
         }),
       }),
     });
-    expect(await ok.status()).toMatchObject({ available: true });
-    expect(ok.tierModels()).toEqual({ top: 'claude-opus-5-5', mid: 'claude-sonnet-5-5' });
+    expect(await ok.status()).toEqual({
+      available: true,
+      tiers: { top: 'claude-opus-5-5', mid: 'claude-sonnet-5-5' },
+    });
+    const provider = new TransportProvider(ok, { defaults: devDefaults });
+    expect(provider.tierModels()).toEqual(devDefaults.tierModels);
   });
 
   it('MockProvider answers in order and reports exhaustion', async () => {

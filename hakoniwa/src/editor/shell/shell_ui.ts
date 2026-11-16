@@ -2,17 +2,19 @@
 // a status bar (dev service, model service, content validation, unsaved files).
 // Routing lives in the URL hash so a reload returns to the same tool and selection.
 
-import { type DataApi, summarizeLlm } from '../api/data_client';
+import type { DevProxyStatus } from '../../ai/transports/dev_proxy';
 import type { Workspace } from '../state/workspace';
 import { fmt, T } from '../text';
 import { button, fill, h } from './dom';
+import { summarizeDevProxy } from './llm_pill';
 import { formatRoute, parseRoute, type Route } from './route';
 import type { EditorTool, NoticeKind, ToolHost } from './tool';
 
 export interface ShellOptions {
   root: HTMLElement;
   ws: Workspace;
-  api: DataApi;
+  /** The dev proxy's status (DevProxyTransport.status) for the model service pill. */
+  llmStatus: () => Promise<DevProxyStatus>;
   tools: EditorTool[];
   /** nav entries that are placeholders until phase two */
   later: { id: string; label: string }[];
@@ -21,7 +23,7 @@ export interface ShellOptions {
 
 export class Shell implements ToolHost {
   readonly ws: Workspace;
-  private readonly api: DataApi;
+  private readonly llmStatus: () => Promise<DevProxyStatus>;
   private readonly tools = new Map<string, EditorTool>();
   private readonly toolRoots = new Map<string, HTMLElement>();
   private readonly mounted = new Set<string>();
@@ -39,7 +41,7 @@ export class Shell implements ToolHost {
 
   constructor(opts: ShellOptions) {
     this.ws = opts.ws;
-    this.api = opts.api;
+    this.llmStatus = opts.llmStatus;
     this.defaultTool = opts.defaultTool;
     for (const t of opts.tools) this.tools.set(t.id, t);
 
@@ -157,18 +159,16 @@ export class Shell implements ToolHost {
   }
 
   private async refreshLlm(): Promise<void> {
-    const res = await this.api.llmStatus();
-    if (!res.reachable) {
-      this.llmText = T.status.llmUnreachable;
-      this.llmTitle = res.message;
-    } else {
-      const s = summarizeLlm(res.data);
-      this.llmText =
-        s.enabled === false
+    const s = summarizeDevProxy(
+      await this.llmStatus().catch((): DevProxyStatus => ({ available: false, reason: 'network' })),
+    );
+    this.llmText =
+      s.state === 'unreachable'
+        ? T.status.llmUnreachable
+        : s.state === 'disabled'
           ? T.status.llmDisabled
           : `${T.status.llmReachable}${s.detail ? `（${s.detail}）` : ''}`;
-      this.llmTitle = JSON.stringify(res.data, null, 2);
-    }
+    this.llmTitle = s.title;
     this.renderStatus();
   }
 

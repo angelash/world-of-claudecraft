@@ -3,8 +3,10 @@
 // the LlmCallResult back (the proxy answers in one piece); it also reads the proxy's status
 // (the pseudo connection 'dev_proxy', its slot models and the served connections), runs the
 // connection test and lists models. Development builds only: the client imports this module
-// under import.meta.env.DEV, so production builds drop it (the release bundle never names
-// the proxy's path). Not exported from the src/ai barrels for the same reason.
+// under import.meta.env.DEV, so production builds drop it, and the editor workbench, which
+// imports it directly, is not an entry of a release build (vite.config.ts, the desktop
+// target); the release bundle never names the proxy's path. Not exported from the src/ai
+// barrels for the same reason.
 
 import type {
   AbortSignalLike,

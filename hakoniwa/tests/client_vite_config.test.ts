@@ -19,5 +19,7 @@ describe('client vite config', () => {
       main: resolve(dir, 'index.html'),
       editor: resolve(dir, 'editor.html'),
     });
+    // The desktop (release) target never builds the editor (tests/release_bundle.test.ts).
+    expect(buildInputs(dir, 'desktop')).toEqual({ main: resolve(dir, 'index.html') });
   });
 });

@@ -2,10 +2,9 @@
 //   GET  /api/llm/status   whether a model is reachable, which model serves each tier, and
 //                          the served connections with their capability records
 //   POST /api/llm          an LlmCallSpec in, an LlmCallResult (with a problem code on
-//                          failure) out (docs/50_tech/llm_providers.md 3.1, 10, 12; the game's
-//                          DevProxyTransport); or the legacy LlmRequest in, { ok, json, text,
-//                          usage, model, stopReason, costUsd } out (only the editor workbench's
-//                          ProxyProvider still sends it)
+//                          failure) out (docs/50_tech/llm_providers.md 3.1, 10, 12; the
+//                          DevProxyTransport of the game and the editor); any other body is a
+//                          400 receipt of class bad_request
 //   POST /api/llm/test     { connectionId, depth, models? } in, ConnectionTestReport out
 //   GET  /api/llm/models   ?connectionId= (default dev_proxy), ModelListing out
 //   GET  /api/data?file=   read a JSON file under hakoniwa/data/
@@ -42,7 +41,6 @@ import {
   LlmService,
   type LlmServiceOptions,
   MAX_BODY_BYTES,
-  parseLlmBody,
   parseTestBody,
 } from './llm_proxy';
 
@@ -216,15 +214,6 @@ async function insideRealRoot(root: string, full: string): Promise<boolean> {
   }
 }
 
-/** A POST /api/llm body in the LlmCallSpec shape (the legacy body has no segments). */
-function isSpecBody(raw: unknown): boolean {
-  return (
-    typeof raw === 'object' &&
-    raw !== null &&
-    Array.isArray((raw as { segments?: unknown }).segments)
-  );
-}
-
 const PROBE_LIMITED = {
   ok: false,
   error: 'rate_limited',
@@ -264,25 +253,17 @@ export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
       res.on('close', () => {
         if (!res.writableFinished) ctrl.abort();
       });
-      if (isSpecBody(raw)) {
-        // The LlmCallSpec contract: a malformed spec is a defect (no player problem code).
-        const spec = parseCallSpec(raw);
-        if (!spec.ok) {
-          return send(res, 400, {
-            ok: false,
-            error: { cls: 'bad_request', message: spec.error },
-            latencyMs: 0,
-          });
-        }
-        const result = await svc.completeSpec(spec.value, ctrl.signal);
-        if (!res.writableEnded && !res.destroyed) send(res, 200, result);
-        return;
+      // The LlmCallSpec contract: a malformed spec is a defect (no player problem code).
+      const spec = parseCallSpec(raw);
+      if (!spec.ok) {
+        return send(res, 400, {
+          ok: false,
+          error: { cls: 'bad_request', message: spec.error },
+          latencyMs: 0,
+        });
       }
-      const parsed = parseLlmBody(raw, svc.maxTokensCap);
-      if (!parsed.ok)
-        return send(res, 400, { ok: false, error: 'bad_request', message: parsed.error });
-      const out = await svc.complete(parsed.value, ctrl.signal);
-      if (!res.writableEnded && !res.destroyed) send(res, out.status, out.payload);
+      const result = await svc.completeSpec(spec.value, ctrl.signal);
+      if (!res.writableEnded && !res.destroyed) send(res, 200, result);
     },
 
     'POST /api/llm/test': async (req, res) => {

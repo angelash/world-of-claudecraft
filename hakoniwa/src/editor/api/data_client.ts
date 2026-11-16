@@ -2,7 +2,7 @@
 //   GET  /api/data?file=<path under data/>   read a JSON data file
 //   PUT  /api/data?file=<path under data/>   write it back (JSON body)
 //   DELETE /api/data?file=<path under data/_staging/>   remove a staged batch file
-//   GET  /api/llm/status                     model proxy status
+// (The model proxy's status comes through the dev transport; see shell/llm_pill.ts.)
 // The fetch function is injected so the response interpretation is unit-tested.
 // A missing route is told apart from a missing file: the dev service answers in JSON,
 // while a plain Vite server answers 404 text or its HTML fallback.
@@ -29,14 +29,11 @@ export type WriteResult =
   | { ok: true }
   | { ok: false; reason: 'unavailable' | 'error'; message: string };
 
-export type LlmStatus = { reachable: false; message: string } | { reachable: true; data: unknown };
-
 export interface DataApi {
   read(file: string): Promise<ReadResult>;
   write(file: string, data: unknown): Promise<WriteResult>;
   /** Remove a file (the dev service only removes staged batch files under data/_staging/). */
   remove(file: string): Promise<WriteResult>;
-  llmStatus(): Promise<LlmStatus>;
 }
 
 const JSON_HEADERS = { Accept: 'application/json' };
@@ -131,18 +128,6 @@ export function createDataApi(
       }
       return writeOutcome(res);
     },
-
-    async llmStatus() {
-      let res: FetchResponseLike;
-      try {
-        res = await fetchFn(`${base}/api/llm/status`, { headers: JSON_HEADERS });
-      } catch {
-        return { reachable: false, message: messages.network };
-      }
-      const parsed = parseJson(await res.text().catch(() => ''));
-      if (!res.ok || !parsed.ok) return { reachable: false, message: messages.http(res.status) };
-      return { reachable: true, data: parsed.value };
-    },
   };
 }
 
@@ -162,31 +147,4 @@ export async function fetchAuditPage(
   const parsed = parseJson(await res.text().catch(() => ''));
   if (!res.ok || !parsed.ok) return { ok: false, message: `HTTP ${res.status}` };
   return { ok: true, body: parsed.value };
-}
-
-/**
- * Reduce an /api/llm/status body to enabled or disabled plus a short detail line. The
- * AI layer owns the exact shape (tools/llm_proxy.ts StatusPayload: available, source,
- * reason, tiers); other common boolean fields are recognised too.
- */
-export function summarizeLlm(data: unknown): { enabled: boolean | null; detail: string } {
-  if (!data || typeof data !== 'object') return { enabled: null, detail: '' };
-  const o = data as Record<string, unknown>;
-  let enabled: boolean | null = null;
-  for (const k of ['enabled', 'available', 'configured', 'ok', 'ready']) {
-    if (typeof o[k] === 'boolean') {
-      enabled = o[k] as boolean;
-      break;
-    }
-  }
-  const parts: string[] = [];
-  for (const k of ['provider', 'model', 'mode', 'source', 'reason']) {
-    if (typeof o[k] === 'string' && o[k]) parts.push(o[k] as string);
-  }
-  if (o.tiers && typeof o.tiers === 'object') {
-    for (const [tier, model] of Object.entries(o.tiers as Record<string, unknown>)) {
-      if (typeof model === 'string' && model) parts.push(`${tier} ${model}`);
-    }
-  }
-  return { enabled, detail: parts.join(' / ') };
 }

@@ -109,7 +109,7 @@
 | `src/ai/providers/schema_dialect.ts`                     | 模式方言改写             | 把本方输出模式改写成各通道接受的子集，剥离的约束交给本方校验                                                 | 是     |
 | `src/ai/providers/capabilities.ts`                       | 能力表                   | 已知型号表、探针结果的解读、能力合并                                                                         | 是     |
 | `src/ai/providers/problems.ts`                           | 问题分类                 | 适配器错误到玩家问题代码的映射、合并规则                                                                     | 是     |
-| `src/ai/providers/transport_provider.ts`                 | 传输型提供方             | 实现 `LlmProvider`，把规格交给注入的 `LlmTransport`；现有 `ProxyProvider` 迁移到这里                                 | 是     |
+| `src/ai/providers/transport_provider.ts`                 | 传输型提供方             | 实现 `LlmProvider`，把规格交给注入的 `LlmTransport`；游戏与编辑器都经它调用各传输                                     | 是     |
 | `src/ai/providers/null.ts`、`mock.ts`                    | 无模型、模拟             | 现有 `NullProvider`、`MockProvider` 迁入                                                                      | 是     |
 | `src/ai/llm_config/`                                     | 配置                     | 设置数据模型、预设、校验、路由解析、估算器、角色适配标签、迁移                                               | 是     |
 | `src/ai/gateway/guard.ts`、`spend_book.ts`               | 守卫与记账簿             | 桌面网关与开发代理共用的复核规则与窗口记账（纯函数，时钟注入）                                               | 是     |
@@ -223,7 +223,7 @@ interface ProviderAdapter {
 | 项           | 写法                                                                                                                                                                                                                               |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 端点与头     | `POST {baseUrl}/v1/messages`；`x-api-key`、`anthropic-version`、`content-type`；启用服务端回退时加 `anthropic-beta`；默认地址 `https://api.anthropic.com`                                                                          |
-| 系统段       | 规则段、人设段、私密段按顺序作为多个系统文本块，各带缓存断点（每请求至多 4 个，1 小时档排在 5 分钟档之前）；与 `tools/llm_proxy.ts` 的 `buildMessageParams` 同一写法                                                               |
+| 系统段       | 规则段、人设段、私密段按顺序作为多个系统文本块，各带缓存断点（每请求至多 4 个，1 小时档排在 5 分钟档之前）；与 `tools/llm_proxy.ts` 的 `buildSpecMessageParams` 同一写法                                                           |
 | 会话历史     | 同一分段内的往轮原样追加；运营方消息按 [ai_architecture.md](ai_architecture.md) 第 7.1 节放在本轮之后                                                                                                                              |
 | 结构化输出   | `output_config.format` 为 `json_schema`（已知型号的首选通道）；`claude-opus-5-5` 与 `claude-sonnet-5-5` 不支持强制指定工具，所以不把工具调用当首选载体                                                                             |
 | 思考深度     | `output_config.effort` 取 `low`、`medium`、`high`，按路由显式设置；5.5 系列自适应思考，不发 `thinking` 参数，也不发温度等采样参数（关闭思考或发采样参数会被拒）                                                                    |

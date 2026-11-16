@@ -653,7 +653,7 @@ function stripComments(text: string): string {
 
 describe('purity of src/ai/providers', () => {
   const files = tsFiles(join(__dirname, '..', 'src', 'ai', 'providers'));
-  const adapterFiles = files.filter((f) => !/[\\/](proxy|mock|null)\.ts$/.test(f));
+  const adapterFiles = files.filter((f) => !/[\\/](mock|null)\.ts$/.test(f));
 
   it('has no network, DOM, Electron, clock or randomness', () => {
     const BANNED =

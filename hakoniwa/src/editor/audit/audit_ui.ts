@@ -10,7 +10,7 @@ import { reviewRecords } from '../ledger/leak_review';
 import { append, button, clear, fill, h, rafThrottle, select } from '../shell/dom';
 import type { EditorTool, ToolHost } from '../shell/tool';
 import type { GameSession } from '../state/game_session';
-import { fmt, T } from '../text';
+import { degradeLevelText, fmt, T } from '../text';
 import {
   type AuditFilter,
   auditFacets,
@@ -127,7 +127,7 @@ export class AuditTool implements EditorTool {
     ];
     const rows: [string, string][] = [
       [T.audit.provider, `${kind}（${game.providerNote}）`],
-      [T.audit.level, `${s.level}（${T.audit.levelNames}）`],
+      [T.audit.level, degradeLevelText(s.level)],
       [T.audit.providerAvailable, s.providerAvailable ? T.common.yes : T.common.no],
       [T.audit.inFlight, String(s.inFlight)],
       [T.audit.hourUsd, `${formatUsd(b.hourUsd)} / ${formatUsd(b.perHourUsd, 2)}`],

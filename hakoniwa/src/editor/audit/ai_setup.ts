@@ -1,13 +1,19 @@
-// AI mode for the workbench: pick the model provider (the dev proxy when
-// GET /api/llm/status says a model is reachable, otherwise a scripted mock for offline
-// review, or none) and build the AiRunner over the inspector's engine. The reveal
-// ledger guard is wired in: locked terms and keywords of the current world decline an
-// answer that mentions them. Pure: transport and clock are injected.
+// AI mode for the workbench: pick the model provider (the dev proxy, as TransportProvider over
+// DevProxyTransport, when the proxy's status says a model is reachable; otherwise a scripted
+// mock for offline review, or none) and build the AiRunner over the inspector's engine. The
+// runner drives the provider with its legacy requests; TransportProvider turns each into an
+// LlmCallSpec on the proxy's pseudo connection 'dev_proxy' with the proxy's tier models
+// (docs/50_tech/llm_providers.md 12, 14). The reveal ledger guard is wired in: locked terms
+// and keywords of the current world decline an answer that mentions them. Pure: transport
+// and clock are injected. The editor is a development tool and never ships in a release
+// build (vite.config.ts, the desktop target), so the dev transport is imported directly.
 
 import type { AuditLog } from '../../ai/audit';
-import type { Clock, HttpTransport, LlmProvider } from '../../ai/contracts';
-import { MockProvider, type MockStep, NullProvider, ProxyProvider } from '../../ai/providers';
+import type { Clock, HttpTransport, LlmProvider, LlmTransport } from '../../ai/contracts';
+import { DEV_PROXY_CONNECTION_ID } from '../../ai/llm_config';
+import { MockProvider, type MockStep, NullProvider, TransportProvider } from '../../ai/providers';
 import { type AiHost, AiRunner } from '../../ai/runner';
+import { type DevProxyStatus, DevProxyTransport } from '../../ai/transports/dev_proxy';
 import type { ContentMap } from '../../core/contracts';
 import type { World } from '../../core/world';
 import { createRoleRegistry } from '../../game/ai_roles';
@@ -67,6 +73,49 @@ function mockOrNull(deps: ProviderDeps, why: string): ProviderPick {
   return { provider: new NullProvider(), kind: 'null', note: why };
 }
 
+/** Problems that say the dev proxy cannot answer at all: no proxy or credential, a bad key. */
+const PROXY_DOWN: ReadonlySet<string> = new Set([
+  'not_configured',
+  'key_invalid',
+  'permission_denied',
+]);
+
+/** After the proxy says it cannot answer, the provider tries again after this long (ms). */
+export const PROXY_RECHECK_MS = 60_000;
+
+/**
+ * The dev proxy as the runner's provider: TransportProvider over the dev transport, with the
+ * proxy's pseudo connection and tier models as the route facts of the legacy requests. It is
+ * unavailable while the status or the latest answer says the proxy cannot answer, and tries
+ * again PROXY_RECHECK_MS later.
+ */
+export function devProxyProvider(
+  dev: LlmTransport,
+  status: DevProxyStatus,
+  clock: Clock,
+  recheckMs = PROXY_RECHECK_MS,
+): TransportProvider {
+  let downUntil = status.available ? Number.NEGATIVE_INFINITY : clock.now() + recheckMs;
+  const transport: LlmTransport = {
+    async send(spec, opts) {
+      const result = await dev.send(spec, opts);
+      if (!result.ok && result.problem && PROXY_DOWN.has(result.problem)) {
+        downUntil = clock.now() + recheckMs;
+      }
+      return result;
+    },
+  };
+  return new TransportProvider(transport, {
+    id: DEV_PROXY_CONNECTION_ID,
+    available: () => clock.now() >= downUntil,
+    defaults: {
+      provider: 'anthropic',
+      connectionId: DEV_PROXY_CONNECTION_ID,
+      tierModels: { ...status.tiers },
+    },
+  });
+}
+
 /** Choose the provider. 'auto' asks the proxy first and falls back for offline review. */
 export async function chooseProvider(
   choice: ProviderChoice,
@@ -75,12 +124,13 @@ export async function chooseProvider(
   if (choice === 'mock') return mockOrNull({ ...deps, offline: 'mock' }, T.audit.noteMock);
   if (choice === 'null')
     return { provider: new NullProvider(), kind: 'null', note: T.audit.noteNull };
-  const proxy = new ProxyProvider({
+  const dev = new DevProxyTransport({
     baseUrl: deps.baseUrl,
     transport: deps.transport,
     clock: deps.clock,
   });
-  const status = await proxy.status();
+  const status = await dev.status();
+  const proxy = devProxyProvider(dev, status, deps.clock);
   if (status.available) {
     const tiers = Object.entries(status.tiers ?? {})
       .map(([k, m]) => `${k} ${m}`)

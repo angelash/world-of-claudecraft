@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { DevProxyTransport } from '../src/ai/transports/dev_proxy';
 import { allPacks, allSchemas, buildContent, validateContent } from '../src/content';
 import type { TableSchema } from '../src/content/pack';
 import {
@@ -12,10 +13,10 @@ import {
   type DataApi,
   type FetchLike,
   type ReadResult,
-  summarizeLlm,
   type WriteResult,
 } from '../src/editor/api/data_client';
 import { fileShape, patchArrayTable, rowsOf, withRows } from '../src/editor/content/rows';
+import { summarizeDevProxy } from '../src/editor/shell/llm_pill';
 import { formatRoute, parseRoute } from '../src/editor/shell/route';
 import { staticDataFiles } from '../src/editor/state/static_data';
 import { type StorageLike, Workspace } from '../src/editor/state/workspace';
@@ -66,9 +67,6 @@ class FakeApi implements DataApi {
     if (!(file in this.files)) return { ok: false, reason: 'error', message: 'not_found' };
     delete this.files[file];
     return { ok: true };
-  }
-  async llmStatus() {
-    return { reachable: false as const, message: 'n/a' };
   }
 }
 
@@ -427,25 +425,52 @@ describe('data client', () => {
     expect(await remote.read('a.json')).toMatchObject({ reason: 'unavailable' });
   });
 
-  it('summarises the model status loosely', async () => {
-    expect(summarizeLlm({ enabled: false, provider: 'anthropic' })).toEqual({
-      enabled: false,
-      detail: 'anthropic',
+  it('summarises the dev proxy status read through the dev transport', async () => {
+    const tiers = { top: 'm1', low: 'm3' };
+    const served = [{ id: 'dev_proxy' }, { id: 'conn_compat' }] as unknown as NonNullable<
+      Parameters<typeof summarizeDevProxy>[0]['connections']
+    >;
+    expect(summarizeDevProxy({ available: true, tiers, connections: served })).toMatchObject({
+      state: 'available',
+      detail: 'top m1 / low m3 / conn_compat',
     });
+    const disabled = summarizeDevProxy({ available: false, reason: 'no_credentials', tiers });
+    expect(disabled).toMatchObject({
+      state: 'disabled',
+      detail: 'no_credentials / top m1 / low m3',
+    });
+    expect(JSON.parse(disabled.title)).toEqual({
+      available: false,
+      reason: 'no_credentials',
+      tiers,
+    });
+    for (const reason of ['network', 'no_proxy', 'no_transport', 'bad_response']) {
+      expect(summarizeDevProxy({ available: false, reason })).toMatchObject({
+        state: 'unreachable',
+        detail: reason,
+      });
+    }
+    // The tooltip names the served connections by id only (no capability records).
     expect(
-      summarizeLlm({
-        available: false,
-        reason: 'no_credentials',
-        tiers: { top: 'm1', low: 'm3' },
-        serverFallback: {},
-      }),
-    ).toEqual({ enabled: false, detail: 'no_credentials / top m1 / low m3' });
-    expect(summarizeLlm({ available: true, model: 'm' })).toEqual({ enabled: true, detail: 'm' });
-    expect(summarizeLlm(null)).toEqual({ enabled: null, detail: '' });
-    const api = createDataApi(
-      fakeFetch(() => ({ status: 200, type: 'application/json', body: '{"enabled":true}' })),
-    );
-    expect(await api.llmStatus()).toEqual({ reachable: true, data: { enabled: true } });
+      JSON.parse(summarizeDevProxy({ available: true, connections: served }).title).connections,
+    ).toEqual(['dev_proxy', 'conn_compat']);
+    // End to end through the transport the shell uses: GET /api/llm/status.
+    const seen: string[] = [];
+    const dev = new DevProxyTransport({
+      transport: async (url) => {
+        seen.push(url);
+        return { status: 200, json: async () => ({ available: true, tiers: { mid: 'm2' } }) };
+      },
+    });
+    expect(summarizeDevProxy(await dev.status())).toMatchObject({
+      state: 'available',
+      detail: 'mid m2',
+    });
+    expect(seen).toEqual(['/api/llm/status']);
+    const gone = new DevProxyTransport({
+      transport: async () => ({ status: 404, json: async () => ({}) }),
+    });
+    expect(summarizeDevProxy(await gone.status()).state).toBe('unreachable');
   });
 });
 

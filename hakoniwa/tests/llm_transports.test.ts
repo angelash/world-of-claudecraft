@@ -606,19 +606,25 @@ describe('layering of the model path (llm_providers.md 2.2, 16.2)', () => {
 
   it('keeps settings, routing, estimates and mocks free of network, Electron and Node', () => {
     const pure = [...files(join(SRC, 'ai', 'llm_config')), ...files(join(SRC, 'ai', 'mocks'))];
-    const providers = files(join(SRC, 'ai', 'providers')).filter((f) => !f.endsWith('proxy.ts'));
+    const providers = files(join(SRC, 'ai', 'providers'));
     const bad = [...pure, ...providers].filter((f) =>
       /\bfetch\s*\(|XMLHttpRequest|WebSocket|from 'electron'|from 'node:|globalThis/.test(code(f)),
     );
     expect(bad.map(rel)).toEqual([]);
   });
 
-  it('names the dev proxy path only in the development transport and the legacy editor provider', () => {
-    const hits = [...files(join(SRC, 'ai')), ...files(join(SRC, 'client'))]
+  it('names the dev proxy path only in the development transport', () => {
+    // The editor workbench reaches the proxy through DevProxyTransport too (status included).
+    const scanned = [
+      ...files(join(SRC, 'ai')),
+      ...files(join(SRC, 'client')),
+      ...files(join(SRC, 'editor')),
+    ];
+    const hits = scanned
       .filter((f) => code(f).includes('/api/llm'))
       .map(rel)
       .sort();
-    expect(hits).toEqual(['ai/providers/proxy.ts', 'ai/transports/dev_proxy.ts']);
+    expect(hits).toEqual(['ai/transports/dev_proxy.ts']);
     const barrels = ['ai/index.ts', 'ai/transports/index.ts', 'ai/providers/index.ts'];
     for (const b of barrels) expect(code(join(SRC, b))).not.toContain('dev_proxy');
     // The client reaches the dev transport only through a dynamic import guarded by DEV.

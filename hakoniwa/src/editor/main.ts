@@ -5,6 +5,7 @@
 
 import './editor.css';
 import { AuditLog, httpAuditSink } from '../ai/audit';
+import { DevProxyTransport } from '../ai/transports/dev_proxy';
 import { allPacks, allSchemas, buildContent } from '../content';
 import { createDataApi, fetchAuditPage } from './api/data_client';
 import { AuditTool } from './audit/audit_ui';
@@ -62,10 +63,12 @@ async function start(): Promise<void> {
   const ai = new AiControls({ audit, clock: { now: () => performance.now() } }, (message, kind) =>
     shell?.notify(message, kind),
   );
+  // The model service pill reads the dev proxy's status through the dev transport.
+  const devProxy = new DevProxyTransport();
   shell = new Shell({
     root,
     ws,
-    api,
+    llmStatus: () => devProxy.status(),
     tools: [
       new ContentTool(),
       new MapTool(),

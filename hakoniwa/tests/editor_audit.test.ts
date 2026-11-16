@@ -1,11 +1,15 @@
-// AI audit desk: record filters, facets and summary; history page parsing; provider
-// choice for the inspector's AI mode; and the runner built by the workbench, end to end
-// with a scripted provider (including the reveal-ledger guard on answers).
+// AI audit desk: record filters, facets and summary; history page parsing; the degrade level
+// line; provider choice for the inspector's AI mode (the dev proxy as TransportProvider over
+// DevProxyTransport, its availability and recheck); and the runner built by the workbench,
+// end to end with a scripted provider and with the dev proxy (including the reveal-ledger
+// guard on answers).
 
 import { describe, expect, it } from 'vitest';
 import { AuditLog, type AuditRecord } from '../src/ai/audit';
-import type { HttpTransport } from '../src/ai/contracts';
-import { MockProvider } from '../src/ai/providers';
+import type { HttpTransport, LlmCallResult, ProblemCode } from '../src/ai/contracts';
+import { DEV_PROXY_CONNECTION_ID } from '../src/ai/llm_config';
+import { MockProvider, TransportProvider } from '../src/ai/providers';
+import { parseCallSpec } from '../src/ai/providers/call_spec';
 import { buildContent } from '../src/content';
 import { ok } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
@@ -14,7 +18,9 @@ import type { GameSystem } from '../src/core/system';
 import {
   chooseProvider,
   createRunner,
+  devProxyProvider,
   lockedPhrases,
+  PROXY_RECHECK_MS,
   parseMockScript,
 } from '../src/editor/audit/ai_setup';
 import {
@@ -27,6 +33,7 @@ import {
   summarizeAudit,
 } from '../src/editor/audit/audit_model';
 import { GameSession } from '../src/editor/state/game_session';
+import { degradeLevelText, T } from '../src/editor/text';
 import { createGame } from '../src/game/create';
 import { lockedTerms } from '../src/systems/quests';
 
@@ -174,6 +181,25 @@ describe('audit model', () => {
   });
 });
 
+describe('degrade level line', () => {
+  it('names every level of the 0 to 9 ladder and shows anything else as a bare number', () => {
+    expect(T.audit.levelNames).toHaveLength(10);
+    const lines = Array.from({ length: 10 }, (_, level) => degradeLevelText(level));
+    expect(new Set(lines).size).toBe(10);
+    lines.forEach((line, level) => {
+      expect(line.startsWith(`${level}（`)).toBe(true);
+      expect(line).toContain(T.audit.levelNames[level]);
+    });
+    expect(degradeLevelText(0)).toContain(T.audit.levelNames[0]);
+    expect(degradeLevelText(9)).toContain('AI');
+    expect([degradeLevelText(10), degradeLevelText(-1), degradeLevelText(2.5)]).toEqual([
+      '10',
+      '-1',
+      '2.5',
+    ]);
+  });
+});
+
 describe('provider choice', () => {
   const clock = { now: () => 0 };
   const statusTransport =
@@ -231,6 +257,100 @@ describe('provider choice', () => {
       offline: 'mock',
     });
     expect(down.kind).toBe('mock');
+  });
+
+  /** A dev proxy: the status for GET .../status, the receipt for POST /api/llm. */
+  function devProxy(status: unknown, receipt: unknown) {
+    const posted: { url: string; body: unknown }[] = [];
+    const transport: HttpTransport = async (url, init) => {
+      if (url.endsWith('/api/llm/status')) return { status: 200, json: async () => status };
+      posted.push({ url, body: JSON.parse(init.body ?? 'null') });
+      return { status: 200, json: async () => receipt };
+    };
+    return { transport, posted };
+  }
+
+  const TIERS = { top: 'claude-opus-5-5', mid: 'claude-sonnet-5-5', low: 'claude-haiku-5-5' };
+
+  it('sends the runner requests as LlmCallSpecs on the dev proxy connection', async () => {
+    const { transport, posted } = devProxy(
+      { available: true, tiers: TIERS },
+      { ok: true, json: { commands: [] }, text: '{"commands":[]}', latencyMs: 4 },
+    );
+    const pick = await chooseProvider('proxy', {
+      clock,
+      transport,
+      offline: 'null',
+      mockScript: [],
+      repeatLast: false,
+    });
+    expect(pick.provider).toBeInstanceOf(TransportProvider);
+    expect(pick.provider.tierModels?.()).toEqual(TIERS);
+    const out = await pick.provider.complete({
+      tier: 'mid',
+      system: 's',
+      stable: 'p',
+      context: 'c',
+      schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
+      maxTokens: 100,
+      purpose: 'npc.daily/probe',
+    });
+    expect(out).toMatchObject({ ok: true, json: { commands: [] }, model: TIERS.mid });
+    expect(posted.map((p) => p.url)).toEqual(['/api/llm']);
+    // The body is what the dev proxy accepts now: the LlmCallSpec contract.
+    const spec = parseCallSpec(posted[0]?.body);
+    expect(spec.ok).toBe(true);
+    if (spec.ok) {
+      expect(spec.value).toMatchObject({
+        provider: 'anthropic',
+        connectionId: DEV_PROXY_CONNECTION_ID,
+        model: TIERS.mid,
+        slot: 'mid',
+      });
+      expect(spec.value.segments.map((s) => s.role)).toEqual(['rules', 'persona', 'turn']);
+    }
+  });
+
+  it('goes unavailable when the dev proxy cannot answer, and rechecks later', async () => {
+    const t = { now: 0 };
+    const c = { now: () => t.now };
+    let problem: ProblemCode = 'not_configured';
+    const dev = {
+      send: async (): Promise<LlmCallResult> => ({
+        ok: false,
+        error: { cls: 'auth', message: 'x' },
+        problem,
+        latencyMs: 0,
+      }),
+    };
+    const req = {
+      tier: 'low' as const,
+      system: 's',
+      context: 'c',
+      schema: {},
+      maxTokens: 10,
+      purpose: 'p',
+    };
+    const up = devProxyProvider(dev, { available: true, tiers: TIERS }, c, 1000);
+    expect(up.available()).toBe(true);
+    expect(await up.complete(req)).toMatchObject({ ok: false, problem: 'not_configured' });
+    expect(up.available()).toBe(false);
+    t.now = 1000;
+    expect(up.available()).toBe(true);
+    problem = 'key_invalid';
+    await up.complete(req);
+    expect(up.available()).toBe(false);
+    t.now = 2000;
+    // A failure that says nothing about the proxy keeps it available.
+    problem = 'rate_limited';
+    await up.complete(req);
+    expect(up.available()).toBe(true);
+    // A status that says the proxy cannot answer starts it unavailable.
+    const down = devProxyProvider(dev, { available: false, reason: 'no_credentials' }, c, 1000);
+    expect(down.available()).toBe(false);
+    t.now = 3000;
+    expect(down.available()).toBe(true);
+    expect(PROXY_RECHECK_MS).toBe(60_000);
   });
 });
 
@@ -306,6 +426,68 @@ describe('workbench runner', () => {
     session.set(null);
     engine.step(20);
     expect(provider.calls).toHaveLength(1);
+  });
+
+  it('drives the dev proxy through TransportProvider end to end', async () => {
+    const content = buildContent();
+    const engine = Engine.create(5, content, [asker], { aiMode: 'external' });
+    const posted: unknown[] = [];
+    const transport: HttpTransport = async (url, init) => {
+      if (url.endsWith('/status')) {
+        return {
+          status: 200,
+          json: async () => ({
+            available: true,
+            tiers: { top: 'claude-opus-5-5', mid: 'claude-sonnet-5-5', low: 'claude-haiku-5-5' },
+          }),
+        };
+      }
+      posted.push(JSON.parse(init.body ?? 'null'));
+      return {
+        status: 200,
+        json: async () => ({
+          ok: true,
+          json: { commands: [{ kind: 'flag.set', data: '{"key":"proxy_flag","value":3}' }] },
+          text: '',
+          usage: {
+            inputTokens: 10,
+            outputTokens: 5,
+            cacheReadInputTokens: 0,
+            cacheCreationInputTokens: 0,
+          },
+          servedModel: 'claude-haiku-5-5',
+          costUsd: 0.001,
+          latencyMs: 3,
+        }),
+      };
+    };
+    const clock = { now: () => 0 };
+    const pick = await chooseProvider('auto', {
+      clock,
+      transport,
+      offline: 'null',
+      mockScript: [],
+      repeatLast: false,
+    });
+    expect(pick.kind).toBe('proxy');
+    const audit = new AuditLog();
+    const { runner } = createRunner({
+      engine,
+      content,
+      provider: pick.provider,
+      clock,
+      audit,
+      msPerTick: 50,
+    });
+    runner.attach();
+    engine.step(1);
+    await runner.whenIdle();
+    engine.step(1);
+    expect(engine.world.meta.flags.proxy_flag).toBe(3);
+    expect(posted).toHaveLength(1);
+    expect(parseCallSpec(posted[0]).ok).toBe(true);
+    expect(audit.list()[0]).toMatchObject({ outcome: 'proposal' });
+    expect(summarizeAudit(audit.list()).costUsd).toBeCloseTo(0.001);
   });
 
   it('declines an answer that names a locked reveal-ledger term', async () => {

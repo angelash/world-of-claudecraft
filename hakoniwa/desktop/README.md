@@ -8,7 +8,7 @@ Electron 用仓库根目录安装的版本（`../node_modules/electron`），不
 - `npm run desktop:dev`：构建游戏（`dist/`）与桌面壳（`desktop/dist/`），再用 Electron 打开。首次运行时 Electron 包会自动下载一次可执行文件。
 - `npm run build:desktop`：只构建桌面壳；esbuild 把每个入口打成单个 CommonJS 文件，`electron` 是唯一的外部依赖。
 - 端到端调试：`HK_CHANNEL=e2e npm run desktop:dev -- --remote-debugging-port=9333`。只有 `e2e` 通道接受远程调试参数，其他通道见到它即退出。
-- `npm run pack:win`：未签名的 Windows x64 目录包，输出 `release/win-unpacked/HakoniwaChronicle.exe`（`release/` 不入库）。先跑 `npm run build` 与 `npm run build:desktop`，本命令只打包：把 `package.json`、`dist/`（不含 `editor.html`）、`desktop/dist/` 按原样布局放进 `release/app/`，用仓库根目录的 `electron-builder` 与根目录已解包的 Electron（不下载）打成 asar，经 `extraMetadata` 盖 `hkBuild` 章（版本、提交短哈希、通道），按 `RELEASE_FUSES` 设熔断位，最后从可执行文件读回熔断位逐项比对，不一致即失败。通道默认 `internal`，`npm run pack:win -- --channel e2e` 打出可远程调试的包（打包构建只认盖章，不认 `HK_CHANNEL`）。
+- `npm run pack:win`：未签名的 Windows x64 目录包，输出 `release/win-unpacked/HakoniwaChronicle.exe`（`release/` 不入库）。它先跑 `npm run build:release`（只含游戏入口的发布构建，编辑器不进包，产物扫描见 `tools/release_bundle.ts`）与 `npm run build:desktop`，再由 `pack.ts` 打包：`dist/` 不是发布构建（有编辑器页面，或出现 `/api/llm` 等开发服务路由、`@anthropic-ai/sdk`）即失败；把 `package.json`、`dist/`（不含 `editor.html`）、`desktop/dist/` 按原样布局放进 `release/app/`，用仓库根目录的 `electron-builder` 与根目录已解包的 Electron（不下载）打成 asar，经 `extraMetadata` 盖 `hkBuild` 章（版本、提交短哈希、通道），按 `RELEASE_FUSES` 设熔断位，最后从可执行文件读回熔断位逐项比对，不一致即失败。通道默认 `internal`，`npm run pack:win -- --channel e2e` 打出可远程调试的包（打包构建只认盖章，不认 `HK_CHANNEL`）。
 
 ## 文件
 
@@ -33,7 +33,7 @@ Electron 用仓库根目录安装的版本（`../node_modules/electron`），不
 | `llm_gateway/` | 大模型网关 utility 进程：`protocol.ts` 消息与二级守卫的信封校验，`core.ts` 网关逻辑，`client.ts` 主进程侧，`main.ts` 进程入口 | 除 `main.ts` 外是 |
 | `key_entry/` | 独立密钥录入窗：静态页面、只暴露提交、粘贴、取消的预载、主进程侧控制器与密钥校验 | `rules.ts`、`controller.ts` 是 |
 | `pack_config.ts` | `pack:win` 的 electron-builder 配置、暂存包的 `package.json`、`hkBuild` 盖章、熔断位读回比对 | 是 |
-| `build.ts`、`launch.ts`、`pack.ts` | 构建、启动与打包脚本（Node 直接运行；`pack.ts` 经 Vite 模块运行器加载 `pack_config.ts`） | 否 |
+| `build.ts`、`launch.ts`、`pack.ts` | 构建、启动与打包脚本（Node 直接运行；`pack.ts` 经 Vite 模块运行器加载 `pack_config.ts` 与 `tools/release_bundle.ts`） | 否 |
 
 ## 已接通与未接通
 

@@ -1,10 +1,13 @@
 // npm run pack:win (docs/50_tech/release_engineering.md 3.1): an unsigned Windows x64
 // directory build of the desktop shell and the built game, into release/win-unpacked/.
-// Run npm run build and npm run build:desktop first; this script only packages.
+// npm run pack:win first runs npm run build:release (the game entry alone, the desktop
+// target of vite.config.ts) and npm run build:desktop; this script only packages.
 //
 //   node desktop/pack.ts [--channel internal|e2e|steam|steam-playtest|steam-demo]
 //
-// Steps: check the inputs, stage APP_LAYOUT into release/app/ with its own package.json,
+// Steps: check the inputs, refuse a dist/ that is not a release build (an editor page, or the
+// dev service's routes or the Anthropic SDK named anywhere; tools/release_bundle.ts, 13.9),
+// stage APP_LAYOUT into release/app/ with its own package.json,
 // run electron-builder (the repository root's install, with the root's unpacked Electron so
 // nothing is downloaded), stamp hkBuild through extraMetadata, apply RELEASE_FUSES, then
 // read the fuse wire back from the executable and fail on any difference.
@@ -19,9 +22,10 @@ import { runnerImport } from 'vite';
 import type { BuildChannel } from './security';
 
 // Node runs this file directly and refuses extension-less relative imports, so the pure
-// config module (and what it re-exports) loads through Vite's module runner, as the
-// replay tool does (tools/replay/run.ts).
+// config module (and what it re-exports) and the release bundle check load through Vite's
+// module runner, as the replay tool does (tools/replay/run.ts).
 type PackConfigModule = typeof import('./pack_config');
+type ReleaseBundleModule = typeof import('../tools/release_bundle');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -33,6 +37,10 @@ const { module: cfg } = await runnerImport<PackConfigModule>(join(here, 'pack_co
 });
 const { APP_LAYOUT, buildStamp, fuseMismatches, GAME_EXCLUDES, isBuildChannel, PACK } = cfg;
 const { packConfig, REQUIRED_INPUTS, stagedManifest } = cfg;
+const { module: release } = await runnerImport<ReleaseBundleModule>(
+  join(root, 'tools', 'release_bundle.ts'),
+  { root, configFile: false, logLevel: 'error' },
+);
 const under = (base: string, rel: string) => join(base, ...rel.split('/'));
 
 function fail(message: string): never {
@@ -69,7 +77,13 @@ if (process.platform !== 'win32') fail('pack:win builds on Windows only (3.2: no
 const channel = channelArg(process.argv.slice(2));
 const missing = REQUIRED_INPUTS.filter((f) => !existsSync(under(root, f)));
 if (missing.length > 0) {
-  fail(`missing ${missing.join(', ')}; run npm run build and npm run build:desktop first`);
+  fail(`missing ${missing.join(', ')}; run npm run build:release and npm run build:desktop first`);
+}
+const leaks = release.releaseLeaks(release.readBuiltFiles(under(root, APP_LAYOUT.game)));
+if (leaks.length > 0) {
+  fail(
+    `${APP_LAYOUT.game}/ is not a release build; run npm run build:release\n${leaks.join('\n')}`,
+  );
 }
 
 const version = (

@@ -424,7 +424,23 @@ export const T = {
       '检视器中没有开启 AI 模式。到"世界检视器"把 AI 模式设为"外部（模型）"并新建世界后，这里会实时显示每一次 AI 决策。',
     provider: '提供方',
     level: '降级级别',
-    levelNames: '0 正常，1 节能，2 只保留关键，3 只保留剧情，4 全部兜底',
+    /**
+     * The degrade ladder 0 to 9 (src/ai/budget.ts DegradeLevel, ai_architecture.md 9.4):
+     * what each level adds; the levels are cumulative.
+     */
+    levelNames: [
+      '正常',
+      '离场批量日记改用规则日记',
+      '在场 NPC 事件轮改用规则',
+      '整理轮推迟',
+      '在场 NPC 全部改用规则',
+      'NPC 之间的交谈改用话题菜单',
+      '统治者与将领改用效用打分',
+      '女神隔日规划',
+      '只保留保留类请求',
+      '全部请求交给内置 AI',
+    ],
+    levelLine: '{level}（0 到 9 级，累积生效；本级：{name}）',
     budget: '预算',
     hourUsd: '本小时花费',
     perHourUsd: '每小时上限',
@@ -841,4 +857,10 @@ export const T = {
 /** Replace {name} placeholders. */
 export function fmt(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m));
+}
+
+/** A degrade level 0 to 9 with what it adds; a value off the ladder shows as the bare number. */
+export function degradeLevelText(level: number): string {
+  const name = Number.isInteger(level) ? T.audit.levelNames[level] : undefined;
+  return name === undefined ? String(level) : fmt(T.audit.levelLine, { level, name });
 }

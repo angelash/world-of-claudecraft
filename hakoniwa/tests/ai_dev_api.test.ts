@@ -1,5 +1,7 @@
-// Dev service: data path guard, proxy request building, response reading, error mapping,
-// and the middleware routes. Offline: the SDK client is a fake, requests are in-memory.
+// Dev service: data path guard, the proxy's SDK request building for the LlmCallSpec
+// contract, response reading, error mapping, and the middleware routes. Offline: the SDK
+// client is a fake, requests are in-memory. The field-by-field equality of the SDK path and
+// the release Anthropic adapter is tests/llm_dev_proxy_contract.test.ts.
 
 import { EventEmitter } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -9,15 +11,17 @@ import { join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import Anthropic from '@anthropic-ai/sdk';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { LlmCallSpec, LlmRequest } from '../src/ai/contracts';
+import { EMPTY_TURN } from '../src/ai/providers';
+import { callSpecFromRequest } from '../src/ai/providers/call_spec';
+import { profileFor } from '../src/ai/providers/capabilities';
 import { formatJsonFile, resolveDataPath } from '../tools/data_paths';
 import { createDevApiMiddleware, isLoopback } from '../tools/dev_api';
 import {
-  buildMessageParams,
-  classifyError,
+  buildSpecMessageParams,
+  DEV_PROXY_CONNECTION_ID,
   LlmService,
-  type NeutralLlmBody,
-  parseLlmBody,
-  readMessage,
+  MAX_TOKENS_CAP,
   redact,
   resolveTierModels,
   SERVER_FALLBACK_BETA,
@@ -54,7 +58,8 @@ describe('resolveDataPath', () => {
   });
 });
 
-function body(extra: Partial<NeutralLlmBody> = {}): NeutralLlmBody {
+/** A legacy-shaped request as the runner sends it (rules, persona, turn). */
+function request(extra: Partial<LlmRequest> = {}): LlmRequest {
   return {
     tier: 'mid',
     system: '规则',
@@ -70,25 +75,18 @@ function body(extra: Partial<NeutralLlmBody> = {}): NeutralLlmBody {
   };
 }
 
-describe('proxy request building', () => {
-  it('validates and normalises the neutral body', () => {
-    const ok = parseLlmBody({
-      ...body(),
-      maxTokens: 999_999,
-      effort: undefined,
-      cacheTtl: undefined,
-    });
-    expect(ok).toMatchObject({
-      ok: true,
-      value: { maxTokens: 16_000, effort: 'medium', cacheTtl: '5m' },
-    });
-    expect(parseLlmBody({ ...body(), tier: 'ultra' })).toEqual({ ok: false, error: 'bad tier' });
-    expect(parseLlmBody({ ...body(), schema: 'x' }).ok).toBe(false);
-    expect(parseLlmBody({ ...body(), effort: 'max' }).ok).toBe(false);
-    expect(parseLlmBody({ ...body(), maxTokens: 0 }).ok).toBe(false);
-    expect(parseLlmBody([]).ok).toBe(false);
+/** The request as a spec on the dev proxy connection (what TransportProvider sends). */
+function devSpec(model: string, extra: Partial<LlmRequest> = {}): LlmCallSpec {
+  return callSpecFromRequest(request(extra), {
+    provider: 'anthropic',
+    connectionId: DEV_PROXY_CONNECTION_ID,
+    bindingRole: 'core_npc',
+    model,
+    timeoutMs: 60_000,
   });
+}
 
+describe('proxy request building', () => {
   it('maps tiers through a model whitelist', () => {
     const warnings: string[] = [];
     const tiers = resolveTierModels(
@@ -105,8 +103,14 @@ describe('proxy request building', () => {
   });
 
   it('builds a Messages request with structured output, explicit effort, cache breakpoints and fallback', () => {
-    const p = buildMessageParams(body({ cacheTtl: '1h' }), 'claude-opus-5-5');
-    expect(p.model).toBe('claude-opus-5-5');
+    const dev = new LlmService({ env: {}, log: () => {}, connectionsFile: null });
+    const opus = 'claude-opus-5-5';
+    const p = buildSpecMessageParams(
+      devSpec(opus, { cacheTtl: '1h' }),
+      dev.devProxyConnection(),
+      profileFor('anthropic', opus),
+    );
+    expect(p.model).toBe(opus);
     expect(p.max_tokens).toBe(1000);
     expect(p.system).toEqual([
       { type: 'text', text: '规则', cache_control: { type: 'ephemeral', ttl: '1h' } },
@@ -115,28 +119,40 @@ describe('proxy request building', () => {
     expect(p.messages).toEqual([{ role: 'user', content: '本轮' }]);
     expect(p.output_config).toEqual({
       effort: 'low',
-      format: { type: 'json_schema', schema: body().schema },
+      format: { type: 'json_schema', schema: request().schema },
     });
     expect(p.betas).toEqual([SERVER_FALLBACK_BETA]);
     expect(p.fallbacks).toBe('default');
     for (const banned of ['thinking', 'temperature', 'top_p', 'top_k', 'tool_choice']) {
       expect(banned in p).toBe(false);
     }
-    expect(buildMessageParams(body(), 'claude-sonnet-5-5').fallbacks).toBe('default');
+    const sonnet = 'claude-sonnet-5-5';
+    const mid = buildSpecMessageParams(
+      devSpec(sonnet),
+      dev.devProxyConnection(),
+      profileFor('anthropic', sonnet),
+    );
+    expect(mid.fallbacks).toBe('default');
   });
 
   it('never requests the server fallback for Haiku 5.5, and drops an empty persona block', () => {
-    const p = buildMessageParams(body({ stable: '  ', context: '' }), 'claude-haiku-5-5');
+    const dev = new LlmService({ env: {}, log: () => {}, connectionsFile: null });
+    const haiku = 'claude-haiku-5-5';
+    const p = buildSpecMessageParams(
+      devSpec(haiku, { stable: '  ', context: '' }),
+      dev.devProxyConnection(),
+      profileFor('anthropic', haiku),
+    );
     expect('fallbacks' in p).toBe(false);
     expect('betas' in p).toBe(false);
     expect(p.system).toEqual([
       { type: 'text', text: '规则', cache_control: { type: 'ephemeral' } },
     ]);
-    expect(p.messages).toEqual([{ role: 'user', content: '（无）' }]);
+    expect(p.messages).toEqual([{ role: 'user', content: EMPTY_TURN }]);
   });
 });
 
-type Msg = Parameters<typeof readMessage>[0];
+type Msg = Anthropic.Beta.Messages.BetaMessage;
 
 function message(extra: Partial<Msg> = {}): Msg {
   return {
@@ -163,94 +179,6 @@ function message(extra: Partial<Msg> = {}): Msg {
     ...extra,
   } as unknown as Msg;
 }
-
-describe('proxy response reading', () => {
-  it('joins text blocks, parses JSON and prices the served model', () => {
-    const p = readMessage(message(), 'claude-sonnet-5-5', 12);
-    expect(p).toMatchObject({
-      ok: true,
-      json: { commands: [], speech: '嗯' },
-      model: 'claude-sonnet-5-5',
-      stopReason: 'end_turn',
-      latencyMs: 12,
-      fallbackUsed: false,
-    });
-    expect(p.costUsd).toBeCloseTo((100 * 2 + 50 * 10 + 1000 * 0.1) / 1e6, 9);
-  });
-
-  it('checks refusal before reading content', () => {
-    const p = readMessage(
-      message({
-        stop_reason: 'refusal',
-        stop_details: { type: 'refusal', category: 'cyber', explanation: null },
-      } as Partial<Msg>),
-      'claude-opus-5-5',
-      5,
-    );
-    expect(p).toMatchObject({ ok: false, error: 'refusal', stopReason: 'refusal' });
-    expect('json' in p).toBe(false);
-  });
-
-  it('keeps raw text when the output is not JSON', () => {
-    const p = readMessage(
-      message({ content: [{ type: 'text', text: '不是 JSON', citations: null }] } as Partial<Msg>),
-      'claude-haiku-5-5',
-      1,
-    );
-    expect(p).toMatchObject({ ok: true, json: null, text: '不是 JSON' });
-  });
-});
-
-describe('error mapping', () => {
-  const env = { ANTHROPIC_API_KEY: 'sk-ant-api03-SECRETSECRET' };
-
-  it('maps typed SDK errors to statuses without string matching', () => {
-    const rate = new Anthropic.RateLimitError(
-      429,
-      undefined,
-      'slow down',
-      new Headers({ 'retry-after': '3' }),
-    );
-    expect(classifyError(rate, Anthropic, env, true)).toEqual({
-      status: 503,
-      payload: { ok: false, error: 'rate_limited', message: '模型限流', retryAfterMs: 3000 },
-    });
-    const overloaded = new Anthropic.InternalServerError(529, undefined, 'busy', new Headers());
-    expect(classifyError(overloaded, Anthropic, env, true).payload.error).toBe('overloaded');
-    const auth = new Anthropic.AuthenticationError(401, undefined, 'bad key', new Headers());
-    expect(classifyError(auth, Anthropic, env, true)).toMatchObject({
-      status: 503,
-      payload: { error: 'auth_failed' },
-    });
-    const timeout = new Anthropic.APIConnectionTimeoutError();
-    expect(classifyError(timeout, Anthropic, env, true).payload.error).toBe('timeout');
-    const net = new Anthropic.APIConnectionError({ message: 'down' });
-    expect(classifyError(net, Anthropic, env, true).payload.error).toBe('network');
-    const bad = new Anthropic.BadRequestError(
-      400,
-      undefined,
-      `oops ${env.ANTHROPIC_API_KEY}`,
-      new Headers(),
-    );
-    const mapped = classifyError(bad, Anthropic, env, true);
-    expect(mapped.status).toBe(400);
-    expect(JSON.stringify(mapped)).not.toContain('SECRET');
-  });
-
-  it('reports no_credentials when the SDK cannot resolve any authentication', () => {
-    expect(classifyError(new Error('no auth'), Anthropic, {}, false)).toMatchObject({
-      status: 503,
-      payload: { error: 'no_credentials' },
-    });
-    expect(classifyError(new Error('bug'), Anthropic, env, true).status).toBe(500);
-  });
-
-  it('redacts credentials from messages', () => {
-    expect(
-      redact('key sk-ant-abc_DEF-123 and tok123456789', { ANTHROPIC_AUTH_TOKEN: 'tok123456789' }),
-    ).toBe('key [redacted] and [redacted]');
-  });
-});
 
 interface FakeCall {
   params: unknown;
@@ -280,6 +208,7 @@ function fakeService(env: Record<string, string | undefined>, answer: Msg | Erro
   const svc = new LlmService({
     env,
     log: () => {},
+    connectionsFile: null,
     loadSdk: async () => ({
       client: client as unknown as InstanceType<typeof Anthropic>,
       errors: Anthropic,
@@ -288,90 +217,93 @@ function fakeService(env: Record<string, string | undefined>, answer: Msg | Erro
   return { svc, calls, listed: () => listed };
 }
 
-/** A real SDK client whose transport is an in-memory fetch (no network). */
-function sdkWithFakeFetch(reply: {
-  status: number;
-  body: unknown;
-  headers?: Record<string, string>;
-}) {
-  const seen: { url: string; headers: Headers; body: Record<string, unknown> }[] = [];
-  const fakeFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-    seen.push({
-      url: String(url),
-      headers: new Headers(init?.headers),
-      body: JSON.parse(String(init?.body ?? '{}')),
-    });
-    return new Response(JSON.stringify(reply.body), {
-      status: reply.status,
-      headers: { 'content-type': 'application/json', ...reply.headers },
-    });
-  };
-  const client = new Anthropic({ apiKey: 'sk-ant-test-key', fetch: fakeFetch, maxRetries: 0 });
-  const svc = new LlmService({
-    env: { ANTHROPIC_API_KEY: 'sk-ant-test-key' },
-    log: () => {},
-    loadSdk: async () => ({ client, errors: Anthropic }),
-  });
-  return { svc, seen };
-}
+describe('proxy response reading', () => {
+  const env = { ANTHROPIC_API_KEY: 'sk-ant-x' };
 
-describe('LlmService through the real SDK (in-memory fetch)', () => {
-  it('sends structured output, effort, cache breakpoints and the fallback beta on the wire', async () => {
-    const { svc, seen } = sdkWithFakeFetch({
-      status: 200,
-      body: {
-        id: 'msg_1',
-        type: 'message',
-        role: 'assistant',
-        model: 'claude-opus-5-5',
-        content: [{ type: 'text', text: '{"commands":[],"speech":"客人。"}' }],
-        stop_reason: 'end_turn',
-        stop_sequence: null,
-        usage: {
-          input_tokens: 20,
-          output_tokens: 30,
-          cache_read_input_tokens: 2000,
-          cache_creation_input_tokens: 0,
-        },
-      },
-    });
-    const out = await svc.complete(body({ tier: 'top', cacheTtl: '1h', effort: 'medium' }));
-    expect(out.status).toBe(200);
-    expect(out.payload).toMatchObject({
+  it('joins text blocks, parses JSON and prices the served model', async () => {
+    const { svc } = fakeService(env, message());
+    const r = await svc.completeSpec(devSpec('claude-sonnet-5-5'));
+    expect(r).toMatchObject({
       ok: true,
-      json: { speech: '客人。' },
-      model: 'claude-opus-5-5',
+      json: { commands: [], speech: '嗯' },
+      servedModel: 'claude-sonnet-5-5',
+      stopReason: 'end',
+      rawStopReason: 'end_turn',
+      fallbackUsed: false,
     });
-    const req = seen[0];
-    if (!req) throw new Error('no request');
-    expect(req.url).toContain('/v1/messages');
-    expect(req.headers.get('anthropic-beta')).toContain(SERVER_FALLBACK_BETA);
-    expect(req.body).toMatchObject({
-      model: 'claude-opus-5-5',
-      fallbacks: 'default',
-      output_config: { effort: 'medium', format: { type: 'json_schema' } },
-      system: [
-        { type: 'text', text: '规则', cache_control: { type: 'ephemeral', ttl: '1h' } },
-        { type: 'text', text: '人设', cache_control: { type: 'ephemeral', ttl: '1h' } },
-      ],
-    });
-    expect('thinking' in req.body).toBe(false);
-    expect('betas' in req.body).toBe(false);
+    expect(r.costUsd).toBeCloseTo((100 * 2 + 50 * 10 + 1000 * 0.1) / 1e6, 9);
   });
 
-  it('maps an upstream 429 to rate_limited with retryAfter and no key in the payload', async () => {
-    const { svc, seen } = sdkWithFakeFetch({
-      status: 429,
-      body: { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } },
-      headers: { 'retry-after': '7' },
+  it('checks refusal before reading content', async () => {
+    const { svc } = fakeService(
+      env,
+      message({
+        stop_reason: 'refusal',
+        stop_details: { type: 'refusal', category: 'cyber', explanation: null },
+      } as Partial<Msg>),
+    );
+    const r = await svc.completeSpec(devSpec('claude-opus-5-5'));
+    expect(r).toMatchObject({ ok: false, problem: 'refusal', stopReason: 'refusal' });
+    expect('json' in r).toBe(false);
+  });
+
+  it('keeps raw text when the output is not JSON', async () => {
+    const { svc } = fakeService(
+      env,
+      message({
+        model: 'claude-haiku-5-5',
+        content: [{ type: 'text', text: '不是 JSON', citations: null }],
+      } as Partial<Msg>),
+    );
+    const r = await svc.completeSpec(devSpec('claude-haiku-5-5'));
+    expect(r).toMatchObject({ ok: true, json: null, text: '不是 JSON' });
+  });
+});
+
+describe('error mapping', () => {
+  const env = { ANTHROPIC_API_KEY: 'sk-ant-api03-SECRETSECRET' };
+
+  it('maps SDK exceptions to problem codes and scrubs credentials', async () => {
+    const cases: [Error, string, string][] = [
+      [new Anthropic.APIConnectionTimeoutError(), 'timeout', 'timeout'],
+      [new Anthropic.APIConnectionError({ message: 'down' }), 'network', 'network'],
+      [
+        new Anthropic.AuthenticationError(401, undefined, 'bad key', new Headers()),
+        'auth',
+        'key_invalid',
+      ],
+      [
+        new Anthropic.InternalServerError(529, undefined, 'busy', new Headers()),
+        'overloaded',
+        'overloaded',
+      ],
+    ];
+    for (const [err, cls, problem] of cases) {
+      const { svc } = fakeService(env, err);
+      expect(await svc.completeSpec(devSpec('claude-sonnet-5-5'))).toMatchObject({
+        ok: false,
+        error: { cls },
+        problem,
+      });
+    }
+    const bug = fakeService(env, new Error(`oops ${env.ANTHROPIC_API_KEY}`));
+    const r = await bug.svc.completeSpec(devSpec('claude-sonnet-5-5'));
+    expect(r).toMatchObject({ ok: false, problem: 'server_error' });
+    expect(JSON.stringify(r)).not.toContain('SECRET');
+  });
+
+  it('reports not_configured when the SDK cannot resolve any authentication', async () => {
+    const { svc } = fakeService({}, new Error('no auth'));
+    expect(await svc.completeSpec(devSpec('claude-sonnet-5-5'))).toMatchObject({
+      ok: false,
+      problem: 'not_configured',
     });
-    const out = await svc.complete(body({ tier: 'low' }));
-    expect(out).toEqual({
-      status: 503,
-      payload: { ok: false, error: 'rate_limited', message: '模型限流', retryAfterMs: 7000 },
-    });
-    expect(seen[0]?.headers.get('anthropic-beta')).toBeNull();
-    expect('fallbacks' in (seen[0]?.body ?? {})).toBe(false);
+  });
+
+  it('redacts credentials from messages', () => {
+    expect(
+      redact('key sk-ant-abc_DEF-123 and tok123456789', { ANTHROPIC_AUTH_TOKEN: 'tok123456789' }),
+    ).toBe('key [redacted] and [redacted]');
   });
 });
 
@@ -394,19 +326,25 @@ describe('LlmService', () => {
     expect(listed()).toBe(1);
   });
 
-  it('calls the beta Messages API for the tier model and returns the payload', async () => {
+  it('calls the beta Messages API for the tier model, without SDK retries, and caps the output', async () => {
     const { svc, calls } = fakeService({ ANTHROPIC_API_KEY: 'sk-ant-x' }, message());
-    const out = await svc.complete(body({ tier: 'mid' }));
-    expect(out.status).toBe(200);
-    expect(out.payload).toMatchObject({ ok: true, json: { commands: [], speech: '嗯' } });
-    expect(calls[0]?.params).toMatchObject({ model: 'claude-sonnet-5-5', fallbacks: 'default' });
-    expect(calls[0]?.opts).toMatchObject({ timeout: 120_000 });
+    const out = await svc.completeSpec(devSpec(svc.tiers.mid, { maxTokens: 999_999 }));
+    expect(out).toMatchObject({ ok: true, json: { commands: [], speech: '嗯' } });
+    expect(calls[0]?.params).toMatchObject({
+      model: 'claude-sonnet-5-5',
+      fallbacks: 'default',
+      max_tokens: MAX_TOKENS_CAP,
+    });
+    expect(calls[0]?.opts).toMatchObject({ timeout: 60_000, maxRetries: 0 });
   });
 
   it('turns an auth failure into an unavailable status', async () => {
     const auth = new Anthropic.AuthenticationError(401, undefined, 'bad', new Headers());
     const { svc } = fakeService({ ANTHROPIC_API_KEY: 'sk-ant-x' }, auth);
-    expect((await svc.complete(body())).payload.error).toBe('auth_failed');
+    expect(await svc.completeSpec(devSpec('claude-sonnet-5-5'))).toMatchObject({
+      ok: false,
+      problem: 'key_invalid',
+    });
     expect(await svc.status()).toMatchObject({ available: false, reason: 'auth_failed' });
   });
 });
@@ -532,13 +470,20 @@ describe('dev api middleware', () => {
   it('proxies POST /api/llm through the service and validates the body', async () => {
     const { svc } = fakeService({ ANTHROPIC_API_KEY: 'sk-ant-x' }, message());
     const mw = createDevApiMiddleware({ root: tmpdir(), llmService: svc });
-    expect(await call(mw, 'POST', '/api/llm', JSON.stringify(body()))).toMatchObject({
+    const spec = JSON.stringify(devSpec('claude-sonnet-5-5'));
+    expect(await call(mw, 'POST', '/api/llm', spec)).toMatchObject({
       status: 200,
-      body: { ok: true, json: { commands: [], speech: '嗯' }, model: 'claude-sonnet-5-5' },
+      body: { ok: true, json: { commands: [], speech: '嗯' }, servedModel: 'claude-sonnet-5-5' },
+    });
+    // The retired legacy body (no segments) is a malformed spec now.
+    const legacy = JSON.stringify(request());
+    expect(await call(mw, 'POST', '/api/llm', legacy)).toMatchObject({
+      status: 400,
+      body: { ok: false, error: { cls: 'bad_request' }, latencyMs: 0 },
     });
     expect(await call(mw, 'POST', '/api/llm', '{"tier":"mid"}')).toMatchObject({
       status: 400,
-      body: { ok: false, error: 'bad_request' },
+      body: { ok: false, error: { cls: 'bad_request' } },
     });
     expect(await call(mw, 'GET', '/api/llm/status')).toMatchObject({
       status: 200,

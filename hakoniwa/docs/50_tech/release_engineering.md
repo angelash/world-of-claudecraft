@@ -262,18 +262,21 @@ hakoniwa/
 ### 3.1 构建流水
 
 ```text
-npm run build:web       vite build（HK_TARGET=desktop 时只含游戏入口，编辑器不进桌面包）-> dist/
+npm run build           vite build：游戏与编辑器两个入口（开发用）-> dist/
+npm run build:release   vite build --mode desktop（或 HK_TARGET=desktop）：只含游戏入口，带发布包扫描 -> dist/
 npm run build:desktop   esbuild desktop/*.ts -> desktop/dist/*.cjs
 npm run assets:pack     tools/assets/pack.ts：AI 位图 -> 图集页与清单（第 6.9 节）
 npm run audio:pack      tools/audio/pack.ts：音频响度统一与编码（第 9.5 节）
-npm run pack:win        electron-builder --dir（本机试包）
+npm run pack:win        先跑 build:release 与 build:desktop，再 electron-builder --dir（本机试包）
 npm run dist:steam      electron-builder 生成 Steam 目录布局 -> release-steam/<平台>/
 npm run dist:demo       同上，试玩版内容闸门
 ```
 
 - **构建盖章**：打包时把 `hkBuild` 写进包内 `package.json`（electron-builder 的 `extraMetadata`）：版本、构建号（提交短哈希）、通道
   （`steam`、`steam-playtest`、`steam-demo`、`internal`、`e2e`）、内容版本（第 7.6 节）、Steam 应用 ID、崩溃上报地址、遥测地址。运行时以盖章为准。
-- **发布包排除开发面**：`tests/release_bundle.test.ts` 扫描 `dist/`，出现开发沙盒（`src/client/app/sandbox.ts` 的标识）、`/api/llm`、`/api/data`、开发面板的标识即失败；
+- **发布包排除开发面**：扫描规则在 `tools/release_bundle.ts`：出现编辑器页面、开发服务的路由（`/api/llm`、`/api/data`、`/api/audit`）或 `@anthropic-ai/sdk` 即失败。
+  `build:release` 写完产物即扫描（Vite 插件），`desktop/pack.ts` 打包前再扫一遍 `dist/`，`tests/release_bundle.test.ts` 实际构建桌面目标并扫描产物；
+  开发沙盒（`src/client/app/sandbox.ts` 的标识）与开发面板的标识也加入同一扫描。
   `src/client/app/config.ts` 的 `parseConfig` 在生产构建里永远返回非开发模式，这条由测试钉住。
 - **可复现**：同一提交加同一素材输入，`dist/` 与图集页逐字节相同（盖章文件除外），CI 比对两次构建的哈希。确定的图集页让 Steam 增量补丁很小（3.5）。
 

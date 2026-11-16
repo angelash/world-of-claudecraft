@@ -21,7 +21,6 @@ import type { ConnectionPublic, ModelProfile } from '../src/ai/providers/types';
 import { ROLE_PACKS } from '../src/game/ai_roles';
 import { createDevApiMiddleware } from '../tools/dev_api';
 import {
-  buildMessageParams,
   buildSpecMessageParams,
   DEV_PROXY_CONNECTION_ID,
   type DevConnectionConfig,
@@ -108,11 +107,11 @@ const CASES: ContractCase[] = [
   { name: 'prompt only', spec: spec(), conn: conn('anthropic'), prof: OPUS_PROMPT },
 ];
 
-describe('the legacy SDK body equals the adapter body for role packs', () => {
+describe('the SDK body equals the adapter body for role pack requests', () => {
   it.each(ROLE_PACKS.map((p) => [p.role, p] as const))('%s', (_r, pack) => {
     const allowed = ['npc.say', 'npc.move'];
     for (const cacheTtl of ['5m', '1h'] as const) {
-      const legacy = {
+      const request = {
         tier: pack.tier,
         system: pack.system,
         stable: '人设段',
@@ -125,16 +124,18 @@ describe('the legacy SDK body equals the adapter body for role packs', () => {
         requestId: 'ai1',
       };
       for (const model of ['claude-opus-5-5', 'claude-haiku-5-5']) {
-        const params = buildMessageParams(legacy, model);
-        const { betas, ...sdkBody } = params as typeof params & { betas?: string[] };
-        const s = callSpecFromRequest(legacy, {
+        // What TransportProvider sends for a runner request (the game and the editor).
+        const s = callSpecFromRequest(request, {
           provider: 'anthropic',
           connectionId: DEV_PROXY_CONNECTION_ID,
           bindingRole: 'core_npc',
           model,
           timeoutMs: pack.timeoutMs,
         });
-        const req = anthropicAdapter.build(s, conn('anthropic'), profileFor('anthropic', model));
+        const prof = profileFor('anthropic', model);
+        const params = buildSpecMessageParams({ ...s, stream: false }, conn('anthropic'), prof);
+        const { betas, ...sdkBody } = params as typeof params & { betas?: string[] };
+        const req = anthropicAdapter.build({ ...s, stream: false }, conn('anthropic'), prof);
         expect(sdkBody).toEqual(JSON.parse(req.body ?? '{}'));
         expect(req.headers['anthropic-beta']).toBe(betas?.join(','));
       }
@@ -578,7 +579,7 @@ describe('dev api routes of the contract', () => {
     });
     const unknown = await call(mw, 'POST', '/api/llm', devSpec({ connectionId: 'conn_nowhere' }));
     expect(unknown.body).toMatchObject({ ok: false, problem: 'not_configured' });
-    // The legacy body still works on the same route.
+    // The retired legacy body (tier, system, context; no segments) is refused as malformed.
     const legacy = await call(mw, 'POST', '/api/llm', {
       tier: 'mid',
       system: '规则',
@@ -586,7 +587,10 @@ describe('dev api routes of the contract', () => {
       schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
       maxTokens: 100,
     });
-    expect(legacy.body).toMatchObject({ ok: true, model: 'claude-sonnet-5-5' });
+    expect(legacy).toMatchObject({
+      status: 400,
+      body: { ok: false, error: { cls: 'bad_request' }, latencyMs: 0 },
+    });
   });
 
   it('GET /api/llm/models lists the dev proxy models through the SDK and compatible models through fetch', async () => {
