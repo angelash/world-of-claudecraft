@@ -1,5 +1,5 @@
 {
-  "source": "Titles and distinctive coined proper nouns of well-known games, novels, anime and films that the vision forbids reusing (docs/00_vision/vision.md section 8; reuse_map.md 6.3 item 3). Generic words that happen to be a title in translation (civilization, witcher, souls) are left out of the Chinese list to avoid false hits; add entries when a review finds a new collision.",
+  "source": "Titles and distinctive coined proper nouns of well-known games, novels, anime and films that the vision forbids reusing (docs/00_vision/vision.md section 8; reuse_map.md 6.3 item 3). Generic words that happen to be a title in translation (civilization, witcher, souls) are left out of the Chinese list to avoid false hits; add entries when a review finds a new collision. The English names that decisions D-075 and D-082 replaced (Dragonspine, Greymane, Moonwell) stay listed so they do not come back as display names.",
   "en": [
     "Age of Empires",
     "Azeroth",
@@ -9,6 +9,7 @@
     "Dark Souls",
     "Diablo",
     "Dragon Quest",
+    "Dragonspine",
     "Dungeons & Dragons",
     "Dwarf Fortress",
     "Elden Ring",
@@ -18,9 +19,11 @@
     "Frostmourne",
     "Game of Thrones",
     "Genshin Impact",
+    "Greymane",
     "Hogwarts",
     "Hyrule",
     "Middle-earth",
+    "Moonwell",
     "Mordor",
     "Mount & Blade",
     "Mushoku Tensei",

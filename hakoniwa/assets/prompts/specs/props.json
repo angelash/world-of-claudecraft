@@ -7062,11 +7062,11 @@
       "style": "night_basalt",
       "subject": {
         "zh": "黯冠城的月井：一口约 3 米宽的圆形黑石深井，井沿雕着一圈新月形的纹，井水青白 #c8e8e4 而平静，水面映着一轮小小的苍白圆影，井边立着四根细黑石柱。",
-        "en": "The moonwell of Duskcrown: a deep round well of black stone about 3 m wide, a band of crescent moons carved around its rim, its water blue white #c8e8e4 and still, a small pale round reflection on its surface, four slender black stone pillars standing at its edge."
+        "en": "The Moon Cistern of Duskcrown: a deep round well of black stone about 3 m wide, a band of crescent moons carved around its rim, its water blue white #c8e8e4 and still, a small pale round reflection on its surface, four slender black stone pillars standing at its edge."
       },
       "extra": {
         "zh": "第 1 格平静的月井；第 2 格水面圆影更亮（月下之约时）；第 3 格井水退下、露出井壁；第 4 格井沿摆着几盏小红灯。",
-        "en": "Cell 1: the moonwell at rest; cell 2: the round reflection brighter (at the moonlit pact); cell 3: the water sunk, the shaft walls showing; cell 4: a few small red lamps on its rim."
+        "en": "Cell 1: the Moon Cistern at rest; cell 2: the round reflection brighter (at the moonlit pact); cell 3: the water sunk, the shaft walls showing; cell 4: a few small red lamps on its rim."
       },
       "ref": "duskcrown",
       "deps": ["art_style_night_basalt"],

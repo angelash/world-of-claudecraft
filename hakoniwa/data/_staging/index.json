@@ -9,6 +9,11 @@
       "batch": "content_base_progression_01",
       "status": "promoted",
       "file": "_batches/content_base_progression_01.json"
+    },
+    {
+      "batch": "content_base_rebase_01",
+      "status": "promoted",
+      "file": "_batches/content_base_rebase_01.json"
     }
   ]
 }

@@ -4,7 +4,14 @@
   "k": { "staple": 0.8, "general": 0.5, "luxury": 0.3 },
   "bounds": { "staple": [0.5, 2.5], "other": [0.6, 1.8] },
   "modifierBounds": [0.5, 2.0],
-  "illegalItems": ["grey_crystal", "dian_shard"],
+  "illegalItems": [
+    "grey_crystal",
+    "dian_shard",
+    "crystal_small_raw",
+    "crystal_medium_raw",
+    "crystal_large_raw",
+    "crystal_king_raw"
+  ],
   "company": {
     "id": "door_company",
     "name": "门扉商会",

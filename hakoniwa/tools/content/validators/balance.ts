@@ -235,7 +235,7 @@ export function balanceFindings(input: ValidationInput): Finding[] {
       level: 'info',
       message: `${summoned.length} monsters only summons place (level follows the summoner): ${summoned.join(', ')}`,
     });
-  // prices of items (warnings until the price batch content_base_rebase_01, C45)
+  // prices of items (warnings; the data holds the catalog prices of content_base_rebase_01, C45)
   for (const it of rowsOf(input, 'items')) {
     const id = typeof it.id === 'string' ? it.id : '';
     const value = num(it.value);

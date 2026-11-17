@@ -59,14 +59,20 @@
 其他 NPC 由社会方自定 ID（小写英文加下划线）。全作人物的 ID 以人物目录（`../40_design/content/catalog_characters_lotha.md`、
 `catalog_characters_continent.md`）为准。
 
-**人物 ID 别名表**：台账变量与分幕文档里仍有几处不同的拼法，变量名不改，导入时按下表解析到同一个人物 ID。
+**人物 ID 别名表**：台账变量与分幕文档里有几处不同的拼法，数据一律写人物 ID；别名由加载器解析到同一个人物 ID。
+本表与[变量注册表](../40_design/world_state_registry.md)第 7.1 节、`data/registry/vars.json` 的 `keyAliases.npc` 一致，
+旧写法登记在重命名表 `data/registry/renames.json`（`npc` 条目），旧存档载入时改名；`tests/content_base_rebase.test.ts` 核对三处一致。
 
 | 人物 ID | 别名（只在变量或分幕文字里出现） | 人物 |
 | --- | --- | --- |
 | `night_queen` | `vespera`（`trust.vespera`） | 夜后维丝佩拉 |
-| `oola` | `ola`（`trust.ola`） | 欧拉婆婆 |
+| `oola` | `ola`（`trust.ola`、`ola.fate`） | 欧拉婆婆 |
 | `bron` | `brun`（`brun.secret_kept`） | 老布伦 |
-| `viro` | `vero`（战斗数据的首领 ID） | 薇罗 |
+| `viro` | `vero`（`vero.status`；战斗数据的首领模板 `vero` 不是人物 ID，不改） | 薇罗 |
+| `martha` | `marsha`（`marsha.assessment`） | 玛莎 |
+| `luchen` | `lu`、`lu_chen`（`hero_rel_lu`、`hero_state_lu`） | 陆辰 |
+| `vick` | `vik`（`vik.informant`） | 维克 |
+| `gunnhild_deephammer` | `gunnhild`（`trust.gunnhild`） | 炉主古恩希尔德·深锤 |
 
 **战斗模板 ID**：与人物同名的对手战、挑战段与首领模板一律写作 `<人物 ID>_<场面>`（例：`rogo_breakchain_duel`、`mute_bell_chase`、`lu_chen_duel`），
 不与人物 ID 重名；挑战段另用 `trial_<人物>_<场面>`。

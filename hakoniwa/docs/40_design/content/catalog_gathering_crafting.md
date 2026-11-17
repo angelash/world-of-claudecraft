@@ -588,7 +588,7 @@
 | `mat_hardened_leather` | 硬革 | T2 | 加工 | `rcp_harden_leather` | 皮甲 T2、盾面、`rcp_saddlery`、书箱 | craft、war | 90 铜 | 无 | |
 | `mat_dian_hide` | 澱兽皮 | T3 | 异兽（澱度三以上） | 解兽，工具档 3 | `rcp_purify_hide`；不净化直接做皮甲得澱纹；`mat_dian_vellum` | craft、sed | 1.5 银 | 中 | |
 | `mat_purified_leather` | 净革 | T3 | 加工 | `rcp_purify_hide` | 皮甲 T3、澱区斥候装、`rcp_same_forge_batch` | craft、sed、power | 5 银 | 无 | 对澱有抗性：穿着它进积澱地，澱斑来得慢（总纲 7.4）|
-| `drake_scale` | 亚龙鳞（已有） | T4 | 亚龙级魔物（深澱，`dragonkin`） | 解兽，工具档 4 | `rcp_scale_leather`、鳞甲 | craft、power | 30 银（现数据 60 铜，须重标定） | 中 | 龙族视亚龙为"影子"（[种族 7][race]），拿亚龙鳞去见龙族是失礼（`cog`）|
+| `drake_scale` | 亚龙鳞（已有） | T4 | 亚龙级魔物（深澱，`dragonkin`） | 解兽，工具档 4 | `rcp_scale_leather`、鳞甲 | craft、power | 30 银 | 中 | 龙族视亚龙为"影子"（[种族 7][race]），拿亚龙鳞去见龙族是失礼（`cog`）|
 | `mat_hornbeast_hide` | 角兽皮 | T4 | 风牙：长角部"送皮礼"后出售的老角兽皮 | 毡市购入或部族赠予 | `rcp_scale_leather`、角兽皮甲、`rcp_saddlery` | craft、war、bond | 12 银 | 无 | 只在角兽寿终后取皮，强取是对长角部的冒犯；四层厚、要部族信任，故列 T4 |
 | `mat_scale_leather` | 鳞革 | T4 | 加工 | `rcp_scale_leather` | 鳞甲 T4、骑兵护甲 | craft、war | 60 银 | 随鳞 | |
 | `mat_abyss_hide` | 渊兽皮 | T5 | 渊澱外缘的异兽 | 解兽，工具档 5 | `rcp_abyss_leather` | craft、sed | 4 金 | 重 | 自然稀缺：S 级魔物本来就少 |
@@ -630,7 +630,7 @@
 
 | ID | 名 | 阶 | 来源 | 合法性 | 去处 | 价值 | 基准价 | 澱染 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `dian_shard` | 碎晶（灰，已有，凡人称"灰晶"） | T1 | F、E 级魔物；晶沟 | 只能交持证工坊 | `rcp_refine_crystal`；术士媒介；黑市 | econ、sed | 收购 10 铜（现数据 15，见第 10 节） | 轻 | 第一幕代官莫斯走私的就是它（[台账 M04-C03][rl]）|
+| `dian_shard` | 碎晶（灰，已有，凡人称"灰晶"） | T1 | F、E 级魔物；晶沟 | 只能交持证工坊 | `rcp_refine_crystal`；术士媒介；黑市 | econ、sed | 收购 10 铜 | 轻 | 第一幕代官莫斯走私的就是它（[台账 M04-C03][rl]）|
 | `crystal_shard` | 魔晶碎 | T1 | 净炼 | 合法 | `mat_crystal_ink`、`mat_crystal_fuel`、灯石小芯 | econ、craft | 15 铜 | 无；燃尽留余澱 | 约一顿饭钱 |
 | `crystal_small_raw` | 小晶（灰） | T2 | D、C 级魔物 | 只能交持证工坊 | `rcp_refine_crystal` | econ、sed | 收购 75 铜 | 中 | 约一日工钱 |
 | `crystal_small` | 小晶 | T2 | 净炼 | 合法 | 魔道具燃料、`rcp_magitool_core`、`mat_record_ink`、边陲小镇的找零 | econ、craft | 1.2 银 | 无 | 城建"魔晶"一单位 |
@@ -1525,7 +1525,7 @@
 | 1 | `spring_herb` 的名与种类 | 名"净泉草（俗称泉边草）"，北泉与鹿泉都长；一个 ID，保留数据层的名与 `kind: consumable`，加 `tags: ["herb","material"]` 让配方可引用 | 总纲 7.3（C40） |
 | 2 | `wool` | 名"羊毛"；城建织坊的配方接受 `wool` 或 `mat_flax` 作"毛麻当量"；个人制作另用 `mat_flax` | 总纲 7.5（C41） |
 | 3 | `spider_silk` 的阶 | T1 灰丝；T3 用区域变体 `spider_silk_waste`；棱光蛛的光丝按 T4 计（第 3.9 节特例） | 总纲 7.5（C42） |
-| 4 | 已有数据的低价（`drake_scale`、`dian_shard`） | 目录按 30 银与收购价 10 铜；数据导入批次统一重标定 | 总纲 14；台账 9.3（C45） |
+| 4 | 已有数据的价格（`drake_scale`、`dian_shard`） | 按 30 银与收购价 10 铜，数据的 `value` 按它（`content_base_rebase_01`） | 总纲 14；台账 9.1（C45） |
 | 5 | 澱钢的配比与价 | 精钢锭 ×4 加中晶 ×1 得 4 锭，单锭约 6 银 | 总纲 7.7（C47）；[经济 1.3][eco] |
 | 6 | 生业技能上限 | 150，六层各 25 点；采集同理（主工程钓鱼 200，本作统一 150）；玩家的层与门阶阶钥见[千门 14][td] | D-072 |
 | 7 | 地球知识的三档 | 口传 `oral`、文书 `study`、学堂 `school`；经济文档 3.2 的"口述、书斋、书斋进阶"是同一组的前置条件写法 | 总纲 8；[经济 3.2][eco] |

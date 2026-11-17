@@ -1718,7 +1718,6 @@
 | `data/scenes/acts2_5.json` | `hart_state` | 写 `rival`、`pending`，不在第四幕值集内 | `a4_hart_state` 只写 `hostile`、`routed`、`reconciled`、`allied`；第二三幕的竞争关系写 `npc.hart.relation` |
 | `data/scenes/acts2_5.json` | `a4_alliance` | `broad`、`narrow`、`broken` | `a4_summit_result` 的 `league`、`accord`、`broken` |
 | `data/strategy/config.json` | `evidenceFlags` | `evidence.oracle_text` 等命名证据 | 第 7.5 节的 `evidence.E15`、`E01`、`E10`、`E04` 与 `a3_eluen_violation` |
-| `data/doors/doors.json` | 誓光之门的钥 | `a3_danger_door_vow` | `a3_vow_kept_reed_bridge`（C91） |
 | `data/doors/doors.json` | 门钥 `bond.<人>.<N>` | 与台账写法并存 | 同伴的缘钥用门钥类型 `bond`（读 party 切片的羁绊）；读人物信任的缘钥写 `trust.<人> >= N` |
 | `data/scenes/acts2_5.json` | 阿什警告场景的 `vow` 选项 | 同时写 `a3_vow_taken` 与 `a3_vow_kept_reed_bridge`，誓光之门在第 14 周前后就可开 | 只写表态 `a3_danger_stance`（`forsworn`、`continue`、`undecided`，过场目录 `cut_a3_warning`）；`a3_vow_kept_reed_bridge` 只由 `cut_a3_ashen_line` 的 `vow` 节点写入（第 8.3 节） |
 | `data/scenes/prologue.json` | `n12_free` 的 `storeAs` | 自由输入的原话写进枚举 `p_last_words` | 原话写 `p_free.last_words`，同一节点写 `p_last_words = free`；空值写 `silent` |

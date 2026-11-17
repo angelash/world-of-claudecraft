@@ -400,10 +400,10 @@
     "loot": [
       {
         "itemId": "black_ridge_mantle",
-        "chance": 0.5
+        "chance": 1
       },
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_medium_raw",
         "chance": 1,
         "min": 2,
         "max": 4
@@ -432,7 +432,7 @@
     "range": 5,
     "loot": [
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_small_raw",
         "chance": 0.6
       }
     ],
@@ -722,7 +722,7 @@
         "chance": 0.6
       },
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_small_raw",
         "chance": 0.3
       }
     ],
@@ -832,7 +832,7 @@
     },
     "loot": [
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_medium_raw",
         "chance": 0.6,
         "min": 1,
         "max": 2
@@ -874,7 +874,7 @@
         "chance": 0.1
       },
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_medium_raw",
         "chance": 0.4
       }
     ],
@@ -1023,7 +1023,7 @@
         "chance": 0.6
       },
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_medium_raw",
         "chance": 0.5
       }
     ],
@@ -1053,7 +1053,7 @@
         "chance": 0.5
       },
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_large_raw",
         "chance": 0.6
       }
     ],
@@ -1303,7 +1303,7 @@
     },
     "loot": [
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_king_raw",
         "chance": 1,
         "min": 2,
         "max": 4
@@ -1336,7 +1336,7 @@
     },
     "loot": [
       {
-        "itemId": "dian_shard",
+        "itemId": "crystal_king_raw",
         "chance": 0.8,
         "min": 1,
         "max": 3

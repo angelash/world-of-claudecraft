@@ -1,0 +1,347 @@
+{
+  "batch": "content_base_rebase_01",
+  "status": "promoted",
+  "scope": "PK-M0-30 data rebase: content_review.md C45 (item prices on content_bible.md 6.4: catalog_equipment.md 3.9, catalog_consumables_magitools.md 1.4, catalog_gathering_crafting.md 3.4, 3.7 and 3.9), C46 (bestiary-owned monsters of level 10 and up drop the crystal of their tier, catalog_bestiary.md 1.3 and 12.2; the named rare's item is guaranteed, content_bible.md 5.4), the four unrefined crystal grades those drops need (catalog_gathering_crafting.md 3.7), C41 (wool description)",
+  "depends": [],
+  "sources": [
+    {
+      "mapping": "gathering.crystals",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.7"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_equipment.md",
+      "section": "3.9"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_consumables_magitools.md",
+      "section": "1.4"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.4"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.7"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.9"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_bestiary.md",
+      "section": "1.3"
+    },
+    { "mapping": "manual", "catalog": "docs/40_design/content/catalog_bestiary.md", "section": "5" },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
+      "section": "3.5"
+    }
+  ],
+  "files": [
+    "combat/items.json",
+    "combat/monsters.json",
+    "economy/items.json"
+  ],
+  "added": [
+    "crystal_small_raw",
+    "crystal_medium_raw",
+    "crystal_large_raw",
+    "crystal_king_raw"
+  ],
+  "changed": [
+    { "id": "rusty_shortsword", "fields": ["value"] },
+    { "id": "recruit_longsword", "fields": ["value"] },
+    { "id": "hunters_bow", "fields": ["value"] },
+    { "id": "oak_staff", "fields": ["value"] },
+    { "id": "grey_fang_dagger", "fields": ["value"] },
+    { "id": "ash_cleaver", "fields": ["value"] },
+    { "id": "crystal_spine_blade", "fields": ["value"] },
+    { "id": "red_fang_gauntlet", "fields": ["value"] },
+    { "id": "dented_round_shield", "fields": ["value"] },
+    { "id": "worn_leather_vest", "fields": ["value"] },
+    { "id": "wolfhide_boots", "fields": ["value"] },
+    { "id": "spider_silk_gloves", "fields": ["value"] },
+    { "id": "bone_helm", "fields": ["value"] },
+    { "id": "raven_quill_charm", "fields": ["value"] },
+    { "id": "black_ridge_mantle", "fields": ["value"] },
+    { "id": "sewer_waders", "fields": ["value"] },
+    { "id": "cultist_robe", "fields": ["value"] },
+    { "id": "ashen_plate", "fields": ["value"] },
+    { "id": "drake_scale_leggings", "fields": ["value"] },
+    { "id": "minor_healing_potion", "fields": ["value"] },
+    { "id": "healing_potion", "fields": ["value"] },
+    { "id": "greater_healing_potion", "fields": ["value"] },
+    { "id": "minor_mana_potion", "fields": ["value"] },
+    { "id": "mana_potion", "fields": ["value"] },
+    { "id": "stoneskin_draught", "fields": ["value"] },
+    { "id": "dian_shard", "fields": ["value"] },
+    { "id": "sludge_glob", "fields": ["value"] },
+    { "id": "drake_scale", "fields": ["value"] },
+    { "id": "black_ridge", "fields": ["loot"] },
+    { "id": "dian_spirit", "fields": ["loot"] },
+    { "id": "sewer_sludge", "fields": ["loot"] },
+    { "id": "crystal_centipede_young", "fields": ["loot"] },
+    { "id": "disciple_cultist", "fields": ["loot"] },
+    { "id": "waste_ghoul", "fields": ["loot"] },
+    { "id": "ash_elemental", "fields": ["loot"] },
+    { "id": "disciple_guide", "fields": ["loot"] },
+    { "id": "faceless_soldier", "fields": ["loot"] },
+    { "id": "wool", "fields": ["desc"] }
+  ],
+  "removed": [],
+  "diff": [
+    {
+      "file": "combat/items.json",
+      "table": "items",
+      "added": ["crystal_small_raw", "crystal_medium_raw", "crystal_large_raw", "crystal_king_raw"],
+      "changed": [
+        { "id": "rusty_shortsword", "fields": ["value"] },
+        { "id": "recruit_longsword", "fields": ["value"] },
+        { "id": "hunters_bow", "fields": ["value"] },
+        { "id": "oak_staff", "fields": ["value"] },
+        { "id": "grey_fang_dagger", "fields": ["value"] },
+        { "id": "ash_cleaver", "fields": ["value"] },
+        { "id": "crystal_spine_blade", "fields": ["value"] },
+        { "id": "red_fang_gauntlet", "fields": ["value"] },
+        { "id": "dented_round_shield", "fields": ["value"] },
+        { "id": "worn_leather_vest", "fields": ["value"] },
+        { "id": "wolfhide_boots", "fields": ["value"] },
+        { "id": "spider_silk_gloves", "fields": ["value"] },
+        { "id": "bone_helm", "fields": ["value"] },
+        { "id": "raven_quill_charm", "fields": ["value"] },
+        { "id": "black_ridge_mantle", "fields": ["value"] },
+        { "id": "sewer_waders", "fields": ["value"] },
+        { "id": "cultist_robe", "fields": ["value"] },
+        { "id": "ashen_plate", "fields": ["value"] },
+        { "id": "drake_scale_leggings", "fields": ["value"] },
+        { "id": "minor_healing_potion", "fields": ["value"] },
+        { "id": "healing_potion", "fields": ["value"] },
+        { "id": "greater_healing_potion", "fields": ["value"] },
+        { "id": "minor_mana_potion", "fields": ["value"] },
+        { "id": "mana_potion", "fields": ["value"] },
+        { "id": "stoneskin_draught", "fields": ["value"] },
+        { "id": "dian_shard", "fields": ["value"] },
+        { "id": "sludge_glob", "fields": ["value"] },
+        { "id": "drake_scale", "fields": ["value"] }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "combat/monsters.json",
+      "table": "monsters",
+      "added": [],
+      "changed": [
+        { "id": "black_ridge", "fields": ["loot"] },
+        { "id": "dian_spirit", "fields": ["loot"] },
+        { "id": "sewer_sludge", "fields": ["loot"] },
+        { "id": "crystal_centipede_young", "fields": ["loot"] },
+        { "id": "disciple_cultist", "fields": ["loot"] },
+        { "id": "waste_ghoul", "fields": ["loot"] },
+        { "id": "ash_elemental", "fields": ["loot"] },
+        { "id": "disciple_guide", "fields": ["loot"] },
+        { "id": "faceless_soldier", "fields": ["loot"] }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "economy/items.json",
+      "table": "items",
+      "added": [],
+      "changed": [
+        { "id": "wool", "fields": ["desc"] }
+      ],
+      "unchanged": []
+    }
+  ],
+  "unmapped": [
+    {
+      "id": "crystal_small_raw",
+      "column": "阶",
+      "value": "T2",
+      "note": "tier has no item field; the price band follows it"
+    },
+    {
+      "id": "crystal_small_raw",
+      "column": "来源",
+      "value": "D、C 级魔物",
+      "note": "drops belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "crystal_small_raw",
+      "column": "合法性",
+      "value": "只能交持证工坊",
+      "note": "unrefined crystals go into data/economy/config.json illegalItems"
+    },
+    {
+      "id": "crystal_small_raw",
+      "column": "去处",
+      "value": "`rcp_refine_crystal`",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "crystal_small_raw",
+      "column": "价值",
+      "value": "econ、sed",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "crystal_small_raw",
+      "column": "备注",
+      "value": "约一日工钱",
+      "note": "designer notes; the player description is written by the author"
+    },
+    {
+      "id": "crystal_medium_raw",
+      "column": "阶",
+      "value": "T3",
+      "note": "tier has no item field; the price band follows it"
+    },
+    {
+      "id": "crystal_medium_raw",
+      "column": "来源",
+      "value": "B 级魔物、巢主",
+      "note": "drops belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "crystal_medium_raw",
+      "column": "合法性",
+      "value": "只能交持证工坊",
+      "note": "unrefined crystals go into data/economy/config.json illegalItems"
+    },
+    {
+      "id": "crystal_medium_raw",
+      "column": "去处",
+      "value": "`rcp_refine_crystal`",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "crystal_medium_raw",
+      "column": "价值",
+      "value": "econ、sed",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "crystal_large_raw",
+      "column": "阶",
+      "value": "T4",
+      "note": "tier has no item field; the price band follows it"
+    },
+    {
+      "id": "crystal_large_raw",
+      "column": "来源",
+      "value": "A 级魔物",
+      "note": "drops belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "crystal_large_raw",
+      "column": "合法性",
+      "value": "只能交持证工坊",
+      "note": "unrefined crystals go into data/economy/config.json illegalItems"
+    },
+    {
+      "id": "crystal_large_raw",
+      "column": "去处",
+      "value": "`rcp_refine_crystal`；\"握住一枚未净化的大澱晶\"是渊契之门的物钥（[力量 9.9][pow]）",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "crystal_large_raw",
+      "column": "价值",
+      "value": "econ、key、sed",
+      "note": "value channels have no item field"
+    },
+    {
+      "id": "crystal_king_raw",
+      "column": "阶",
+      "value": "T5",
+      "note": "tier has no item field; the price band follows it"
+    },
+    {
+      "id": "crystal_king_raw",
+      "column": "来源",
+      "value": "S 级魔物、迷宫之主",
+      "note": "drops belong to the bestiary and dungeon batches"
+    },
+    {
+      "id": "crystal_king_raw",
+      "column": "合法性",
+      "value": "国家与公会总堂过问",
+      "note": "unrefined crystals go into data/economy/config.json illegalItems"
+    },
+    {
+      "id": "crystal_king_raw",
+      "column": "去处",
+      "value": "`rcp_refine_crystal`",
+      "note": "uses belong to the recipe batches"
+    },
+    {
+      "id": "crystal_king_raw",
+      "column": "价值",
+      "value": "econ、sed",
+      "note": "value channels have no item field"
+    }
+  ],
+  "validation": {
+    "milestone": "M0",
+    "at": "2026-11-17",
+    "ok": true,
+    "results": [
+      { "id": "V1", "title": "schema", "errors": 0, "warnings": 0 },
+      { "id": "V2", "title": "references", "errors": 0, "warnings": 0 },
+      { "id": "V3", "title": "namespaces", "errors": 0, "warnings": 0 },
+      { "id": "V4", "title": "variable registry", "errors": 0, "warnings": 339 },
+      { "id": "V5", "title": "reveal ledger", "errors": 0, "warnings": 9 },
+      { "id": "V6", "title": "numeric bands", "errors": 0, "warnings": 9 },
+      { "id": "V7", "title": "asset references", "errors": 0, "warnings": 3 },
+      { "id": "V8", "title": "text", "errors": 0, "warnings": 0 },
+      { "id": "V9", "title": "reachability", "errors": 0, "warnings": 9 },
+      { "id": "V10", "title": "proper nouns", "errors": 0, "warnings": 3 }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "scope",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping gathering.crystals --batch content_base_rebase_01 --ids crystal_small_raw,crystal_medium_raw,crystal_large_raw,crystal_king_raw --scope \"PK-M0-30 data rebase: content_review.md C45 (item prices on content_bible.md 6.4: catalog_equipment.md 3.9, catalog_consumables_magitools.md 1.4, catalog_gathering_crafting.md 3.4, 3.7 and 3.9), C46 (bestiary-owned monsters of level 10 and up drop the crystal of their tier, catalog_bestiary.md 1.3 and 12.2; the named rare's item is guaranteed, content_bible.md 5.4), the four unrefined crystal grades those drops need (catalog_gathering_crafting.md 3.7), C41 (wool description)\"",
+      "note": "PK-M0-30 data rebase: content_review.md C45 (item prices on content_bible.md 6.4: catalog_equipment.md 3.9, catalog_consumables_magitools.md 1.4, catalog_gathering_crafting.md 3.4, 3.7 and 3.9), C46 (bestiary-owned monsters of level 10 and up drop the crystal of their tier, catalog_bestiary.md 1.3 and 12.2; the named rare's item is guaranteed, content_bible.md 5.4), the four unrefined crystal grades those drops need (catalog_gathering_crafting.md 3.7), C41 (wool description)"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping gathering.crystals --batch content_base_rebase_01 --ids crystal_small_raw,crystal_medium_raw,crystal_large_raw,crystal_king_raw --scope \"PK-M0-30 data rebase: content_review.md C45 (item prices on content_bible.md 6.4: catalog_equipment.md 3.9, catalog_consumables_magitools.md 1.4, catalog_gathering_crafting.md 3.4, 3.7 and 3.9), C46 (bestiary-owned monsters of level 10 and up drop the crystal of their tier, catalog_bestiary.md 1.3 and 12.2; the named rare's item is guaranteed, content_bible.md 5.4), the four unrefined crystal grades those drops need (catalog_gathering_crafting.md 3.7), C41 (wool description)\"",
+      "note": "4 records, 21 unmapped cells, 4 fields to fill"
+    },
+    {
+      "step": 3,
+      "name": "fill",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts fill --batch content_base_rebase_01 --note \"author fill: player descriptions of the four grey crystal grades (catalog 3.7 has no description column; names keep the catalog's grey mark, 小晶（灰）); manual parts as partial rows (id plus the changed field): item values of catalog_equipment.md 3.9 (19 rows), catalog_consumables_magitools.md 1.4 (6 rows whose price differs), catalog_gathering_crafting.md 3.4 drake_scale 30 silver, 3.7 dian_shard purchase price 10 copper, 3.9 sludge_glob 1 copper; monster loot (catalog_bestiary.md 1.3 and 12.2 item 11: every bestiary-owned monster whose whole level range is 10 or above drops the crystal grade of its tier instead of dian_shard, chance and counts kept; section 5 and content_bible.md 5.4: black_ridge guarantees black_ridge_mantle and its crystal is one grade up); wool description (C41, catalog 3.5). Outside the batch parts (no content pack schema for the file): data/economy/config.json illegalItems takes the four grey grades (D-040, catalog 3.7 legality)\"",
+      "note": "author fill: player descriptions of the four grey crystal grades (catalog 3.7 has no description column; names keep the catalog's grey mark, 小晶（灰）); manual parts as partial rows (id plus the changed field): item values of catalog_equipment.md 3.9 (19 rows), catalog_consumables_magitools.md 1.4 (6 rows whose price differs), catalog_gathering_crafting.md 3.4 drake_scale 30 silver, 3.7 dian_shard purchase price 10 copper, 3.9 sludge_glob 1 copper; monster loot (catalog_bestiary.md 1.3 and 12.2 item 11: every bestiary-owned monster whose whole level range is 10 or above drops the crystal grade of its tier instead of dian_shard, chance and counts kept; section 5 and content_bible.md 5.4: black_ridge guarantees black_ridge_mantle and its crystal is one grade up); wool description (C41, catalog 3.5). Outside the batch parts (no content pack schema for the file): data/economy/config.json illegalItems takes the four grey grades (D-040, catalog 3.7 legality)"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts validate --batch content_base_rebase_01 --warnings",
+      "note": "V1 to V10 green"
+    },
+    {
+      "step": 5,
+      "name": "promote",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts promote --batch content_base_rebase_01",
+      "note": "into combat/items.json, combat/monsters.json, economy/items.json"
+    }
+  ]
+}

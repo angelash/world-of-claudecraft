@@ -8,6 +8,7 @@
 // have no item field yet and stay with the authors; the recipe batches pick up the uses.
 
 import type { CatalogMapping, ColumnRule, Row } from '../catalog/mapping';
+import { copper } from '../catalog/parsers';
 
 const CATALOG = 'docs/40_design/content/catalog_gathering_crafting.md';
 const TARGET = { file: 'combat/items.json', table: 'items' };
@@ -44,6 +45,48 @@ export const dianSources: CatalogMapping = {
     AUTHOR('价值', 'value channels have no item field'),
     AUTHOR('备注', 'designer notes; truths stay out of player text'),
   ],
+  required: ['id', 'name', 'value', 'desc'],
+  fieldOrder: ITEM_ORDER,
+};
+
+/**
+ * A crystal's base price: an amount, or "收购 <amount>" for the unrefined grey crystals,
+ * which no lawful market sells (D-040): their item value is the licensed workshop's
+ * purchase price (content_review.md C45: the unrefined shard is worth its 10 copper
+ * purchase price). "有价无市", "无价" and the like stay with the author.
+ */
+export function crystalPrice(cell: string): number | undefined {
+  return copper(cell.trim().replace(/^收购\s*/, ''));
+}
+
+/**
+ * Section 3.7: the sediment crystals by grade, unrefined (`crystal_<grade>_raw`, grey,
+ * illegal outside licensed workshops) and refined. The name keeps its parenthesis: the
+ * grey grades are named "小晶（灰）" and so on, apart from the refined crystal of the same
+ * grade. Legality lives in data/economy/config.json (`illegalItems`), not on the item.
+ */
+export const crystals: CatalogMapping = {
+  id: 'gathering.crystals',
+  title: 'sediment crystals by grade (raw and refined) to items',
+  catalog: CATALOG,
+  section: '3.7',
+  headers: ['ID', '名', '阶', '来源', '合法性', '去处', '价值', '基准价', '澱染', '备注'],
+  target: TARGET,
+  defaults: DEFAULTS,
+  columns: [
+    { column: 'ID', field: 'id', parse: 'code' },
+    { column: '名', field: 'name', parse: 'text' },
+    { column: '基准价', field: 'value', parse: crystalPrice },
+    AUTHOR('阶', 'tier has no item field; the price band follows it'),
+    AUTHOR('来源', 'drops belong to the bestiary and dungeon batches'),
+    AUTHOR('合法性', 'unrefined crystals go into data/economy/config.json illegalItems'),
+    AUTHOR('去处', 'uses belong to the recipe batches'),
+    AUTHOR('价值', 'value channels have no item field'),
+    { column: '澱染', derived: true },
+    AUTHOR('备注', 'designer notes; the player description is written by the author'),
+  ],
+  derive: (record, cells) => taintTags(record, cells['澱染']),
+  // the table has no description column: the author writes `desc`
   required: ['id', 'name', 'value', 'desc'],
   fieldOrder: ITEM_ORDER,
 };
@@ -96,5 +139,6 @@ export const MAPPINGS: readonly CatalogMapping[] = [
   materialSection('3.2', '名', '产地'),
   materialSection('3.3', '名', '产地'),
   materialSection('3.4', '名', '产地或掉落'),
+  crystals,
   dianSources,
 ];

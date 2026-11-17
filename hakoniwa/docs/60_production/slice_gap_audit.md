@@ -85,7 +85,6 @@
 | `MapDef.region` | 用旧编号（`borderstone_region`、`borderstone_wilds` 等），图集已有 `edgestone_area`、`ashen_waste`、`divine_realm` | 地图简报第 1.3 节 |
 | `data/doors/doors.json` | `talent_sight` 第三把钥是 `a1_beast_tide_cleared`，设计是凡人当众为玩家作保（认知阈值）；希雅相关的钥读队伍 `bond`，任务目录读 `trust.shiya` | 门目录第 6 节；D-089 |
 | `data/scenes/prologue.json` | 写 `p_heard_neighbors`，任务 P-S02 写 `p_heard_next_door`，注册表里是两个变量；炉灶前世没有给 `lb_otherworld_menu` | 序章第 2.2 节；任务目录（前）第 4.3 节 |
-| `data/combat/items.json` | 价格未按装备目录第 3.9 节重标（例：`ash_cleaver` 900 对 3,000） | PK-M0-30 |
 
 ## 4. 文档之间的冲突
 
