@@ -95,7 +95,7 @@ export const system: GameSystem = {
   order: 42,
 
   init(ctx) {
-    ctx.world.slices.dialogue = { session: null, chatDay: {}, met: {} };
+    ctx.world.slices.dialogue = { session: null, chatDay: {}, met: {}, intentRelDay: {} };
   },
 
   tick(ctx) {
@@ -208,11 +208,32 @@ export const system: GameSystem = {
         imp: 0.4,
         tag: 'player_said',
       });
+      // the intent classifier runs in both the no-model and the model-bound path: it
+      // decides the world consequences (relation, cognition, notifications) before the
+      // reply is requested, so the model can only reword the line, never the outcome
+      // (builtin_ai.md 6.3: "分类结果驱动关系与认知写入").
+      const answered = answer(ctx, s.npcRef, text);
+      for (const notify of answered.notify)
+        ctx.emit('dialogue.notified', {
+          npcId: s.npcId,
+          npcRef: s.npcRef,
+          notify,
+          intent: answered.intent,
+        });
+      if (answered.end) {
+        // the intent (e.g. farewell) already ends the talk: show the line straight away,
+        // like the explicit "bye" option does, instead of routing it through the
+        // model-reply round trip, whose dialogue.reply would arrive after the session (and
+        // its revision) this reply was requested against is already gone (stale, dropped).
+        npcSays(ctx, s, answered.line);
+        closeSession(ctx, 'bye');
+        return ok();
+      }
       requestReply(
         ctx,
         s,
         'player_text',
-        answer(ctx, s.npcRef, text),
+        answered.line,
         tr('sys.dialogue.prompt.reply_player'),
         text,
       );

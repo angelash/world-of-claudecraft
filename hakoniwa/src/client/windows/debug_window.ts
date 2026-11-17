@@ -6,6 +6,7 @@ import type { FlagValue } from '../../core/contracts';
 import { clear, el, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
 import { formatDate, formatTime, weatherLabel } from '../hud/format';
+import { traceDisplayLines } from './brain_inspector';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
@@ -86,6 +87,10 @@ export function debugWindow(ctx: WindowContext): WindowContent {
   });
   const events = el('ol', { className: 'hk-debug-events' });
 
+  const actorSel = el('select', { className: 'hk-input' });
+  actorSel.append(el('option', { text: t('ui.win.debug.brain_no_actor'), attrs: { value: '' } }));
+  const brainLines = el('ol', { className: 'hk-debug-events' });
+
   const root = el('div', { className: 'hk-debug' }, [
     stats,
     el('h3', { text: t('ui.win.debug.flags') }),
@@ -94,12 +99,20 @@ export function debugWindow(ctx: WindowContext): WindowContent {
     el('div', { className: 'hk-row' }, [keyIn, valIn, setBtn]),
     el('h3', { text: t('ui.win.debug.teleport') }),
     el('div', { className: 'hk-row' }, [mapSel, tpBtn]),
+    el('h3', { text: t('ui.win.debug.brain') }),
+    el('div', { className: 'hk-row' }, [
+      el('span', { text: t('ui.win.debug.brain_actor') }),
+      actorSel,
+    ]),
+    brainLines,
     el('h3', { text: t('ui.win.debug.recent_events') }),
     events,
   ]);
 
   let flagSig = '';
   let eventSig = -1;
+  let actorListSig = '';
+  let brainSig_ = '';
   const update = () => {
     const v = ctx.view;
     const cal = v.calendar();
@@ -154,7 +167,32 @@ export function debugWindow(ctx: WindowContext): WindowContent {
         events.append(el('li', { text: `${ev.tick}  ${ev.kind}` }));
       }
     }
+
+    const actors = v.traceActors();
+    const actorsSig = actors.join(',');
+    if (actorsSig !== actorListSig) {
+      actorListSig = actorsSig;
+      const kept = actorSel.value;
+      clear(actorSel);
+      actorSel.append(
+        el('option', { text: t('ui.win.debug.brain_no_actor'), attrs: { value: '' } }),
+      );
+      for (const a of actors) actorSel.append(el('option', { text: a, attrs: { value: a } }));
+      actorSel.value = actors.includes(kept) ? kept : '';
+    }
+    const actor = actorSel.value;
+    const traces = actor ? v.brainTraces(actor) : [];
+    const brainSig = `${actor}|${traces.length}|${traces.at(-1)?.tick ?? -1}`;
+    if (brainSig !== brainSig_) {
+      brainSig_ = brainSig;
+      clear(brainLines);
+      const lines = traceDisplayLines(traces);
+      if (lines.length === 0)
+        brainLines.append(el('p', { className: 'hk-muted', text: t('ui.win.debug.brain_empty') }));
+      for (const line of lines) brainLines.append(el('li', { text: line }));
+    }
   };
+  actorSel.addEventListener('change', update);
   filter.addEventListener('input', update);
   return { el: root, update };
 }

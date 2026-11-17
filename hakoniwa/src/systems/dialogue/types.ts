@@ -43,6 +43,12 @@ export interface DialogueSlice {
   chatDay: Record<string, number>;
   /** persona or resident id -> tick of the first conversation with the player */
   met: Record<string, number>;
+  /**
+   * Anti-farming for the intent classifier's R7 relation writes (builtin_ai.md 5.5: "同一
+   * 意图对同一人的关系增益每游戏日只计一次"). Keyed "<npcRef>:<intent>" to the game day the
+   * gain last counted.
+   */
+  intentRelDay: Record<string, number>;
 }
 
 declare module '../../core/contracts' {

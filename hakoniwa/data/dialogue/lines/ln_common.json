@@ -111,6 +111,7 @@
     "unbelief.explain.useful": ["你这种人，我用得上。", "这个人……用得上。"],
     "rumor.tell.plain": ["我跟你说，{rumor}", "听说{rumor}"],
     "react.nothing_more": ["最近没听到什么新鲜事。", "我可不爱嚼舌根。"],
+    "react.nonsense": ["就你说的这些，我可信不了几分。", "空口无凭，谁知道是真是假。"],
     "farewell": ["慢走。", "{catch}"],
     "react.confused": ["嗯……你说的这些，我不太明白。", "是吗。"],
     "react.unknown": ["这我可不知道。", "问我也没用。"],

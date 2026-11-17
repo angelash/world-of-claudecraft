@@ -1,0 +1,1587 @@
+{
+  "_doc": "Intent rules and responses of the rule classifier (builtin_ai.md 6.3 to 6.5, 18; PK-M0-26). score = base + keyword x groups hit + pattern x template hit + entity x needed kinds present + feature x matching features + exclude x exclude terms + context bonus; a clause takes the best rule at or over the threshold (ties: higher priority, then earlier rule), else unknown. Terms starting with @ name a group of data/dialogue/lexicon.json; pattern syntax in src/systems/dialogue/intent/pattern.ts. Responses: R1 topic answer, R2 reaction, R3 ledger refusal, R4 redirect, R5 system entry, R6 cognition evidence, R7 relation write, R8 notification, R9 end; `if` names a condition of src/systems/dialogue/intent/respond.ts; slots may use {band}, {part}, {activity} and {state}.",
+  "threshold": 5,
+  "weights": {
+    "keyword": 3,
+    "pattern": 4,
+    "entity": 3,
+    "feature": 1,
+    "exclude": -5
+  },
+  "merge": ["safety", "ledger", "answer", "conflict", "service", "ask", "act", "social", "none"],
+  "intents": {
+    "greet": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["greet.{band}.{part}"]
+        }
+      ],
+      "short": "greet.{band}.{part}",
+      "valid": true
+    },
+    "farewell": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "use": "farewell"
+        },
+        {
+          "code": "R9"
+        }
+      ],
+      "valid": true
+    },
+    "thanks": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.thanked"]
+        },
+        {
+          "code": "R7",
+          "like": 1,
+          "trust": 0.5,
+          "daily": true
+        }
+      ],
+      "short": "react.thanked",
+      "valid": true
+    },
+    "apologize": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.apology_reject", "react.decline"],
+          "if": "grudge"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.apology_accept", "react.thanked"],
+          "if": "forgiven"
+        },
+        {
+          "code": "R7",
+          "restore": 0.5,
+          "if": "forgiven"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.confused"],
+          "if": "not_offended"
+        }
+      ],
+      "short": "react.apology_accept",
+      "valid": true
+    },
+    "compliment": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.flattered", "react.thanked"]
+        },
+        {
+          "code": "R7",
+          "like": 1,
+          "daily": true,
+          "traits": [
+            {
+              "trait": "vain",
+              "like": 3
+            },
+            {
+              "trait": "suspicious",
+              "like": -1
+            }
+          ]
+        }
+      ],
+      "short": "react.flattered",
+      "valid": true
+    },
+    "insult": {
+      "group": "conflict",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.insult", "react.decline"]
+        },
+        {
+          "code": "R7",
+          "like": -8,
+          "trust": -2
+        },
+        {
+          "code": "R8",
+          "notify": "guard",
+          "if": "guard"
+        },
+        {
+          "code": "R9",
+          "if": "third_insult"
+        }
+      ],
+      "short": "react.insult",
+      "patience": -1
+    },
+    "threaten": {
+      "group": "conflict",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.threatened", "react.decline"]
+        },
+        {
+          "code": "R7",
+          "like": -10,
+          "trust": -5,
+          "awe": 5
+        },
+        {
+          "code": "R8",
+          "notify": "guard"
+        }
+      ],
+      "short": "react.threatened",
+      "patience": -1
+    },
+    "joke": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.joke"]
+        },
+        {
+          "code": "R7",
+          "daily": true,
+          "traits": [
+            {
+              "trait": "humorous",
+              "like": 2
+            },
+            {
+              "trait": "serious",
+              "like": -2
+            }
+          ]
+        }
+      ],
+      "short": "react.joke",
+      "valid": true
+    },
+    "advance": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.insult", "react.decline"],
+          "if": "repeat_today"
+        },
+        {
+          "code": "R7",
+          "like": -8,
+          "trust": -2,
+          "if": "repeat_today"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.advance", "react.joke"]
+        }
+      ],
+      "short": "react.advance"
+    },
+    "small_talk": {
+      "group": "social",
+      "respond": [
+        {
+          "code": "R2",
+          "use": "small_talk"
+        },
+        {
+          "code": "R7",
+          "like": 1.5,
+          "trust": 0.5,
+          "daily": true
+        }
+      ],
+      "valid": true
+    },
+    "ask_identity": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_self",
+          "version": "band",
+          "else": ["@intro"]
+        }
+      ],
+      "valid": true
+    },
+    "ask_job": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_work",
+          "version": "knowledge",
+          "else": ["@intro"]
+        }
+      ],
+      "valid": true
+    },
+    "ask_wellbeing": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_trouble",
+          "version": "knowledge",
+          "if": "troubled"
+        },
+        {
+          "code": "R2",
+          "use": "small_talk"
+        }
+      ],
+      "valid": true
+    },
+    "ask_plan": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["bark.{activity}"]
+        },
+        {
+          "code": "R2",
+          "use": "small_talk"
+        }
+      ],
+      "valid": true
+    },
+    "ask_past": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R3",
+          "if": "low_trust"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_past",
+          "version": "band",
+          "else": ["react.evade", "react.unknown"]
+        }
+      ]
+    },
+    "ask_view_person": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "person_{person}",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        }
+      ]
+    },
+    "ask_view_player": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R2",
+          "use": "opinion"
+        }
+      ],
+      "valid": true
+    },
+    "ask_person": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "person_{person}",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        },
+        {
+          "code": "R5",
+          "entry": "map_marker",
+          "if": "known_person"
+        }
+      ]
+    },
+    "ask_place": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "place_{place}",
+          "version": "knowledge",
+          "else": ["topic.gen_place", "react.unknown"]
+        }
+      ]
+    },
+    "ask_directions": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_directions",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        },
+        {
+          "code": "R5",
+          "entry": "map_marker"
+        }
+      ],
+      "valid": true
+    },
+    "ask_news": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_news",
+          "version": "knowledge",
+          "else": ["@rumor"]
+        }
+      ],
+      "valid": true
+    },
+    "ask_rumor": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R2",
+          "use": "rumor"
+        },
+        {
+          "code": "R5",
+          "entry": "rumor"
+        }
+      ],
+      "valid": true
+    },
+    "ask_event": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "event_{event}",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        }
+      ]
+    },
+    "ask_lore": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "lore_{lore}",
+          "version": "knowledge"
+        },
+        {
+          "code": "R3"
+        }
+      ]
+    },
+    "ask_goddess": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_faith",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        }
+      ]
+    },
+    "ask_danger": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "gen_danger",
+          "version": "knowledge",
+          "else": ["react.unknown"]
+        },
+        {
+          "code": "R5",
+          "entry": "danger_marker"
+        }
+      ],
+      "valid": true
+    },
+    "trade_buy": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "trade",
+          "if": "merchant"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_shop",
+          "version": "knowledge",
+          "else": ["react.nothing_more"],
+          "if": "merchant"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.wrong_person", "react.unknown"]
+        }
+      ],
+      "valid": true
+    },
+    "trade_sell": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "trade_sell",
+          "if": "merchant"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_shop",
+          "version": "knowledge",
+          "else": ["react.nothing_more"],
+          "if": "merchant"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.wrong_person", "react.unknown"]
+        }
+      ],
+      "valid": true
+    },
+    "haggle": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.haggle_no", "react.decline"],
+          "if": "merchant"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.wrong_person", "react.confused"]
+        }
+      ],
+      "valid": true
+    },
+    "ask_work": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "quest"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_trouble",
+          "version": "knowledge",
+          "else": ["react.no_work", "react.nothing_more"]
+        }
+      ],
+      "valid": true
+    },
+    "quest_report": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "report"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.nothing_more"]
+        }
+      ],
+      "valid": true
+    },
+    "request_service": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "service",
+          "if": "service"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_craft",
+          "version": "knowledge",
+          "else": ["react.nothing_more"],
+          "if": "service"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.wrong_person", "react.unknown"]
+        }
+      ],
+      "valid": true
+    },
+    "ask_help": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "help"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.decline"]
+        }
+      ],
+      "valid": true
+    },
+    "offer_help": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "quest"
+        },
+        {
+          "code": "R1",
+          "topic": "gen_trouble",
+          "version": "knowledge",
+          "else": ["react.thanked"]
+        }
+      ],
+      "valid": true
+    },
+    "give_gift": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "gift"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.gift_plain", "react.confused"]
+        }
+      ],
+      "valid": true
+    },
+    "recruit": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "recruit"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.recruit_later", "react.decline"]
+        }
+      ],
+      "valid": true
+    },
+    "persuade": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.unpersuaded", "react.confused"]
+        }
+      ]
+    },
+    "bribe": {
+      "group": "service",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.bribe_refuse", "react.decline"]
+        },
+        {
+          "code": "R7",
+          "trust": -10,
+          "daily": true
+        },
+        {
+          "code": "R8",
+          "notify": "guard",
+          "if": "guard"
+        }
+      ]
+    },
+    "promise": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.promise_noted"],
+          "if": "pending"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.confused"]
+        }
+      ]
+    },
+    "claim_feat": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R6",
+          "weight": 1
+        },
+        {
+          "code": "R2",
+          "use": "unbelief"
+        }
+      ]
+    },
+    "reveal_identity": {
+      "group": "ledger",
+      "respond": [
+        {
+          "code": "R6",
+          "weight": 0
+        },
+        {
+          "code": "R8",
+          "notify": "clergy",
+          "if": "clergy"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.identity_claim", "react.nonsense", "react.confused"]
+        }
+      ]
+    },
+    "accuse": {
+      "group": "conflict",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "accuse"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.accused", "react.decline"]
+        },
+        {
+          "code": "R7",
+          "like": -5
+        }
+      ]
+    },
+    "ask_secret": {
+      "group": "ledger",
+      "respond": [
+        {
+          "code": "R3"
+        }
+      ]
+    },
+    "forbidden_name": {
+      "group": "safety",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.unknown"]
+        },
+        {
+          "code": "R8",
+          "notify": "goddess"
+        }
+      ]
+    },
+    "earth_talk": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.earth_refuse", "react.confused"],
+          "if": "earth_refuse"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.earth_talk", "react.confused"]
+        }
+      ]
+    },
+    "meta": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.nonsense", "react.confused"]
+        },
+        {
+          "code": "R8",
+          "notify": "audit"
+        }
+      ]
+    },
+    "injection": {
+      "group": "safety",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.nonsense", "react.confused"]
+        },
+        {
+          "code": "R8",
+          "notify": "audit"
+        }
+      ]
+    },
+    "invoke_goddess": {
+      "group": "act",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.goddess_invoked", "react.confused"]
+        },
+        {
+          "code": "R8",
+          "notify": "goddess"
+        }
+      ]
+    },
+    "agree": {
+      "group": "answer",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "answer_yes",
+          "if": "pending"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.promise_noted", "react.joke"],
+          "if": "pending"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.joke"]
+        }
+      ],
+      "valid": true
+    },
+    "refuse": {
+      "group": "answer",
+      "respond": [
+        {
+          "code": "R5",
+          "entry": "answer_no",
+          "if": "pending"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.declined", "react.confused"]
+        }
+      ],
+      "valid": true
+    },
+    "clarify": {
+      "group": "ask",
+      "respond": [
+        {
+          "code": "R1",
+          "topic": "{topic}",
+          "version": "knowledge",
+          "else": ["react.nothing_more"],
+          "if": "in_topic"
+        },
+        {
+          "code": "R2",
+          "slots": ["react.nothing_more", "react.confused"]
+        }
+      ]
+    },
+    "unknown": {
+      "group": "none",
+      "respond": [
+        {
+          "code": "R2",
+          "slots": ["react.confused"]
+        },
+        {
+          "code": "R4"
+        }
+      ],
+      "patience": -1
+    }
+  },
+  "rules": [
+    {
+      "id": "injection_strong",
+      "intent": "injection",
+      "priority": 100,
+      "base": 2,
+      "any": [["@injection_strong"]]
+    },
+    {
+      "id": "injection_weak",
+      "intent": "injection",
+      "priority": 100,
+      "base": 0,
+      "any": [["@injection_weak"], ["你", "您"]],
+      "features": {
+        "imperative": true
+      }
+    },
+    {
+      "id": "forbidden_name",
+      "intent": "forbidden_name",
+      "priority": 99,
+      "base": 2,
+      "needs": ["forbidden"],
+      "needsOnly": true
+    },
+    {
+      "id": "ask_secret",
+      "intent": "ask_secret",
+      "priority": 80,
+      "base": 2,
+      "any": [["@ask_secret"]],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@reveal_identity"]
+    },
+    {
+      "id": "reveal_identity",
+      "intent": "reveal_identity",
+      "priority": 81,
+      "base": 2,
+      "any": [["@reveal_identity"]],
+      "features": {
+        "first": true
+      }
+    },
+    {
+      "id": "reveal_from",
+      "intent": "reveal_identity",
+      "priority": 81,
+      "base": 1,
+      "patterns": [
+        "我 .. 从 .. {earth}",
+        "我 .. 来自 .. {earth}",
+        "我 是 .. {earth} .. 人",
+        "我 .. {earth} .. 来"
+      ]
+    },
+    {
+      "id": "agree_short",
+      "intent": "agree",
+      "priority": 70,
+      "base": 0,
+      "patterns": ["^ @agree_short $"],
+      "features": {
+        "maxLen": 6
+      },
+      "context": {
+        "afterQuestion": 4
+      }
+    },
+    {
+      "id": "agree_phrase",
+      "intent": "agree",
+      "priority": 70,
+      "base": -1,
+      "any": [["@agree"]],
+      "features": {
+        "maxLen": 10,
+        "negation": false
+      },
+      "context": {
+        "afterQuestion": 4
+      }
+    },
+    {
+      "id": "refuse_short",
+      "intent": "refuse",
+      "priority": 71,
+      "base": 0,
+      "patterns": ["^ @refuse_short $"],
+      "features": {
+        "maxLen": 8
+      },
+      "context": {
+        "afterQuestion": 4
+      }
+    },
+    {
+      "id": "refuse_phrase",
+      "intent": "refuse",
+      "priority": 71,
+      "base": -1,
+      "any": [["@refuse"]],
+      "features": {
+        "maxLen": 12
+      },
+      "context": {
+        "afterQuestion": 4
+      }
+    },
+    {
+      "id": "threaten_word",
+      "intent": "threaten",
+      "priority": 66,
+      "base": 2,
+      "any": [["@threaten"]],
+      "exclude": ["谁"]
+    },
+    {
+      "id": "threaten_harm",
+      "intent": "threaten",
+      "priority": 66,
+      "base": 1,
+      "patterns": ["@harm_verb 你", "把 你 .. @harm_verb", "@harm_verb 了 你"],
+      "exclude": ["谁", "吗"]
+    },
+    {
+      "id": "insult_strong",
+      "intent": "insult",
+      "priority": 65,
+      "base": 2,
+      "any": [["@insult_strong"]]
+    },
+    {
+      "id": "insult_weak",
+      "intent": "insult",
+      "priority": 64,
+      "base": 1,
+      "any": [["@insult_weak"]],
+      "features": {
+        "second": true,
+        "first": false
+      },
+      "exclude": ["@compliment_strong"]
+    },
+    {
+      "id": "accuse_word",
+      "intent": "accuse",
+      "priority": 64,
+      "base": 2,
+      "any": [["@accuse"]],
+      "exclude": ["@reveal_identity"]
+    },
+    {
+      "id": "bribe_word",
+      "intent": "bribe",
+      "priority": 58,
+      "base": 2,
+      "any": [["@bribe"]]
+    },
+    {
+      "id": "bribe_money",
+      "intent": "bribe",
+      "priority": 58,
+      "base": 0,
+      "any": [
+        ["@money"],
+        ["收下", "拿着", "给你", "通融", "放我", "别说", "装作", "当作", "就当", "睁一只眼"]
+      ],
+      "exclude": ["@trade_buy", "@ask_work"]
+    },
+    {
+      "id": "service_strong",
+      "intent": "request_service",
+      "priority": 57,
+      "base": 2,
+      "any": [["@service_strong"]],
+      "exclude": ["@trade_buy", "@ask_identity"]
+    },
+    {
+      "id": "service_weak",
+      "intent": "request_service",
+      "priority": 56,
+      "base": 0,
+      "any": [["@service_weak"], ["帮我", "给我", "能", "可以", "想", "请", "麻烦"]],
+      "needs": ["item"],
+      "exclude": ["@trade_buy"],
+      "needsKeyword": true
+    },
+    {
+      "id": "haggle_word",
+      "intent": "haggle",
+      "priority": 56,
+      "base": 2,
+      "any": [["@haggle"]]
+    },
+    {
+      "id": "trade_sell_word",
+      "intent": "trade_sell",
+      "priority": 55,
+      "base": 2,
+      "any": [["@trade_sell"]],
+      "needs": ["item", "monster"],
+      "exclude": ["@trade_sell_not"],
+      "needsKeyword": true
+    },
+    {
+      "id": "trade_buy_word",
+      "intent": "trade_buy",
+      "priority": 54,
+      "base": 2,
+      "any": [["@trade_buy"]],
+      "needs": ["item"],
+      "exclude": ["@trade_sell", "@haggle"],
+      "needsKeyword": true
+    },
+    {
+      "id": "trade_buy_item",
+      "intent": "trade_buy",
+      "priority": 54,
+      "base": 0,
+      "any": [["有没有", "有", "要", "来", "想要", "需要", "缺"]],
+      "needs": ["item"],
+      "needsOnly": true,
+      "features": {
+        "question": true
+      },
+      "exclude": ["@trade_sell", "@service_strong", "@quest_report", "@give_gift"]
+    },
+    {
+      "id": "quest_report_word",
+      "intent": "quest_report",
+      "priority": 53,
+      "base": 2,
+      "any": [["@quest_report"]],
+      "needs": ["monster", "item", "person"],
+      "exclude": ["是我", "被我", "一个人", "亲手", "单挑"],
+      "needsKeyword": true
+    },
+    {
+      "id": "ask_work_word",
+      "intent": "ask_work",
+      "priority": 52,
+      "base": 2,
+      "any": [["@ask_work"]],
+      "exclude": ["@quest_report", "@offer_help"]
+    },
+    {
+      "id": "offer_help_word",
+      "intent": "offer_help",
+      "priority": 52,
+      "base": 2,
+      "any": [["@offer_help"]],
+      "patterns": ["我 .. 帮 你", "我 .. 帮 您", "我 来 .. 帮"],
+      "exclude": ["帮我", "你帮", "您帮"]
+    },
+    {
+      "id": "ask_help_word",
+      "intent": "ask_help",
+      "priority": 51,
+      "base": 2,
+      "any": [["@ask_help"]],
+      "exclude": ["@offer_help", "@service_strong", "我帮你", "我来帮"]
+    },
+    {
+      "id": "give_gift_word",
+      "intent": "give_gift",
+      "priority": 50,
+      "base": 2,
+      "any": [["@give_gift"]],
+      "needs": ["item"],
+      "exclude": ["@money", "@trade_buy", "卖给你", "给你带", "交给你"],
+      "needsKeyword": true
+    },
+    {
+      "id": "recruit_word",
+      "intent": "recruit",
+      "priority": 50,
+      "base": 2,
+      "any": [["@recruit"]],
+      "features": {
+        "second": true
+      },
+      "exclude": ["@ask_work"]
+    },
+    {
+      "id": "promise_word",
+      "intent": "promise",
+      "priority": 46,
+      "base": 2,
+      "any": [["@promise"]],
+      "features": {
+        "first": true,
+        "question": false
+      },
+      "exclude": ["你保证", "你发誓", "你答应"]
+    },
+    {
+      "id": "promise_swear",
+      "intent": "promise",
+      "priority": 47,
+      "base": 2,
+      "patterns": [
+        "向 {goddess} .. @swear",
+        "以 {goddess} .. @swear",
+        "对 {goddess} .. @swear",
+        "@swear"
+      ]
+    },
+    {
+      "id": "claim_feat_word",
+      "intent": "claim_feat",
+      "priority": 45,
+      "base": 2,
+      "any": [["@claim_feat"]],
+      "features": {
+        "question": false
+      },
+      "exclude": ["你一个人", "@quest_report_task"]
+    },
+    {
+      "id": "claim_feat_pattern",
+      "intent": "claim_feat",
+      "priority": 45,
+      "base": 1,
+      "patterns": [
+        "是 我 .. @feat_verb",
+        "我 .. @feat_verb .. {monster|person}",
+        "{monster|person|event} .. 是 我 .. @feat_verb",
+        "{event} .. 我 .. @feat_verb",
+        "{event} .. 是 我"
+      ],
+      "features": {
+        "question": false
+      }
+    },
+    {
+      "id": "invoke_honorific",
+      "intent": "invoke_goddess",
+      "priority": 48,
+      "base": 2,
+      "needs": ["honorific"],
+      "needsOnly": true
+    },
+    {
+      "id": "invoke_pray",
+      "intent": "invoke_goddess",
+      "priority": 48,
+      "base": 1,
+      "patterns": [
+        "@pray .. {goddess}",
+        "{goddess} .. @bless",
+        "@bless .. {goddess}",
+        "{goddess} 啊"
+      ],
+      "needs": ["goddess"],
+      "features": {
+        "question": false
+      },
+      "exclude": ["@swear", "怎么", "什么"]
+    },
+    {
+      "id": "earth_thing",
+      "intent": "earth_talk",
+      "priority": 44,
+      "base": 2,
+      "needs": ["earth"],
+      "needsOnly": true
+    },
+    {
+      "id": "meta_word",
+      "intent": "meta",
+      "priority": 43,
+      "base": 2,
+      "any": [["@meta"]]
+    },
+    {
+      "id": "meta_ai",
+      "intent": "meta",
+      "priority": 43,
+      "base": 0,
+      "patterns": ["是 ai", "ai 吗", "^ ai $", "ai 吧"],
+      "features": {
+        "question": true
+      }
+    },
+    {
+      "id": "persuade_word",
+      "intent": "persuade",
+      "priority": 42,
+      "base": 2,
+      "any": [["@persuade"]],
+      "exclude": ["@insult_strong", "@threaten", "@farewell"]
+    },
+    {
+      "id": "ask_view_player",
+      "intent": "ask_view_player",
+      "priority": 36,
+      "base": 2,
+      "any": [["@ask_view_player"]],
+      "exclude": ["@compliment_strong"]
+    },
+    {
+      "id": "ask_view_person",
+      "intent": "ask_view_person",
+      "priority": 35,
+      "base": 0,
+      "any": [["@view_words"]],
+      "needs": ["person", "faction"],
+      "needsOnly": true,
+      "patterns": [
+        "觉得 {person|faction}",
+        "{person|faction} .. 怎么样",
+        "{person|faction} .. 这人",
+        "看 {person|faction}",
+        "{person|faction} .. 人 .. 好"
+      ],
+      "exclude": ["在哪", "去哪", "住哪"]
+    },
+    {
+      "id": "ask_person_entity",
+      "intent": "ask_person",
+      "priority": 34,
+      "base": 0,
+      "any": [["@ask_person"]],
+      "needs": ["person", "unknown_name"],
+      "needsOnly": true,
+      "patterns": [
+        "{person|unknown_name} .. 在 哪",
+        "认识 .. {person|unknown_name}",
+        "{person|unknown_name} .. 是 谁",
+        "谁 是 .. {person|unknown_name}",
+        "找 .. {person}"
+      ],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@view_words_strong"]
+    },
+    {
+      "id": "ask_person_who",
+      "intent": "ask_person",
+      "priority": 33,
+      "base": 1,
+      "any": [["@who_words"]],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@service_strong", "@trade_buy"]
+    },
+    {
+      "id": "ask_directions_word",
+      "intent": "ask_directions",
+      "priority": 32,
+      "base": 1,
+      "any": [["@ask_directions"]],
+      "needs": ["place"],
+      "patterns": [
+        "{place} .. 怎么 .. 走|去",
+        "去 {place} .. 怎么",
+        "{place} .. 在 哪",
+        "到 {place}",
+        "去 {place} .. 路",
+        "{place} .. 远"
+      ],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@ask_plan_where"],
+      "needsKeyword": true
+    },
+    {
+      "id": "ask_place_entity",
+      "intent": "ask_place",
+      "priority": 31,
+      "base": 0,
+      "any": [["@ask_place", "@place_adj"]],
+      "needs": ["place"],
+      "needsOnly": true,
+      "patterns": ["{place} .. 是 .. 什么", "{place} .. 怎么样", "{place} .. 有 什么"],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@ask_directions"]
+    },
+    {
+      "id": "ask_place_here",
+      "intent": "ask_place",
+      "priority": 31,
+      "base": 1,
+      "any": [["@ask_place", "@place_adj"]],
+      "exclude": ["@ask_directions"],
+      "all": ["@here_words"],
+      "features": {
+        "question": true
+      }
+    },
+    {
+      "id": "ask_event_entity",
+      "intent": "ask_event",
+      "priority": 30,
+      "base": 0,
+      "any": [["@ask_about"]],
+      "needs": ["event"],
+      "needsOnly": true,
+      "features": {
+        "question": true
+      },
+      "exclude": ["@claim_feat"]
+    },
+    {
+      "id": "ask_lore_entity",
+      "intent": "ask_lore",
+      "priority": 29,
+      "base": 0,
+      "any": [["@ask_about"]],
+      "needs": ["lore"],
+      "needsOnly": true,
+      "features": {
+        "question": true
+      },
+      "exclude": ["@reveal_identity"]
+    },
+    {
+      "id": "ask_goddess_word",
+      "intent": "ask_goddess",
+      "priority": 28,
+      "base": 1,
+      "any": [["@ask_goddess"]],
+      "needs": ["goddess"],
+      "features": {
+        "question": true
+      },
+      "needsKeyword": true
+    },
+    {
+      "id": "ask_goddess_name",
+      "intent": "ask_goddess",
+      "priority": 28,
+      "base": 0,
+      "any": [["@ask_about"]],
+      "needs": ["goddess"],
+      "needsOnly": true,
+      "features": {
+        "question": true
+      }
+    },
+    {
+      "id": "ask_danger_word",
+      "intent": "ask_danger",
+      "priority": 27,
+      "base": 1,
+      "any": [["@ask_danger"]],
+      "needs": ["monster"],
+      "features": {
+        "question": true
+      },
+      "needsKeyword": true
+    },
+    {
+      "id": "ask_danger_monster",
+      "intent": "ask_danger",
+      "priority": 26,
+      "base": 0,
+      "any": [["@ask_about", "哪里", "哪儿", "多吗", "有吗", "附近"]],
+      "needs": ["monster"],
+      "needsOnly": true,
+      "features": {
+        "question": true
+      },
+      "exclude": ["@quest_report", "@claim_feat"]
+    },
+    {
+      "id": "ask_rumor_word",
+      "intent": "ask_rumor",
+      "priority": 25,
+      "base": 2,
+      "any": [["@ask_rumor"]],
+      "exclude": ["我听说过"]
+    },
+    {
+      "id": "ask_news_word",
+      "intent": "ask_news",
+      "priority": 24,
+      "base": 2,
+      "any": [["@ask_news"]],
+      "features": {
+        "question": true
+      }
+    },
+    {
+      "id": "ask_identity_word",
+      "intent": "ask_identity",
+      "priority": 23,
+      "base": 2,
+      "any": [["@ask_identity"]],
+      "exclude": ["@third_person", "我叫", "我的名字", "我是"]
+    },
+    {
+      "id": "ask_job_word",
+      "intent": "ask_job",
+      "priority": 22,
+      "base": 2,
+      "any": [["@ask_job"]],
+      "patterns": ["你 是 @job 吗", "你 .. 是 .. @job"],
+      "exclude": ["@third_person"]
+    },
+    {
+      "id": "ask_past_word",
+      "intent": "ask_past",
+      "priority": 21,
+      "base": 1,
+      "any": [["@ask_past"]],
+      "features": {
+        "question": true
+      }
+    },
+    {
+      "id": "ask_plan_word",
+      "intent": "ask_plan",
+      "priority": 20,
+      "base": 1,
+      "any": [["@ask_plan"]],
+      "features": {
+        "question": true
+      },
+      "exclude": ["@place_question"]
+    },
+    {
+      "id": "ask_wellbeing_word",
+      "intent": "ask_wellbeing",
+      "priority": 19,
+      "base": 2,
+      "any": [["@ask_wellbeing"]],
+      "exclude": ["@ask_news", "我还好", "我没事"]
+    },
+    {
+      "id": "clarify_word",
+      "intent": "clarify",
+      "priority": 18,
+      "base": 1,
+      "any": [["@clarify"]],
+      "features": {
+        "maxLen": 10
+      },
+      "context": {
+        "inTopic": 3
+      }
+    },
+    {
+      "id": "compliment_strong",
+      "intent": "compliment",
+      "priority": 15,
+      "base": 2,
+      "any": [["@compliment_strong"]],
+      "features": {
+        "negation": false
+      },
+      "exclude": ["我厉害", "我很", "我真", "厉害吗", "@ask_view_player"]
+    },
+    {
+      "id": "compliment_you",
+      "intent": "compliment",
+      "priority": 15,
+      "base": 0,
+      "patterns": [
+        "你 .. @degree @compliment_adj",
+        "您 .. @degree @compliment_adj",
+        "你 .. @compliment_adj",
+        "您 .. @compliment_adj"
+      ],
+      "features": {
+        "second": true,
+        "negation": false,
+        "question": false
+      },
+      "exclude": ["我很", "我真", "@advance"]
+    },
+    {
+      "id": "advance_word",
+      "intent": "advance",
+      "priority": 14,
+      "base": 2,
+      "any": [["@advance"]]
+    },
+    {
+      "id": "joke_word",
+      "intent": "joke",
+      "priority": 13,
+      "base": 2,
+      "any": [["@joke"]]
+    },
+    {
+      "id": "apologize_word",
+      "intent": "apologize",
+      "priority": 12,
+      "base": 2,
+      "any": [["@apologize"]]
+    },
+    {
+      "id": "thanks_word",
+      "intent": "thanks",
+      "priority": 11,
+      "base": 2,
+      "any": [["@thanks"]],
+      "exclude": ["@thanks_not"]
+    },
+    {
+      "id": "farewell_word",
+      "intent": "farewell",
+      "priority": 10,
+      "base": 2,
+      "any": [["@farewell"]],
+      "exclude": ["他走了", "她走了", "怎么走", "别走"]
+    },
+    {
+      "id": "farewell_short",
+      "intent": "farewell",
+      "priority": 10,
+      "base": 1,
+      "patterns": ["^ @farewell_short $"]
+    },
+    {
+      "id": "greet_word",
+      "intent": "greet",
+      "priority": 9,
+      "base": 2,
+      "any": [["@greet"]],
+      "features": {
+        "maxLen": 6
+      },
+      "exclude": ["好吗", "@insult_weak", "@compliment_adj", "@compliment_strong"]
+    },
+    {
+      "id": "greet_short",
+      "intent": "greet",
+      "priority": 9,
+      "base": 1,
+      "patterns": ["^ @greet_short $", "^ @greet_short"],
+      "features": {
+        "maxLen": 4
+      }
+    },
+    {
+      "id": "small_talk_word",
+      "intent": "small_talk",
+      "priority": 8,
+      "base": 2,
+      "any": [["@small_talk"]]
+    },
+    {
+      "id": "small_talk_today",
+      "intent": "small_talk",
+      "priority": 8,
+      "base": 0,
+      "any": [["今天", "最近", "这几天", "今儿", "这天"]],
+      "features": {
+        "maxLen": 8
+      },
+      "exclude": ["@ask_news", "@ask_plan", "@ask_wellbeing"]
+    }
+  ]
+}

@@ -32,8 +32,12 @@ const NOT_TEXT_FIELDS: ReadonlySet<string> = new Set([
   'aliases',
 ]);
 
-/** Tables that are not content text at all (the variable registry). */
-const NOT_TEXT_TABLES: ReadonlySet<string> = new Set(['registry']);
+/**
+ * Tables that are not content text at all: the variable registry, and the intent
+ * classifier's lexicon and rule table (data matched against the player's own typed words
+ * and the content's own names, never shown to the player; builtin_ai.md 6.3, 6.4).
+ */
+const NOT_TEXT_TABLES: ReadonlySet<string> = new Set(['registry', 'intentLexicon', 'intentRules']);
 
 /** Tables without ids whose records are keyed by another field. */
 const RECORD_KEY_FIELD: Readonly<Record<string, string>> = { courtDefenses: 'goddess' };

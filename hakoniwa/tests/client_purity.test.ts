@@ -72,6 +72,7 @@ export const CLIENT_PURE_CORES = [
   'view/adapters.ts',
   'view/game_view.ts',
   'windows/battle_model.ts',
+  'windows/brain_inspector.ts',
   'windows/inventory_view.ts',
   'windows/strategy_model.ts',
   'windows/window_registry.ts',

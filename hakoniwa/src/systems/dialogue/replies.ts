@@ -11,16 +11,10 @@ import { locationById } from '../npc/places';
 import { relationOf } from '../npc/relations';
 import type { PersonaCard } from '../npc/types';
 import { currentWeather } from '../world';
-import INPUT_LEXICON from './input_lexicon.json';
+import { classifyIntent } from './intent/classify';
+import { respondTo } from './intent/respond';
+import type { IntentId } from './intent/types';
 import { pickLine } from './templates';
-
-// Player-input vocabulary for the rule answer (keywords of the player's own typed words).
-// Data, not display text: it belongs in data/ with the content pipeline (follow-up).
-const INPUT = {
-  thanks: new RegExp(INPUT_LEXICON.thanks),
-  hello: new RegExp(INPUT_LEXICON.hello),
-  question: new RegExp(INPUT_LEXICON.question),
-};
 
 export interface ReplyVars {
   player: TextParam;
@@ -109,13 +103,35 @@ export function farewell(ctx: SystemContext, npcRef: string): TextParam {
   return line(ctx, 'bye', npcRef);
 }
 
-/** Rule answer to free text: a light keyword read plus the relation (text is data only). */
-export function answer(ctx: SystemContext, npcRef: string, text: string): TextParam {
-  const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
-  if (INPUT.thanks.test(text)) return line(ctx, 'say.thanks', npcRef);
-  if (INPUT.hello.test(text)) return line(ctx, 'say.hello', npcRef);
-  if (rel.like <= -15) return line(ctx, 'say.cold', npcRef);
-  if (INPUT.question.test(text)) return line(ctx, 'say.question', npcRef);
-  if (rel.like >= 30) return line(ctx, 'say.warm', npcRef);
-  return line(ctx, 'say', npcRef);
+/**
+ * Rule answer to free text (builtin_ai.md 6.3 to 6.5; PK-M0-26): classifies the player's
+ * words into one of the 52 intents and carries out its response table (relation changes,
+ * cognition evidence, notifications; R5 system entries and R9 session end are reported
+ * back for the caller to act on). The classification and its world effects run the same
+ * way with or without a model (builtin_ai 6.3: "分类器在两档都运行"); only the line's
+ * wording may later be replaced by the model.
+ */
+export function answer(ctx: SystemContext, npcRef: string, text: string): AnswerResult {
+  // a hidden goddess name counts as the forbidden word only until its own reveal flag
+  // holds (builtin_ai 1.7); without this reader every mention stays forbidden forever,
+  // even after the name is public.
+  const result = classifyIntent(text, ctx.content, { flag: (key) => ctx.flag(key) });
+  // the per-speaker repetition ledger (builtin_ai 7.7, 18) is not yet a save slice
+  // (PK-M0-25 report; follow-up PK-M1-18): the selector falls back to no suppression.
+  const outcome = respondTo(ctx, { npcRef, text, result, ctx: {} });
+  return {
+    line: outcome.line,
+    intent: result.main,
+    end: outcome.end,
+    entry: outcome.entry,
+    notify: outcome.notify,
+  };
+}
+
+export interface AnswerResult {
+  line: TextParam;
+  intent: IntentId;
+  end: boolean;
+  entry: { id: string; params: Record<string, string> } | null;
+  notify: string[];
 }

@@ -5,6 +5,7 @@
 // adapters in ./adapters.ts.
 
 import type { AiMode } from '../../core/ai_port';
+import type { BrainTrace } from '../../core/brain/trace';
 import type {
   AnyWorldEvent,
   CommandKind,
@@ -45,6 +46,10 @@ export interface GameView {
   holding(ownerId: string): Readonly<Holding>;
   itemDef(id: string): ItemDef | undefined;
   recentEvents(): readonly AnyWorldEvent[];
+  /** Actors with at least one recorded built-in decision trace (builtin_ai.md 2.6, 15). */
+  traceActors(): string[];
+  /** One actor's recent traces, oldest first; empty until a brain records one (PK-M1-18 on). */
+  brainTraces(actor: string): readonly BrainTrace[];
   /** raw access for the dev-only debug window and phase-2 adapters */
   readonly world: Readonly<World>;
   readonly content: Readonly<ContentMap>;
@@ -85,6 +90,8 @@ export function createGameView(engine: Engine): GameView {
     holding: (ownerId) => holdingOf(world, ownerId),
     itemDef: (id) => itemDef(content, id),
     recentEvents: () => world.recent,
+    traceActors: () => engine.traceActors(),
+    brainTraces: (actor) => engine.recentTraces(actor),
     world,
     content,
   };

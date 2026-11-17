@@ -60,6 +60,12 @@ declare module './contracts' {
       options: { id: string; label: TextParam; hint?: TextParam }[];
     };
     'dialogue.option_chosen': { npcId: string; system: string; optionId: string };
+    /**
+     * The intent classifier's R8 response step fired (builtin_ai.md 6.5): a free-text
+     * intent raised a notification (guard, clergy, goddess, audit) toward a system that
+     * has not subscribed yet (PK-M1-18). Dialogue owns the fact; nothing consumes it today.
+     */
+    'dialogue.notified': { npcId: string; npcRef: string; notify: string; intent: string };
     /** A line to show in the conversation box and the log (any system may emit). */
     'dialogue.line': {
       speakerId: string;

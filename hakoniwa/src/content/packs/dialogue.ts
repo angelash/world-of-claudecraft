@@ -4,8 +4,11 @@
 // data/cognition/lines.json moved into the packs, PK-M0-25). Persona cards may still
 // override any former key with their own lines.
 
+import intentRulesData from '../../../data/dialogue/intents.json';
 import legacyMap from '../../../data/dialogue/legacy_lines.json';
+import intentLexiconData from '../../../data/dialogue/lexicon.json';
 import type { ContentMap } from '../../core/contracts';
+import { ruleSetProblems } from '../../systems/dialogue/intent/content';
 import {
   type LegacyLineMap,
   legacyLines,
@@ -189,6 +192,7 @@ export function validateDialogueContent(content: ContentMap): string[] {
   }
   for (const k of REQUIRED_KEYS)
     if (legacyLines(content, k).length === 0) problems.push(`legacy line key ${k} missing`);
+  problems.push(...ruleSetProblems(content.intentLexicon, content.intentRules));
   return problems;
 }
 
@@ -210,6 +214,8 @@ export const pack: ContentPack = {
   tables: {
     linePacks: byFile.map(([, p]) => p),
     legacyLines: { keys: (legacyMap as unknown as LegacyLineMap).keys },
+    intentLexicon: intentLexiconData as unknown as ContentMap['intentLexicon'],
+    intentRules: intentRulesData as unknown as ContentMap['intentRules'],
   },
   schemas,
   validate: validateDialogueContent,
