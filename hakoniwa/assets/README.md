@@ -145,7 +145,7 @@ assets/
 
 - **列表：** 每个有登记记录、有生成候选或有未登记原文件的编号一行，按类别分组，可按编号或内容搜索，按美术、音频与状态筛选；顶部是两类素材对提示词库的覆盖（条目、未登记、待挑选、审核中、通过、返工、淘汰、未生成）。上下键换条目，空格播放或暂停，L 切换循环。
 - **预览：** 图片在棋盘格底上按 1 倍与 3 倍看；音频每条一个播放器，可开关循环（听接缝）；两条候选可以 A/B 对比，在同一时间点来回切换；带分层的候选可分层试听，各层同步播放、单独开关，模拟游戏里按紧张度加减层。
-- **候选池 `_candidates/`：** 生成的候选不直接放进 `art/`、`audio/`，而是放进 `_candidates/<art|audio>/<编号>/`，一个 `candidates.json` 记每条候选的做法、工具编号（`tools.json` 的 `id`）、工具版本、模型、种子、提示词、生成日期、测量值与文件（`files[].path` 只能指向 `_candidates/` 之内，分层的 `role` 为 `layer`）。`adoptMode` 为 `single` 时采用一条；为 `sequence` 时按顺序勾选几条，采用时以 1 秒静音拼成一个原文件（多变体音效）。候选池不入库（`.gitignore`），本机生成脚本（例：`tools/audio_gen/stage_candidates.ts`）或手工下载都往这里放。
+- **候选池 `_candidates/`：** 生成的候选不直接放进 `art/`、`audio/`，而是放进 `_candidates/<art|audio>/<编号>/`，一个 `candidates.json` 记每条候选的做法、工具编号（`tools.json` 的 `id`）、工具版本、模型、种子、提示词、生成日期、测量值与文件（`files[].path` 只能指向 `_candidates/` 之内，分层的 `role` 为 `layer`）。`adoptMode` 为 `single` 时采用一条；为 `sequence` 时按顺序勾选几条，采用时以 1 秒静音拼成一个原文件（多变体音效）。候选池不入库（`.gitignore`），本机生成脚本或手工下载都往这里放：全部音频条目由 `tools/audio_gen/batch.ts` 按里程碑批量生成（可断点续跑），试做由 `tools/audio_gen/stage_candidates.ts` 放入。
 - **采用：** 在审核台选中候选后采用为原文件：音频解码后编码为 Ogg（q8，写入候选编号与 AI 生成的 Vorbis 注释），图片按原格式复制；然后按条目登记一条 `review` 记录，`notes` 写明"picked <候选> of <总数> candidates"与做法。工具没有在 `tools.json` 标明 `commercialUse: true` 时审核台拒绝采用；替换已通过或已停用的原文件需要确认。
 - **未登记的原文件：** 已经放进 `art/`、`audio/` 但没有记录的原文件也列出来，可以预览，但要先用 `npm run assets:register` 登记（生成工具须已登记）才能定状态。
 - **审核记录 `review_log.jsonl`：** 每次采用与决定追加一行（时间、编号、动作、状态、原因码、意见、主审、文件哈希、采用的候选），只追加不改写，入库；审核台右栏按编号显示这条素材的完整记录。

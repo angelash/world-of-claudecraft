@@ -67,7 +67,7 @@ export function normalizeLoudness(
   ].join(':');
   const args = ['-y', '-i', input, '-af', filter, '-ar', '48000'];
   if (channels) args.push('-ac', String(channels));
-  args.push('-c:a', 'pcm_s16le', output);
+  args.push('-c:a', output.toLowerCase().endsWith('.flac') ? 'flac' : 'pcm_s16le', output);
   ffmpeg(args);
   return measureLoudness(output);
 }

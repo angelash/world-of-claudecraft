@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { measureLoudness } from './ffmpeg';
+import { measureLoudness, normalizeLoudness } from './ffmpeg';
 import { cutLoopFromDoubleRender } from './loops';
 import { loopSeconds, type Score, scoreProblems, scoreToMidi } from './score';
 import { SCORES } from './scores';
@@ -83,6 +83,52 @@ export interface RenderResult {
   loops: Record<string, string>;
   loopFrames: number;
   gainDb: number;
+}
+
+/**
+ * Render a score once, not as a loop (motif seeds, stingers): the notes plus a one-bar tail,
+ * cut at maxSeconds with a 300 ms fade, loudness-normalized. Writes the .mid beside it;
+ * intermediate renders go to scratchDir (default: beside the output).
+ */
+export function renderOneShot(
+  score: Score,
+  outWav: string,
+  maxSeconds: number,
+  targetLufs = MUSIC_TARGET_LUFS,
+  scratchDir?: string,
+): { lufs: number; truePeak: number; seconds: number } {
+  const problems = scoreProblems(score);
+  if (problems.length > 0)
+    throw new Error(`Score ${score.id} is malformed:\n${problems.join('\n')}`);
+  mkdirSync(dirname(outWav), { recursive: true });
+  const base = outWav.replace(/\.wav$/i, '');
+  writeFileSync(`${base}.mid`, scoreToMidi(score));
+  const scratch = scratchDir ?? dirname(outWav);
+  mkdirSync(scratch, { recursive: true });
+  const scratchBase = join(scratch, `${score.id}_oneshot`);
+  const midiPath = `${scratchBase}._render.mid`;
+  const rawPath = `${scratchBase}._render.wav`;
+  writeFileSync(
+    midiPath,
+    scoreToMidi(score, { repeats: 1, tailBars: 1, humanizeSeed: HUMANIZE_SEED }),
+  );
+  fluidsynth(midiPath, rawPath);
+  const audio = readWav(readFileSync(rawPath));
+  const frames = Math.min(frameCount(audio), Math.round(maxSeconds * SAMPLE_RATE));
+  const ch = audio.channels;
+  const samples = audio.samples.slice(0, frames * ch);
+  const fade = Math.min(frames, Math.round(0.3 * SAMPLE_RATE));
+  for (let k = 0; k < fade; k++) {
+    const g = 1 - k / fade;
+    for (let c = 0; c < ch; c++) {
+      const i = (frames - fade + k) * ch + c;
+      samples[i] = (samples[i] ?? 0) * g;
+    }
+  }
+  const cutPath = `${scratchBase}._cut.wav`;
+  writeFileSync(cutPath, writeWav({ ...audio, samples }));
+  const reading = normalizeLoudness(cutPath, outWav, targetLufs, -1.5);
+  return { lufs: reading.integrated, truePeak: reading.truePeak, seconds: frames / SAMPLE_RATE };
 }
 
 export function renderScore(score: Score): RenderResult {

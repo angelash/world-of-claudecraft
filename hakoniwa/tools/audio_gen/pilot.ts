@@ -30,11 +30,12 @@ import {
   stableAudioGraph,
   stageInput,
 } from './comfy';
-import { measureLoudness, normalizeLoudness, toWav } from './ffmpeg';
+import { measureLoudness, normalizeLoudness } from './ffmpeg';
 import { crossfadeLoop, cutLoopFromDoubleRender, findQuietSeam } from './loops';
 import { renderScore } from './render_score';
 import { loopSeconds } from './score';
 import { SCORES } from './scores';
+import { loadTake, pairToStereo, trimHit } from './takes';
 import { frameCount, type PcmAudio, readWav, writeWav } from './wav';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -107,18 +108,6 @@ interface PilotRecord {
 }
 
 const records: PilotRecord[] = [];
-
-function scale(audio: PcmAudio, gain: number): PcmAudio {
-  const samples = audio.samples.slice();
-  for (let i = 0; i < samples.length; i++) samples[i] *= gain;
-  return { ...audio, samples };
-}
-
-function loadAsWav(path: string, channels?: number): PcmAudio {
-  const wavPath = `${path}.48k.wav`;
-  toWav(path, wavPath, channels);
-  return readWav(readFileSync(wavPath));
-}
 
 function finishMusic(
   audio: PcmAudio,
@@ -224,7 +213,7 @@ async function music(): Promise<void> {
       ),
       join(WORK, c.name),
     );
-    const audio = loadAsWav(job.files[0], 2);
+    const audio = loadTake(job.files[0], 2);
     // The cover keeps the render's timeline, so the same bar grid cuts the loop.
     const loop = cutLoopFromDoubleRender(audio, loopFrames, Math.round(0.05 * RATE), 'power');
     const done = finishMusic(loop, c.name);
@@ -266,7 +255,7 @@ async function music(): Promise<void> {
       }),
       join(WORK, name),
     );
-    const done = finishMusic(loadAsWav(job.files[0], 2), name);
+    const done = finishMusic(loadTake(job.files[0], 2), name);
     records.push({
       file: `${name}.wav`,
       assetId: score.id,
@@ -289,35 +278,6 @@ async function music(): Promise<void> {
     });
     console.log(`music ${name}: ${job.seconds.toFixed(1)} s, peak ${job.peakGpuMiB} MiB`);
   }
-}
-
-/** Index of the first frame whose level crosses threshold, scanning the mono sum. */
-function onsetFrame(audio: PcmAudio, threshold: number): number {
-  const ch = audio.channels;
-  for (let f = 0; f < frameCount(audio); f++) {
-    let mono = 0;
-    for (let c = 0; c < ch; c++) mono += audio.samples[f * ch + c];
-    if (Math.abs(mono / ch) >= threshold) return f;
-  }
-  return 0;
-}
-
-/** Trim a one-shot to its hit: from 2 ms before onset, at most maxSeconds, 40 ms fade out, peak -1.5 dBFS. */
-function trimHit(audio: PcmAudio, maxSeconds: number): PcmAudio {
-  let peak = 0;
-  for (const s of audio.samples) peak = Math.max(peak, Math.abs(s));
-  const start = Math.max(0, onsetFrame(audio, peak * 0.05) - Math.round(0.002 * RATE));
-  const end = Math.min(frameCount(audio), start + Math.round(maxSeconds * RATE));
-  const ch = audio.channels;
-  const samples = audio.samples.slice(start * ch, end * ch);
-  const fade = Math.round(0.04 * RATE);
-  const frames = end - start;
-  for (let k = 0; k < fade; k++) {
-    const g = 1 - k / fade;
-    const f = frames - fade + k;
-    for (let c = 0; c < ch; c++) samples[f * ch + c] *= g;
-  }
-  return scale({ ...audio, samples }, 10 ** (-1.5 / 20) / (peak || 1));
 }
 
 async function sfx(): Promise<void> {
@@ -353,7 +313,7 @@ async function sfx(): Promise<void> {
     console.log(
       `sfx ${variant.key}: ${job.files.length} files, ${job.seconds.toFixed(1)} s, peak ${job.peakGpuMiB} MiB`,
     );
-    const takes = job.files.map((f) => trimHit(loadAsWav(f, 1), 0.6));
+    const takes = job.files.map((f) => trimHit(loadTake(f, 1), 0.6));
     const gap = new Float32Array(RATE);
     const parts: Float32Array[] = [];
     takes.forEach((take, i) => {
@@ -387,17 +347,6 @@ async function sfx(): Promise<void> {
   }
 }
 
-/** Two mono beds as the left and right channel of one wide stereo bed. */
-function pairToStereo(left: PcmAudio, right: PcmAudio): PcmAudio {
-  const frames = Math.min(frameCount(left), frameCount(right));
-  const samples = new Float32Array(frames * 2);
-  for (let f = 0; f < frames; f++) {
-    samples[f * 2] = left.samples[f];
-    samples[f * 2 + 1] = right.samples[f];
-  }
-  return { sampleRate: left.sampleRate, channels: 2, samples };
-}
-
 async function ambience(): Promise<void> {
   const item = specItem('audio_ambience.json', 'amb_town_day');
   const prompt = `${item.subject.en}, ${styleEn(item)}, continuous daytime ambience with the same density throughout, no music, no intelligible speech. Length: 120 seconds`;
@@ -419,8 +368,8 @@ async function ambience(): Promise<void> {
     const job = await runGraph(stableAudioGraph(settings), join(WORK, variant.name));
     const bed =
       variant.batch === 2
-        ? pairToStereo(loadAsWav(job.files[0], 1), loadAsWav(job.files[1], 1))
-        : loadAsWav(job.files[0], 2);
+        ? pairToStereo(loadTake(job.files[0], 1), loadTake(job.files[1], 1))
+        : loadTake(job.files[0], 2);
     const body = 90 * RATE;
     const fade = 2 * RATE;
     const seam = findQuietSeam(
