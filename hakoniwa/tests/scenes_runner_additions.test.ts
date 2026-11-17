@@ -61,7 +61,10 @@ function withScenes(
   opts: { noPrologue?: boolean } = {},
 ): Engine {
   const content = narrativeContent();
-  const base = opts.noPrologue ? content.scenes.filter((s) => s.id !== 'prologue') : content.scenes;
+  // the prologue is the seven cut_p_ scenes (PK-M1-27)
+  const base = opts.noPrologue
+    ? content.scenes.filter((s) => !s.id.startsWith('cut_p_'))
+    : content.scenes;
   const c = { ...content, scenes: [...base, ...scenes] } as ContentMap;
   return Engine.create(1, c, [...NARRATIVE_SYSTEMS, combatEvents], { aiMode });
 }
@@ -333,8 +336,8 @@ describe('timed and keyed choices', () => {
 
   it('the prologue fall writes p_reached_out only when the player reaches out', () => {
     const scenes = narrativeContent().scenes;
-    const prologue = scenes.find((s) => s.id === 'prologue');
-    const fallNode = prologue?.nodes.find((n) => n.id === 'n13_fall');
+    const discard = scenes.find((s) => s.id === 'cut_p_discard');
+    const fallNode = discard?.nodes.find((n) => n.id === 'n13_fall');
     const reach = fallNode?.choices?.find((c) => c.id === 'reach');
     const still = fallNode?.choices?.find((c) => c.id === 'still');
     expect(reach?.key).toBe('reach_out');
@@ -343,9 +346,9 @@ describe('timed and keyed choices', () => {
     expect(still?.effects ?? []).toEqual([]);
     for (const pick of ['reach', 'wait'] as const) {
       const g = withScenes([]);
-      g.step(1);
-      // jump the prologue run to the last words, then advance into the fall
-      runOf(g).nodeId = 'n12_drop';
+      start(g, 'cut_p_discard');
+      // jump the discard run to the floor giving way, then advance into the fall
+      runOf(g).nodeId = 'n12_drop_4';
       runOf(g).waiting = 'advance';
       g.queue('scenes.advance', {});
       g.step(1);
@@ -608,25 +611,41 @@ describe('re-choosing the prologue opening', () => {
     const g = withScenes([]);
     g.step(1);
     expect(view(g).restartable).toBe(true);
-    // the opening and the door
-    g.queue('scenes.choose', { choiceId: 'a' });
-    g.step(1);
-    g.queue('scenes.advance', {});
-    g.step(1);
-    g.queue('scenes.choose', { choiceId: 'push' });
-    g.step(1);
-    g.queue('scenes.advance', {});
-    g.step(1);
+    const pick = (choiceId: string) => {
+      g.queue('scenes.choose', { choiceId });
+      g.step(1);
+    };
+    // advance (and leave inputs empty) until the run stands on `node`
+    const on = (node: string) => {
+      for (let i = 0; i < 20 && view(g).nodeId !== node; i++) {
+        g.queue(view(g).waiting === 'input' ? 'scenes.input' : 'scenes.advance', { text: '' });
+        g.step(1);
+      }
+      expect(view(g).nodeId).toBe(node);
+    };
+    // the opening (the last train) with its unsent reply, then the door of the next scene
+    pick('a');
+    on('n1_a_hub');
+    pick('phone');
+    on('n2_door_hub');
+    expect(view(g).sceneId).toBe('cut_p_door_white');
+    pick('push');
+    on('n3_hub');
     expect(g.world.meta.flags.p_earth_opening).toBe('a');
+    expect(g.world.meta.flags.p_unsent_words).toBe('（没有回）');
     expect(countItem(g.world, 'player', 'relic_badge')).toBe(1);
     expect(countItem(g.world, 'player', 'number_tag_five')).toBe(1);
     expect(view(g).restartable).toBe(true);
     g.queue('scenes.restart', {});
     g.step(1);
     const v = view(g);
-    expect(v.nodeId).toBe('n1_opening');
+    expect([v.sceneId, v.nodeId]).toEqual(['cut_p_earth', 'n1_opening']);
     expect(g.world.meta.flags.p_earth_opening).toBeUndefined();
+    expect(g.world.meta.flags.p_unsent_words).toBeUndefined();
     expect(g.world.meta.flags['p_hint.pact']).toBeUndefined();
+    // the opening scene counts as unseen again (its seen flag is in the clear list)
+    expect(g.world.meta.flags['scene.cut_p_earth.seen']).toBeUndefined();
+    expect(g.world.slices.scenes.seen).not.toContain('cut_p_earth');
     // the opening node writes its own start value again
     expect(g.world.meta.flags.p_door_attempts_refused).toBe(0);
     expect(countItem(g.world, 'player', 'relic_badge')).toBe(0);
@@ -640,17 +659,18 @@ describe('re-choosing the prologue opening', () => {
 
   it('is gone once the interview begins', () => {
     const g = withScenes([]);
-    g.step(1);
+    start(g, 'cut_p_call');
+    // the call offers it to the end; the interview scene that follows has none
+    expect(view(g).restartable).toBe(true);
     runOf(g).nodeId = 'n5_begin';
     runOf(g).waiting = 'advance';
     g.queue('scenes.advance', {});
     g.step(1);
-    expect(view(g).nodeId).toBe('n6_eluen');
-    expect(view(g).segment).toBe('interview');
+    expect([view(g).sceneId, view(g).nodeId]).toEqual(['cut_p_interview', 'n6_intro']);
     expect(view(g).restartable).toBe(false);
     g.queue('scenes.restart', {});
     g.step(1);
-    expect(view(g).nodeId).toBe('n6_eluen');
+    expect([view(g).sceneId, view(g).nodeId]).toEqual(['cut_p_interview', 'n6_intro']);
   });
 });
 

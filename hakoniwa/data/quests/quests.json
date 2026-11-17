@@ -1,5 +1,313 @@
 [
   {
+    "id": "q_p_m01_last_moment",
+    "act": "prologue",
+    "kind": "main",
+    "order": 1,
+    "title": "地球的最后一刻",
+    "desc": "一个很普通的夜晚。你记得的最后一个地方。",
+    "trigger": "act == prologue",
+    "stages": [
+      {
+        "id": "opening",
+        "desc": "你记得的最后一个地方，是哪里？",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_earth_opening",
+            "label": "想起那个夜晚"
+          }
+        ]
+      },
+      {
+        "id": "room",
+        "desc": "在那里再待一会儿。有一句话，你一直没有说出口。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "scene.cut_p_earth.seen",
+            "label": "走到那扇门前"
+          }
+        ]
+      },
+      {
+        "id": "door",
+        "desc": "那扇门就在那里。",
+        "objectives": [
+          {
+            "type": "collect",
+            "item": "number_tag_five",
+            "count": 1,
+            "label": "穿过那扇门"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_m02_antechamber",
+    "act": "prologue",
+    "kind": "main",
+    "order": 2,
+    "title": "候见厅",
+    "desc": "一间纯白的房间。你手里多了一张号码牌。",
+    "trigger": "quest.q_p_m01_last_moment == done",
+    "stages": [
+      {
+        "id": "number",
+        "desc": "你手里多了一张号码牌。",
+        "objectives": [
+          {
+            "type": "collect",
+            "item": "number_tag_five",
+            "count": 1,
+            "label": "收下号码牌「伍」"
+          }
+        ]
+      },
+      {
+        "id": "mirror",
+        "desc": "墙上的镜子在等你决定自己的模样。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_mirror_done",
+            "label": "照一照墙上的镜子"
+          }
+        ]
+      },
+      {
+        "id": "curtain",
+        "desc": "帘幕后面，有人开始说话了。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "scene.cut_p_quarrel.seen",
+            "label": "听帘幕后的声音"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_m03_interview",
+    "act": "prologue",
+    "kind": "main",
+    "order": 3,
+    "title": "面试",
+    "desc": "叫到第五号了。接下来的问题，你要一个一个地回答。",
+    "trigger": "quest.q_p_m02_antechamber == done",
+    "stages": [
+      {
+        "id": "call",
+        "desc": "报上你的名字。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "player.name",
+            "label": "报上名字",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      },
+      {
+        "id": "eluen",
+        "desc": "第一个问题。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_answers HAS E1 OR p_answers HAS E2 OR p_answers HAS E3 OR p_answers HAS E4 OR p_answers HAS E5 OR p_answers HAS E6",
+            "label": "回答第一个问题",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      },
+      {
+        "id": "valda",
+        "desc": "第二个问题。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_answers HAS V1 OR p_answers HAS V2 OR p_answers HAS V3 OR p_answers HAS V4 OR p_answers HAS V5 OR p_answers HAS V6",
+            "label": "回答第二个问题",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      },
+      {
+        "id": "merca",
+        "desc": "第三个问题。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_answers HAS M1 OR p_answers HAS M2 OR p_answers HAS M3 OR p_answers HAS M4 OR p_answers HAS M5 OR p_answers HAS M6",
+            "label": "回答第三个问题",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      },
+      {
+        "id": "sylvie",
+        "desc": "第四个问题。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_answers HAS S1 OR p_answers HAS S2 OR p_answers HAS S3 OR p_answers HAS S4 OR p_answers HAS S5 OR p_answers HAS S6",
+            "label": "回答第四个问题",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      },
+      {
+        "id": "moira",
+        "desc": "最后一个问题。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_past_life_door",
+            "label": "回答最后一个问题",
+            "orWhen": "p_interview_done"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_m04_out_of_spec",
+    "act": "prologue",
+    "kind": "main",
+    "order": 4,
+    "title": "规格外",
+    "desc": "面试结束了。她们给出的结论是：你不合规格。",
+    "trigger": "p_rejection_response OR p_cycle_name_reaction == drop",
+    "stages": [
+      {
+        "id": "appraise",
+        "desc": "光看了看你。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_moira_page_anomaly",
+            "label": "接受鉴定",
+            "orWhen": "p_cycle_name_reaction == drop"
+          }
+        ]
+      },
+      {
+        "id": "verdict",
+        "desc": "判决落下了。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_rejection_response",
+            "label": "回应判决",
+            "orWhen": "p_cycle_name_reaction == drop"
+          }
+        ]
+      },
+      {
+        "id": "coin",
+        "desc": "判决之后，还有人有话要说。",
+        "objectives": [
+          {
+            "type": "collect",
+            "item": "merca_coin",
+            "count": 1,
+            "label": "收下递到你手里的东西"
+          }
+        ]
+      },
+      {
+        "id": "discard",
+        "desc": "你还能说最后一句话。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_discarded",
+            "label": "说完最后一句话"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_m05_caught",
+    "act": "prologue",
+    "kind": "main",
+    "order": 5,
+    "title": "接住你了",
+    "desc": "在没有上下的黑暗里，有人接住了你。",
+    "trigger": "p_caught",
+    "stages": [
+      {
+        "id": "fall",
+        "desc": "你在下坠，或者在漂浮，分不清。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_reached_out OR p_caught",
+            "label": "坠落"
+          }
+        ]
+      },
+      {
+        "id": "caught",
+        "desc": "一只手握住了你的手腕。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_caught",
+            "label": "被接住"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_s01_sixth_chair",
+    "act": "prologue",
+    "kind": "explore",
+    "order": 6,
+    "title": "第六把椅子",
+    "desc": "长桌尽头有一把空椅子。没有人看它一眼。",
+    "trigger": "p_asked_sixth_chair",
+    "stages": [
+      {
+        "id": "ask",
+        "desc": "你问起了那把空椅子。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_asked_sixth_chair",
+            "label": "问：那把空椅子是谁的？"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_p_s02_next_door",
+    "act": "prologue",
+    "kind": "explore",
+    "order": 7,
+    "title": "隔壁的四个声音",
+    "desc": "候见厅的墙后面，隔壁有人在面试。",
+    "trigger": "quest.q_p_s02_next_door == active",
+    "stages": [
+      {
+        "id": "listen",
+        "desc": "你把耳朵贴上了墙。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "p_heard_neighbors",
+            "label": "贴着墙，听隔壁"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "q_a1_m01_fall",
     "act": "act1",
     "kind": "main",

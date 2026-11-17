@@ -19,6 +19,11 @@
       "batch": "content_base_rebase_01",
       "status": "promoted",
       "file": "_batches/content_base_rebase_01.json"
+    },
+    {
+      "batch": "content_prologue_scenes_01",
+      "status": "promoted",
+      "file": "_batches/content_prologue_scenes_01.json"
     }
   ]
 }

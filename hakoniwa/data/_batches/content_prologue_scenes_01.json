@@ -1,0 +1,265 @@
+{
+  "batch": "content_prologue_scenes_01",
+  "status": "promoted",
+  "scope": "PK-M1-27 prologue content: the scene prologue split into the seven cut_p_ scenes of catalog_cutscenes.md 4.1.1 and expanded to the scripts of 4.2 (presentation, stage directives, skip summaries of 13.9, anchor nodes; the five interview rounds as multi-turn inputs with turns.storeAs p_round_end.<goddess>; the re-choice of the opening on cut_p_earth to cut_p_call), the prologue quests of catalog_quests_acts1_3.md 4, the prologue act's intro scene, the A09 anchors on the goddess cards",
+  "depends": [],
+  "sources": [
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_cutscenes.md",
+      "section": "4.1.1, 4.1.2, 4.2, 13.9"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_quests_acts1_3.md",
+      "section": "4"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/30_story/arcs/prologue_antechamber.md",
+      "section": "1, 6, 7"
+    }
+  ],
+  "files": [
+    "scenes/prologue.json",
+    "quests/quests.json",
+    "quests/acts.json",
+    "goddess/goddesses.json"
+  ],
+  "added": [
+    "cut_p_earth",
+    "cut_p_door_white",
+    "cut_p_quarrel",
+    "cut_p_call",
+    "cut_p_interview",
+    "cut_p_judgement",
+    "cut_p_discard",
+    "q_p_m01_last_moment",
+    "q_p_m02_antechamber",
+    "q_p_m03_interview",
+    "q_p_m04_out_of_spec",
+    "q_p_m05_caught",
+    "q_p_s01_sixth_chair",
+    "q_p_s02_next_door"
+  ],
+  "changed": [
+    {
+      "id": "prologue",
+      "fields": ["introScene"]
+    },
+    {
+      "id": "eluen",
+      "fields": ["anchors"]
+    },
+    {
+      "id": "merca",
+      "fields": ["anchors"]
+    }
+  ],
+  "removed": ["prologue"],
+  "diff": [
+    {
+      "file": "scenes/prologue.json",
+      "table": "scenes",
+      "added": [
+        "cut_p_earth",
+        "cut_p_door_white",
+        "cut_p_quarrel",
+        "cut_p_call",
+        "cut_p_interview",
+        "cut_p_judgement",
+        "cut_p_discard"
+      ],
+      "changed": [],
+      "unchanged": [],
+      "removed": ["prologue"]
+    },
+    {
+      "file": "quests/quests.json",
+      "table": "quests",
+      "added": [
+        "q_p_m01_last_moment",
+        "q_p_m02_antechamber",
+        "q_p_m03_interview",
+        "q_p_m04_out_of_spec",
+        "q_p_m05_caught",
+        "q_p_s01_sixth_chair",
+        "q_p_s02_next_door"
+      ],
+      "changed": [],
+      "unchanged": []
+    },
+    {
+      "file": "quests/acts.json",
+      "table": "acts",
+      "added": [],
+      "changed": [
+        {
+          "id": "prologue",
+          "fields": ["introScene"]
+        }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "goddess/goddesses.json",
+      "table": "goddesses",
+      "added": [],
+      "changed": [
+        {
+          "id": "eluen",
+          "fields": ["anchors"]
+        },
+        {
+          "id": "merca",
+          "fields": ["anchors"]
+        }
+      ],
+      "unchanged": []
+    }
+  ],
+  "unmapped": [
+    {
+      "id": "cut_p_door_white",
+      "column": "@转场 门扉擦除",
+      "value": "n3_white, n12_drop (twice with n12_drop_now)",
+      "note": "no transition directive in StageDirective; the white and black fades stay (request to the client)"
+    },
+    {
+      "id": "cut_p_interview",
+      "column": "即兴",
+      "value": "the eight improv instructions of cut_p_call, cut_p_interview and cut_p_judgement",
+      "note": "SceneInput has no field for purpose, situation, meaning keys and forbidden list; the model reads the input prompt (request to the scene runner)"
+    },
+    {
+      "id": "cut_p_discard",
+      "column": "接续",
+      "value": "cut_a1_wake",
+      "note": "act 1's opening scene is still act1_intro; the act change of onEnd plays it as the act's intro scene"
+    },
+    {
+      "id": "cut_p_discard",
+      "column": "全屏静帧",
+      "value": "art_bg_cut_floor_door (shot 4)",
+      "note": "no directive shows a still in the middle of a staged scene (request to the client)"
+    },
+    {
+      "id": "q_p_m01_last_moment",
+      "column": "奖励",
+      "value": "deed_col_earth_keepsakes, first count",
+      "note": "deeds are counted by the records system from its own trigger (records batch)"
+    },
+    {
+      "id": "q_p_m03_interview",
+      "column": "奖励",
+      "value": "lb_otherworld_menu, first three pages for the hearth past life",
+      "note": "the item does not exist in data/ yet (crafting and lore batches)"
+    }
+  ],
+  "validation": {
+    "milestone": "M0",
+    "at": "2026-11-18",
+    "ok": true,
+    "results": [
+      {
+        "id": "V1",
+        "title": "schema",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "id": "V2",
+        "title": "references",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "id": "V3",
+        "title": "namespaces",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "id": "V4",
+        "title": "variable registry",
+        "errors": 0,
+        "warnings": 332
+      },
+      {
+        "id": "V5",
+        "title": "reveal ledger",
+        "errors": 0,
+        "warnings": 9
+      },
+      {
+        "id": "V6",
+        "title": "numeric bands",
+        "errors": 0,
+        "warnings": 9
+      },
+      {
+        "id": "V7",
+        "title": "asset references",
+        "errors": 0,
+        "warnings": 3
+      },
+      {
+        "id": "V8",
+        "title": "text",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "id": "V9",
+        "title": "reachability",
+        "errors": 0,
+        "warnings": 9
+      },
+      {
+        "id": "V10",
+        "title": "proper nouns",
+        "errors": 0,
+        "warnings": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "scope",
+      "at": "2026-11-17",
+      "note": "the plan row of PK-M1-27: catalog_cutscenes.md 4 (seven cut_p_ scenes), catalog_quests_acts1_3.md 4 (seven prologue quests)"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "note": "the seven scripts of catalog_cutscenes.md 4.2 transcribed line by line into SceneDef (the scripts are not catalog table rows, so no importer mapping applies)"
+    },
+    {
+      "step": 3,
+      "name": "fill",
+      "at": "2026-11-17",
+      "note": "decisions of docs/70_packets/pk_m1_27_prologue_content/progress.md: nodes split at stage directives that follow a line, settlement nodes for the model tier's classification, restart fields, PK-M1-54 hooks kept, the prologue quests"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-18",
+      "command": "node tools/content/validate.ts --warnings",
+      "note": "V1 to V10 without errors; no warning names a prologue scene or quest"
+    },
+    {
+      "step": 5,
+      "name": "promote",
+      "at": "2026-11-18",
+      "note": "into scenes/prologue.json, quests/quests.json, quests/acts.json, goddess/goddesses.json"
+    },
+    {
+      "step": 6,
+      "name": "verify",
+      "at": "2026-11-18",
+      "note": "tests/prologue_content.test.ts and the updated scene, client and content tests; npm test and npm run playthrough as recorded in docs/70_packets/pk_m1_27_prologue_content/verification_matrix.md"
+    }
+  ]
+}

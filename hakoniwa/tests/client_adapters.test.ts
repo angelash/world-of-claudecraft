@@ -51,14 +51,22 @@ function start(seed = 20261115): Run {
 }
 
 /** Play the current scenes the way a player would: first choice, a name, advance. */
-function playScenes(r: Run, name: string, maxSteps = 600): string[] {
+function playScenes(r: Run, name: string, maxSteps = 1200): string[] {
   const seen: string[] = [];
   for (let i = 0; i < maxSteps; i++) {
     const sv = r.a.scene?.scene(r.view);
     if (!sv) break;
     const m = scenePanelModel(sv);
     seen.push(`${sv.sceneId}/${sv.nodeId}`);
-    if (m.mode === 'input') r.queue(r.a.scene?.input(r.view, name));
+    if (sv.waiting === 'ui' && sv.ui)
+      // an interface the scene opened (the spirit mirror): closed as it is, no result
+      r.queue([
+        {
+          kind: 'scenes.ui_done',
+          data: { runId: sv.runId, revision: sv.revision, ui: sv.ui },
+        },
+      ]);
+    else if (m.mode === 'input') r.queue(r.a.scene?.input(r.view, name));
     else if (m.mode === 'choice') {
       // a node whose only answers are keyed (the prologue fall's reach-out) has no number 1
       const keyed = m.choices.length === 0 ? m.prompts[0] : undefined;
@@ -78,7 +86,7 @@ describe('client adapters on the real game', () => {
     const r = start();
     r.engine.step(3);
     const sv = r.a.scene?.scene(r.view);
-    expect(sv?.sceneId).toBe('prologue');
+    expect(sv?.sceneId).toBe('cut_p_earth');
     const m = scenePanelModel(sv as NonNullable<typeof sv>);
     expect(m.mode).toBe('choice');
     expect(m.choices.length).toBeGreaterThan(1);
@@ -92,15 +100,16 @@ describe('client adapters on the real game', () => {
     r.engine.step(2);
     const next = r.a.scene?.scene(r.view);
     expect(next?.nodeId).not.toBe(sv?.nodeId);
-    // movement is held during scenes: the player is in the divine court
-    expect(r.view.player()?.mapId).toBe('divine_court');
+    // the second opening (the rainy night shop) puts the player on its earth stage
+    expect(next?.sceneId).toBe('cut_p_earth');
+    expect(r.view.player()?.mapId).toBe('earth_store');
   });
 
   it('plays through the prologue into act 1 and fills the HUD views', () => {
     const r = start();
     r.engine.step(3);
     const seen = playScenes(r, '测试者');
-    expect(seen.some((s) => s.startsWith('prologue/n5_name'))).toBe(true);
+    expect(seen.some((s) => s.startsWith('cut_p_call/n5_name'))).toBe(true);
     expect(seen.some((s) => s.startsWith('act1_intro'))).toBe(true);
     expect(r.a.scene?.scene(r.view)).toBeNull();
     const pid = r.view.playerId();

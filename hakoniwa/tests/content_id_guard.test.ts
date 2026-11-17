@@ -220,7 +220,7 @@ describe('content id guard: the scanner', () => {
 
 describe('content id guard: src/systems and src/core', () => {
   it('collects the entity ids of the content', () => {
-    for (const id of ['old_outpost', 'wallenburg', 'eluen', 'janu', 'merca_coin', 'prologue'])
+    for (const id of ['old_outpost', 'wallenburg', 'eluen', 'janu', 'merca_coin', 'cut_p_earth'])
       expect(ids.kinds.has(id), id).toBe(true);
   });
 

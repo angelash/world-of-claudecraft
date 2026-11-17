@@ -1745,14 +1745,12 @@
 | `data/npc/personas.json` | `oola.hideWhen` | `a1_oola_fate=convicted` 等三处用单个等号，求值器无法解析 | 写成 `a1_oola_fate == convicted`，或合成 `a1_oola_fate IN (convicted, fled, executed)` |
 | `data/npc/personas.json` | 欧拉的 `trustKey` | 读 `trust.ola`，而任务写 `trust.oola` | 统一为 `trust.oola` |
 | `data/party/companions.json` | 罗恩的 `flag` | `quest.a1_m05`（不存在的任务 ID） | `quest.q_a1_m04_hunt == done`（第 6.2 节） |
-| `data/scenes/prologue.json` | `courtyard.first_object`、`prologue.last_words` | 写入中文原文作为值 | 写枚举值（第 7.6 节），原文进文本键 |
 | `data/scenes/endings.json` | `epilogue.ruler` | 中文女神名 | 女神代号 |
 | `data/scenes/acts2_5.json` | `hart_state` | 写 `rival`、`pending`，不在第四幕值集内 | `a4_hart_state` 只写 `hostile`、`routed`、`reconciled`、`allied`；第二三幕的竞争关系写 `npc.hart.relation` |
 | `data/scenes/acts2_5.json` | `a4_alliance` | `broad`、`narrow`、`broken` | `a4_summit_result` 的 `league`、`accord`、`broken` |
 | `data/strategy/config.json` | `evidenceFlags` | `evidence.oracle_text` 等命名证据 | 第 7.5 节的 `evidence.E15`、`E01`、`E10`、`E04` 与 `a3_eluen_violation` |
 | `data/doors/doors.json` | 门钥 `bond.<人>.<N>` | 与台账写法并存 | 同伴的缘钥用门钥类型 `bond`（读 party 切片的羁绊）；读人物信任的缘钥写 `trust.<人> >= N` |
 | `data/scenes/acts2_5.json` | 阿什警告场景的 `vow` 选项 | 同时写 `a3_vow_taken` 与 `a3_vow_kept_reed_bridge`，誓光之门在第 14 周前后就可开 | 只写表态 `a3_danger_stance`（`forsworn`、`continue`、`undecided`，过场目录 `cut_a3_warning`）；`a3_vow_kept_reed_bridge` 只由 `cut_a3_ashen_line` 的 `vow` 节点写入（第 8.3 节） |
-| `data/scenes/prologue.json` | `n12_free` 的 `storeAs` | 自由输入的原话写进枚举 `p_last_words` | 原话写 `p_free.last_words`，同一节点写 `p_last_words = free`；空值写 `silent` |
 | `data/quests/quests.json`（第三幕支线导入时） | `a3_selene_tremble_told` | 数据里没有写入点 | 由 A3-S19 `q_a3_s19_selene_letter` 的 `receive` 阶段置真；第四幕会盟只读 |
 | `data/quests/quests.json` | 触发 `act == act1` 与 `act_index` | `act_index` 是重复的量 | 统一读 `act` |
 

@@ -199,7 +199,7 @@ describe('the editor flag index sees the goddess data', () => {
 describe('acts, nations and the market', () => {
   it('opens on the lowest-index act and defaults the act flag to it', () => {
     expect(openingAct(content)?.id).toBe('prologue');
-    expect(openingAct(content)?.introScene).toBe('prologue');
+    expect(openingAct(content)?.introScene).toBe('cut_p_earth');
     expect(openingActId({ acts: [] })).toBe('');
     expect(currentActId({ flag: () => undefined, content })).toBe('prologue');
     expect(currentActId({ flag: () => 'act3', content })).toBe('act3');

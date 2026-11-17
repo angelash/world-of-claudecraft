@@ -86,7 +86,9 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
           tap('a');
           choices++;
         } else if (sv.waiting === 'input') {
-          // scene P6: A opens the floating keyboard on the Han page; type two characters
+          // the unsent reply of P1 and the name of P6: A opens the floating keyboard on the
+          // Han page; type two characters (the last input typed is the name)
+          name.length = 0;
           tap('a');
           const han = t('ui.pop.osk.han_page');
           const osk = () => {
@@ -104,6 +106,12 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
           expect(oskRows(osk().page, han, false).length).toBeGreaterThan(1);
           tap('start');
           expect(hub.osk).toBeNull();
+        } else if (sv.waiting === 'ui' && sv.ui) {
+          // the spirit mirror (P4) is not wired in this harness: it closes as it is
+          h.host.queue([
+            { kind: 'scenes.ui_done', data: { runId: sv.runId, revision: sv.revision, ui: sv.ui } },
+          ]);
+          frame();
         } else frame();
       },
       frame,
@@ -182,7 +190,8 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
     expect(hub.device).toBe('pad');
     expect(h.sent['world.set_intent'] ?? 0).toBeGreaterThan(0);
     expect(h.sent['scenes.choose'] ?? 0).toBe(choices);
-    expect(h.sent['scenes.input'] ?? 0).toBe(1);
+    // the unsent reply of the first opening (P1) and the name (P6)
+    expect(h.sent['scenes.input'] ?? 0).toBe(2);
     for (const kind of CHEATS) expect(h.sent[kind] ?? 0, kind).toBe(0);
   });
 
@@ -204,6 +213,12 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
         } else if (sv.waiting === 'input') {
           // the scene panel's text field takes the typing and submits it on Enter
           h.host.queue(h.adapters.scene?.input(h.view, 'Ann'));
+          keyFrame();
+        } else if (sv.waiting === 'ui' && sv.ui) {
+          // the spirit mirror (P4) is not wired in this harness: it closes as it is
+          h.host.queue([
+            { kind: 'scenes.ui_done', data: { runId: sv.runId, revision: sv.revision, ui: sv.ui } },
+          ]);
           keyFrame();
         } else keyFrame();
       },

@@ -367,7 +367,7 @@ describe('V5 reveal ledger', () => {
     expect(w.meta.flags.a2_faceless_projection).toBe(true);
     const acts = earliestActs(real.content);
     expect(acts.of('epilogue', 'rel_god_janu')).toBe(7);
-    expect(acts.of('scenes', 'prologue')).toBe(0);
+    expect(acts.of('scenes', 'cut_p_earth')).toBe(0);
     expect(acts.of('monsters', 'faceless_king')).toBeGreaterThanOrEqual(5);
   });
 });

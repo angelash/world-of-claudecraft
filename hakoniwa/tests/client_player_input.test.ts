@@ -24,7 +24,13 @@ function inAct1(): InputHarness {
     }
     const ids = sv.choices.map((c) => c.id);
     if (sv.waiting === 'advance') h.press({ code: 'Space' });
-    else if (ids.length)
+    else if (sv.waiting === 'ui' && sv.ui) {
+      // the spirit mirror (P4) is not wired in this harness: it closes as it is
+      h.host.queue([
+        { kind: 'scenes.ui_done', data: { runId: sv.runId, revision: sv.revision, ui: sv.ui } },
+      ]);
+      h.keyFrame();
+    } else if (ids.length)
       h.press({ code: `Digit${ids.indexOf(policy(sv.sceneId, sv.nodeId, ids)) + 1}` });
     else {
       if (sv.waiting === 'input') h.player.submitText('');
@@ -47,7 +53,10 @@ beforeAll(() => {
 describe('free text', () => {
   it("an empty answer (the floating keyboard's default key) takes the node's default name", () => {
     expect(base.engine.world.meta.flags['player.name']).toBe('无名氏');
-    expect(base.sent['scenes.input']).toBe(1);
+    // the unsent reply of the first opening (P1), the name (P6), and the name once more: the
+    // nameless player's "其实，我有名字。" comes up among the call's questions (left empty too)
+    expect(base.sent['scenes.input']).toBe(3);
+    expect(base.engine.world.meta.flags.p_unsent_words).toBe('（没有回）');
   });
 });
 

@@ -91,7 +91,8 @@ describe('prologue', () => {
     const g = narrativeGame({ stub: false });
     const lines = recordLines(g);
     g.step(1);
-    expect(sceneView(g.world, g.content)?.sceneId).toBe('prologue');
+    // the prologue plays as the seven cut_p_ scenes, the opening first (PK-M1-27)
+    expect(sceneView(g.world, g.content)?.sceneId).toBe('cut_p_earth');
     playScene(g);
     for (const [speaker, text] of ANCHORS) {
       const hits = lines.filter((l) => l.text.includes(text));
@@ -135,7 +136,10 @@ describe('prologue', () => {
       if (v.waiting === 'input' && v.input?.prompt.includes('名字')) {
         g.queue('scenes.input', { text: '  阿门  ' });
         named = true;
-      } else if (v.waiting === 'choice')
+      } else if (v.waiting === 'input') g.queue('scenes.input', { text: '' });
+      else if (v.waiting === 'ui' && v.ui)
+        g.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
+      else if (v.waiting === 'choice')
         g.queue('scenes.choose', { choiceId: v.choices[0]?.id ?? '' });
       else g.queue('scenes.advance', {});
       g.step(1);
@@ -305,7 +309,7 @@ describe('scene engine', () => {
     const original = Engine.create(seed, narrativeContent(), NARRATIVE_SYSTEMS, {
       aiMode: 'external',
     });
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 1200; i++) {
       for (const r of original.takeAiRequests()) {
         const extra = (r.context as { extra?: { runId?: number; revision?: number } }).extra;
         if (r.allowed.includes('scenes.resolve') && extra?.runId !== undefined) {
@@ -331,6 +335,8 @@ describe('scene engine', () => {
         original.queue('scenes.choose', { choiceId: (free ?? v.choices[0])?.id ?? '' });
       } else if (v?.waiting === 'input') original.queue('scenes.input', { text: '我想想。' });
       else if (v?.waiting === 'advance') original.queue('scenes.advance', {});
+      else if (v?.waiting === 'ui' && v.ui)
+        original.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
       original.step(1);
     }
     const replay = Engine.replay(seed, original.content, original.systems, original.world.log);
@@ -346,7 +352,7 @@ describe('scene engine', () => {
     g.step(1);
     expect(g.world.slices.scenes.queue).toContain('a1_tide_dawn');
     playScene(g);
-    expect(g.world.slices.scenes.seen).toContain('prologue');
+    expect(g.world.slices.scenes.seen).toContain('cut_p_discard');
     expect(g.world.slices.scenes.seen).toContain('a1_tide_dawn');
   });
 
@@ -547,7 +553,7 @@ describe('court and endings', () => {
     }
     const g = mod.createGame({ seed: 3 });
     g.step(2);
-    expect(sceneView(g.world, g.content)?.sceneId).toBe('prologue');
+    expect(sceneView(g.world, g.content)?.sceneId).toBe('cut_p_earth');
     playScene(g);
     expect(g.world.meta.flags.act).toBe('act1');
     expect(playerEntity(g.world)?.mapId).toBe('seal_ruins');

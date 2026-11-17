@@ -84,6 +84,18 @@ function view(g: Engine): SceneView {
   return v;
 }
 
+/**
+ * Put the prologue run on a node of one of its seven cut_p_ scenes (PK-M1-27), waiting for an
+ * advance; the next '+' enters the node's `next`.
+ */
+function jump(g: Engine, sceneId: string, nodeId: string): void {
+  const run = g.world.slices.scenes.current;
+  if (!run) throw new Error('no run');
+  run.sceneId = sceneId;
+  run.nodeId = nodeId;
+  run.waiting = 'advance';
+}
+
 /** Walk the stage through the nodes the run passes, as the cutscene player does. */
 function stageAt(prev: StageState, v: SceneView): StageState {
   return enterNode(prev, v.stage, 0, false).state;
@@ -114,9 +126,15 @@ describe('P2: the door that reappears at every corner', () => {
   it('plays on the prologue data: three turns away the door stands ajar, then the white room', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    play(g, ['a', '+']);
+    jump(g, 'cut_p_door_white', 'n2_gate');
+    play(g, ['+']);
     let stage = stageAt(emptyStage(), view(g));
     expect(view(g).nodeId).toBe('n2_door');
+    expect(doorStage(stage, g.world.meta.flags)?.state).toBe('closed');
+    // the door's lines first, then the node that offers the choices
+    play(g, ['+']);
+    stage = stageAt(stage, view(g));
+    expect(view(g).nodeId).toBe('n2_door_hub');
     expect(doorStage(stage, g.world.meta.flags)?.state).toBe('closed');
     const seen: string[] = [];
     for (const node of ['n2_turn1', 'n2_turn2', 'n2_turn3']) {
@@ -139,8 +157,11 @@ describe('P2: the door that reappears at every corner', () => {
   it('opens when pushed', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    play(g, ['a', '+']);
+    jump(g, 'cut_p_door_white', 'n2_gate');
+    play(g, ['+']);
     let stage = stageAt(emptyStage(), view(g));
+    play(g, ['+']);
+    stage = stageAt(stage, view(g));
     play(g, ['push']);
     stage = stageAt(stage, view(g));
     expect(view(g).nodeId).toBe('n2_push');
@@ -177,12 +198,9 @@ describe('P5: eavesdropping by distance', () => {
     ] as const) {
       const g = narrativeGame({ stub: false });
       g.step(1);
-      const run = g.world.slices.scenes.current;
-      if (!run) throw new Error('no run');
-      run.nodeId = 'n3_check';
-      run.waiting = 'advance';
+      jump(g, 'cut_p_door_white', 'n3_check');
       g.world.meta.flags.p_heard_neighbors = true;
-      // n3_check passes on to the stance
+      // n3_check ends the door scene; the quarrel follows and opens on the stance
       g.queue('scenes.advance', {});
       g.step(1);
       const c = new StoryController(
@@ -256,10 +274,7 @@ describe('P15: the reach-out key', () => {
   it('shows the fall as a key prompt only: no numbered list, the key picks "reach out"', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    const run = g.world.slices.scenes.current;
-    if (!run) throw new Error('no run');
-    run.nodeId = 'n12_drop';
-    run.waiting = 'advance';
+    jump(g, 'cut_p_discard', 'n12_drop_4');
     play(g, ['+']);
     const v = view(g);
     expect(v.nodeId).toBe('n13_fall');
@@ -358,7 +373,8 @@ describe('ui_mode_creator: the spirit mirror', () => {
   it('round-trips through a save: the look, the flag and the appearance come back', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    play(g, ['b', '+', 'push', '+', '+']);
+    jump(g, 'cut_p_door_white', 'n2_push');
+    play(g, ['+', '+', '+']);
     expect(view(g).nodeId).toBe('n3_hub');
     play(g, ['mirror']);
     expect(view(g).nodeId).toBe('n3_mirror');
@@ -580,10 +596,7 @@ describe('story layer details of the prologue staging', () => {
   it('counts key prompts as pickable and shows no choice hint beside them', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    const run = g.world.slices.scenes.current;
-    if (!run) throw new Error('no run');
-    run.nodeId = 'n12_drop';
-    run.waiting = 'advance';
+    jump(g, 'cut_p_discard', 'n12_drop_4');
     play(g, ['+']);
     const m = cutsceneModel({
       scene: view(g),
