@@ -669,5 +669,86 @@
     "duration": 0,
     "mods": { "maxHpPct": -0.15 },
     "dispellable": false
+  },
+  {
+    "id": "aur_st_sed_spot",
+    "name": "澱斑",
+    "desc": "指尖起了灰斑，人发乏：最大生命降低。离开澱重的地方，慢慢会退。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "maxHpPct": -0.05 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_sed_fever",
+    "name": "澱热",
+    "desc": "高热不退，眼前发花：最大生命降低，命中降低。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "stats": { "hit": -5 },
+    "mods": { "maxHpPct": -0.15 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_sed_crystal",
+    "name": "澱化",
+    "desc": "皮肉一处处结了晶：最大生命大减，移动变慢。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "maxHpPct": -0.3, "speed": -0.2 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_injury_light",
+    "name": "轻伤",
+    "desc": "伤口还没长好：最大生命降低。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "maxHpPct": -0.1 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_injury_maimed_arm",
+    "name": "断肢·失手",
+    "desc": "一只手使不上劲：造成的伤害降低。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "damageDealt": -0.2 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_injury_maimed_leg",
+    "name": "断肢·失腿",
+    "desc": "一条腿撑不住：移动变慢。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "speed": -0.3 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_injury_backlash",
+    "name": "淬体反冲",
+    "desc": "冲关的高热还压在身上：受到的伤害提高。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "damageTaken": 0.1 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_injury_relapse",
+    "name": "旧伤复发",
+    "desc": "旧伤又犯了：命中降低。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "stats": { "hit": -5 },
+    "dispellable": false
   }
 ]

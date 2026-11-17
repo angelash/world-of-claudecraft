@@ -1,0 +1,16 @@
+[
+  {
+    "id": "borderstone_town",
+    "act": "act1",
+    "var": "a1_town_dian",
+    "when": "act == act1",
+    "start": 15,
+    "weekly": 8,
+    "rules": [
+      { "when": "a1_north_spring_boarded", "weekly": 0 },
+      { "when": "a1_culvert_sealed", "weekly": 3 }
+    ],
+    "min": 0,
+    "max": 100
+  }
+]

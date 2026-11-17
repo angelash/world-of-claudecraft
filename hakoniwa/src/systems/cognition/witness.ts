@@ -9,7 +9,7 @@ import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
 import { locationAt } from '../npc/places';
 import { bumpHeat } from '../npc/ports';
-import { distance, entitiesNear, getEntity, mapById } from '../world';
+import { distance, entitiesNear, getEntity, mapById, sedimentAt } from '../world';
 import { type EvidenceInput, type ObserveOutcome, observe } from './belief';
 import { speakReaction } from './comedy';
 import {
@@ -100,7 +100,12 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
   });
   // situational bonuses for the explanation draw (3.4)
   const bonus: Partial<Record<ExplanationId, number>> = {};
-  if ((map?.sediment ?? 0) >= 2 || loc?.kind === 'gate' || loc?.kind === 'graveyard')
+  // the sediment where the deed happened: a location's hot spot over the map level (PK-M1-51)
+  if (
+    (map ? sedimentAt(map, d.x, d.y) : 0) >= 2 ||
+    loc?.kind === 'gate' ||
+    loc?.kind === 'graveyard'
+  )
     bonus.sorcery = 2;
   if (d.kind === 'build' || d.kind === 'destroy') bonus.gadget = 1.5;
   const visible = d.mapId === npcSlice.playerMap;

@@ -180,6 +180,7 @@ const SLOT_NAMES: Record<string, string> = {
   情报: 'intel',
   菜单项: 'menu_item',
   事件: 'event',
+  病例: 'case',
   战: 'battle',
   钥: 'key',
   项: 'mod',
@@ -361,6 +362,7 @@ const SYSTEMS = [
   'records',
   'disputes',
   'guild',
+  'ailments',
 ];
 const SYSTEM_ALIASES: Record<string, string> = {
   court: 'scenes',

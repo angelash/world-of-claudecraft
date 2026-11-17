@@ -68,11 +68,20 @@ const IMPORTED_ABILITIES = ['sk_lok_summonremnant', 'sk_mon_remnantbar', 'sk_mon
 const IMPORTED_AURAS = ['aur_ember_door', 'aur_st_downed_weak'];
 /**
  * Catalog ids later packages import with the system that applies them (catalog 4.5 and 7.7):
- * the rank pressure of one rank and the blood pact (PK-M1-11).
+ * the rank pressure of one rank and the blood pact (PK-M1-11), the sediment illness and the
+ * injuries (PK-M1-51).
  */
 const LATER_AURAS = [
   'aur_st_presence_unease',
   'aur_lok_remnantpact',
+  'aur_st_sed_spot',
+  'aur_st_sed_fever',
+  'aur_st_sed_crystal',
+  'aur_st_injury_light',
+  'aur_st_injury_maimed_arm',
+  'aur_st_injury_maimed_leg',
+  'aur_st_injury_backlash',
+  'aur_st_injury_relapse',
 ];
 
 interface Mapped {

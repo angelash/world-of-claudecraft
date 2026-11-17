@@ -1,0 +1,9 @@
+{
+  "sys.ailments.reject.not_allowed": "澱病与伤病只按规则与剧情结算",
+  "sys.ailments.reject.no_body": "找不到这个人",
+  "sys.ailments.reject.no_rules": "澱染的规则还没有载入",
+  "sys.ailments.reject.bad_amount": "数值不对",
+  "sys.ailments.reject.bad_kind": "这个人不会得这种伤病",
+  "sys.ailments.reject.not_sick": "这个人没有澱病",
+  "sys.ailments.reject.not_hurt": "这个人身上没有这种伤"
+}

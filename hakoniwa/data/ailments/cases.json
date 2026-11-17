@@ -1,0 +1,46 @@
+[
+  {
+    "id": "milo",
+    "act": "act1",
+    "steps": [
+      {
+        "when": "act == act1",
+        "stage": "fever"
+      },
+      {
+        "when": "act == act1 AND act_week >= 2",
+        "stage": "crystal"
+      }
+    ]
+  },
+  {
+    "id": "toby",
+    "act": "act1",
+    "steps": [
+      {
+        "when": "act == act1 AND act_week >= 6",
+        "stage": "fever"
+      },
+      {
+        "when": "act == act1 AND act_week >= 9",
+        "stage": "crystal"
+      }
+    ],
+    "cure": {
+      "when": "a1_toby_state == recovered"
+    }
+  },
+  {
+    "id": "lin",
+    "act": "act1",
+    "steps": [
+      {
+        "when": "act == act1 AND act_week == 9 AND a1_town_dian >= 60 AND a1_mill_owner != orphanage AND NOT a1_north_spring_boarded",
+        "stage": "fever"
+      }
+    ],
+    "cure": {
+      "when": "a1_lin_state == recovered"
+    }
+  }
+]

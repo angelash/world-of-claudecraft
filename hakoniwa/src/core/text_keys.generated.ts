@@ -3,6 +3,13 @@
 
 /** Every key of the source string tables (the ui., sys. and tut. scopes). */
 export type TextKey =
+  | 'sys.ailments.reject.bad_amount'
+  | 'sys.ailments.reject.bad_kind'
+  | 'sys.ailments.reject.no_body'
+  | 'sys.ailments.reject.no_rules'
+  | 'sys.ailments.reject.not_allowed'
+  | 'sys.ailments.reject.not_hurt'
+  | 'sys.ailments.reject.not_sick'
   | 'sys.city.action.build_housing.desc'
   | 'sys.city.action.build_housing.name'
   | 'sys.city.action.build_storage.desc'
@@ -2647,5 +2654,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (2643). */
-export const TEXT_KEY_COUNT = 2643;
+/** Number of keys in TextKey (2650). */
+export const TEXT_KEY_COUNT = 2650;

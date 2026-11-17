@@ -1,0 +1,215 @@
+{
+  "about": "Act 1 regular route exposure profile (PK-M1-51). Day types are 24 hours split over atlas maps (data/world/atlas_maps.json sediment grades); weeks follow the act 1 beats (progression_and_pacing.md 2.3, act1_borderstone.md 1.2); optional days are taken with the regular route's share (17.1: about six in ten) and replaced by the fill day otherwise. Intake follows catalog_consumables_magitools.md 2.2 and 2.4: a field day may bring one tainted portion (light +1, mid +3), crystal potions from week 7 (T2, +0.2 a dose), and half the runs wear one light-patterned piece (untreated grey wolf hide) in weeks 2 to 5, put on in the engine as a real patterned item. The player levels by week follow the expected levels of progression_and_pacing.md 2.3 (tier 1 from level 10, week 7). The intake is sized so the gross taint of the act lands near the doors budget of thousand_doors.md 6.2 (about 15 blockage in act 1, at 4 taint a point).",
+  "optionalShare": 0.6,
+  "dayTypes": {
+    "town": {
+      "hours": {
+        "borderstone": 24
+      }
+    },
+    "field": {
+      "hours": {
+        "borderstone": 12,
+        "forest_edge": 12
+      },
+      "field": true
+    },
+    "ruins": {
+      "hours": {
+        "borderstone": 10,
+        "seal_ruins": 14
+      },
+      "field": true
+    },
+    "depths": {
+      "hours": {
+        "borderstone": 8,
+        "seal_ruins": 6,
+        "seal_ruins_depths": 10
+      },
+      "field": true
+    },
+    "mine": {
+      "hours": {
+        "borderstone": 10,
+        "rustridge_mine": 14
+      },
+      "field": true
+    },
+    "wilds": {
+      "hours": {
+        "borderstone": 8,
+        "ironhemlock_deep": 16
+      },
+      "field": true
+    },
+    "camp": {
+      "hours": {
+        "brokenspan_post": 12,
+        "ash_waste": 12
+      },
+      "field": true
+    },
+    "court": {
+      "hours": {
+        "borderstone": 12,
+        "inner_court": 12
+      }
+    }
+  },
+  "levels": [3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15],
+  "weeks": [
+    {
+      "week": 1,
+      "main": {
+        "depths": 1,
+        "field": 2,
+        "town": 4
+      }
+    },
+    {
+      "week": 2,
+      "main": {
+        "field": 4,
+        "town": 2
+      },
+      "optional": {
+        "ruins": 1
+      },
+      "fill": "field"
+    },
+    {
+      "week": 3,
+      "main": {
+        "field": 3,
+        "town": 2
+      },
+      "optional": {
+        "ruins": 1,
+        "wilds": 1
+      },
+      "fill": "town"
+    },
+    {
+      "week": 4,
+      "main": {
+        "mine": 2,
+        "field": 2,
+        "town": 2
+      },
+      "optional": {
+        "wilds": 1
+      },
+      "fill": "field"
+    },
+    {
+      "week": 5,
+      "main": {
+        "depths": 1,
+        "field": 2,
+        "town": 3
+      },
+      "optional": {
+        "ruins": 1
+      },
+      "fill": "town"
+    },
+    {
+      "week": 6,
+      "main": {
+        "field": 2,
+        "town": 4
+      },
+      "optional": {
+        "camp": 1
+      },
+      "fill": "field"
+    },
+    {
+      "week": 7,
+      "main": {
+        "town": 4,
+        "field": 1
+      },
+      "optional": {
+        "depths": 1,
+        "wilds": 1
+      },
+      "fill": "field"
+    },
+    {
+      "week": 8,
+      "main": {
+        "town": 4,
+        "field": 1
+      },
+      "optional": {
+        "camp": 1,
+        "ruins": 1
+      },
+      "fill": "town"
+    },
+    {
+      "week": 9,
+      "main": {
+        "town": 4,
+        "ruins": 1
+      },
+      "optional": {
+        "wilds": 1,
+        "depths": 1
+      },
+      "fill": "field"
+    },
+    {
+      "week": 10,
+      "main": {
+        "town": 6,
+        "field": 1
+      }
+    },
+    {
+      "week": 11,
+      "main": {
+        "court": 4,
+        "town": 2,
+        "field": 1
+      }
+    },
+    {
+      "week": 12,
+      "main": {
+        "court": 4,
+        "town": 2
+      },
+      "optional": {
+        "wilds": 1
+      },
+      "fill": "town"
+    }
+  ],
+  "food": {
+    "chance": 0.8,
+    "portions": [
+      {
+        "taint": 1,
+        "w": 7
+      },
+      {
+        "taint": 3,
+        "w": 3
+      }
+    ]
+  },
+  "potions": {
+    "fromWeek": 7,
+    "maxDoses": 3,
+    "taint": 0.2
+  },
+  "wear": {
+    "share": 0.5,
+    "fromWeek": 2,
+    "toWeek": 5,
+    "grade": "light"
+  }
+}

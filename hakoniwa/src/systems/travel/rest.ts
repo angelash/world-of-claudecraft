@@ -17,7 +17,7 @@ import type { World } from '../../core/world';
 import { COMBAT_LINGER, monsterDef, secs, waveDef } from '../combat/defs';
 import { isHostilePair, unitOf } from '../combat/units';
 import { currentConversation } from '../dialogue';
-import { mapById } from '../world';
+import { mapById, sedimentAt } from '../world';
 import type { Entity, LocationDef, MapDef } from '../world/types';
 
 /** What the rest rules read: a SystemContext, the Engine or any pair of world and content. */
@@ -252,7 +252,7 @@ export function ticksUntil(tick: number, hour: number, minute = 0): number {
 }
 
 /**
- * The night-ambush roll per game hour while sleeping out (7.4): the map's sediment grade
+ * The night-ambush roll per game hour while sleeping out (7.4): the local sediment grade
  * times 1%, doubled at night, halved by a camp fire. Towns, indoors and private maps are 0.
  */
 export function ambushChance(sediment: number, opts: { night: boolean; fire: boolean }): number {
@@ -262,7 +262,8 @@ export function ambushChance(sediment: number, opts: { night: boolean; fire: boo
 
 /**
  * The per-hour ambush chance for the entity sleeping where it stands: a field or dungeon
- * camp (which has its fire) rolls; a bed (inn, home, the private map) never does.
+ * camp (which has its fire) rolls; a bed (inn, home, the private map) never does. The grade
+ * is the one where the sleeper lies (sedimentAt: a location's hot spot over the map level).
  */
 export function sleepAmbushChance(view: RestView, entityId: string, tick: number): number {
   const e = view.world.slices.world.entities[entityId];
@@ -273,7 +274,7 @@ export function sleepAmbushChance(view: RestView, entityId: string, tick: number
   if (bedHere(role, here) || !campHere(role, here)) return 0;
   const cal = calendarAt(tick);
   const night = cal.hour < WAKE_HOUR || cal.hour >= 20;
-  return ambushChance(map.sediment ?? 0, { night, fire: true });
+  return ambushChance(sedimentAt(map, e.x, e.y), { night, fire: true });
 }
 
 /** Whole hours of a tick span, rounded down (for the summary). */

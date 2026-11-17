@@ -86,7 +86,7 @@
 | --- | --- | --- | --- | --- |
 | `act`、`act_week`、`day`、`season`、`year`、`hour`、`weekday`、`night`、`dark_moon` | 内置 | 幕与历法 | 内核 | `act >= 3` |
 | `ai_enabled`、`difficulty`、`ironman`、`cycle` | 内置 | 运行设置与周目 | 内核与新游戏 | `cycle >= 2` |
-| `player.` | 内置 | 玩家的等级、名字、澱染、伤病与少数行为标记 | combat、inventory、goddess | `player.level` |
+| `player.` | 内置 | 玩家的等级、名字、澱染、伤病与少数行为标记 | combat、inventory、goddess、ailments | `player.level` |
 | 无前缀 | 全局 | 跨幕持续的量 | 第 8.2 节逐个写明 | `church_suspicion` |
 | `p_` | 标记与出口 | 序章 | 序章场景 | `p_discarded`、`p_earth_opening` |
 | `a1_` 到 `a6_` | 标记与出口 | 各幕 | 本幕的任务、场景与结算 | `a3_lothar_ending` |
@@ -101,7 +101,7 @@
 | `door.`、`door_state.`、`door_hint.` | 族 | 门是否已开、门的状态、雅努的提示 | doors、goddess | `door.talent_sight` |
 | `front.`、`front_mod.`、`ring_node.`、`hero_state.`、`key_fate.` | 族 | 第三到第五幕的战线、众门环、勇者团与门钥去向 | 场景、warfare、strategy | `front.north` |
 | `quest.`、`scene.`、`feature.`、`companion.`、`boss.`、`combat.`、`war.`、`dg.` | 镜像 | 任务、场景、功能解锁、同伴、首领、波次、战场、迷宫 | 所属系统 | `quest.q_a2_m02_exam` |
-| `city.`、`econ.`、`nation.`、`director.`、`ai.`、`breach.`、`sediment.`、`omen.`、`intel.`、`revelation.`、`request.`、`guild.`、`ev.` | 镜像 | 经营、经济、国家、导演、AI 分级、越约、澱、预兆、梅尔卡情报、天启、女神请托、公会记录、动态事件 | 所属系统 | `econ.company_founded` |
+| `city.`、`econ.`、`nation.`、`director.`、`ai.`、`breach.`、`sediment.`、`omen.`、`intel.`、`revelation.`、`request.`、`guild.`、`ev.`、`sed_case.` | 镜像 | 经营、经济、国家、导演、AI 分级、越约、澱、预兆、梅尔卡情报、天启、女神请托、公会记录、动态事件、澱病病例 | 所属系统 | `econ.company_founded` |
 | `push_door.` | 信号 | 过场里的推门请求（第 8.8.4 节） | 过场写，doors 在过场结束时结算并清除 | `push_door.founding` |
 | `general.` | 派生 | 将领名单 `war.generals` 的布尔镜像 | 派生 | `general.ron` |
 | `front_wait.` | 族 | 第五幕战线待令 | strategy | `front_wait.north` |
@@ -587,8 +587,9 @@
 | `cycle` | `next_cycle` | 整数 | ≥ 1 | 回收结局进入下一期（`se`） | 下一期内容（[第六幕 13][a6]） |
 | `player.level` | 无 | 整数 | 1 到 60 | combat 升级 | 补正判定、少数任务条件 |
 | `player.name` | `prologue.player_name`、`p_player_name` | 文本 | | 序章 N5 输入（`s0`） | 台词插槽（`s0`）、隐藏结局的信 |
-| `player.taint` | 无 | 整数 | 0 到 100 | 澱染日结算（镜像） | 欧拉等人的台词、澱病相关任务 |
-| `player.injury` | 无 | 枚举 | `none`、`minor`、`limb` | combat（镜像） | 台词 |
+| `player.taint` | 无 | 整数 | 0 到 100 | ailments（镜像，取整：每日 06:00 的澱染日检与端口的每次增减，[成长 9.1、9.2][pp]；别处写入时身体取写入值） | 欧拉等人的台词、澱病相关任务、doors（每得 4 点记 1 点淤塞）、界面 `ui_hud_gauges` |
+| `player.injury` | 无 | 枚举 | `none`、`minor`、`limb`；默认 `none` | ailments（镜像：轻伤为 `minor`，断肢为 `limb`；伤的来源经 ailments 的端口给出，[成长 10][pp]） | 台词、界面 `ui_hud_gauges` |
+| `player.sed_stage` | 无 | 枚举 | `none`、`spot`、`fever`、`crystal`；默认 `none` | ailments（镜像：玩家所处的澱病阶段；`crystal` 是门塞，身体仍按澱热，[成长 9.4][pp]） | 界面 `ui_hud_gauges`、台词、澱病相关任务 |
 | `player.spoke_forbidden_name` | 无 | 标记 | | goddess 尊名唤醒（玩家念出被禁之名） | 女神与台账（D-023） |
 | `player.title` | 无 | 枚举 | 佩戴中的职名的称号 ID；没有佩戴时为 none；默认 `none` | 事迹系统（records）：佩戴命令 | 称呼与对话、名牌显示 |
 
@@ -684,6 +685,8 @@
 | `a1_martha_strike` | 无 | 玛莎出手（`q`） | `lore` |
 | `a1_dream_door_woman` | 无 | 兽潮次夜的梦（`s1`） | 门内庭院（`dr`）、雅努（`gd`）、`lore` |
 | `a1_bron_sees_mark` | 无 | 布伦看见门纹（`s1`） | 台账 |
+| `a1_culvert_sealed` | 无 | A1-M07 的 `seal` 选项：以落石堵住渗泉暗渠口（`q` 的 `q_a1_m07_spring`；现有任务数据尚无 `seal` 阶段，随第一幕任务导入补上写入） | ailments：镇内澱度 `a1_town_dian` 的每周增量由 +8 降到 +3（[第一幕 7.2][a1]） |
+| `a1_north_spring_boarded` | 无 | 封泉：用木板与石头封住北泉（[第一幕 7.2][a1]；写入的任务待任务目录登记） | ailments：镇内澱度的每周增量归零；病例 `sed_case.lin` 的发病条件 |
 | `a2_arrive_valen` | 无 | A2-M01 进城（`q`） | 台账 |
 | `a2_heroes_arrived` | 无 | 第 4 周勇者团抵城（`q`） | 勇者团人设出场（`np`） |
 | `a2_promotion_exam` | 无 | A2-M02（`q`） | 伪录之门（`dr`） |
@@ -801,13 +804,13 @@
 | `a1_children_safe` | `refugee_children.safe` | 布尔 | | 魔女审判、兽潮 | 门徒会绑架难度 |
 | `a1_children_exposed` | `refugee_children.exposed` | 布尔 | | A1-S19 | 同上 |
 | `a1_children_location` | `refugee_children.location` | 枚举 | `orphanage`、`mill`、`forest`、`with_oola` | 兽潮结算 | 同上 |
-| `a1_toby_state` | `children.toby` | 枚举 | `recovered`、`dead` | 澱病线（第 8 周期限） | 贝莎与孤儿院 |
-| `a1_lin_state` | `children.lin` | 枚举 | `healthy`、`recovered`、`dead` | 澱病线 | 同上 |
-| `a1_mill_owner` | `mill.owner` | 枚举 | `orphanage`、`vick`、`company` | A1-S11 | 孤儿院存续 |
+| `a1_toby_state` | `children.toby` | 枚举 | `recovered`、`dead` | 澱病线（第 8 周期限） | 贝莎与孤儿院；ailments 病例 `sed_case.toby` 的治愈条件 |
+| `a1_lin_state` | `children.lin` | 枚举 | `healthy`、`recovered`、`dead` | 澱病线 | 同上；ailments 病例 `sed_case.lin` 的治愈条件 |
+| `a1_mill_owner` | `mill.owner` | 枚举 | `orphanage`、`vick`、`company` | A1-S11 | 孤儿院存续；ailments 病例 `sed_case.lin` 的发病条件（孤儿院改喝磨坊井水） |
 | `a1_lisa_nick` | `lisa_nick` | 枚举 | `married`、`broken`、`eloped` | A1-S10 | 瓦伦堡客串 |
 | `a1_vick_informant` | `vik.informant` | 布尔 | | A1-S10 | 账本证据 |
 | `a1_jed_exposed` | `jed.status` | 布尔 | | A1-S12 | 卫队 |
-| `a1_town_dian` | `town_dian` | 整数 | 0 到 100 | 镇内澱度（澱病线） | 北区后遗症 |
+| `a1_town_dian` | `town_dian` | 整数 | 0 到 100 | 镇内澱度（澱病线）：ailments 按幕周结算（第 1 周 15，北泉未处理时每周 +8，[第一幕 7.2][a1]）；任务效果（A1-M07 堵暗渠 -20） | 北区后遗症；ailments 病例 `sed_case.lin` 的发病条件 |
 | `a1_tide_credit` | `rumor.tide_attribution` | 枚举 | `player`、`martha`、`light`、`self_collapse` | 兽潮归功 | 瓦伦堡第一印象 |
 | `a1_count_letter` | `count_letter.variant` | 枚举 | `a`、`b`、`c`、`d` | 伯爵来信 | 伯爵府态度 |
 | `a1_janu_dream_answer` | `janu.first_dream_answer` | 枚举 | `like`、`unsure`、`dislike` | 兽潮次夜的梦（`s1`） | 第六幕回扣 |
@@ -1057,6 +1060,7 @@
 | `guild.merit` | 无 | 整数 | ≥ 0；讨伐实绩点（社会第 3.1 节；模板的 `merit`） | guild 委托结算 | 晋升（C 级 30 点）、委托板界面 |
 | `ev.<事件>` | 无 | 枚举 | 动态事件模板 ID（`data/guild/events.json`）；值：`omen`、`active`、`ended`（最近一次：预兆已出、进行中、已结束） | guild（动态事件落地与结束） | 任务与委托的条件、导演菜单 |
 | `ev.<事件>.count` | 无 | 整数 | 动态事件模板 ID；≥ 0，已发生的次数 | guild（动态事件落地） | 事件自身的次数上限（每幕一次）、任务条件 |
+| `sed_case.<病例>` | 无 | 枚举 | 病例 ID（`data/ailments/cases.json`）；值：`none`、`spot`、`fever`、`crystal`、`cured`（未发病、澱斑、澱热、澱化、已治愈）；默认 `none` | ailments（剧情写定的病例按条件推进，[第一幕 7.1、7.2][a1]） | 任务与过场的条件、NPC 台词 |
 
 ### 8.7 任务目录（序章到第三幕）登记的变量
 
