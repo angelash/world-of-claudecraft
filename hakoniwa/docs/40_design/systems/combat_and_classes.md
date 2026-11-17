@@ -1346,7 +1346,7 @@ procs: [{ on, chance, icd?, when?, do }]
 | 项 | 规则 |
 | --- | --- |
 | 倒地 | 同伴生命归零即倒地（内核 `downed`），不是死亡：退出仇恨表，停止行动，不计入记功队伍 |
-| 救起 | 战斗中可被战斗复活技能救起，或战斗结束、15 秒内无人处于战斗时自动起身；起身时生命按技能或 20%，挂倒地虚弱 `aur_st_downed_weak`（造成的伤害 -20%，120 秒，沿用现行数据 `spring_weakness` 的量；倒地不经泉畔，所以另立名字） |
+| 救起 | 战斗中可被战斗复活技能救起，或战斗结束、15 秒内无人处于战斗时自动起身；起身时生命按技能或 20%，挂倒地虚弱 `aur_st_downed_weak`（造成的伤害 -20%，120 秒；倒地不经泉畔，所以与泉畔之代价分开编号） |
 | 重伤退场 | 战斗结束时按[同伴 11.2][cmp]判定：战斗以失败结束时仍倒地；倒地那一下的溢出伤害不低于最大生命的一半；同一场第二次倒地（故事难度不计，第 16 节）；剧情写定 |
 | 退场之后 | 离队到门内庭院休养（时长按同伴 11.3）；全身装备耐久 -10% |
 | 铁人 | 上述条件都算战殁，进泉畔期（同伴 11.4）；护命期内仍按重伤退场；与难度无关，任何难度都可在新游戏时开启 |
@@ -1895,18 +1895,19 @@ export interface CombatEventsExt {
 
 ### 19.5 本文定义的状态光环
 
-技能目录（PK-M0-02）负责全部 `aur_` 编号的对照；下列状态光环由本文定义效果，第一轮数据里已有的写出现行 ID：
+技能目录（PK-M0-02）负责全部 `aur_` 编号与第一轮数据 ID 的对照（目录第 3、7 节）；下列状态光环由本文定义效果，"数据"栏写数据里是否已有这一行
+（未导入的随施加它的系统落地，去处见目录第 7.7 节）：
 
-| 光环 | 效果所在 | 现行数据 ID |
+| 光环 | 效果所在 | 数据 |
 | --- | --- | --- |
-| `aur_st_presence_unease`、`aur_st_presence_pressure`、`aur_st_presence_paralysis` | 3.5 | `presence_pressure`、`presence_paralysis` |
-| `aur_st_revival_fatigue` | 15.1 | `door_fatigue`（数值按 15.1 重写） |
-| `aur_st_spring_toll` | 15.3 | `spring_weakness`（数值按 15.3 重写） |
-| `aur_st_downed_weak` | 15.2 | 借用 `spring_weakness` |
-| `aur_st_enrage` | 10.5 | `enrage` |
-| `aur_st_berserk` | 10.5 | 无 |
-| `aur_st_stagger` | 10.4 | 无 |
-| `aur_st_drunk`、`aur_st_physic_poison`、`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`、`aur_st_injury_*`、`aur_st_default_mark` | 9.4 | 无 |
+| `aur_st_presence_unease`、`aur_st_presence_pressure`、`aur_st_presence_paralysis` | 3.5 | 后两个已有，数值按 3.5 重写；`aur_st_presence_unease` 未导入 |
+| `aur_st_revival_fatigue` | 15.1 | 已有，数值按 15.1 重写 |
+| `aur_st_spring_toll` | 15.3 | 已有，数值按 15.3 重写 |
+| `aur_st_downed_weak` | 15.2 | 已有 |
+| `aur_st_enrage` | 10.5 | 已有 |
+| `aur_st_berserk` | 10.5 | 未导入 |
+| `aur_st_stagger` | 10.4 | 未导入 |
+| `aur_st_drunk`、`aur_st_physic_poison`、`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`、`aur_st_injury_*`、`aur_st_default_mark` | 9.4 | 未导入 |
 
 ## 20. 验收测试
 
@@ -2004,10 +2005,9 @@ export interface CombatEventsExt {
 | --- | --- | --- | --- | --- |
 | 威压 | `presencePenalty` 在位阶差小于 2 时不生效，之后每阶命中 -10 个百分点、伤害 -20%；场效应只在写了 `presence` 的单位上、从位阶差 2 起；没有控制时长的位阶缩放 | 3.5 的表：位阶差 1 起生效，命中、伤害、控制时长与场效应按表；`presence` 缺省 6 格 | 3.5、9.3、11 | PK-M1-11 |
 | 控制 | `ccImmune` 对一切 `boss` 免昏迷、恐惧、瘫痪、定身、沉默，不分层次；没有递减；没有缴械 | 9.2 的递减；9.3 按层次的免疫表；`disarm` | 9 | PK-M1-11 |
-| 死亡代价 | `doorFatigueMinutes`：60 × (1 + floor(等级 / 10)) 游戏分钟，近一个游戏日内每多死一次 ×1.5，挂 `door_fatigue`（伤害与治疗 -25%、受伤 +15%）；随身钱币的 10% 直接扣除；没有遗落包、耐久与目击；复苏是即时传送 | 15.1：千门 6.3 的五项代价、复苏时长与结算顺序；复苏门疲状态按门阶算 | 15.1 | PK-M1-11 |
+| 死亡代价 | `doorFatigueMinutes`：60 × (1 + floor(等级 / 10)) 游戏分钟，近一个游戏日内每多死一次 ×1.5，挂 `aur_st_revival_fatigue`（伤害与治疗 -25%、受伤 +15%）；随身钱币的 10% 直接扣除；没有遗落包、耐久与目击；复苏是即时传送 | 15.1：千门 6.3 的五项代价、复苏时长与结算顺序；复苏门疲状态按门阶算 | 15.1 | PK-M1-11 |
 | 记功 | 第一个打到它的玩家方单位（`tapped`）即记功 | 玩家方造成至少 10% 的伤害即归玩家方；只由同伴单独击杀的照记，NPC 势力单独击杀的不记（[成长 3.3][prg]） | 8.5 | PK-M1-11 |
 | 同伴经验 | `killXpShare` 已按"玩家不摊薄、同伴另算"实现；同伴的追赶倍数与等级上限没有 | 同伴系统按[同伴 4.2][cmp]乘追赶倍数并截上限 | 8.5 | PK-M1-15 |
-| 倒地虚弱 | 借用 `spring_weakness` | `aur_st_downed_weak`（15.2） | 15.2 | PK-M1-15 |
 | 魔物字段 | `flee` 只给普通层次的人形与掘穴者；`social` 不写即不呼救；灰色规则读玩家等级 | 第 11 节的口径扩展与缺省值；12.2 的看到的灵压 | 11、12.2 | PK-M1-12 |
 | 地面预警 | 没有预警事件与形状，范围技能即时结算 | 10.3 的五种形状、提前量与 `combat.telegraph` 事件 | 10.3、18 | PK-M1-12 |
 | 命中事件 | `combat.damage` 只有学派与结果 | 8.3 的表现字段 | 8.3 | PK-M1-11 |

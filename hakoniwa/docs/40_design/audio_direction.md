@@ -877,7 +877,7 @@
 | `sfx_cls_warrior_thunder_clap` | 战士·雷霆一击 | 武器砸地的雷鸣冲击波，地面震颤，碎石飞溅 | 1.8 秒 | 2 | M1 |
 | `sfx_cls_warrior_execute` | 战士·斩杀 | 斩杀：蓄力后致命的一记重劈，余音带金属长鸣 | 1.2 秒 | 2 | M1 |
 | `sfx_cls_warrior_shield_wall` | 战士·盾墙 | 盾墙：盾牌重重立起锁定的铿锵与低频防护嗡鸣 | 1.5 秒 | 2 | M1 |
-| `sfx_cls_paladin_crusader_strike` | 圣骑士·十字军打击 | 武器挥击夹带光相的钟鸣闪光 | 1 秒 | 2 | M2 |
+| `sfx_cls_paladin_crusader_strike` | 圣骑士·誓击 | 武器挥击夹带光相的钟鸣闪光 | 1 秒 | 2 | M2 |
 | `sfx_cls_paladin_judgement` | 圣骑士·审判 | 从上方落下的审判之光：清亮的钟声与短促的光之爆裂 | 1.2 秒 | 2 | M2 |
 | `sfx_cls_paladin_hammer_of_justice` | 圣骑士·制裁之锤 | 光之锤飞出并砸中目标的沉重钟鸣 | 1.2 秒 | 2 | M2 |
 | `sfx_cls_paladin_lay_on_hands` | 圣骑士·圣疗术 | 倾尽全力的治愈：宽广的光之长音与温暖的合唱般和声缓缓升起 | 3 秒 | 2 | M2 |
@@ -898,7 +898,7 @@
 | `sfx_cls_priest_smite` | 牧师·惩击 | 从天而降的一道窄光：尖锐的钟鸣与灼热的嘶声 | 1 秒 | 2 | M2 |
 | `sfx_cls_priest_power_word_shield` | 牧师·真言术：盾 | 真言护盾展开：清亮的和声与一圈光膜张开 | 1.2 秒 | 2 | M2 |
 | `sfx_cls_priest_mind_blast` | 牧师·心灵震爆 | 幽相的心灵冲击：低沉的脉冲与倒放的嗡鸣直击脑海 | 1 秒 | 2 | M2 |
-| `sfx_cls_priest_psychic_scream` | 牧师·心灵尖啸 | 范围恐惧：扭曲的无词尖啸向外扩散，带耳鸣般的高频 | 1.5 秒 | 2 | M2 |
+| `sfx_cls_priest_psychic_scream` | 牧师·裂空啸 | 范围恐惧：扭曲的无词尖啸向外扩散，带耳鸣般的高频 | 1.5 秒 | 2 | M2 |
 | `sfx_cls_priest_renew` | 牧师·恢复 | 恢复术附着：细碎上扬的光点与温柔的长音 | 1 秒 | 2 | M2 |
 | `sfx_cls_priest_shadow_word_pain` | 牧师·暗言术：痛 | 幽相的痛苦标记：低沉叹息般的音色与缓慢扩散的暗流 | 1 秒 | 2 | M2 |
 | `sfx_cls_shaman_lightning_bolt` | 萨满·闪电箭 | 电弧噼啪蓄能后一道雷击飞出 | 1.2 秒 | 2 | M2 |

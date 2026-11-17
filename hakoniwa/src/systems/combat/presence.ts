@@ -30,10 +30,10 @@ export function tickPresence(ctx: SystemContext): void {
       const fresh = last === undefined || ctx.tick - last >= REARM;
       if (gap >= 3) {
         if (!fresh) continue;
-        applyAura(ctx, u, 'presence_paralysis', bearer, { durationTicks: secs(3) });
+        applyAura(ctx, u, 'aur_st_presence_paralysis', bearer, { durationTicks: secs(3) });
         haltEntity(ctx, near.id);
       } else {
-        applyAura(ctx, u, 'presence_pressure', bearer, { durationTicks: secs(2) });
+        applyAura(ctx, u, 'aur_st_presence_pressure', bearer, { durationTicks: secs(2) });
         if (!fresh) continue;
       }
       slice.presence[key] = ctx.tick;

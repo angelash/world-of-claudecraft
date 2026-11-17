@@ -3,10 +3,11 @@
 // 7.1); add a module's MAPPINGS here when a new catalog table gets imported.
 
 import type { CatalogMapping } from '../catalog/mapping';
+import { MAPPINGS as ABILITIES } from './abilities_talents';
 import { MAPPINGS as BESTIARY } from './bestiary';
 import { MAPPINGS as GATHERING } from './gathering_crafting';
 
-export const MAPPINGS: readonly CatalogMapping[] = [...GATHERING, ...BESTIARY];
+export const MAPPINGS: readonly CatalogMapping[] = [...GATHERING, ...BESTIARY, ...ABILITIES];
 
 export function mappingById(id: string): CatalogMapping | undefined {
   return MAPPINGS.find((m) => m.id === id);

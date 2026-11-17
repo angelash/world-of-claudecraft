@@ -180,7 +180,9 @@ function returnThroughDoor(ctx: SystemContext, u: Unit, e: Entity): void {
   fillUp(ctx.world, ctx.content, u);
   const rank = ctx.flag('door_rank');
   const minutes = doorFatigueMinutes(typeof rank === 'number' ? rank : 1, recent);
-  applyAura(ctx, u, 'door_fatigue', u, { durationTicks: minutes * TICKS_PER_GAME_MINUTE });
+  applyAura(ctx, u, 'aur_st_revival_fatigue', u, {
+    durationTicks: minutes * TICKS_PER_GAME_MINUTE,
+  });
   const money = holdingOf(ctx.world, u.id).money;
   const lost = Math.floor(money * DEATH_MONEY_LOSS);
   if (lost > 0) spendMoney(ctx, u.id, lost, 'door_return');

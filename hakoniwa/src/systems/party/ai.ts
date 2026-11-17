@@ -118,7 +118,7 @@ export function tickMember(
       const s = slot(pe, n);
       teleportEntity(ctx, u.id, pe.mapId, s.x, s.y);
       reviveUnit(ctx, u, 0.5);
-      applyAuraTo(ctx, u.id, 'spring_weakness');
+      applyAuraTo(ctx, u.id, 'aur_st_downed_weak');
     }
     return;
   }

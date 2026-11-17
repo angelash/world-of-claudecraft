@@ -12,6 +12,7 @@ import { interruptCast, tickCast, useAbility } from './abilities';
 import { tickAuras } from './aura_tick';
 import { tickAutoAttack, tickRegen } from './auto_attack';
 import { classDef, monsterDef, REGEN_EVERY } from './defs';
+import { COMBAT_ID_FIELDS } from './id_fields';
 import { onItemUsed } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
 import { tickPresence } from './presence';
@@ -32,6 +33,7 @@ import {
 } from './units';
 
 export * from './formulas';
+export * from './id_fields';
 export * from './ports';
 export * from './queries';
 export type * from './types';
@@ -75,9 +77,10 @@ function unitForNpc(ctx: SystemContext, entityId: string): void {
   });
 }
 
-export const system: GameSystem = {
+export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
   id: 'combat',
   order: 20,
+  idFields: COMBAT_ID_FIELDS,
 
   init(ctx) {
     ctx.world.slices.combat = {

@@ -611,7 +611,7 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 {
   "version": 4,
   "entries": [
-    { "since": 2, "kind": "ability", "from": "heroic_strike", "to": "sk_valor_strike" },
+    { "since": 2, "kind": "ability", "from": "heroic_strike", "to": "sk_war_heroicstrike" },
     { "since": 3, "kind": "flag", "from": "a3_danger_door_vow", "to": "a3_vow_door_opened" },
     { "since": 4, "kind": "item", "from": "sample_retired_item", "removed": true, "refund": { "copper": 12 } }
   ]
@@ -620,6 +620,9 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 
   （上例的 ID 只示意格式，真实条目由导入批次登记。）存档的 `renameVersion` 小于当前时，读档把切片、旗标、背包、事件环里出现的旧 ID 按表替换；
   删除的物品按 `refund` 折钱。改名的覆盖面由每个系统导出的 `idFields`（哪些字段装着哪类 ID）决定，不靠全文替换。
+  事件环里的旧 ID 按表的 `eventFields` 处理：技能与光环的旧 ID 和事件里的普通词同形（施法操作 `interrupted`、战场英雄技能 `charge`），
+  这两类只在登记的事件字段里改名，同一字段装两类 ID 时（伤害事件的 `abilityId` 在周期跳伤时是光环 ID）按登记顺序取第一个能改的，
+  登记可以用 `ids` 限定只对哪些旧 ID 生效（只有会跳伤、脉冲或反伤的光环）；其余各类的旧 ID 在事件里整串相等即改名。
 - **向前不兼容**：存档的任何版本号高于当前构建时拒绝加载，提示更新游戏（3.4）。
 - **兼容承诺**：从 M2 第一个 Steam Playtest 构建起，每个外发构建的存档都能被之后所有构建读取。之前的版本号之间不写迁移，开发存档在 M2 前作废。
 

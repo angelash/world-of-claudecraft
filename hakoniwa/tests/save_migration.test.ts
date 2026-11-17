@@ -9,6 +9,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { buildContent } from '../src/content';
 import type { ContentMap } from '../src/core/contracts';
 import { Engine } from '../src/core/engine';
 import {
@@ -37,6 +38,7 @@ import {
 } from '../src/core/save';
 import { WORLD_VERSION, type World } from '../src/core/world';
 import { createGame, resumeGame } from '../src/game/create';
+import { COMBAT_ID_FIELDS } from '../src/systems/combat';
 
 const FIXTURES = join(__dirname, 'fixtures', 'saves');
 const VERSIONS = {
@@ -56,7 +58,49 @@ const QUEST_ID_FIELDS: IdField[] = [
   { path: 'quests.*.id', kind: 'quest' },
   { path: 'order.*', kind: 'quest' },
 ];
-const OWNERS: SliceOwner[] = [{ id: 'quests', idFields: QUEST_ID_FIELDS }];
+const OWNERS: SliceOwner[] = [
+  { id: 'quests', idFields: QUEST_ID_FIELDS },
+  { id: 'combat', idFields: COMBAT_ID_FIELDS },
+];
+
+const CONTENT = buildContent();
+const ABILITY_IDS = new Set(CONTENT.abilities.map((a) => a.id));
+const AURA_IDS = new Set(CONTENT.auras.map((a) => a.id));
+const ITEM_IDS = new Set(CONTENT.items.map((i) => i.id));
+
+/**
+ * The ability and aura ids the combat slice and its events hold that are not current ones.
+ * A damage or heal event names an ability, an aura (a periodic tick, thorns) or an item (a
+ * potion) under `abilityId`; a cast names an ability, an aura event an aura.
+ */
+function staleCombatIds(world: World): { held: number; stale: string[] } {
+  const stale: string[] = [];
+  let held = 0;
+  const check = (id: string, ok: boolean, where: string) => {
+    held++;
+    if (!ok) stale.push(`${where} ${id}`);
+  };
+  for (const [uid, u] of Object.entries(world.slices.combat?.units ?? {})) {
+    for (const a of u.auras) check(a.id, AURA_IDS.has(a.id), `${uid} aura`);
+    for (const id of [...Object.keys(u.cds), ...u.abilities, ...(u.phaseAbilities ?? [])])
+      check(id, ABILITY_IDS.has(id), `${uid} ability`);
+    if (u.cast) check(u.cast.abilityId, ABILITY_IDS.has(u.cast.abilityId), `${uid} cast`);
+  }
+  for (const ev of world.recent) {
+    const d = ev.data as { abilityId?: string; auraId?: string };
+    if (ev.kind === 'combat.cast' && typeof d.abilityId === 'string')
+      check(d.abilityId, ABILITY_IDS.has(d.abilityId), ev.kind);
+    if ((ev.kind === 'combat.damage' || ev.kind === 'combat.heal') && d.abilityId)
+      check(
+        d.abilityId,
+        ABILITY_IDS.has(d.abilityId) || AURA_IDS.has(d.abilityId) || ITEM_IDS.has(d.abilityId),
+        ev.kind,
+      );
+    if (ev.kind === 'combat.aura' && typeof d.auraId === 'string')
+      check(d.auraId, AURA_IDS.has(d.auraId), ev.kind);
+  }
+  return { held, stale };
+}
 
 interface Sample {
   file: string;
@@ -179,9 +223,12 @@ describe('frozen samples (tests/fixtures/saves)', () => {
       for (const f of readdirSync(join(FIXTURES, dir)))
         expect(listed.has(`${dir}/${f}`)).toBe(true);
     }
-    // One per act of the current version, and saves from before the registry.
+    // One per act of the current world version written after the registry, and saves
+    // from before it (10.4: samples per world version; later rename versions migrate them).
     const acts = new Set(
-      MANIFEST.samples.filter((s) => s.renameVersion === RENAME_VERSION).map((s) => s.act),
+      MANIFEST.samples
+        .filter((s) => s.worldVersion === WORLD_VERSION && s.renameVersion >= 1)
+        .map((s) => s.act),
     );
     for (const a of ['prologue', 'act1', 'act2', 'act3', 'act4', 'act5', 'act6']) {
       expect(acts.has(a), a).toBe(true);
@@ -202,7 +249,13 @@ describe('frozen samples (tests/fixtures/saves)', () => {
         s.hash,
         s.state,
       ]);
-      if (s.renameVersion < RENAME_VERSION) {
+      // Every ability and aura id the combat slice and its events hold is a current one
+      // (the sk_ and aur_ numbering of rename version 2 lands on the older samples).
+      const ids = staleCombatIds(world);
+      expect(ids.held).toBeGreaterThan(0);
+      expect(ids.stale).toEqual([]);
+      if (s.renameVersion < RENAME_VERSION) expect(report.renames.ids).toBeGreaterThan(0);
+      if (s.renameVersion === 0) {
         expect(report.renames.flags).toBeGreaterThan(0);
         // No old quest id survives in the flags or the quests slice.
         const old = Object.keys(
@@ -223,18 +276,18 @@ describe('frozen samples (tests/fixtures/saves)', () => {
           ).toBe(false);
           expect(quests.includes(`"${q}"`), q).toBe(false);
         }
-      } else {
-        expect([report.renames.flags, report.renames.ids]).toEqual([0, 0]);
-        // Every rename over a current world changes nothing (anchors and restored
-        // snapshots of unknown rename version are migrated that way).
-        const full = migrateSnapshot(raw, 0, { owners: OWNERS });
-        expect([
-          full.report.renames.flags,
-          full.report.renames.values,
-          full.report.renames.ids,
-        ]).toEqual([0, 0, 0]);
-        expect(worldHash(full.world)).toBe(worldHash(world));
       }
+      if (s.renameVersion === RENAME_VERSION)
+        expect([report.renames.flags, report.renames.ids]).toEqual([0, 0]);
+      // Every rename over a migrated world changes nothing (anchors and restored
+      // snapshots of unknown rename version are migrated that way).
+      const full = migrateSnapshot(serializeWorld(world), 0, { owners: OWNERS });
+      expect([
+        full.report.renames.flags,
+        full.report.renames.values,
+        full.report.renames.ids,
+      ]).toEqual([0, 0, 0]);
+      expect(worldHash(full.world)).toBe(worldHash(world));
       const engine = resumeGame(world, { seed: s.seed, aiMode: 'off' });
       engine.step(2000);
       expect(engine.tick).toBe(s.tick + 2000);

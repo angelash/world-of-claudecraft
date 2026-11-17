@@ -1,6 +1,6 @@
 [
   {
-    "id": "door_strike",
+    "id": "sk_door_strike",
     "name": "门之一击",
     "desc": "门把手里攥着的唯一一招：把全身的力气灌进一击。",
     "target": "enemy",
@@ -11,59 +11,59 @@
     "priority": 5
   },
   {
-    "id": "door_step",
+    "id": "sk_door_step",
     "name": "门之闪身",
     "desc": "门在身侧开了一条缝，让开下一击。六秒内闪避大幅提高。",
     "target": "self",
     "cooldown": 30,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "door_step", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_door_dodge", "to": "self" }],
     "ai": "defensive"
   },
   {
-    "id": "first_aid",
+    "id": "sk_door_firstaid",
     "name": "急救",
     "desc": "前世医者的手法：止血、包扎，八秒内缓慢恢复生命。",
     "target": "self",
     "cooldown": 60,
     "castTime": 1.5,
-    "effects": [{ "type": "aura", "aura": "first_aid", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_door_firstaid", "to": "self" }],
     "ai": "hot"
   },
   {
-    "id": "hearty_meal",
+    "id": "sk_door_heartymeal",
     "name": "热饭",
     "desc": "前世厨者的手艺：一顿热饭，队伍的耐力与精神提高半小时。",
     "target": "party",
     "radius": 10,
     "cooldown": 300,
     "castTime": 3,
-    "effects": [{ "type": "aura", "aura": "well_fed" }],
+    "effects": [{ "type": "aura", "aura": "aur_well_fed" }],
     "ai": "buff"
   },
   {
-    "id": "field_mend",
+    "id": "sk_door_fieldmend",
     "name": "修补",
     "desc": "前世匠人的手艺：把甲胄的裂口重新扣好，护甲提高十分钟。",
     "target": "self",
     "cooldown": 120,
     "castTime": 2,
-    "effects": [{ "type": "aura", "aura": "field_mend", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_door_fieldmend", "to": "self" }],
     "ai": "buff"
   },
   {
-    "id": "release_presence",
+    "id": "sk_door_releasepresence",
     "name": "释放灵压",
     "desc": "收放之门：把收着的灵压压向四周，位阶低的敌人行动迟缓、出手无力。",
     "target": "area",
     "radius": 4,
     "cooldown": 60,
     "school": "arcane",
-    "effects": [{ "type": "aura", "aura": "overawed" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_overawed" }],
     "ai": "never"
   },
   {
-    "id": "clear_flow",
+    "id": "sk_door_clearflow",
     "name": "澄流",
     "desc": "澄流之门：把身边扭结的澱解开，驱散自己与同伴身上的减益并稍加治愈。",
     "target": "party",
@@ -79,7 +79,7 @@
   },
 
   {
-    "id": "heroic_strike",
+    "id": "sk_war_heroicstrike",
     "name": "英勇打击",
     "desc": "以战意加重的一击，附带额外仇恨。",
     "target": "enemy",
@@ -92,19 +92,19 @@
     "ai": "filler"
   },
   {
-    "id": "battle_shout",
+    "id": "sk_war_battleshout",
     "name": "战斗怒吼",
     "desc": "号令身边的同伴，提高攻击强度两分钟。",
     "target": "party",
     "radius": 10,
     "resource": "rage",
     "cost": 10,
-    "effects": [{ "type": "aura", "aura": "battle_shout" }],
+    "effects": [{ "type": "aura", "aura": "aur_war_battleshout" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "charge",
+    "id": "sk_war_charge",
     "name": "冲锋",
     "desc": "冲到敌人身前，令其短暂昏迷，并点燃十五点战意。",
     "target": "enemy",
@@ -115,25 +115,25 @@
     "effects": [
       { "type": "charge" },
       { "type": "resource", "resource": "rage", "amount": 15 },
-      { "type": "aura", "aura": "charge_stun" }
+      { "type": "aura", "aura": "aur_war_chargestun" }
     ],
     "ai": "opener",
     "priority": 9
   },
   {
-    "id": "rend",
+    "id": "sk_war_rend",
     "name": "撕裂",
     "desc": "撕开伤口，九秒内持续流血。",
     "target": "enemy",
     "range": 1.2,
     "resource": "rage",
     "cost": 10,
-    "effects": [{ "type": "aura", "aura": "rend" }],
+    "effects": [{ "type": "aura", "aura": "aur_war_rend" }],
     "ai": "dot",
     "priority": 2
   },
   {
-    "id": "thunder_clap",
+    "id": "sk_war_thunderclap",
     "name": "雷霆一击",
     "desc": "重击地面，伤害身边所有敌人并使其减速。",
     "target": "area",
@@ -143,13 +143,13 @@
     "cooldown": 6,
     "effects": [
       { "type": "damage", "amount": { "base": 10, "perLevel": 2 } },
-      { "type": "aura", "aura": "thunder_clap_slow" }
+      { "type": "aura", "aura": "aur_war_thunderclapslow" }
     ],
     "ai": "aoe",
     "priority": 4
   },
   {
-    "id": "taunt",
+    "id": "sk_war_taunt",
     "name": "嘲讽",
     "desc": "逼迫敌人转向自己。",
     "target": "enemy",
@@ -161,7 +161,7 @@
     "priority": 10
   },
   {
-    "id": "sunder_armor",
+    "id": "sk_war_sunderarmor",
     "name": "破甲攻击",
     "desc": "削弱目标护甲，可叠加五层，并产生大量仇恨。",
     "target": "enemy",
@@ -169,14 +169,14 @@
     "resource": "rage",
     "cost": 15,
     "effects": [
-      { "type": "aura", "aura": "sunder_armor" },
+      { "type": "aura", "aura": "aur_war_sunderarmor" },
       { "type": "threat", "amount": { "base": 50, "perLevel": 5 } }
     ],
     "ai": "debuff",
     "priority": 1
   },
   {
-    "id": "cleave",
+    "id": "sk_war_cleave",
     "name": "顺劈斩",
     "desc": "一刀劈中目标与身边最多两名敌人。",
     "target": "enemy_area",
@@ -190,7 +190,7 @@
     "priority": 3
   },
   {
-    "id": "execute",
+    "id": "sk_war_execute",
     "name": "斩杀",
     "desc": "对生命低于两成的敌人致命一击。",
     "target": "enemy",
@@ -203,20 +203,20 @@
     "priority": 8
   },
   {
-    "id": "shield_wall",
+    "id": "sk_war_shieldwall",
     "name": "盾墙",
     "desc": "十秒内受到的伤害减半。",
     "target": "self",
     "cooldown": 120,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "shield_wall", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_war_shieldwall", "to": "self" }],
     "ai": "defensive",
     "priority": 10
   },
 
   {
-    "id": "crusader_strike",
-    "name": "十字军打击",
+    "id": "sk_pal_oathstrike",
+    "name": "誓击",
     "desc": "以光相灌注武器的一击。",
     "target": "enemy",
     "range": 1.2,
@@ -228,7 +228,7 @@
     "priority": 2
   },
   {
-    "id": "holy_light",
+    "id": "sk_pal_holylight",
     "name": "圣光术",
     "desc": "缓慢而厚重的光愈。",
     "target": "ally",
@@ -242,7 +242,7 @@
     "priority": 6
   },
   {
-    "id": "devotion_aura",
+    "id": "sk_pal_devotionaura",
     "name": "虔诚光环",
     "desc": "护住身边同伴，提高护甲。",
     "target": "party",
@@ -250,12 +250,12 @@
     "school": "holy",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "devotion_aura" }],
+    "effects": [{ "type": "aura", "aura": "aur_pal_devotionaura" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "judgement",
+    "id": "sk_pal_judgement",
     "name": "审判",
     "desc": "以光裁定远处的敌人。",
     "target": "enemy",
@@ -269,7 +269,7 @@
     "priority": 3
   },
   {
-    "id": "divine_protection",
+    "id": "sk_pal_divineprotection",
     "name": "圣佑术",
     "desc": "八秒内受到的伤害减半。",
     "target": "self",
@@ -278,12 +278,12 @@
     "costPct": 0.1,
     "cooldown": 120,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "divine_protection", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_pal_divineprotection", "to": "self" }],
     "ai": "defensive",
     "priority": 9
   },
   {
-    "id": "hammer_of_justice",
+    "id": "sk_pal_hammerofjustice",
     "name": "制裁之锤",
     "desc": "以光锤击晕目标三秒。",
     "target": "enemy",
@@ -292,12 +292,12 @@
     "resource": "mana",
     "costPct": 0.03,
     "cooldown": 30,
-    "effects": [{ "type": "aura", "aura": "hoj_stun" }],
+    "effects": [{ "type": "aura", "aura": "aur_pal_hojstun" }],
     "ai": "interrupt",
     "priority": 7
   },
   {
-    "id": "lay_on_hands",
+    "id": "sk_pal_layonhands",
     "name": "圣疗术",
     "desc": "倾尽灵力，让一名同伴的生命完全恢复。",
     "target": "ally",
@@ -309,7 +309,7 @@
     "priority": 10
   },
   {
-    "id": "holy_taunt",
+    "id": "sk_pal_holytaunt",
     "name": "正义防御",
     "desc": "以誓言逼迫敌人转向自己。",
     "target": "enemy",
@@ -322,7 +322,7 @@
     "priority": 10
   },
   {
-    "id": "consecration",
+    "id": "sk_pal_consecration",
     "name": "奉献",
     "desc": "圣化脚下的土地，八秒内持续伤害身边的敌人。",
     "target": "self",
@@ -330,12 +330,12 @@
     "resource": "mana",
     "costPct": 0.15,
     "cooldown": 8,
-    "effects": [{ "type": "aura", "aura": "consecration", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_pal_consecration", "to": "self" }],
     "ai": "aoe",
     "priority": 4
   },
   {
-    "id": "flash_of_light",
+    "id": "sk_pal_flashoflight",
     "name": "圣光闪现",
     "desc": "迅速的光愈。",
     "target": "ally",
@@ -350,7 +350,7 @@
   },
 
   {
-    "id": "raptor_strike",
+    "id": "sk_hun_raptorstrike",
     "name": "猛禽一击",
     "desc": "贴身时的一记重击。",
     "target": "enemy",
@@ -363,7 +363,7 @@
     "priority": 1
   },
   {
-    "id": "arcane_shot",
+    "id": "sk_hun_arcaneshot",
     "name": "奥术射击",
     "desc": "把灵力灌进箭矢的一射。",
     "target": "enemy",
@@ -383,7 +383,7 @@
     "priority": 3
   },
   {
-    "id": "serpent_sting",
+    "id": "sk_hun_serpentsting",
     "name": "毒蛇钉刺",
     "desc": "带毒的一箭，十五秒内持续自然伤害。",
     "target": "enemy",
@@ -391,12 +391,12 @@
     "school": "nature",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "serpent_sting" }],
+    "effects": [{ "type": "aura", "aura": "aur_hun_serpentsting" }],
     "ai": "dot",
     "priority": 2
   },
   {
-    "id": "hunters_mark",
+    "id": "sk_hun_huntersmark",
     "name": "猎人印记",
     "desc": "标记猎物，令其受到的伤害提高。",
     "target": "enemy",
@@ -404,12 +404,12 @@
     "school": "arcane",
     "resource": "mana",
     "costPct": 0.02,
-    "effects": [{ "type": "aura", "aura": "hunters_mark" }],
+    "effects": [{ "type": "aura", "aura": "aur_hun_huntersmark" }],
     "ai": "debuff",
     "priority": 4
   },
   {
-    "id": "concussive_shot",
+    "id": "sk_hun_concussiveshot",
     "name": "震荡射击",
     "desc": "令目标减速四秒。",
     "target": "enemy",
@@ -419,23 +419,23 @@
     "cooldown": 12,
     "effects": [
       { "type": "damage", "amount": { "base": 5, "perLevel": 1 } },
-      { "type": "aura", "aura": "concussive" }
+      { "type": "aura", "aura": "aur_hun_concussive" }
     ],
     "ai": "never"
   },
   {
-    "id": "aspect_of_the_hawk",
+    "id": "sk_hun_aspectofthehawk",
     "name": "雄鹰守护",
     "desc": "借鹰的眼，提高攻击强度。",
     "target": "self",
     "resource": "mana",
     "costPct": 0.03,
-    "effects": [{ "type": "aura", "aura": "aspect_of_the_hawk", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_hun_aspectofthehawk", "to": "self" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "wing_clip",
+    "id": "sk_hun_wingclip",
     "name": "摔绊",
     "desc": "绊住近身的敌人，令其减速十秒。",
     "target": "enemy",
@@ -444,12 +444,12 @@
     "costPct": 0.03,
     "effects": [
       { "type": "damage", "amount": { "base": 5, "perLevel": 0.5 } },
-      { "type": "aura", "aura": "wing_clip" }
+      { "type": "aura", "aura": "aur_hun_wingclip" }
     ],
     "ai": "never"
   },
   {
-    "id": "multi_shot",
+    "id": "sk_hun_multishot",
     "name": "多重射击",
     "desc": "同时射向目标与身边最多两名敌人。",
     "target": "enemy_area",
@@ -464,7 +464,7 @@
     "priority": 4
   },
   {
-    "id": "aimed_shot",
+    "id": "sk_hun_aimedshot",
     "name": "瞄准射击",
     "desc": "屏息瞄准的一箭。",
     "target": "enemy",
@@ -479,7 +479,7 @@
   },
 
   {
-    "id": "sinister_strike",
+    "id": "sk_rog_sinisterstrike",
     "name": "邪恶攻击",
     "desc": "撕开一处破绽。",
     "target": "enemy",
@@ -494,7 +494,7 @@
     "priority": 1
   },
   {
-    "id": "eviscerate",
+    "id": "sk_rog_eviscerate",
     "name": "剔骨",
     "desc": "终结技：按破绽数造成伤害。",
     "target": "enemy",
@@ -513,7 +513,7 @@
     "priority": 6
   },
   {
-    "id": "backstab",
+    "id": "sk_rog_backstab",
     "name": "背刺",
     "desc": "瞄准要害的重击。",
     "target": "enemy",
@@ -528,7 +528,7 @@
     "priority": 2
   },
   {
-    "id": "gouge",
+    "id": "sk_rog_gouge",
     "name": "凿击",
     "desc": "令目标失去行动能力四秒，受到伤害即醒。",
     "target": "enemy",
@@ -536,44 +536,46 @@
     "resource": "energy",
     "cost": 45,
     "cooldown": 10,
-    "effects": [{ "type": "aura", "aura": "gouge" }, { "type": "combo", "amount": 1 }],
+    "effects": [{ "type": "aura", "aura": "aur_rog_gouge" }, { "type": "combo", "amount": 1 }],
     "ai": "never"
   },
   {
-    "id": "evasion",
+    "id": "sk_rog_evasion",
     "name": "闪避",
     "desc": "十五秒内闪避大幅提高。",
     "target": "self",
     "cooldown": 120,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "evasion", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_rog_evasion", "to": "self" }],
     "ai": "defensive",
     "priority": 9
   },
   {
-    "id": "slice_and_dice",
+    "id": "sk_rog_sliceanddice",
     "name": "切割",
     "desc": "终结技：攻击速度提高。",
     "target": "self",
     "resource": "energy",
     "cost": 25,
     "requires": { "combo": 1 },
-    "effects": [{ "type": "aura", "aura": "slice_and_dice", "to": "self", "perComboMult": 0.2 }],
+    "effects": [
+      { "type": "aura", "aura": "aur_rog_sliceanddice", "to": "self", "perComboMult": 0.2 }
+    ],
     "ai": "buff",
     "priority": 5
   },
   {
-    "id": "sprint",
+    "id": "sk_rog_sprint",
     "name": "疾跑",
     "desc": "八秒内移动速度大幅提高。",
     "target": "self",
     "cooldown": 120,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "sprint", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_rog_sprint", "to": "self" }],
     "ai": "never"
   },
   {
-    "id": "kick",
+    "id": "sk_rog_kick",
     "name": "脚踢",
     "desc": "打断施法，并封住该系法术四秒。",
     "target": "enemy",
@@ -587,7 +589,7 @@
     "priority": 10
   },
   {
-    "id": "rupture",
+    "id": "sk_rog_rupture",
     "name": "割裂",
     "desc": "终结技：按破绽数造成持续流血。",
     "target": "enemy",
@@ -595,12 +597,12 @@
     "resource": "energy",
     "cost": 25,
     "requires": { "combo": 1 },
-    "effects": [{ "type": "aura", "aura": "rupture", "perComboMult": 0.5 }],
+    "effects": [{ "type": "aura", "aura": "aur_rog_rupture", "perComboMult": 0.5 }],
     "ai": "never"
   },
 
   {
-    "id": "smite",
+    "id": "sk_pri_smite",
     "name": "惩击",
     "desc": "以神光惩戒敌人。",
     "target": "enemy",
@@ -614,7 +616,7 @@
     "priority": 1
   },
   {
-    "id": "lesser_heal",
+    "id": "sk_pri_lesserheal",
     "name": "次级治疗术",
     "desc": "止住小伤的血。",
     "target": "ally",
@@ -628,7 +630,7 @@
     "priority": 4
   },
   {
-    "id": "power_word_fortitude",
+    "id": "sk_pri_fortitude",
     "name": "真言术：韧",
     "desc": "提高身边同伴的耐力半小时。",
     "target": "party",
@@ -636,12 +638,12 @@
     "school": "holy",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "power_word_fortitude" }],
+    "effects": [{ "type": "aura", "aura": "aur_pri_fortitude" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "shadow_word_pain",
+    "id": "sk_pri_shadowpain",
     "name": "暗言术：痛",
     "desc": "以幽相侵蚀，十八秒内持续暗影伤害。",
     "target": "enemy",
@@ -649,12 +651,12 @@
     "school": "shadow",
     "resource": "mana",
     "costPct": 0.06,
-    "effects": [{ "type": "aura", "aura": "shadow_word_pain" }],
+    "effects": [{ "type": "aura", "aura": "aur_pri_shadowpain" }],
     "ai": "dot",
     "priority": 3
   },
   {
-    "id": "power_word_shield",
+    "id": "sk_pri_powerwordshield",
     "name": "真言术：盾",
     "desc": "以神恩为盾吸收伤害；同一目标十五秒内不能再受此盾。",
     "target": "ally",
@@ -663,16 +665,16 @@
     "resource": "mana",
     "costPct": 0.1,
     "cooldown": 4,
-    "requires": { "targetLacksAura": "weakened_soul" },
+    "requires": { "targetLacksAura": "aur_pri_weakenedsoul" },
     "effects": [
-      { "type": "aura", "aura": "power_word_shield" },
-      { "type": "aura", "aura": "weakened_soul" }
+      { "type": "aura", "aura": "aur_pri_powerwordshield" },
+      { "type": "aura", "aura": "aur_pri_weakenedsoul" }
     ],
     "ai": "shield",
     "priority": 7
   },
   {
-    "id": "renew",
+    "id": "sk_pri_renew",
     "name": "恢复",
     "desc": "十五秒内持续治愈。",
     "target": "ally",
@@ -680,12 +682,12 @@
     "school": "holy",
     "resource": "mana",
     "costPct": 0.08,
-    "effects": [{ "type": "aura", "aura": "renew" }],
+    "effects": [{ "type": "aura", "aura": "aur_pri_renew" }],
     "ai": "hot",
     "priority": 6
   },
   {
-    "id": "mind_blast",
+    "id": "sk_pri_mindblast",
     "name": "心灵震爆",
     "desc": "直击心神的一击。",
     "target": "enemy",
@@ -700,8 +702,8 @@
     "priority": 4
   },
   {
-    "id": "psychic_scream",
-    "name": "心灵尖啸",
+    "id": "sk_pri_rendingwail",
+    "name": "裂空啸",
     "desc": "令身边的敌人恐惧逃散六秒。",
     "target": "area",
     "radius": 3,
@@ -709,11 +711,11 @@
     "resource": "mana",
     "costPct": 0.1,
     "cooldown": 30,
-    "effects": [{ "type": "aura", "aura": "feared" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_feared" }],
     "ai": "never"
   },
   {
-    "id": "heal",
+    "id": "sk_pri_heal",
     "name": "治疗术",
     "desc": "厚重的神恩治愈。",
     "target": "ally",
@@ -727,7 +729,7 @@
     "priority": 5
   },
   {
-    "id": "flash_heal",
+    "id": "sk_pri_flashheal",
     "name": "快速治疗",
     "desc": "迅速的治愈。",
     "target": "ally",
@@ -742,7 +744,7 @@
   },
 
   {
-    "id": "lightning_bolt",
+    "id": "sk_sha_lightningbolt",
     "name": "闪电箭",
     "desc": "向元素灵借来的雷。",
     "target": "enemy",
@@ -756,7 +758,7 @@
     "priority": 1
   },
   {
-    "id": "healing_wave",
+    "id": "sk_sha_healingwave",
     "name": "治疗波",
     "desc": "愈水之灵的治愈。",
     "target": "ally",
@@ -770,19 +772,19 @@
     "priority": 5
   },
   {
-    "id": "rockbiter_weapon",
+    "id": "sk_sha_rockbiterweapon",
     "name": "石化武器",
     "desc": "以地灵附于武器，提高攻击强度。",
     "target": "self",
     "school": "nature",
     "resource": "mana",
     "costPct": 0.04,
-    "effects": [{ "type": "aura", "aura": "rockbiter", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_sha_rockbiter", "to": "self" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "earth_shock",
+    "id": "sk_sha_earthshock",
     "name": "地震术",
     "desc": "震击敌人并打断其施法。",
     "target": "enemy",
@@ -799,19 +801,19 @@
     "priority": 8
   },
   {
-    "id": "lightning_shield",
+    "id": "sk_sha_lightningshield",
     "name": "闪电之盾",
     "desc": "雷灵绕身，近身攻击者遭到反击。",
     "target": "self",
     "school": "nature",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "lightning_shield", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_sha_lightningshield", "to": "self" }],
     "ai": "buff",
     "priority": 2
   },
   {
-    "id": "flame_shock",
+    "id": "sk_sha_flameshock",
     "name": "烈焰震击",
     "desc": "以火灵灼烧敌人并留下余烬。",
     "target": "enemy",
@@ -822,13 +824,13 @@
     "cooldown": 6,
     "effects": [
       { "type": "damage", "amount": { "base": 10, "perLevel": 3, "coef": 0.15 } },
-      { "type": "aura", "aura": "flame_shock" }
+      { "type": "aura", "aura": "aur_sha_flameshock" }
     ],
     "ai": "dot",
     "priority": 3
   },
   {
-    "id": "frost_shock",
+    "id": "sk_sha_frostshock",
     "name": "冰霜震击",
     "desc": "以霜灵击打并令敌人减速。",
     "target": "enemy",
@@ -839,13 +841,13 @@
     "cooldown": 6,
     "effects": [
       { "type": "damage", "amount": { "base": 25, "perLevel": 6, "coef": 0.38 } },
-      { "type": "aura", "aura": "frost_shock_slow" }
+      { "type": "aura", "aura": "aur_sha_frostshockslow" }
     ],
     "ai": "filler",
     "priority": 2
   },
   {
-    "id": "stormstrike",
+    "id": "sk_sha_stormstrike",
     "name": "风暴打击",
     "desc": "附灵武器的重击，令目标更易受伤。",
     "target": "enemy",
@@ -856,13 +858,13 @@
     "cooldown": 10,
     "effects": [
       { "type": "damage", "weapon": 1, "school": "physical" },
-      { "type": "aura", "aura": "stormstrike" }
+      { "type": "aura", "aura": "aur_sha_stormstrike" }
     ],
     "ai": "filler",
     "priority": 4
   },
   {
-    "id": "chain_heal",
+    "id": "sk_sha_chainheal",
     "name": "治疗链",
     "desc": "治愈在同伴之间跳跃，最多三人。",
     "target": "ally_area",
@@ -879,7 +881,7 @@
   },
 
   {
-    "id": "fireball",
+    "id": "sk_mag_fireball",
     "name": "火球术",
     "desc": "以术式把灵素凝成火球。",
     "target": "enemy",
@@ -893,19 +895,19 @@
     "priority": 1
   },
   {
-    "id": "frost_armor",
+    "id": "sk_mag_frostarmor",
     "name": "霜甲术",
     "desc": "以霜结甲，提高护甲。",
     "target": "self",
     "school": "frost",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "frost_armor", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_mag_frostarmor", "to": "self" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "frostbolt",
+    "id": "sk_mag_frostbolt",
     "name": "寒冰箭",
     "desc": "冰箭，命中后令目标减速。",
     "target": "enemy",
@@ -916,13 +918,13 @@
     "castTime": 2,
     "effects": [
       { "type": "damage", "amount": { "base": 18, "perLevel": 8, "coef": 0.57 } },
-      { "type": "aura", "aura": "frostbolt_chill" }
+      { "type": "aura", "aura": "aur_mag_frostboltchill" }
     ],
     "ai": "filler",
     "priority": 2
   },
   {
-    "id": "fire_blast",
+    "id": "sk_mag_fireblast",
     "name": "火焰冲击",
     "desc": "瞬发的火焰。",
     "target": "enemy",
@@ -936,7 +938,7 @@
     "priority": 4
   },
   {
-    "id": "polymorph",
+    "id": "sk_mag_polymorph",
     "name": "变形术",
     "desc": "把敌人变成无害的小兽二十秒，受到伤害即恢复。",
     "target": "enemy",
@@ -945,11 +947,11 @@
     "resource": "mana",
     "costPct": 0.08,
     "castTime": 1.5,
-    "effects": [{ "type": "aura", "aura": "polymorph" }],
+    "effects": [{ "type": "aura", "aura": "aur_mag_polymorph" }],
     "ai": "never"
   },
   {
-    "id": "frost_nova",
+    "id": "sk_mag_frostnova",
     "name": "冰霜新星",
     "desc": "冻住身边的敌人六秒。",
     "target": "area",
@@ -960,13 +962,13 @@
     "cooldown": 25,
     "effects": [
       { "type": "damage", "amount": { "base": 20, "perLevel": 3, "coef": 0.13 } },
-      { "type": "aura", "aura": "frost_nova_root" }
+      { "type": "aura", "aura": "aur_mag_frostnovaroot" }
     ],
     "ai": "defensive",
     "priority": 6
   },
   {
-    "id": "arcane_explosion",
+    "id": "sk_mag_arcaneexplosion",
     "name": "魔爆术",
     "desc": "以自身为中心炸开的玄相灵素。",
     "target": "area",
@@ -979,7 +981,7 @@
     "priority": 3
   },
   {
-    "id": "blizzard",
+    "id": "sk_mag_blizzard",
     "name": "暴风雪",
     "desc": "在目标所在处降下暴风雪，持续冻伤并减速。",
     "target": "enemy_area",
@@ -989,12 +991,12 @@
     "resource": "mana",
     "costPct": 0.2,
     "cooldown": 8,
-    "effects": [{ "type": "aura", "aura": "blizzard" }],
+    "effects": [{ "type": "aura", "aura": "aur_mag_blizzard" }],
     "ai": "aoe",
     "priority": 4
   },
   {
-    "id": "counterspell",
+    "id": "sk_mag_counterspell",
     "name": "法术反制",
     "desc": "打断施法，并封住其法术六秒。",
     "target": "enemy",
@@ -1010,7 +1012,7 @@
   },
 
   {
-    "id": "shadow_bolt",
+    "id": "sk_lok_shadowbolt",
     "name": "暗影箭",
     "desc": "从澱里解出的一缕暗力。",
     "target": "enemy",
@@ -1024,19 +1026,19 @@
     "priority": 1
   },
   {
-    "id": "demon_skin",
+    "id": "sk_lok_demonskin",
     "name": "恶魔皮肤",
     "desc": "以契约之力硬化皮肤，提高护甲。",
     "target": "self",
     "school": "shadow",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "demon_skin", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_lok_demonskin", "to": "self" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "immolate",
+    "id": "sk_lok_immolate",
     "name": "献祭",
     "desc": "点燃目标，并留下持续的灼烧。",
     "target": "enemy",
@@ -1047,13 +1049,13 @@
     "castTime": 1.5,
     "effects": [
       { "type": "damage", "amount": { "base": 8, "perLevel": 4, "coef": 0.2 } },
-      { "type": "aura", "aura": "immolate" }
+      { "type": "aura", "aura": "aur_lok_immolate" }
     ],
     "ai": "dot",
     "priority": 3
   },
   {
-    "id": "corruption",
+    "id": "sk_lok_corruption",
     "name": "腐蚀术",
     "desc": "以澱蚀其身，十八秒内持续暗影伤害。",
     "target": "enemy",
@@ -1061,12 +1063,12 @@
     "school": "shadow",
     "resource": "mana",
     "costPct": 0.08,
-    "effects": [{ "type": "aura", "aura": "corruption" }],
+    "effects": [{ "type": "aura", "aura": "aur_lok_corruption" }],
     "ai": "dot",
     "priority": 4
   },
   {
-    "id": "life_tap",
+    "id": "sk_lok_lifetap",
     "name": "生命分流",
     "desc": "代价术：以生命换灵力。",
     "target": "self",
@@ -1076,7 +1078,7 @@
     "priority": 6
   },
   {
-    "id": "curse_of_agony",
+    "id": "sk_lok_curseofagony",
     "name": "痛苦诅咒",
     "desc": "二十四秒内持续而愈演愈烈的痛苦。",
     "target": "enemy",
@@ -1084,12 +1086,12 @@
     "school": "shadow",
     "resource": "mana",
     "costPct": 0.06,
-    "effects": [{ "type": "aura", "aura": "curse_of_agony" }],
+    "effects": [{ "type": "aura", "aura": "aur_lok_curseofagony" }],
     "ai": "dot",
     "priority": 2
   },
   {
-    "id": "fear",
+    "id": "sk_lok_fear",
     "name": "恐惧术",
     "desc": "令目标恐惧八秒。",
     "target": "enemy",
@@ -1098,11 +1100,11 @@
     "resource": "mana",
     "costPct": 0.07,
     "castTime": 1.5,
-    "effects": [{ "type": "aura", "aura": "feared" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_feared" }],
     "ai": "cc"
   },
   {
-    "id": "summon_imp",
+    "id": "sk_lok_summonimp",
     "name": "召唤契约小鬼",
     "desc": "以契约从澱中唤出一只小鬼助战。",
     "target": "self",
@@ -1115,7 +1117,7 @@
     "priority": 9
   },
   {
-    "id": "drain_life",
+    "id": "sk_lok_drainlife",
     "name": "吸取生命",
     "desc": "吸取敌人的生命补给自己。",
     "target": "enemy",
@@ -1130,7 +1132,7 @@
     "priority": 2
   },
   {
-    "id": "rain_of_fire",
+    "id": "sk_lok_rainoffire",
     "name": "火焰之雨",
     "desc": "在目标所在处降下火雨。",
     "target": "enemy_area",
@@ -1140,13 +1142,13 @@
     "resource": "mana",
     "costPct": 0.2,
     "cooldown": 8,
-    "effects": [{ "type": "aura", "aura": "rain_of_fire" }],
+    "effects": [{ "type": "aura", "aura": "aur_lok_rainoffire" }],
     "ai": "aoe",
     "priority": 4
   },
 
   {
-    "id": "wrath",
+    "id": "sk_dru_wrath",
     "name": "愤怒",
     "desc": "借林中之怒的一击。",
     "target": "enemy",
@@ -1160,7 +1162,7 @@
     "priority": 1
   },
   {
-    "id": "healing_touch",
+    "id": "sk_dru_healingtouch",
     "name": "治疗之触",
     "desc": "厚重的草木之愈。",
     "target": "ally",
@@ -1174,7 +1176,7 @@
     "priority": 5
   },
   {
-    "id": "mark_of_the_wild",
+    "id": "sk_dru_markofthewild",
     "name": "野性印记",
     "desc": "以林之形许护住同伴，提高护甲与全部属性。",
     "target": "party",
@@ -1182,12 +1184,12 @@
     "school": "nature",
     "resource": "mana",
     "costPct": 0.06,
-    "effects": [{ "type": "aura", "aura": "mark_of_the_wild" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_markofthewild" }],
     "ai": "buff",
     "priority": 3
   },
   {
-    "id": "moonfire",
+    "id": "sk_dru_moonfire",
     "name": "月火术",
     "desc": "月光灼烧并留下余焰。",
     "target": "enemy",
@@ -1197,13 +1199,13 @@
     "costPct": 0.08,
     "effects": [
       { "type": "damage", "amount": { "base": 9, "perLevel": 4, "coef": 0.15 } },
-      { "type": "aura", "aura": "moonfire" }
+      { "type": "aura", "aura": "aur_dru_moonfire" }
     ],
     "ai": "dot",
     "priority": 3
   },
   {
-    "id": "rejuvenation",
+    "id": "sk_dru_rejuvenation",
     "name": "回春术",
     "desc": "十二秒内持续治愈。",
     "target": "ally",
@@ -1211,12 +1213,12 @@
     "school": "nature",
     "resource": "mana",
     "costPct": 0.08,
-    "effects": [{ "type": "aura", "aura": "rejuvenation" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_rejuvenation" }],
     "ai": "hot",
     "priority": 6
   },
   {
-    "id": "thorns",
+    "id": "sk_dru_thorns",
     "name": "荆棘术",
     "desc": "让同伴身上长出荆棘，近身攻击者遭到反伤。",
     "target": "ally",
@@ -1224,11 +1226,11 @@
     "school": "nature",
     "resource": "mana",
     "costPct": 0.05,
-    "effects": [{ "type": "aura", "aura": "thorns" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_thorns" }],
     "ai": "never"
   },
   {
-    "id": "entangling_roots",
+    "id": "sk_dru_entanglingroots",
     "name": "纠缠根须",
     "desc": "以根须缠住敌人十二秒。",
     "target": "enemy",
@@ -1237,11 +1239,11 @@
     "resource": "mana",
     "costPct": 0.07,
     "castTime": 1.5,
-    "effects": [{ "type": "aura", "aura": "entangling_roots" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_entanglingroots" }],
     "ai": "cc"
   },
   {
-    "id": "regrowth",
+    "id": "sk_dru_regrowth",
     "name": "愈合",
     "desc": "立即治愈，并在之后持续治愈。",
     "target": "ally",
@@ -1252,25 +1254,25 @@
     "castTime": 2,
     "effects": [
       { "type": "heal", "amount": { "base": 90, "perLevel": 14, "coef": 0.5 } },
-      { "type": "aura", "aura": "regrowth" }
+      { "type": "aura", "aura": "aur_dru_regrowth" }
     ],
     "ai": "heal",
     "priority": 6
   },
   {
-    "id": "barkskin",
+    "id": "sk_dru_barkskin",
     "name": "树皮术",
     "desc": "皮肤化作树皮，十二秒内受到的伤害降低。",
     "target": "self",
     "school": "nature",
     "cooldown": 60,
     "gcd": false,
-    "effects": [{ "type": "aura", "aura": "barkskin", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_barkskin", "to": "self" }],
     "ai": "defensive",
     "priority": 8
   },
   {
-    "id": "insect_swarm",
+    "id": "sk_dru_insectswarm",
     "name": "虫群",
     "desc": "召来虫群持续叮咬。",
     "target": "enemy",
@@ -1278,34 +1280,34 @@
     "school": "nature",
     "resource": "mana",
     "costPct": 0.08,
-    "effects": [{ "type": "aura", "aura": "insect_swarm" }],
+    "effects": [{ "type": "aura", "aura": "aur_dru_insectswarm" }],
     "ai": "dot",
     "priority": 2
   },
 
   {
-    "id": "peck_eyes",
+    "id": "sk_mon_peckeyes",
     "name": "啄目",
     "desc": "啄向眼睛，令目标短暂失明。",
     "target": "enemy",
     "range": 1.2,
     "cooldown": 20,
-    "effects": [{ "type": "aura", "aura": "blinded" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_blinded" }],
     "ai": "cc"
   },
   {
-    "id": "lime_powder",
+    "id": "sk_mon_limepowder",
     "name": "石灰粉",
     "desc": "迎面撒出一把石灰。",
     "target": "enemy",
     "range": 2,
     "cooldown": 25,
-    "effects": [{ "type": "aura", "aura": "blinded" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_blinded" }],
     "ai": "cc",
     "say": "吃我一把石灰！"
   },
   {
-    "id": "dian_bite",
+    "id": "sk_mon_dianbite",
     "name": "澱蚀",
     "desc": "带着澱的撕咬，伤口发灰并持续溃烂。",
     "target": "enemy",
@@ -1314,42 +1316,42 @@
     "cooldown": 10,
     "effects": [
       { "type": "damage", "weapon": 0.6, "school": "physical" },
-      { "type": "aura", "aura": "dian_rot" }
+      { "type": "aura", "aura": "aur_mon_dianrot" }
     ],
     "ai": "dot"
   },
   {
-    "id": "grey_web",
+    "id": "sk_mon_greyweb",
     "name": "灰丝",
     "desc": "喷出灰色的蛛丝缠住目标。",
     "target": "enemy",
     "range": 6,
     "cooldown": 15,
-    "effects": [{ "type": "aura", "aura": "webbed" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_webbed" }],
     "ai": "cc"
   },
   {
-    "id": "blood_rage",
+    "id": "sk_mon_bloodrage",
     "name": "血怒",
     "desc": "受伤反而更凶，攻击加快。",
     "target": "self",
     "cooldown": 20,
-    "effects": [{ "type": "aura", "aura": "blood_rage", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_bloodrage", "to": "self" }],
     "ai": "buff"
   },
   {
-    "id": "wail",
+    "id": "sk_mon_wail",
     "name": "枯哭",
     "desc": "空洞的哭号，令周围的人士气低落。",
     "target": "area",
     "radius": 3,
     "school": "shadow",
     "cooldown": 20,
-    "effects": [{ "type": "aura", "aura": "demoralized" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_demoralized" }],
     "ai": "aoe"
   },
   {
-    "id": "grave_chill",
+    "id": "sk_mon_gravechill",
     "name": "冥寒",
     "desc": "从坟土里渗出的寒意。",
     "target": "area",
@@ -1360,7 +1362,7 @@
     "ai": "aoe"
   },
   {
-    "id": "maul_swipe",
+    "id": "sk_mon_maulswipe",
     "name": "重击",
     "desc": "熊掌横扫。",
     "target": "enemy",
@@ -1370,7 +1372,7 @@
     "ai": "filler"
   },
   {
-    "id": "crystal_fall",
+    "id": "sk_mon_crystalfall",
     "name": "晶落",
     "desc": "矿顶的澱晶纷纷砸落。",
     "target": "area",
@@ -1381,7 +1383,7 @@
     "say": "头顶在响……"
   },
   {
-    "id": "monster_cleave",
+    "id": "sk_mon_cleave",
     "name": "顺劈",
     "desc": "一记横扫，打中面前的数人。",
     "target": "enemy_area",
@@ -1393,7 +1395,7 @@
     "ai": "aoe"
   },
   {
-    "id": "monster_charge",
+    "id": "sk_mon_charge",
     "name": "猛冲",
     "desc": "直冲过来，把人撞得发懵。",
     "target": "enemy",
@@ -1403,24 +1405,24 @@
     "effects": [
       { "type": "charge" },
       { "type": "damage", "weapon": 0.8 },
-      { "type": "aura", "aura": "charge_stun" }
+      { "type": "aura", "aura": "aur_war_chargestun" }
     ],
     "ai": "opener",
     "priority": 9
   },
   {
-    "id": "terrify",
+    "id": "sk_mon_terrify",
     "name": "恐吓",
     "desc": "一声咆哮，令身边的人恐惧逃散。",
     "target": "area",
     "radius": 4,
     "school": "shadow",
     "cooldown": 30,
-    "effects": [{ "type": "aura", "aura": "terrified" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_terrified" }],
     "ai": "aoe"
   },
   {
-    "id": "feather_storm",
+    "id": "sk_mon_featherstorm",
     "name": "灰羽风暴",
     "desc": "黑灰色的羽毛卷成风暴。",
     "target": "area",
@@ -1431,7 +1433,7 @@
     "ai": "aoe"
   },
   {
-    "id": "wing_buffet",
+    "id": "sk_mon_wingbuffet",
     "name": "翼击",
     "desc": "巨翼一扇，把人推向井边。",
     "target": "area",
@@ -1444,18 +1446,21 @@
     "ai": "aoe"
   },
   {
-    "id": "heart_peck",
+    "id": "sk_mon_heartpeck",
     "name": "啄心",
     "desc": "啄进心口的伤，治疗效果减半。",
     "target": "enemy",
     "range": 1.2,
     "cooldown": 10,
-    "effects": [{ "type": "damage", "weapon": 1.2 }, { "type": "aura", "aura": "mortal_wound" }],
+    "effects": [
+      { "type": "damage", "weapon": 1.2 },
+      { "type": "aura", "aura": "aur_mon_mortalwound" }
+    ],
     "ai": "filler",
     "priority": 3
   },
   {
-    "id": "stomp",
+    "id": "sk_mon_stomp",
     "name": "重踏",
     "desc": "巨足踏地，身边的人站立不稳。",
     "target": "area",
@@ -1463,32 +1468,32 @@
     "cooldown": 15,
     "effects": [
       { "type": "damage", "amount": { "base": 10, "perLevel": 3 } },
-      { "type": "aura", "aura": "stomp_stun" }
+      { "type": "aura", "aura": "aur_mon_stompstun" }
     ],
     "ai": "aoe"
   },
   {
-    "id": "ash_tide",
+    "id": "sk_mon_ashtide",
     "name": "灰潮",
     "desc": "灰从身上涌出，淹过脚踝。",
     "target": "area",
     "radius": 6,
     "school": "shadow",
     "cooldown": 18,
-    "effects": [{ "type": "aura", "aura": "ash_tide_slow" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_ashtideslow" }],
     "ai": "aoe"
   },
   {
-    "id": "ash_shell",
+    "id": "sk_mon_ashshell",
     "name": "灰壳",
     "desc": "灰与碎石结成外壳，吸收伤害。",
     "target": "self",
     "cooldown": 30,
-    "effects": [{ "type": "aura", "aura": "ash_shell", "to": "self" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_ashshell", "to": "self" }],
     "ai": "buff"
   },
   {
-    "id": "ash_rain",
+    "id": "sk_mon_ashrain",
     "name": "灰雨",
     "desc": "长长的吟啸之后，灰像雨一样落下。",
     "target": "area",
@@ -1501,7 +1506,7 @@
     "priority": 5
   },
   {
-    "id": "dian_fist",
+    "id": "sk_mon_dianfist",
     "name": "澱拳",
     "desc": "裹着澱的重拳。",
     "target": "enemy",
@@ -1511,7 +1516,7 @@
     "ai": "filler"
   },
   {
-    "id": "rift_slash",
+    "id": "sk_mon_riftslash",
     "name": "裂门斩",
     "desc": "蓄力之后一斩，劈开前方的一片。",
     "target": "enemy_area",
@@ -1524,7 +1529,7 @@
     "priority": 6
   },
   {
-    "id": "dian_mark",
+    "id": "sk_mon_dianmark",
     "name": "澱痕",
     "desc": "黑色的澱圈在脚下张开，持续灼蚀。",
     "target": "enemy_area",
@@ -1532,24 +1537,24 @@
     "radius": 2,
     "school": "shadow",
     "cooldown": 15,
-    "effects": [{ "type": "aura", "aura": "dian_mark" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_dianmark" }],
     "ai": "aoe",
     "priority": 4
   },
   {
-    "id": "thousand_pain",
+    "id": "sk_mon_thousandpain",
     "name": "千貌之痛",
     "desc": "层层叠加的诅咒，每层令所受伤害提高。",
     "target": "enemy",
     "range": 10,
     "school": "shadow",
     "cooldown": 12,
-    "effects": [{ "type": "aura", "aura": "thousand_pain" }],
+    "effects": [{ "type": "aura", "aura": "aur_mon_thousandpain" }],
     "ai": "filler",
     "priority": 3
   },
   {
-    "id": "dian_infusion",
+    "id": "sk_mon_dianinfusion",
     "name": "澱灌",
     "desc": "从澱脉里汲取，持续读条治愈自身；可被打断。",
     "target": "self",
@@ -1562,7 +1567,7 @@
     "priority": 7
   },
   {
-    "id": "jab",
+    "id": "sk_mon_jab",
     "name": "刺拳",
     "desc": "铁拳套的快拳。",
     "target": "enemy",
@@ -1572,20 +1577,20 @@
     "ai": "filler"
   },
   {
-    "id": "haymaker",
+    "id": "sk_mon_haymaker",
     "name": "重拳",
     "desc": "抡圆了的一拳，挨上就发懵。",
     "target": "enemy",
     "range": 1.2,
     "castTime": 1,
     "cooldown": 12,
-    "effects": [{ "type": "damage", "weapon": 2.5 }, { "type": "aura", "aura": "dazed" }],
+    "effects": [{ "type": "damage", "weapon": 2.5 }, { "type": "aura", "aura": "aur_mon_dazed" }],
     "ai": "filler",
     "priority": 5,
     "say": "第二回合！"
   },
   {
-    "id": "crystal_spike",
+    "id": "sk_mon_crystalspike",
     "name": "晶刺",
     "desc": "把晶刺射进墙里生出晶柱，晶柱越多它越硬。",
     "target": "area",
@@ -1593,13 +1598,13 @@
     "cooldown": 8,
     "effects": [
       { "type": "damage", "amount": { "base": 10, "perLevel": 3 } },
-      { "type": "aura", "aura": "crystal_pillars", "to": "self" }
+      { "type": "aura", "aura": "aur_mon_crystalpillars", "to": "self" }
     ],
     "ai": "aoe",
     "priority": 4
   },
   {
-    "id": "sludge_spit",
+    "id": "sk_mon_sludgespit",
     "name": "腐泥喷吐",
     "desc": "喷出一口腐泥，黏住脚步。",
     "target": "enemy",
@@ -1608,12 +1613,12 @@
     "cooldown": 10,
     "effects": [
       { "type": "damage", "amount": { "base": 8, "perLevel": 2.5 } },
-      { "type": "aura", "aura": "sludge_slow" }
+      { "type": "aura", "aura": "aur_mon_sludgeslow" }
     ],
     "ai": "filler"
   },
   {
-    "id": "leech_drain",
+    "id": "sk_mon_leechdrain",
     "name": "吸血",
     "desc": "贴上来吸血。",
     "target": "enemy",
@@ -1623,7 +1628,7 @@
     "ai": "filler"
   },
   {
-    "id": "page_burn",
+    "id": "sk_mon_pageburn",
     "name": "焚页",
     "desc": "把燃烧的书页甩到人身上。",
     "target": "enemy",
@@ -1632,8 +1637,45 @@
     "cooldown": 10,
     "effects": [
       { "type": "damage", "amount": { "base": 10, "perLevel": 3 } },
-      { "type": "aura", "aura": "burning_pages" }
+      { "type": "aura", "aura": "aur_mon_burningpages" }
     ],
     "ai": "filler"
+  },
+  {
+    "id": "sk_lok_summonremnant",
+    "name": "唤起巨像残意",
+    "desc": "握过澱核的手一合，巨像残意从门缝里挤出来，挡在你身前。",
+    "target": "self",
+    "school": "shadow",
+    "resource": "mana",
+    "costPct": 0.3,
+    "castTime": 3,
+    "cooldown": 60,
+    "effects": [{ "type": "summon", "monster": "fiend_colossus_remnant", "count": 1 }],
+    "ai": "summon",
+    "priority": 9
+  },
+  {
+    "id": "sk_mon_remnantbar",
+    "name": "拦门",
+    "desc": "它把自己横在门口，敌人的注意被拽了过去。",
+    "target": "enemy",
+    "range": 6,
+    "cooldown": 8,
+    "gcd": false,
+    "effects": [{ "type": "taunt" }],
+    "ai": "taunt",
+    "priority": 10
+  },
+  {
+    "id": "sk_mon_remnantquake",
+    "name": "残震",
+    "desc": "残缺的巨躯往下一沉，灰与碎晶向四周震开。",
+    "target": "area",
+    "radius": 3,
+    "school": "shadow",
+    "cooldown": 10,
+    "effects": [{ "type": "damage", "amount": { "base": 8, "perLevel": 2.5 }, "threat": 2 }],
+    "ai": "aoe"
   }
 ]

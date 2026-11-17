@@ -333,7 +333,7 @@
 | 21 | `door_vocation_paladin`（`vocation_paladin`） | 誓光之门 | 职能；三；九职长廊 | 择钥加历钥：在无人为你祈祷的地方以自己的名义立誓守护，并且守住：灰烬防线之战中守住苇桥（第 20 到 21 周；标记 `a3_vow_kept_reed_bridge`，C91、[千门 21.3][td]、[注册表 7.2][reg]）。补缘钥（可选，降低门槛）：格茨 `goetz_thale` 的信任；有此缘钥时守住任何一处无人祈祷之地即可 | `pool` `mana` 80；`abilities` `crusader_strike`、`holy_light`、`judgement`、`devotion_aura`、`hammer_of_justice`、`flash_of_light`；`stats` str+2、sta+2；补 `proficiency`：锁、板、双手锤、盾、法器 |
 | 22 | `door_thousand_legions`（`thousand_legions`） | 千军之门 | 经营；三；灰厅 | 全取：`companion.ron.recruited`；`feature.city`；`war.first_battle_won`（骨原夜袭，罗恩举旗守住阵线的那一刻）；补前置门 `door_fellowship` | `feature` `rts`：统率军队：连队、将领、士气、补给（[D-045][dlog] 四级中的连队与军团） |
 | 23 | `door_echoes`（`echoes`） | 残响之门 | 真相；三；灰厅 | 全取：识钥 `a3_ash_tells_sundering`；物钥 书库铭环 `ky_archive_ring`（记住）。补替钥：铭环被熔成门铜时，焦翎 `ky_scorched_quill` 代替 | `feature` `echoes`：看见大断绝那一夜的记忆残片（M05）；补：持焦翎时残片多一段信使的视角，夜羽从此称玩家"开门的"（[遗物 4.2][rlc]） |
-| 24 | `door_vocation_warlock`（`vocation_warlock`） | 渊契之门 | 职能／禁门；一起；九职长廊与风口 | 第一幕版本，序钥：澱巨像倒下时握住澱核 `dian_core`（消耗），然后择钥：立约。第三幕版本，序钥：物钥 一枚未净化的大澱晶 `crystal_large_raw`（晶沟深处；锈岭矿深层晶洞之心 `geode_heart`；边石旧矿下层晶脉，[迷宫][dgn]），然后择钥：与其中残存之物立约。补替物钥：灰袍契环 `rl_greyrobe_ring`（[遗物 3.5][rlc]） | `pool` `mana` 80；`abilities` `shadow_bolt`、`immolate`、`corruption`、`life_tap`、`curse_of_agony`；`stats` int+2、sta+2；补 `proficiency`：录杖、法器；以澱为力：加速淤塞 |
+| 24 | `door_vocation_warlock`（`vocation_warlock`） | 渊契之门 | 职能／禁门；一起；九职长廊与风口 | 第一幕版本，序钥：澱巨像倒下时握住澱核 `dian_core`（消耗），然后择钥：立约。第三幕版本，序钥：物钥 一枚未净化的大澱晶 `crystal_large_raw`（晶沟深处；锈岭矿深层晶洞之心 `geode_heart`；边石旧矿下层晶脉，[迷宫][dgn]），然后择钥：与其中残存之物立约。补替物钥：灰袍契环 `rl_greyrobe_ring`（[遗物 3.5][rlc]） | `pool` `mana` 80；`abilities` `sk_lok_shadowbolt`、`sk_lok_immolate`、`sk_lok_corruption`、`sk_lok_lifetap`、`sk_lok_curseofagony`，第一幕版本另授契约魔巨像残意的召唤 `sk_lok_summonremnant`（编号见[技能目录][abl]第 2.10、4.5 节）；`stats` int+2、sta+2；补 `proficiency`：录杖、法器；以澱为力：加速淤塞 |
 | 25 | `door_clear_flow`（`clear_flow`） | 澄流之门 | 技艺；三到四；交手廊 | 全取：地钥 在灵泉或世界树附近净化一处澱巢（枯环外缘由 `samira_mossycrown` 指出最薄的巢；或根渊边缘的澱巢，`dg_root_abyss`）；缘钥 以森之祭司的方式：灵泉守 `nassia_dawndew`。补替缘钥：欧拉 `trust.oola>=80` 且借形之门已开 | `abilities` `clear_flow`；`feature` `clear_flow`：小范围把澱解开、还为灵素；清除自身淤塞；补：可净化二级以内异兽；迷宫"净"的路线都要它（[迷宫 1.2][dgn]） |
 | 26 | `door_resonance`（`resonance`） | 共鸣之门 | 羁绊；三到四；结绳廊 | 全取：缘钥 救回若干遗民孩子（`noi`、`tess` 等，或苇塘村幸存者；数据 `remnants>=15`）；地钥 封门遗迹 `sigil_hall`；领祷 梅芙 `maeve` 或汉娜 `hanna`。辅：任一段门歌歌结（`ky_knot_morning_market`、`ky_knot_ferry`、`ky_knot_ash_night`、`ky_knot_leaf_fall`、`ky_knot_mother`）作领祷文。替历钥：在一场开门礼上把无锁之钥 `cs_lockless_key` 亲手交给门纹初次发热的孩子（遗民把你当自己人，代替"救回若干遗民孩子"） | `feature` `resonance`：唤醒遗民门纹：感知门、担任门守；在曙光圣柱下门守可与玩家合力"合上光"（[三幕 1.2][a3]） |
 | 27 | `door_vocation_shaman`（`vocation_shaman`） | 聆灵之门 | 职能；三到四；九职长廊 | 全取：地钥 祖灵冢的元素灵回应（`dg_ancestor_barrow` 的祖嚎 `howling_ancestors`，守冢人 `sera_silenthorn` 引路）；缘钥 一个兽人部族的认可：长角部 `nitira_moonhorn`、灰鬃部 `lokan_greyspine`、疾耳部 `taka_windear` 任一；第三幕移民迁入时托雅 `toya_shaman` 的认可满足这一半 | `pool` `mana` 80；`abilities` `lightning_bolt`、`healing_wave`、`earth_shock`、`lightning_shield`、`flame_shock`；`stats` int+2、sta+2；补 `proficiency`：锁、斧、盾、法器 |
@@ -1087,6 +1087,7 @@
 [dt]: catalog_deeds_titles.md
 [gi]: catalog_goddess_interventions.md
 [bc]: catalog_buildings_city.md
+[abl]: catalog_abilities_talents.md
 
 另见（未建链接的路径）：数据层 `../../../data/doors/doors.json`；
 调研依据：[调研综合 3][syn]（胜场换力量、女神试炼）、[调研 8.3][inv]（门的效果层复用主工程 `TalentEffect`、钥的判定复用功绩评估器的模式而不挂在 `DEEDS` 表上）。

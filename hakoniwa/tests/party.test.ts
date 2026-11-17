@@ -183,7 +183,7 @@ describe('following and fighting', () => {
     recruit(g, 'ron');
     const id = spawnNear(g, 'grey_wolf', units(g).player?.level ?? 10, 1.2);
     g.queue('combat.target', { targetId: id });
-    g.queue('combat.cast', { abilityId: 'door_strike', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_door_strike', targetId: id });
     g.step(2);
     // the player holds far more threat than Ron could build by damage alone
     const wolf = units(g)[id];
@@ -192,7 +192,7 @@ describe('following and fighting', () => {
     const taunts = events(g, 'combat.cast').filter(
       (e) =>
         e.data.casterId === 'companion_ron' &&
-        e.data.abilityId === 'taunt' &&
+        e.data.abilityId === 'sk_war_taunt' &&
         e.data.op === 'finish',
     );
     expect(taunts.length).toBeGreaterThan(0);
@@ -236,7 +236,7 @@ describe('following and fighting', () => {
     expect(nu?.downed).toBe(false);
     expect(ents(g).companion_nera?.alive).toBe(true);
     expect(ents(g).companion_nera?.mapId).toBe('seal_ruins_depths');
-    expect(nu?.auras.map((a) => a.id)).toContain('spring_weakness');
+    expect(nu?.auras.map((a) => a.id)).toContain('aur_st_downed_weak');
     void id;
   });
 });

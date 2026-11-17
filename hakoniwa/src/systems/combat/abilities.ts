@@ -418,7 +418,7 @@ function runEffect(
     case 'interrupt':
       if (enemy && t.cast) {
         interruptCast(ctx, t);
-        applyAura(ctx, t, 'interrupted', caster, { durationTicks: secs(f.lockout) });
+        applyAura(ctx, t, 'aur_mon_schoollock', caster, { durationTicks: secs(f.lockout) });
       }
       return;
     case 'dispel':

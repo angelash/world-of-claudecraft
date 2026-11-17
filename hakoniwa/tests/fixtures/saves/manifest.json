@@ -9,8 +9,8 @@
       "tick": 60,
       "seed": 20261115,
       "route": "release",
-      "hash": "ade5b210",
-      "state": "8af6515b"
+      "hash": "9da2482f",
+      "state": "73be5964"
     },
     {
       "file": "v1/act1.hks",
@@ -20,8 +20,8 @@
       "tick": 200,
       "seed": 20261115,
       "route": "release",
-      "hash": "e821ff4c",
-      "state": "97e9afff"
+      "hash": "bfc18e9a",
+      "state": "0b74e359"
     },
     {
       "file": "v1/act2.hks",
@@ -31,8 +31,8 @@
       "tick": 520886,
       "seed": 20261115,
       "route": "release",
-      "hash": "3a47b5e9",
-      "state": "9b4f0334"
+      "hash": "0d0dd6e8",
+      "state": "924390c5"
     },
     {
       "file": "v1/act3.hks",
@@ -42,8 +42,8 @@
       "tick": 943812,
       "seed": 20261115,
       "route": "release",
-      "hash": "de479816",
-      "state": "b396bbf6"
+      "hash": "100dcce4",
+      "state": "9bfa7a64"
     },
     {
       "file": "v1/act4.hks",
@@ -53,8 +53,8 @@
       "tick": 1062691,
       "seed": 20261115,
       "route": "release",
-      "hash": "a5eeb05f",
-      "state": "9561d291"
+      "hash": "c001c207",
+      "state": "1a3f354d"
     },
     {
       "file": "v1/act5.hks",
@@ -64,8 +64,8 @@
       "tick": 1462460,
       "seed": 20261115,
       "route": "release",
-      "hash": "a51fd179",
-      "state": "b4daf766"
+      "hash": "cc91f81c",
+      "state": "f871af1d"
     },
     {
       "file": "v1/act6.hks",
@@ -75,8 +75,8 @@
       "tick": 1935080,
       "seed": 20261115,
       "route": "release",
-      "hash": "b9c16c98",
-      "state": "27e4be40"
+      "hash": "c0291b07",
+      "state": "e8d12131"
     },
     {
       "file": "v1/r0_act2.hks",
@@ -87,8 +87,8 @@
       "seed": 20261115,
       "route": "release",
       "note": "written by the build before the variable registry (4687597add): old flag spellings and quest data ids",
-      "hash": "97cd429e",
-      "state": "177e346f"
+      "hash": "688d9846",
+      "state": "0bae2307"
     },
     {
       "file": "../save_container/act6_release.hks",
@@ -99,8 +99,8 @@
       "seed": 20261115,
       "route": "release",
       "note": "the container fixture of PK-M0-16, also written before the variable registry",
-      "hash": "2a248ead",
-      "state": "2a7d4ad7"
+      "hash": "84de4bb6",
+      "state": "24a6cebe"
     }
   ]
 }

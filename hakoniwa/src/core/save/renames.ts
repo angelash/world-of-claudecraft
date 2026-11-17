@@ -14,6 +14,12 @@
 // - any other kind (`quest`, `npc`, `faction`, `item`, `ability`, ...): a content id renamed
 //   (`to`) or removed (`removed`, with an optional `refund` folded into money). Renamed ids
 //   are also replaced where they stand as whole segments of a flag name.
+// In the other events of the recent-event ring, a payload string that is exactly one old id
+// is renamed; the kinds the table lists in `eventFields` (ids that are also plain words of
+// event payloads: the ability `heal`, the aura `interrupted` beside the cast op of the same
+// spelling, a warfare hero ability `charge`) are renamed only under their listed fields,
+// the first listed field that renames the string winning (a field may list the old ids it
+// covers: a damage event names an aura only on the tick of an aura that ticks).
 // A flag rename only lands on a name the variable registry lists under that exact spelling
 // (FlagNames), and it takes the shortest rewrite that does, trying exact entries, then id
 // segments, then patterns in table order: the same answer the registry's own resolver gives
@@ -55,9 +61,23 @@ export interface IdRename {
 
 export type RenameEntry = FlagRename | FlagValueRename | IdRename;
 
+/** Where the ids of a kind stand in event payloads (the only places they are renamed). */
+export interface EventField {
+  /** the id kind (`ability`, `aura`, ...) */
+  kind: string;
+  /** an event kind, or `prefix.*` for every event under `prefix.` */
+  event: string;
+  /** the payload key holding the id, at any depth of the payload */
+  key: string;
+  /** only these old ids (the key holds this kind for some rows only: an aura that ticks) */
+  ids?: string[];
+}
+
 export interface RenameTable {
   version: number;
   entries: RenameEntry[];
+  /** kinds renamed in the event ring only under these fields (see the header) */
+  eventFields?: EventField[];
 }
 
 /** The shipped table and its version (the `renameVersion` this build writes). */
@@ -203,6 +223,22 @@ export function checkRenameTable(t: unknown): string[] {
     if (froms.get(t2.kind)?.has(t2.to))
       out.push(`entry ${t2.at}: ${t2.kind} ${t2.to} is renamed again`);
   }
+  if (table.eventFields !== undefined) {
+    if (!Array.isArray(table.eventFields)) out.push('eventFields is not an array');
+    else
+      table.eventFields.forEach((f, i) => {
+        const ok =
+          typeof f === 'object' &&
+          f !== null &&
+          isName(f.kind) &&
+          f.kind !== 'flag' &&
+          f.kind !== 'flag_value' &&
+          isName(f.event) &&
+          isName(f.key) &&
+          (f.ids === undefined || (Array.isArray(f.ids) && f.ids.every(isName)));
+        if (!ok) out.push(`eventFields ${i}: needs an id kind, an event and a key`);
+      });
+  }
   return out;
 }
 
@@ -255,6 +291,11 @@ export class RenameSet {
   private readonly ids = new Map<string, Map<string, IdRename>>();
   /** renamed ids by old id, every kind (for flag-name segments) */
   private readonly segments = new Map<string, string[]>();
+  /** renamed ids by old id, the kinds without event fields (any event payload string) */
+  private readonly loose = new Map<string, string[]>();
+  /** the table's event fields, in table order (their kinds are renamed in events only there) */
+  private readonly fields: readonly EventField[];
+  private readonly scoped = new Set<string>();
   /** removed ids, every kind (flags naming one are dropped) */
   private readonly removedIds = new Set<string>();
   private readonly values = new Map<string, Map<string, FlagValue>>();
@@ -268,6 +309,8 @@ export class RenameSet {
   ) {
     this.from = fromVersion;
     this.to = table.version;
+    this.fields = table.eventFields ?? [];
+    for (const f of this.fields) this.scoped.add(f.kind);
     for (const e of table.entries) {
       if (e.since <= fromVersion) continue;
       if (e.kind === 'flag') {
@@ -307,6 +350,11 @@ export class RenameSet {
           const list = this.segments.get(r.from) ?? [];
           list.push(r.to);
           this.segments.set(r.from, list);
+          if (!this.scoped.has(r.kind)) {
+            const free = this.loose.get(r.from) ?? [];
+            free.push(r.to);
+            this.loose.set(r.from, free);
+          }
         }
       }
     }
@@ -352,10 +400,30 @@ export class RenameSet {
     return null;
   }
 
-  /** The one new id of an old id of any kind (null when none, or when kinds disagree). */
+  /**
+   * The one new id of an old id of any kind the table does not scope to event fields
+   * (null when none, or when kinds disagree).
+   */
   anyId(id: string): string | null {
-    const to = this.segments.get(id);
+    const to = this.loose.get(id);
     return to && to.length === 1 ? (to[0] as string) : null;
+  }
+
+  /**
+   * The new id of a payload string under `key` of an event of kind `event`: the first event
+   * field (in table order) that names this event and key and renames the string, else
+   * anyId. Table order settles a key that holds ids of two kinds (a damage event's
+   * `abilityId` is an aura id on a periodic tick).
+   */
+  eventId(event: string, key: string, id: string): string | null {
+    for (const f of this.fields) {
+      if (f.key !== key || (f.ids && !f.ids.includes(id))) continue;
+      const star = f.event.endsWith('.*');
+      if (star ? !event.startsWith(f.event.slice(0, -1)) : f.event !== event) continue;
+      const e = this.ids.get(f.kind)?.get(id);
+      if (e?.to !== undefined && e.removed !== true) return e.to;
+    }
+    return this.anyId(id);
   }
 
   /** What became of a content id of a kind, or null when it stands. */
@@ -470,21 +538,31 @@ export function applyRenames(
       }
       continue;
     }
-    // Other events: a string that is exactly an old id (of one kind only) is renamed.
-    renameEventIds(ev.data as unknown, set, 0);
+    // Other events: a string that is exactly an old id (of one kind only) is renamed;
+    // scoped kinds only under their event fields.
+    renameEventIds(ev.data as unknown, set, ev.kind, '', 0);
   }
   return report;
 }
 
-function renameEventIds(v: unknown, set: RenameSet, depth: number): void {
+/** Payload strings that are old ids; an array element answers to its array's key. */
+function renameEventIds(
+  v: unknown,
+  set: RenameSet,
+  event: string,
+  parentKey: string,
+  depth: number,
+): void {
   if (depth > 6 || typeof v !== 'object' || v === null) return;
   const holder = v as Record<string | number, unknown>;
+  const list = Array.isArray(v);
   for (const k of Object.keys(holder)) {
     const x = holder[k];
+    const key = list ? parentKey : k;
     if (typeof x === 'string') {
-      const to = set.anyId(x);
+      const to = set.eventId(event, key, x);
       if (to !== null) holder[k] = to;
-    } else renameEventIds(x, set, depth + 1);
+    } else renameEventIds(x, set, event, key, depth + 1);
   }
 }
 

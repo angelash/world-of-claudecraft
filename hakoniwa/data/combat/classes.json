@@ -12,7 +12,7 @@
     "hpPerLevel": 18,
     "apFrom": "str_agi",
     "unarmed": { "min": 1, "max": 3, "speed": 2 },
-    "abilities": [{ "id": "door_strike", "level": 1 }]
+    "abilities": [{ "id": "sk_door_strike", "level": 1 }]
   },
   {
     "id": "warrior",
@@ -29,16 +29,16 @@
     "canParry": true,
     "unarmed": { "min": 1, "max": 3, "speed": 2 },
     "abilities": [
-      { "id": "heroic_strike", "level": 1 },
-      { "id": "battle_shout", "level": 1 },
-      { "id": "charge", "level": 4 },
-      { "id": "rend", "level": 4 },
-      { "id": "thunder_clap", "level": 6 },
-      { "id": "taunt", "level": 10 },
-      { "id": "sunder_armor", "level": 10 },
-      { "id": "cleave", "level": 20 },
-      { "id": "execute", "level": 24 },
-      { "id": "shield_wall", "level": 28 }
+      { "id": "sk_war_heroicstrike", "level": 1 },
+      { "id": "sk_war_battleshout", "level": 1 },
+      { "id": "sk_war_charge", "level": 4 },
+      { "id": "sk_war_rend", "level": 4 },
+      { "id": "sk_war_thunderclap", "level": 6 },
+      { "id": "sk_war_taunt", "level": 10 },
+      { "id": "sk_war_sunderarmor", "level": 10 },
+      { "id": "sk_war_cleave", "level": 20 },
+      { "id": "sk_war_execute", "level": 24 },
+      { "id": "sk_war_shieldwall", "level": 28 }
     ]
   },
   {
@@ -58,16 +58,16 @@
     "canParry": true,
     "unarmed": { "min": 1, "max": 3, "speed": 2 },
     "abilities": [
-      { "id": "crusader_strike", "level": 1 },
-      { "id": "holy_light", "level": 1 },
-      { "id": "devotion_aura", "level": 1 },
-      { "id": "judgement", "level": 4 },
-      { "id": "divine_protection", "level": 6 },
-      { "id": "hammer_of_justice", "level": 8 },
-      { "id": "lay_on_hands", "level": 10 },
-      { "id": "holy_taunt", "level": 12 },
-      { "id": "consecration", "level": 20 },
-      { "id": "flash_of_light", "level": 20 }
+      { "id": "sk_pal_oathstrike", "level": 1 },
+      { "id": "sk_pal_holylight", "level": 1 },
+      { "id": "sk_pal_devotionaura", "level": 1 },
+      { "id": "sk_pal_judgement", "level": 4 },
+      { "id": "sk_pal_divineprotection", "level": 6 },
+      { "id": "sk_pal_hammerofjustice", "level": 8 },
+      { "id": "sk_pal_layonhands", "level": 10 },
+      { "id": "sk_pal_holytaunt", "level": 12 },
+      { "id": "sk_pal_consecration", "level": 20 },
+      { "id": "sk_pal_flashoflight", "level": 20 }
     ]
   },
   {
@@ -87,15 +87,15 @@
     "attackRange": 8,
     "unarmed": { "min": 2, "max": 4, "speed": 2.6 },
     "abilities": [
-      { "id": "raptor_strike", "level": 1 },
-      { "id": "arcane_shot", "level": 4 },
-      { "id": "serpent_sting", "level": 4 },
-      { "id": "hunters_mark", "level": 6 },
-      { "id": "concussive_shot", "level": 8 },
-      { "id": "aspect_of_the_hawk", "level": 10 },
-      { "id": "wing_clip", "level": 12 },
-      { "id": "multi_shot", "level": 18 },
-      { "id": "aimed_shot", "level": 20 }
+      { "id": "sk_hun_raptorstrike", "level": 1 },
+      { "id": "sk_hun_arcaneshot", "level": 4 },
+      { "id": "sk_hun_serpentsting", "level": 4 },
+      { "id": "sk_hun_huntersmark", "level": 6 },
+      { "id": "sk_hun_concussiveshot", "level": 8 },
+      { "id": "sk_hun_aspectofthehawk", "level": 10 },
+      { "id": "sk_hun_wingclip", "level": 12 },
+      { "id": "sk_hun_multishot", "level": 18 },
+      { "id": "sk_hun_aimedshot", "level": 20 }
     ]
   },
   {
@@ -113,15 +113,15 @@
     "canParry": true,
     "unarmed": { "min": 1, "max": 3, "speed": 1.8 },
     "abilities": [
-      { "id": "sinister_strike", "level": 1 },
-      { "id": "eviscerate", "level": 1 },
-      { "id": "backstab", "level": 4 },
-      { "id": "gouge", "level": 6 },
-      { "id": "evasion", "level": 8 },
-      { "id": "slice_and_dice", "level": 10 },
-      { "id": "sprint", "level": 10 },
-      { "id": "kick", "level": 12 },
-      { "id": "rupture", "level": 20 }
+      { "id": "sk_rog_sinisterstrike", "level": 1 },
+      { "id": "sk_rog_eviscerate", "level": 1 },
+      { "id": "sk_rog_backstab", "level": 4 },
+      { "id": "sk_rog_gouge", "level": 6 },
+      { "id": "sk_rog_evasion", "level": 8 },
+      { "id": "sk_rog_sliceanddice", "level": 10 },
+      { "id": "sk_rog_sprint", "level": 10 },
+      { "id": "sk_rog_kick", "level": 12 },
+      { "id": "sk_rog_rupture", "level": 20 }
     ]
   },
   {
@@ -140,16 +140,16 @@
     "apFrom": "str",
     "unarmed": { "min": 1, "max": 2, "speed": 2 },
     "abilities": [
-      { "id": "smite", "level": 1 },
-      { "id": "lesser_heal", "level": 1 },
-      { "id": "power_word_fortitude", "level": 1 },
-      { "id": "shadow_word_pain", "level": 4 },
-      { "id": "power_word_shield", "level": 6 },
-      { "id": "renew", "level": 8 },
-      { "id": "mind_blast", "level": 10 },
-      { "id": "psychic_scream", "level": 14 },
-      { "id": "heal", "level": 16 },
-      { "id": "flash_heal", "level": 20 }
+      { "id": "sk_pri_smite", "level": 1 },
+      { "id": "sk_pri_lesserheal", "level": 1 },
+      { "id": "sk_pri_fortitude", "level": 1 },
+      { "id": "sk_pri_shadowpain", "level": 4 },
+      { "id": "sk_pri_powerwordshield", "level": 6 },
+      { "id": "sk_pri_renew", "level": 8 },
+      { "id": "sk_pri_mindblast", "level": 10 },
+      { "id": "sk_pri_rendingwail", "level": 14 },
+      { "id": "sk_pri_heal", "level": 16 },
+      { "id": "sk_pri_flashheal", "level": 20 }
     ]
   },
   {
@@ -168,15 +168,15 @@
     "apFrom": "str2",
     "unarmed": { "min": 1, "max": 3, "speed": 2 },
     "abilities": [
-      { "id": "lightning_bolt", "level": 1 },
-      { "id": "healing_wave", "level": 1 },
-      { "id": "rockbiter_weapon", "level": 1 },
-      { "id": "earth_shock", "level": 4 },
-      { "id": "lightning_shield", "level": 8 },
-      { "id": "flame_shock", "level": 10 },
-      { "id": "frost_shock", "level": 20 },
-      { "id": "stormstrike", "level": 30 },
-      { "id": "chain_heal", "level": 40 }
+      { "id": "sk_sha_lightningbolt", "level": 1 },
+      { "id": "sk_sha_healingwave", "level": 1 },
+      { "id": "sk_sha_rockbiterweapon", "level": 1 },
+      { "id": "sk_sha_earthshock", "level": 4 },
+      { "id": "sk_sha_lightningshield", "level": 8 },
+      { "id": "sk_sha_flameshock", "level": 10 },
+      { "id": "sk_sha_frostshock", "level": 20 },
+      { "id": "sk_sha_stormstrike", "level": 30 },
+      { "id": "sk_sha_chainheal", "level": 40 }
     ]
   },
   {
@@ -195,15 +195,15 @@
     "apFrom": "str",
     "unarmed": { "min": 1, "max": 2, "speed": 2 },
     "abilities": [
-      { "id": "fireball", "level": 1 },
-      { "id": "frost_armor", "level": 1 },
-      { "id": "frostbolt", "level": 4 },
-      { "id": "fire_blast", "level": 6 },
-      { "id": "polymorph", "level": 8 },
-      { "id": "frost_nova", "level": 10 },
-      { "id": "arcane_explosion", "level": 14 },
-      { "id": "blizzard", "level": 20 },
-      { "id": "counterspell", "level": 24 }
+      { "id": "sk_mag_fireball", "level": 1 },
+      { "id": "sk_mag_frostarmor", "level": 1 },
+      { "id": "sk_mag_frostbolt", "level": 4 },
+      { "id": "sk_mag_fireblast", "level": 6 },
+      { "id": "sk_mag_polymorph", "level": 8 },
+      { "id": "sk_mag_frostnova", "level": 10 },
+      { "id": "sk_mag_arcaneexplosion", "level": 14 },
+      { "id": "sk_mag_blizzard", "level": 20 },
+      { "id": "sk_mag_counterspell", "level": 24 }
     ]
   },
   {
@@ -222,16 +222,16 @@
     "apFrom": "str",
     "unarmed": { "min": 1, "max": 2, "speed": 2 },
     "abilities": [
-      { "id": "shadow_bolt", "level": 1 },
-      { "id": "demon_skin", "level": 1 },
-      { "id": "immolate", "level": 1 },
-      { "id": "summon_imp", "level": 2 },
-      { "id": "corruption", "level": 4 },
-      { "id": "life_tap", "level": 6 },
-      { "id": "curse_of_agony", "level": 8 },
-      { "id": "fear", "level": 8 },
-      { "id": "drain_life", "level": 14 },
-      { "id": "rain_of_fire", "level": 20 }
+      { "id": "sk_lok_shadowbolt", "level": 1 },
+      { "id": "sk_lok_demonskin", "level": 1 },
+      { "id": "sk_lok_immolate", "level": 1 },
+      { "id": "sk_lok_summonimp", "level": 2 },
+      { "id": "sk_lok_corruption", "level": 4 },
+      { "id": "sk_lok_lifetap", "level": 6 },
+      { "id": "sk_lok_curseofagony", "level": 8 },
+      { "id": "sk_lok_fear", "level": 8 },
+      { "id": "sk_lok_drainlife", "level": 14 },
+      { "id": "sk_lok_rainoffire", "level": 20 }
     ]
   },
   {
@@ -250,16 +250,16 @@
     "apFrom": "str2",
     "unarmed": { "min": 1, "max": 3, "speed": 2 },
     "abilities": [
-      { "id": "wrath", "level": 1 },
-      { "id": "healing_touch", "level": 1 },
-      { "id": "mark_of_the_wild", "level": 1 },
-      { "id": "moonfire", "level": 4 },
-      { "id": "rejuvenation", "level": 4 },
-      { "id": "thorns", "level": 6 },
-      { "id": "entangling_roots", "level": 8 },
-      { "id": "regrowth", "level": 12 },
-      { "id": "barkskin", "level": 20 },
-      { "id": "insect_swarm", "level": 20 }
+      { "id": "sk_dru_wrath", "level": 1 },
+      { "id": "sk_dru_healingtouch", "level": 1 },
+      { "id": "sk_dru_markofthewild", "level": 1 },
+      { "id": "sk_dru_moonfire", "level": 4 },
+      { "id": "sk_dru_rejuvenation", "level": 4 },
+      { "id": "sk_dru_thorns", "level": 6 },
+      { "id": "sk_dru_entanglingroots", "level": 8 },
+      { "id": "sk_dru_regrowth", "level": 12 },
+      { "id": "sk_dru_barkskin", "level": 20 },
+      { "id": "sk_dru_insectswarm", "level": 20 }
     ]
   }
 ]

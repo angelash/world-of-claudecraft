@@ -74,7 +74,7 @@
     "speed": 4.4,
     "aggroRadius": 5,
     "leash": 16,
-    "abilities": ["peck_eyes"],
+    "abilities": ["sk_mon_peckeyes"],
     "mechanics": {
       "social": 4,
       "pacifiedBy": "companion.yeyu.recruited"
@@ -137,7 +137,7 @@
     "speed": 4.8,
     "aggroRadius": 6,
     "leash": 20,
-    "abilities": ["blood_rage"],
+    "abilities": ["sk_mon_bloodrage"],
     "loot": [
       {
         "itemId": "split_ear_fang",
@@ -171,7 +171,7 @@
     "speed": 4.7,
     "aggroRadius": 6,
     "leash": 18,
-    "abilities": ["dian_bite"],
+    "abilities": ["sk_mon_dianbite"],
     "mechanics": {
       "social": 5
     },
@@ -209,7 +209,7 @@
     "aggroRadius": 4,
     "leash": 16,
     "mechanics": {
-      "passives": ["ash_mane"]
+      "passives": ["aur_mon_ashmane"]
     },
     "loot": [
       {
@@ -239,7 +239,7 @@
     "speed": 3.8,
     "aggroRadius": 5,
     "leash": 16,
-    "abilities": ["grey_web"],
+    "abilities": ["sk_mon_greyweb"],
     "loot": [
       {
         "itemId": "spider_silk",
@@ -299,7 +299,7 @@
     "aggroRadius": 5,
     "leash": 18,
     "classId": "rogue",
-    "abilities": ["lime_powder"],
+    "abilities": ["sk_mon_limepowder"],
     "mechanics": {
       "flee": 0.2,
       "social": 5
@@ -335,7 +335,7 @@
     "speed": 3,
     "aggroRadius": 5,
     "leash": 16,
-    "abilities": ["wail"],
+    "abilities": ["sk_mon_wail"],
     "loot": [
       {
         "itemId": "bone_shard",
@@ -365,7 +365,7 @@
     "aggroRadius": 6,
     "leash": 18,
     "school": "frost",
-    "abilities": ["grave_chill"],
+    "abilities": ["sk_mon_gravechill"],
     "loot": [
       {
         "itemId": "dian_shard",
@@ -396,7 +396,7 @@
     "speed": 4,
     "aggroRadius": 6,
     "leash": 22,
-    "abilities": ["maul_swipe", "terrify"],
+    "abilities": ["sk_mon_maulswipe", "sk_mon_terrify"],
     "loot": [
       {
         "itemId": "black_ridge_mantle",
@@ -457,9 +457,9 @@
     "speed": 3,
     "aggroRadius": 6,
     "leash": 24,
-    "abilities": ["crystal_fall"],
+    "abilities": ["sk_mon_crystalfall"],
     "mechanics": {
-      "passives": ["crystal_hide"],
+      "passives": ["aur_mon_crystalhide"],
       "summon": [
         {
           "atPct": 0.5,
@@ -505,7 +505,7 @@
     "aggroRadius": 5,
     "leash": 20,
     "classId": "rogue",
-    "abilities": ["lime_powder"],
+    "abilities": ["sk_mon_limepowder"],
     "mechanics": {
       "yieldAtPct": 0.5,
       "yieldSay": "停！停手！……我们谈谈，好吗？"
@@ -539,13 +539,13 @@
     "aggroRadius": 5,
     "leash": 22,
     "classId": "warrior",
-    "abilities": ["monster_cleave"],
+    "abilities": ["sk_mon_cleave"],
     "mechanics": {
       "yieldAtPct": 0.1,
       "yieldSay": "……够了。独眼团的规矩，输了就是输了。",
       "enrage": {
         "belowPct": 0.3,
-        "aura": "blood_rage",
+        "aura": "aur_mon_bloodrage",
         "say": "再来！"
       },
       "partySync": {
@@ -584,7 +584,7 @@
     "speed": 4,
     "aggroRadius": 6,
     "leash": 14,
-    "abilities": ["feather_storm"],
+    "abilities": ["sk_mon_featherstorm"],
     "mechanics": {
       "summon": [
         {
@@ -598,18 +598,18 @@
         {
           "belowPct": 0.6,
           "name": "振翼",
-          "abilities": ["feather_storm", "wing_buffet"],
+          "abilities": ["sk_mon_featherstorm", "sk_mon_wingbuffet"],
           "say": "……门……"
         },
         {
           "belowPct": 0.25,
           "name": "澱狂",
-          "abilities": ["heart_peck", "feather_storm"]
+          "abilities": ["sk_mon_heartpeck", "sk_mon_featherstorm"]
         }
       ],
       "enrage": {
         "belowPct": 0.25,
-        "aura": "enrage"
+        "aura": "aur_st_enrage"
       },
       "yieldAtPct": 0.02,
       "yieldSay": "（它摔在巢上。黑色的灰从羽毛上一片片剥落，底下露出银色的羽根。）",
@@ -648,18 +648,18 @@
     "speed": 2.8,
     "aggroRadius": 9,
     "leash": 60,
-    "abilities": ["dian_fist", "stomp", "ash_tide"],
+    "abilities": ["sk_mon_dianfist", "sk_mon_stomp", "sk_mon_ashtide"],
     "mechanics": {
       "phases": [
         {
           "belowPct": 0.7,
           "name": "裂解",
-          "abilities": ["dian_fist", "ash_shell", "ash_rain", "stomp"]
+          "abilities": ["sk_mon_dianfist", "sk_mon_ashshell", "sk_mon_ashrain", "sk_mon_stomp"]
         },
         {
           "belowPct": 0.35,
           "name": "崩解",
-          "abilities": ["dian_fist", "ash_rain", "stomp"]
+          "abilities": ["sk_mon_dianfist", "sk_mon_ashrain", "sk_mon_stomp"]
         }
       ],
       "summon": [
@@ -676,7 +676,7 @@
       ],
       "enrage": {
         "belowPct": 0.35,
-        "aura": "enrage"
+        "aura": "aur_st_enrage"
       },
       "presence": 4,
       "partySync": {
@@ -715,7 +715,7 @@
     "aggroRadius": 4,
     "leash": 16,
     "school": "nature",
-    "abilities": ["sludge_spit"],
+    "abilities": ["sk_mon_sludgespit"],
     "loot": [
       {
         "itemId": "sludge_glob",
@@ -743,7 +743,7 @@
     "speed": 3,
     "aggroRadius": 5,
     "leash": 18,
-    "abilities": ["grave_chill"],
+    "abilities": ["sk_mon_gravechill"],
     "loot": [
       {
         "itemId": "bone_shard",
@@ -772,7 +772,7 @@
     "speed": 3.2,
     "aggroRadius": 4,
     "leash": 16,
-    "abilities": ["leech_drain"],
+    "abilities": ["sk_mon_leechdrain"],
     "mechanics": {
       "social": 4
     },
@@ -802,7 +802,7 @@
     "leash": 18,
     "school": "fire",
     "range": 6,
-    "abilities": ["page_burn"],
+    "abilities": ["sk_mon_pageburn"],
     "loot": [
       {
         "itemId": "burnt_page",
@@ -826,9 +826,9 @@
     "speed": 3.8,
     "aggroRadius": 5,
     "leash": 18,
-    "abilities": ["dian_bite"],
+    "abilities": ["sk_mon_dianbite"],
     "mechanics": {
-      "passives": ["crystal_hide"]
+      "passives": ["aur_mon_crystalhide"]
     },
     "loot": [
       {
@@ -899,7 +899,7 @@
     "speed": 3.4,
     "aggroRadius": 6,
     "leash": 26,
-    "abilities": ["monster_cleave", "dian_bite"],
+    "abilities": ["sk_mon_cleave", "sk_mon_dianbite"],
     "mechanics": {
       "partySync": {
         "offset": 0,
@@ -925,7 +925,7 @@
       ],
       "enrage": {
         "belowPct": 0.2,
-        "aura": "enrage"
+        "aura": "aur_st_enrage"
       }
     },
     "loot": [
@@ -962,19 +962,19 @@
     "speed": 3.4,
     "aggroRadius": 7,
     "leash": 28,
-    "abilities": ["crystal_spike", "dian_bite", "monster_charge"],
+    "abilities": ["sk_mon_crystalspike", "sk_mon_dianbite", "sk_mon_charge"],
     "mechanics": {
       "phases": [
         {
           "belowPct": 0.4,
           "name": "碎晶",
           "say": "（晶柱一根根炸开，晶屑像雨一样落下。）",
-          "abilities": ["crystal_fall", "dian_bite", "crystal_spike"]
+          "abilities": ["sk_mon_crystalfall", "sk_mon_dianbite", "sk_mon_crystalspike"]
         }
       ],
       "enrage": {
         "belowPct": 0.2,
-        "aura": "enrage"
+        "aura": "aur_st_enrage"
       }
     },
     "loot": [
@@ -1013,7 +1013,7 @@
     "speed": 3.6,
     "aggroRadius": 6,
     "leash": 20,
-    "abilities": ["dian_bite"],
+    "abilities": ["sk_mon_dianbite"],
     "mechanics": {
       "social": 5
     },
@@ -1046,7 +1046,7 @@
     "aggroRadius": 6,
     "leash": 20,
     "school": "shadow",
-    "abilities": ["ash_tide", "grave_chill"],
+    "abilities": ["sk_mon_ashtide", "sk_mon_gravechill"],
     "loot": [
       {
         "itemId": "ash_essence",
@@ -1077,7 +1077,7 @@
     "speed": 3.4,
     "aggroRadius": 6,
     "leash": 22,
-    "abilities": ["monster_cleave", "monster_charge"],
+    "abilities": ["sk_mon_cleave", "sk_mon_charge"],
     "loot": [
       {
         "itemId": "ashen_plate",
@@ -1110,7 +1110,7 @@
     "aggroRadius": 8,
     "leash": 26,
     "school": "fire",
-    "abilities": ["feather_storm", "terrify", "monster_cleave"],
+    "abilities": ["sk_mon_featherstorm", "sk_mon_terrify", "sk_mon_cleave"],
     "loot": [
       {
         "itemId": "drake_scale",
@@ -1206,7 +1206,7 @@
     "aggroRadius": 6,
     "leash": 22,
     "classId": "warrior",
-    "abilities": ["monster_charge", "monster_cleave"],
+    "abilities": ["sk_mon_charge", "sk_mon_cleave"],
     "loot": [
       {
         "itemId": "greater_healing_potion",
@@ -1327,7 +1327,7 @@
     "aggroRadius": 8,
     "leash": 30,
     "school": "shadow",
-    "abilities": ["dian_fist", "monster_cleave"],
+    "abilities": ["sk_mon_dianfist", "sk_mon_cleave"],
     "mechanics": {
       "partySync": {
         "offset": -3,
@@ -1367,11 +1367,11 @@
     "aggroRadius": 10,
     "leash": 40,
     "classId": "warrior",
-    "abilities": ["jab", "haymaker", "monster_charge"],
+    "abilities": ["sk_mon_jab", "sk_mon_haymaker", "sk_mon_charge"],
     "mechanics": {
       "ramp": {
         "every": 10,
-        "aura": "tempering"
+        "aura": "aur_mon_tempering"
       },
       "phases": [
         {
@@ -1414,25 +1414,35 @@
     "aggroRadius": 12,
     "leash": 60,
     "school": "shadow",
-    "abilities": ["rift_slash", "dian_mark"],
+    "abilities": ["sk_mon_riftslash", "sk_mon_dianmark"],
     "mechanics": {
       "partySync": {
         "offset": 0,
         "min": 10
       },
-      "passives": ["faceless_veil"],
+      "passives": ["aur_mon_facelessveil"],
       "phases": [
         {
           "belowPct": 0.7,
           "name": "千貌",
           "say": "如果当年她接住的是我，今天站在这里的就是你。",
-          "abilities": ["thousand_pain", "dian_mark", "dian_infusion", "rift_slash"]
+          "abilities": [
+            "sk_mon_thousandpain",
+            "sk_mon_dianmark",
+            "sk_mon_dianinfusion",
+            "sk_mon_riftslash"
+          ]
         },
         {
           "belowPct": 0.35,
           "name": "无貌之王",
           "say": "你以为你是被选中的？你看看我。",
-          "abilities": ["rift_slash", "dian_mark", "thousand_pain", "ash_rain"]
+          "abilities": [
+            "sk_mon_riftslash",
+            "sk_mon_dianmark",
+            "sk_mon_thousandpain",
+            "sk_mon_ashrain"
+          ]
         }
       ],
       "summon": [
@@ -1455,7 +1465,7 @@
       ],
       "enrage": {
         "belowPct": 0.3,
-        "aura": "enrage"
+        "aura": "aur_st_enrage"
       },
       "yieldAtPct": 0.05,
       "yieldSay": "（他停了手。身后的空气裂开，露出一扇通往庭间之隙的门。）跟我一起掉下去吧。这一次，谁也接不住。",
@@ -1496,6 +1506,27 @@
       "base": "imp",
       "colors": ["#a83a1a", "#5a1a0a", "#ffb060", "#200800"],
       "scale": 0.55
+    }
+  },
+  {
+    "id": "fiend_colossus_remnant",
+    "name": "巨像残意",
+    "desc": "澱巨像崩解时留在澱核里的一缕残意，被契约拴在门边。它没有条款，只有一个念头：门。",
+    "family": "demon",
+    "faction": "pact",
+    "minLevel": 1,
+    "maxLevel": 60,
+    "hpMult": 1.2,
+    "dmgMult": 0.6,
+    "armorMult": 1.5,
+    "speed": 3.6,
+    "aggroRadius": 4,
+    "leash": 30,
+    "abilities": ["sk_mon_remnantbar", "sk_mon_remnantquake"],
+    "appearance": {
+      "base": "golem",
+      "colors": ["#3e3b38", "#211f1d", "#7a736a", "#9fb0c4"],
+      "scale": 1.1
     }
   }
 ]

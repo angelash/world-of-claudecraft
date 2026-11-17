@@ -15,7 +15,7 @@
     },
     "likes": { "kinds": ["trinket"], "items": ["raven_feather", "dian_shard"] },
     "bondFlags": [{ "flag": "door.pact", "amount": 10 }, { "flag": "yeyu_letters", "amount": 10 }],
-    "avoid": ["fear"]
+    "avoid": ["sk_lok_fear"]
   },
   {
     "id": "shiya",

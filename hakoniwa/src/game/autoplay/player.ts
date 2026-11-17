@@ -840,7 +840,7 @@ export class Autoplayer {
   /** Out of combat and not fit to start a fight. */
   needsRest(): boolean {
     if (playerHealth(this.world, this.content) < 0.6) return true;
-    if (playerHasAura(this.world, 'door_fatigue')) return true;
+    if (playerHasAura(this.world, 'aur_st_revival_fatigue')) return true;
     return playerMana(this.world, this.content) < 0.4;
   }
 

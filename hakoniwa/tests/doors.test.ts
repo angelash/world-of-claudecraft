@@ -150,9 +150,12 @@ describe('story doors', () => {
     g.step(2);
     expect(flags(g)['door.awaken']).toBe(true);
     expect(flags(g)['feature.door_corridor']).toBe(true);
-    expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual(['door_strike', 'door_step']);
+    expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual([
+      'sk_door_strike',
+      'sk_door_step',
+    ]);
     expect(g.world.slices.inventory.owners.player?.equipped.main_hand).toBe('rusty_shortsword');
-    expect(g.world.slices.combat.units.player?.auras.map((a) => a.id)).toContain('door_mirror');
+    expect(g.world.slices.combat.units.player?.auras.map((a) => a.id)).toContain('aur_door_mirror');
     // the first door is micro (half a point of looseness) and never moves seal_unrest
     expect(sealState(g.world)).toEqual({ looseness: 0.5, unrest: 0, opened: 1 });
     expect(events(g, 'door.opened').map((e) => e.data.doorId)).toContain('awaken');
@@ -163,7 +166,7 @@ describe('story doors', () => {
     setFlags(g, { p_past_life_door: 'whitecoat' });
     expect(doorState(g.world, 'past_life_whitecoat')).toBe('opened');
     expect(doorState(g.world, 'past_life_hearth')).toBe('locked');
-    expect(abilityBar(g.world, g.content).map((s) => s.id)).toContain('first_aid');
+    expect(abilityBar(g.world, g.content).map((s) => s.id)).toContain('sk_door_firstaid');
     setFlags(g, { p_past_life_door: 'hearth' });
     expect(doorState(g.world, 'past_life_hearth')).toBe('locked');
   });
@@ -250,7 +253,7 @@ describe('chosen doors', () => {
     expect(u?.res.rage).toBe(0);
     expect(u?.bonuses['door:vocation_warrior']).toEqual({ str: 3, sta: 2 });
     expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual(
-      expect.arrayContaining(['heroic_strike', 'charge', 'taunt']),
+      expect.arrayContaining(['sk_war_heroicstrike', 'sk_war_charge', 'sk_war_taunt']),
     );
     expect(sealState(g.world)).toMatchObject({ looseness: 1, unrest: 3 });
     expect(countItem(g.world, 'player', 'crystal_carapace')).toBe(1);

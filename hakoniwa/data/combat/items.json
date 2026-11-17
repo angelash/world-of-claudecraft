@@ -299,7 +299,7 @@
     "quality": 1,
     "value": 60,
     "desc": "醉月亭最烈的酒。喝下去力气大了，脑子慢了。",
-    "use": { "effect": "aura", "ability": "ash_spirits" }
+    "use": { "effect": "aura", "ability": "aur_item_ashspirits" }
   },
   {
     "id": "stoneskin_draught",
@@ -308,7 +308,7 @@
     "quality": 2,
     "value": 400,
     "desc": "喝下去皮肤发硬，十分钟内护甲大幅提高。",
-    "use": { "effect": "aura", "ability": "stoneskin_draught" }
+    "use": { "effect": "aura", "ability": "aur_item_stoneskindraught" }
   },
   {
     "id": "door_charm",

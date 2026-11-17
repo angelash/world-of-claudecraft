@@ -255,6 +255,9 @@ const PROBE_FIELDS: IdField[] = [
   { path: 'records.*.id', kind: 'quest' },
   { path: 'npcs.@keys', kind: 'npc' },
   { path: 'factions.*', kind: 'faction' },
+  { path: 'abilities.*', kind: 'ability' },
+  { path: 'cds.@keys', kind: 'ability' },
+  { path: 'auras.*.id', kind: 'aura' },
 ];
 
 describe('every entry loads with no trace of its old id', () => {
@@ -338,6 +341,11 @@ describe('every entry loads with no trace of its old id', () => {
         slot.npcs = { [e.from]: 1 };
       } else if (e.kind === 'faction') {
         slot.factions = { a: e.from };
+      } else if (e.kind === 'ability') {
+        slot.abilities = ['keep', e.from];
+        slot.cds = { [e.from]: 40 };
+      } else if (e.kind === 'aura') {
+        slot.auras = [{ id: e.from, stacks: 1 }];
       }
       (w.slices as unknown as Record<string, unknown>).probe = slot;
       const out = await roundTrip(w);

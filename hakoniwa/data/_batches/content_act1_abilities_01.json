@@ -1,0 +1,262 @@
+{
+  "batch": "content_act1_abilities_01",
+  "status": "promoted",
+  "scope": "catalog_abilities_talents.md 3.3, 4.5 and 7.3: the act 1 equipment aura, the contract fiend of the act 1 abyss pact door with its skills, and the downed state aura; the sk_/aur_ renumbering of every existing ability and aura id (2, 3, 7) lands beside it as renames (data/registry/renames.json version 2)",
+  "depends": [],
+  "sources": [
+    {
+      "mapping": "abilities.equipment_auras",
+      "catalog": "docs/40_design/content/catalog_abilities_talents.md",
+      "section": "3.3"
+    },
+    {
+      "mapping": "abilities.fiend_templates",
+      "catalog": "docs/40_design/content/catalog_abilities_talents.md",
+      "section": "4.5"
+    },
+    {
+      "mapping": "abilities.fiend_skills",
+      "catalog": "docs/40_design/content/catalog_abilities_talents.md",
+      "section": "4.5"
+    },
+    {
+      "mapping": "abilities.state_auras_death",
+      "catalog": "docs/40_design/content/catalog_abilities_talents.md",
+      "section": "7.3"
+    }
+  ],
+  "files": ["combat/auras.json", "combat/monsters.json", "combat/abilities.json"],
+  "added": [
+    "aur_ember_door",
+    "aur_st_downed_weak",
+    "fiend_colossus_remnant",
+    "sk_lok_summonremnant",
+    "sk_mon_remnantbar",
+    "sk_mon_remnantquake"
+  ],
+  "changed": [],
+  "removed": [],
+  "diff": [
+    {
+      "file": "combat/auras.json",
+      "table": "auras",
+      "added": ["aur_ember_door", "aur_st_downed_weak"],
+      "changed": [],
+      "unchanged": []
+    },
+    {
+      "file": "combat/monsters.json",
+      "table": "monsters",
+      "added": ["fiend_colossus_remnant"],
+      "changed": [],
+      "unchanged": []
+    },
+    {
+      "file": "combat/abilities.json",
+      "table": "abilities",
+      "added": ["sk_lok_summonremnant", "sk_mon_remnantbar", "sk_mon_remnantquake"],
+      "changed": [],
+      "unchanged": []
+    }
+  ],
+  "unmapped": [
+    {
+      "id": "aur_ember_door",
+      "column": "光环键",
+      "value": "`ember_door`",
+      "note": "the key is the id without aur_ (catalog_equipment.md 11.2 item 4)"
+    },
+    {
+      "id": "aur_ember_door",
+      "column": "施加来源",
+      "value": "余烬门守套的套组触发：`on: low_hp, icd 300, do: aura:ember_door@self`（[装备 5.1][eqp]）",
+      "note": "the set proc lives on the set items (procs), not on the aura"
+    },
+    {
+      "id": "aur_ember_door",
+      "column": "效果",
+      "value": "受到的伤害 -50%，3 秒；增益，单层，不可驱散",
+      "note": "prose of the data fields; the description is the author"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "模板来源",
+      "value": "主工程 `gloomshade` 框架（厚血、重甲、嘲讽）加范围攻击（[生灵 11.1][cre]）",
+      "note": "design lineage, no field"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "族群与势力",
+      "value": "`demon`，势力 `pact`",
+      "note": "family and faction"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "等级",
+      "value": "随施法者，1 到 60",
+      "note": "minLevel and maxLevel (the fiend follows its caster)"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "倍率",
+      "value": "生命 ×1.2、伤害 ×0.6、护甲 ×1.5；近战，体相",
+      "note": "hpMult, dmgMult, armorMult"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "移动与警戒",
+      "value": "每秒 3.6 格；警戒 4 格，拴绳 30 格（随从跟着主人走，不受拴绳约束，[战斗 12.3][cmb]）",
+      "note": "speed, aggroRadius, leash"
+    },
+    {
+      "id": "fiend_colossus_remnant",
+      "column": "技能",
+      "value": "`sk_mon_remnantbar`、`sk_mon_remnantquake`",
+      "note": "the abilities list"
+    },
+    {
+      "id": "sk_lok_summonremnant",
+      "column": "使用者",
+      "value": "编外者：渊契之门第一幕版本立约所得",
+      "note": "who holds it: the door grant or the fiend template"
+    },
+    {
+      "id": "sk_lok_summonremnant",
+      "column": "效果摘要",
+      "value": "自身，读条 3 秒，消耗灵力上限的 30%，冷却 60 秒，幽相；召唤 `fiend_colossus_remnant` 一只，等级随施法者；它还在场时不再召出第二只",
+      "note": "target, range, cost, cooldown and effects"
+    },
+    {
+      "id": "sk_mon_remnantbar",
+      "column": "使用者",
+      "value": "`fiend_colossus_remnant`",
+      "note": "who holds it: the door grant or the fiend template"
+    },
+    {
+      "id": "sk_mon_remnantbar",
+      "column": "效果摘要",
+      "value": "射程 6，冷却 8 秒，不占公共冷却；嘲讽（[战斗 2.5][cmb]）",
+      "note": "target, range, cost, cooldown and effects"
+    },
+    {
+      "id": "sk_mon_remnantquake",
+      "column": "使用者",
+      "value": "`fiend_colossus_remnant`",
+      "note": "who holds it: the door grant or the fiend template"
+    },
+    {
+      "id": "sk_mon_remnantquake",
+      "column": "效果摘要",
+      "value": "以自身为心半径 3，冷却 10 秒，幽相；伤害（基础 8，每级 2.5），仇恨 ×2",
+      "note": "target, range, cost, cooldown and effects"
+    },
+    {
+      "id": "aur_st_downed_weak",
+      "column": "现行数据 ID",
+      "value": "无（借用 `spring_weakness` 的量，现单列）",
+      "note": "renamed rows are in data already; only new rows are imported"
+    },
+    { "id": "aur_st_downed_weak", "column": "去向", "value": "新增", "note": "renamed or new" },
+    {
+      "id": "aur_st_downed_weak",
+      "column": "效果（数值来源）",
+      "value": "造成的伤害 -20%，120 秒（[战斗 15.2][cmb]；与泉畔之代价不是同一回事：倒地不经泉畔，所以单独编号）",
+      "note": "kind, duration and mods from the combat document section"
+    }
+  ],
+  "validation": {
+    "milestone": "M0",
+    "at": "2026-11-17",
+    "ok": true,
+    "results": [
+      { "id": "V1", "title": "schema", "errors": 0, "warnings": 0 },
+      { "id": "V2", "title": "references", "errors": 0, "warnings": 0 },
+      { "id": "V3", "title": "namespaces", "errors": 0, "warnings": 0 },
+      { "id": "V4", "title": "variable registry", "errors": 0, "warnings": 337 },
+      { "id": "V5", "title": "reveal ledger", "errors": 0, "warnings": 9 },
+      { "id": "V6", "title": "numeric bands", "errors": 0, "warnings": 9 },
+      { "id": "V7", "title": "asset references", "errors": 0, "warnings": 3 },
+      { "id": "V8", "title": "text", "errors": 0, "warnings": 0 },
+      { "id": "V9", "title": "reachability", "errors": 0, "warnings": 9 },
+      { "id": "V10", "title": "proper nouns", "errors": 0, "warnings": 0 }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "scope",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping abilities.equipment_auras --batch content_act1_abilities_01 --scope \"catalog_abilities_talents.md 3.3, 4.5 and 7.3: the act 1 equipment aura, the contract fiend of the act 1 abyss pact door with its skills, and the downed state aura; the sk_/aur_ renumbering of every existing ability and aura id (2, 3, 7) lands beside it as renames (data/registry/renames.json version 2)\"",
+      "note": "catalog_abilities_talents.md 3.3, 4.5 and 7.3: the act 1 equipment aura, the contract fiend of the act 1 abyss pact door with its skills, and the downed state aura; the sk_/aur_ renumbering of every existing ability and aura id (2, 3, 7) lands beside it as renames (data/registry/renames.json version 2)"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping abilities.equipment_auras --batch content_act1_abilities_01 --scope \"catalog_abilities_talents.md 3.3, 4.5 and 7.3: the act 1 equipment aura, the contract fiend of the act 1 abyss pact door with its skills, and the downed state aura; the sk_/aur_ renumbering of every existing ability and aura id (2, 3, 7) lands beside it as renames (data/registry/renames.json version 2)\"",
+      "note": "1 records, 3 unmapped cells, 1 fields to fill"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping abilities.fiend_templates --batch content_act1_abilities_01",
+      "note": "1 records, 6 unmapped cells, 8 fields to fill"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping abilities.fiend_skills --batch content_act1_abilities_01",
+      "note": "3 records, 6 unmapped cells, 9 fields to fill"
+    },
+    {
+      "step": 2,
+      "name": "extract",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts extract --mapping abilities.state_auras_death --batch content_act1_abilities_01 --ids aur_st_downed_weak",
+      "note": "1 records, 3 unmapped cells, 3 fields to fill"
+    },
+    {
+      "step": 3,
+      "name": "fill",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts fill --batch content_act1_abilities_01 --note \"author fill from catalog_abilities_talents.md 3.3, 4.5 and 7.3: descriptions, kinds, durations and mods; the fiend template's family, levels, multipliers, movement, skills and look; the skills' targets, costs, cooldowns and effects\"",
+      "note": "author fill from catalog_abilities_talents.md 3.3, 4.5 and 7.3: descriptions, kinds, durations and mods; the fiend template's family, levels, multipliers, movement, skills and look; the skills' targets, costs, cooldowns and effects"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts validate --batch content_act1_abilities_01 --milestone M1",
+      "note": "failing (0 fields to fill)"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts validate --batch content_act1_abilities_01 --milestone M0",
+      "note": "V1 to V10 green"
+    },
+    {
+      "step": 5,
+      "name": "promote",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts promote --batch content_act1_abilities_01",
+      "note": "into combat/auras.json, combat/monsters.json, combat/abilities.json"
+    },
+    {
+      "step": 6,
+      "name": "verify",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts verify --batch content_act1_abilities_01 --note \"npm test: 2826 passed, 3 failed outside this batch (text_keys.generated, art manifest, audio registry literal); own_ability_ids, save_renames, save_migration, content_validation, combat, doors, doors_costs, party, records_save, docs_guard: 192 passed; playthrough release, rule_merca, act1_minimal: 3 passed (740.85 s); no balance simulation: the contract fiend template is not on any route, batch simulation in PK-M1-42\"",
+      "note": "npm test: 2826 passed, 3 failed outside this batch (text_keys.generated, art manifest, audio registry literal); own_ability_ids, save_renames, save_migration, content_validation, combat, doors, doors_costs, party, records_save, docs_guard: 192 passed; playthrough release, rule_merca, act1_minimal: 3 passed (740.85 s); no balance simulation: the contract fiend template is not on any route, batch simulation in PK-M1-42"
+    },
+    {
+      "step": 7,
+      "name": "report",
+      "at": "2026-11-17",
+      "command": "node tools/content/import_catalog.ts report --batch content_act1_abilities_01 --out docs/70_packets/pk_m1_26_skill_ids/batch_report.md"
+    }
+  ]
+}

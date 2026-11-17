@@ -1239,7 +1239,7 @@
         "zh": "裁决一击：一记直劈带着象牙白的光刃落下，命中处印出一枚方正的光痕，光痕四边向外推出细光线，像宣判后落下的印。",
         "en": "Judgment strike: a straight downward blow carrying an ivory blade of light, stamping a square mark of light where it lands, thin light lines pushing outward from the four sides like a seal dropped after a verdict."
       },
-      "ref": "crusader_strike",
+      "ref": "sk_pal_oathstrike",
       "deps": ["art_vfx_school_holy_hit"],
       "milestone": "M2",
       "notes": "裁决派奥义阶（先审后刑）；光痕是方形纹章，不是文字。"
@@ -1368,7 +1368,7 @@
         "zh": "风暴打击：两道武器刃光接连劈下，刃光上缠着细细的白蓝电弧，第二道落下时爆出一团带风旋的电光。",
         "en": "Stormstrike: two weapon blade streaks falling one after another, thin white-blue arcs coiling along them, the second one exploding into a burst of lightning wrapped in a whirl of wind."
       },
-      "ref": "stormstrike",
+      "ref": "sk_sha_stormstrike",
       "deps": ["art_vfx_school_phys_hit_slash"],
       "milestone": "M3",
       "notes": "战魂流奥义（祖灵在刃上）；电光配色同唤雷，风旋用淡白。"
@@ -1380,7 +1380,7 @@
         "zh": "连潮：一道浅蓝绿的水流光从左跳向右，经过三个落点，每个落点溅开一朵小水花与回复光点，水流越跳越细。",
         "en": "Chain tide: a pale blue-green stream of water-light leaping from left to right through three landing points, each splashing a small spray and healing motes, the stream growing thinner with every leap."
       },
-      "ref": "chain_heal",
+      "ref": "sk_sha_chainheal",
       "milestone": "M2",
       "notes": "愈灵流奥义（风会把病带走）；配色浅蓝绿 #8ae8d8、白；导入时按目标间距拉伸。"
     },
@@ -1596,7 +1596,7 @@
         "zh": "门之一击：武器的一道短促斩光在命中点停住，留下一个拱门形的暖金光框，光框一闪，中间的光向外迸散，光框随即碎成小光点。",
         "en": "Door strike: a short weapon slash stopping at the point of impact and leaving an arch-shaped warm gold frame of light, which flashes, bursts its inner light outward and then crumbles into small motes."
       },
-      "ref": "door_strike",
+      "ref": "sk_door_strike",
       "deps": ["art_vfx_door_sigil_flash"],
       "milestone": "M1",
       "notes": "门授能力：允许门扉金 #f0d890 作点缀；这是玩家从序章末就有的基础技，出现频率最高，画面要简洁。"
@@ -1608,7 +1608,7 @@
         "zh": "门之闪身：中心先浮现一个竖立的门形光框，框里的光一亮就收拢成一道竖线消失，前四帧是离开处，后四帧在同一位置倒放成抵达处。",
         "en": "Door step: an upright door-shaped frame of light appearing at the center, its light flaring and closing into a vertical line that vanishes; the first four frames mark the departure, the last four replay in reverse at the same spot as the arrival."
       },
-      "ref": "door_step",
+      "ref": "sk_door_step",
       "deps": ["art_vfx_door_sigil_flash"],
       "milestone": "M1",
       "notes": "门授能力：允许门扉金 #f0d890 作点缀；人物不画；导入时前后两段分别播在起点与终点。"
@@ -1620,7 +1620,7 @@
         "zh": "释放灵压：以中心向外推开一圈几乎透明的压力波，波前是一道扭曲空气的细亮线，地面的尘土被压平成环，第二道更大的波紧跟其后。",
         "en": "Releasing presence: an almost transparent pressure wave pushing out from the center, its front a thin bright line that warps the air, dust on the ground pressed flat into a ring, a second, larger wave following close behind."
       },
-      "ref": "release_presence",
+      "ref": "sk_door_releasepresence",
       "milestone": "M2",
       "notes": "收放之门；没有颜色倾向，只用白与浅灰；中心通透。"
     },
@@ -1631,7 +1631,7 @@
         "zh": "澄流：一股清水般的浅青白光流在中心盘旋，把夹在里面的暗紫颗粒一点点冲散、溶开，暗紫越来越少，最后只剩清亮的白光。",
         "en": "Clear flow: a stream of light pale cyan-white like clear water swirling at the center, washing apart and dissolving the dark purple grains caught in it bit by bit until only clean bright white remains."
       },
-      "ref": "clear_flow",
+      "ref": "sk_door_clearflow",
       "deps": ["art_vfx_dian_surge"],
       "milestone": "M2",
       "notes": "澄流之门：暗紫 #4a3a62 只作被净化的对象，前半段多后半段无；光流配色 #d8f8f8。"

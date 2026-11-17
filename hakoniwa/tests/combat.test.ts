@@ -199,7 +199,7 @@ describe('combat content', () => {
     }
     const outsider = c.classes.find((x) => x.id === 'outsider');
     expect(outsider?.resource).toBeNull();
-    expect(outsider?.abilities.map((a) => a.id)).toEqual(['door_strike']);
+    expect(outsider?.abilities.map((a) => a.id)).toEqual(['sk_door_strike']);
     expect(c.monsters.length).toBeGreaterThanOrEqual(35);
     for (const boss of [
       'guardian_raven',
@@ -247,7 +247,7 @@ describe('combat units and spawning', () => {
     const u = units(g).player;
     expect(u?.classId).toBe('outsider');
     expect(u?.res).toEqual({});
-    expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual(['door_strike']);
+    expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual(['sk_door_strike']);
     expect(ents(g).player?.tags).toEqual(expect.arrayContaining(['lvl:1', 'tier:0']));
   });
 
@@ -346,7 +346,7 @@ describe('combat chain', () => {
     const id = spawnNear(g, 'dian_dreg', 1);
     g.queue('combat.attack', { on: true, targetId: id });
     for (let i = 0; i < 400 && ents(g)[id]?.alive; i++) {
-      if (i % 20 === 0) g.queue('combat.cast', { abilityId: 'door_strike' });
+      if (i % 20 === 0) g.queue('combat.cast', { abilityId: 'sk_door_strike' });
       g.step(1);
     }
     expect(ents(g)[id]?.alive).toBe(false);
@@ -379,11 +379,19 @@ describe('combat chain', () => {
     isolate(g);
     const far = spawnNear(g, 'dian_dreg', 1, 6);
     const cases: [Parameters<Engine['queue']>, string, string][] = [
-      [['combat.cast', { abilityId: 'heroic_strike', targetId: far }], 'combat.cast', 'unknown'],
+      [
+        ['combat.cast', { abilityId: 'sk_war_heroicstrike', targetId: far }],
+        'combat.cast',
+        'unknown',
+      ],
       [['combat.cast', { abilityId: 'no_such' }], 'combat.cast', 'no_ability'],
-      [['combat.cast', { abilityId: 'door_strike', targetId: far }], 'combat.cast', 'out_of_range'],
+      [
+        ['combat.cast', { abilityId: 'sk_door_strike', targetId: far }],
+        'combat.cast',
+        'out_of_range',
+      ],
       [['combat.attack', { on: true }], 'combat.attack', 'bad_target'],
-      [['combat.cast', { entityId: far, abilityId: 'door_strike' }], 'combat.cast', 'not_yours'],
+      [['combat.cast', { entityId: far, abilityId: 'sk_door_strike' }], 'combat.cast', 'not_yours'],
       [
         ['combat.set_class', { entityId: 'player', classId: 'warrior' }],
         'combat.set_class',
@@ -408,9 +416,9 @@ describe('combat chain', () => {
     isolate(g);
     const id = spawnNear(g, 'dian_dreg', 1);
     withCtx(g, (ctx) => {
-      grantAbility(ctx, 'player', 'heroic_strike');
+      grantAbility(ctx, 'player', 'sk_war_heroicstrike');
     });
-    g.queue('combat.cast', { abilityId: 'heroic_strike', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_war_heroicstrike', targetId: id });
     g.step(1);
     expect(lastResult(g, 'combat.cast')?.code).toBe('no_pool');
     expect(lastResult(g, 'combat.cast')?.reason).toEqual(
@@ -419,15 +427,15 @@ describe('combat chain', () => {
     expect(t(lastResult(g, 'combat.cast')?.reason)).toBe('没有战意可用');
     withCtx(g, (ctx) => grantPool(ctx, 'player', 'door:test', 'rage', 100));
     expect(units(g).player?.res.rage ?? 99).toBeLessThan(15);
-    g.queue('combat.cast', { abilityId: 'heroic_strike', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_war_heroicstrike', targetId: id });
     g.step(1);
     expect(lastResult(g, 'combat.cast')?.code).toBe('no_resource');
     expect(lastResult(g, 'combat.cast')?.reason).toEqual(
       tr('sys.combat.reject.no_resource', { resource: tr('sys.combat.resource.rage') }),
     );
-    g.queue('combat.cast', { abilityId: 'door_strike', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_door_strike', targetId: id });
     g.step(31);
-    g.queue('combat.cast', { abilityId: 'door_strike', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_door_strike', targetId: id });
     g.step(1);
     expect(lastResult(g, 'combat.cast')?.code).toBe('cooldown');
   });
@@ -437,12 +445,12 @@ describe('combat chain', () => {
     isolate(g);
     const id = spawnNear(g, 'dian_dreg', 1, 5);
     withCtx(g, (ctx) => {
-      grantAbility(ctx, 'player', 'shadow_bolt');
+      grantAbility(ctx, 'player', 'sk_lok_shadowbolt');
       grantPool(ctx, 'player', 'door:test', 'mana', 200);
     });
-    g.queue('combat.cast', { abilityId: 'shadow_bolt', targetId: id });
+    g.queue('combat.cast', { abilityId: 'sk_lok_shadowbolt', targetId: id });
     g.step(2);
-    expect(unitView(g.world, g.content, 'player')?.cast?.abilityId).toBe('shadow_bolt');
+    expect(unitView(g.world, g.content, 'player')?.cast?.abilityId).toBe('sk_lok_shadowbolt');
     g.queue('world.set_intent', { entityId: 'player', dx: 0, dy: 1 });
     g.step(3);
     expect(units(g).player?.cast).toBeNull();
@@ -511,7 +519,7 @@ describe('the return through the door (power_system.md 9.8)', () => {
       fatigueMinutes: 120,
     });
     expect(g.world.slices.inventory.owners.player?.money).toBe(900);
-    expect(units(g).player?.auras.map((a) => a.id)).toContain('door_fatigue');
+    expect(units(g).player?.auras.map((a) => a.id)).toContain('aur_st_revival_fatigue');
     const p = ents(g).player;
     expect(Math.hypot((p?.x ?? 0) - 18, (p?.y ?? 0) - 5)).toBeLessThan(1.5);
     expect(units(g).player?.hp).toBeGreaterThan(1);
@@ -603,7 +611,7 @@ describe('bosses, yielding and waves', () => {
     const id = spawnNear(g, 'sasha', 48);
     g.queue('combat.attack', { on: true, targetId: id });
     fight(g, 20 * 11);
-    expect(units(g)[id]?.auras.some((a) => a.id === 'tempering')).toBe(true);
+    expect(units(g)[id]?.auras.some((a) => a.id === 'aur_mon_tempering')).toBe(true);
     // a hair above the 20% line: an ungeared player chips the 18.2 health (hpMult 8.2) slowly
     beat(g, id, 0.2002);
     fight(g, 200, () => !!g.world.meta.flags['boss.sasha.defeated']);

@@ -53,7 +53,9 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'evi_', owner: 'catalog_relics_lore.md', tables: ITEMS },
   { prefix: 'pet_', owner: 'catalog_creatures_mounts.md', tables: [] },
   { prefix: 'mnt_', owner: 'catalog_creatures_mounts.md', tables: ITEMS },
-  { prefix: 'fiend_', owner: 'catalog_creatures_mounts.md', tables: [] },
+  // a contract fiend's combat template is a monster template plus the pet behaviour
+  // (combat_and_classes.md 6.5.8 and 12.3; catalog_abilities_talents.md 4.5)
+  { prefix: 'fiend_', owner: 'catalog_creatures_mounts.md', tables: ['monsters'] },
   { prefix: 'stock_', owner: 'catalog_creatures_mounts.md', tables: [] },
   { prefix: 'door_', owner: 'catalog_doors.md', tables: ['doors'] },
   { prefix: 'deed_', owner: 'catalog_deeds_titles.md', tables: ['deeds'] },
@@ -107,6 +109,9 @@ export const NAMESPACES: readonly Namespace[] = [
 /** Tables whose every id carries one of their prefixes (namespaced from the first data). */
 export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   quests: ['q_'],
+  // own ability and aura numbering (D-071, RE-27; catalog_abilities_talents.md 2 and 3)
+  abilities: ['sk_'],
+  auras: ['aur_'],
   linePacks: ['ln_', 'bark_'],
   deeds: ['deed_'],
   titles: ['title_'],

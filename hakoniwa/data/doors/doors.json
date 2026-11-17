@@ -21,8 +21,8 @@
       }
     ],
     "effects": [
-      { "type": "abilities", "abilities": ["door_step"] },
-      { "type": "passive", "aura": "door_mirror" },
+      { "type": "abilities", "abilities": ["sk_door_step"] },
+      { "type": "passive", "aura": "aur_door_mirror" },
       { "type": "item", "itemId": "rusty_shortsword", "equip": true },
       { "type": "feature", "feature": "door_corridor" }
     ],
@@ -106,7 +106,7 @@
         "label": "那一页上，你照顾病人"
       }
     ],
-    "effects": [{ "type": "abilities", "abilities": ["first_aid"] }],
+    "effects": [{ "type": "abilities", "abilities": ["sk_door_firstaid"] }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
     "rankValue": 1,
@@ -133,7 +133,7 @@
         "label": "那一页上，你动手修东西"
       }
     ],
-    "effects": [{ "type": "abilities", "abilities": ["field_mend"] }],
+    "effects": [{ "type": "abilities", "abilities": ["sk_door_fieldmend"] }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
     "rankValue": 1,
@@ -182,7 +182,7 @@
     "keys": [
       { "type": "flag", "key": "p_past_life_door", "equals": "hearth", "label": "那一页上，你做饭" }
     ],
-    "effects": [{ "type": "abilities", "abilities": ["hearty_meal"] }],
+    "effects": [{ "type": "abilities", "abilities": ["sk_door_heartymeal"] }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
     "rankValue": 1,
@@ -210,7 +210,7 @@
       }
     ],
     "effects": [
-      { "type": "passive", "aura": "runners_stride" },
+      { "type": "passive", "aura": "aur_door_runnersstride" },
       { "type": "stats", "stats": { "sta": 2 } }
     ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
@@ -390,7 +390,14 @@
       { "type": "pool", "resource": "rage", "base": 100 },
       {
         "type": "abilities",
-        "abilities": ["heroic_strike", "battle_shout", "charge", "rend", "thunder_clap", "taunt"]
+        "abilities": [
+          "sk_war_heroicstrike",
+          "sk_war_battleshout",
+          "sk_war_charge",
+          "sk_war_rend",
+          "sk_war_thunderclap",
+          "sk_war_taunt"
+        ]
       },
       { "type": "stats", "stats": { "str": 3, "sta": 2 } }
     ],
@@ -438,11 +445,11 @@
       {
         "type": "abilities",
         "abilities": [
-          "raptor_strike",
-          "arcane_shot",
-          "serpent_sting",
-          "hunters_mark",
-          "aspect_of_the_hawk"
+          "sk_hun_raptorstrike",
+          "sk_hun_arcaneshot",
+          "sk_hun_serpentsting",
+          "sk_hun_huntersmark",
+          "sk_hun_aspectofthehawk"
         ]
       },
       { "type": "stats", "stats": { "agi": 3 } }
@@ -486,7 +493,13 @@
       { "type": "pool", "resource": "mana", "base": 80 },
       {
         "type": "abilities",
-        "abilities": ["wrath", "healing_touch", "rejuvenation", "moonfire", "entangling_roots"]
+        "abilities": [
+          "sk_dru_wrath",
+          "sk_dru_healingtouch",
+          "sk_dru_rejuvenation",
+          "sk_dru_moonfire",
+          "sk_dru_entanglingroots"
+        ]
       },
       { "type": "stats", "stats": { "int": 2, "spi": 2 } }
     ],
@@ -511,7 +524,14 @@
       { "type": "pool", "resource": "mana", "base": 80 },
       {
         "type": "abilities",
-        "abilities": ["shadow_bolt", "immolate", "corruption", "life_tap", "curse_of_agony"]
+        "abilities": [
+          "sk_lok_shadowbolt",
+          "sk_lok_immolate",
+          "sk_lok_corruption",
+          "sk_lok_lifetap",
+          "sk_lok_curseofagony",
+          "sk_lok_summonremnant"
+        ]
       },
       { "type": "stats", "stats": { "int": 2, "sta": 2 } }
     ],
@@ -540,7 +560,7 @@
       { "type": "flag", "key": "a2_heroes_met", "label": "一次刻意的隐忍" }
     ],
     "effects": [
-      { "type": "abilities", "abilities": ["release_presence"] },
+      { "type": "abilities", "abilities": ["sk_door_releasepresence"] },
       { "type": "feature", "feature": "restraint" }
     ],
     "seal": "micro",
@@ -623,7 +643,14 @@
       { "type": "pool", "resource": "energy", "base": 100 },
       {
         "type": "abilities",
-        "abilities": ["sinister_strike", "eviscerate", "backstab", "evasion", "kick", "sprint"]
+        "abilities": [
+          "sk_rog_sinisterstrike",
+          "sk_rog_eviscerate",
+          "sk_rog_backstab",
+          "sk_rog_evasion",
+          "sk_rog_kick",
+          "sk_rog_sprint"
+        ]
       },
       { "type": "stats", "stats": { "agi": 3 } }
     ],
@@ -657,12 +684,12 @@
       {
         "type": "abilities",
         "abilities": [
-          "fireball",
-          "frost_armor",
-          "frostbolt",
-          "fire_blast",
-          "frost_nova",
-          "arcane_explosion"
+          "sk_mag_fireball",
+          "sk_mag_frostarmor",
+          "sk_mag_frostbolt",
+          "sk_mag_fireblast",
+          "sk_mag_frostnova",
+          "sk_mag_arcaneexplosion"
         ]
       },
       { "type": "stats", "stats": { "int": 3 } }
@@ -694,12 +721,12 @@
       {
         "type": "abilities",
         "abilities": [
-          "lesser_heal",
-          "renew",
-          "power_word_shield",
-          "smite",
-          "shadow_word_pain",
-          "heal"
+          "sk_pri_lesserheal",
+          "sk_pri_renew",
+          "sk_pri_powerwordshield",
+          "sk_pri_smite",
+          "sk_pri_shadowpain",
+          "sk_pri_heal"
         ]
       },
       { "type": "stats", "stats": { "spi": 3 } }
@@ -876,12 +903,12 @@
       {
         "type": "abilities",
         "abilities": [
-          "crusader_strike",
-          "holy_light",
-          "judgement",
-          "devotion_aura",
-          "hammer_of_justice",
-          "flash_of_light"
+          "sk_pal_oathstrike",
+          "sk_pal_holylight",
+          "sk_pal_judgement",
+          "sk_pal_devotionaura",
+          "sk_pal_hammerofjustice",
+          "sk_pal_flashoflight"
         ]
       },
       { "type": "stats", "stats": { "str": 2, "sta": 2 } }
@@ -963,7 +990,7 @@
       }
     ],
     "effects": [
-      { "type": "abilities", "abilities": ["clear_flow"] },
+      { "type": "abilities", "abilities": ["sk_door_clearflow"] },
       { "type": "feature", "feature": "clear_flow" }
     ],
     "exclusive": [{ "group": "X3", "mode": "lock" }],
@@ -1018,11 +1045,11 @@
       {
         "type": "abilities",
         "abilities": [
-          "lightning_bolt",
-          "healing_wave",
-          "earth_shock",
-          "lightning_shield",
-          "flame_shock"
+          "sk_sha_lightningbolt",
+          "sk_sha_healingwave",
+          "sk_sha_earthshock",
+          "sk_sha_lightningshield",
+          "sk_sha_flameshock"
         ]
       },
       { "type": "stats", "stats": { "int": 2, "sta": 2 } }

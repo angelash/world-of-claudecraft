@@ -40,7 +40,7 @@
   },
   {
     "id": "firestorm",
-    "name": "烈焰风暴",
+    "name": "焚阵",
     "kind": "aoe",
     "cooldown": 120,
     "range": 7,

@@ -174,6 +174,37 @@ describe('V2 references', () => {
     ]);
   });
 
+  it('follows ability and aura references: companion avoid lists, hit and phase auras, item auras', () => {
+    const monsters = rows(real, 'monsters');
+    const companions = rows(real, 'companions');
+    const items = rows(real, 'items');
+    const bad = withTables({
+      monsters: [
+        ...monsters,
+        {
+          ...(monsters[0] as Row),
+          id: 'x_mon',
+          loot: [],
+          mechanics: {
+            onHit: [{ aura: 'aur_x_none', chance: 1 }],
+            phases: [{ belowPct: 0.5, name: 'x', aura: 'aur_y_none' }],
+          },
+        },
+      ],
+      companions: [...companions, { ...(companions[0] as Row), id: 'x_comp', avoid: ['fear'] }],
+      items: [
+        ...items,
+        { ...(items[0] as Row), id: 'x_item', use: { effect: 'aura', ability: 'well_fed' } },
+      ],
+    });
+    expect(errors(run('V2', bad)).sort()).toEqual([
+      "companions:x_comp avoid[0]: no abilities row has id 'fear'",
+      "items:x_item use.ability: no auras row has id 'well_fed'",
+      "monsters:x_mon mechanics.onHit[0].aura: no auras row has id 'aur_x_none'",
+      "monsters:x_mon mechanics.phases[0].aura: no auras row has id 'aur_y_none'",
+    ]);
+  });
+
   it('checks kill objectives, speakers and scene line speakers without a name label', () => {
     const quests = rows(real, 'quests');
     const scenes = rows(real, 'scenes');
@@ -253,6 +284,22 @@ describe('V3 namespaces', () => {
     expect(
       msgs.some((m) => m.startsWith('grey_wolf: one id names several kinds (monster, person)')),
     ).toBe(true);
+  });
+
+  it('keeps abilities and auras on their own numbering and takes a contract fiend template', () => {
+    const abilities = rows(real, 'abilities');
+    const auras = rows(real, 'auras');
+    const monsters = rows(real, 'monsters');
+    const bad = withTables({
+      abilities: [...abilities, { ...(abilities[0] as Row), id: 'heroic_strike' }],
+      auras: [...auras, { ...(auras[0] as Row), id: 'rend' }],
+      monsters: [...monsters, { ...(monsters[0] as Row), id: 'fiend_x_template' }],
+    });
+    const msgs = errors(run('V3', bad));
+    expect(msgs).toContain('abilities:heroic_strike: every abilities id carries sk_');
+    expect(msgs).toContain('auras:rend: every auras id carries aur_');
+    expect(msgs.filter((m) => m.includes('fiend_x_template'))).toEqual([]);
+    expect(rows(real, 'monsters').some((m) => m.id === 'fiend_colossus_remnant')).toBe(true);
   });
 
   it('keeps the place codes shared and reports a stale legacy entry', () => {
@@ -555,9 +602,10 @@ describe('V10 proper nouns', () => {
     ]);
   });
 
-  it('the shipped first-round hits are the reviewed ones and block from M1', () => {
-    expect(errors(nameFindings({ ...real, milestone: 0 }))).toEqual([]);
-    expect(errors(nameFindings({ ...real, milestone: 1 })).length).toBe(3);
+  it('the shipped data hits no main-project or known-work name, now or from M1', () => {
+    // the first-round skill names were renamed with the sk_ numbering (PK-M1-26)
+    expect(nameFindings({ ...real, milestone: 0 })).toEqual([]);
+    expect(nameFindings({ ...real, milestone: 1 })).toEqual([]);
   });
 
   it('matches Latin names on word boundaries and skips identifiers', () => {

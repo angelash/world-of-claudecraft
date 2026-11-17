@@ -87,7 +87,9 @@ describe('Y: the revival-fatigue state (6.3, combat 15.1)', () => {
     for (let i = 0; i < 400 && events(g, 'combat.player_returned').length === 0; i++) g.step(1);
     const ret = events(g, 'combat.player_returned').at(-1);
     expect(ret?.data.fatigueMinutes).toBe(360);
-    const aura = g.world.slices.combat.units.player?.auras.find((a) => a.id === 'door_fatigue');
+    const aura = g.world.slices.combat.units.player?.auras.find(
+      (a) => a.id === 'aur_st_revival_fatigue',
+    );
     expect(aura).toBeDefined();
     const left = (aura?.expires ?? 0) - g.world.meta.tick;
     expect(left).toBeGreaterThan(360 * TICKS_PER_GAME_MINUTE - 20);

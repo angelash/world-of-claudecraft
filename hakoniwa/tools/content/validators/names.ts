@@ -4,8 +4,8 @@
 // or coined name of a known work. Lists: tools/content/names/woc_names.json (extracted from
 // the main project) and known_works.json. Latin names match case-insensitively on word
 // boundaries, Chinese names as substrings. Every prose string is scanned (identifier-like
-// values such as `heroic_strike` are ids, allowed until the sk_ renumbering, reuse_map.md
-// 6.2). Every category blocks; ./names_reviewed.json lists the known first-round hits with
+// values such as `sk_war_heroicstrike` are ids, not prose; reuse_map.md 6.2). Every
+// category blocks; ./names_reviewed.json lists the known first-round hits with
 // the package that renames them (they warn until that milestone, a stale entry is an error).
 
 import knownWorks from '../names/known_works.json';
