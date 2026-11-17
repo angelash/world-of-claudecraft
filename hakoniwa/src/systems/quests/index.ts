@@ -4,7 +4,6 @@
 // docs/40_design/systems/quests_and_events.md.
 
 import { ok, reject } from '../../core';
-import { contentText } from '../../core/content_key';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { registerSkipHandler } from '../travel/skip_registry';
@@ -14,6 +13,7 @@ import { openingAct, setAct } from './acts';
 import { applyEffects } from './effects';
 import './endings';
 import type { LoreDef, TermDef } from '../goddess/types';
+import { questDefOf, questTitle } from './instances';
 import {
   accrueObjectives,
   deathObjectives,
@@ -30,7 +30,6 @@ import {
   finishQuest,
   markMet,
   offerable,
-  questDef,
   scanAvailability,
   setPath,
   startQuest,
@@ -45,6 +44,7 @@ export * from './disputes';
 export * from './effect_types';
 export * from './effects';
 export * from './endings';
+export * from './instances';
 export * from './lore';
 export * from './objective_events';
 export * from './objectives';
@@ -88,7 +88,7 @@ const POLL_EVERY = 10;
 const SCAN_EVERY = 100;
 
 function accept(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
-  const def = questDef(ctx.content, questId);
+  const def = questDefOf(ctx, questId);
   if (!def) return reject('no_quest', tr('sys.quests.reject.no_quest.missing'));
   if (ctx.world.slices.quests.quests[questId])
     return reject('already', tr('sys.quests.reject.already'));
@@ -101,12 +101,12 @@ function accept(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
 }
 
 function turnIn(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
-  const def = questDef(ctx.content, questId);
+  const def = questDefOf(ctx, questId);
   const q = ctx.world.slices.quests.quests[questId];
   if (!def || !q) return reject('no_quest', tr('sys.quests.reject.no_quest.missing'));
   if (q.status !== 'ready') return reject('not_ready', tr('sys.quests.reject.not_ready'));
   finishQuest(ctx, def, q);
-  return ok(tr('sys.quests.label.turn_in', { title: contentText('quests', def, '', 'title') }));
+  return ok(tr('sys.quests.label.turn_in', { title: questTitle(def) }));
 }
 
 function choose(
@@ -115,7 +115,7 @@ function choose(
   optionId: string,
   npc?: string,
 ): ReturnType<typeof ok> {
-  const def = questDef(ctx.content, questId);
+  const def = questDefOf(ctx, questId);
   const q = ctx.world.slices.quests.quests[questId];
   if (!def || !q || q.status !== 'active')
     return reject('no_quest', tr('sys.quests.reject.no_quest.active'));
@@ -227,13 +227,11 @@ export const system: GameSystem = {
       }
       for (const id of ctx.world.slices.quests.order) {
         const q = ctx.world.slices.quests.quests[id];
-        const def = questDef(ctx.content, id);
+        const def = questDefOf(ctx, id);
         if (q?.status === 'ready' && def?.turnIn === npc) {
           options.push({
             id: `turnin:${id}`,
-            label: tr('sys.quests.label.turn_in', {
-              title: contentText('quests', def, '', 'title'),
-            }),
+            label: tr('sys.quests.label.turn_in', { title: questTitle(def) }),
           });
         }
       }

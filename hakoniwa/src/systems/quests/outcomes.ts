@@ -8,13 +8,13 @@
 // closed record (not in the log order) so it never starts afterwards. Quests of an act the
 // world has not reached yet are left alone.
 
-import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import type { TextParam } from '../../core/text';
 import { currentActId } from './act_order';
 import { actIndex } from './conditions';
 import type { Effect } from './effect_types';
 import { applyEffects, conditionHolds } from './effects';
+import { allQuestDefs, questTitle } from './instances';
 import type { QuestDef, QuestProgress } from './types';
 
 export type ClosedStatus = 'failed' | 'expired' | 'by_other';
@@ -64,7 +64,7 @@ export function closeQuest(
   slice.lastBeatTick = ctx.tick;
   slice.dirty = true;
   ctx.setFlag(`quest.${def.id}`, status);
-  const title = contentText('quests', def, '', 'title');
+  const title = questTitle(def);
   if (status === 'failed') ctx.emit('quest.failed', { questId: def.id, title });
   else if (status === 'expired') ctx.emit('quest.expired', { questId: def.id, title, started });
   else ctx.emit('quest.by_other', { questId: def.id, title, started });
@@ -92,14 +92,15 @@ export function expiryDue(ctx: SystemContext, def: QuestDef): boolean {
 }
 
 /**
- * Settle every quest whose closing condition holds: by_other first (someone got there),
+ * Settle every quest whose closing condition holds, run-time instances included (a
+ * commission's deadline is its expiry): by_other first (someone got there),
  * then expiry, then (started quests only) the failure condition. Quests the player
  * finished (ready, done) and closed ones are left alone.
  */
 export function settleOutcomes(ctx: SystemContext): void {
   const slice = ctx.world.slices.quests;
   const here = actIndex(currentActId(ctx));
-  for (const def of ctx.content.quests) {
+  for (const def of allQuestDefs(ctx)) {
     if (!def.byOther && !def.expiry && !def.failure?.when) continue;
     // a quest of a later act has not come into the world yet
     if (!(actIndex(def.act) <= here)) continue;

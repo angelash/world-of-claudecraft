@@ -1,0 +1,61 @@
+{
+  "ranks": [
+    { "id": "f", "level": 0 },
+    { "id": "e", "level": 5, "commissions": { "rank": "f", "count": 10 }, "clean": true },
+    { "id": "d", "level": 10, "exam": "branch" },
+    { "id": "c", "level": 15, "merit": 30, "exam": "branch" },
+    { "id": "b", "level": 20, "exam": "region" },
+    { "id": "a", "level": 35, "exam": "hq" },
+    { "id": "s", "level": 50, "exam": "council" }
+  ],
+  "pay": {
+    "f": { "base": 70, "min": 40, "max": 150, "median": 3, "xp": 0.05 },
+    "e": { "base": 200, "min": 100, "max": 400, "median": 6, "xp": 0.06 },
+    "d": { "base": 600, "min": 300, "max": 1200, "median": 11, "xp": 0.07 },
+    "c": { "base": 2200, "min": 1000, "max": 5000, "median": 17, "xp": 0.08 },
+    "b": { "base": 30000, "min": 10000, "max": 80000, "median": 26, "xp": 0.09 },
+    "a": { "base": 400000, "min": 200000, "max": 2000000, "median": 38, "xp": 0.1 }
+  },
+  "kinds": {
+    "subjugate": { "pay": 1, "xp": 1 },
+    "clear": { "pay": 0.9, "xp": 1 },
+    "find": { "pay": 0.9, "xp": 1 },
+    "escort": { "pay": 1.3, "xp": 1.2 },
+    "gather": { "pay": 0.8, "xp": 0.8 },
+    "investigate": { "pay": 1.1, "xp": 1 },
+    "deliver": { "pay": 0.6, "xp": 0.8 },
+    "watch": { "pay": 1.2, "xp": 1.2 },
+    "hunt": { "pay": 1, "xp": 1 },
+    "drive": { "pay": 0.8, "xp": 1 },
+    "challenge": { "pay": 1.2, "xp": 1.2 },
+    "rubbing": { "pay": 0.9, "xp": 0.8 },
+    "copy": { "pay": 0.6, "xp": 0.8 },
+    "plant": { "pay": 0.8, "xp": 0.8 },
+    "appraise": { "pay": 1.1, "xp": 1 }
+  },
+  "difficulty": [
+    { "upTo": -3, "factor": 0.8 },
+    { "upTo": 2, "factor": 1 },
+    { "upTo": 5, "factor": 1.3 },
+    { "factor": 1.6 }
+  ],
+  "distance": { "town": 1, "half_day": 1.2, "day": 1.5, "wild": 1.8 },
+  "decay": [1, 0.5, 0.25],
+  "round": 5,
+  "cut": 0.15,
+  "penalty": 0.2,
+  "urgent": 1.5,
+  "maxAccepted": 5,
+  "registration": { "fee": 100, "cardLevel": 1, "when": "a1_guild_registered" },
+  "adventurers": [{ "id": "ron", "rank": "d" }],
+  "keepWeeks": 4,
+  "events": {
+    "severeCap": 2,
+    "severeGapDays": 7,
+    "tideCooldownDays": 14,
+    "omenMinDays": 3,
+    "goddessTideFromAct": 3,
+    "deferDays": 14,
+    "logKeep": 200
+  }
+}

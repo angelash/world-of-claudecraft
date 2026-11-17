@@ -11,6 +11,7 @@ import { countItem, removeItem } from '../inventory';
 import { playerEntity } from '../world';
 import { currentActId } from './act_order';
 import { applyEffects, conditionHolds } from './effects';
+import { questDefOf } from './instances';
 import {
   atPlace,
   FAILED,
@@ -34,10 +35,13 @@ function markDirty(ctx: SystemContext): void {
   ctx.world.slices.quests.dirty = true;
 }
 
-/** Start a quest (no-op when it was ever started). Returns true when it started. */
+/**
+ * Start a quest, a content quest or a run-time instance (instances.ts); no-op when it was
+ * ever started. Returns true when it started.
+ */
 export function startQuest(ctx: SystemContext, id: string): boolean {
   const slice = ctx.world.slices.quests;
-  const def = questDef(ctx.content, id);
+  const def = questDefOf(ctx, id);
   if (!def || slice.quests[id]) return false;
   const q: QuestProgress = {
     id,
@@ -231,7 +235,7 @@ export function activeQuests(ctx: SystemContext): { def: QuestDef; q: QuestProgr
   const out: { def: QuestDef; q: QuestProgress }[] = [];
   for (const id of slice.order) {
     const q = slice.quests[id];
-    const def = questDef(ctx.content, id);
+    const def = questDefOf(ctx, id);
     if (q && def && q.status === 'active') out.push({ def, q });
   }
   return out;

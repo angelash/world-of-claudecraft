@@ -101,7 +101,7 @@
 | `door.`、`door_state.`、`door_hint.` | 族 | 门是否已开、门的状态、雅努的提示 | doors、goddess | `door.talent_sight` |
 | `front.`、`front_mod.`、`ring_node.`、`hero_state.`、`key_fate.` | 族 | 第三到第五幕的战线、众门环、勇者团与门钥去向 | 场景、warfare、strategy | `front.north` |
 | `quest.`、`scene.`、`feature.`、`companion.`、`boss.`、`combat.`、`war.`、`dg.` | 镜像 | 任务、场景、功能解锁、同伴、首领、波次、战场、迷宫 | 所属系统 | `quest.q_a2_m02_exam` |
-| `city.`、`econ.`、`nation.`、`director.`、`ai.`、`breach.`、`sediment.`、`omen.`、`intel.`、`revelation.`、`request.` | 镜像 | 经营、经济、国家、导演、AI 分级、越约、澱、预兆、梅尔卡情报、天启、女神请托 | 所属系统 | `econ.company_founded` |
+| `city.`、`econ.`、`nation.`、`director.`、`ai.`、`breach.`、`sediment.`、`omen.`、`intel.`、`revelation.`、`request.`、`guild.`、`ev.` | 镜像 | 经营、经济、国家、导演、AI 分级、越约、澱、预兆、梅尔卡情报、天启、女神请托、公会记录、动态事件 | 所属系统 | `econ.company_founded` |
 | `push_door.` | 信号 | 过场里的推门请求（第 8.8.4 节） | 过场写，doors 在过场结束时结算并清除 | `push_door.founding` |
 | `general.` | 派生 | 将领名单 `war.generals` 的布尔镜像 | 派生 | `general.ron` |
 | `front_wait.` | 族 | 第五幕战线待令 | strategy | `front_wait.north` |
@@ -633,7 +633,7 @@
 | `ops_revelations_landed` | 无 | 整数 | ≥ 0 | goddess 运营天启落地（D-079 AQ-05） | 天启节奏 |
 | `div_journal_tier` | 无 | 整数 | 0 到 3 | goddess（[女神目录][gi]） | "神之记录"界面的开放档 |
 | `fate_threads` | 无 | 整数 | ≥ 0 | director 巧合 | E21 命运丝 |
-| `guild_rank` | 无 | 枚举 | `f`、`e`、`d`、`c`、`b`、`a`、`s` | 第一幕登记（`f`）；第二幕考核（`b`） | 委托板、"F 级国主" |
+| `guild_rank` | 无 | 枚举 | `f`、`e`、`d`、`c`、`b`、`a`、`s` | guild 登记（`f`）与晋升（无考核的自动晋升、`guild.promote` 的考核结果）；过场效果（第二幕考核 `b`） | 委托板的级别门槛、"F 级国主" |
 | `econ_indep` | 无 | 整数 | 0 到 100 | 第四幕经济战结算 | 战线补给、审期契约停摆 |
 | `moira_pages` | 无 | 整数 | 0 到 11 | 与莫伊拉交易（`s25`） | E07、全录之日 |
 | `remnants` | 无 | 整数 | 0 到 100 | 旧哨村遗民之屋（`q` 的 `a2_m04_village`）；苇塘；根下庭 | 共鸣之门（`dr`）、第四五幕 |
@@ -1050,6 +1050,12 @@
 | `letter.<传书>` | 无 | 枚举 | `transit`、`delivered`、`read`、`replied` | 事迹系统（records）：寄出、送达、读信、回信 | 任务与过场、传书界面 |
 | `letter.<传书>.reply` | 无 | 枚举 | 回信选项 ID | 事迹系统（records）：回信 | 任务与过场 |
 | `term.<称谓>` | `a1_dian_term_heard`（即 `term.dian_known`） | 标记 | 称谓 ID（台账第 6 节） | 任务效果（`q` 写 `term.dian_known`：第一幕玩家第一次从夜羽口中听到"澱"） | 界面切换正式名（D-030、[界面][ux]的文本键条件） |
+| `guild.practical` | 无 | 标记 | 公会卡带"实"字：定级由实绩认定（社会第 3.2 节） | guild 晋升（`guild.promote` 的实绩认定）；过场效果（第二幕考核） | 委托板界面、称号 `title_guild_b_real` |
+| `guild.done` | 无 | 整数 | ≥ 0；完成的委托件数（含并入主线的首个实例） | guild 委托结算 | 委托板界面的晋升进度、事迹 |
+| `guild.defaults` | 无 | 整数 | ≥ 0；违约件数（放弃与逾期） | guild 委托结算 | 晋升（E 级要求无违约）、委托板界面 |
+| `guild.merit` | 无 | 整数 | ≥ 0；讨伐实绩点（社会第 3.1 节；模板的 `merit`） | guild 委托结算 | 晋升（C 级 30 点）、委托板界面 |
+| `ev.<事件>` | 无 | 枚举 | 动态事件模板 ID（`data/guild/events.json`）；值：`omen`、`active`、`ended`（最近一次：预兆已出、进行中、已结束） | guild（动态事件落地与结束） | 任务与委托的条件、导演菜单 |
+| `ev.<事件>.count` | 无 | 整数 | 动态事件模板 ID；≥ 0，已发生的次数 | guild（动态事件落地） | 事件自身的次数上限（每幕一次）、任务条件 |
 
 ### 8.7 任务目录（序章到第三幕）登记的变量
 
@@ -1059,8 +1065,13 @@
 | --- | --- | --- | --- | --- | --- |
 | `quest.<任务>.stage` | `quest_stage.<任务>` | 枚举 | 当前阶段代号 | quests | 台词 `when` 条件（`progress` 槽的版本） |
 | `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号（最近一次达成的、带解法代号的目标或抉择选项） | quests | 日志"还有别的做法"、传闻版本 |
+| `dispute.<任务>.stage` | 无 | 枚举 | 纷争链的任务 ID；当前阶段代号（纷争运行数据的阶段表，取已到周且条件成立的最后一个） | disputes（纷争运行器） | 台词与传闻的版本（任务、场景的条件） |
+| `dispute.<任务>.escalation` | 无 | 整数 | 0 到 3；当前阶段的升级档，结算后归 0 | disputes（纷争运行器） | 导演张力计的社会紧张（director） |
+| `dispute.<任务>.choice.<决策点>` | 无 | 枚举 | 纷争链的任务 ID、决策点代号；点名的人物所选的选项代号（选择者经命令作答，到点由内置效用兜底） | disputes（纷争运行器） | 纷争结局（纷争链任务的结局条件）、兽潮之夜的行动判定 |
+| `dispute.<任务>.ending` | 无 | 枚举 | 纷争链的任务 ID；结算出的结局代号（纷争运行数据的结局表） | disputes（纷争运行器） | 纷争链任务的结束、后续幕 |
+| `dispute.<任务>.by` | 无 | 枚举 | `player`、`world` | disputes（纷争运行器） | 纷争链任务：玩家的介入促成即完成并发链结算经验，默认发展抢先即由他人先完成 |
 | `door_key.<门>.<钥>` | 无 | 枚举 | `deed`、`item`、`bond`、`choice`、`place`、`rank`、`know`、`time`（钥类，[千门 5.1][td] 的八种钥） | quests 的开门钥事件效果 `key`（`{doorId, keyKind, keyId}`，[任务目录（前）][qa13]第 1.6 节） | 门的钥：门数据以 `flag` 钥读它，开门由千门判定 |
-| `cmm_count.<模板>` | 无 | 整数 | 委托模板 ID；本周完成次数 | quests 委托板 | 委托经验递减 |
+| `cmm_count.<模板>` | 无 | 整数 | 委托模板 ID（`data/guild/commissions.json`）；本周完成次数，每个历法周首归零 | guild（委托完成时计数） | guild 的委托经验递减 |
 | `trade_count.<人>` | 无 | 整数 | 人物 ID；与此人的合作交易次数 | economy、quests | 纷争节点、前世之门加成 |
 | `route_state.<路>` | 无 | 整数 | 路线 ID（图集路线 `data/world/atlas_routes.json` 或商路 `data/economy/routes.json` 的 `id`，两表同名即同一条路；灰路是 `ash_road_upstream` 与 `brokenspan_crystal_gully`，夜风走廊是 `nightwind_south_mouth`）；风险档 -3 到 3（委托与事件按周增减；3 是断路：路段不能通行，期满由写入方回落） | quests、world | 途中事件、委托报酬 |
 | `badges_returned` | 无 | 整数 | ≥ 0 | 跨幕支线"带他们回家"（第一幕起） | 后续段、事迹 |
@@ -1091,6 +1102,10 @@
 | `a1_lair_located` | 无 | 标记 | | 护送伏击中活捉匪徒 | 旧哨村据点 |
 | `a1_viro_pact_known` | 无 | 标记 | | 薇罗与莫斯的密约线索 | 税与匪的反咬 |
 | `a1_forest_pact_proof` | 无 | 标记 | | 约树刻痕与林约抄本 | 林地之争 |
+| `a1_owen_escorted` | 无 | 标记 | | 护送欧文的商队平安到达，他留在边石镇（A1-D01.b、A1-S01） | 纷争链任务税与匪：第 6 周欧文离开的默认发展不再发生 |
+| `a1_logger_saved` | 无 | 标记 | | 救下被灰毛狼咬伤的伐木工（A1-D04.c、A1-S07） | 纷争链任务林地之争的和解 |
+| `a1_nick_bridge` | 无 | 标记 | | 尼克做成中间人，双方各让一步（A1-D04.e） | 纷争链任务林地之争：拦下第 8 周的血债、和解 |
+| `a1_eastslope_expelled` | 无 | 标记 | | 玩家站在加斯帕一边驱逐东坡猎户（A1-D04.h、A1-S05） | 纷争链任务林地之争的驱逐结局 |
 | `a1_bell_tab_seen` | 无 | 标记 | | 醉月亭地窖"净"的结局 | 副谜团 S02 |
 | `a1_graveyard_purified` | 无 | 标记 | | 墓地的光 | 兽潮第二拍、委托出现条件 |
 | `a1_greyroad_page` | 无 | 标记 | | 截下灰晶走私队 | 第二幕收货仓旁证 |
@@ -1204,10 +1219,10 @@
 | `a1_trial_testimony` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 审判时有证词（伊莎、托马、格蕾塔任一） |
 | `a1_trial_debate` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 公开辩论成立（陈述不是空白） |
 | `a1_trial_speech` | 无 | 出口 | 文本 | 至多 200 字；空白记 `silent` | `cut_a1_trial` | `cut_a1_trial` | 玩家在审判台上的陈述原话 |
-| `a1_trial_brawl` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | quests（A1-D02 冲突结局：伤亡与礼拜堂受损） | 审判冲突发生；内核据此结算伤亡与礼拜堂受损 |
+| `a1_trial_brawl` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial`；无人到场的审判由 disputes（纷争运行器）按 A1-D02 的决策点博罗冲台写入 | quests（A1-D02 冲突结局：伤亡与礼拜堂受损） | 审判冲突发生；内核据此结算伤亡与礼拜堂受损 |
 | `a1_tess_covered` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 玩家抢在苔丝说漏之前护住了她 |
 | `a1_noi_spoke` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial`；任务目录（前）`A1-S19` | `cut_a1_trial` | 诺伊已对玩家说过"你身上有一扇门。"（S19 也写） |
-| `a1_cassian_report` | 无 | 出口 | 枚举 | `convicted`、`cleared`、`fled`；默认未写入 | `cut_a1_trial` | 第二幕赛琳的追查（`npc.selene.evidence` 的起点、`cut_a2_arrival` 起的赛琳台词） | 卡西安第 8 周周报的版本；第二幕赛琳追查时读取 |
+| `a1_cassian_report` | 无 | 出口 | 枚举 | `convicted`、`cleared`、`fled`、`unresolved`；默认未写入 | `cut_a1_trial`；无人到场的审判与纷争结算由 disputes（纷争运行器）按 A1-D02 写入（贿赂放人时为 `unresolved`，周报写"未能审结"） | 第二幕赛琳的追查（`npc.selene.evidence` 的起点、`cut_a2_arrival` 起的赛琳台词） | 卡西安第 8 周周报的版本；第二幕赛琳追查时读取 |
 | `a1_yeyu_told_fall` | 无 | 标记 | 标记 | 默认假 | `cut_a1_yeyu_memory` | 夜羽的台词包（同一句不重复）、`npc.yeyu.memory_shards` 的记忆线 | 夜羽说过"你掉下来那天晚上，整个遗迹都在响。" |
 | `a1_tide_dusk_seen` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 兽潮黄昏段已播 |
 | `a1_tide_post` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`、`free`；默认未写入 | `cut_a1_tide` | combat 兽潮防线结算（玩家所在防线 +40） | 黄昏时玩家选择赶去的防线 |
@@ -1222,7 +1237,7 @@
 | `a1_martha_drink` | 无 | 标记 | 标记 | 默认假 | `cut_a1_martha` | 玛莎的台词（第一幕 8.5 的隐性盟友） | 玛莎请了那杯不收钱的酒（第一幕 8.5 的隐性盟友） |
 | `a1_dream_free_question` | 无 | 出口 | 文本 | 至多 80 字；默认空 | `cut_a1_dream` | 雅努的题面（有模型时）、第六幕回扣 | 梦中玩家最后一次自由提问的原话 |
 | `a1_court_first_visit` | 无 | 标记 | 标记 | 默认假 | `cut_a1_mark` | 门内庭院的复苏点说明（界面，只给一次） | 门内庭院首访（复苏点说明已给出） |
-| `a1_isa_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S20`（`q_a1_s20_nun_testimony` 完成时置真）；伊莎亲眼看见孩子有危险时由 quests 按 A1-D02 的兜底置真 | `cut_a1_tide`、`cut_a1_trial` | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险） |
+| `a1_isa_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S20`（`q_a1_s20_nun_testimony` 完成时置真）；伊莎亲眼看见孩子有危险时由节点任务置真；无人介入时由 disputes（纷争运行器）按 A1-D02 的决策点置真 | `cut_a1_tide`、`cut_a1_trial` | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险） |
 | `a1_toma_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S15`（`q_a1_s15_bell_tower` 完成时置真） | `cut_a1_trial` | 托马肯开口（S15 完成） |
 | `a1_grey_lamp_seen` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-M07` 的 `spring` 阶段（病房里发灰的灯，暗面节拍 D2） | `cut_a1_trial` | 暗面节拍 D2：玩家在病房里看见灯焰发灰 |
 | `a1_oola_jailbroken` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）A1-D02.f（`A1-M09` 的劫狱解法，`quest.q_a1_m09_trial.path == jailbreak`；定罪后到押送前同样写入） | `cut_a1_trial` | 劫狱成功（第一幕 4.2 节点 f，第 7 周起，定罪后到押送前也可） |

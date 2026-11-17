@@ -1,0 +1,30 @@
+[
+  {
+    "id": "board_borderstone_guild",
+    "name": "边石分部委托板",
+    "mapId": "borderstone",
+    "location": "guild",
+    "receptionist": "lina",
+    "acts": [1, 2],
+    "ranks": ["f", "e", "d"],
+    "reach": 0,
+    "lone": "e",
+    "cap": 6,
+    "refill": [3, 5],
+    "postWeeks": 2,
+    "cut": true
+  },
+  {
+    "id": "board_borderstone_notice",
+    "name": "镇告示板",
+    "mapId": "borderstone",
+    "location": "plaza",
+    "acts": [1],
+    "ranks": ["f", "e", "d"],
+    "reach": null,
+    "cap": 6,
+    "refill": [1, 1],
+    "postWeeks": 2,
+    "cut": false
+  }
+]

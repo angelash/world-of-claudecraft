@@ -359,6 +359,8 @@ const SYSTEMS = [
   'world',
   'dialogue',
   'records',
+  'disputes',
+  'guild',
 ];
 const SYSTEM_ALIASES: Record<string, string> = {
   court: 'scenes',

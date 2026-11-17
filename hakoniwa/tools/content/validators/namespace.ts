@@ -66,13 +66,23 @@ export const NAMESPACES: readonly Namespace[] = [
     owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md (letters)',
     tables: ['letters'],
   },
+  // a dispute chain's runner record carries its chain quest's id (PK-M1-46)
   {
     prefix: 'q_',
     owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md',
-    tables: ['quests'],
+    tables: ['quests', 'disputes'],
   },
-  { prefix: 'ev_', owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md', tables: [] },
-  { prefix: 'cmm_', owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md', tables: [] },
+  // dynamic events; the director's events are also its menu items (PK-M1-47)
+  {
+    prefix: 'ev_',
+    owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md',
+    tables: ['dynamicEvents', 'directorMenu'],
+  },
+  {
+    prefix: 'cmm_',
+    owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md',
+    tables: ['commissions'],
+  },
   { prefix: 'sk_', owner: 'catalog_abilities_talents.md', tables: ['abilities'] },
   { prefix: 'tal_', owner: 'catalog_abilities_talents.md', tables: [] },
   { prefix: 'aur_', owner: 'catalog_abilities_talents.md', tables: ['auras'] },
@@ -106,7 +116,7 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'art_', owner: 'art_pipeline.md (asset ids, never a content row id)', tables: [] },
 ];
 
-/** Tables whose every id carries one of their prefixes (namespaced from the first data). */
+/** Tables whose every id carries one of their prefixes (from the start, or renumbered). */
 export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   quests: ['q_'],
   // own ability and aura numbering (D-071, RE-27; catalog_abilities_talents.md 2 and 3)

@@ -811,7 +811,7 @@ describe('dispute chains and nodes', () => {
           id: 'owen_leaves',
           week: 6,
           unless: 'zz_escorted',
-          effects: [{ type: 'flag', key: 'a1_owen_left', value: 'left' }],
+          effects: [{ type: 'flag', key: 'zz_owen_left', value: 'left' }],
         },
         { id: 'tax', week: 7, effects: [{ type: 'add', key: 'zz_tax', amount: 1 }] },
       ],
@@ -841,13 +841,15 @@ describe('dispute chains and nodes', () => {
     // the player escorted Owen in time: that step does not happen
     set(t, 'zz_escorted', true);
     toWeek(t, 6);
-    expect(flags(t.g).a1_owen_left).toBeUndefined();
+    expect(flags(t.g).zz_owen_left).toBeUndefined();
     toWeek(t, 7);
     expect(flags(t.g).zz_tax).toBe(1);
     toWeek(t, 8);
     expect(flags(t.g).zz_tax).toBe(1);
     const steps = t.events.flatMap((e) =>
-      e.kind === 'quest.default' ? [[e.data.step, e.data.week, e.data.applied]] : [],
+      e.kind === 'quest.default' && e.data.questId === 'zz_d01'
+        ? [[e.data.step, e.data.week, e.data.applied]]
+        : [],
     );
     expect(steps).toEqual([
       ['robbed', 3, true],
@@ -945,7 +947,8 @@ describe('the existing quest data', () => {
 
   it('leaves the current act 1 data on its old timing (no window, expiry or by_other yet)', () => {
     const content = buildContent();
-    const act1 = content.quests.filter((q) => q.act === 'act1');
+    // the dispute chains (PK-M1-46) close through the runner's settlement (byOther)
+    const act1 = content.quests.filter((q) => q.act === 'act1' && q.kind !== 'dispute');
     expect(act1.length).toBeGreaterThan(0);
     expect(act1.filter((q) => q.weekWindow || q.expiry || q.byOther).map((q) => q.id)).toEqual([]);
   });

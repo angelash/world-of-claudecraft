@@ -19,6 +19,8 @@ export interface ObjectiveView {
 export interface QuestView {
   id: string;
   title: string;
+  /** a run-time instance renders its title from this content record (instances.ts) */
+  textOf?: { table: string; id: string };
   act: string;
   kind: QuestKind;
   status: QuestStatus;
@@ -49,12 +51,14 @@ export function questView(
   id: string,
 ): QuestView | null {
   const q = world.slices.quests.quests[id];
-  const def = content.quests.find((d) => d.id === id);
+  // a run-time instance (a guild commission) lives in the slice, not in the content
+  const def = content.quests.find((d) => d.id === id) ?? world.slices.quests.instances?.[id];
   if (!q || !def) return null;
   const stage = def.stages[q.stage];
   return {
     id,
     title: def.title,
+    ...(def.textOf ? { textOf: { ...def.textOf } } : {}),
     act: def.act,
     kind: def.kind,
     status: q.status,

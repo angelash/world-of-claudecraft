@@ -135,6 +135,11 @@ export interface QuestDef {
   expiry?: { week?: number; when?: string; effects?: Effect[] };
   /** forward failure (quests_and_events.md 3.5): effects on failing, and a condition that fails it */
   failure?: { when?: string; effects?: Effect[] };
+  /**
+   * Where a run-time instance's display text lives (instances.ts): a commission instance
+   * renders its title from its template's content record, not from a quests row.
+   */
+  textOf?: { table: string; id: string };
 }
 
 /** Quest kinds (quests_and_events.md 3.1; catalog_quests_acts1_3.md 1.3). */
@@ -316,4 +321,6 @@ export interface QuestsSlice {
   clock?: ActClockState;
   /** dispute default steps already settled, by quest id (saves before PK-M1-58 have none) */
   defaultsDone?: Record<string, string[]>;
+  /** quests built at run time from a template, by id (instances.ts; absent before PK-M1-47) */
+  instances?: Record<string, QuestDef>;
 }

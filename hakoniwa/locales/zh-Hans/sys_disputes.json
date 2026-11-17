@@ -1,0 +1,5 @@
+{
+  "sys.disputes.reject.not_allowed": "纷争里的人自己拿主意，你只能从别处插手",
+  "sys.disputes.reject.no_decision": "这件事眼下没有等人拿主意的地方",
+  "sys.disputes.reject.bad_option": "这个选择不在此刻能选的范围里"
+}

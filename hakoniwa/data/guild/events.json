@@ -1,0 +1,124 @@
+[
+  {
+    "id": "ev_a1_tide_omens",
+    "category": "omen",
+    "source": "world",
+    "title": "兽潮的前兆",
+    "narration": "林子一下子空了，北泉的水泛着灰，夜里鸦群成片地飞过镇子。",
+    "acts": [1],
+    "maps": ["borderstone", "forest_edge"],
+    "severity": "moderate",
+    "when": "seal_unrest >= 91",
+    "once": true,
+    "effects": [{ "type": "flag", "key": "a1_tide_omen", "value": true }]
+  },
+  {
+    "id": "ev_a1_tide_rim",
+    "category": "tide",
+    "source": "settlement",
+    "title": "林缘兽潮",
+    "narration": "林缘的魔物成群涌向边石镇的东栅。",
+    "acts": [2, 3],
+    "maps": ["borderstone", "forest_edge"],
+    "severity": "severe",
+    "when": "seal_unrest >= 80",
+    "omen": { "days": 3 },
+    "days": 1,
+    "modifiers": [
+      {
+        "target": "production",
+        "key": "borderstone",
+        "factor": 0.7,
+        "days": 91,
+        "visibility": "public"
+      }
+    ],
+    "hooks": { "post": ["cmm_a1_night_watch"] }
+  },
+  {
+    "id": "ev_a1_beast_season",
+    "category": "disaster",
+    "source": "world",
+    "title": "魔物季",
+    "narration": "镇上的人都在说，今年的魔物来得早。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "act_week >= 8 AND act_week <= 12",
+    "once": true,
+    "omen": { "days": 3 },
+    "days": 35,
+    "modifiers": [
+      { "target": "price", "key": "salt", "factor": 1.2, "days": 35, "visibility": "public" },
+      {
+        "target": "price",
+        "key": "minor_healing_potion",
+        "factor": 1.3,
+        "days": 35,
+        "visibility": "public"
+      },
+      {
+        "target": "price",
+        "key": "healing_potion",
+        "factor": 1.3,
+        "days": 35,
+        "visibility": "public"
+      }
+    ],
+    "hooks": { "board": { "bonus": 2, "kinds": ["subjugate", "clear", "hunt"] } }
+  },
+  {
+    "id": "ev_a1_moira_coincidence",
+    "category": "coincidence",
+    "source": "director",
+    "title": "命运的巧合",
+    "narration": "一阵风从街角卷过来，把什么东西吹到了你的脚边。",
+    "acts": [1],
+    "maps": [],
+    "severity": "minor",
+    "when": "ev.ev_a1_moira_coincidence.count < 1 OR (goddess.moira.interest >= 2 AND ev.ev_a1_moira_coincidence.count < 2)",
+    "director": { "move": "coincidence", "power": 2, "cooldownHours": 72 }
+  },
+  {
+    "id": "ev_a1_market_day",
+    "category": "respite",
+    "source": "director",
+    "title": "集日",
+    "narration": "盐巷的集市热闹起来，吆喝声、讨价声和新鲜的传闻一起涌进街道。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "director": { "move": "respite", "power": 1, "cooldownHours": 24 }
+  },
+  {
+    "id": "ev_a1_rumor_crystal_broke",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "水晶坏了",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "quest.q_a1_m03_register == done",
+    "once": true,
+    "comedy": "crystal",
+    "rumor": {
+      "topic": "appraise",
+      "place": "公会",
+      "details": ["鉴定水晶没亮"],
+      "tellers": ["lina"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_leftovers",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "捡漏",
+    "acts": [1],
+    "maps": ["forest_edge"],
+    "severity": "minor",
+    "when": "quest.q_a1_m05_grey_wolf == done",
+    "once": true,
+    "comedy": "misattribute",
+    "rumor": { "topic": "kill", "place": "狼穴", "details": ["捡了别人的漏"], "tellers": ["dris"] }
+  }
+]

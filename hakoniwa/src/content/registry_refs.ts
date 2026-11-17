@@ -57,6 +57,8 @@ export const CONDITION_FIELDS = new Set([
   'openWhen',
   // act clock night rules and dispute default steps (systems/quests): the drop condition
   'unless',
+  // dispute decision options (systems/disputes): when the option breaks a must-keep rule
+  'breaks',
 ]);
 
 /** String fields naming one flag the kernel reads. */

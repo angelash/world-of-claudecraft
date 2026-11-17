@@ -1,0 +1,705 @@
+[
+  {
+    "id": "q_a1_d01_tax_and_bandits",
+    "act": "act1",
+    "code": "A1-D01",
+    "parties": ["moss", "viro", "vick", "owen", "barto", "simon"],
+    "span": { "from": 1, "to": 10 },
+    "stages": [
+      { "id": "levy", "label": "讨伐税改成六取一", "escalation": 1, "week": 1 },
+      { "id": "robberies", "label": "南路的商队接连被劫", "escalation": 2, "week": 3 },
+      { "id": "protest", "label": "农户聚在广场抗税", "escalation": 3, "week": 7 },
+      { "id": "last_cart", "label": "最后一批灰晶装上了车", "escalation": 3, "week": 9 },
+      {
+        "id": "leverage",
+        "label": "莫斯的把柄落在了别人手里",
+        "escalation": 1,
+        "week": 1,
+        "when": "a1_moss_exposed OR a1_moss_fate IN (puppet, arrested, dead)"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "viro_raid",
+        "label": "西田的农舍",
+        "actor": "viro",
+        "week": 8,
+        "hours": 12,
+        "unless": "a1_oneeye_fate IN (absorbed, destroyed, scattered) OR a1_viro_status IN (fled_wallenburg, captured, recruited)",
+        "options": [
+          {
+            "id": "raid_farm",
+            "label": "瞒着瑟格劫西田农舍，把瑟格和莫斯绑得更紧",
+            "terms": {
+              "stance": 0.8,
+              "relation": 0.5,
+              "safety": { "base": 0.5, "add": [{ "when": "a1_viro_pact_known", "value": -0.4 }] },
+              "values": 0.4
+            }
+          },
+          {
+            "id": "lie_low",
+            "label": "按兵不动，等风头过去",
+            "terms": {
+              "stance": 0.3,
+              "relation": 0.4,
+              "safety": { "base": 0.7, "add": [{ "when": "a1_viro_pact_known", "value": 0.3 }] },
+              "values": 0.3
+            }
+          }
+        ]
+      },
+      {
+        "id": "moss_cart",
+        "label": "最后一批灰晶",
+        "actor": "moss",
+        "week": 8,
+        "when": "act_week >= 9 OR a1_tide_night",
+        "hours": 6,
+        "unless": "a1_moss_fate AND a1_moss_fate != in_power",
+        "options": [
+          {
+            "id": "flee_south",
+            "label": "把灰晶车和钱箱藏进驿站马厩，趁乱南逃",
+            "terms": {
+              "stance": 0.9,
+              "relation": 0.3,
+              "safety": {
+                "base": 0.5,
+                "add": [{ "when": "a1_moss_evidence >= 1", "value": 0.3 }]
+              },
+              "values": 0.3
+            }
+          },
+          {
+            "id": "stay_put",
+            "label": "留在任上，事后宣称代官府组织了防御",
+            "terms": {
+              "stance": { "base": 0.4, "add": [{ "when": "a1_oola_bribed", "value": 0.4 }] },
+              "relation": 0.5,
+              "safety": {
+                "base": 0.8,
+                "add": [
+                  { "when": "a1_moss_evidence >= 1", "value": -0.4 },
+                  { "when": "a1_viro_pact_known", "value": -0.2 },
+                  { "when": "a1_oola_bribed", "value": 0.3 }
+                ]
+              },
+              "values": 0.3
+            }
+          }
+        ]
+      }
+    ],
+    "settle": { "week": 11, "when": "a1_beast_tide_cleared" },
+    "outcomes": [
+      {
+        "id": "exposed",
+        "label": "揭发：莫斯被拘，听候伯爵处置",
+        "by": "player",
+        "when": "a1_moss_exposed AND a1_moss_evidence >= 3",
+        "effects": [
+          { "type": "flag", "key": "a1_moss_fate", "value": "arrested" },
+          { "type": "flag", "key": "a1_tax_rate", "value": "tenth" },
+          { "type": "flag", "key": "a1_dian_trade", "value": "stopped" },
+          { "type": "flag", "key": "a1_permit_revoked", "value": true },
+          { "type": "add", "key": "rep.bs_commons", "amount": 30, "min": -100, "max": 100 }
+        ]
+      },
+      {
+        "id": "puppet",
+        "label": "傀儡：把柄在玩家手里，莫斯听话",
+        "by": "player",
+        "when": "a1_moss_fate == puppet",
+        "effects": [
+          { "type": "flag", "key": "a1_tax_rate", "value": "tenth" },
+          { "type": "flag", "key": "a1_permit_revoked", "value": true },
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "stopped",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "dead",
+        "label": "反咬：瑟格夜袭代官宅邸，莫斯没能活下来",
+        "by": "player",
+        "when": "a1_moss_fate == dead",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "stopped",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "arrested",
+        "label": "莫斯被拘",
+        "by": "player",
+        "when": "a1_moss_fate == arrested",
+        "effects": [
+          { "type": "flag", "key": "a1_tax_rate", "value": "tenth" },
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "stopped",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "intercepted",
+        "ending": "in_power",
+        "label": "南门截下了灰晶车，莫斯留在任上",
+        "by": "player",
+        "when": "a1_moss_intercepted",
+        "effects": [
+          { "type": "flag", "key": "a1_moss_fate", "value": "in_power" },
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "continued",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "stayed",
+        "ending": "in_power",
+        "label": "任其继续：莫斯留在任上，宣称代官府组织了防御",
+        "by": "world",
+        "when": "dispute.q_a1_d01_tax_and_bandits.choice.moss_cart == stay_put",
+        "effects": [
+          { "type": "flag", "key": "a1_moss_fate", "value": "in_power" },
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "continued",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "fled",
+        "label": "南逃：莫斯带着第二本账和灰晶出了南门",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_moss_fate",
+            "value": "fled",
+            "when": "NOT a1_moss_fate OR a1_moss_fate == in_power"
+          },
+          {
+            "type": "flag",
+            "key": "a1_dian_trade",
+            "value": "continued",
+            "when": "NOT a1_dian_trade"
+          }
+        ]
+      },
+      {
+        "id": "band_absorbed",
+        "label": "收编：独眼团成了镇外巡队",
+        "by": "player",
+        "stack": true,
+        "when": "a1_oneeye_fate == absorbed",
+        "effects": [
+          { "type": "flag", "key": "a1_old_watch", "value": "camp" },
+          {
+            "type": "flag",
+            "key": "a1_viro_status",
+            "value": "fled_wallenburg",
+            "when": "NOT a1_viro_status OR a1_viro_status == in_band"
+          }
+        ]
+      },
+      {
+        "id": "band_destroyed",
+        "label": "歼灭：旧哨村的据点被攻破",
+        "by": "player",
+        "stack": true,
+        "when": "a1_oneeye_fate == destroyed",
+        "effects": [
+          { "type": "flag", "key": "a1_old_watch", "value": "cleared" },
+          {
+            "type": "flag",
+            "key": "a1_viro_status",
+            "value": "fled_wallenburg",
+            "when": "NOT a1_viro_status OR a1_viro_status == in_band"
+          }
+        ]
+      },
+      {
+        "id": "band_scattered",
+        "label": "独眼团溃散，旧哨村空了出来",
+        "by": "world",
+        "stack": true,
+        "when": "a1_oneeye_fate == scattered",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_old_watch",
+            "value": "cleared",
+            "when": "NOT a1_old_watch OR a1_old_watch == bandits"
+          },
+          {
+            "type": "flag",
+            "key": "a1_viro_status",
+            "value": "fled_wallenburg",
+            "when": "NOT a1_viro_status OR a1_viro_status == in_band"
+          }
+        ]
+      },
+      {
+        "id": "band_active",
+        "label": "独眼团仍占着旧哨村",
+        "by": "world",
+        "stack": true,
+        "when": "NOT a1_oneeye_fate OR a1_oneeye_fate == active",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_oneeye_fate",
+            "value": "active",
+            "when": "NOT a1_oneeye_fate"
+          },
+          { "type": "flag", "key": "a1_old_watch", "value": "bandits", "when": "NOT a1_old_watch" },
+          {
+            "type": "flag",
+            "key": "a1_viro_status",
+            "value": "in_band",
+            "when": "NOT a1_viro_status"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d02_witch_trial",
+    "act": "act1",
+    "code": "A1-D02",
+    "parties": ["cassian", "oola", "bertha", "isa", "greta", "moss", "toma", "noi", "tess", "boro"],
+    "span": { "from": 1, "to": 10 },
+    "stages": [
+      { "id": "vigil", "label": "欧拉夜里进孤儿院治病", "escalation": 1, "week": 1 },
+      { "id": "rumor", "label": "米洛死了，巫婆的传闻传开", "escalation": 1, "week": 2 },
+      { "id": "accusation", "label": "托比倒下，神父公开指控", "escalation": 2, "week": 6 },
+      { "id": "custody", "label": "欧拉被关进代官宅邸", "escalation": 3, "week": 7 },
+      {
+        "id": "convicted",
+        "label": "判定有罪，欧拉等着押送",
+        "escalation": 2,
+        "week": 1,
+        "when": "a1_oola_fate == convicted"
+      },
+      {
+        "id": "decided",
+        "label": "欧拉的事有了说法",
+        "escalation": 1,
+        "week": 1,
+        "when": "a1_oola_fate IN (cleared, fled)"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "isa_testify",
+        "label": "伊莎看见托比倒下",
+        "actor": "isa",
+        "week": 6,
+        "hours": 24,
+        "unless": "a1_isa_will_testify OR a1_oola_fate",
+        "options": [
+          {
+            "id": "testify",
+            "label": "答应站出来作证：欧拉是在救人",
+            "effects": [{ "type": "flag", "key": "a1_isa_will_testify", "value": true }],
+            "terms": {
+              "stance": 0.5,
+              "relation": { "base": 0.5, "add": [{ "when": "trust.isa >= 60", "value": 0.6 }] },
+              "safety": 0.3,
+              "values": 0.7
+            }
+          },
+          {
+            "id": "keep_silent",
+            "label": "不主动反对神父，守着孩子们",
+            "terms": {
+              "stance": 0.5,
+              "relation": 0.6,
+              "safety": 0.7,
+              "values": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "id": "cassian_verdict",
+        "label": "光之鉴的裁决",
+        "actor": "cassian",
+        "week": 8,
+        "when": "quest.q_a1_m09_trial != active",
+        "hours": 6,
+        "unless": "a1_oola_fate",
+        "options": [
+          {
+            "id": "convict",
+            "label": "灯焰发灰，判定有罪，押送瓦伦堡教区",
+            "effects": [
+              { "type": "add", "key": "church_suspicion", "amount": 15, "max": 100 },
+              { "type": "flag", "key": "a1_oola_fate", "value": "convicted" },
+              { "type": "flag", "key": "a1_cassian_report", "value": "convicted" }
+            ],
+            "terms": {
+              "stance": 0.8,
+              "relation": 0.5,
+              "safety": 0.7,
+              "values": 0.6
+            }
+          },
+          {
+            "id": "clear",
+            "label": "收回指控，在周报里改写为泉水之疫",
+            "when": "COUNT(a1_trial_evidence OR a1_spring_source_found, a1_trial_testimony OR a1_isa_will_testify OR a1_toma_will_testify, a1_lamp_exposed, a1_trial_debate) >= 2 OR (npc.cassian.doubt >= 1 AND COUNT(a1_trial_evidence OR a1_spring_source_found, a1_trial_testimony OR a1_isa_will_testify OR a1_toma_will_testify, a1_lamp_exposed, a1_trial_debate) >= 1) OR npc.cassian.doubt >= 2",
+            "effects": [
+              { "type": "flag", "key": "a1_oola_fate", "value": "cleared" },
+              { "type": "add", "key": "npc.cassian.doubt", "amount": 2, "max": 3 },
+              { "type": "flag", "key": "a1_cassian_report", "value": "cleared" }
+            ],
+            "terms": {
+              "stance": 0.8,
+              "relation": 0.7,
+              "safety": 0.6,
+              "values": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "boro_storm",
+        "label": "博罗冲上审判台",
+        "actor": "boro",
+        "after": "cassian_verdict",
+        "hours": 2,
+        "when": "a1_oola_fate == convicted AND a1_forest_accord == broken AND NOT npc.boro.dead",
+        "options": [
+          {
+            "id": "storm",
+            "label": "带东坡猎户冲台，趁乱把欧拉带进林子",
+            "effects": [
+              { "type": "flag", "key": "a1_trial_brawl", "value": true },
+              { "type": "flag", "key": "a1_oola_fate", "value": "fled" }
+            ],
+            "terms": {
+              "stance": 0.9,
+              "relation": 0.8,
+              "safety": 0.2,
+              "values": 0.6
+            }
+          },
+          {
+            "id": "stand_down",
+            "label": "咬牙忍下，不在广场上动手",
+            "terms": {
+              "stance": 0.3,
+              "relation": { "base": 0.4, "add": [{ "when": "a1_boro_calmed", "value": 0.4 }] },
+              "safety": 0.7,
+              "values": { "base": 0.4, "add": [{ "when": "a1_boro_calmed", "value": 0.2 }] }
+            }
+          }
+        ]
+      }
+    ],
+    "settle": { "week": 11, "when": "a1_beast_tide_cleared" },
+    "outcomes": [
+      {
+        "id": "bribed",
+        "label": "贿赂：欧拉以证据不足获释，莫斯握住了玩家的把柄",
+        "by": "player",
+        "when": "a1_oola_bribed AND a1_oola_fate == cleared",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_cassian_report",
+            "value": "unresolved",
+            "when": "NOT a1_cassian_report"
+          }
+        ]
+      },
+      {
+        "id": "cleared",
+        "label": "平反：卡西安当众收回指控",
+        "by": "player",
+        "when": "a1_oola_fate == cleared",
+        "effects": [{ "type": "flag", "key": "a1_cassian_report", "value": "cleared" }]
+      },
+      {
+        "id": "hidden",
+        "label": "隐匿：欧拉和孩子被藏进了林子",
+        "by": "player",
+        "when": "a1_oola_jailbroken",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_cassian_report",
+            "value": "fled",
+            "when": "NOT a1_cassian_report"
+          }
+        ]
+      },
+      {
+        "id": "brawl",
+        "label": "冲突：东坡冲台，欧拉趁乱逃进林子",
+        "by": "world",
+        "when": "a1_trial_brawl AND a1_oola_fate == fled",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_cassian_report",
+            "value": "fled",
+            "when": "NOT a1_cassian_report"
+          }
+        ]
+      },
+      {
+        "id": "fled",
+        "label": "欧拉逃走了",
+        "by": "world",
+        "when": "a1_oola_fate == fled",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_cassian_report",
+            "value": "fled",
+            "when": "NOT a1_cassian_report"
+          }
+        ]
+      },
+      {
+        "id": "convicted",
+        "label": "审判成立：欧拉被押往瓦伦堡",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "add",
+            "key": "church_suspicion",
+            "amount": 15,
+            "max": 100,
+            "when": "NOT a1_oola_fate"
+          },
+          {
+            "type": "flag",
+            "key": "a1_oola_fate",
+            "value": "convicted",
+            "when": "NOT a1_oola_fate"
+          },
+          {
+            "type": "flag",
+            "key": "a1_cassian_report",
+            "value": "convicted",
+            "when": "NOT a1_cassian_report"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d04_forest_dispute",
+    "act": "act1",
+    "code": "A1-D04",
+    "parties": ["gorn", "shiya", "boro", "ako", "gaspar", "nick", "moss", "hock", "oola"],
+    "span": { "from": 1, "to": 10 },
+    "stages": [
+      { "id": "encroach", "label": "伐区越过约树向北推进", "escalation": 1, "week": 1 },
+      { "id": "shed_burned", "label": "伐木工烧了一处猎棚", "escalation": 2, "week": 4 },
+      { "id": "curfew", "label": "断臂与宵禁", "escalation": 2, "week": 5 },
+      { "id": "exodus_talk", "label": "葛恩召集东坡商量去留", "escalation": 3, "week": 7 },
+      { "id": "blood_debt", "label": "捕兽夹与血债", "escalation": 3, "week": 8 },
+      {
+        "id": "truce",
+        "label": "双方各让了一步",
+        "escalation": 1,
+        "week": 1,
+        "when": "a1_nick_bridge OR (a1_forest_pact_proof AND a1_wolf_den == cleared)"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "gorn_council",
+        "label": "东坡的去留",
+        "actor": "gorn",
+        "week": 7,
+        "hours": 48,
+        "unless": "a1_eastslope_expelled OR a1_gorn_decision OR (a1_forest_pact_proof AND a1_wolf_den == cleared)",
+        "options": [
+          {
+            "id": "stay",
+            "label": "留在东坡，守着祖辈的猎场",
+            "effects": [{ "type": "flag", "key": "a1_gorn_decision", "value": "stay" }],
+            "terms": {
+              "stance": { "base": 0.85, "add": [{ "when": "a1_forest_pact_proof", "value": 0.3 }] },
+              "relation": {
+                "base": 0.5,
+                "add": [
+                  { "when": "trust.shiya >= 60", "value": 0.2 },
+                  { "when": "a1_nick_bridge", "value": 0.3 },
+                  { "when": "rep.bs_eastslope <= -30", "value": -0.3 }
+                ]
+              },
+              "safety": {
+                "base": 0.3,
+                "add": [
+                  { "when": "a1_ako_framed", "value": -0.2 },
+                  { "when": "a1_boro_calmed", "value": 0.2 },
+                  { "when": "a1_wolf_den == cleared", "value": 0.2 }
+                ]
+              },
+              "values": 0.6
+            }
+          },
+          {
+            "id": "leave",
+            "label": "带族人向东迁走，离开这片是非地",
+            "effects": [{ "type": "flag", "key": "a1_gorn_decision", "value": "leave" }],
+            "terms": {
+              "stance": 0.4,
+              "relation": 0.4,
+              "safety": {
+                "base": 0.7,
+                "add": [
+                  { "when": "a1_ako_framed", "value": 0.1 },
+                  { "when": "rep.bs_eastslope <= -30", "value": 0.2 }
+                ]
+              },
+              "values": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "id": "boro_revenge",
+        "label": "阿柯被伐区的捕兽夹夹伤",
+        "actor": "boro",
+        "week": 8,
+        "hours": 72,
+        "unless": "a1_eastslope_expelled OR a1_gorn_decision == leave OR a1_nick_bridge OR a1_forest_pact_proof OR a1_wolf_den == cleared",
+        "options": [
+          {
+            "id": "blood_debt",
+            "label": "血债血偿",
+            "effects": [{ "type": "flag", "key": "a1_forest_accord", "value": "broken" }],
+            "terms": {
+              "stance": 0.9,
+              "relation": 0.9,
+              "safety": 0.3,
+              "values": 0.5
+            }
+          },
+          {
+            "id": "hold_back",
+            "label": "压下这口气",
+            "terms": {
+              "stance": { "base": 0.3, "add": [{ "when": "a1_boro_calmed", "value": 0.5 }] },
+              "relation": { "base": 0.5, "add": [{ "when": "a1_boro_calmed", "value": 0.3 }] },
+              "safety": 0.7,
+              "values": 0.6
+            }
+          }
+        ]
+      }
+    ],
+    "settle": { "week": 11, "when": "a1_tide_night OR a1_beast_tide_cleared" },
+    "outcomes": [
+      {
+        "id": "expulsion",
+        "ending": "expelled",
+        "label": "驱逐：玩家站在加斯帕一边，东坡被赶走",
+        "by": "player",
+        "when": "a1_eastslope_expelled",
+        "effects": [
+          { "type": "flag", "key": "a1_shiya_family", "value": "left" },
+          { "type": "flag", "key": "a1_gorn_decision", "value": "leave" },
+          {
+            "type": "flag",
+            "key": "a1_forest_accord",
+            "value": "broken",
+            "when": "NOT a1_forest_accord"
+          }
+        ]
+      },
+      {
+        "id": "restored",
+        "label": "和解：双方在约树上刻下新痕",
+        "by": "player",
+        "when": "a1_forest_pact_proof AND a1_wolf_den == cleared AND (a1_logger_saved OR a1_nick_bridge) AND a1_forest_accord != broken AND a1_gorn_decision != leave",
+        "effects": [
+          { "type": "flag", "key": "a1_forest_accord", "value": "restored" },
+          { "type": "flag", "key": "a1_shiya_family", "value": "in_town" }
+        ]
+      },
+      {
+        "id": "partial",
+        "label": "部分和解：休战，但没有新约",
+        "by": "player",
+        "when": "a1_forest_accord != broken AND a1_gorn_decision != leave AND (a1_forest_pact_proof OR a1_wolf_den == cleared OR a1_nick_bridge OR a1_boro_calmed)",
+        "effects": [
+          { "type": "flag", "key": "a1_forest_accord", "value": "partial" },
+          { "type": "flag", "key": "a1_shiya_family", "value": "in_town" }
+        ]
+      },
+      {
+        "id": "truce",
+        "ending": "partial",
+        "label": "博罗自己压下了血债，两边休战",
+        "by": "world",
+        "when": "a1_forest_accord != broken AND a1_gorn_decision != leave AND dispute.q_a1_d04_forest_dispute.choice.boro_revenge == hold_back",
+        "effects": [
+          { "type": "flag", "key": "a1_forest_accord", "value": "partial" },
+          { "type": "flag", "key": "a1_shiya_family", "value": "in_town" }
+        ]
+      },
+      {
+        "id": "exodus",
+        "ending": "expelled",
+        "label": "驱逐：葛恩带着东坡向东迁走",
+        "by": "world",
+        "when": "a1_gorn_decision == leave",
+        "effects": [
+          { "type": "flag", "key": "a1_shiya_family", "value": "left" },
+          {
+            "type": "flag",
+            "key": "a1_forest_accord",
+            "value": "broken",
+            "when": "NOT a1_forest_accord"
+          }
+        ]
+      },
+      {
+        "id": "broken",
+        "label": "冲突升级：血债没有被拦下，林约破裂",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_forest_accord",
+            "value": "broken",
+            "when": "NOT a1_forest_accord"
+          },
+          {
+            "type": "flag",
+            "key": "a1_shiya_family",
+            "value": "in_town",
+            "when": "NOT a1_shiya_family"
+          }
+        ]
+      }
+    ]
+  }
+]

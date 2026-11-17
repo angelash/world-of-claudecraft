@@ -1,0 +1,158 @@
+[
+  {
+    "id": "q_a1_d01_tax_and_bandits",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 20,
+    "title": "税与匪",
+    "desc": "代官莫斯以讨伐魔物为名加税，荒原的独眼团照样劫掠商队。没人插手，这件事也会自己走到头。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d01_tax_and_bandits.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "税单越贴越多，南路上的商队一支接一支出事。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d01_tax_and_bandits.by == player AND (dispute.q_a1_d01_tax_and_bandits.ending IN (exposed, puppet, dead, arrested) OR a1_oneeye_fate IN (absorbed, destroyed))",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d01_tax_and_bandits.ending AND NOT (dispute.q_a1_d01_tax_and_bandits.by == player AND (dispute.q_a1_d01_tax_and_bandits.ending IN (exposed, puppet, dead, arrested) OR a1_oneeye_fate IN (absorbed, destroyed)))"
+    },
+    "rewards": [{ "type": "xp", "amount": 600, "reason": "quest" }],
+    "defaults": [
+      {
+        "id": "standing",
+        "week": 1,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_moss_fate",
+            "value": "in_power",
+            "when": "NOT a1_moss_fate"
+          },
+          {
+            "type": "flag",
+            "key": "a1_oneeye_fate",
+            "value": "active",
+            "when": "NOT a1_oneeye_fate"
+          },
+          { "type": "flag", "key": "a1_old_watch", "value": "bandits", "when": "NOT a1_old_watch" },
+          {
+            "type": "flag",
+            "key": "a1_viro_status",
+            "value": "in_band",
+            "when": "NOT a1_viro_status"
+          }
+        ]
+      },
+      {
+        "id": "tax_notice",
+        "week": 1,
+        "effects": [{ "type": "flag", "key": "a1_tax_rate", "value": "sixth" }]
+      },
+      { "id": "first_levy", "week": 2, "effects": [] },
+      { "id": "owen_robbed", "week": 3, "effects": [] },
+      { "id": "owen_petition", "week": 4, "effects": [] },
+      { "id": "well_tax", "week": 5, "effects": [] },
+      { "id": "tax_protest", "week": 7, "effects": [] },
+      {
+        "id": "owen_leaves",
+        "week": 7,
+        "unless": "a1_owen_escorted",
+        "effects": [{ "type": "flag", "key": "a1_owen_left", "value": true }]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d02_witch_trial",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 21,
+    "title": "魔女审判",
+    "desc": "孤儿院的孩子接连病倒，卡西安神父认定是药草婆婆欧拉的巫术。没人插手，审判照样会开。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d02_witch_trial.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "传闻一层层加码，礼拜堂的钟声越来越近。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d02_witch_trial.by == player AND dispute.q_a1_d02_witch_trial.ending IN (cleared, hidden)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d02_witch_trial.ending AND NOT (dispute.q_a1_d02_witch_trial.by == player AND dispute.q_a1_d02_witch_trial.ending IN (cleared, hidden))"
+    },
+    "rewards": [{ "type": "xp", "amount": 550, "reason": "quest" }],
+    "defaults": [
+      { "id": "night_visits", "week": 1, "effects": [] },
+      { "id": "milo_dies", "week": 2, "effects": [] },
+      { "id": "cough_spreads", "week": 3, "effects": [] },
+      { "id": "orphanage_ban", "week": 4, "effects": [] },
+      { "id": "tess_song", "week": 5, "effects": [] },
+      {
+        "id": "accusation",
+        "week": 6,
+        "unless": "a1_oola_fate",
+        "effects": [{ "type": "flag", "key": "a1_witch_trial_started", "value": true }]
+      },
+      { "id": "arrest", "week": 7, "unless": "a1_oola_fate", "effects": [] },
+      {
+        "id": "awaiting_transfer",
+        "week": 9,
+        "unless": "a1_oola_fate != convicted",
+        "effects": []
+      },
+      { "id": "transfer_set", "week": 10, "unless": "a1_oola_fate != convicted", "effects": [] }
+    ]
+  },
+  {
+    "id": "q_a1_d04_forest_dispute",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 22,
+    "title": "林地之争",
+    "desc": "东坡的兽人猎户和伐木工为林缘吵得不可开交，彼此都认定狼是对方引来的。没人插手，林子里迟早见血。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d04_forest_dispute.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "伐区一天天往北推，东坡的人看伐木工的眼神越来越冷。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d04_forest_dispute.by == player AND dispute.q_a1_d04_forest_dispute.ending IN (restored, partial)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d04_forest_dispute.ending AND NOT (dispute.q_a1_d04_forest_dispute.by == player AND dispute.q_a1_d04_forest_dispute.ending IN (restored, partial))"
+    },
+    "rewards": [{ "type": "xp", "amount": 400, "reason": "quest" }],
+    "defaults": [
+      { "id": "logging_north", "week": 1, "effects": [] },
+      { "id": "logger_bitten", "week": 2, "unless": "a1_logger_saved", "effects": [] },
+      { "id": "grey_wolf_seen", "week": 3, "effects": [] },
+      { "id": "shed_burned", "week": 4, "unless": "a1_permit_revoked", "effects": [] },
+      { "id": "arm_broken", "week": 5, "unless": "a1_boro_calmed", "effects": [] },
+      {
+        "id": "ako_framed",
+        "week": 6,
+        "unless": "a1_jed_exposed",
+        "effects": [{ "type": "flag", "key": "a1_ako_framed", "value": true }]
+      },
+      { "id": "den_spill", "week": 9, "unless": "a1_wolf_den == cleared", "effects": [] }
+    ]
+  }
+]
