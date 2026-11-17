@@ -883,9 +883,9 @@ describe('the shipped data', () => {
 
   it('places the seal ruins floors on the built maps: the shaft is level two', () => {
     const content = buildContent();
-    expect(floorAt(content, 'seal_ruins', 10, 10)?.floor.id).toBe('surface');
-    expect(floorAt(content, 'seal_ruins_depths', 3, 9)?.floor.id).toBe('depths');
-    expect(floorAt(content, 'seal_ruins_depths', 24, 7)?.floor.id).toBe('shaft');
+    expect(floorAt(content, 'seal_ruins', 24, 18)?.floor.id).toBe('surface');
+    expect(floorAt(content, 'seal_ruins_depths', 12, 17)?.floor.id).toBe('depths');
+    expect(floorAt(content, 'seal_ruins_depths', 33, 15)?.floor.id).toBe('shaft');
     expect(floorAt(content, 'borderstone', 10, 10)).toBeUndefined();
   });
 });

@@ -27,7 +27,7 @@ import type { ContentPack } from '../pack';
 import { conditionProblems, effectProblems } from './quests';
 
 /** The new game starts in the antechamber of the divine court (conventions 2). */
-const worldStarts: WorldStart[] = [{ mapId: 'divine_court', x: 6.5, y: 9.5, priority: 10 }];
+const worldStarts: WorldStart[] = [{ mapId: 'divine_court', x: 10.5, y: 13.5, priority: 10 }];
 
 export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
   const out: string[] = [];

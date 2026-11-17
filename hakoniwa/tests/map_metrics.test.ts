@@ -167,9 +167,11 @@ describe('the metric functions', () => {
 // The built maps.
 
 /**
- * Measured shortfalls of the first-round maps (before the map_briefs.md 1.11 rebuild). Each
+ * Measured shortfalls of the first-round maps not rebuilt yet (map_briefs.md 1.11). Each
  * pins the value the map measures today and names the change of map_briefs.md 12 that
- * clears it. `safe: 'none'` is a dungeon floor without a safe platform yet.
+ * clears it. `safe: 'none'` is a dungeon floor without a safe platform yet. The act 1 maps
+ * of PK-M1-35 (seal_ruins, seal_ruins_depths, forest_edge, ash_waste) met their templates
+ * and lost their waivers.
  */
 interface Waiver {
   firstContact?: number;
@@ -179,27 +181,6 @@ interface Waiver {
   why: string;
 }
 const WAIVERS: Record<string, Waiver> = {
-  seal_ruins: {
-    firstContact: 0,
-    safe: 'none',
-    why: 'map_briefs 12 row 2: fold sr_dreg_gate and sr_rat_gate into the west and south-east corridors, gate hall switch; A3 rebuild, PK-M1-35',
-  },
-  seal_ruins_depths: {
-    firstContact: 2,
-    safe: 'none',
-    why: 'map_briefs A4: first contact 8 m off the stair foot, platform before the boss; A4 rebuild, PK-M1-35',
-  },
-  forest_edge: {
-    firstContact: 2.83,
-    safe: -1.98,
-    why: 'map_briefs 12 row 4: move fe_dian_wolf_w, fe_boar_logging_e and _w, fe_grey_wolf_trail_s; A6 rebuild, PK-M1-35',
-  },
-  ash_waste: {
-    firstContact: 1,
-    safe: -0.49,
-    levels: { 1: 44, 2: 44 },
-    why: 'map_briefs 12 row 3 and 11: act groups behind act.<n>.entered, stand-in middle-waste content to C9 and C10; A9 act 1 groups PK-M1-35, the rest PK-M2-20',
-  },
   wallenburg_sewers: {
     firstContact: 3,
     safe: -0.33,
@@ -212,14 +193,26 @@ const monster = (id: string): MonsterStats | undefined => content.monsters.find(
 const built = content.maps.filter((m) => !isAtlasExempt(m));
 
 describe('the built maps meet their flow template (map_briefs.md 15 rule 2)', () => {
-  it('measures all ten built maps, and every waiver names a built map', () => {
+  it('measures every built map (the M1 maps of PK-M1-35 and the act 2 pair), and every waiver names a built map', () => {
     expect(built.map((m) => m.id).sort()).toEqual([
       'ash_waste',
       'borderstone',
+      'borderstone_north',
+      'brokenspan_post',
+      'dg_old_mine',
       'divine_court',
+      'door_corridor',
+      'dream_doorway',
+      'earth_hospital',
+      'earth_house',
+      'earth_store',
+      'earth_train',
       'forest_edge',
+      'gap_void',
       'inner_court',
+      'ironhemlock_deep',
       'old_outpost',
+      'rustridge_mine',
       'seal_ruins',
       'seal_ruins_depths',
       'wallenburg',

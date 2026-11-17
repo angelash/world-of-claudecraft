@@ -633,7 +633,7 @@ describe('the act 1 imports (content_act1_abilities_01)', () => {
       'sk_lok_summonremnant',
     );
     const g = makeGame();
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
     g.step(1);
     withCtx(g, (ctx) => {
       grantAbility(ctx, 'player', 'sk_lok_summonremnant');

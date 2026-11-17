@@ -9,7 +9,12 @@ import classes from '../../../data/combat/classes.json';
 import fixtures from '../../../data/combat/fixtures.json';
 import items from '../../../data/combat/items.json';
 import mapAshWaste from '../../../data/combat/maps/ash_waste.json';
+import mapBorderstoneNorth from '../../../data/combat/maps/borderstone_north.json';
+import mapBrokenspanPost from '../../../data/combat/maps/brokenspan_post.json';
+import mapOldMine from '../../../data/combat/maps/dg_old_mine.json';
 import mapForestEdge from '../../../data/combat/maps/forest_edge.json';
+import mapIronhemlockDeep from '../../../data/combat/maps/ironhemlock_deep.json';
+import mapRustridgeMine from '../../../data/combat/maps/rustridge_mine.json';
 import mapSealRuins from '../../../data/combat/maps/seal_ruins.json';
 import mapSealRuinsDepths from '../../../data/combat/maps/seal_ruins_depths.json';
 import mapSewers from '../../../data/combat/maps/wallenburg_sewers.json';
@@ -37,6 +42,11 @@ const maps = [
   mapForestEdge,
   mapAshWaste,
   mapSewers,
+  mapBorderstoneNorth,
+  mapRustridgeMine,
+  mapOldMine,
+  mapIronhemlockDeep,
+  mapBrokenspanPost,
 ] as unknown as MapDef[];
 
 /** The player wakes under the sixth sigil after the prologue (priority 1; the divine court start is 10). */
@@ -53,6 +63,11 @@ const MAP_FILES: Record<string, string> = {
   forest_edge: 'combat/maps/forest_edge.json',
   ash_waste: 'combat/maps/ash_waste.json',
   wallenburg_sewers: 'combat/maps/wallenburg_sewers.json',
+  borderstone_north: 'combat/maps/borderstone_north.json',
+  rustridge_mine: 'combat/maps/rustridge_mine.json',
+  dg_old_mine: 'combat/maps/dg_old_mine.json',
+  ironhemlock_deep: 'combat/maps/ironhemlock_deep.json',
+  brokenspan_post: 'combat/maps/brokenspan_post.json',
 };
 
 const json = (key: string, label: string, help?: string): FieldSchema => ({

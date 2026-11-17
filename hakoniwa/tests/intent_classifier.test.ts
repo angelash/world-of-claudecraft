@@ -40,7 +40,7 @@ function game(seed = 7): Engine {
   return Engine.create(seed, CONTENT, SYSTEMS, { aiMode: 'off' });
 }
 
-const GUILD = { x: 36.5, y: 13.5 };
+const GUILD = { x: 56.5, y: 31.5 };
 
 /** The player beside the given NPCs on the Borderstone guild tile, one step apart. */
 function besides(g: Engine, ids: string[]): void {

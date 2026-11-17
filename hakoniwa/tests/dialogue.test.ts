@@ -86,7 +86,7 @@ function game(seed = 7, opts: EngineOptions = {}): Engine {
   return Engine.create(seed, CONTENT, SYSTEMS, opts);
 }
 
-const GUILD = { x: 36.5, y: 13.5 };
+const GUILD = { x: 56.5, y: 31.5 };
 
 /** 10:00 at the guild, the player beside the given NPCs (one step apart). */
 function besides(g: Engine, ids: string[]): void {
@@ -395,7 +395,7 @@ describe('closing', () => {
     expect(lastResult(g, 'dialogue.close')).toMatchObject({ ok: false, code: 'no_session' });
     g.queue('dialogue.talk', { npcId: npcEntityId('ron') });
     g.step(1);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 30.5, y: 21.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 50.5, y: 39.5 });
     g.step(25);
     expect(currentConversation(g.world)).toBeNull();
     expect(

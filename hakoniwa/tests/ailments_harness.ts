@@ -46,13 +46,13 @@ export interface Spot {
 }
 
 /** The town square of Borderstone (canon grade 1, thin). */
-export const TOWN: Spot = { map: 'borderstone', x: 30, y: 21 };
+export const TOWN: Spot = { map: 'borderstone', x: 50, y: 39 };
 /** The north spring of Borderstone (a hot spot only in withHotSpot content). */
-export const SPRING: Spot = { map: 'borderstone', x: 16, y: 14 };
+export const SPRING: Spot = { map: 'borderstone', x: 36, y: 32 };
 /** The ruins' depths (canon grade 3, dense). */
-export const DEPTHS: Spot = { map: 'seal_ruins_depths', x: 10, y: 10 };
+export const DEPTHS: Spot = { map: 'seal_ruins_depths', x: 19, y: 18 };
 /** The inner court (canon grade 0, clear). */
-export const COURT: Spot = { map: 'inner_court', x: 8, y: 8 };
+export const COURT: Spot = { map: 'inner_court', x: 20, y: 18 };
 
 /** A game in act 1 with the player at `at`, one tick in (06:00 of day 0). */
 export function game(at: Spot, opts: { seed?: number; content?: ContentMap } = {}): Engine {

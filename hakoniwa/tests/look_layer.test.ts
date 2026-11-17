@@ -179,19 +179,15 @@ describe('the map-brief decor kinds (map_briefs.md 1.10 and 12)', () => {
 
 describe('the shipped maps follow the scene-flow decor rules', () => {
   const content = buildContent();
-  // The ten built maps of scene_flow.md (the test field is a fixture, not a scene).
-  const BUILT = [
-    'divine_court',
-    'seal_ruins',
-    'seal_ruins_depths',
-    'borderstone',
-    'forest_edge',
-    'old_outpost',
-    'ash_waste',
-    'inner_court',
-    'wallenburg',
-    'wallenburg_sewers',
-  ];
+  // Every built map of the atlas (the test field is a fixture, not a scene).
+  const BUILT = content.maps.filter((m) => !m.atlasExempt).map((m) => m.id);
+  /**
+   * Decor caps (map_briefs.md 15 rule 3): a hub town up to 70 (A1 borderstone), other outdoor
+   * maps 60 and indoor maps 12; the fall into the gap carries no decor at all (X2: its
+   * floating frames are an effect layer).
+   */
+  const DECOR_CAP: Record<string, number> = { borderstone: 70 };
+  const NO_DECOR = new Set(['gap_void']);
   const map = (id: string): MapDef => {
     const m = content.maps.find((q) => q.id === id);
     if (!m) throw new Error(`no map ${id}`);
@@ -206,11 +202,13 @@ describe('the shipped maps follow the scene-flow decor rules', () => {
   });
 
   it('every built map carries decor, kept to a modest amount, on tile centres', () => {
+    expect(BUILT.length).toBeGreaterThanOrEqual(22);
     for (const id of BUILT) {
       const m = map(id);
       const decor = m.decor ?? [];
-      expect(decor.length, id).toBeGreaterThan(0);
-      expect(decor.length, id).toBeLessThanOrEqual(m.indoor ? 12 : 60);
+      if (NO_DECOR.has(id)) expect(decor, id).toEqual([]);
+      else expect(decor.length, id).toBeGreaterThan(0);
+      expect(decor.length, id).toBeLessThanOrEqual(DECOR_CAP[id] ?? (m.indoor ? 12 : 60));
       for (const d of decor) {
         expect(DECOR_KINDS).toContain(d.kind);
         expect([d.x % 1, d.y % 1], `${id} ${d.kind} (${d.x},${d.y})`).toEqual([0.5, 0.5]);
@@ -253,7 +251,7 @@ describe('the shipped maps follow the scene-flow decor rules', () => {
       for (const e of m.exits) {
         const near = (m.decor ?? []).some(
           (d) =>
-            ['lamp', 'brazier', 'sign', 'banner'].includes(d.kind) &&
+            ['lamp', 'brazier', 'mine_lamp', 'sign', 'banner'].includes(d.kind) &&
             Math.hypot(d.x - (e.x + 0.5), d.y - (e.y + 0.5)) <= 4,
         );
         expect(near, `${id} exit ${e.id}`).toBe(true);

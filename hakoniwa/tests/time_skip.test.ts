@@ -111,11 +111,11 @@ function finish(g: Engine_, budget = 3 * TICKS_PER_GAME_DAY): void {
   while (skipState(g.world) && g.tick < stop) g.step(1);
 }
 
-const TOWN = { map: 'borderstone', x: 30.5, y: 21.5 };
-const TAVERN = { map: 'borderstone', x: 18.5, y: 26.5 };
-const HUNTER_CAMP = { map: 'forest_edge', x: 6, y: 10 };
+const TOWN = { map: 'borderstone', x: 50.5, y: 39.5 };
+const TAVERN = { map: 'borderstone', x: 38.5, y: 44.5 };
+const HUNTER_CAMP = { map: 'forest_edge', x: 6, y: 34 };
 /** Open ground below the camp (outside it), clear of packs in the QUIET content. */
-const FIELD = { x: 3.5, y: 18.5 };
+const FIELD = { x: 3.5, y: 42.5 };
 
 /**
  * The content with forest_edge's packs near the hunters' camp moved out: in the shipped map
@@ -136,7 +136,7 @@ const QUIET = {
   ),
 } as typeof CONTENT;
 /** A dian wolf spawn of forest_edge (aggro 6, wander radius 2.5). */
-const DIAN_WOLF_SPAWN = { x: 24.5, y: 4.5 };
+const DIAN_WOLF_SPAWN = { x: 28.5, y: 9.5 };
 
 // ---------------------------------------------------------------------------
 
@@ -374,7 +374,7 @@ describe('T-08: may the player wait here (7.2)', () => {
     const c = canWait(court, 'player');
     expect(c.ok).toBe(false);
     if (!c.ok) expect(['place', 'story']).toContain(c.code);
-    const ruins = game('seal_ruins', 18, 14);
+    const ruins = game('seal_ruins', 32, 22);
     const r = canWait(ruins, 'player');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(['place', 'hostile']).toContain(r.code);
@@ -633,7 +633,7 @@ describe('T-11: no model request goes out while a skip runs', () => {
 
 describe('T-16: a log with a fight, waiting and sleeping replays to the same world', () => {
   it('replays field by field', () => {
-    const g = game('forest_edge', 22.5, 21.5, { seed: 11 });
+    const g = game('forest_edge', 22.5, 45.5, { seed: 11 });
     // a grey wolf pack on the southern trail: fight the nearest
     const p = g.world.slices.world.entities.player as { x: number; y: number };
     const wolf = Object.values(g.world.slices.world.entities)

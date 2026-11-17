@@ -651,19 +651,31 @@ describe('the real atlas', () => {
     expect(validateContent(content).filter((p) => p.startsWith('atlas'))).toEqual([]);
   });
 
-  it('lists exactly the built maps of the first round, testfield excepted', () => {
+  it('lists exactly the built maps (the M1 maps and the act 2 pair), testfield excepted', () => {
     const built = content.atlas_maps.filter((m) => m.status === 'built');
     expect(Object.fromEntries(built.map((m) => [m.id, m.code]))).toEqual({
       divine_court: 'P0',
       inner_court: 'X1',
       borderstone: 'A1',
+      borderstone_north: 'A2',
       seal_ruins: 'A3',
       seal_ruins_depths: 'A4',
+      rustridge_mine: 'A5',
       forest_edge: 'A6',
+      ironhemlock_deep: 'A7',
+      brokenspan_post: 'A8',
       ash_waste: 'A9',
       old_outpost: 'A10',
       wallenburg: 'B1',
       wallenburg_sewers: 'B6',
+      dg_old_mine: 'A5-2',
+      earth_train: 'P1',
+      earth_store: 'P2',
+      earth_hospital: 'P3',
+      earth_house: 'P4',
+      gap_void: 'X2',
+      door_corridor: 'X3',
+      dream_doorway: 'X4',
     });
     expect(content.atlas_maps.some((m) => m.id === 'testfield')).toBe(false);
   });
@@ -688,7 +700,7 @@ describe('the real atlas', () => {
       expect(m.sediment, m.id).toBe(entry.sediment);
       expect(styleOf(m), m.id).toBe(entry.style ?? regions.get(entry.region)?.style);
     }
-    // the ten built maps on atlas regions (map_briefs.md 1.3), canon sediment (1.2)
+    // the built maps on atlas regions (map_briefs.md 1.3), canon sediment (1.2)
     const of = (id: string) => content.maps.find((m) => m.id === id);
     expect(
       Object.fromEntries(
@@ -696,8 +708,20 @@ describe('the real atlas', () => {
       ),
     ).toEqual({
       divine_court: ['divine_realm', 0],
+      earth_train: ['earth', 0],
+      earth_store: ['earth', 0],
+      earth_hospital: ['earth', 0],
+      earth_house: ['earth', 0],
+      gap_void: ['court_gap', 0],
+      door_corridor: ['court_gap', 0],
+      dream_doorway: ['court_gap', 0],
       inner_court: ['court_gap', 0],
       borderstone: ['edgestone_area', 1],
+      borderstone_north: ['edgestone_area', 2],
+      rustridge_mine: ['edgestone_area', 2],
+      dg_old_mine: ['edgestone_area', 2],
+      ironhemlock_deep: ['edgestone_area', 2],
+      brokenspan_post: ['ashen_waste', 2],
       forest_edge: ['edgestone_area', 1],
       old_outpost: ['edgestone_area', 1],
       seal_ruins: ['ashen_waste', 2],
@@ -819,7 +843,8 @@ describe('the real atlas', () => {
       valen_fields_battle: 'A10-1 scene battle valen_valley - 3 lothar_plain 1 43-45 56x36 req',
       rootcourt_battle: 'E4-2 scene battle silva ringwood 4 - 2 47-50 48x36 req',
       borderstone_rear_battle: 'A1-2 scene battle edgestone_area ash_border 5 - 2 55-58 48x32 req',
-      dg_old_mine: 'A5-2 scene dungeon edgestone_area ash_border 1 forge_deep 2 6-12 48x48 req',
+      dg_old_mine:
+        'A5-2 scene dungeon edgestone_area ash_border 1,2,3,4,5 forge_deep 2 6-12 48x48 req',
       earth_train: 'P1 scene stage earth - 0,7 earth_modern 0 - 24x8 req',
       earth_store: 'P2 scene stage earth - 0,7 earth_modern 0 - 16x12 req',
       earth_hospital: 'P3 scene stage earth - 0,7 earth_modern 0 - 24x8 req',
@@ -849,8 +874,9 @@ describe('the real atlas', () => {
       ].join(' ');
     const want: Record<string, string> = {
       borderstone_north_trail: 'borderstone>borderstone_north tile trail 1,2,3,4,5 3 {walk:0.7}',
-      rustridge_old_mine: 'rustridge_mine>dg_old_mine tile passage 1 - {}',
-      rustridge_deep_rift: 'rustridge_mine>rustridge_deep tile passage 3,4,5 - {}',
+      rustridge_old_mine: 'rustridge_mine>dg_old_mine tile passage 1,2,3,4,5 - {}',
+      old_mine_vent_shaft: 'dg_old_mine>rustridge_mine tile passage 1,2,3,4,5 - {}',
+      rustridge_deep_rift: 'dg_old_mine>rustridge_deep tile passage 3,4,5 - {}',
       rustridge_new_shaft: 'borderstone_north>rustridge_deep tile passage 3,4,5 - {}',
       castle_well_shaft: 'wallenburg>broken_door_hall tile passage 2,3,4,5 - {}',
       orien_bridge_north: 'orien_banks>orien_isle tile road 3,4,5 - {}',

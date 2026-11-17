@@ -13,7 +13,7 @@ import { ambushChance, sleepAmbushChance } from '../src/systems/travel';
 import { content, withHotSpot } from './ailments_harness';
 
 /** The hunters' camp of forest_edge (a camp with its fire; canon map grade 1). */
-const CAMP = { map: 'forest_edge', x: 6, y: 10 };
+const CAMP = { map: 'forest_edge', x: 6, y: 34 };
 const NIGHT = tickAtDay(0, 22);
 
 /** The smallest world the rest query reads: the sleeper where it lies. */

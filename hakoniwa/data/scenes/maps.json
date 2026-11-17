@@ -3,67 +3,598 @@
     "id": "divine_court",
     "name": "神庭候见厅",
     "region": "divine_realm",
-    "width": 24,
-    "height": 16,
+    "width": 32,
+    "height": 24,
     "indoor": true,
     "sediment": 0,
     "rows": [
-      "########################",
-      "#......................#",
-      "#..##################..#",
-      "#......................#",
-      "#.........::::.........#",
-      "#.........::::.........#",
-      "#......................#",
-      "#######..........#######",
-      "#######++++++++++#######",
-      "#......................#",
-      "#......................#",
-      "#......................#",
-      "#..====................#",
-      "#......................#",
-      "#......................#",
-      "########################"
+      "################################",
+      "#..............................#",
+      "#..............................#",
+      "#..............................#",
+      "#..............................#",
+      "#..............................#",
+      "#......##################......#",
+      "#..............................#",
+      "#.............::::.............#",
+      "#.............::::.............#",
+      "#..............................#",
+      "###########..........###########",
+      "xxxx#######++++++++++#######xxxx",
+      "xxxx#......................#xxxx",
+      "xxxx#......................#xxxx",
+      "xxxx#......................#xxxx",
+      "xxxx#..====................#xxxx",
+      "xxxx#......................#xxxx",
+      "xxxx#......................#xxxx",
+      "xxxx########################xxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     ],
     "legend": {
       "#": "wall",
       ".": "floor",
       ":": "stone",
       "+": "door",
-      "=": "bridge"
+      "=": "bridge",
+      "x": "void"
     },
     "locations": [
-      { "id": "antechamber", "name": "候见厅", "kind": "hall", "x": 1, "y": 9, "w": 22, "h": 6 },
-      { "id": "bench", "name": "长椅", "kind": "seat", "x": 3, "y": 12, "w": 4, "h": 1 },
-      { "id": "spirit_mirror", "name": "灵镜", "kind": "object", "x": 19, "y": 9, "w": 3, "h": 1 },
-      { "id": "number_board", "name": "号码板", "kind": "object", "x": 10, "y": 9, "w": 4, "h": 1 },
-      { "id": "curtain", "name": "帘幕", "kind": "gate", "x": 7, "y": 8, "w": 10, "h": 1 },
-      { "id": "interview_hall", "name": "面试厅", "kind": "hall", "x": 1, "y": 1, "w": 22, "h": 6 },
-      { "id": "long_table", "name": "长桌", "kind": "object", "x": 3, "y": 2, "w": 18, "h": 1 },
+      { "id": "antechamber", "name": "候见厅", "kind": "hall", "x": 5, "y": 13, "w": 22, "h": 6 },
+      { "id": "bench", "name": "长椅", "kind": "seat", "x": 7, "y": 16, "w": 4, "h": 1 },
+      { "id": "spirit_mirror", "name": "灵镜", "kind": "object", "x": 25, "y": 15, "w": 2, "h": 1 },
+      {
+        "id": "number_board",
+        "name": "号码板",
+        "kind": "object",
+        "x": 14,
+        "y": 13,
+        "w": 4,
+        "h": 1
+      },
+      { "id": "curtain", "name": "帘幕", "kind": "gate", "x": 11, "y": 12, "w": 10, "h": 1 },
+      {
+        "id": "interview_hall",
+        "name": "面试厅",
+        "kind": "hall",
+        "x": 1,
+        "y": 1,
+        "w": 30,
+        "h": 10
+      },
+      { "id": "long_table", "name": "长桌", "kind": "object", "x": 7, "y": 6, "w": 18, "h": 1 },
       {
         "id": "sixth_chair",
         "name": "第六把椅子",
         "kind": "object",
-        "x": 21,
-        "y": 1,
+        "x": 25,
+        "y": 5,
         "w": 1,
         "h": 1
       },
-      { "id": "court_mirror", "name": "庭镜", "kind": "object", "x": 10, "y": 4, "w": 4, "h": 2 },
-      { "id": "court_seat", "name": "庭之席", "kind": "seat", "x": 11, "y": 6, "w": 2, "h": 1 },
-      { "id": "witness_stand", "name": "证人台", "kind": "object", "x": 2, "y": 5, "w": 2, "h": 1 },
+      { "id": "court_mirror", "name": "庭镜", "kind": "object", "x": 14, "y": 8, "w": 4, "h": 2 },
+      { "id": "court_seat", "name": "庭之席", "kind": "seat", "x": 15, "y": 10, "w": 2, "h": 1 },
+      { "id": "witness_stand", "name": "证人台", "kind": "object", "x": 6, "y": 9, "w": 2, "h": 1 },
       {
         "id": "evidence_stand",
         "name": "证物台",
         "kind": "object",
-        "x": 20,
-        "y": 5,
+        "x": 24,
+        "y": 9,
         "w": 2,
         "h": 1
       }
     ],
     "spawns": [],
     "exits": [],
-    "decor": [{ "kind": "bench", "x": 3.5, "y": 12.5 }, { "kind": "bench", "x": 6.5, "y": 12.5 }]
+    "decor": [{ "kind": "bench", "x": 7.5, "y": 16.5 }, { "kind": "bench", "x": 10.5, "y": 16.5 }]
+  },
+  {
+    "id": "earth_train",
+    "name": "末班车车厢",
+    "region": "earth",
+    "width": 24,
+    "height": 8,
+    "indoor": true,
+    "sediment": 0,
+    "rows": [
+      "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "xx###++#####++########xx",
+      "##____________________##",
+      "________________________",
+      "##____________________##",
+      "xx####################xx",
+      "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "=": "road",
+      "x": "void"
+    },
+    "locations": [
+      {
+        "id": "seat",
+        "name": "座位",
+        "kind": "seat",
+        "x": 9,
+        "y": 4,
+        "w": 4,
+        "h": 1,
+        "tags": ["stage_start"]
+      },
+      {
+        "id": "opposite",
+        "name": "对面座位",
+        "kind": "seat",
+        "x": 9,
+        "y": 2,
+        "w": 4,
+        "h": 1,
+        "tags": ["door_corner:2"]
+      },
+      { "id": "window", "name": "车窗", "kind": "object", "x": 7, "y": 1, "w": 5, "h": 1 },
+      {
+        "id": "car_door",
+        "name": "车门",
+        "kind": "gate",
+        "x": 12,
+        "y": 1,
+        "w": 2,
+        "h": 1,
+        "tags": ["stage_door", "door_corner:0"]
+      },
+      {
+        "id": "gangway",
+        "name": "贯通道",
+        "kind": "gate",
+        "x": 22,
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "tags": ["door_corner:1"]
+      },
+      {
+        "id": "near_corner",
+        "name": "近处",
+        "kind": "object",
+        "x": 15,
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "tags": ["door_corner:3"]
+      }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [
+      { "kind": "bench", "x": 3.5, "y": 2.5 },
+      { "kind": "bench", "x": 18.5, "y": 2.5 },
+      { "kind": "bench", "x": 3.5, "y": 4.5 },
+      { "kind": "bench", "x": 18.5, "y": 4.5 }
+    ]
+  },
+  {
+    "id": "earth_store",
+    "name": "雨夜便利店",
+    "region": "earth",
+    "width": 16,
+    "height": 12,
+    "indoor": true,
+    "sediment": 0,
+    "rows": [
+      "################",
+      "#__########____#",
+      "#______________+",
+      "#______________#",
+      "#_____######___#",
+      "#__#___________#",
+      "#__#___________#",
+      "#__#__######___#",
+      "#__#___________#",
+      "#______________#",
+      "#######++#######",
+      "ssssssssssssssss"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "=": "road",
+      "x": "void"
+    },
+    "locations": [
+      {
+        "id": "counter",
+        "name": "收银台",
+        "kind": "shop",
+        "x": 1,
+        "y": 5,
+        "w": 2,
+        "h": 4,
+        "tags": ["stage_start"]
+      },
+      {
+        "id": "freezer",
+        "name": "冷柜",
+        "kind": "object",
+        "x": 3,
+        "y": 1,
+        "w": 8,
+        "h": 1,
+        "tags": ["stage_door", "door_corner:0"]
+      },
+      {
+        "id": "entrance",
+        "name": "入口",
+        "kind": "gate",
+        "x": 6,
+        "y": 9,
+        "w": 4,
+        "h": 1,
+        "tags": ["stage_start"]
+      },
+      {
+        "id": "aisle",
+        "name": "货架通道",
+        "kind": "road",
+        "x": 5,
+        "y": 5,
+        "w": 8,
+        "h": 2,
+        "tags": ["door_corner:2"]
+      },
+      {
+        "id": "stockroom",
+        "name": "仓库门",
+        "kind": "gate",
+        "x": 14,
+        "y": 2,
+        "w": 1,
+        "h": 1,
+        "tags": ["door_corner:1"]
+      },
+      {
+        "id": "near_corner",
+        "name": "近处",
+        "kind": "object",
+        "x": 12,
+        "y": 8,
+        "w": 2,
+        "h": 1,
+        "tags": ["door_corner:3"]
+      },
+      { "id": "sidewalk", "name": "门外人行道", "kind": "road", "x": 0, "y": 11, "w": 16, "h": 1 }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [{ "kind": "crate", "x": 9.5, "y": 11.5 }]
+  },
+  {
+    "id": "earth_hospital",
+    "name": "凌晨的医院走廊",
+    "region": "earth",
+    "width": 24,
+    "height": 8,
+    "indoor": true,
+    "sediment": 0,
+    "rows": [
+      "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "###+###+################",
+      "#_____###______________#",
+      "#______________________+",
+      "#______________________+",
+      "#______________________#",
+      "########################",
+      "xxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "=": "road",
+      "x": "void"
+    },
+    "locations": [
+      {
+        "id": "chairs",
+        "name": "候诊长椅",
+        "kind": "seat",
+        "x": 11,
+        "y": 5,
+        "w": 4,
+        "h": 1,
+        "tags": ["stage_start"]
+      },
+      { "id": "nurse_station", "name": "护士站", "kind": "office", "x": 6, "y": 2, "w": 3, "h": 1 },
+      {
+        "id": "ward_door",
+        "name": "病房门",
+        "kind": "gate",
+        "x": 2,
+        "y": 1,
+        "w": 3,
+        "h": 1,
+        "tags": ["door_corner:2"]
+      },
+      {
+        "id": "exit_sign",
+        "name": "安全出口灯下",
+        "kind": "object",
+        "x": 13,
+        "y": 1,
+        "w": 3,
+        "h": 1,
+        "tags": ["stage_door", "door_corner:0"]
+      },
+      {
+        "id": "elevator",
+        "name": "电梯口",
+        "kind": "gate",
+        "x": 21,
+        "y": 3,
+        "w": 2,
+        "h": 2,
+        "tags": ["door_corner:1"]
+      },
+      {
+        "id": "near_corner",
+        "name": "近处",
+        "kind": "object",
+        "x": 16,
+        "y": 4,
+        "w": 2,
+        "h": 1,
+        "tags": ["door_corner:3"]
+      }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [
+      { "kind": "bench", "x": 11.5, "y": 5.5 },
+      { "kind": "bench", "x": 13.5, "y": 5.5 },
+      { "kind": "bench", "x": 15.5, "y": 5.5 },
+      { "kind": "cart", "x": 19.5, "y": 2.5 }
+    ]
+  },
+  {
+    "id": "earth_house",
+    "name": "老宅最后一个房间",
+    "region": "earth",
+    "width": 12,
+    "height": 10,
+    "indoor": true,
+    "sediment": 0,
+    "rows": [
+      "############",
+      "#___####___#",
+      "#__________#",
+      "#_#_____##_#",
+      "+_#_____##_#",
+      "#__________#",
+      "#__________#",
+      "#ss________#",
+      "#ss________#",
+      "############"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "=": "road",
+      "x": "void"
+    },
+    "locations": [
+      {
+        "id": "old_chair",
+        "name": "旧椅子",
+        "kind": "seat",
+        "x": 5,
+        "y": 6,
+        "w": 2,
+        "h": 1,
+        "tags": ["stage_start"]
+      },
+      {
+        "id": "door_frame",
+        "name": "房门门框",
+        "kind": "gate",
+        "x": 0,
+        "y": 3,
+        "w": 1,
+        "h": 3,
+        "tags": ["door_corner:2"]
+      },
+      {
+        "id": "wardrobe",
+        "name": "旧衣柜",
+        "kind": "object",
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 1,
+        "tags": ["stage_door", "door_corner:0"]
+      },
+      { "id": "window", "name": "窗", "kind": "object", "x": 11, "y": 3, "w": 1, "h": 3 },
+      {
+        "id": "stairs",
+        "name": "楼梯口",
+        "kind": "gate",
+        "x": 1,
+        "y": 7,
+        "w": 2,
+        "h": 2,
+        "tags": ["door_corner:1"]
+      },
+      {
+        "id": "near_corner",
+        "name": "近处",
+        "kind": "object",
+        "x": 7,
+        "y": 6,
+        "w": 2,
+        "h": 1,
+        "tags": ["door_corner:3"]
+      }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [
+      { "kind": "crate", "x": 9.5, "y": 7.5 },
+      { "kind": "crate", "x": 10.5, "y": 7.5 },
+      { "kind": "crate", "x": 3.5, "y": 6.5 }
+    ]
+  },
+  {
+    "id": "gap_void",
+    "name": "庭间之隙",
+    "region": "court_gap",
+    "width": 16,
+    "height": 16,
+    "indoor": true,
+    "style": "door_corridor",
+    "sediment": 0,
+    "rows": [
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxx____xxxxxx",
+      "xxxxxx____xxxxxx",
+      "xxxxxx____xxxxxx",
+      "xxxxxx____xxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "x": "void"
+    },
+    "locations": [
+      { "id": "fall", "name": "坠落", "kind": "stage", "x": 6, "y": 6, "w": 4, "h": 4 }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": []
+  },
+  {
+    "id": "door_corridor",
+    "name": "千门回廊",
+    "region": "court_gap",
+    "width": 64,
+    "height": 16,
+    "indoor": true,
+    "style": "door_corridor",
+    "sediment": 0,
+    "rows": [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx##+#+#+#+#+#+###xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx#______________#xxxxxx##+#+#+###",
+      "x##+#+#+##xxxxxxxxxxxxxxxxxxxxxx#______________#xxxxxx#________#",
+      "##_______#####+#+########+#+#####______________########________#",
+      "##_______#+##______#+#+#______###______________#+#+#+##________#",
+      "#ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss#",
+      "#ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss#",
+      "#ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss#",
+      "#ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss#",
+      "##_______#+##______#+#+#______###______________#+#+#+##________#",
+      "##_______#####+#+########+#+#####______________########________#",
+      "x##+#+#+##xxxxxxxxxxxxxxxxxxxxxx#______________#xxxxxx#________#",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx#______________#xxxxxx##+#+#+###",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx##+#+#+#+#+#+###xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "x": "void"
+    },
+    "locations": [
+      { "id": "wake_hall", "name": "醒厅", "kind": "hall", "x": 2, "y": 4, "w": 7, "h": 8 },
+      { "id": "knot_hall", "name": "结绳廊", "kind": "hall", "x": 13, "y": 5, "w": 6, "h": 6 },
+      { "id": "mirror_hall", "name": "镜廊", "kind": "hall", "x": 24, "y": 5, "w": 6, "h": 6 },
+      {
+        "id": "corridor_mid",
+        "name": "回廊中段",
+        "kind": "hall",
+        "x": 33,
+        "y": 2,
+        "w": 14,
+        "h": 12
+      },
+      {
+        "id": "restoration_door",
+        "name": "复原之门",
+        "kind": "gate",
+        "x": 60,
+        "y": 6,
+        "w": 3,
+        "h": 4
+      }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [
+      { "kind": "doorframe", "x": 11.5, "y": 7.5 },
+      { "kind": "doorframe", "x": 22.5, "y": 7.5 },
+      { "kind": "doorframe", "x": 31.5, "y": 7.5 },
+      { "kind": "statue", "x": 5.5, "y": 5.5 }
+    ]
+  },
+  {
+    "id": "dream_doorway",
+    "name": "梦中的门口",
+    "region": "court_gap",
+    "width": 16,
+    "height": 12,
+    "style": "door_corridor",
+    "sediment": 0,
+    "rows": [
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxx______xxxxx",
+      "xxxxx______xxxxx",
+      "xxxxx______xxxxx",
+      "xxxxx______xxxxx",
+      "xxxxx______xxxxx",
+      "xxxxx______xxxxx",
+      "xxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxx"
+    ],
+    "legend": {
+      "#": "wall",
+      "_": "floor",
+      "+": "door",
+      "s": "stone",
+      "x": "void"
+    },
+    "locations": [
+      { "id": "doorway", "name": "门前", "kind": "stage", "x": 6, "y": 7, "w": 4, "h": 2 },
+      { "id": "dream_door", "name": "门", "kind": "gate", "x": 7, "y": 4, "w": 2, "h": 1 }
+    ],
+    "spawns": [],
+    "exits": [],
+    "decor": [{ "kind": "doorframe", "x": 7.5, "y": 4.5 }]
   }
 ]

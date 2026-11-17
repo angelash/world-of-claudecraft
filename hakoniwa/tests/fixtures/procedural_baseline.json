@@ -1256,43 +1256,43 @@
   "maps": {
     "divine_court": {
       "pack": "241d406b",
-      "layout": "4b310a0e",
+      "layout": "76511f37",
       "roofs": "811c9dc5"
     },
     "seal_ruins": {
       "pack": "e03d9400",
-      "layout": "2438095b",
+      "layout": "125dd234",
       "roofs": "811c9dc5"
     },
     "seal_ruins_depths": {
       "pack": "e03d9400",
-      "layout": "76d748a0",
+      "layout": "edff459b",
       "roofs": "811c9dc5"
     },
     "borderstone": {
       "pack": "4563b726",
-      "layout": "5d75a641",
-      "roofs": "7616b214"
+      "layout": "a1674448",
+      "roofs": "9f3a1d57"
     },
     "forest_edge": {
       "pack": "6df6113a",
-      "layout": "823a10ad",
+      "layout": "158b114a",
       "roofs": "811c9dc5"
     },
     "old_outpost": {
       "pack": "4563b726",
-      "layout": "9bc5a11f",
+      "layout": "5c9f96a6",
       "roofs": "811c9dc5"
     },
     "ash_waste": {
       "pack": "489a8dbf",
-      "layout": "7ed15a37",
+      "layout": "bd08d1c7",
       "roofs": "811c9dc5"
     },
     "inner_court": {
       "pack": "241d406b",
-      "layout": "1d21a3d5",
-      "roofs": "d5d27235"
+      "layout": "2a74391c",
+      "roofs": "0a8621e4"
     },
     "wallenburg": {
       "pack": "e9a93c8f",

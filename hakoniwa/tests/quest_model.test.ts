@@ -49,7 +49,7 @@ declare module '../src/core/contracts' {
 
 const BASE = narrativeContent();
 const TOWN = 'borderstone';
-const PLAZA = { x: 24, y: 17, w: 12, h: 9 };
+const PLAZA = { x: 44, y: 35, w: 12, h: 9 };
 const ITEM = (BASE.items[0] as { id: string }).id;
 const DOOR = ((BASE as { doors?: { id: string }[] }).doors ?? [])[0]?.id ?? 'awaken';
 
@@ -222,7 +222,7 @@ describe('objective kinds', () => {
         ]),
       ]),
     ]);
-    person(t, 'zz_owen', TOWN, 3, 40);
+    person(t, 'zz_owen', TOWN, 23, 58);
     start(t, 'zz_escort');
     expect(status(t.g, 'zz_escort')).toBe('active');
     person(t, 'zz_owen', 'forest_edge', PLAZA.x + 2, PLAZA.y + 2);
@@ -286,13 +286,13 @@ describe('objective kinds', () => {
         stage('in', [{ type: 'stealth', mapId: TOWN, location: 'orphanage', label: 'x' }]),
       ]),
     ]);
-    placePlayer(t, TOWN, 3.5, 40.5);
+    placePlayer(t, TOWN, 23.5, 58.5);
     start(t, 'zz_sneak');
     emit(t, 'stealth.detected', { entityId: t.g.world.slices.world.playerId, mapId: TOWN });
-    placePlayer(t, TOWN, 17, 10);
+    placePlayer(t, TOWN, 37, 28);
     expect(status(t.g, 'zz_sneak')).toBe('active');
     placePlayer(t, 'forest_edge', 5, 5);
-    placePlayer(t, TOWN, 17, 10);
+    placePlayer(t, TOWN, 37, 28);
     expect(status(t.g, 'zz_sneak')).toBe('done');
   });
 
@@ -302,10 +302,10 @@ describe('objective kinds', () => {
         stage('in', [{ type: 'stealth', mapId: TOWN, location: 'orphanage', label: 'x' }]),
       ]),
     ]);
-    placePlayer(t, TOWN, 3.5, 40.5);
+    placePlayer(t, TOWN, 23.5, 58.5);
     start(t, 'zz_sneak3');
     emit(t, 'stealth.detected', { entityId: 'someone_else', mapId: TOWN });
-    placePlayer(t, TOWN, 17, 10);
+    placePlayer(t, TOWN, 37, 28);
     expect(status(t.g, 'zz_sneak3')).toBe('done');
   });
 
@@ -357,17 +357,17 @@ describe('objective kinds', () => {
         ]),
       ]),
     ]);
-    person(t, 'gorn', TOWN, 10, 30);
-    placePlayer(t, TOWN, 40.5, 40.5);
+    person(t, 'gorn', TOWN, 30, 48);
+    placePlayer(t, TOWN, 60.5, 58.5);
     start(t, 'zz_follow');
     // the stage sent the guide on the NPC system's errand (npc.goto)
     t.g.step(2);
     expect(gotos.at(-1)).toEqual({ npcId: 'gorn', locationId: 'plaza', hours: 6 });
     // the player joins the guide on the way, and walks in with them
-    placePlayer(t, TOWN, 12.5, 30.5);
+    placePlayer(t, TOWN, 32.5, 48.5);
     expect(t.g.world.slices.quests.quests.zz_follow?.counts[0]).toBe(1);
-    person(t, 'gorn', TOWN, 22, 22);
-    placePlayer(t, TOWN, 24.5, 23.5);
+    person(t, 'gorn', TOWN, 42, 40);
+    placePlayer(t, TOWN, 44.5, 41.5);
     expect(status(t.g, 'zz_follow')).toBe('active');
     person(t, 'gorn', TOWN, PLAZA.x + 2, PLAZA.y + 2);
     expect(status(t.g, 'zz_follow')).toBe('done');
@@ -379,8 +379,8 @@ describe('objective kinds', () => {
         stage('go', [{ type: 'follow', npc: 'gorn', mapId: TOWN, location: 'plaza', label: 'x' }]),
       ]),
     ]);
-    person(t, 'gorn', TOWN, 10, 30);
-    placePlayer(t, TOWN, 45.5, 5.5);
+    person(t, 'gorn', TOWN, 30, 48);
+    placePlayer(t, TOWN, 65.5, 23.5);
     start(t, 'zz_follow3');
     person(t, 'gorn', TOWN, PLAZA.x + 2, PLAZA.y + 2);
     // turning up at the place after the guide is not following
@@ -405,10 +405,10 @@ describe('objective kinds', () => {
         ]),
       ]),
     ]);
-    person(t, 'gorn', TOWN, 10, 30);
-    placePlayer(t, TOWN, 12.5, 30.5);
+    person(t, 'gorn', TOWN, 30, 48);
+    placePlayer(t, TOWN, 32.5, 48.5);
     start(t, 'zz_optional');
-    placePlayer(t, TOWN, 45.5, 5.5);
+    placePlayer(t, TOWN, 65.5, 23.5);
     expect(status(t.g, 'zz_optional')).toBe('active');
     expect(t.g.world.slices.quests.quests.zz_optional?.counts[1]).toBe(-1);
     set(t, 'zz_done', true);
@@ -474,10 +474,10 @@ describe('objective kinds', () => {
         stage('search', [{ type: 'flag', when: 'zz_found', label: 'x' }]),
       ]),
     ]);
-    person(t, 'gorn', TOWN, 10, 30);
-    placePlayer(t, TOWN, 12.5, 30.5);
+    person(t, 'gorn', TOWN, 30, 48);
+    placePlayer(t, TOWN, 32.5, 48.5);
     start(t, 'zz_follow2');
-    placePlayer(t, TOWN, 45.5, 5.5);
+    placePlayer(t, TOWN, 65.5, 23.5);
     expect(flags(t.g).zz_lost).toBe(true);
     expect(status(t.g, 'zz_follow2')).toBe('active');
     expect(flags(t.g)['quest.zz_follow2.stage']).toBe('search');
@@ -570,8 +570,8 @@ describe('objective kinds', () => {
         stage('stay', [{ type: 'accompany', npc: 'shiya', minutes: 180, range: 5, label: 'x' }]),
       ]),
     ]);
-    person(t, 'shiya', TOWN, 20, 20);
-    placePlayer(t, TOWN, 21.5, 20.5);
+    person(t, 'shiya', TOWN, 40, 38);
+    placePlayer(t, TOWN, 41.5, 38.5);
     start(t, 'zz_company');
     t.g.step(60 * 20); // one game hour tick by tick
     const minutes = () =>
@@ -579,11 +579,11 @@ describe('objective kinds', () => {
         ?.progress ?? -1;
     expect(minutes()).toBeGreaterThanOrEqual(59);
     expect(minutes()).toBeLessThanOrEqual(61);
-    placePlayer(t, TOWN, 45.5, 40.5);
+    placePlayer(t, TOWN, 65.5, 58.5);
     const apart = minutes();
     t.g.step(TICKS_PER_GAME_HOUR);
     expect(minutes()).toBe(apart);
-    placePlayer(t, TOWN, 21.5, 20.5);
+    placePlayer(t, TOWN, 41.5, 38.5);
     stride.on = true;
     t.g.step(3 * TICKS_PER_GAME_HOUR);
     stride.on = false;

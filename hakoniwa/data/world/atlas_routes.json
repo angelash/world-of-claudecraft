@@ -1,21 +1,20 @@
 [
   {
     "id": "borderstone_seal_ruins",
-    "from": "borderstone",
+    "from": "borderstone_north",
     "to": "seal_ruins",
     "layer": "tile",
     "kind": "trail",
-    "road": "镇北小路（上残阶坡）",
-    "km": 6,
+    "road": "残阶坡",
+    "km": 3,
     "hours": {
-      "walk": 1.5,
-      "ride": 0.5
+      "walk": 0.7
     },
     "acts": [1, 2, 3, 4, 5],
     "fromExit": "to_seal_ruins",
-    "toExit": "to_borderstone",
+    "toExit": "to_borderstone_north",
     "status": "built",
-    "note": "第一幕往返的主路；第一轮直连。镇北与界石线（A2）建成后，北门出口改通 A2，本路线起点改为 borderstone_north、公里 3（地图简报 A2）。"
+    "note": "镇北与界石线北缘中段的残阶坡上到遗迹正门；正门内的门厅在见过阿什或清开落石之前不通（开关格 gate_hall_rockfall），首访从巢井井口出来。"
   },
   {
     "id": "seal_ruins_stairs",
@@ -179,10 +178,12 @@
       "walk": 0.7
     },
     "acts": [1, 2, 3, 4, 5],
-    "status": "planned"
+    "status": "built",
+    "fromExit": "to_borderstone_north_w",
+    "toExit": "to_borderstone_w"
   },
   {
-    "status": "planned",
+    "status": "built",
     "id": "borderstone_north_trail",
     "from": "borderstone",
     "to": "borderstone_north",
@@ -194,7 +195,9 @@
       "walk": 0.7
     },
     "acts": [1, 2, 3, 4, 5],
-    "note": "A1 北门到 A2 南缘；A2 建成后北门出口改走这里（地图简报第 9.1 节）。"
+    "note": "A1 北门外的镇北小路到 A2 南缘。",
+    "fromExit": "to_borderstone_north",
+    "toExit": "to_borderstone"
   },
   {
     "id": "rustridge_mine_mouth",
@@ -204,30 +207,37 @@
     "kind": "passage",
     "road": "锈岭矿口",
     "acts": [1, 2, 3, 4, 5],
-    "status": "planned",
-    "opens": "第 2 到 3 周的矿道委托；下层在一夜打通塌方后开放"
+    "status": "built",
+    "opens": "第 2 到 3 周的矿道委托；下层在一夜打通塌方后开放",
+    "fromExit": "to_rustridge_mine",
+    "toExit": "to_borderstone_north"
   },
   {
-    "status": "planned",
+    "status": "built",
     "id": "rustridge_old_mine",
     "from": "rustridge_mine",
     "to": "dg_old_mine",
     "layer": "tile",
     "kind": "passage",
     "road": "边石旧矿的旧矿道",
-    "acts": [1],
-    "note": "锈岭矿口一侧的旧矿道（A5-2）。"
+    "acts": [1, 2, 3, 4, 5],
+    "note": "锈岭矿主巷南端的塌方口与旧矿阶（A5-2）。",
+    "fromExit": "to_dg_old_mine",
+    "toExit": "to_rustridge_mine",
+    "opens": "一夜矿道开始之后，塌方口同时打开",
+    "requiresFlags": ["quest.q_a1_m06_mine"]
   },
   {
     "status": "planned",
     "id": "rustridge_deep_rift",
-    "from": "rustridge_mine",
+    "from": "dg_old_mine",
     "to": "rustridge_deep",
     "layer": "tile",
     "kind": "passage",
     "road": "空心石裂缝",
     "acts": [3, 4, 5],
-    "opens": "第三幕"
+    "opens": "第三幕",
+    "note": "旧矿下层晶背之母的巢南墙（开关格 hollow_rift_seal 在第三幕打开）。"
   },
   {
     "status": "planned",
@@ -248,8 +258,10 @@
     "kind": "trail",
     "road": "猎径",
     "acts": [1, 2, 3, 4, 5],
-    "status": "planned",
-    "opens": "魔物季（第 7 周前后）"
+    "status": "built",
+    "opens": "魔物季（第 7 周前后）",
+    "fromExit": "to_ironhemlock_deep",
+    "toExit": "to_forest_edge"
   },
   {
     "id": "ash_road_upstream",
@@ -263,8 +275,10 @@
       "walk": 15
     },
     "acts": [1, 2, 3, 4, 5],
-    "status": "planned",
-    "note": "灰地难行，不宜骑马；由地理志 4.3 边石镇到折桥驿 15 公里减去镇北 3 公里折算（提案）。"
+    "status": "built",
+    "note": "灰地难行，不宜骑马；由地理志 4.3 边石镇到折桥驿 15 公里减去镇北 3 公里折算（提案）。",
+    "fromExit": "to_brokenspan_post",
+    "toExit": "to_borderstone_north"
   },
   {
     "id": "brokenspan_crystal_gully",
@@ -275,8 +289,10 @@
     "road": "灰路（往晶沟）",
     "km": 5,
     "acts": [1, 2, 3, 4, 5],
-    "status": "planned",
-    "note": "晶沟在折桥驿西南；距离为提案。"
+    "status": "built",
+    "note": "晶沟在折桥驿西南；距离为提案。",
+    "fromExit": "to_ash_waste",
+    "toExit": "to_brokenspan_post"
   },
   {
     "id": "south_road_north",
@@ -1108,5 +1124,20 @@
     "kind": "passage",
     "acts": [4, 5],
     "opens": "炉长会许可或契约法庭的试约委托"
+  },
+  {
+    "id": "old_mine_vent_shaft",
+    "from": "dg_old_mine",
+    "to": "rustridge_mine",
+    "layer": "tile",
+    "kind": "passage",
+    "road": "旧通风竖井",
+    "acts": [1, 2, 3, 4, 5],
+    "oneWay": true,
+    "fromExit": "to_mine_vent",
+    "status": "built",
+    "opens": "击败晶背之母后",
+    "requiresFlags": ["boss.crystal_mother.defeated"],
+    "note": "首领后的捷径：巢西的旧通风竖井直上锈岭矿的矿口前室（地图简报 A5）。"
   }
 ]

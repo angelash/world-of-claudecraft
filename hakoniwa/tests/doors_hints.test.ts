@@ -89,7 +89,7 @@ describe('the hint director (18.3)', () => {
         ],
       }),
     ]);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 19.5, y: 11.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 19.5, y: 35.5 });
     setFlags(g, { act: 'act1', p_door_hints: 'blade', 'test.begun': true });
     const a = hintCandidates(g.world, g.content);
     expect(a.map((c) => [c.doorId, c.score])).toEqual([

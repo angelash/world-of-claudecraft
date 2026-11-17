@@ -121,7 +121,7 @@ function spawnNear(g: Engine, monsterId: string, level: number, dx = 1.2): strin
 
 /** Move the player to an empty spot of the sigil hall, away from the corridor monsters. */
 function isolate(g: Engine): void {
-  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
   g.step(1);
 }
 
@@ -476,7 +476,7 @@ describe('combat chain', () => {
     const brain = units(g)[id]?.ai;
     expect(brain?.state).toBe('chase');
     expect(units(g)[id]?.threat.player).toBeGreaterThan(0);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 3.5, y: 9.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 12.5, y: 17.5 });
     g.step(20);
     expect(['evade', 'idle']).toContain(units(g)[id]?.ai?.state);
     g.step(20 * 12);
@@ -538,7 +538,12 @@ describe('the return through the door (power_system.md 9.8)', () => {
     expect(units(g).player?.auras.map((a) => a.id)).toContain('aur_st_revival_fatigue');
     // the sigil hall where the first door stands (location tagged `revive`), not the wake point
     const p = ents(g).player;
-    expect(Math.hypot((p?.x ?? 0) - 18, (p?.y ?? 0) - 10)).toBeLessThan(1.5);
+    const hall = g.content.maps
+      .find((m) => m.id === 'seal_ruins')
+      ?.locations.find((l) => l.tags?.includes('revive'));
+    const hx = (hall?.x ?? 0) + (hall?.w ?? 0) / 2;
+    const hy = (hall?.y ?? 0) + (hall?.h ?? 0) / 2;
+    expect(Math.hypot((p?.x ?? 0) - hx, (p?.y ?? 0) - hy)).toBeLessThan(1.5);
     expect(units(g).player?.hp).toBeGreaterThan(1);
     expect(events(g, 'entity.died').some((e) => e.data.kind === 'player')).toBe(true);
   });
@@ -767,8 +772,8 @@ describe('presence, guards, queries, determinism', () => {
         kind: 'npc',
         name: '卫兵',
         mapId: 'seal_ruins',
-        x: 18.5,
-        y: 11.5,
+        x: 32.5,
+        y: 19.5,
         faction: 'town',
         appearance: { base: 'human', colors: ['#000000', '#000000', '#000000', '#000000'] },
         tags: ['npc', 'guard', 'lvl:12'],

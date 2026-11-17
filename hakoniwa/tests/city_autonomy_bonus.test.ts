@@ -54,13 +54,13 @@ function foundedNation(seed: number) {
     for (const e of evs) if (e.kind === 'command.result') events.push(e);
   });
   expect(
-    run(engine, 'world.teleport', { entityId: 'player', mapId: SITE, x: 22.5, y: 19.5 }, events).ok,
+    run(engine, 'world.teleport', { entityId: 'player', mapId: SITE, x: 46.5, y: 39.5 }, events).ok,
   ).toBe(true);
   const places: [string, number, number][] = [
-    ['communal_stove', 15, 14],
-    ['shack', 18, 14],
-    ['shack', 21, 14],
-    ['farm', 14, 23],
+    ['communal_stove', 39, 34],
+    ['shack', 42, 34],
+    ['shack', 45, 34],
+    ['farm', 38, 43],
   ];
   for (const [defId, x, y] of places) {
     expect(run(engine, 'city.place', { siteId: SITE, defId, x, y }, events).ok).toBe(true);

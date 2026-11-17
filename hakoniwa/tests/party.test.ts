@@ -68,7 +68,7 @@ function recruit(g: Engine, ...ids: string[]): void {
 
 /** The empty sigil hall, away from the corridor monsters. */
 function isolate(g: Engine): void {
-  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
   g.step(1);
 }
 
@@ -133,10 +133,10 @@ describe('following and fighting', () => {
   it('follows the player to another map and keeps formation', () => {
     const g = makeGame();
     recruit(g, 'ron');
-    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 8.5, y: 11.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 8.5, y: 35.5 });
     g.step(2);
     expect(ents(g).companion_ron?.mapId).toBe('forest_edge');
-    g.queue('world.move_to', { entityId: 'player', x: 18.5, y: 16.5 });
+    g.queue('world.move_to', { entityId: 'player', x: 14.5, y: 37.5 });
     g.step(20 * 6);
     const p = ents(g).player;
     const r = ents(g).companion_ron;
@@ -231,7 +231,7 @@ describe('following and fighting', () => {
     if (nu) nu.hp = 1;
     for (let i = 0; i < 400 && !nu?.downed; i++) g.step(1);
     expect(nu?.downed).toBe(true);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 3.5, y: 9.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 12.5, y: 17.5 });
     g.step(20 * 25);
     expect(nu?.downed).toBe(false);
     expect(ents(g).companion_nera?.alive).toBe(true);

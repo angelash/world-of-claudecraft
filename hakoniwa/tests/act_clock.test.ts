@@ -493,7 +493,7 @@ describe('the clock across skips, ticks, acts and saves', () => {
     const evs: AnyWorldEvent[] = [];
     g.onEvents((e) => evs.push(...e));
     g.queue('flag.set', { key: 'act', value: 'act1' });
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 30.5, y: 21.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 50.5, y: 39.5 });
     g.step(2);
     return { g, evs };
   }

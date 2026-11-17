@@ -84,7 +84,7 @@ function toOutpost(engine: Engine, events: AnyWorldEvent[]): void {
   const r = run(
     engine,
     'world.teleport',
-    { entityId: 'player', mapId: SITE, x: 22.5, y: 19.5 },
+    { entityId: 'player', mapId: SITE, x: 46.5, y: 39.5 },
     events,
   );
   expect(r.ok).toBe(true);
@@ -100,12 +100,12 @@ function foundedVillage(seed = 7) {
   const events = collect(engine);
   toOutpost(engine, events);
   const places: [string, number, number][] = [
-    ['communal_stove', 15, 14],
-    ['shack', 18, 14],
-    ['shack', 21, 14],
-    ['shack', 24, 14],
-    ['shack', 27, 14],
-    ['farm', 14, 23],
+    ['communal_stove', 39, 34],
+    ['shack', 42, 34],
+    ['shack', 45, 34],
+    ['shack', 48, 34],
+    ['shack', 51, 34],
+    ['farm', 38, 43],
   ];
   for (const [defId, x, y] of places) {
     const r = run(engine, 'city.place', { siteId: SITE, defId, x, y }, events);
@@ -171,18 +171,18 @@ describe('placement validator', () => {
     const engine = createGame({ seed: 1 });
     const w = engine.world;
     const c = engine.content;
-    expect(previewPlacement(w, c, SITE, 'shack', 15, 14).ok).toBe(true);
+    expect(previewPlacement(w, c, SITE, 'shack', 39, 34).ok).toBe(true);
     const code = (defId: string, x: number, y: number) => {
       const r = previewPlacement(w, c, SITE, defId, x, y);
       return r.ok ? 'ok' : r.code;
     };
-    expect(code('shack', 15, 21)).toBe('road');
-    expect(code('shack', 2, 2)).toBe('bounds');
-    expect(code('shack', 26, 28)).toBe('terrain'); // the grove inside the old wall
-    expect(code('cabin', 15, 14)).toBe('locked');
-    expect(code('fishing_hut', 15, 14)).toBe('terrain');
-    expect(code('shack', 21, 18)).toBe('reach'); // covers the village centre
-    const r = previewPlacement(w, c, SITE, 'shack', 2, 2);
+    expect(code('shack', 39, 41)).toBe('road');
+    expect(code('shack', 26, 22)).toBe('bounds');
+    expect(code('shack', 50, 48)).toBe('terrain'); // the grove inside the old wall
+    expect(code('cabin', 39, 34)).toBe('locked');
+    expect(code('fishing_hut', 39, 34)).toBe('terrain');
+    expect(code('shack', 45, 38)).toBe('reach'); // covers the village centre
+    const r = previewPlacement(w, c, SITE, 'shack', 26, 22);
     expect(!r.ok && r.reason).toEqual(tr('sys.city.reject.bounds'));
   });
 
@@ -382,7 +382,7 @@ describe('settlement chain', () => {
     run(engine, 'city.add_population', { siteId: SITE, group: 'migrants', count: 30 }, events);
     r = run(engine, 'city.found', { siteId: SITE }, events);
     expect(r.code).toBe('stove');
-    run(engine, 'city.place', { siteId: SITE, defId: 'communal_stove', x: 15, y: 14 }, events);
+    run(engine, 'city.place', { siteId: SITE, defId: 'communal_stove', x: 39, y: 34 }, events);
     stepDays(engine, 2);
     r = run(engine, 'city.found', { siteId: SITE }, events);
     expect(r.code).toBe('food');
@@ -391,7 +391,7 @@ describe('settlement chain', () => {
   it('requires the player on site (or a door node) for orders', () => {
     const engine = createGame({ seed: 3 });
     const events = collect(engine);
-    const r = run(engine, 'city.place', { siteId: SITE, defId: 'shack', x: 15, y: 14 }, events);
+    const r = run(engine, 'city.place', { siteId: SITE, defId: 'shack', x: 39, y: 34 }, events);
     expect(r.ok).toBe(false);
     expect(r.code).toBe('not_here');
   });
@@ -448,8 +448,8 @@ describe('settlement chain', () => {
     site.buildings.push({
       id: 'mill_test',
       defId: 'mill_bakery',
-      x: 30,
-      y: 30,
+      x: 54,
+      y: 50,
       w: 3,
       h: 3,
       status: 'active',
@@ -642,7 +642,7 @@ describe('officials and autonomy', () => {
     expect(engine.world.slices.city.sites[SITE]?.stage).toBe('territory');
     expect(engine.world.meta.flags.territory_autonomy).toBe(Math.round(10 + village * 0.4));
     // the territory zones east of the creek open up
-    expect(previewPlacement(engine.world, engine.content, SITE, 'shack', 41, 12).ok).toBe(true);
+    expect(previewPlacement(engine.world, engine.content, SITE, 'shack', 65, 32).ok).toBe(true);
     expect(engine.world.meta.flags.autonomy).toBeUndefined();
     run(engine, 'flag.set', { key: 'a4_nation_founded', value: true }, events);
     expect(typeof engine.world.meta.flags.autonomy).toBe('number');
@@ -718,12 +718,12 @@ describe('inner court', () => {
     const placed = run(
       engine,
       'city.place',
-      { siteId: 'inner_court', defId: 'court_garden', x: 3, y: 12 },
+      { siteId: 'inner_court', defId: 'court_garden', x: 15, y: 22 },
       events,
     );
     expect(placed.ok, t(placed.reason)).toBe(true);
     expect(
-      run(engine, 'city.place', { siteId: 'inner_court', defId: 'shack', x: 8, y: 12 }, events)
+      run(engine, 'city.place', { siteId: 'inner_court', defId: 'shack', x: 20, y: 22 }, events)
         .code,
     ).toBe('site_kind');
     stepDays(engine, 3);
@@ -744,7 +744,7 @@ describe('door node', () => {
     const placed = run(
       engine,
       'city.place',
-      { siteId: SITE, defId: 'door_node', x: 15, y: 26 },
+      { siteId: SITE, defId: 'door_node', x: 39, y: 46 },
       events,
     );
     expect(placed.ok, t(placed.reason)).toBe(true);

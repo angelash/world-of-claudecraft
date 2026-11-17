@@ -202,7 +202,7 @@ describe('goddess arbiter', () => {
 
   it('lets each goddess breach once per act and spends the hostility budget', () => {
     const g = game('off', 'act3');
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 5, y: 5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 25, y: 23 });
     g.step(1);
     expect(
       code(
@@ -337,7 +337,7 @@ describe('planning, sight and wake-ups', () => {
     };
     const g2 = Engine.create(5, narrativeContent(), [...NARRATIVE_SYSTEMS, probe, feats], {});
     g2.queue('flag.set', { key: 'act', value: 'act1' });
-    g2.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 5, y: 5 });
+    g2.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 25, y: 23 });
     g2.step(2);
     g2.queue('probe.believer', { tags: ['priest', 'faction:church'], mapId: 'borderstone' });
     g2.step(60);

@@ -11,7 +11,7 @@ function quietGame(seed = 11, extra: GameSystem[] = []): Engine {
   const g = Engine.create(seed, narrativeContent(), [...NARRATIVE_SYSTEMS, ...extra], {});
   // skip the prologue: act 1 with no scene playing
   g.queue('flag.set', { key: 'act', value: 'act1' });
-  g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 5, y: 5 });
+  g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 5, y: 29 });
   g.step(2);
   g.world.slices.scenes.current = null;
   g.world.slices.scenes.queue = [];

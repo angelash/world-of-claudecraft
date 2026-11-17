@@ -1,5 +1,14 @@
 [
   {
+    "id": "node_lotha_rustridge_iron",
+    "name": "锈岭铁脉",
+    "desc": "锈岭矿口南坡的铁脉。",
+    "kind": "ore",
+    "tier": 1,
+    "yields": [{ "itemId": "iron_ore", "count": [1, 3] }],
+    "places": [{ "mapId": "borderstone_north", "location": "mine_camp" }]
+  },
+  {
     "id": "node_lotha_ironhemlock",
     "name": "铁杉林",
     "desc": "边石镇东面林缘的铁杉林，越过林约界线伐木会惹出事端。",

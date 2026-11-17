@@ -147,7 +147,7 @@ function makeGame(): Engine {
     SYSTEMS,
   );
   // an empty spot of the sigil hall, away from the corridor monsters
-  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
   g.step(1);
   return g;
 }

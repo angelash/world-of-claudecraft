@@ -134,12 +134,12 @@ describe('story doors', () => {
   it('opens the first door after the first fight in the ruins and arms the player', () => {
     const g = makeGame();
     expect(doorState(g.world, 'awaken')).toBe('hidden');
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
     g.step(1);
-    g.queue('combat.spawn', { monsterId: 'dian_dreg', x: 19.7, y: 9.5, level: 1 });
+    g.queue('combat.spawn', { monsterId: 'dian_dreg', x: 33.7, y: 17.5, level: 1 });
     g.step(1);
     const id = Object.values(g.world.slices.world.entities).find(
-      (e) => e.ref === 'dian_dreg' && Math.abs(e.x - 19.5) < 1 && Math.abs(e.y - 9.5) < 1,
+      (e) => e.ref === 'dian_dreg' && Math.abs(e.x - 33.5) < 1 && Math.abs(e.y - 17.5) < 1,
     )?.id;
     if (!id) throw new Error('no dreg');
     const u = g.world.slices.combat.units[id];
@@ -316,7 +316,7 @@ describe('chosen doors', () => {
 
   it('records visits and counts events for keys', () => {
     const g = makeGame();
-    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 19.5, y: 11.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'forest_edge', x: 19.5, y: 35.5 });
     g.step(12);
     expect(g.world.slices.doors.visited['loc:forest_edge/pact_oak']).toBe(true);
     expect(doorState(g.world, 'vocation_hunter')).toBe('hinted');

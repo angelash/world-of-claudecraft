@@ -387,7 +387,7 @@ describe('the absence variables (thousand_doors.md 5.4)', () => {
 describe('rumor channels (builtin_ai.md 5.2; reputation_and_cognition.md 4.2)', () => {
   it("puts a door hint told by rumor into the pool of the player's town", () => {
     const g = game();
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 30.5, y: 21.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 50.5, y: 39.5 });
     g.step(2);
     let id: string | null = null;
     runInTick(g, (ctx) => {

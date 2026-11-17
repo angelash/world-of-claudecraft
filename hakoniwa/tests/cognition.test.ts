@@ -100,7 +100,7 @@ function stepTo(g: Engine, day: number, hour: number, minute = 1): void {
   if (t > g.tick) g.step(t - g.tick);
 }
 
-const GUILD = { x: 36.5, y: 13.5 };
+const GUILD = { x: 56.5, y: 31.5 };
 
 /** Mid-morning at the guild hall: the player stands at the counter, given NPCs right beside. */
 function atGuild(g: Engine, beside: string[]): void {
@@ -366,18 +366,18 @@ describe('appraisal (D-029) and pressure', () => {
   it('reads levels, caps, unknowns, fragments and the talent door', () => {
     const g = game(19);
     stepTo(g, 0, 10);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 18.5, y: 26.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 38.5, y: 44.5 });
     g.queue('world.teleport', {
       entityId: npcEntityId('martha'),
       mapId: 'borderstone',
-      x: 19.5,
-      y: 26.5,
+      x: 39.5,
+      y: 44.5,
     });
     g.queue('world.teleport', {
       entityId: npcEntityId('ron'),
       mapId: 'borderstone',
-      x: 17.5,
-      y: 26.5,
+      x: 37.5,
+      y: 44.5,
     });
     g.step(1);
     const w = g.world;
@@ -403,8 +403,8 @@ describe('appraisal (D-029) and pressure', () => {
         kind: 'monster',
         name: '灰狼',
         mapId: 'borderstone',
-        x: 18.5,
-        y: 27.5,
+        x: 38.5,
+        y: 45.5,
         faction: 'monster',
         appearance: { base: 'wolf', colors: ['#555555', '#777777', '#999999', '#333333'] },
         tags: ['monster', 'lvl:5', 'tier:0'],
@@ -477,7 +477,7 @@ describe('appraisal (D-029) and pressure', () => {
   it('gives pressure as a vague band only', () => {
     const g = game(31);
     stepTo(g, 0, 10);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 18.5, y: 26.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 38.5, y: 44.5 });
     g.step(1);
     const calm = pressureSense(g.world, CONTENT, 'player', npcEntityId('martha'));
     expect(calm?.band).toBe('calm');

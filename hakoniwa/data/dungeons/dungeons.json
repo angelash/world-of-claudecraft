@@ -8,7 +8,7 @@
     "source": "ancient",
     "owner": "church",
     "party": 2,
-    "gate": { "mapId": "borderstone", "location": "gate_seal_ruins" },
+    "gate": { "mapId": "borderstone_north", "location": "gate_seal_ruins" },
     "entry": { "mapId": "seal_ruins", "location": "gate_borderstone" },
     "floors": [
       { "id": "surface", "name": "外庭与神纹大厅", "mapId": "seal_ruins", "depth": 0 },
@@ -21,6 +21,49 @@
         "depth": 2,
         "boss": "guardian_raven"
       }
+    ]
+  },
+  {
+    "id": "dg_old_mine",
+    "name": "边石旧矿",
+    "act": "act1",
+    "form": "shallow",
+    "level": [6, 12],
+    "source": "mixed",
+    "owner": "moss",
+    "party": 2,
+    "gate": { "mapId": "rustridge_mine", "location": "mine_antechamber" },
+    "entry": { "mapId": "rustridge_mine", "location": "gallery_head" },
+    "floors": [
+      {
+        "id": "upper",
+        "name": "上层坑道与塌方口",
+        "mapId": "rustridge_mine",
+        "area": "upper_gallery",
+        "depth": 0
+      },
+      {
+        "id": "lower",
+        "name": "下层晶脉与晶背之母的巢",
+        "mapId": "dg_old_mine",
+        "depth": 1,
+        "boss": "crystal_mother"
+      }
+    ]
+  },
+  {
+    "id": "dg_moon_cellar",
+    "name": "醉月亭的地窖",
+    "act": "act1",
+    "form": "lair",
+    "level": [5, 8],
+    "source": "pact",
+    "owner": "martha",
+    "party": 0,
+    "gate": { "mapId": "borderstone", "location": "moon_cellar_stairs" },
+    "entry": { "mapId": "borderstone", "location": "moon_cellar_landing" },
+    "floors": [
+      { "id": "cellar", "name": "地窖", "mapId": "borderstone", "area": "moon_cellar", "depth": 1 }
     ]
   }
 ]

@@ -144,7 +144,9 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
         continue;
       }
       const soft = h.player.softTarget;
-      if (soft && !softSeen) softSeen = soft;
+      // the soft target when A is first pressed (more than one monster may be in view on the
+      // way there, so the first one seen need not be the one attacked)
+      if (soft && !attacked) softSeen = soft;
       if ((soft || h.host.selection) && m.d < 1.6) {
         pad.axes[0] = 0;
         pad.axes[1] = 0;

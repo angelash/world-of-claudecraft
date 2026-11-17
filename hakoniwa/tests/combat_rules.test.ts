@@ -1337,7 +1337,7 @@ describe('12.3 and catalog 4.5: the fiends', () => {
   it('near the seal ruins the remnant does not obey and walks toward the ash chamber', () => {
     const g = makeGame();
     const p = warlock(g);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 6, y: 6 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 15, y: 14 });
     g.step(1);
     cast(g, 'sk_lok_summonremnant');
     const pet = Object.values(units(g)).find((u) => u.monsterId === 'fiend_colossus_remnant');

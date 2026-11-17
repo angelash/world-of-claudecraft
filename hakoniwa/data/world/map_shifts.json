@@ -1,0 +1,103 @@
+{
+  "about": "PK-M1-35：已建地图扩建时的整体平移（地图简报第 1.11 节第 5 条）。旧存档里站在这些图上的玩家与实体，坐标按 dx、dy 换算到新图；anchors 是平移前的地点矩形，新图上同名地点等于它加平移量。世界版本迁移步骤在存档兼容承诺（M2）之前由内核接线。",
+  "version": 1,
+  "shifts": [
+    {
+      "mapId": "divine_court",
+      "from": [24, 16],
+      "to": [32, 24],
+      "dx": 4,
+      "dy": 4,
+      "anchors": {
+        "antechamber": [1, 9, 22, 6],
+        "curtain": [7, 8, 10, 1],
+        "court_mirror": [10, 4, 4, 2]
+      }
+    },
+    {
+      "mapId": "inner_court",
+      "from": [24, 20],
+      "to": [48, 40],
+      "dx": 12,
+      "dy": 10,
+      "anchors": {
+        "court_center": [10, 9, 3, 3],
+        "court_respawn": [5, 7, 2, 2],
+        "court_arrival": [10, 15, 3, 2]
+      }
+    },
+    {
+      "mapId": "borderstone",
+      "from": [56, 44],
+      "to": [96, 80],
+      "dx": 20,
+      "dy": 18,
+      "anchors": {
+        "plaza": [24, 17, 12, 9],
+        "plaza_well": [25, 18, 2, 2],
+        "chapel": [22, 8, 5, 6],
+        "drunk_moon": [16, 25, 6, 4]
+      }
+    },
+    {
+      "mapId": "seal_ruins",
+      "from": [36, 28],
+      "to": [64, 48],
+      "dx": 14,
+      "dy": 8,
+      "anchors": {
+        "sigil_hall": [13, 5, 10, 10],
+        "wake_point": [17, 4, 2, 2],
+        "corridor": [7, 1, 22, 18]
+      }
+    },
+    {
+      "mapId": "seal_ruins_depths",
+      "from": [30, 24],
+      "to": [48, 40],
+      "dx": 9,
+      "dy": 8,
+      "anchors": {
+        "ash_chamber": [10, 12, 8, 7],
+        "raven_nest": [21, 5, 6, 5],
+        "sealed_door": [12, 12, 4, 1]
+      }
+    },
+    {
+      "mapId": "forest_edge",
+      "from": [48, 32],
+      "to": [112, 80],
+      "dx": 0,
+      "dy": 24,
+      "anchors": {
+        "hunter_camp": [5, 9, 7, 5],
+        "pact_oak": [18, 11, 3, 1],
+        "deer_spring": [26, 20, 7, 7]
+      }
+    },
+    {
+      "mapId": "ash_waste",
+      "from": [48, 40],
+      "to": [128, 112],
+      "dx": 40,
+      "dy": 72,
+      "anchors": {
+        "waste_camp": [28, 32, 5, 5],
+        "broken_gate_slope": [17, 19, 13, 7],
+        "gate_old_outpost": [22, 35, 5, 3]
+      }
+    },
+    {
+      "mapId": "old_outpost",
+      "from": [48, 40],
+      "to": [96, 80],
+      "dx": 24,
+      "dy": 20,
+      "anchors": {
+        "village_center": [20, 18, 4, 3],
+        "old_granary": [10, 13, 4, 3],
+        "dry_well": [25, 26, 1, 1]
+      }
+    }
+  ]
+}

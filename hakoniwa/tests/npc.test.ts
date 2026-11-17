@@ -78,7 +78,7 @@ function runInTick(g: Engine, fn: (ctx: SystemContext) => void): void {
   g.step(1);
 }
 
-function toBorderstone(g: Engine, x = 30.5, y = 21.5): void {
+function toBorderstone(g: Engine, x = 50.5, y = 39.5): void {
   g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x, y });
   g.step(1);
 }
@@ -112,17 +112,18 @@ describe('npc content and maps', () => {
   it('ships both social maps with the agreed size, arrivals, exits and a safe place', () => {
     const bs = mapById(CONTENT, 'borderstone');
     const wb = mapById(CONTENT, 'wallenburg');
-    expect(bs && [bs.width, bs.height]).toEqual([56, 44]);
+    expect(bs && [bs.width, bs.height]).toEqual([96, 80]);
     expect(wb && [wb.width, wb.height]).toEqual([60, 48]);
-    expect(bs?.rows.every((r) => r.length === 56)).toBe(true);
+    expect(bs?.rows.every((r) => r.length === 96)).toBe(true);
     for (const id of ['gate_seal_ruins', 'gate_forest_edge', 'gate_old_outpost', 'gate_wallenburg'])
       expect(bs?.locations.some((l) => l.id === id)).toBe(true);
     expect(wb?.locations.some((l) => l.id === 'gate_borderstone')).toBe(true);
     expect(wb?.locations.some((l) => l.id === 'gate_wallenburg_sewers')).toBe(true);
     expect(bs?.exits.map((x) => [x.toMap, x.toLocation]).sort()).toEqual([
+      ['borderstone_north', 'gate_borderstone'],
+      ['borderstone_north', 'gate_borderstone_w'],
       ['forest_edge', 'gate_borderstone'],
       ['old_outpost', 'gate_borderstone'],
-      ['seal_ruins', 'gate_borderstone'],
       ['wallenburg', 'gate_borderstone'],
     ]);
     expect(wb?.exits.map((x) => [x.toMap, x.toLocation]).sort()).toEqual([
@@ -185,8 +186,9 @@ describe('npc content and maps', () => {
     for (const mapId of ['borderstone', 'wallenburg']) {
       const map = mapById(CONTENT, mapId);
       if (!map) throw new Error(mapId);
-      const from = mapId === 'borderstone' ? { x: 30.5, y: 21.5 } : { x: 30.5, y: 18.5 };
-      for (const l of map.locations) {
+      const from = mapId === 'borderstone' ? { x: 50.5, y: 39.5 } : { x: 30.5, y: 18.5 };
+      // an indoor layer (the Drunk Moon cellar) is entered by its dungeon's entry, not walked to
+      for (const l of map.locations.filter((x) => !x.tags?.includes('indoor_layer'))) {
         const path = findPath(
           map,
           from,

@@ -72,13 +72,13 @@ describe('Y: the revival-fatigue state (6.3, combat 15.1)', () => {
   it('a real death at door rank 45 puts on the state for 6 game hours', () => {
     const g = makeGame();
     setFlags(g, { door_rank: 45 });
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 18.5, y: 9.5 });
+    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
     g.step(1);
     g.queue('combat.spawn', {
       monsterId: 'black_ridge',
       mapId: 'seal_ruins',
-      x: 19.6,
-      y: 9.5,
+      x: 33.6,
+      y: 17.5,
       level: 11,
     });
     g.step(1);
