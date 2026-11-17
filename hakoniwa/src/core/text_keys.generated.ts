@@ -716,13 +716,26 @@ export type TextKey =
   | 'sys.guild.reject.rank'
   | 'sys.guild.reject.requirements'
   | 'sys.guild.reject.taken'
+  | 'sys.inventory.option.repair'
+  | 'sys.inventory.option.repair_hint'
   | 'sys.inventory.reject.bad_count'
+  | 'sys.inventory.reject.cooldown'
   | 'sys.inventory.reject.empty'
+  | 'sys.inventory.reject.intact'
+  | 'sys.inventory.reject.material'
   | 'sys.inventory.reject.missing.bag'
   | 'sys.inventory.reject.missing.count'
+  | 'sys.inventory.reject.money'
+  | 'sys.inventory.reject.no_instance'
   | 'sys.inventory.reject.no_item'
+  | 'sys.inventory.reject.no_smith'
   | 'sys.inventory.reject.not_equipment'
   | 'sys.inventory.reject.not_usable'
+  | 'sys.inventory.reject.nothing_to_mend'
+  | 'sys.inventory.reject.smith'
+  | 'sys.inventory.say.cannot'
+  | 'sys.inventory.say.no_money'
+  | 'sys.inventory.say.repaired'
   | 'sys.modifiers.reject.expired'
   | 'sys.npc.act.chat'
   | 'sys.npc.act.eat'
@@ -2605,5 +2618,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (2601). */
-export const TEXT_KEY_COUNT = 2601;
+/** Number of keys in TextKey (2614). */
+export const TEXT_KEY_COUNT = 2614;

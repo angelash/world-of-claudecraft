@@ -1,67 +1,98 @@
 // Inventory and money for every owner (player, companions, NPCs, the company,
 // settlements). Item definitions live in the `items` content table, contributed by
 // several packs (equipment from combat, goods from economy, key and lore items from
-// quests). Phase 15. Money is an integer number of copper (1 gold = 100 silver =
-// 10000 copper; see docs/20_world/society.md currency). Display formatting lives on the
-// client: formatMoney in src/shared_ui/i18n.ts, or a {m, money} placeholder in a TextRef.
+// quests); same-forge sets and enchants are the inventory pack's tables. Money is an
+// integer number of copper (1 gold = 100 silver = 10000 copper; see
+// docs/20_world/society.md currency). Display formatting lives on the client: formatMoney
+// in src/shared_ui/i18n.ts, or a {m, money} placeholder in a TextRef.
+//
+// The instance layer (D-072): stacked goods are counted, equipment, tools and tack keep a
+// record per piece (durability, wear marks, signature, sediment grain and purification,
+// refining, enchants, holder). `Holding.items` stays the count ledger every reader uses;
+// the records sit in `instances`, the worn record of each slot in `worn`, qualified stack
+// parts in `stacks`. Modules: types, rules (pure rules), holding (the ledger), ports
+// (write ports), gear (what worn gear gives), durability (wear and repair), procs
+// (triggers), use_groups (consumable cooldowns), workshop (sign, purify, refine,
+// enchant), slice (save check, rename fields, the backfill of older saves).
 
 import { ok, reject } from '../../core';
-import type { GameSystem, SystemContext } from '../../core/system';
+import type { GameSystem } from '../../core/system';
 import { tr } from '../../core/text';
+import { TICK_HZ } from '../../core/time';
+import { fieldRepair } from './durability';
+import { itemDef } from './gear';
+import { syncItem, unwear, wear, wearingOrder } from './holding';
+import { holderId, holding, removeItem, transferItem } from './ports';
+import type { ProcEffect } from './procs';
+import { onDamage, onHeal, onKill } from './procs';
+import { hasTag, type Smith } from './rules';
+import { chooseRepair, nearSmith, offerRepair, repairAll, smithOf } from './service';
+import { freshSlice, INVENTORY_ID_FIELDS, upgradeOnce, validateInventorySlice } from './slice';
+import type {
+  EnchantDef,
+  EquipSlot,
+  Holding,
+  InventorySlice,
+  ItemDef,
+  ItemSetDef,
+  ProcOn,
+} from './types';
+import { GROUP_RULES, startUseTimers, useWait } from './use_groups';
 
-export type ItemKind =
-  | 'weapon'
-  | 'armor'
-  | 'trinket'
-  | 'consumable'
-  | 'material'
-  | 'goods'
-  | 'key'
-  | 'lore'
-  | 'evidence';
-
-export type EquipSlot =
-  | 'main_hand'
-  | 'off_hand'
-  | 'head'
-  | 'chest'
-  | 'legs'
-  | 'hands'
-  | 'feet'
-  | 'trinket';
-
-export interface ItemDef {
-  id: string;
-  name: string;
-  kind: ItemKind;
-  /** 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary (main project quality scale) */
-  quality: number;
-  /** base value in copper */
-  value: number;
-  desc: string;
-  slot?: EquipSlot;
-  /** flat stat bonuses while equipped (combat reads these) */
-  stats?: Record<string, number>;
-  /** weapon damage range and speed (combat reads these) */
-  weapon?: { min: number; max: number; speed: number; range: number };
-  /** consumable effect id interpreted by the owning system (combat, quests) */
-  use?: { effect: string; amount?: number; ability?: string };
-  /** max stack size (default 1 for equipment, 99 otherwise) */
-  stack?: number;
-  /** required player level to equip */
-  level?: number;
-  tags?: string[];
-}
-
-export interface Holding {
-  money: number;
-  items: Record<string, number>;
-  equipped: Partial<Record<EquipSlot, string>>;
-}
-
-export interface InventorySlice {
-  owners: Record<string, Holding>;
-}
+export * from './durability';
+export {
+  activeSets,
+  effectiveDef,
+  equippedDefs,
+  gearAuras,
+  itemDef,
+  ownerSediment,
+  setCounts,
+  type WornPiece,
+  wornPieces,
+} from './gear';
+export {
+  compareInstanceIds,
+  INSTANCE_ID_PREFIX,
+  instancesOf,
+  type Parcel,
+  parcelCount,
+  plainCount,
+  stackCount,
+  type TakeOptions,
+  wornSlotOf,
+} from './holding';
+export * from './ports';
+export {
+  addMarks,
+  envFor,
+  type FiredProc,
+  fireProcs,
+  type ProcAmount,
+  type ProcCond,
+  type ProcEffect,
+  type ProcEffectSpec,
+  type ProcEnv,
+  type ProcSource,
+  parseProcDo,
+  parseProcWhen,
+  procProblems,
+  procSources,
+  resolveEffect,
+} from './procs';
+export * from './rules';
+export * from './service';
+export {
+  freshSlice,
+  INSTANCE_LAYER_REV,
+  INVENTORY_ID_FIELDS,
+  itemsSignature,
+  upgradeSlice,
+  validateInventorySlice,
+} from './slice';
+export * from './types';
+export { GROUP_RULES, type GroupRule, groupReadyAt, useWait } from './use_groups';
+export * from './workshop';
 
 declare module '../../core/contracts' {
   interface WorldSlices {
@@ -69,6 +100,8 @@ declare module '../../core/contracts' {
   }
   interface ContentMap {
     items: ItemDef[];
+    itemSets: ItemSetDef[];
+    enchants: EnchantDef[];
   }
   interface EventMap {
     'inventory.changed': { ownerId: string; itemId: string; delta: number; reason: string };
@@ -80,31 +113,85 @@ declare module '../../core/contracts' {
       effect: string;
       amount?: number;
       ability?: string;
+      /** used before its group's timer ran out: no effect (a sediment cure's poison) */
+      early?: boolean;
     };
-    'item.equipped': { ownerId: string; itemId: string; slot: EquipSlot };
+    'item.equipped': { ownerId: string; itemId: string; slot: EquipSlot; instanceId?: string };
+    /** low at 20%, broken at 0, shattered (a poor piece gone), repaired */
+    'item.durability': {
+      ownerId: string;
+      instanceId: string;
+      itemId: string;
+      cur: number;
+      max: number;
+      state: 'low' | 'broken' | 'shattered' | 'repaired';
+      reason: string;
+    };
+    /** a fired item, enchant or set trigger (combat applies the effect, 13.3) */
+    'item.proc': {
+      ownerId: string;
+      targetId?: string;
+      on: ProcOn;
+      source: 'item' | 'enchant' | 'set';
+      sourceId: string;
+      itemId?: string;
+      instanceId?: string;
+      effect: ProcEffect;
+    };
+    'item.signed': { ownerId: string; instanceId: string; itemId: string; signature: string };
+    'item.purified': { ownerId: string; itemId: string; instanceId?: string; count: number };
+    'item.refined': { ownerId: string; instanceId: string; itemId: string; refine: number };
+    'item.enchanted': {
+      ownerId: string;
+      instanceId: string;
+      itemId: string;
+      enchantId: string;
+      replaced?: string;
+    };
   }
   interface CommandMap {
     'inventory.use': { ownerId: string; itemId: string; targetId?: string };
-    'inventory.equip': { ownerId: string; itemId: string };
+    'inventory.equip': { ownerId: string; itemId: string; instanceId?: string };
     'inventory.unequip': { ownerId: string; slot: EquipSlot };
-    'inventory.give': { fromId: string; toId: string; itemId: string; count: number };
+    'inventory.give': {
+      fromId: string;
+      toId: string;
+      itemId: string;
+      count: number;
+      instanceId?: string;
+    };
+    /**
+     * Repair at a smith: one instance, or every damaged one (worn first). From the
+     * player: `smithId` must name a smith standing near, who counts as an ordinary smith,
+     * and the owner pays. From a system running a smith's service: `skill`, `master` and
+     * `smithId` describe the smith and `payerId` pays (default the owner).
+     */
+    'inventory.repair': {
+      ownerId: string;
+      instanceId?: string;
+      payerId?: string;
+      smithId?: string;
+      skill?: number;
+      master?: boolean;
+    };
   }
 }
 
 // ---------------------------------------------------------------------------
 // Queries
 
-export function itemDef(content: { items: ItemDef[] }, id: string): ItemDef | undefined {
-  return content.items.find((i) => i.id === id);
+function emptyView(): Holding {
+  return { money: 0, items: {}, equipped: {} };
 }
 
 export function holdingOf(
   world: { slices: { inventory: InventorySlice } },
   ownerId: string,
 ): Holding {
-  return world.slices.inventory.owners[ownerId] ?? { money: 0, items: {}, equipped: {} };
+  return world.slices.inventory.owners[ownerId] ?? emptyView();
 }
 
+/** How many of an item an owner holds (stacks and instances alike). */
 export function countItem(
   world: { slices: { inventory: InventorySlice } },
   ownerId: string,
@@ -113,101 +200,85 @@ export function countItem(
   return world.slices.inventory.owners[ownerId]?.items[itemId] ?? 0;
 }
 
-export function equippedDefs(
-  world: { slices: { inventory: InventorySlice } },
+function canUse(h: Holding, def: ItemDef): boolean {
+  return (h.items[def.id] ?? 0) > 0;
+}
+
+const SLOT_CLASH: Partial<Record<EquipSlot, EquipSlot>> = {
+  main_hand: 'off_hand',
+  off_hand: 'main_hand',
+};
+
+/** A two-handed main hand and an off hand do not go together (catalog_equipment.md 1.2). */
+function clearClash(
+  h: Holding,
+  slot: EquipSlot,
+  def: ItemDef,
   content: { items: ItemDef[] },
-  ownerId: string,
-): ItemDef[] {
-  const h = world.slices.inventory.owners[ownerId];
-  if (!h) return [];
-  return Object.values(h.equipped)
-    .map((id) => (id ? itemDef(content, id) : undefined))
-    .filter((d): d is ItemDef => !!d);
-}
-
-// ---------------------------------------------------------------------------
-// Ports
-
-function holding(ctx: SystemContext, ownerId: string): Holding {
-  const owners = ctx.world.slices.inventory.owners;
-  let h = owners[ownerId];
-  if (!h) {
-    h = { money: 0, items: {}, equipped: {} };
-    owners[ownerId] = h;
-  }
-  return h;
-}
-
-export function addItem(
-  ctx: SystemContext,
-  ownerId: string,
-  itemId: string,
-  count = 1,
-  reason = 'gain',
 ): void {
-  if (count <= 0) return;
-  const h = holding(ctx, ownerId);
-  h.items[itemId] = (h.items[itemId] ?? 0) + count;
-  ctx.emit('inventory.changed', { ownerId, itemId, delta: count, reason });
+  const other = SLOT_CLASH[slot];
+  if (!other || !h.equipped[other]) return;
+  const main = slot === 'main_hand' ? def : itemDef(content, h.equipped.main_hand ?? '');
+  if (main && hasTag(main, 'two_hand')) unwear(h, other);
 }
 
-export function removeItem(
-  ctx: SystemContext,
-  ownerId: string,
-  itemId: string,
-  count = 1,
-  reason = 'spend',
-): boolean {
-  const h = holding(ctx, ownerId);
-  const have = h.items[itemId] ?? 0;
-  if (have < count) return false;
-  if (have === count) delete h.items[itemId];
-  else h.items[itemId] = have - count;
-  for (const [slot, id] of Object.entries(h.equipped)) {
-    if (id === itemId && !h.items[itemId]) delete h.equipped[slot as EquipSlot];
-  }
-  ctx.emit('inventory.changed', { ownerId, itemId, delta: -count, reason });
-  return true;
-}
-
-export function addMoney(
-  ctx: SystemContext,
-  ownerId: string,
-  copper: number,
-  reason: string,
-): void {
-  if (copper === 0) return;
-  const h = holding(ctx, ownerId);
-  h.money += Math.round(copper);
-  ctx.emit('money.changed', { ownerId, delta: Math.round(copper), balance: h.money, reason });
-}
-
-export function spendMoney(
-  ctx: SystemContext,
-  ownerId: string,
-  copper: number,
-  reason: string,
-): boolean {
-  const h = holding(ctx, ownerId);
-  if (h.money < copper) return false;
-  addMoney(ctx, ownerId, -copper, reason);
-  return true;
-}
-
-export const system: GameSystem = {
+export const system: GameSystem & {
+  validateSlice: typeof validateInventorySlice;
+  idFields: typeof INVENTORY_ID_FIELDS;
+} = {
   id: 'inventory',
   order: 15,
+  validateSlice: validateInventorySlice,
+  idFields: INVENTORY_ID_FIELDS,
   init(ctx) {
-    ctx.world.slices.inventory = { owners: {} };
+    ctx.world.slices.inventory = freshSlice(ctx.content);
+  },
+  tick(ctx) {
+    upgradeOnce(ctx);
+  },
+  on: {
+    'combat.damage'(ctx, ev) {
+      onDamage(ctx, ev.data);
+    },
+    'combat.heal'(ctx, ev) {
+      onHeal(ctx, ev.data);
+    },
+    'combat.kill'(ctx, ev) {
+      onKill(ctx, ev.data);
+    },
+    'player.talked'(ctx, ev) {
+      offerRepair(ctx, ev.data.npcId);
+    },
+    'dialogue.option_chosen'(ctx, ev) {
+      if (ev.data.system === 'inventory') chooseRepair(ctx, ev.data.npcId, ev.data.optionId);
+    },
   },
   commands: {
     'inventory.use'(ctx, d) {
       const def = itemDef(ctx.content, d.itemId);
       if (!def) return reject('no_item', tr('sys.inventory.reject.no_item'));
       if (!def.use) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
-      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0)
-        return reject('missing', tr('sys.inventory.reject.missing.bag'));
+      const h = holding(ctx, d.ownerId);
+      if (!canUse(h, def)) return reject('missing', tr('sys.inventory.reject.missing.bag'));
+      const slice = ctx.world.slices.inventory;
+      const wait = useWait(slice, d.ownerId, def, ctx.tick, d.targetId);
+      // a sediment cure taken early goes down but does nothing and poisons a little; the
+      // ailments system reads `early` (catalog_consumables_magitools.md 2.1 `cd_sed`)
+      const early = wait > 0 && GROUP_RULES[def.use.group ?? 'cd_none']?.earlyUse === true;
+      if (wait > 0 && !early) {
+        return reject(
+          'cooldown',
+          tr('sys.inventory.reject.cooldown', { s: Math.ceil(wait / TICK_HZ) }),
+        );
+      }
+      if (def.use.effect === 'repair' && !early) {
+        const share = def.use.amount !== undefined ? def.use.amount / 100 : undefined;
+        if (fieldRepair(ctx, d.ownerId, def, share).length === 0) {
+          return reject('nothing_to_mend', tr('sys.inventory.reject.nothing_to_mend'));
+        }
+      }
       if (def.kind === 'consumable') removeItem(ctx, d.ownerId, d.itemId, 1, 'use');
+      if (!early) startUseTimers(slice, d.ownerId, def, ctx.tick, d.targetId);
       ctx.emit('item.used', {
         ownerId: d.ownerId,
         itemId: d.itemId,
@@ -215,30 +286,85 @@ export const system: GameSystem = {
         effect: def.use.effect,
         amount: def.use.amount,
         ability: def.use.ability,
+        ...(early ? { early: true } : {}),
       });
       return ok();
     },
     'inventory.equip'(ctx, d) {
       const def = itemDef(ctx.content, d.itemId);
       if (!def?.slot) return reject('not_equipment', tr('sys.inventory.reject.not_equipment'));
-      if (countItem(ctx.world, d.ownerId, d.itemId) <= 0)
+      const h = holding(ctx, d.ownerId);
+      if ((h.items[d.itemId] ?? 0) <= 0) {
         return reject('missing', tr('sys.inventory.reject.missing.bag'));
-      holding(ctx, d.ownerId).equipped[def.slot] = d.itemId;
-      ctx.emit('item.equipped', { ownerId: d.ownerId, itemId: d.itemId, slot: def.slot });
+      }
+      syncItem(
+        h,
+        def,
+        (p) => ctx.newId(p),
+        () => holderId(ctx, d.ownerId),
+      );
+      const inst =
+        d.instanceId !== undefined
+          ? h.instances?.[d.instanceId]
+          : (wearingOrder(h, d.itemId)[0] ?? undefined);
+      if (d.instanceId !== undefined && inst?.defId !== d.itemId) {
+        return reject('no_instance', tr('sys.inventory.reject.no_instance'));
+      }
+      clearClash(h, def.slot, def, ctx.content);
+      unwear(h, def.slot);
+      if (inst) wear(h, def.slot, inst);
+      else h.equipped[def.slot] = d.itemId;
+      ctx.emit('item.equipped', {
+        ownerId: d.ownerId,
+        itemId: d.itemId,
+        slot: def.slot,
+        instanceId: inst?.instanceId,
+      });
       return ok();
     },
     'inventory.unequip'(ctx, d) {
       const h = holding(ctx, d.ownerId);
       if (!h.equipped[d.slot]) return reject('empty', tr('sys.inventory.reject.empty'));
-      delete h.equipped[d.slot];
+      unwear(h, d.slot);
       return ok();
     },
     'inventory.give'(ctx, d) {
       if (d.count <= 0) return reject('bad_count', tr('sys.inventory.reject.bad_count'));
-      if (!removeItem(ctx, d.fromId, d.itemId, d.count, 'give'))
+      const opts = d.instanceId !== undefined ? { instanceId: d.instanceId } : {};
+      if (!transferItem(ctx, d.fromId, d.toId, d.itemId, d.count, opts))
         return reject('missing', tr('sys.inventory.reject.missing.count'));
-      addItem(ctx, d.toId, d.itemId, d.count, 'receive');
       return ok();
+    },
+    'inventory.repair'(ctx, d, source) {
+      // The player's own command names a smith standing near: an ordinary smith, the
+      // owner pays. Systems that run a smith's service (dialogue, crafting) pass the
+      // smith's skill and the payer (a companion's repairs come out of the player's purse).
+      let smith: Smith;
+      let payer = d.ownerId;
+      if (source.type === 'player') {
+        const found = d.smithId ? smithOf(ctx, d.smithId) : undefined;
+        if (!found || !d.smithId || !nearSmith(ctx, d.ownerId, d.smithId)) {
+          return reject('no_smith', tr('sys.inventory.reject.no_smith'));
+        }
+        smith = found;
+      } else {
+        smith = { skill: d.skill ?? 0, master: d.master, id: d.smithId };
+        payer = d.payerId ?? d.ownerId;
+      }
+      const run = repairAll(ctx, d.ownerId, smith, payer, d.instanceId);
+      if (run.repaired > 0) return ok();
+      switch (run.failure) {
+        case 'no_instance':
+          return reject('no_instance', tr('sys.inventory.reject.no_instance'));
+        case 'smith':
+          return reject('smith', tr('sys.inventory.reject.smith'));
+        case 'money':
+          return reject('money', tr('sys.inventory.reject.money'));
+        case 'material':
+          return reject('material', tr('sys.inventory.reject.material'));
+        default:
+          return reject('intact', tr('sys.inventory.reject.intact'));
+      }
     },
   },
 };

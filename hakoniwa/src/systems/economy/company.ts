@@ -15,8 +15,10 @@ import {
   countItem,
   holdingOf,
   itemDef,
+  putItems,
   removeItem,
   spendMoney,
+  takeItems,
 } from '../inventory';
 import { applyModifiers } from '../modifiers';
 import { playerEntity } from '../world';
@@ -164,9 +166,10 @@ export function companyTransfer(
   const owner = companyOwner(ctx.content.economy_config);
   const player = ctx.world.slices.world.playerId;
   const [from, dest] = to === 'company' ? [player, owner] : [owner, player];
-  if (!removeItem(ctx, from, itemId, qty, 'company_transfer'))
-    return reject('missing', tr('sys.economy.reject.missing.count'));
-  addItem(ctx, dest, itemId, qty, 'company_transfer');
+  // move the pieces themselves: records and stack qualifiers go along (D-072)
+  const parcel = takeItems(ctx, from, itemId, qty, 'company_transfer');
+  if (!parcel) return reject('missing', tr('sys.economy.reject.missing.count'));
+  putItems(ctx, dest, parcel, 'company_transfer');
   return ok();
 }
 

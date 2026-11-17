@@ -181,8 +181,10 @@ D-072 定下物品分"可堆叠的商品"与"带实例的物品"。本节是实�
 | `provenance` | 来历标记数组 | 有来历的物 | 取值：`molt_source:<来源>`（龙蜕，[采集 6.12][gath]）、`fallen_badge`（阵亡者的铜牌）、`nameless`（遗民所作）、`shiny`（劣品小物）、`claim:<势力>`（被某势力主张）、`gatebronze`（门铜之作）、`stolen`（赃物）、`deep`（深相掉落） |
 
 - **名器与传器的器意显示**：器意名只在持有者"握过一次、出过一次手"之后显示（第 2.3 节）；界面读玩家图鉴里的"已见"记录，不另设实例字段。
-- **内核扩展**：`src/systems/inventory/index.ts` 的 `Holding.items: Record<string, number>` 扩为 `stacks: Record<堆叠键, number>` 加 `instances: Record<instanceId, ItemInstance>`；
-  存档容器按实例表存储；NPC 的库存与玩家同构（名器在 NPC 手里也是一条实例）。这条扩展写进架构与实现约定（第 11.2 节）。
+- **内核扩展**（PK-M1-13 落地）：`src/systems/inventory/` 的 `Holding` 保留 `items: Record<物品 ID, number>` 作件数总账（堆叠物与实例物都计，读件数的系统不改），
+  另加 `instances: Record<instanceId, ItemInstance>`（实例记录）、`worn`（每个装备位穿着的实例）与 `stacks`（带限定字段的堆叠格，堆叠键见 `rules.ts` 的 `stackKey`，也计入 `items`）；
+  存档按实例表存储，M2 之前的旧存档在读档后的第一个 tick 补建实例（满耐久、定义的署名）；NPC 的库存与玩家同构（名器在 NPC 手里也是一条实例）。
+  名器（品质 4 以上）的实例记 `holder`，随转手改写；定义的 `maker` 给每件实例署名（例：晶背剑写 `maker: "barga"`），玩家所制写 `unrecorded`。这条扩展写进实现约定第 6 节第 3 条。
 - **死亡与遗失**：已装备件扣耐久不遗落；背包里的实例物按[框架 12][gf]部分遗落，遗落物保留全部实例字段，被 NPC 拾走后 `holder` 改写为拾得者（第 2.11 节）。
 
 ### 1.7 图标与音效
@@ -1404,6 +1406,10 @@ ID `eq_tack_<阶>_<类>`，类取 `saddle`（鞍袋：鞍、辔与鞍袋一套�
 1. **耐久与修理**（D-072）：第 2.7 节定稿；军械层的完好度是同一规则（第 8.3 节）；修理节奏按[成长 6.2][prog]。
 2. **`ItemDef` 扩展**：定义层新增 `procs`、`set`、`sed`；`two_hand` 标签清空副手；套组聚合按主工程 `aggregateSetBonuses` 的做法；`morale` 只在兵团层结算（第 1.5 节）。
 3. **物品实例层**（D-072）：字段、堆叠键与内核扩展点以第 1.6 节为准，界面的 `ItemInstanceView` 与之对应；四份物品目录都引用本节。
+   内核落点（PK-M1-13）：耐久与修理 `src/systems/inventory/durability.ts`（死亡代价 `applyDeathWear`、一场战斗 `applyCombatWear`、`repairInstance`），
+   铁匠的修理选项 `service.ts`（带 `smith` 标签的人物在交谈时提供；未接生业技能前按普通铁匠：凡品、良品与本人署名之作），
+   器意、附纹与套组触发 `procs.ts`（按第 1.5 节的形状与战斗与职能第 13.3 节的顺序判定，发 `item.proc` 由战斗结算），
+   装备的实际属性 `gear.ts`（精炼、澱纹、附纹并入，耐久为 0 的件不计），精炼、附纹、署名与净化 `workshop.ts`；套组表 `data/inventory/item_sets.json`、附纹表 `data/inventory/enchants.json`（第一幕条目随 PK-M1-31 导入）。
 4. **光环键与标签**：本目录写的光环名是光环键，数据层登记为 `aur_<键>`（D-071），条目与数值由战斗与职能文档登记；本目录用到的光环键：`ember_door`、`archive_recall`、`forge_skin`、`last_guard`、`white_crown_ward`、`legion_discipline`、`greywall`、
    `contract_bulwark`、`lucky_bell`、`transcribe`、`deep_hammer`、`many_doors`、`sunder`、`frost_drag`、`crown_ward`、`hollow_step`、`silence`、`steady`、`hunt_mark`、
    `greywall_hold`、`scale_reading`、`marked_from_above`、`stagger`、`silent_step`、`paid_in_full`、`iron_oath`、`unfallen_echo`、`hold_the_gate`、`hold_the_line`、`martyr_light`、

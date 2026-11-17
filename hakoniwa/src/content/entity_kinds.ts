@@ -20,6 +20,8 @@ export const ENTITY_KINDS: readonly EntityKind[] = [
   { table: 'atlas_regions', kind: 'region', protectedKind: false },
   { table: 'slg_provinces', kind: 'province', protectedKind: false },
   { table: 'items', kind: 'item', protectedKind: false },
+  { table: 'itemSets', kind: 'item set', protectedKind: false },
+  { table: 'enchants', kind: 'enchant', protectedKind: false },
   { table: 'monsters', kind: 'monster', protectedKind: false },
   { table: 'doors', kind: 'door', protectedKind: false },
   { table: 'city_sites', kind: 'site', protectedKind: true },

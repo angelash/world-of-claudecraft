@@ -13,6 +13,7 @@
 | `cognition/` | 解释库、阶层常识、认知台词 |
 | `dialogue/` | 对话模板 |
 | `economy/` | 商品与材料、市场、配方、商路、经济参数 |
+| `inventory/` | 物品实例层的同炉套组（`item_sets.json`，`set_`）与附纹（`enchants.json`，`ench_`）；物品本身仍由各系统的 `items` 表提供 |
 | `city/` | 旧哨村与门内庭院地图、建筑、建设用地（含剧情职能 `roles`）、官员、政策、城建物品职能（`config.json`：口粮、腐坏、慢耗、主粮、需求物资、余货） |
 | `warfare/` | 兵种、英雄技能、战役场景 |
 | `strategy/` | 大陆省份图、国家、参数 |

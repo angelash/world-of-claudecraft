@@ -5,5 +5,18 @@
   "sys.inventory.reject.missing.count": "数量不够",
   "sys.inventory.reject.not_equipment": "这不是可以装备的东西",
   "sys.inventory.reject.empty": "这个位置没有装备",
-  "sys.inventory.reject.bad_count": "数量不对"
+  "sys.inventory.reject.bad_count": "数量不对",
+  "sys.inventory.reject.cooldown": "还在冷却，再等 {s, number} 秒",
+  "sys.inventory.reject.nothing_to_mend": "身上没有这只修理包能修的装备",
+  "sys.inventory.reject.no_instance": "找不到这一件",
+  "sys.inventory.reject.intact": "没有需要修理的装备",
+  "sys.inventory.reject.smith": "这位匠人修不了它",
+  "sys.inventory.reject.money": "修理的钱不够",
+  "sys.inventory.reject.material": "修理要用的材料不够",
+  "sys.inventory.reject.no_smith": "这里没有能修理的匠人",
+  "sys.inventory.option.repair": "修理装备",
+  "sys.inventory.option.repair_hint": "修好身上和包里能修的装备，共 {m, money}",
+  "sys.inventory.say.repaired": "修好了，收你 {m, money}。",
+  "sys.inventory.say.no_money": "钱不够，修不了。",
+  "sys.inventory.say.cannot": "这件我修不了，去找别人吧。"
 }

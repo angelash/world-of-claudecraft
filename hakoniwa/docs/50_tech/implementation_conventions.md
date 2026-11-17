@@ -118,8 +118,13 @@
    `door.opened`、`feature.unlocked`、`act.changed`、`dialogue.*`、`building.completed`、`battle.ended` 等）任何系统都可订阅。
 2. 里程碑用旗标（见第 4 节）。
 3. 资源与物品用 `src/systems/inventory` 的端口（`addItem`、`removeItem`、`addMoney`、`spendMoney`）；物品定义放进各自 pack 的
-   `items` 表（字段见 `src/content/packs/inventory.ts` 的 `ITEM_FIELDS`）。持有物分两种（D-072）：可堆叠商品记数量，带实例的物品记实例（词缀、器痕、署名、澱纹与净化状态、耐久），
-   即 `Holding.items` 拆为堆叠 `stacks` 与实例 `instances`；`ItemDef` 增加 `procs`（器意、套组与附纹触发）、`set`（套组）、`sed`（澱纹档）、`use.group`（消耗品的共享冷却组），
+   `items` 表（字段见 `src/content/packs/inventory.ts` 的 `ITEM_FIELDS`）。持有物分两种（D-072）：可堆叠商品记数量，带实例的物品记实例（词缀、器痕、署名、澱纹与净化状态、耐久、持有者），
+   哪些物品带实例由 `src/systems/inventory/rules.ts` 的 `isInstanced` 判定（武器、护甲、信物，`tool` 与 `tack` 标签，或定义写明 `instanced`）。
+   `Holding` 的落地形状：`items` 仍是按物品 ID 的件数总账（堆叠物与实例物都计，所有读件数的系统照旧读它）；实例记录在 `instances`（实例 ID 到 `ItemInstance`），
+   每个装备位穿着的实例在 `worn`（与按物品 ID 的 `equipped` 并列）；带限定字段的堆叠格（净化、澱纹档、署名、来历、到期日）在 `stacks`，它们也计入 `items`。
+   在持有者之间搬物品用 `takeItems` 与 `putItems`（或 `transferItem`），实例记录与限定字段随物走；不要用 `removeItem` 加 `addItem` 搬，那样实例会变成新的。
+   `ItemDef` 增加 `procs`（器意、套组与附纹触发）、`set`（套组）、`sed`（澱纹档）、`use.group`（消耗品的共享冷却组），以及实例层用的 `instanced`、`durability`、`maker`、`recognizes`、`salvage`、`repairMaterial`；
+   套组与附纹是库存 pack 的表 `itemSets`（`set_`）与 `enchants`（`ench_`）。耐久与死亡代价的端口是 `applyDeathWear`、`applyCombatWear`，触发由库存系统按固定顺序判定后发 `item.proc`，由战斗结算效果。
    字段定义以 [`catalog_equipment.md`](../40_design/content/catalog_equipment.md) 第 1.5、1.6 节与 [`catalog_consumables_magitools.md`](../40_design/content/catalog_consumables_magitools.md) 第 2.1 节为准。
 4. 价格、产出、魔物压力、信仰、士气、澱等效果用 `src/systems/modifiers` 的 `registerModifier`（D-013）。
 5. 对话交互菜单：玩家与 NPC 交谈时，对话系统发出 `player.talked`；任务、商店、神龛、招募等系统以

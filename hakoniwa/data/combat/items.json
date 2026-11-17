@@ -241,7 +241,7 @@
     "quality": 1,
     "value": 50,
     "desc": "欧拉婆婆熬的药水，苦得人皱眉。恢复少量生命。",
-    "use": { "effect": "heal", "amount": 90 }
+    "use": { "effect": "heal", "amount": 90, "group": "cd_potion" }
   },
   {
     "id": "healing_potion",
@@ -250,7 +250,7 @@
     "quality": 1,
     "value": 500,
     "desc": "恢复生命。",
-    "use": { "effect": "heal", "amount": 350 },
+    "use": { "effect": "heal", "amount": 350, "group": "cd_potion" },
     "level": 12
   },
   {
@@ -260,7 +260,7 @@
     "quality": 1,
     "value": 2000,
     "desc": "恢复大量生命。",
-    "use": { "effect": "heal", "amount": 1100 },
+    "use": { "effect": "heal", "amount": 1100, "group": "cd_potion" },
     "level": 30
   },
   {
@@ -270,7 +270,7 @@
     "quality": 1,
     "value": 80,
     "desc": "让灵海稍稍回涨。",
-    "use": { "effect": "mana", "amount": 120 }
+    "use": { "effect": "mana", "amount": 120, "group": "cd_potion" }
   },
   {
     "id": "mana_potion",
@@ -279,7 +279,7 @@
     "quality": 1,
     "value": 3000,
     "desc": "让灵海回涨。",
-    "use": { "effect": "mana", "amount": 500 },
+    "use": { "effect": "mana", "amount": 500, "group": "cd_potion" },
     "level": 20
   },
   {
@@ -289,7 +289,7 @@
     "quality": 1,
     "value": 30,
     "desc": "鹿泉边长的草，嚼碎了能驱散身上的灰气。",
-    "use": { "effect": "cleanse", "amount": 2 },
+    "use": { "effect": "cleanse", "amount": 2, "group": "cd_potion" },
     "tags": ["herb", "material"]
   },
   {
@@ -299,7 +299,7 @@
     "quality": 1,
     "value": 60,
     "desc": "醉月亭最烈的酒。喝下去力气大了，脑子慢了。",
-    "use": { "effect": "aura", "ability": "aur_item_ashspirits" }
+    "use": { "effect": "aura", "ability": "aur_item_ashspirits", "group": "cd_drink" }
   },
   {
     "id": "stoneskin_draught",
@@ -308,7 +308,7 @@
     "quality": 2,
     "value": 400,
     "desc": "喝下去皮肤发硬，十分钟内护甲大幅提高。",
-    "use": { "effect": "aura", "ability": "aur_item_stoneskindraught" }
+    "use": { "effect": "aura", "ability": "aur_item_stoneskindraught", "group": "cd_elixir_guard" }
   },
   {
     "id": "door_charm",
@@ -317,7 +317,7 @@
     "quality": 2,
     "value": 200,
     "desc": "画着门形的纸符。不在战斗中时撕开它，会被门送回最近的安全处。",
-    "use": { "effect": "return" }
+    "use": { "effect": "return", "group": "cd_charm" }
   },
 
   {

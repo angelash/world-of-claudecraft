@@ -9,7 +9,7 @@
 import { type CommandResult, ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
 import { type TextRef, tr } from '../../core/text';
-import { addItem, addMoney, countItem, holdingOf, removeItem, spendMoney } from '../inventory';
+import { addMoney, countItem, holdingOf, putItems, spendMoney, takeItems } from '../inventory';
 import { mapById, playerEntity, teleportEntity } from '../world';
 import { addDependency } from './autonomy';
 import {
@@ -69,8 +69,9 @@ export function deposit(
     if (gateRoom(ctx, site) < count) return reject('gate_cap', tr('sys.city.reject.gate_cap'));
     site.gateUsed += count;
   }
-  removeItem(ctx, 'player', d.itemId, count, `deposit:${d.siteId}`);
-  addItem(ctx, sdef.stockOwner, d.itemId, count, 'deposit');
+  // move the pieces themselves: records and stack qualifiers go along (D-072)
+  const parcel = takeItems(ctx, 'player', d.itemId, count, `deposit:${d.siteId}`);
+  if (parcel) putItems(ctx, sdef.stockOwner, parcel, 'deposit');
   // Direct injection by the player feeds dependency (8.2: 1 point per 100 units).
   if (sdef.kind === 'settlement')
     addDependency(site.autonomy, today(ctx.tick), tr('sys.city.dep.deposit'), count / 100);
@@ -101,8 +102,8 @@ export function withdraw(
     if (gateRoom(ctx, site) < count) return reject('gate_cap', tr('sys.city.reject.gate_cap'));
     site.gateUsed += count;
   }
-  removeItem(ctx, sdef.stockOwner, d.itemId, count, 'withdraw');
-  addItem(ctx, 'player', d.itemId, count, `withdraw:${d.siteId}`);
+  const parcel = takeItems(ctx, sdef.stockOwner, d.itemId, count, 'withdraw');
+  if (parcel) putItems(ctx, 'player', parcel, `withdraw:${d.siteId}`);
   return ok();
 }
 

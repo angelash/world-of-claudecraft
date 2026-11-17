@@ -36,8 +36,8 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'trial_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'afx_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'eq_', owner: 'catalog_equipment.md', tables: ITEMS },
-  { prefix: 'set_', owner: 'catalog_equipment.md', tables: [] },
-  { prefix: 'ench_', owner: 'catalog_equipment.md', tables: [] },
+  { prefix: 'set_', owner: 'catalog_equipment.md', tables: ['itemSets'] },
+  { prefix: 'ench_', owner: 'catalog_equipment.md', tables: ['enchants'] },
   { prefix: 'cs_', owner: 'catalog_consumables_magitools.md', tables: ITEMS },
   { prefix: 'mt_', owner: 'catalog_consumables_magitools.md', tables: ITEMS },
   { prefix: 'mat_', owner: 'catalog_gathering_crafting.md', tables: ITEMS },
@@ -127,6 +127,8 @@ export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   titles: ['title_'],
   codexEntries: ['cdx_'],
   letters: ['ltr_'],
+  itemSets: ['set_'],
+  enchants: ['ench_'],
 };
 
 /**
