@@ -31,6 +31,7 @@ import { type ShellOptions, startShell } from '../desktop/shell';
 import { initialPlacement, nextWindowSettings, visibleOn } from '../desktop/window_state';
 import { defaultSettings } from '../src/client/app/settings_schema';
 import { SettingsStore } from '../src/client/app/settings_store';
+import { defaultInputSettings } from '../src/client/input/input_settings';
 import type { SaveWriteRequest } from '../src/core/save/backend';
 import { CONTAINER_VERSION, NO_FLAGS, SAVE_FORMAT, type SlotId } from '../src/core/save/header';
 import { sha256Hex } from '../src/core/save/sha256';
@@ -110,6 +111,8 @@ describe('desktop settings files', () => {
       version: 1,
       keys: { KeyQ: { action: 'interact' } },
       contextKeys: { 'field.interact.primary': { code: 'KeyF' } },
+      padKeys: { 'field.appraise.primary': { button: 'y' } },
+      input: { ...defaultInputSettings(), softCone: 40, glyphs: 'switch' },
       language: 'en',
       accessibility: {
         colorMode: 'high_contrast',
@@ -765,7 +768,9 @@ describe('desktop imports from the client', () => {
       '../hd2d/quality',
       '../hd2d/view',
       '../input/contexts',
+      '../input/input_settings',
       '../input/keymap',
+      '../input/pad_bindings',
     ]);
   });
 });

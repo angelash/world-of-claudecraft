@@ -14,6 +14,7 @@ import { bannerFor, formatSystemEvent } from '../src/client/adapters/log';
 import { objectiveText, questMarkers } from '../src/client/adapters/social';
 import { createAdapters } from '../src/client/app/adapters_wiring';
 import { sceneKey, scenePanelModel } from '../src/client/hud/scene_model';
+import { installKeyText } from '../src/client/input/glyphs';
 import { FLOAT_MS, FloatingBoard } from '../src/client/render/floating_text';
 import { lookFromEntity } from '../src/client/sprites/look';
 import type { ClientAdapters } from '../src/client/view/adapters';
@@ -21,6 +22,10 @@ import { createGameCommands, createGameView, type GameView } from '../src/client
 import type { AnyWorldEvent, EventKind, EventMap } from '../src/core/contracts';
 import type { Engine } from '../src/core/engine';
 import { createGame } from '../src/game/create';
+
+// {key:} placeholders render with the default key-mouse bindings (the client installs the
+// live resolver; ux_and_onboarding.md 16.6 rule 6)
+installKeyText(null);
 
 function ev<K extends EventKind>(kind: K, data: EventMap[K], tick = 10): AnyWorldEvent {
   return { kind, tick, seq: 1, data } as unknown as AnyWorldEvent;

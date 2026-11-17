@@ -1,25 +1,28 @@
-// DOM input: keyboard bindings, pointer clicks and hover on the world canvas, wheel zoom,
-// and the right-button drag that orbits the HD-2D camera (a right click without a drag
-// stays the secondary click).
-// Turns raw events into intents and actions for the session; the rules (bindings, intent
-// math, picking) live in the pure keymap and picking modules.
+// DOM keyboard and mouse input: key chords (KeyboardEvent.code plus Shift, Ctrl, Alt) and
+// the middle and side mouse buttons go to the action layer (input_hub.ts), which decides what
+// they mean in the active contexts; pointer clicks and hover on the world canvas, wheel zoom
+// and the right-button drag that orbits the HD-2D camera (a right click without a drag stays
+// the secondary click) go straight to the session. While a text field has the focus only Esc
+// reaches the game (16.1). Pointer travel anywhere switches the glyphs back to keyboard and
+// mouse (16.1). Thin DOM layer.
 
 import { isTypingTarget } from '../../shared_ui/dom';
-import {
-  type Action,
-  type Binding,
-  bindingFor,
-  type Intent,
-  intentFromHeld,
-  MOVE_ACTIONS,
-  sameIntent,
-} from './keymap';
+import { chordOf } from './actions';
+import type { KeyChord } from './contexts';
 
 export interface InputHandlers {
-  /** movement intent changed (zero intent when every key is released) */
-  intent(i: Intent): void;
-  /** a non-movement action key went down */
-  action(action: Action, binding: Binding): void;
+  /** a key chord went down or up; true when it was a binding (the default is prevented) */
+  key(chord: KeyChord, phase: 'down' | 'up', repeat: boolean): boolean;
+  /** a mouse button other than left and right (middle, side buttons) */
+  mouseButton(
+    button: number,
+    phase: 'down' | 'up',
+    mods: { shiftKey: boolean; ctrlKey: boolean; altKey: boolean },
+  ): boolean;
+  /** pointer position (CSS px) and the distance it travelled since the last event */
+  pointer(x: number, y: number, travel: number): void;
+  /** focus left the page: release every held key */
+  release(): void;
   /** primary click on the world at device-pixel coordinates */
   click(sx: number, sy: number, double: boolean): void;
   /** secondary (right) click on the world */
@@ -31,17 +34,19 @@ export interface InputHandlers {
   orbit(dxCss: number, dyCss: number): void;
 }
 
+/** Keys that press a focused button by default. */
+const ACTIVATION_KEYS: ReadonlySet<string> = new Set(['Space', 'Enter', 'NumpadEnter']);
+
 /** CSS pixels a right-button press must travel before it counts as a camera drag. */
 export const ORBIT_THRESHOLD = 4;
 
 export class InputController {
-  private held = new Set<Action>();
-  private lastIntent: Intent | null = null;
   private readonly off: (() => void)[] = [];
   private lastClick = 0;
   private drag: { x: number; y: number; moved: boolean } | null = null;
   /** time of the last right-button release, so its contextmenu event is not a second click */
   private lastRightUp = Number.NEGATIVE_INFINITY;
+  private lastPointer: { x: number; y: number } | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -59,7 +64,23 @@ export class InputController {
     };
     on(window, 'keydown', (ev) => this.keyDown(ev));
     on(window, 'keyup', (ev) => this.keyUp(ev));
-    on(window, 'blur', () => this.releaseAll());
+    on(window, 'blur', () => this.h.release());
+    on(window, 'pointermove', (ev) => {
+      const p = this.lastPointer;
+      this.lastPointer = { x: ev.clientX, y: ev.clientY };
+      const travel = p ? Math.hypot(ev.clientX - p.x, ev.clientY - p.y) : 0;
+      this.h.pointer(ev.clientX, ev.clientY, travel);
+    });
+    on(window, 'pointerdown', (ev) => {
+      if (ev.button === 1 || ev.button === 3 || ev.button === 4) {
+        if (this.h.mouseButton(ev.button, 'down', ev)) ev.preventDefault();
+      }
+    });
+    on(window, 'pointerup', (ev) => {
+      if (ev.button === 1 || ev.button === 3 || ev.button === 4) {
+        if (this.h.mouseButton(ev.button, 'up', ev)) ev.preventDefault();
+      }
+    });
     on(canvas, 'pointerdown', (ev) => {
       if (ev.button === 2) {
         this.drag = { x: ev.clientX, y: ev.clientY, moved: false };
@@ -135,39 +156,22 @@ export class InputController {
   }
 
   private keyDown(ev: KeyboardEvent): void {
-    if (isTypingTarget(ev.target)) return;
-    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
-    const b = bindingFor(ev.code);
-    if (!b) return;
-    ev.preventDefault();
-    if (MOVE_ACTIONS.has(b.action)) {
-      this.held.add(b.action);
-      this.emitIntent();
+    // typing: only Esc reaches the game (the field handles Enter itself)
+    if (isTypingTarget(ev.target) && ev.code !== 'Escape') return;
+    if (ev.metaKey) return;
+    if (this.h.key(chordOf(ev), 'down', ev.repeat)) {
+      ev.preventDefault();
       return;
     }
-    if (ev.repeat) return;
-    this.h.action(b.action, b);
+    // outside windows, Space and Enter never press a HUD button that kept the focus after a
+    // click (they advance lines when talk shows; in a window they press its control)
+    const inWindow = ev.target instanceof Element && !!ev.target.closest('.hk-window');
+    if (!inWindow && ACTIVATION_KEYS.has(ev.code)) ev.preventDefault();
   }
 
   private keyUp(ev: KeyboardEvent): void {
-    const b = bindingFor(ev.code);
-    if (!b || !MOVE_ACTIONS.has(b.action)) return;
-    this.held.delete(b.action);
-    this.emitIntent();
-  }
-
-  private emitIntent(): void {
-    const i = intentFromHeld(this.held);
-    if (sameIntent(i, this.lastIntent)) return;
-    this.lastIntent = i;
-    this.h.intent(i);
-  }
-
-  /** Drop every held key (window blur, opening a modal) and stop. */
-  releaseAll(): void {
-    if (this.held.size === 0) return;
-    this.held.clear();
-    this.emitIntent();
+    // a release always goes through, so a key held into a text field never sticks
+    this.h.key(chordOf(ev), 'up', false);
   }
 
   dispose(): void {

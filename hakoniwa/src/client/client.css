@@ -449,6 +449,7 @@ body {
 /* hotbar */
 .hk-hotbar {
   display: flex;
+  flex-direction: column;
   gap: 4px;
   padding: 5px;
   background: var(--hk-bg);
@@ -1254,4 +1255,162 @@ body {
 }
 .hk-offer .hk-row {
   flex-wrap: wrap;
+}
+
+/* Input (PK-M1-07): hotbar rows and gamepad groups, the pad focus ring, the radial menu,
+   the floating keyboard, the virtual cursor, the soft target candidate, hidden interface. */
+.hk-hotbar-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.hk-hotbar-row.pad {
+  border-radius: 6px;
+  padding: 2px;
+}
+.hk-hotbar.pad .hk-hotbar-row:not(.active) {
+  opacity: 0.85;
+}
+.hk-hotbar-row.active {
+  outline: 2px solid var(--hk-gold);
+  opacity: 1;
+}
+.hk-hotbar-layer {
+  min-width: 34px;
+  font-size: 11px;
+  color: var(--hk-gold-soft);
+  text-align: center;
+}
+.hk-pad-focus {
+  outline: 3px solid var(--hk-gold);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px rgba(226, 176, 74, 0.25);
+}
+.hk-input-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* above every window, whose stacking order grows as they are brought forward */
+  z-index: 100000;
+}
+.hk-wheel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+.hk-wheel-center {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  padding: 10px 8px;
+  text-align: center;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 50%;
+}
+.hk-wheel-title {
+  font-weight: 700;
+  color: var(--hk-gold-soft);
+}
+.hk-wheel-hint {
+  font-size: 11px;
+  color: var(--hk-muted);
+}
+.hk-wheel-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.hk-wheel-sector {
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: 72px;
+  padding: 6px 8px;
+  text-align: center;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: var(--hk-radius);
+  white-space: nowrap;
+}
+.hk-wheel-sector.on {
+  border: 3px solid var(--hk-gold);
+  font-weight: 700;
+  font-size: 16px;
+}
+.hk-wheel-sector.off {
+  color: var(--hk-muted);
+  border-style: dashed;
+}
+.hk-osk {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  min-width: 420px;
+  padding: 12px;
+  background: var(--hk-bg-solid);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: var(--hk-radius);
+}
+.hk-osk-prompt {
+  color: var(--hk-gold-soft);
+  margin-bottom: 6px;
+}
+.hk-osk-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  min-height: 1.4em;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+}
+.hk-osk-count {
+  color: var(--hk-muted);
+  font-size: 12px;
+}
+.hk-osk-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.hk-osk-key {
+  min-width: 30px;
+  padding: 5px 6px;
+  text-align: center;
+  background: rgba(40, 34, 56, 0.9);
+  border: 1px solid rgba(226, 176, 74, 0.35);
+  border-radius: 4px;
+}
+.hk-osk-key.on {
+  border: 2px solid var(--hk-gold);
+  font-weight: 700;
+}
+.hk-osk-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--hk-muted);
+  text-align: center;
+}
+.hk-vcursor {
+  position: absolute;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--hk-gold);
+  border-radius: 50%;
+  background: rgba(226, 176, 74, 0.25);
+  box-shadow: 0 0 4px #000;
+}
+.hk-ui-hidden .hk-hud,
+.hk-ui-hidden .hk-windows {
+  visibility: hidden;
 }

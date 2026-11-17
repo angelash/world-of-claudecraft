@@ -22,6 +22,8 @@ import {
   type SlotId,
   slotLabel,
 } from '../hud/save_slots';
+import { installKeyText } from '../input/glyphs';
+import { startMenuPad } from '../input/menu_pad';
 import { createAdapters } from './adapters_wiring';
 import { AiBridge } from './ai_bridge';
 import { BootScreen } from './boot_screen';
@@ -39,6 +41,10 @@ if (import.meta.env.DEV) {
   void import('./dev_text_marks').then((m) => m.installMissingTextMarks(document.body));
 }
 const root = document.getElementById('app') ?? document.body;
+// {key:} placeholders read the default bindings until a session installs the live ones, and
+// a gamepad can drive the title screen (ux_and_onboarding.md 16).
+installKeyText(null);
+startMenuPad(root, () => settings?.sync.input.swapConfirmBack ?? false);
 /** The page's local storage, or null when the browser does not let the page use it. */
 const pageKv = pageStorage(window);
 const kv = pageKv ?? new MemoryKeyValue();

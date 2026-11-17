@@ -33,7 +33,7 @@ import {
   slotLabel,
 } from '../hud/save_slots';
 import { scenePanelModel } from '../hud/scene_model';
-import { InputController } from '../input/input_controller';
+import { InputLayer, type InputSettingsSource } from '../input/input_layer';
 import { exitOpen, nearestExit, pickEntity } from '../input/picking';
 import { AnimTracker } from '../render/anim_state';
 import { BubbleBoard } from '../render/bubbles';
@@ -65,7 +65,7 @@ import {
 } from '../view/game_view';
 import { registerWindows, WindowManager } from '../windows';
 import type { ClientSettings, DisplayView } from '../windows/window_context';
-import { FixedStepClock, framesToRun, type Speed } from './clock';
+import { FixedStepClock, framesToRun, SPEEDS, type Speed } from './clock';
 import { EventRouter } from './event_router';
 import { PlayerInput, type PlayerInputHost } from './player_input';
 import type { LocalSettings, StoredView } from './settings_schema';
@@ -95,6 +95,8 @@ export interface SessionOptions {
 /** The slice of the settings store a session reads and writes. */
 export interface SessionPrefs {
   readonly local: Readonly<Pick<LocalSettings, 'quality' | 'view'>>;
+  /** key and pad bindings and the input options (the sync part, PK-M1-07) */
+  readonly sync: Readonly<InputSettingsSource>;
   updateLocal(patch: { quality?: QualityId; view?: StoredView | null }): boolean;
 }
 
@@ -136,8 +138,10 @@ export class GameSession implements PlayerInputHost {
   private readonly looks = new WeakMap<Appearance, SpriteLook>();
   readonly hud: Hud;
   readonly windows: WindowManager;
-  private input: InputController;
+  private input: InputLayer;
   private readonly actions: PlayerInput;
+  /** world speed multiplier: a radial menu open in a fight slows the world (16.5) */
+  private timeScale = 1;
   private readonly router: EventRouter;
   private readonly unsubscribe: () => void;
   private mapCtx: MapContext | null = null;
@@ -268,13 +272,15 @@ export class GameSession implements PlayerInputHost {
     this.refreshHud(true);
   }
 
-  private bindInput(): InputController {
-    return new InputController(
-      this.renderer.canvas,
-      {
-        intent: (i) => this.actions.intent(i),
-        action: (act, b) => this.actions.action(act, b),
-        click: (sx, sy, dbl) => this.actions.click(sx, sy, dbl),
+  private bindInput(): InputLayer {
+    return new InputLayer({
+      root: this.opts.root,
+      canvas: this.renderer.canvas,
+      dpr: () => this.renderer.dpr,
+      windowsRoot: this.windows.root,
+      game: this.actions,
+      settings: () => this.opts.prefs.sync,
+      pointer: {
         secondary: (sx, sy) => this.actions.secondary(sx, sy),
         hover: (sx, sy) => {
           if (sx === null || sy === null) {
@@ -285,12 +291,10 @@ export class GameSession implements PlayerInputHost {
           if (this.placing) this.movePlacement(sx, sy);
         },
         zoom: (d) => this.zoomBy(d),
-        orbit: (dx, dy) => {
-          if (this.renderer.kind === 'hd2d') this.setPrefs(orbit(this.prefs(), dx, dy));
-        },
+        orbit: (dx, dy) => this.orbitView(dx, dy),
       },
-      () => this.renderer.dpr,
-    );
+      glyphsChanged: () => this.refreshHud(true),
+    });
   }
 
   /**
@@ -367,6 +371,22 @@ export class GameSession implements PlayerInputHost {
     clearTimeout(this.prefsTimer);
     this.prefsTimer = setTimeout(() => this.storeView(), 400);
     if (turned) this.actions.viewTurned();
+  }
+
+  orbitView(dx: number, dy: number): void {
+    if (this.renderer.kind === 'hd2d') this.setPrefs(orbit(this.prefs(), dx, dy));
+  }
+
+  stepSpeed(dir: 1 | -1): void {
+    const i = SPEEDS.indexOf(this.clock.speed);
+    const next = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, i + dir))] as Speed;
+    if (next === this.clock.speed) return;
+    this.clock.setSpeed(next);
+    this.refreshHud(true);
+  }
+
+  setTimeScale(scale: number): void {
+    this.timeScale = Math.max(0, Math.min(1, scale));
   }
 
   zoomBy(delta: number): void {
@@ -496,7 +516,8 @@ export class GameSession implements PlayerInputHost {
   private frame(now: number): void {
     const dt = now - this.last;
     this.last = now;
-    const { steps, alpha } = this.clock.advance(dt);
+    this.input.frame(now);
+    const { steps, alpha } = this.clock.advance(dt * this.timeScale);
     const ranSteps = framesToRun(steps, !!this.engine.clockStep());
     for (let i = 0; i < ranSteps; i++) {
       this.engine.step(1);
@@ -615,7 +636,8 @@ export class GameSession implements PlayerInputHost {
       roofs: ctx.roofs,
       roofOpenness: (id) => this.roofs.openness(id),
       selection: this.selection,
-      hover: this.hover,
+      // the soft target (16.4) shows with the hover ring while the pointer is not on a unit
+      hover: this.hover ?? this.actions.softTarget,
       bubbles: this.bubbles.active(now),
       floats: this.floats.active(now),
       extraLights: (this.adapters.lights?.lights(this.view, map.id) ?? []).map((l) => ({
@@ -671,11 +693,17 @@ export class GameSession implements PlayerInputHost {
     const player = v.player();
     const pid = v.playerId();
     this.hud.playerFrame.update(player, 'self', a.unitFrames?.unitFrame(v, pid, pid) ?? null, '');
-    const target = this.selection ? v.entity(this.selection) : undefined;
+    // the soft target fills the target frame, marked as the candidate (16.4)
+    const soft = this.selection ? null : this.actions.softTarget;
+    const shown = this.selection ?? soft;
+    const target = shown ? v.entity(shown) : undefined;
+    const frame = target ? (a.unitFrames?.unitFrame(v, target.id, pid) ?? null) : null;
+    if (frame && soft)
+      frame.subtitle = [t('ui.hud.target.candidate'), frame.subtitle].filter(Boolean).join('  ');
     this.hud.targetFrame.update(
       target,
       target ? relationOf(target, pid) : null,
-      target ? (a.unitFrames?.unitFrame(v, target.id, pid) ?? null) : null,
+      frame,
       t('ui.hud.target.none'),
     );
     this.hud.clock.update(v.calendar(), v.weather(), this.clock.speed, this.clock.paused);
@@ -687,7 +715,10 @@ export class GameSession implements PlayerInputHost {
       map ? (a.mapMarkers?.markers(v, map.id) ?? []) : [],
     );
     this.hud.menuBar.update(v.flags(), (id) => this.windows.isOpen(id));
-    this.hud.hotbar.update(a.combat?.hotbar(v) ?? []);
+    this.input.configure();
+    const slots = a.combat?.hotbar(v) ?? [];
+    const filled = new Set(slots.filter((x) => x.abilityId).map((x) => x.slot));
+    this.hud.hotbar.update(slots, this.input.hotbarLayout(filled));
     const pending = a.battle?.pending(v);
     this.hud.warPrompt.update(
       pending && !a.battle?.battle(v)

@@ -1,6 +1,6 @@
 // The settings model (docs/50_tech/release_engineering.md 5.2, 13.10; D-088): two parts,
-// `sync` (keys, contextual key overrides, language, accessibility, sound captions, volume;
-// follows the cloud) and
+// `sync` (keys, contextual key and pad overrides, input options, language, accessibility,
+// sound captions, volume; follows the cloud) and
 // `local` (quality, camera view, window, GPU preference, frame cap, install id and the `llm`
 // partition; stays on this machine). Each part carries a version and migrates step by step
 // like saves do; a part from a newer version is read best-effort and never written back.
@@ -30,7 +30,22 @@ import {
   parseSlotKey,
   type SlotOverride,
 } from '../input/contexts';
+import {
+  defaultInputSettings,
+  GLYPH_SETTINGS,
+  INPUT_RANGES,
+  type InputSettings,
+  SOFT_CONES,
+} from '../input/input_settings';
 import { type Action, DEFAULT_KEYMAP } from '../input/keymap';
+import {
+  DEFAULT_PAD_KEYMAP,
+  isPadChord,
+  isValidPadOverride,
+  type PadChord,
+  type PadKeyOverrides,
+  type PadSlotOverride,
+} from '../input/pad_bindings';
 
 export type SettingsPart = 'sync' | 'local';
 export const SETTINGS_PARTS: readonly SettingsPart[] = ['sync', 'local'];
@@ -80,6 +95,11 @@ export const MAX_CONTEXT_KEY_OVERRIDES = INPUT_CONTEXTS.reduce(
   (n, c) => n + Object.keys(DEFAULT_CONTEXT_KEYMAP[c]).length * 2,
   0,
 );
+/** At most this many pad overrides are kept: one per slot of the pad key map. */
+export const MAX_PAD_KEY_OVERRIDES = INPUT_CONTEXTS.reduce(
+  (n, c) => n + Object.keys(DEFAULT_PAD_KEYMAP[c]).length * 2,
+  0,
+);
 const KEY_CODE = /^[A-Za-z][A-Za-z0-9]{0,31}$/;
 const INSTALL_ID = /^[0-9a-f]{16,32}$/;
 /** Window positions and sizes are kept within these bounds (screen pixels). */
@@ -119,6 +139,13 @@ export interface SyncSettings {
    * (src/client/input/contexts.ts); null clears a default slot. Shared by every save (rule 7).
    */
   contextKeys: ContextKeyOverrides;
+  /**
+   * Changes to the gamepad bindings (16.6 rule 5) by `<context>.<action>.<slot>`
+   * (src/client/input/pad_bindings.ts); only button slots that are not locked.
+   */
+  padKeys: PadKeyOverrides;
+  /** Gamepad and targeting options (ux_and_onboarding.md 4.4; input_settings.ts). */
+  input: InputSettings;
   language: Language;
   accessibility: Accessibility;
   subtitles: CaptionMode;
@@ -310,6 +337,44 @@ function parseContextKeys(issue: (sub: string) => void): Parse<ContextKeyOverrid
   };
 }
 
+function parsePadChord(v: unknown): PadChord | undefined {
+  if (!isPadChord(v)) return undefined;
+  const out: PadChord = { button: v.button };
+  if (v.hold) out.hold = true;
+  if (v.with) out.with = v.with;
+  return out;
+}
+
+/**
+ * Pad overrides: an entry must name a rebindable button slot of the pad key map (not locked,
+ * not a stick, ring, nav or hotbar entry) and hold a chord or null (a hotbar layer: a plain
+ * button off the cluster, never null); bad entries are dropped
+ * one by one, at most MAX_PAD_KEY_OVERRIDES kept.
+ */
+function parsePadKeys(issue: (sub: string) => void): Parse<PadKeyOverrides> {
+  return (v) => {
+    if (!isPlainObject(v)) return undefined;
+    const out: Record<string, PadSlotOverride> = {};
+    let n = 0;
+    for (const [key, raw] of Object.entries(v)) {
+      const slot = parseSlotKey(key);
+      const chord = raw === null ? null : parsePadChord(raw);
+      const ok =
+        !!slot &&
+        n < MAX_PAD_KEY_OVERRIDES &&
+        chord !== undefined &&
+        isValidPadOverride(slot.context, slot.action, slot.slot, chord);
+      if (!ok || chord === undefined) {
+        issue(slot ? key : '?');
+        continue;
+      }
+      out[key] = chord;
+      n++;
+    }
+    return out;
+  };
+}
+
 /** Key overrides: bad entries are dropped one by one, at most MAX_KEY_OVERRIDES kept. */
 function parseKeys(issue: (sub: string) => void): Parse<Record<string, KeyOverride | null>> {
   return (v) => {
@@ -374,6 +439,14 @@ function partFields(
         def: () => ({}),
         parse: parseContextKeys((s) => issue(`contextKeys.${s}`)),
       },
+      padKeys: {
+        def: () => ({}),
+        parse: parsePadKeys((s) => issue(`padKeys.${s}`)),
+      },
+      input: {
+        def: defaultInputSettings,
+        parse: struct<InputSettings>(inputFields(), (s) => issue(`input.${s}`)),
+      },
       language: { def: () => 'zh-Hans', parse: oneOf(LANGUAGES) },
       accessibility: {
         def: defaultAccessibility,
@@ -416,6 +489,28 @@ function partFields(
     llm: { def: () => ({}), parse: parseLlm },
   };
   return local;
+}
+
+function inputFields(): { [K in keyof InputSettings]: Field<InputSettings[K]> } {
+  const d = defaultInputSettings();
+  const r = INPUT_RANGES;
+  return {
+    padDeadInner: { def: () => d.padDeadInner, parse: finiteIn(...r.padDeadInner) },
+    padDeadOuter: { def: () => d.padDeadOuter, parse: finiteIn(...r.padDeadOuter) },
+    cameraSensitivity: {
+      def: () => d.cameraSensitivity,
+      parse: finiteIn(...r.cameraSensitivity),
+    },
+    invertPitch: { def: () => d.invertPitch, parse: bool },
+    softLock: { def: () => d.softLock, parse: bool },
+    softLockKbm: { def: () => d.softLockKbm, parse: bool },
+    softCone: { def: () => d.softCone, parse: oneOf(SOFT_CONES) },
+    lockOnCast: { def: () => d.lockOnCast, parse: bool },
+    rumble: { def: () => d.rumble, parse: intIn(...r.rumble) },
+    swapConfirmBack: { def: () => d.swapConfirmBack, parse: bool },
+    glyphs: { def: () => d.glyphs, parse: oneOf(GLYPH_SETTINGS) },
+    holdSeconds: { def: () => d.holdSeconds, parse: finiteIn(...r.holdSeconds) },
+  };
 }
 
 function defaultAccessibility(): Accessibility {

@@ -41,11 +41,25 @@ export const CLIENT_PURE_CORES = [
   'hud/dialogue_queue.ts',
   'hud/format.ts',
   'hud/log_format.ts',
+  'hud/hotbar_model.ts',
   'hud/minimap_model.ts',
   'hud/save_slots.ts',
   'hud/scene_model.ts',
+  'input/actions.ts',
+  'input/contexts.ts',
+  'input/device.ts',
+  'input/focus_nav.ts',
+  'input/gamepad.ts',
+  'input/glyphs.ts',
+  'input/input_hub.ts',
+  'input/input_settings.ts',
   'input/keymap.ts',
+  'input/osk.ts',
+  'input/pad_bindings.ts',
   'input/picking.ts',
+  'input/radial.ts',
+  'input/soft_target.ts',
+  'input/virtual_cursor.ts',
   'render/anim_state.ts',
   'render/bubbles.ts',
   'render/camera.ts',
@@ -89,11 +103,23 @@ function code(file: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
+/**
+ * The code a DOM access could hide in: quoted strings (the input context named 'window')
+ * and object keys or members that merely share a global's name (`window: {...}`,
+ * `x.window`) are no access to the page.
+ */
+function domCode(src: string): string {
+  return src
+    .replace(/'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"/g, "''")
+    .replace(/(?<!\b(?:globalThis|self|window))\.\s*(document|window)\b/g, '.prop')
+    .replace(/(^|[{,]\s*)(document|window)(\s*\??:)/gm, '$1prop$3');
+}
+
 describe('client pure cores', () => {
   for (const file of CLIENT_PURE_CORES) {
     it(`${file} has no DOM access and no real randomness or clock`, () => {
       const src = code(file);
-      expect(DOM.test(src), `${file} touches the DOM`).toBe(false);
+      expect(DOM.test(domCode(src)), `${file} touches the DOM`).toBe(false);
       expect(RANDOM.test(src), `${file} uses real randomness or time`).toBe(false);
       expect(THREE_IMPORT.test(src), `${file} imports three.js`).toBe(false);
     });

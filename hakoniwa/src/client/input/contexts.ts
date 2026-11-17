@@ -1,14 +1,15 @@
 // Contextual key bindings and the rebinding core (ux_and_onboarding.md 16.1, 16.2, 16.6).
-// `keymap.ts` keeps the single-context map input_controller.ts reads today; this module is
-// the M0 surface above it (24.2 item 1): every input context, the default key-mouse table per
+// The action layer (actions.ts, input_hub.ts) resolves every key through this table; the
+// older single-context map in keymap.ts only backs the legacy SyncSettings.keys field. This
+// module holds every input context, the default key-mouse table per
 // context and action with two slots (primary, secondary), conflict detection scoped to one
 // context plus global (16.6 rule 3: one key may bind different actions in different
 // contexts), and the pure functions that rebind, clear and reset slots. Overrides are keyed
 // `<context>.<action>.<slot>` and stored in the sync settings part as SyncSettings.contextKeys
 // (settings_schema.ts), shared by every save (16.6 rule 7). Locked slots (Esc's back action,
 // the left-click pick of every context) keep their default chord: they can be neither
-// cleared nor moved, only given a second key. Pure, no DOM. PK-M1-07 builds the per-context
-// input layer, the gamepad table, the glyphs for {key:<action>} and the rebinding screen.
+// cleared nor moved, only given a second key. The gamepad table is pad_bindings.ts; the
+// action layer that resolves a chord through the active contexts is actions.ts. Pure, no DOM.
 
 /** Every input context (16.1); conflicts are checked within one and against 'global'. */
 export const INPUT_CONTEXTS = [
@@ -53,6 +54,11 @@ export type ContextKeymap = Readonly<
 /** A KeyboardEvent.code, or a mouse button Mouse0 to Mouse4. */
 export const CHORD_CODE = /^[A-Za-z][A-Za-z0-9]{0,31}$/;
 
+/** The 24 hotbar slots (ux_and_onboarding.md 5.2): two keyboard rows of 12. */
+export const HOTBAR_SIZE = 24;
+/** Slots per keyboard row. */
+export const HOTBAR_ROW = 12;
+
 const k = (code: string, mods: Omit<KeyChord, 'code'> = {}): KeyChord => ({ code, ...mods });
 const two = (primary: KeyChord, secondary?: KeyChord): ActionBinding =>
   secondary ? { primary, secondary } : { primary };
@@ -61,7 +67,10 @@ const two = (primary: KeyChord, secondary?: KeyChord): ActionBinding =>
  * Default key-mouse bindings (16.2). Esc is the one global back action ("menu, back, close");
  * contexts never bind it again. Rows the design lists as pointer gestures (drags, the wheel,
  * edge panning) or as held modifiers (Shift to place continuously) are not rebindable keys
- * and stay out; hotbar slots past 12 and the gamepad table arrive with PK-M1-07.
+ * and stay out. Advancing lines lives in the dialogue context, which the action layer stacks
+ * over the field while a conversation or a loose line shows (16.1); in the battlefield
+ * context (command mode) 1 to 4 recall groups and the hero's abilities sit on the field
+ * hotbar of the personal mode.
  */
 export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
   global: {
@@ -92,12 +101,18 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
     appraise: two(k('KeyV')),
     mount: two(k('KeyQ')),
     party_ring: two(k('KeyF'), k('Mouse1')),
-    advance: two(k('Space'), k('Enter')),
     pause: two(k('KeyP'), k('Pause')),
     slow_down: two(k('BracketLeft')),
     speed_up: two(k('BracketRight')),
     wait: two(k('KeyP', { shift: true })),
-    ...hotbarRow(),
+    select_self: two(k('Digit1', { alt: true })),
+    ...Object.fromEntries(
+      Array.from({ length: 5 }, (_, i) => [
+        `select_party_${i + 1}`,
+        two(k(`Digit${i + 2}`, { alt: true })),
+      ]),
+    ),
+    ...hotbarRows(),
     win_character: two(k('KeyC')),
     win_inventory: two(k('KeyI'), k('KeyB')),
     win_doors: two(k('KeyK')),
@@ -129,8 +144,13 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
   },
   window: {
     focus_next: two(k('Tab')),
+    focus_up: two(k('ArrowUp')),
+    focus_down: two(k('ArrowDown')),
+    focus_left: two(k('ArrowLeft')),
+    focus_right: two(k('ArrowRight')),
     confirm: two(k('Enter')),
     next_tab: two(k('Tab', { ctrl: true })),
+    prev_tab: two(k('Tab', { ctrl: true, shift: true })),
     discard: two(k('Delete')),
     context_menu: two(k('Mouse2')),
   },
@@ -166,17 +186,18 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
     retreat: two(k('KeyR', { shift: true })),
     formation_ring: two(k('KeyF')),
     ...Object.fromEntries(
-      Array.from({ length: 10 }, (_, i) => [
-        `hero_ability_${i + 1}`,
-        two(k(`Digit${(i + 1) % 10}`)),
-      ]),
-    ),
-    ...Object.fromEntries(
       Array.from({ length: 4 }, (_, i) => [
         `group_set_${i + 1}`,
         two(k(`Digit${i + 1}`, { ctrl: true })),
       ]),
     ),
+    ...Object.fromEntries(
+      Array.from({ length: 4 }, (_, i) => [`group_recall_${i + 1}`, two(k(`Digit${i + 1}`))]),
+    ),
+    pan_up: two(k('ArrowUp')),
+    pan_down: two(k('ArrowDown')),
+    pan_left: two(k('ArrowLeft')),
+    pan_right: two(k('ArrowRight')),
     pause: two(k('Space')),
     slow_motion: two(k('Space', { shift: true })),
     mode_toggle: two(k('Tab')),
@@ -210,8 +231,11 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
   },
 };
 
-/** Hotbar row one (16.2): 1 to 0, minus and equals; secondary keys are numpad 1 to 9. */
-function hotbarRow(): Record<string, ActionBinding> {
+/**
+ * Hotbar rows one and two (16.2): 1 to 0, minus and equals, secondary keys numpad 1 to 9;
+ * row two is the same keys with Shift.
+ */
+function hotbarRows(): Record<string, ActionBinding> {
   const codes = [
     'Digit1',
     'Digit2',
@@ -229,6 +253,9 @@ function hotbarRow(): Record<string, ActionBinding> {
   const out: Record<string, ActionBinding> = {};
   codes.forEach((code, i) => {
     out[`hotbar_${i + 1}`] = two(k(code), i < 9 ? k(`Numpad${i + 1}`) : undefined);
+  });
+  codes.forEach((code, i) => {
+    out[`hotbar_${HOTBAR_ROW + i + 1}`] = two(k(code, { shift: true }));
   });
   return out;
 }

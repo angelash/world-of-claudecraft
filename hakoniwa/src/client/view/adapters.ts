@@ -92,7 +92,7 @@ export interface UnitFrameAdapter {
 // Combat: hotbar, targeting, animation cues, floating combat text
 
 export interface HotbarSlotView {
-  /** 1..9 */
+  /** 1..24 */
   slot: number;
   abilityId: string | null;
   name: string;

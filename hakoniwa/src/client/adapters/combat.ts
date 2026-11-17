@@ -42,7 +42,8 @@ const RESOURCE_COLORS: Record<string, string> = {
 /** Global cooldown span used for the sweep when only the GCD runs (seconds). */
 export const GCD_SPAN = 1.5;
 
-export const HOTBAR_SLOTS = 9;
+/** The hotbar's 24 slots (ux_and_onboarding.md 5.2; src/client/input/contexts.ts). */
+export const HOTBAR_SLOTS = 24;
 
 function readingText(r: ReturnType<typeof strengthReading>): string {
   return t(`ui.hud.target.reading.${r}`);

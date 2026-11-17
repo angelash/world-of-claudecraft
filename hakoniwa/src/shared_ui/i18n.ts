@@ -6,8 +6,10 @@
 // Template syntax: {name} (plain; a nested TextRef renders recursively), {n, number},
 // {p, percent}, {m, money} (copper), {d, date} and {d, date, <style>} (tick; the style is a
 // key under sys.common.date. or a full key), {t, duration} (ticks), {x, ref},
-// {n, plural, one {...} other {...}} and {g, select, a {...} other {...}}. A brace that does
-// not open one of these is literal text. A missing parameter stays as its placeholder and a
+// {n, plural, one {...} other {...}}, {g, select, a {...} other {...}} and {key:<action>} (the
+// current device's binding of an input action, through the resolver the client installs with
+// setKeyText; ux_and_onboarding.md 16.6 rule 6). A brace that does not open one of these is
+// literal text. A missing parameter stays as its placeholder and a
 // missing key renders as the key; both are reported to the missing-text handler (dev builds
 // warn). Content keys c.<table>.<id>.<field>[.<n>] resolve through the content lookup the
 // client installs for the content it runs (setContentText), then the generated content
@@ -33,6 +35,9 @@ export type TextTable = Readonly<Record<string, string>>;
 
 /** Resolves a content key (c.<table>.<id>.<field>[.<n>]) to its display text. */
 export type ContentTextLookup = (key: string) => string | undefined;
+
+/** Resolves an input action reference of `{key:<ref>}` to the text of its key or glyph. */
+export type KeyTextLookup = (ref: string) => string | undefined;
 
 export type MissingText =
   | { kind: 'key'; key: string }
@@ -75,6 +80,7 @@ const TABLES: Record<string, TextTable> = DEV
   : { [SOURCE_LANG]: SOURCE_TABLE };
 let lang = SOURCE_LANG;
 let contentText: ContentTextLookup | null = null;
+let keyText: KeyTextLookup | null = null;
 const reported = new Set<string>();
 const missingLog: MissingText[] = [];
 let onMissing: ((m: MissingText) => void) | null = DEV
@@ -114,6 +120,14 @@ export function setTextLanguage(next: string): void {
   if (TABLES[next]) lang = next;
 }
 
+/**
+ * Install the resolver of `{key:<action>}` placeholders (src/client/input/glyphs.ts); without
+ * one, or for a reference it does not know, the placeholder stays and is reported.
+ */
+export function setKeyText(lookup: KeyTextLookup | null): void {
+  keyText = lookup;
+}
+
 /** Install the content lookup that resolves c.* keys (null to clear). */
 export function setContentText(lookup: ContentTextLookup | null): void {
   contentText = lookup;
@@ -136,6 +150,8 @@ export interface FormatOptions {
   fallback?: TextTable;
   lang: string;
   content?: ContentTextLookup | null;
+  /** `{key:<action>}` resolver; absent leaves the placeholder */
+  keyText?: KeyTextLookup | null;
   missing?: (m: MissingText) => void;
 }
 
@@ -152,6 +168,7 @@ function activeOptions(): FormatOptions {
     fallback: SOURCE_TABLE,
     lang,
     content: contentText,
+    keyText,
     missing: report,
   };
 }
@@ -274,6 +291,7 @@ function joinItems(sep: string, params: Record<string, TextParam>, o: FormatOpti
 const SIMPLE = /^\{\s*(\w+)\s*\}/;
 const TYPED = /^\{\s*(\w+)\s*,\s*(number|percent|money|date|duration|ref)\s*(?:,\s*([\w.]+)\s*)?\}/;
 const BRANCHED = /^\{\s*(\w+)\s*,\s*(plural|select)\s*,/;
+const KEY_REF = /^\{key:([a-z0-9_.]+)\}/;
 
 /** Fill a template's placeholders (single pass; substituted text is never re-read). */
 function fill(
@@ -301,6 +319,14 @@ function fill(
     m = TYPED.exec(rest);
     if (m) {
       out += param(m[1] as string, m[2], m[3], m[0], key, params, o);
+      i = brace + m[0].length;
+      continue;
+    }
+    m = KEY_REF.exec(rest);
+    if (m) {
+      const text = o.keyText?.(m[1] as string);
+      if (text === undefined) o.missing?.({ kind: 'param', key, param: `key:${m[1]}` });
+      out += text ?? m[0];
       i = brace + m[0].length;
       continue;
     }
