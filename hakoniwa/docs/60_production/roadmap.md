@@ -399,7 +399,7 @@ C 高风险，只作参考，由人决定；D 不交给 AI 决策（核心取舍
 
 | 待办 | 落点文档 | 实现与关闭的包 |
 | --- | --- | --- |
-| B-001 四份系统文档 | `progression_and_pacing.md`、`thousand_doors.md`、`companions_and_party.md` 已写成；`combat_and_classes.md` 续写 | PK-M0-01；PK-M0-04 关闭 |
+| B-001 四份系统文档 | 四份已写成；技能目录第一幕部分已写，其余在 PK-M2-36 | 已关闭（PK-M0-01、PK-M0-02、PK-M0-04） |
 | B-002、B-003、B-004 变量写法、条件语法、编号规则 | [world_state_registry.md](../40_design/world_state_registry.md) | PK-M0-27 |
 | B-005 边石旧矿位置 | [map_briefs.md](../40_design/world/map_briefs.md) 第 13 节 | PK-M0-04（回写）、PK-M1-35（地图） |
 | B-006 澄流之门、聆灵之门的落点 | [thousand_doors.md](../40_design/systems/thousand_doors.md) 与门目录 | PK-M3-23 |

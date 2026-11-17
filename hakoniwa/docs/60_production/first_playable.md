@@ -99,7 +99,7 @@ Claude（结构化输出、提示缓存、显式 effort、拒绝检查与服务�
 
 | 缺口 | 由谁解决 | 实现所在的包 |
 | --- | --- | --- |
-| B-001 的四份系统文档 | [progression_and_pacing.md](../40_design/progression_and_pacing.md)、[thousand_doors.md](../40_design/systems/thousand_doors.md)、[companions_and_party.md](../40_design/systems/companions_and_party.md) 已写成；[combat_and_classes.md](../40_design/systems/combat_and_classes.md) 写到第 7 节 | PK-M0-01（战斗续写）；PK-M0-02（技能、天赋与光环目录）；PK-M0-04（关闭 B-001） |
+| B-001 的四份系统文档 | [progression_and_pacing.md](../40_design/progression_and_pacing.md)、[thousand_doors.md](../40_design/systems/thousand_doors.md)、[companions_and_party.md](../40_design/systems/companions_and_party.md) 已写成；[combat_and_classes.md](../40_design/systems/combat_and_classes.md) 第 0 到 22 节已写成，[catalog_abilities_talents.md](../40_design/content/catalog_abilities_talents.md) 已写第一幕部分 | PK-M0-01（战斗续写）；PK-M0-02（技能、天赋与光环目录）；PK-M0-04（关闭 B-001） |
 | 两扇危险门（渡魂之门、破门之门）的仪式；诸神之战路线的触发条件 | 千门第 10、12 节：泉畔守夜写渡魂之门的钥，灰中对谈或递刀事件写破门之门的钥；诸神之战三条触发路径 | PK-M3-13 |
 | 立国事件链（无主之地、众愿、界石）只映射到旗标 | D-044 与 [catalog_warfare_strategy.md](../40_design/content/catalog_warfare_strategy.md)：立国之门的钥加领地自治度不低于 40；界石之战作为第四幕必经战斗 | PK-M3-15 |
 | 战场与大陆视图缺字段（英雄当前命令与技能范围、能否立国的信号、征兵费用、行军进度） | [ux_and_onboarding.md](../40_design/ux_and_onboarding.md) 第 11、12 节；战争目录第 12 节 | PK-M2-16（战场与征兵）、PK-M3-16（大陆视图与立国信号、行军进度） |

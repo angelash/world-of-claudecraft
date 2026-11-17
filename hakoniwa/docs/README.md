@@ -115,7 +115,7 @@
 | [systems/builtin_ai.md](40_design/systems/builtin_ai.md) | 内置 AI：无模型时的 NPC、对话（话题图与意图）、台词包契约、女神、统治者、将领、同伴、官员与导演 |
 | [systems/travel_and_exploration.md](40_design/systems/travel_and_exploration.md) | 行进与探索：区域图行进、途中事件、NPC 离场出行、快速移动与门标、迷雾与发现、睡眠等待与跳时 |
 | [content/catalog_quests_acts1_3.md](40_design/content/catalog_quests_acts1_3.md) | 任务（一）：序章到第三幕的全部任务 `q_`、委托板模板 `cmm_`、动态事件 `ev_` |
-| [content/catalog_quests_acts4_6.md](40_design/content/catalog_quests_acts4_6.md) | 任务（二）：第四幕到终章的任务、战线、众门环与审前准备（续写中，见决策日志 B-016） |
+| [content/catalog_quests_acts4_6.md](40_design/content/catalog_quests_acts4_6.md) | 任务（二）：第四幕到终章的任务、战线、众门环与审前准备 |
 | [content/catalog_buildings_city.md](40_design/content/catalog_buildings_city.md) | 城建条目：建筑 `bld_`、政策 `pol_`、官职 `off_`、三阶段解锁、生产链、自治度路线、庭院扩建总表 |
 | [content/catalog_warfare_strategy.md](40_design/content/catalog_warfare_strategy.md) | 战争与战略：兵种 `unit_`、战场剧本 `bat_`、郡 `cty_`、国家事件与危机 `nev_`、外交条款与会盟议程 |
 | [content/catalog_goddess_interventions.md](40_design/content/catalog_goddess_interventions.md) | 女神干预：神权动作 `div_`、越约全表、每幕计划与谋划、反应表、女神试炼 `trl_`、委托模板、供品、天启 |
