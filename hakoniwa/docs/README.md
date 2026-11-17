@@ -93,6 +93,7 @@
 | [content/catalog_characters_continent.md](40_design/content/catalog_characters_continent.md) | 人物（二）：大陆诸国与跨国组织的有名 NPC、将领、名匠、流派与合技导师、隐藏强者、古龙、第六幕证人、招募与外交视图 |
 | [content/catalog_bestiary.md](40_design/content/catalog_bestiary.md)                 | 魔物图鉴：野兽、异兽、澱生体、澱像、亡灵、龙种、契约魔与人形敌人；澱化阶梯、异名者与异名物 `nm_`、巢主、魔物潮编成 `mtide_`、魔物即证据 |
 | [content/catalog_dungeons_bosses.md](40_design/content/catalog_dungeons_bosses.md)   | 迷宫与首领：23 处迷宫的结构与养毁净、迷宫专属魔物、首领机制与非战斗解法、澱涌之主、强者挑战段 `trial_`、活性期词缀 `afx_` |
+| [content/catalog_abilities_talents.md](40_design/content/catalog_abilities_talents.md) | 技能、天赋与光环（序章与第一幕）：`abilities.json`、`auras.json` 现有 ID 到 `sk_`、`tal_`、`aur_` 的对照，编外者门技与技架、同伴与战斗 NPC 的 1 到 15 级技能组、第一幕魔物与首领技能、状态光环 `aur_st_` |
 | [content/catalog_equipment.md](40_design/content/catalog_equipment.md)               | 装备：地域工艺流派、澱纹与净纹、规则生成的阶梯、单列精品、同炉套组 `set_`、附纹 `ench_`、名器与传器、军需批量装备 |
 | [content/catalog_consumables_magitools.md](40_design/content/catalog_consumables_magitools.md) | 消耗品 `cs_` 与魔道具 `mt_`：药剂、澱病线、过关辅助、料理与酒、符、弹药、工具、供品；魔道具的余澱与城市成本 |
 | [content/catalog_gathering_crafting.md](40_design/content/catalog_gathering_crafting.md) | 采集与生业：十四种生业、材料注册表的细化与新材料 `mat_`、采集点 `node_`、配方族 `rcp_`、净化链、材料价值迁移 |
