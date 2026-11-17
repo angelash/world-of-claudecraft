@@ -13,6 +13,7 @@
 //   DELETE /api/data?file= remove a staged batch file (only data/_staging/<batch>.json)
 //   POST /api/audit        append one AI audit record to hakoniwa/.local/audit.jsonl
 //   GET  /api/audit        page through that log (?offset=&limit=&order=desc|asc&rotated=1)
+//   /api/assets*           the editor's asset review desk (tools/assets/review/routes.ts)
 // Credentials stay in this process's environment. By default only loopback clients are
 // served (set allowRemote or HAKONIWA_DEV_API_REMOTE=1 to open it to the LAN, which also
 // lets LAN devices spend the model budget and write data files).
@@ -35,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { parseCallSpec } from '../src/ai/providers/call_spec';
 import { formatJson } from '../src/editor/util/json';
+import { assetReviewRoutes } from './assets/review/routes';
 import { resolveDataPath } from './data_paths';
 import {
   DEV_PROXY_CONNECTION_ID,
@@ -242,6 +244,7 @@ export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
     string,
     (req: IncomingMessage, res: ServerResponse, url: URL) => Promise<void>
   > = {
+    ...assetReviewRoutes(root, { readJsonBody, send }),
     'GET /api/llm/status': async (_req, res) => {
       send(res, 200, await llmService().status());
     },

@@ -32,6 +32,8 @@ const DOM_MODULES = [
   'balance/balance_ui.ts',
   'batch/batch_ui.ts',
   'registry/registry_ui.ts',
+  'assets/asset_ui.ts',
+  'assets/audio_deck.ts',
 ];
 
 function files(dir: string, ext: RegExp): string[] {

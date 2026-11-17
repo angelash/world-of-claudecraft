@@ -8,6 +8,8 @@ import { AuditLog, httpAuditSink } from '../ai/audit';
 import { DevProxyTransport } from '../ai/transports/dev_proxy';
 import { allPacks, allSchemas, buildContent } from '../content';
 import { createDataApi, fetchAuditPage } from './api/data_client';
+import { createAssetDeskApi } from './assets/asset_client';
+import { AssetReviewTool } from './assets/asset_ui';
 import { AuditTool } from './audit/audit_ui';
 import { BalanceTool } from './balance/balance_ui';
 import { BatchTool } from './batch/batch_ui';
@@ -80,6 +82,7 @@ async function start(): Promise<void> {
       new ChecksTool(),
       new BatchTool(api),
       new RegistryTool(),
+      new AssetReviewTool(createAssetDeskApi(fetchFn)),
     ],
     later: [],
     defaultTool: 'content',

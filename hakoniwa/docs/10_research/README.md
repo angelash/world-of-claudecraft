@@ -17,6 +17,8 @@
 | `art_style/` | [my_ai_town_visual_and_client.md](art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 HD-2D 风格、客户端与程序化素材 | `../50_tech/art_pipeline.md` |
 | `open_share/` | [city_rts_slg.md](open_share/city_rts_slg.md) | 城建、RTS、SLG、经济、策略 AI 的资料与借鉴 | 经营与战争系统 |
 | | [game_dev_methodology.md](open_share/game_dev_methodology.md) | 游戏开发概念与方法论，及概要设计章节建议 | 设计方法、制作计划 |
+| | [local_audio_generation.md](open_share/local_audio_generation.md) | 本机 ComfyUI 音频生成：模型筛选与许可、ACE-Step 翻奏机制、乐谱优先管线与试做 | 音频方向、素材管线 |
+| `footnote/` | [asset_workbench.md](footnote/asset_workbench.md) | Footnote 制作工作台：工具收纳、三栏资产库、审核记录与写盘接口 | 素材审核台 |
 | `open_source/` | [README.md](open_source/README.md) | 开源游戏源码调研总览：筛选、阅读路线、许可、本地镜像（`D:\hakoniwa_refs`，可用 `tools/refs/` 重建）、对第一轮实现的直接发现 | 城建、RTS、SLG、经济的详细设计与实现 |
 | | [question_map.md](open_source/question_map.md) | 按设计章节反查源码（文件与符号） | 同上 |
 | | [city_builders.md](open_source/city_builders.md) | 城建与人口模拟（Micropolis、Julius、Lincity-NG、Unknown Horizons 等） | `../40_design/systems/city_building.md` |

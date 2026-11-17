@@ -19,6 +19,7 @@ export const RELEASE_FORBIDDEN: readonly string[] = Object.freeze([
   '/api/llm',
   '/api/data',
   '/api/audit',
+  '/api/assets',
   '@anthropic-ai/sdk',
 ]);
 

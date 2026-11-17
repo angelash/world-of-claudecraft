@@ -91,7 +91,13 @@ describe('build targets', () => {
 
 describe('release bundle scanner', () => {
   it('forbids the dev service routes and the SDK, and the editor page', () => {
-    expect(RELEASE_FORBIDDEN).toEqual(['/api/llm', '/api/data', '/api/audit', '@anthropic-ai/sdk']);
+    expect(RELEASE_FORBIDDEN).toEqual([
+      '/api/llm',
+      '/api/data',
+      '/api/audit',
+      '/api/assets',
+      '@anthropic-ai/sdk',
+    ]);
     expect(DEV_ONLY_PAGES).toEqual(['editor.html']);
   });
 

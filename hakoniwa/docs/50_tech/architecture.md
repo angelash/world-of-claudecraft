@@ -204,6 +204,7 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
 | 揭示台账检查 | 当前已解锁线索；扫描 AI 输出中的未解锁知识泄露                                                           |
 | 任务与剧情图 | 任务、事件链、剧情标记的依赖图与可达性                                                                   |
 | 平衡实验室   | 批量战斗模拟（职能对怪物的伤害与击杀时间）、经济分群模拟（破产率、财富膨胀、生产阻塞）、战场自动结算测试 |
+| 素材审核台   | 美术与音频统一审核：候选试听与比对（循环、A/B、分层）、采用为原文件、通过返工淘汰停用与原因码、只追加的审核记录（`../../assets/README.md` 第 3.4 节，D-097） |
 
 ## 9. 开发服务与发布版的大模型通道
 
@@ -212,6 +213,7 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
 - `/api/llm`：开发期的模型调用代理（`tools/llm_proxy.ts`），密钥只在开发机的环境变量里，客户端不接触密钥。
 - `/api/data`：编辑器写回 `data/` 下的 JSON。
 - `/api/audit`：追加 AI 审计记录到本地日志。
+- `/api/assets*`：素材审核台的列表、采用与审核决定（`tools/assets/review/`），写 `assets/manifest.json` 与 `assets/review_log.jsonl`；发布包扫描同样不得出现。
 
 运行时代码经 `src/ai/` 的 `LlmTransport` 发请求，三种实现：`IpcTransport`（桌面，经 `PlatformHost.llm`）、`LocalHttpTransport`（网页试玩，只连本机服务）、
 `DevProxyTransport`（开发服务 `/api/llm`，只在 `import.meta.env.DEV` 下引入，生产构建摇树去掉）；发布包扫描不得出现 `/api/llm`（`release_engineering.md` 第 13.9 节，RE-02）。

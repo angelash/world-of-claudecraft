@@ -3,4 +3,5 @@ node_modules/
 dist/
 assets/prompts/out/
 assets/_rejected/
+assets/_candidates/
 release/

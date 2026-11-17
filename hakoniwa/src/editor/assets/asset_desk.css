@@ -1,0 +1,326 @@
+/* Asset review desk: list | stage | inspector, after the production desk pattern. */
+
+.asset-desk {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  height: 100%;
+  min-height: 0;
+}
+
+.asset-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  padding: 8px;
+  gap: 6px;
+}
+
+.asset-left .toolbar input[type="search"] {
+  flex: 1;
+}
+
+.asset-summary div {
+  line-height: 1.5;
+}
+
+.asset-list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.asset-keys {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+
+.asset-group {
+  margin-bottom: 8px;
+}
+
+.asset-group-title {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 6px 0 2px;
+}
+
+.asset-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 12px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  background: none;
+  border-radius: 0;
+}
+
+.asset-row:hover {
+  background: var(--bg2);
+}
+
+.asset-row.active {
+  background: var(--bg3);
+  border-left-color: var(--warn);
+}
+
+.asset-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.asset-row-main > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-num {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.asset-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.state-candidates {
+  background: transparent;
+  border-color: var(--accent);
+}
+
+.asset-dot.state-review,
+.pill.state-review {
+  background: var(--accent);
+}
+
+.asset-dot.state-approved,
+.pill.state-approved {
+  background: var(--ok);
+}
+
+.asset-dot.state-rework,
+.pill.state-rework {
+  background: var(--warn);
+}
+
+.asset-dot.state-rejected,
+.pill.state-rejected {
+  background: var(--bad);
+}
+
+.asset-dot.state-retired,
+.pill.state-retired {
+  background: var(--muted);
+}
+
+.pill.state-review,
+.pill.state-approved,
+.pill.state-rework,
+.pill.state-rejected,
+.pill.state-retired {
+  color: #111;
+  margin-left: 8px;
+}
+
+.asset-stage {
+  border-right: 1px solid var(--line);
+}
+
+.asset-stage-head {
+  margin-bottom: 10px;
+}
+
+.asset-subject {
+  margin-top: 4px;
+  line-height: 1.6;
+}
+
+.asset-original,
+.asset-pool,
+.asset-compare {
+  margin: 10px 0;
+}
+
+.asset-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px;
+}
+
+.asset-card {
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.asset-card.picked {
+  border-color: var(--accent);
+}
+
+.asset-card.adopted {
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.asset-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asset-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asset-player audio {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+}
+
+.asset-ab,
+.asset-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+}
+
+.asset-ab {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid var(--accent);
+  padding: 6px;
+}
+
+.asset-adopt {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+  margin-top: 8px;
+}
+
+.asset-image .asset-checker {
+  overflow: auto;
+  max-height: 520px;
+  background-color: #8c8c8c;
+  background-image:
+    linear-gradient(45deg, #b0b0b0 25%, transparent 25%),
+    linear-gradient(-45deg, #b0b0b0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #b0b0b0 75%),
+    linear-gradient(-45deg, transparent 75%, #b0b0b0 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
+
+.asset-img {
+  image-rendering: pixelated;
+  display: block;
+}
+
+.asset-img.zoom-3 {
+  zoom: 3;
+}
+
+.asset-inspector .asset-section {
+  margin-bottom: 12px;
+}
+
+.asset-dl {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 2px 8px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.asset-dl dt {
+  color: var(--muted);
+}
+
+.asset-dl dd {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.asset-decision textarea,
+.asset-decision input[type="text"] {
+  width: 100%;
+}
+
+.chip.decision-approved.active {
+  border-color: var(--ok);
+}
+
+.chip.decision-rework.active {
+  border-color: var(--warn);
+}
+
+.chip.decision-rejected.active {
+  border-color: var(--bad);
+}
+
+.asset-trail {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0;
+}
+
+.asset-trail li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.asset-trail-note {
+  white-space: pre-wrap;
+}
+
+/* Narrow windows: the inspector moves under the stage so the takes keep their width. */
+@media (max-width: 1360px) {
+  .asset-desk {
+    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+  }
+
+  .asset-left {
+    grid-row: 1 / span 2;
+  }
+
+  .asset-stage {
+    border-right: none;
+  }
+
+  .asset-inspector {
+    grid-column: 2;
+    border-top: 1px solid var(--line);
+  }
+
+  .asset-cards {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}

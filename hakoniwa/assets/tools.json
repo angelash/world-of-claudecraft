@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "id": "ace_step_15",
+    "name": "ACE-Step 1.5 (local ComfyUI)",
+    "usedVersions": ["ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0"],
+    "termsUrl": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+    "termsCheckedAt": "2026-11-17",
+    "commercialUse": true,
+    "outputRights": "Code and weights MIT; the model card states generated music may be used commercially. Generated locally, no service terms apply.",
+    "aigcLabel": "Local generation writes no implicit label; the review desk writes an AIGC Vorbis comment on adoption.",
+    "kind": "audio"
+  },
+  {
+    "id": "score_render_fluidsynth",
+    "name": "Score render (FluidSynth with GeneralUser GS)",
+    "usedVersions": ["FluidSynth 2.6.2, GeneralUser GS 2.0.3"],
+    "termsUrl": "https://github.com/mrbumpy409/GeneralUser-GS/blob/main/documentation/LICENSE.txt",
+    "termsCheckedAt": "2026-11-17",
+    "commercialUse": true,
+    "outputRights": "Music made with GeneralUser GS may be used commercially (license v2.0); the author notes some sample origins cannot be traced. FluidSynth is LGPL and only renders offline.",
+    "aigcLabel": "Composed by an AI agent (Claude) as note data in tools/audio_gen/scores/ and rendered offline by FluidSynth; the render carries no implicit label, the review desk writes an AIGC Vorbis comment on adoption.",
+    "kind": "audio"
+  },
+  {
+    "id": "stable_audio_3_small_sfx",
+    "name": "Stable Audio 3 Small-SFX (local ComfyUI)",
+    "usedVersions": ["Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0"],
+    "termsUrl": "https://stability.ai/community-license",
+    "termsCheckedAt": "2026-11-17",
+    "commercialUse": false,
+    "outputRights": "Stability AI Community License: commercial use is free below USD 1M annual revenue only after registering at stability.ai/community-license; the bundled T5Gemma encoder follows the Gemma Terms of Use. Set commercialUse to true once the registration is done.",
+    "aigcLabel": "Local generation writes no implicit label; the review desk writes an AIGC Vorbis comment on adoption.",
+    "kind": "audio"
+  }
+]
