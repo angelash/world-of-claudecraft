@@ -24,7 +24,7 @@
 
 **M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-01、PK-M0-02、PK-M0-03、PK-M0-04、PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-14、PK-M0-15、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-25、PK-M0-26、PK-M0-27、PK-M0-28、PK-M0-29、PK-M0-30、PK-M0-31、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
-**推进优先级（D-096）**：序章与第一幕是第一优先。M0 剩余的包只做切片用得到的部分；M1 的代码、数据与内容包按依赖开工，不等 M0 门；顺序是 [development_plan.md](development_plan.md) 第 6.4 节的波次，波 0 的代码与设计包已完成，PK-M0-04 的序章与第一幕回写收尾中；波 1 已完成（PK-M1-07、PK-M1-14、PK-M1-16、PK-M1-45、PK-M1-48、PK-M1-58）；波 2 前段的 PK-M1-26、PK-M1-46、PK-M1-47 已完成，PK-M1-06 与 PK-M1-22 收尾中（音频设置页挂在 PK-M1-22 的设置外壳上，两包同提交）；波 2 后段进行中：PK-M1-11、PK-M1-13、PK-M1-18、PK-M1-51。切片的差距清单见 [slice_gap_audit.md](slice_gap_audit.md)。
+**推进优先级（D-096）**：序章与第一幕是第一优先。M0 剩余的包只做切片用得到的部分；M1 的代码、数据与内容包按依赖开工，不等 M0 门；顺序是 [development_plan.md](development_plan.md) 第 6.4 节的波次，波 0 的代码与设计包已完成，PK-M0-04 的序章与第一幕回写收尾中；波 1 已完成（PK-M1-07、PK-M1-14、PK-M1-16、PK-M1-45、PK-M1-48、PK-M1-58）；波 2 前段的 PK-M1-26、PK-M1-46、PK-M1-47 已完成，PK-M1-06 与 PK-M1-22 收尾中（音频设置页挂在 PK-M1-22 的设置外壳上，两包同提交）；波 2 后段进行中：PK-M1-11、PK-M1-13、PK-M1-18、PK-M1-51、PK-M1-50；PK-M1-54 等 PK-M1-22 合入后开工（两包都改场景运行器）。切片的差距清单见 [slice_gap_audit.md](slice_gap_audit.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
@@ -131,6 +131,7 @@
 | PK-M1-13 物品实例层与耐久 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-18 内置 AI：NPC 大脑与社会 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-51 澱染暴露与澱病 | 代理实施中（波 2 后段） | 无 |
+| PK-M1-50 迷宫运行时 | 代理实施中（波 2） | 无 |
 | PK-M0-05 生成工具能力与商用条款核实 | 包目录 `docs/70_packets/pk_m0_05_tools_terms/` 已立：用户核实清单与 `assets/tools.json` 的登记格式（图像 `xiaojiu`、音频 `xiaojiu_audio`）；`tools.json` 只收核实过的记录，仍为空 | U-03 |
 
 ---
