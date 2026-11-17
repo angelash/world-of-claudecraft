@@ -149,8 +149,9 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
     focus_left: two(k('ArrowLeft')),
     focus_right: two(k('ArrowRight')),
     confirm: two(k('Enter')),
-    next_tab: two(k('Tab', { ctrl: true })),
-    prev_tab: two(k('Tab', { ctrl: true, shift: true })),
+    // the browser keeps Ctrl+Tab for itself: Ctrl+] and Ctrl+[ work in every build
+    next_tab: two(k('Tab', { ctrl: true }), k('BracketRight', { ctrl: true })),
+    prev_tab: two(k('Tab', { ctrl: true, shift: true }), k('BracketLeft', { ctrl: true })),
     discard: two(k('Delete')),
     context_menu: two(k('Mouse2')),
   },

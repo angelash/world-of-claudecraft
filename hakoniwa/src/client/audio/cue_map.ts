@@ -8,6 +8,12 @@
 // fields (`select`, e.g. sfx_hit_{damage}_{material}), or a lookup on one field (`pick`). The
 // table declares each field's value domain, so validation expands every pattern and can check
 // every reachable id against the prompt library.
+//
+// Music-bus stingers carry their 5.7 class (story, door, level, quest, other) and whether they
+// may wait up to 3 s for a free slot; `loud` marks the sounds that reduce sudden loud sounds
+// lowers by a further 6 dB (10.4).
+
+import { STINGER_CLASSES, type StingerClass } from './music_player';
 
 export type CueValue = string | number | boolean;
 export type CueBus = 'sfx' | 'ui' | 'music' | 'ambience';
@@ -36,7 +42,7 @@ export interface CueBoost {
 
 export interface Cue {
   id: string;
-  /** Kernel event type (combat.damage), animation key frame (anim.footstep) or client trigger (ui.llm_waiting). */
+  /** Kernel event type (combat.damage), animation key frame (anim.footstep) or client trigger (client.llm_waiting). */
   event: string;
   when?: Record<string, CueValue | CueValue[]>;
   unless?: Record<string, CueValue | CueValue[]>;
@@ -56,6 +62,12 @@ export interface Cue {
   syncOffsetMs?: number;
   /** A music-bus phrase that ducks the music (5.7). */
   stinger?: boolean;
+  /** The stinger's priority class (5.7); other when unset. */
+  stingerClass?: StingerClass;
+  /** The stinger waits up to 3 s for a free slot instead of being dropped (5.7). */
+  queue?: boolean;
+  /** A sudden loud sound: reduce sudden loud sounds cuts it 6 dB more (10.4). */
+  loud?: boolean;
   note?: string;
 }
 
@@ -81,6 +93,9 @@ export interface CueHit {
   captionLevel: CaptionLevel | null;
   syncOffsetMs: number;
   stinger: boolean;
+  stingerClass: StingerClass;
+  queue: boolean;
+  loud: boolean;
 }
 
 const BUSES: readonly CueBus[] = ['sfx', 'ui', 'music', 'ambience'];
@@ -160,6 +175,9 @@ export function resolveCues(table: CueTable, trigger: Trigger): CueHit[] {
       captionLevel: cue.caption ? (cue.captionLevel ?? 'all') : null,
       syncOffsetMs: cue.syncOffsetMs ?? 0,
       stinger: cue.stinger ?? false,
+      stingerClass: cue.stingerClass ?? 'other',
+      queue: cue.queue ?? false,
+      loud: cue.loud ?? false,
     });
   }
   return out;
@@ -241,6 +259,14 @@ export function validateCueTable(table: unknown, known?: ReadonlySet<string>): s
     if (c.captionLevel !== undefined && c.captionLevel !== 'important' && c.captionLevel !== 'all')
       out.push(`${where}: captionLevel is important or all`);
     if (c.stinger && c.bus !== 'music') out.push(`${where}: stingers play on the music bus`);
+    if (c.stingerClass !== undefined && !STINGER_CLASSES.includes(c.stingerClass))
+      out.push(`${where}: stingerClass must be one of ${STINGER_CLASSES.join(', ')}`);
+    if ((c.stingerClass !== undefined || c.queue !== undefined) && !c.stinger)
+      out.push(`${where}: stingerClass and queue belong to stingers`);
+    if (c.queue !== undefined && typeof c.queue !== 'boolean')
+      out.push(`${where}: queue is true or false`);
+    if (c.loud !== undefined && typeof c.loud !== 'boolean')
+      out.push(`${where}: loud is true or false`);
     checkCond(where, c.when);
     checkCond(`${where} unless`, c.unless);
     if (c.select) {

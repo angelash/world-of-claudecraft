@@ -1,0 +1,652 @@
+/* ui_mode_dialogue and ui_mode_cutscene (ux_and_onboarding.md 7, 8): the dialogue panel, the
+   cutscene player in its three presentations, the backlog and the skip summary card. */
+
+/* ---- HUD collapse (5.1) ---- */
+.hk-hud.hk-mode-dialogue .hk-minimap,
+.hk-hud.hk-mode-dialogue .hk-log,
+.hk-hud.hk-mode-dialogue .hk-hotbar,
+.hk-hud.hk-mode-dialogue .hk-tracker,
+.hk-hud.hk-mode-dialogue .hk-hint,
+.hk-hud.hk-mode-dialogue .hk-notify-light,
+.hk-hud.hk-mode-dialogue .hk-focus,
+.hk-hud.hk-mode-dialogue .hk-frame-target,
+.hk-hud.hk-mode-dialogue .hk-hud-br {
+  visibility: hidden;
+}
+.hk-hud.hk-mode-cutscene > *:not(.hk-cut):not(.hk-story-overlay) {
+  visibility: hidden;
+}
+
+/* ---- dialogue panel ---- */
+.hk-dlg2 {
+  position: relative;
+  width: min(960px, 92vw);
+  pointer-events: auto;
+}
+.hk-dlg2-busts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 384px;
+  pointer-events: none;
+}
+.hk-dlg2-bust {
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+}
+.hk-dlg2-panel {
+  display: flex;
+  gap: 14px;
+  min-height: 96px;
+  max-height: 300px;
+  padding: 12px 18px 10px;
+  background: rgba(16, 13, 24, 0.94);
+  border: 1px solid rgba(226, 176, 74, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.hk-dlg2-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hk-dlg2-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.hk-dlg2-nameline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.hk-dlg2-name {
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+  font-size: 18px;
+}
+.hk-dlg2-name:empty {
+  display: none;
+}
+.hk-dlg2-sub,
+.hk-dlg2-attitude {
+  font-size: 13px;
+  color: var(--hk-muted);
+}
+.hk-dlg2-buttons {
+  display: flex;
+  gap: 6px;
+}
+.hk-dlg2-lines {
+  overflow-y: auto;
+  max-height: 150px;
+  font-size: 20px;
+  line-height: 1.55;
+}
+.hk-dlg2.mode-loose .hk-dlg2-lines {
+  max-height: none;
+}
+.hk-dlg2-line {
+  margin: 1px 0;
+  white-space: pre-wrap;
+}
+.hk-dlg2-line-who {
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+  margin-right: 8px;
+}
+.hk-dlg2-line.mine .hk-dlg2-line-who {
+  color: #8fc8ff;
+}
+.hk-dlg2-line.kind-think,
+.hk-dlg2-line.kind-narrate {
+  font-style: italic;
+  color: #c8c0b4;
+}
+.hk-dlg2-line.blocked .hk-dlg2-text {
+  color: var(--hk-muted);
+  font-size: 14px;
+}
+.hk-dlg2-pending,
+.hk-dlg2-farewell,
+.hk-dlg2-hint {
+  font-size: 13px;
+  color: var(--hk-muted);
+}
+.hk-dlg2-hint {
+  text-align: right;
+}
+.hk-dlg2-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hk-dlg2-options:empty {
+  display: none;
+}
+.hk-dlg2-option {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: left;
+}
+.hk-dlg2-num,
+.hk-cut-num {
+  min-width: 1.2em;
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+}
+.hk-dlg2-tag {
+  color: #8fd4c2;
+  font-size: 13px;
+}
+.hk-dlg2-why {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--hk-muted);
+}
+.hk-dlg2-say {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hk-dlg2-input {
+  flex: 1;
+}
+.hk-dlg2-counter {
+  font-size: 12px;
+  color: var(--hk-muted);
+  font-variant-numeric: tabular-nums;
+}
+.hk-dlg2-rejected {
+  font-size: 13px;
+  color: var(--hk-danger);
+}
+.hk-dlg2.kind-narrate .hk-dlg2-text {
+  font-style: italic;
+  color: #d8d0c0;
+}
+.hk-dlg2.kind-divine .hk-dlg2-panel {
+  background: linear-gradient(180deg, rgba(60, 46, 20, 0.95), rgba(26, 20, 12, 0.95));
+  border-color: #f2d78a;
+}
+.hk-dlg2.kind-divine .hk-dlg2-name,
+.hk-dlg2.kind-divine .hk-dlg2-text {
+  color: #fff6dc;
+  text-align: center;
+}
+
+/* ---- portraits ---- */
+.hk-story-portrait {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.hk-dlg2-portrait {
+  width: 128px;
+  height: 128px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.hk-story-canvas {
+  image-rendering: pixelated;
+  max-width: 100%;
+  max-height: 100%;
+}
+.hk-story-plate {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: var(--hk-gold-soft);
+}
+.hk-story-portrait.empty-frame {
+  border: 1px dashed rgba(226, 176, 74, 0.5);
+}
+
+/* ---- cutscene player ---- */
+.hk-cut {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 7vh;
+}
+.hk-cut.pres-theater {
+  background: radial-gradient(ellipse at 50% 40%, rgba(12, 10, 20, 0.35), rgba(8, 6, 14, 0.82));
+}
+.hk-cut-still {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+}
+.hk-cut-still.vignette {
+  background: radial-gradient(ellipse at 50% 45%, rgba(40, 34, 50, 0.9), rgba(4, 3, 8, 1));
+}
+.hk-cut-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #000;
+  transition: height 0.4s;
+}
+.hk-cut-bar.top {
+  top: 0;
+}
+.hk-cut-bar.bottom {
+  bottom: 0;
+}
+/* letterbox 2:1: the bars take what is left of the height after a 2:1 picture */
+.hk-cut.pres-staged .hk-cut-bar {
+  height: max(0px, calc((100vh - 50vw) / 2));
+}
+.hk-cut-busts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 384px;
+  pointer-events: none;
+}
+.hk-cut-bust {
+  position: absolute;
+  bottom: 18vh;
+  transition: filter 0.12s;
+}
+.hk-cut-bust.left {
+  left: 6vw;
+}
+.hk-cut-bust.right {
+  right: 6vw;
+}
+.hk-cut-bust:not(.lit),
+.hk-dlg2-bust:not(.lit) {
+  filter: brightness(0.7);
+}
+.hk-cut-captions {
+  position: absolute;
+  left: 4vw;
+  bottom: 22vh;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.hk-cut-caption {
+  font-size: 24px;
+  color: #f3eadb;
+  text-shadow: 0 1px 4px #000;
+}
+.hk-cut-card {
+  position: relative;
+  width: min(820px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 24px 14px;
+  background: rgba(18, 15, 26, 0.95);
+  border: 1px solid rgba(226, 176, 74, 0.55);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+}
+/* staged and illustration: subtitles over the picture, not a card */
+.hk-cut.pres-staged .hk-cut-card,
+.hk-cut.pres-illustration .hk-cut-card {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+.hk-cut.text-hidden .hk-cut-card,
+.hk-cut.text-hidden .hk-cut-captions,
+.hk-cut.text-hidden .hk-cut-busts {
+  visibility: hidden;
+}
+.hk-cut-title {
+  color: var(--hk-gold-soft);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+.hk-cut-lines {
+  overflow-y: auto;
+  max-height: 46vh;
+  font-size: 20px;
+  line-height: 1.7;
+}
+.hk-cut.pres-staged .hk-cut-lines,
+.hk-cut.pres-illustration .hk-cut-lines {
+  font-size: 24px;
+}
+.hk-cut-line {
+  margin: 2px 0;
+  white-space: pre-wrap;
+}
+.hk-cut-speaker {
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+  margin-right: 8px;
+}
+.hk-cut-line.kind-narrate {
+  color: #d8d0c0;
+  font-style: italic;
+}
+.hk-cut-line.kind-think {
+  color: #c8d0e0;
+  font-style: italic;
+}
+.hk-cut-line.kind-divine .hk-cut-text {
+  color: #fff2c8;
+  text-shadow: 0 0 12px rgba(255, 220, 140, 0.55);
+  font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
+}
+.hk-cut-line.blocked .hk-cut-text {
+  color: var(--hk-muted);
+  font-size: 14px;
+}
+.hk-cut-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+.hk-cut-choices:empty {
+  display: none;
+}
+.hk-cut-choice {
+  text-align: left;
+  font-size: 16px;
+  padding: 7px 12px;
+}
+.hk-cut-choice.key-choice::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 8px;
+  border: 1px solid var(--hk-gold-soft);
+  transform: rotate(45deg);
+}
+.hk-cut-prompt {
+  color: var(--hk-gold-soft);
+}
+.hk-cut-input-row {
+  display: flex;
+  gap: 8px;
+}
+.hk-cut-input {
+  flex: 1;
+  font-size: 16px;
+}
+.hk-cut-court {
+  font-size: 12px;
+  color: var(--hk-muted);
+}
+.hk-cut-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--hk-muted);
+}
+.hk-cut-tools {
+  display: flex;
+  gap: 6px;
+}
+.hk-cut-tool.active {
+  border-color: var(--hk-gold);
+  color: var(--hk-gold-soft);
+}
+.hk-cut-skip {
+  position: relative;
+  overflow: hidden;
+}
+.hk-cut-skip-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+.hk-cut-skip-text {
+  position: relative;
+}
+.hk-cut-letter {
+  position: absolute;
+  top: 8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, 88vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 24px 28px;
+  background: #efe6d2;
+  color: #2b2418;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-size: 16px;
+  line-height: 1.8;
+}
+.hk-cut-letter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.hk-cut-letter-subject {
+  font-size: 18px;
+  font-weight: 700;
+}
+.hk-cut-letter-seal,
+.hk-cut-letter-from,
+.hk-cut-letter-hint {
+  font-size: 13px;
+  color: #6c5d44;
+}
+.hk-cut-letter-hint {
+  text-align: right;
+}
+.hk-cut.with-letter .hk-cut-card {
+  visibility: hidden;
+}
+.hk-cut-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: hk-cut-fade-in 0.6s ease-out 1;
+}
+/* reduce flashing: a white flash becomes a soft 0.2 s brightening (catalog_cutscenes.md 13.8) */
+.hk-cut-fade.soft {
+  background: rgba(255, 248, 230, 0.35);
+  animation-duration: 0.2s;
+}
+@keyframes hk-cut-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.hk-cut-fade.black {
+  background: #000;
+}
+.hk-cut-fade.white {
+  background: #fff;
+}
+.hk-cut.shake-1 {
+  animation: hk-cut-shake 0.3s linear 1;
+}
+.hk-cut.shake-2 {
+  animation: hk-cut-shake 0.45s linear 2;
+}
+.hk-cut.shake-3 {
+  animation: hk-cut-shake 0.5s linear 3;
+}
+@keyframes hk-cut-shake {
+  25% {
+    transform: translate(3px, -2px);
+  }
+  50% {
+    transform: translate(-3px, 2px);
+  }
+  75% {
+    transform: translate(2px, 1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-cut.shake-1,
+  .hk-cut.shake-2,
+  .hk-cut.shake-3 {
+    animation: none;
+  }
+}
+
+/* ---- AI mark (7.3) ---- */
+.hk-ai-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.hk-ai-badge {
+  font-size: 10px;
+  padding: 0 4px;
+  border: 1px solid var(--hk-muted);
+  border-radius: 4px;
+  color: var(--hk-muted);
+}
+.hk-ai-block {
+  display: none;
+  font-size: 11px;
+}
+.hk-ai-mark:hover .hk-ai-block,
+.hk-ai-mark:focus-within .hk-ai-block {
+  display: inline-block;
+}
+
+/* ---- backlog and summary card ---- */
+.hk-story-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+.hk-backlog,
+.hk-story-card {
+  pointer-events: auto;
+}
+.hk-backlog {
+  position: absolute;
+  top: 8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(760px, 92vw);
+  height: 76vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  background: rgba(14, 12, 20, 0.97);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 12px;
+}
+.hk-backlog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hk-backlog-title {
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+}
+.hk-backlog-list {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.hk-backlog-entry {
+  margin: 3px 0;
+  white-space: pre-wrap;
+}
+.hk-backlog-entry.kind-title {
+  margin-top: 10px;
+  color: var(--hk-gold-soft);
+  letter-spacing: 0.15em;
+  font-size: 13px;
+}
+.hk-backlog-entry.kind-choice,
+.hk-backlog-entry.kind-input {
+  color: #8fc8ff;
+}
+.hk-backlog-entry.line-narrate,
+.hk-backlog-entry.line-think {
+  font-style: italic;
+  color: #c8c0b4;
+}
+.hk-backlog-who {
+  color: var(--hk-gold-soft);
+  font-weight: 700;
+  margin-right: 8px;
+}
+.hk-backlog-hint {
+  font-size: 12px;
+  color: var(--hk-muted);
+  text-align: right;
+}
+.hk-story-card {
+  position: absolute;
+  top: 30vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 90vw);
+  padding: 18px 22px;
+  background: rgba(18, 15, 26, 0.97);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.hk-story-card-label {
+  font-size: 12px;
+  color: var(--hk-muted);
+  letter-spacing: 0.15em;
+}
+.hk-story-card-title {
+  margin: 4px 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--hk-gold-soft);
+}
+.hk-story-card-text {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.hk-story-card-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--hk-muted);
+  text-align: right;
+}

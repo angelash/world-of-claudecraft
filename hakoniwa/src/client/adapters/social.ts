@@ -33,6 +33,16 @@ import type { GameView } from '../view/game_view';
 
 export const SAY_MAX = 200;
 
+/** A text value a model wrote: raw text with its language (D-087). */
+export function isModelText(v: unknown): boolean {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    typeof (v as { raw?: unknown }).raw === 'string' &&
+    typeof (v as { lang?: unknown }).lang === 'string'
+  );
+}
+
 export function createInteractAdapter(): InteractAdapter {
   const talkable = (view: GameView, id: string) => canTalkTo(view.world as never, id);
   return {
@@ -83,6 +93,8 @@ export function createConversationAdapter(): ConversationAdapter {
           speakerName: t(l.speakerName),
           text: t(l.text),
           kind: l.kind,
+          // model words are kept as raw text (D-087); only the model writes raw NPC lines
+          generated: isModelText(l.text) && l.speakerId !== view.playerId(),
         })),
         options: c.options.map((o) => ({
           id: o.id,

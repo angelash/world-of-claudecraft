@@ -23,8 +23,8 @@ export interface InputHandlers {
   pointer(x: number, y: number, travel: number): void;
   /** focus left the page: release every held key */
   release(): void;
-  /** primary click on the world at device-pixel coordinates */
-  click(sx: number, sy: number, double: boolean): void;
+  /** primary click on the world at device-pixel coordinates (Shift held: set the focus) */
+  click(sx: number, sy: number, double: boolean, shift?: boolean): void;
   /** secondary (right) click on the world */
   secondary(sx: number, sy: number): void;
   /** pointer moved over the world (device pixels), or left it (null) */
@@ -94,7 +94,7 @@ export class InputController {
       const double = now - this.lastClick < 320;
       this.lastClick = now;
       const p = this.devicePoint(ev);
-      this.h.click(p.x, p.y, double);
+      this.h.click(p.x, p.y, double, ev.shiftKey);
     });
     on(canvas, 'pointermove', (ev) => {
       const d = this.drag;

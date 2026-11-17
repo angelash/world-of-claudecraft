@@ -1,24 +1,31 @@
 // Save slots for the client over the save container (release_engineering.md 5): the slot
-// list the windows show (cached, so painting never waits on storage), saving the running
-// world through a RunSaver, loading with the previous-generation fallback, deleting, the
-// autosave ring, and the one-time move of the first round's key-value saves into the
-// container. Pure: the backend, the wall clock and the run id source are injected (main.ts
+// list the windows show (cached, so painting never waits on storage) with the metadata of
+// ux_and_onboarding.md 3.5 (act and place, game date, real play time, level, AI mode, the
+// difficulty and the thumbnail kept beside the slot by ./slot_extras.ts), the slots this build
+// cannot read (damaged, newer), saving the running world through a RunSaver, loading with the
+// previous-generation fallback, deleting, the autosave ring, the ironman run's one slot (5.9:
+// autosaves and exit only), and the one-time move of the first round's key-value saves into
+// the container. Pure: the backend, the wall clock and the run id source are injected (main.ts
 // wires IndexedDB); no DOM, no real clock.
 
 import type { ContentMap } from '../../core/contracts';
 import {
   AUTO_SLOTS,
+  buildVersions,
   contentVersionOf,
   deserializeWorld,
+  IRONMAN_SLOT,
   isoTime,
   type LoadedSave,
   type LogSource,
   loadSlot,
   MANUAL_SLOTS,
+  newerFields,
   RunSaver,
   type SaveBackend,
   type SaveErrorCode,
   SaveLoadError,
+  type SaveTrigger,
   type SaveVersions,
   type SlotId,
   type SlotRecord,
@@ -29,7 +36,8 @@ import type { World } from '../../core/world';
 import { t } from '../../shared_ui/i18n';
 import { inCombat, unitOf } from '../../systems/combat/units';
 import { playerEntity } from '../../systems/world';
-import { formatDate, formatTime } from './format';
+import { formatDate, formatTime, levelFromTags } from './format';
+import { type Difficulty, isDifficulty, SlotExtrasStore } from './slot_extras';
 
 export type { LoadedSave, SlotId };
 
@@ -67,7 +75,25 @@ export interface SlotMeta {
   recovered: boolean;
   /** the current generation is broken; loading uses the previous one */
   fallback: boolean;
+  /** story act at save time ('' when the world had none) */
+  act: string;
+  runId: string;
+  /** the player's level at save time, when the save recorded it */
+  level: number | null;
+  /** real play time of the run up to this save, in seconds */
+  playSeconds: number | null;
+  /** AI preset the run played with ('off' is the built-in AI), never an address */
+  aiPreset: string | null;
+  /** an ironman run's save (5.9) */
+  ironman: boolean;
+  /** difficulty at save time, from the slot's client extras (null when not kept here) */
+  difficulty: Difficulty | null;
+  /** thumbnail data URL from the slot's client extras */
+  thumb: string | null;
 }
+
+/** Why a slot holds no save this build can load (3.5 error states). */
+export type SlotProblem = 'corrupt' | 'newer';
 
 export function slotLabel(slot: SlotId): string {
   if (slot === 'quick') return t('ui.win.saves.quick');
@@ -83,6 +109,8 @@ export function slotMeta(rec: SlotRecord): SlotMeta | null {
   const cal = calendarAt(h.tick);
   // Save flags (ironman, recovered), not world flags.
   const { recovered } = h.flags;
+  const s = h.summary;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
   return {
     slot: rec.slot,
     tick: h.tick,
@@ -94,7 +122,31 @@ export function slotMeta(rec: SlotRecord): SlotMeta | null {
     writerName: h.writerName,
     recovered,
     fallback: !rec.header,
+    act: typeof s.act === 'string' ? s.act : '',
+    runId: h.runId,
+    level: num(s.level),
+    playSeconds: num(s.playSeconds),
+    aiPreset: typeof s.aiPreset === 'string' && s.aiPreset ? s.aiPreset : null,
+    ironman: h.flags.ironman || rec.slot === IRONMAN_SLOT,
+    difficulty: null,
+    thumb: null,
   };
+}
+
+/** What keeps a slot from loading in this build, or null. */
+export function slotProblem(rec: SlotRecord, gameVersion?: string): SlotProblem | null {
+  if (rec.problem === 'newer_container') return 'newer';
+  const h = rec.header ?? rec.prev;
+  if (!h) return rec.problem && rec.problem !== 'missing' ? 'corrupt' : null;
+  return newerFields(h, buildVersions(gameVersion)).length > 0 ? 'newer' : null;
+}
+
+/** The player's level from the `lvl:<n>` tag of the player entity (conventions 5). */
+export function playerLevel(world: World): number | undefined {
+  // A kernel-only world (tests, tools) has no world slice and so no player.
+  const p = world.slices.world ? playerEntity(world) : undefined;
+  const n = p ? levelFromTags(p.tags) : null;
+  return n === null ? undefined : n;
 }
 
 /** A failed save: the container's reason code and text. */
@@ -135,7 +187,28 @@ export interface ClientSavesOptions {
    * the old saves are left where they are instead of being moved into memory and lost.
    */
   durable?: boolean;
+  /**
+   * The snapshot migrator a load runs through (a fixed one, for tests). Without it and
+   * without `migrator`, the kernel's default: the rename table on the flags only.
+   */
   migrate?: WorldMigrator;
+  /**
+   * The migrator built lazily on the first load (main.ts: the rename table plus every game
+   * system's `idFields`, so content id renames reach the slices; the systems load deferred).
+   */
+  migrator?: () => Promise<WorldMigrator>;
+  /** where slot thumbnails and difficulties are kept (./slot_extras.ts); none: not kept */
+  extras?: KeyValueStore | null;
+  /** the AI preset of the running world when it uses a model (the settings' preset name) */
+  aiPreset?: () => string;
+  /** manual slots this build offers to fill (ux_and_onboarding.md 3.5: 20, the web demo 5) */
+  manualLimit?: number;
+}
+
+/** Options of a new run (the new game page, ux_and_onboarding.md 3.4). */
+export interface RunOptions {
+  /** an ironman run: one slot, autosaves and exit only (5.9) */
+  ironman?: boolean;
 }
 
 /** Keys of the first round's key-value saves. */
@@ -154,11 +227,17 @@ const LEGACY_SLOTS: Record<string, SlotId> = {
 
 export class ClientSaves {
   private cache: Partial<Record<SlotId, SlotMeta>> = {};
+  private broken: Partial<Record<SlotId, SlotProblem>> = {};
   private records = new Map<SlotId, SlotRecord>();
   private saver: RunSaver | null = null;
   private source: SaveSource | null = null;
+  private readonly extras: SlotExtrasStore;
+  /** play time of the attached run before this session, and when this session began */
+  private play = { base: 0, since: 0 };
 
-  constructor(private readonly opts: ClientSavesOptions) {}
+  constructor(private readonly opts: ClientSavesOptions) {
+    this.extras = new SlotExtrasStore(opts.extras ?? null);
+  }
 
   /** Saves outlive the page (false: the browser gave no storage; they last until it closes). */
   get durable(): boolean {
@@ -176,21 +255,41 @@ export class ClientSaves {
   }
 
   async refresh(): Promise<void> {
-    let records: SlotRecord[] = [];
+    let records: SlotRecord[];
     try {
       records = await this.opts.backend.list();
     } catch (err) {
+      // Keep the last good list and every slot's extras: a failed listing says nothing about
+      // which saves exist, so nothing may be pruned on it.
       console.warn('[saves] listing failed', err);
+      return;
     }
     const next: Partial<Record<SlotId, SlotMeta>> = {};
+    const broken: Partial<Record<SlotId, SlotProblem>> = {};
+    const headers = new Map<SlotId, { runId: string; savedAt: string }>();
     this.records = new Map();
     for (const r of records) {
+      const problem = slotProblem(r, this.opts.versions.gameVersion);
+      if (problem) broken[r.slot] = problem;
       const m = slotMeta(r);
       if (!m) continue;
+      const ex = this.extras.get(r.slot, m);
+      if (ex) {
+        m.difficulty = ex.difficulty ?? null;
+        m.thumb = ex.thumb ?? null;
+      }
+      headers.set(r.slot, { runId: m.runId, savedAt: m.savedAt });
       next[r.slot] = m;
       this.records.set(r.slot, r);
     }
     this.cache = next;
+    this.broken = broken;
+    this.extras.prune(headers);
+  }
+
+  /** Slots this build cannot load: damaged beyond the fallback, or from a newer version. */
+  problems(): Partial<Record<SlotId, SlotProblem>> {
+    return this.broken;
   }
 
   /** The slot list as of the last refresh (synchronous for painting). */
@@ -206,8 +305,11 @@ export class ClientSaves {
     return this.cache[slot] !== undefined;
   }
 
-  /** Start saving a running world: a new run, or the chain of the save it was loaded from. */
-  attach(source: SaveSource, from?: LoadedSave | null): void {
+  /**
+   * Start saving a running world: a new run (with the new game page's run options), or the
+   * chain of the save it was loaded from (whose run flags carry over).
+   */
+  attach(source: SaveSource, from?: LoadedSave | null, run: RunOptions = {}): void {
     this.source = source;
     this.saver = new RunSaver({
       backend: this.opts.backend,
@@ -215,12 +317,33 @@ export class ClientSaves {
       versions: { ...this.opts.versions, contentVersion: this.contentVersion(source) },
       from: from?.header ?? null,
       fromMode: from?.aiMode,
+      flags: run.ironman ? { ironman: true } : undefined,
     });
+    const base = from?.header.summary.playSeconds;
+    this.play = {
+      base: typeof base === 'number' && Number.isFinite(base) && base > 0 ? base : 0,
+      since: this.opts.now(),
+    };
   }
 
   detach(): void {
     this.source = null;
     this.saver = null;
+  }
+
+  /** Manual slots this build offers to fill (3.5). */
+  get manualLimit(): number {
+    return this.opts.manualLimit ?? MANUAL_SLOTS.length;
+  }
+
+  /** The attached run is an ironman run (5.9): one slot, autosaves and exit only. */
+  get ironman(): boolean {
+    return this.saver?.ironman ?? false;
+  }
+
+  /** Real seconds played in the attached run, this session included. */
+  playSeconds(): number {
+    return Math.max(0, Math.floor(this.play.base + (this.opts.now() - this.play.since) / 1000));
   }
 
   /** A save is being written (a safe point excludes it, 5.1). */
@@ -232,21 +355,47 @@ export class ClientSaves {
     return this.saver?.runId ?? null;
   }
 
-  /** Save the attached world. Throws SaveFailed (or the storage error) on failure. */
-  async save(slot: SlotId, info: SaveInfo): Promise<SlotMeta> {
+  /**
+   * Save the attached world. Throws SaveFailed (or the storage error) on failure; an ironman
+   * run refuses any slot but its own and any trigger but autosave and exit (`bad_request`).
+   */
+  async save(slot: SlotId, info: SaveInfo, trigger: SaveTrigger = 'manual'): Promise<SlotMeta> {
     const saver = this.saver;
     const source = this.source;
     if (!saver || !source) throw new Error('no running world to save');
     const world = source.world;
+    const difficulty = world.meta.flags.difficulty;
     const res = await saver.save(source, {
       slot,
       savedAt: isoTime(this.opts.now()),
       label: info.label,
-      summary: { act: String(world.meta.flags.act ?? ''), map: info.mapId, mapName: info.mapName },
+      trigger,
+      summary: {
+        act: String(world.meta.flags.act ?? ''),
+        map: info.mapId,
+        mapName: info.mapName,
+        level: playerLevel(world),
+        playSeconds: this.playSeconds(),
+        aiPreset: world.ai.mode === 'off' ? 'off' : (this.opts.aiPreset?.() ?? 'custom'),
+      },
     });
     if (!res.ok) throw new SaveFailed(res.code, res.reason);
+    this.extras.begin(slot, {
+      runId: res.header.runId,
+      savedAt: res.header.savedAt,
+      difficulty: isDifficulty(difficulty) ? difficulty : undefined,
+    });
     await this.refresh();
     return this.cache[slot] ?? (slotMeta({ slot, header: res.header, prev: null }) as SlotMeta);
+  }
+
+  /** Keep a thumbnail for the save `meta` describes (dropped when the slot moved on). */
+  setThumb(meta: Pick<SlotMeta, 'slot' | 'runId' | 'savedAt'>, thumb: string): boolean {
+    if (!this.extras.setThumb(meta.slot, meta, thumb)) return false;
+    const cur = this.cache[meta.slot];
+    if (cur && cur.runId === meta.runId && cur.savedAt === meta.savedAt)
+      this.cache = { ...this.cache, [meta.slot]: { ...cur, thumb } };
+    return true;
   }
 
   /** The autosave ring (5.1): an empty autosave slot, else the oldest one. */
@@ -264,8 +413,17 @@ export class ClientSaves {
     return pick;
   }
 
+  /** An autosave: the ring, or the ironman run's own slot. */
   autosave(info: SaveInfo): Promise<SlotMeta> {
-    return this.save(this.nextAutoSlot(), info);
+    return this.ironman
+      ? this.save(IRONMAN_SLOT, info, 'auto')
+      : this.save(this.nextAutoSlot(), info, 'auto');
+  }
+
+  /** The save on leaving a run (5.1 exit trigger): only an ironman run writes one here. */
+  async exitSave(info: SaveInfo): Promise<SlotMeta | null> {
+    if (!this.ironman || !this.saver) return null;
+    return this.save(IRONMAN_SLOT, info, 'exit');
   }
 
   /**
@@ -274,11 +432,13 @@ export class ClientSaves {
    */
   async load(slot: SlotId): Promise<LoadedSave> {
     await this.saver?.idle();
-    return loadSlot(this.opts.backend, slot, this.opts.migrate);
+    const migrate = this.opts.migrate ?? (await this.opts.migrator?.());
+    return loadSlot(this.opts.backend, slot, migrate);
   }
 
   async remove(slot: SlotId): Promise<void> {
     await this.opts.backend.delete({ slotId: slot });
+    this.extras.remove(slot);
     await this.refresh();
   }
 
@@ -383,6 +543,31 @@ export function atSafePoint(world: World, s: { inScene: boolean; writing: boolea
   if (s.inScene || s.writing) return false;
   const unit = unitOf(world, playerEntity(world)?.id);
   return !unit || !inCombat(world, unit);
+}
+
+/** Why the player cannot save right now (ux_and_onboarding.md 6.2.13), or null. */
+export type SaveBlock = 'prologue' | 'combat' | 'scene' | 'dialogue' | 'writing';
+
+/**
+ * The prologue cannot be saved at all; in combat, during a scene or a conversation, and
+ * while a save is still being written the save buttons wait (6.2.13).
+ */
+export function saveBlock(
+  world: World,
+  s: { inScene: boolean; talking: boolean; writing: boolean },
+): SaveBlock | null {
+  if (world.meta.flags.act === 'prologue') return 'prologue';
+  if (s.inScene) return 'scene';
+  if (s.talking) return 'dialogue';
+  const unit = world.slices.world ? unitOf(world, playerEntity(world)?.id) : undefined;
+  if (unit && inCombat(world, unit)) return 'combat';
+  if (s.writing) return 'writing';
+  return null;
+}
+
+/** The player sentence for a save block. */
+export function saveBlockText(b: SaveBlock): string {
+  return t(`ui.win.saves.block.${b}`);
 }
 
 /** Player text for a failed save: quota, a newer save in the slot, or "the last save is intact". */

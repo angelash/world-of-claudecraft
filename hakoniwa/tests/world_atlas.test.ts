@@ -69,6 +69,9 @@ function fixture(): Fixture {
         hubOf: [0],
         sediment: 0,
         size: [4, 4],
+        music: 'mus_pro_antechamber',
+        ambience: ['amb_divine_court'],
+        reverbZone: 'divine',
       },
       {
         id: 'town',
@@ -83,6 +86,14 @@ function fixture(): Fixture {
         hubOf: [1, 2],
         sediment: 1,
         size: [10, 8],
+        music: 'mus_town_borderstone_day',
+        musicNight: 'mus_town_borderstone_night',
+        ambience: [
+          { id: 'amb_town_day', time: 'day' },
+          { id: 'amb_town_night', time: 'night' },
+        ],
+        ambiencePoints: [{ id: 'amb_pt_dog_bark', weight: 2 }],
+        reverbZone: 'street',
       },
       {
         id: 'cave',
@@ -97,6 +108,9 @@ function fixture(): Fixture {
         style: 'sealed_ruins',
         sediment: 3,
         size: [6, 6],
+        music: 'mus_dg_ancient',
+        ambience: ['amb_dg_ruins'],
+        reverbZone: 'dungeon',
       },
       {
         id: 'field',

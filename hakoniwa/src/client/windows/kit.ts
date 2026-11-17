@@ -73,14 +73,19 @@ export function tabs<K extends string>(
   let cur = initial;
   const strip = el('div', { className: 'hk-tabs', attrs: { role: 'tablist' } });
   const buttons = items.map((it) => {
+    // aria-selected marks the current tab: the window tab keys and the pad's LB and RB step
+    // from it (input_layer.ts tab)
     const b = el('button', {
       className: `hk-tab${it.id === cur ? ' active' : ''}`,
       text: it.label,
-      attrs: { type: 'button', role: 'tab' },
+      attrs: { type: 'button', role: 'tab', 'aria-selected': String(it.id === cur) },
       on: {
         click: () => {
           cur = it.id;
-          for (const x of buttons) x.classList.toggle('active', x === b);
+          for (const x of buttons) {
+            x.classList.toggle('active', x === b);
+            x.setAttribute('aria-selected', String(x === b));
+          }
           onChange(cur);
         },
       },

@@ -1,6 +1,7 @@
 // Draggable, closable window frames. Each window id maps to a factory that builds its
 // content; availability follows the feature flags (window_registry.ts). Open windows are
-// refreshed at a low rate by the session, never per frame. Thin DOM layer.
+// refreshed at a low rate by the session, never per frame. A window def marked `mode` opens as
+// an interface mode instead (ux_and_onboarding.md 1.3; the corridor first). Thin DOM layer.
 
 import type { FlagValue } from '../../core/contracts';
 import { clear, el } from '../../shared_ui/dom';
@@ -21,6 +22,8 @@ export interface WindowContent {
   /** called every animation frame while open (canvas windows such as the battlefield) */
   frame?(nowMs: number): void;
   dispose?(): void;
+  /** a mode's input action (its context's actions, input/contexts.ts); true when handled */
+  action?(name: string): boolean;
 }
 
 export type WindowFactory = (close: () => void) => WindowContent;
@@ -87,6 +90,11 @@ export class WindowManager {
     if (!factory) return false;
     const def = windowDef(id);
     const close = () => this.close(id);
+    if (def.mode) return this.showMode(id, factory(close));
+    // A plain window never opens behind a mode (1.3): asking for one (a notification or the
+    // tracker clicked, a link out of the corridor card) leaves the mode first.
+    const mode = this.modeOpen;
+    if (mode) this.close(mode);
     const content = factory(close);
     const titleBar = el('div', { className: 'hk-window-title' }, [
       el('span', { text: windowTitle(id) }),
@@ -120,6 +128,55 @@ export class WindowManager {
     content.update?.();
     this.onChange?.();
     return true;
+  }
+
+  /**
+   * An interface mode (1.3): every other window closes, the content fills the screen with no
+   * title bar or drag, and it stays the front layer until it closes (Esc, its own leave key).
+   */
+  private showMode(id: WindowId, content: WindowContent): boolean {
+    this.closeAll();
+    const frame = el(
+      'section',
+      {
+        className: `hk-mode-layer hk-mode-${id}`,
+        attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': windowTitle(id) },
+      },
+      [content.el],
+    );
+    this.root.append(frame);
+    const ow: OpenWindow = { id, frame, content };
+    this.open.set(id, ow);
+    this.focus(ow);
+    content.update?.();
+    this.onChange?.();
+    return true;
+  }
+
+  /** The open interface mode, if any (it pauses the world and owns the input). */
+  get modeOpen(): WindowId | null {
+    for (const id of this.open.keys()) if (windowDef(id).mode) return id;
+    return null;
+  }
+
+  /** A mode, or a pausing window (settings, saves, menu, help), is open (1.3). */
+  get holdsWorld(): boolean {
+    for (const id of this.open.keys()) {
+      const d = windowDef(id);
+      if (d.mode || d.pauses) return true;
+    }
+    return false;
+  }
+
+  /** Run an action of the open mode's input context; `leave` closes the mode. */
+  modeAction(action: string): boolean {
+    const id = this.modeOpen;
+    if (!id) return false;
+    if (action === 'leave') {
+      this.close(id);
+      return true;
+    }
+    return this.open.get(id)?.content.action?.(action) ?? false;
   }
 
   close(id: WindowId): void {

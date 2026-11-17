@@ -13547,6 +13547,25 @@
       "source": "8.2"
     },
     {
+      "name": "tension_high",
+      "kind": "int",
+      "scope": "global",
+      "range": [0, 2],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.tension_high",
+      "source": "8.2"
+    },
+    {
       "name": "territory_address",
       "kind": "enum",
       "scope": "global",

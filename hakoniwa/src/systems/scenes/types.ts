@@ -29,6 +29,11 @@ export interface SceneChoice {
   /** hide after it has been picked once in this run */
   once?: boolean;
   hint?: string;
+  /**
+   * An irreversible choice (catalog_cutscenes.md 2.2 `确认`): the client asks with
+   * `ui_pop_confirm` first; cancelling stays on the node. The kernel ignores it.
+   */
+  confirm?: boolean;
 }
 
 /** Free text from the player (player.said); the model may answer, a written reply is the fallback. */
@@ -70,9 +75,34 @@ export interface CourtSpec {
   limit?: number;
 }
 
+/**
+ * One stage directive of a node (catalog_cutscenes.md 13.5): the client's cutscene player
+ * executes it when the node is entered; the kernel ignores the list. Music starts on layer 1
+ * unless `layer` says otherwise; `silence` is a written silence (music and ambience pressed
+ * to -24 dB for the seconds given); `letter` shows an `ltr_` letter as a step of its own.
+ */
+export type StageDirective =
+  | { op: 'music'; id: string; mode?: 'in' | 'out' | 'cross' | 'layer'; layer?: 1 | 2 | 3 | 4 }
+  | { op: 'sfx'; id: string }
+  | { op: 'ambience'; id: string }
+  | { op: 'silence'; seconds: number }
+  | { op: 'bust'; who: string; expression?: string; side: 'left' | 'right' }
+  | { op: 'bust_clear'; who?: string }
+  | { op: 'fade'; to: 'black' | 'white'; seconds: number }
+  | { op: 'caption'; text: string }
+  | { op: 'letter'; id: string }
+  | { op: 'shake'; strength: 1 | 2 | 3 };
+
+/** How a scene is presented (ux_and_onboarding.md 8.1; theater when absent). */
+export type ScenePresentation = 'staged' | 'theater' | 'illustration';
+
 export interface SceneNode {
   id: string;
   lines?: SceneLine[];
+  /** stage directives for the client player (13.5); ignored by the kernel */
+  stage?: StageDirective[];
+  /** an anchor node: skipping stops here (ux 8.3) */
+  anchor?: boolean;
   effects?: Effect[];
   /** first matching branch jumps right after effects and lines */
   branch?: { when: string; to: string }[];
@@ -99,6 +129,12 @@ export interface SceneDef {
   onEnd?: Effect[];
   /** scene to play right after this one ends */
   then?: string;
+  /** client presentation (ux 8.1); theater when absent */
+  presentation?: ScenePresentation;
+  /** full-screen still of an illustration scene (an `art_bg_cut_*` id) */
+  illustration?: string;
+  /** the skip summary card (catalog_cutscenes.md 13.9; text key c.scenes.<id>.summary) */
+  summary?: string;
 }
 
 /** A speaker's display data for lines (NPC names here are scene-local labels). */

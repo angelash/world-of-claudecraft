@@ -1,0 +1,20 @@
+/* ui_hud_hint (ux_and_onboarding.md 17.2): one line bottom centre, above the hotbar. */
+.hk-hint {
+  padding: 4px 14px;
+  font-size: 15px;
+  color: var(--hk-text);
+  background: rgba(20, 17, 30, 0.78);
+  border: 1px solid rgba(63, 168, 138, 0.7);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 400ms ease-out;
+}
+.hk-hint.fading {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-hint {
+    transition: none;
+  }
+}

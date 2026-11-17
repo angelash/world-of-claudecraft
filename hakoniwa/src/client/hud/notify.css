@@ -1,0 +1,71 @@
+/* ui_hud_notify (ux_and_onboarding.md 5.4): critical top centre, the right stack, the light line. */
+.hk-notify-top {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+.hk-notify-stack {
+  position: absolute;
+  right: 16px;
+  top: 52%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: auto;
+}
+.hk-notify {
+  max-width: 340px;
+  padding: 6px 12px;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  animation: hk-notify-in 160ms ease-out;
+}
+.hk-notify.clickable {
+  cursor: pointer;
+}
+.hk-notify-critical {
+  padding: 8px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--hk-gold-soft);
+  border-color: var(--hk-gold);
+}
+.hk-notify-important {
+  border-color: rgba(63, 168, 138, 0.8);
+}
+.hk-notify-normal {
+  color: var(--hk-text);
+}
+.hk-notify-light {
+  padding: 2px 10px;
+  font-size: 13px;
+  color: #ffd0c8;
+  background: rgba(20, 17, 30, 0.7);
+  border-radius: 6px;
+  pointer-events: none;
+}
+@keyframes hk-notify-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-notify {
+    animation: none;
+  }
+}

@@ -9,6 +9,8 @@
 import type { Engine } from '../../core/engine';
 import { t } from '../../shared_ui/i18n';
 import type { Appearance } from '../../systems/world/types';
+import type { GameAudio } from '../audio';
+import { createBrowserAudio } from '../audio/browser_audio';
 import { createWorldRenderer, hasWebGL2, type QualityId, resolveQuality } from '../hd2d';
 import { isQualityId } from '../hd2d/quality';
 import {
@@ -21,19 +23,24 @@ import {
   type ViewPrefs,
   zoomBy,
 } from '../hd2d/view';
+import { cancelConfirm, confirmOpen, setConfirmPrefs } from '../hud/confirm_pop';
 import { DialogueQueue } from '../hud/dialogue_queue';
+import { gaugeInput, gaugesModel } from '../hud/gauges_model';
 import { Hud } from '../hud/hud';
 import {
   atSafePoint,
   type ClientSaves,
   type LoadedSave,
   loadErrorText,
+  type SaveBlock,
   type SlotId,
+  saveBlock,
+  saveBlockText,
   saveErrorText,
   slotLabel,
 } from '../hud/save_slots';
-import { scenePanelModel } from '../hud/scene_model';
-import { InputLayer, type InputSettingsSource } from '../input/input_layer';
+import { buildTracker, TRACK_MAX, TRACK_MAX_SHORT, TrackerState } from '../hud/tracker_model';
+import { InputLayer } from '../input/input_layer';
 import { exitOpen, nearestExit, pickEntity } from '../input/picking';
 import { AnimTracker } from '../render/anim_state';
 import { BubbleBoard } from '../render/bubbles';
@@ -63,12 +70,16 @@ import {
   type GameCommands,
   type GameView,
 } from '../view/game_view';
-import { registerWindows, WindowManager } from '../windows';
-import type { ClientSettings, DisplayView } from '../windows/window_context';
+import { registerWindows, type WindowId, WindowManager } from '../windows';
+import type { ClientSettings, DisplayView, WindowPrefs } from '../windows/window_context';
 import { FixedStepClock, framesToRun, SPEEDS, type Speed } from './clock';
 import { EventRouter } from './event_router';
+import { HudExtras } from './hud_extras';
+import { pageStorage } from './platform_wiring';
 import { PlayerInput, type PlayerInputHost } from './player_input';
 import type { LocalSettings, StoredView } from './settings_schema';
+import { StoryWiring } from './story_wiring';
+import { ThumbnailCapture } from './thumbnail';
 
 export interface SessionHooks {
   /** after every simulation tick */
@@ -92,11 +103,13 @@ export interface SessionOptions {
   toTitle(): void;
 }
 
-/** The slice of the settings store a session reads and writes. */
-export interface SessionPrefs {
-  readonly local: Readonly<Pick<LocalSettings, 'quality' | 'view'>>;
-  /** key and pad bindings and the input options (the sync part, PK-M1-07) */
-  readonly sync: Readonly<InputSettingsSource>;
+/**
+ * The slice of the settings store a session reads and writes: the sync part (key and pad
+ * bindings and the input options, PK-M1-07; the settings pages, WindowPrefs) and the quality
+ * tier and camera view of the local part.
+ */
+export interface SessionPrefs extends WindowPrefs {
+  readonly local: Readonly<Pick<LocalSettings, 'quality' | 'view' | 'audioDevice'>>;
   updateLocal(patch: { quality?: QualityId; view?: StoredView | null }): boolean;
 }
 
@@ -134,6 +147,10 @@ export class GameSession implements PlayerInputHost {
   /** the HD-2D tier animates film grain */
   private grain = false;
   readonly loose = new DialogueQueue();
+  /** the dialogue panel and the cutscene player's reading state (PK-M1-22) */
+  readonly story: StoryWiring;
+  /** the quests and the door the HUD tracker follows (ui_hud_tracker, client state) */
+  readonly tracker = new TrackerState();
   private readonly sprites = new SpriteCache(400);
   private readonly looks = new WeakMap<Appearance, SpriteLook>();
   readonly hud: Hud;
@@ -143,6 +160,8 @@ export class GameSession implements PlayerInputHost {
   /** world speed multiplier: a radial menu open in a fight slows the world (16.5) */
   private timeScale = 1;
   private readonly router: EventRouter;
+  /** party, focus, notifications, hint bar and rumble (PK-M1-22) */
+  private readonly extras: HudExtras;
   private readonly unsubscribe: () => void;
   private mapCtx: MapContext | null = null;
   private viewPrefs: ViewPrefs | null = null;
@@ -178,6 +197,21 @@ export class GameSession implements PlayerInputHost {
     this.renderer = createWorldRenderer(quality);
     this.renderer.mount(opts.root);
     this.actions = new PlayerInput(this);
+    this.story = new StoryWiring({
+      view: this.view,
+      adapters: opts.adapters,
+      loose: this.loose,
+      sprites: this.sprites,
+      hud: () => this.hud,
+      sync: () => opts.prefs.sync,
+      audio: () => this.audio,
+      queue: (cmds) => this.queue(cmds),
+      advance: () => this.actions.advance(),
+      closeConversation: () => this.actions.closeConversation(),
+      storage: pageStorage(window),
+      // built before the windows: read them only when a frame asks
+      held: () => this.clock.paused || !!this.windows?.holdsWorld || confirmOpen(),
+    });
     const a = opts.adapters;
 
     this.hud = new Hud(opts.root, {
@@ -191,21 +225,23 @@ export class GameSession implements PlayerInputHost {
         },
         togglePause: () => this.togglePause(),
       },
-      maxSay: a.conversation?.maxSay ?? 200,
-      conversation: {
-        choose: (id) => this.queue(a.conversation?.choose(this.view, id)),
-        say: (text) => this.queue(a.conversation?.say(this.view, text)),
-        leave: () => this.actions.closeConversation(),
-        advanceLoose: () => this.actions.advance(),
-      },
-      scene: {
-        advance: () => this.queue(a.scene?.advance(this.view)),
-        choose: (id) => this.queue(a.scene?.choose(this.view, id)),
-        submit: (text) => this.queue(a.scene?.input(this.view, text)),
-      },
+      story: this.story.handlers,
+      storyCrop: this.story.crop,
       onHotbar: (slot) => this.actions.hotbar(slot),
       onToggleWindow: (id) => this.windows.toggle(id),
       onWarPrompt: () => this.windows.show('battle'),
+      onSelect: (id) => this.select(id),
+      onOpenWindow: (id) => this.windows.show(id as WindowId),
+    });
+    this.extras = new HudExtras({
+      view: this.view,
+      adapters: a,
+      hud: this.hud,
+      sync: () => opts.prefs.sync,
+      inScene: () => this.inScene(),
+      // a loose line sits over the field: notifications and hints keep going (5.1, 5.4)
+      talking: () => !!a.conversation?.conversation(this.view),
+      conversing: () => !!a.conversation?.conversation(this.view),
     });
 
     this.windows = new WindowManager(opts.root, {
@@ -220,9 +256,12 @@ export class GameSession implements PlayerInputHost {
       devMode: opts.devMode,
       saves: opts.saves,
       settings: opts.settings,
+      prefs: opts.prefs,
+      tracker: this.tracker,
       actions: {
         saveTo: (slot) => this.saveTo(slot),
         loadFrom: (slot) => this.loadFrom(slot),
+        saveBlock: () => this.saveBlockNow(),
         toTitle: () => opts.toTitle(),
         openWindow: (id) => this.windows.show(id),
         closeWindow: (id) => this.windows.close(id),
@@ -231,8 +270,21 @@ export class GameSession implements PlayerInputHost {
         display: () => this.display(),
         setQuality: (id) => this.setQuality(id),
         setViewPreset: (preset) => this.setViewPreset(preset),
+        runQueued: () => this.runQueued(),
       },
     });
+    this.hud.tracker.handlers = {
+      open: () => this.windows.show('quests'),
+      untrack: (id) => {
+        this.tracker.untrack(id);
+        this.refreshHud(true);
+      },
+      openDoor: () => this.windows.show('doors'),
+      unpinDoor: () => {
+        this.tracker.pinDoor(null);
+        this.refreshHud(true);
+      },
+    };
 
     this.router = new EventRouter(
       this.view,
@@ -252,11 +304,14 @@ export class GameSession implements PlayerInputHost {
         },
         openWindow: (id) => this.windows.show(id),
         closeWindow: (id) => this.windows.close(id),
+        notify: (n) => this.extras.notify(n, performance.now()),
       },
     );
-    this.unsubscribe = opts.engine.onEvents((events) =>
-      this.router.handle(events, performance.now()),
-    );
+    this.unsubscribe = opts.engine.onEvents((events) => {
+      this.router.handle(events, performance.now());
+      this.story.feed(events);
+    });
+    this.audio = this.startAudio();
 
     this.input = this.bindInput();
 
@@ -314,6 +369,8 @@ export class GameSession implements PlayerInputHost {
 
   dispose(): void {
     this.disposed = true;
+    // a question asked by this run (delete a save, an irreversible choice) ends with it
+    cancelConfirm();
     cancelAnimationFrame(this.raf);
     clearTimeout(this.prefsTimer);
     if (this.viewPrefs) this.storeView();
@@ -321,6 +378,8 @@ export class GameSession implements PlayerInputHost {
     document.removeEventListener('visibilitychange', this.onVisibility);
     document.removeEventListener('webglcontextrestored', this.onContextRestored, true);
     this.unsubscribe();
+    this.story.dispose();
+    this.stopAudio();
     this.input.dispose();
     this.windows.dispose();
     this.hud.dispose();
@@ -336,6 +395,14 @@ export class GameSession implements PlayerInputHost {
 
   logLine(text: string, category = 'system'): void {
     this.hud.log.push({ text, category });
+  }
+
+  notifyLight(text: string): void {
+    this.extras.light(text, performance.now());
+  }
+
+  toggleFocus(candidate: string | null): boolean {
+    return this.extras.toggleFocus(candidate);
   }
 
   inScene(): boolean {
@@ -460,11 +527,8 @@ export class GameSession implements PlayerInputHost {
   }
 
   renderStory(): void {
-    const a = this.adapters;
-    const sv = a.scene?.scene(this.view) ?? null;
-    this.hud.scene.render(sv ? scenePanelModel(sv) : null);
-    const conv = sv ? null : (a.conversation?.conversation(this.view) ?? null);
-    this.hud.conversation.render(conv, sv ? null : this.loose.current);
+    // the dialogue panel and the cutscene player (ui_mode_dialogue, ui_mode_cutscene)
+    this.story.frame(performance.now());
   }
 
   // -------------------------------------------------------------------------
@@ -517,7 +581,10 @@ export class GameSession implements PlayerInputHost {
     const dt = now - this.last;
     this.last = now;
     this.input.frame(now);
-    const { steps, alpha } = this.clock.advance(dt * this.timeScale);
+    // An interface mode (the corridor, 9.1), settings, saves, the menu, help and a confirm popup
+    // hold the world still (ux_and_onboarding.md 1.3).
+    const scale = this.windows.holdsWorld || confirmOpen() ? 0 : this.timeScale;
+    const { steps, alpha } = this.clock.advance(dt * scale);
     const ranSteps = framesToRun(steps, !!this.engine.clockStep());
     for (let i = 0; i < ranSteps; i++) {
       this.engine.step(1);
@@ -528,8 +595,28 @@ export class GameSession implements PlayerInputHost {
     if (this.engine.logFull) this.autosaveAtSafePoint();
     this.alpha = alpha;
     this.present(now, dt);
+    this.audioFrame(now);
     this.windows.frame(now);
+    // the story types on real time, outside the 20 Hz world
+    this.story.frame(now);
+    // One mode at a time (1.3): a scene that starts while the corridor is open (a door's own
+    // cutscene) takes over; the corridor would otherwise hold the world, and the scene, still.
+    const mode = this.windows.modeOpen;
+    if (mode && this.inScene()) this.windows.close(mode);
     if (now - this.lastHud >= HUD_INTERVAL_MS) this.refreshHud(false, now);
+  }
+
+  /**
+   * While a mode holds the world still, run the one tick that settles the commands the mode
+   * just queued (opening or closing a door in the corridor).
+   */
+  runQueued(): void {
+    if (!this.windows.modeOpen || this.disposed) return;
+    this.engine.step(1);
+    this.capture();
+    this.opts.hooks?.afterStep?.(this.engine);
+    this.actions.afterSteps();
+    this.refreshHud(true);
   }
 
   private capture(): void {
@@ -660,6 +747,9 @@ export class GameSession implements PlayerInputHost {
     });
     const decision = this.frames.decide({ nowMs: now, signature, activity, quiet });
     if (decision.draw) r.render(scene, decision.layers);
+    // A save thumbnail is copied in the same task as a frame that drew every layer.
+    if (decision.draw && decision.layers.world && decision.layers.overlay)
+      this.shots.frameDrawn(this.opts.root);
   }
 
   private enterMap(): void {
@@ -688,6 +778,12 @@ export class GameSession implements PlayerInputHost {
   refreshHud(force: boolean, now = performance.now()): void {
     if (!force && now - this.lastHud < HUD_INTERVAL_MS) return;
     this.lastHud = now;
+    // holds turned into presses (18.5) reach the confirm popup as soon as the setting changes
+    const sync = this.opts.prefs.sync;
+    setConfirmPrefs({
+      holdToToggle: sync.accessibility.holdToToggle,
+      swapConfirmBack: sync.input.swapConfirmBack,
+    });
     const v = this.view;
     const a = this.adapters;
     const player = v.player();
@@ -715,6 +811,9 @@ export class GameSession implements PlayerInputHost {
       map ? (a.mapMarkers?.markers(v, map.id) ?? []) : [],
     );
     this.hud.menuBar.update(v.flags(), (id) => this.windows.isOpen(id));
+    this.hud.gauges.update(gaugesModel(gaugeInput(v, a)));
+    const short = window.innerHeight < 900;
+    this.hud.tracker.update(buildTracker(v, a, this.tracker, short ? TRACK_MAX_SHORT : TRACK_MAX));
     this.input.configure();
     const slots = a.combat?.hotbar(v) ?? [];
     const filled = new Set(slots.filter((x) => x.abilityId).map((x) => x.slot));
@@ -726,6 +825,7 @@ export class GameSession implements PlayerInputHost {
         : null,
     );
     this.hud.banner.update(now);
+    this.extras.refresh(now);
     this.hud.setPaused(this.clock.paused);
     this.renderStory();
     this.windows.update();
@@ -734,14 +834,69 @@ export class GameSession implements PlayerInputHost {
   // -------------------------------------------------------------------------
   // Save and load
 
+  /** Save thumbnails: a copy of the next fully drawn frame (./thumbnail.ts). */
+  private readonly shots = new ThumbnailCapture(() => this.frames.invalidate('resize'));
+
+  /** A save the player asked for (window, F6); refused with a line when it cannot go ahead. */
   saveTo(slot: SlotId): void {
-    this.opts.saves.save(slot, this.saveInfo()).then(
-      () => this.saveLine(t('ui.hud.log.saved', { slot: slotLabel(slot) })),
+    const refusal = this.saveRefusal();
+    if (refusal) {
+      this.saveLine(refusal, 'warning');
+      return;
+    }
+    const trigger = slot === 'quick' ? 'quick' : 'manual';
+    this.saveWithThumb(this.opts.saves.save(slot, this.saveInfo(), trigger));
+  }
+
+  /** Why the player cannot save now (ux_and_onboarding.md 6.2.13), or null. */
+  saveBlockNow(): SaveBlock | null {
+    return saveBlock(this.engine.world, {
+      inScene: this.inScene(),
+      talking: !!this.adapters.conversation?.conversation(this.view),
+      writing: this.opts.saves.writing,
+    });
+  }
+
+  /** The sentence refusing a player save: an ironman run (5.9) or a block, else null. */
+  private saveRefusal(): string | null {
+    if (this.opts.saves.ironman) return t('ui.win.saves.ironman_auto_only');
+    const b = this.saveBlockNow();
+    return b ? saveBlockText(b) : null;
+  }
+
+  /** Report a save and keep a thumbnail of the frame after it (dropped if none comes). */
+  private saveWithThumb(saving: ReturnType<ClientSaves['save']>): void {
+    const shot = this.shots.request();
+    saving.then(
+      (meta) => {
+        this.saveLine(t('ui.hud.log.saved', { slot: slotLabel(meta.slot) }));
+        void shot.then((url) => {
+          if (url) this.opts.saves.setThumb(meta, url);
+        });
+      },
       (err) => this.saveFailed(err),
     );
   }
 
+  /** The exit save of an ironman run (3.4.1: leaving saves); resolves when it is written. */
+  /** The ironman run's save on the way out; the player text of a failure, else null. */
+  async exitSave(): Promise<string | null> {
+    if (!this.opts.saves.ironman || this.engine.world.meta.flags.act === 'prologue') return null;
+    try {
+      await this.opts.saves.exitSave(this.saveInfo());
+      return null;
+    } catch (err) {
+      console.warn('[saves] exit save failed', err);
+      return t('ui.win.saves.failed', { reason: saveErrorText(err) });
+    }
+  }
+
   loadFrom(slot: SlotId): void {
+    // An ironman run never loads back, quick load included (3.4.1).
+    if (this.opts.saves.ironman) {
+      this.saveLine(t('ui.win.saves.ironman_no_load'), 'warning');
+      return;
+    }
     this.opts.saves.load(slot).then(
       (loaded) => {
         if (!this.disposed)
@@ -763,11 +918,9 @@ export class GameSession implements PlayerInputHost {
       inScene: this.inScene(),
       writing: this.opts.saves.writing,
     });
-    if (!safe) return;
-    this.opts.saves.autosave(this.saveInfo()).then(
-      (meta) => this.saveLine(t('ui.hud.log.saved', { slot: slotLabel(meta.slot) })),
-      (err) => this.saveFailed(err),
-    );
+    // The prologue is never saved (catalog_cutscenes.md 13.7).
+    if (!safe || this.engine.world.meta.flags.act === 'prologue') return;
+    this.saveWithThumb(this.opts.saves.autosave(this.saveInfo()));
   }
 
   private saveInfo(): { mapId: string; mapName: string } {
@@ -783,5 +936,63 @@ export class GameSession implements PlayerInputHost {
   /** A save finishes after its frame; the session may be gone by then. */
   private saveLine(text: string, category = 'system'): void {
     if (!this.disposed) this.logLine(text, category);
+  }
+
+  // -------------------------------------------------------------------------
+  // Audio (PK-M1-06; src/client/audio, its README.md). The subsystem only reads the view and
+  // the kernel events; it runs silent without a device or approved files. The cutscene
+  // player and the dialogue painters drive it through `session.audio` (GameAudio).
+
+  /** The audio subsystem's API (cutscene tracks and silences, written sounds, phrases, blips). */
+  readonly audio: GameAudio;
+  private unsubscribeAudio: () => void = () => {};
+  /** The first user input starts the audio output (the browser's autoplay rule). */
+  private readonly onAudioUnlock = () => this.audio.unlock();
+
+  private startAudio(): GameAudio {
+    const audio = createBrowserAudio({
+      view: this.view,
+      root: this.opts.root,
+      atlas: this.engine.content.atlas_maps ?? [],
+      settings: () => this.opts.prefs.sync,
+      device: () => this.opts.prefs.local.audioDevice ?? null,
+    });
+    this.unsubscribeAudio = this.engine.onEvents((evs) => audio.events(evs, performance.now()));
+    window.addEventListener('pointerdown', this.onAudioUnlock, true);
+    window.addEventListener('keydown', this.onAudioUnlock, true);
+    // A click on the title screen already counts as the page's first input.
+    const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } })
+      .userActivation;
+    if (activation?.hasBeenActive) audio.unlock();
+    return audio;
+  }
+
+  private audioFrame(now: number): void {
+    const player = this.view.player();
+    const r = this.renderer;
+    const prefs = this.prefs();
+    const focus = player ? (this.interp.sample(player.id, this.alpha) ?? player) : null;
+    this.audio.frame({
+      nowMs: now,
+      paused: this.clock.paused,
+      inScene: this.inScene(),
+      dialogueOpen: !!this.adapters.conversation?.conversation(this.view),
+      camera: {
+        yawDeg: this.viewYaw(),
+        pitchDeg: r.kind === 'hd2d' ? prefs.pitch : 90,
+        step: stepAt(prefs.stepIndex),
+        viewportW: r.deviceW,
+        viewportH: r.deviceH,
+      },
+      focus: focus ? { x: focus.x, y: focus.y } : null,
+      travelled: (id) => this.interp.travelled(id),
+    });
+  }
+
+  private stopAudio(): void {
+    window.removeEventListener('pointerdown', this.onAudioUnlock, true);
+    window.removeEventListener('keydown', this.onAudioUnlock, true);
+    this.unsubscribeAudio();
+    this.audio.dispose();
   }
 }

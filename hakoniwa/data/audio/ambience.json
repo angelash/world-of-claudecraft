@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "weather": {
+    "rain": "amb_wx_rain_light",
+    "storm": "amb_wx_rain_heavy",
+    "snow": "amb_wx_snow",
+    "ashfall": "amb_wx_ash_storm"
+  },
+  "weatherPoints": {
+    "storm": [{ "id": "amb_pt_thunder", "weight": 4 }]
+  },
+  "dian": { "low": "amb_dian_low", "high": "amb_dian_high" },
+  "interiors": {
+    "tavern": "amb_int_tavern",
+    "inn": "amb_int_tavern",
+    "church": "amb_int_chapel",
+    "chapel": "amb_int_chapel",
+    "temple": "amb_int_chapel",
+    "guild": "amb_int_guild",
+    "office": "amb_int_guild",
+    "barracks": "amb_int_guild",
+    "academy": "amb_int_guild",
+    "home": "amb_int_home",
+    "orphanage": "amb_int_home",
+    "clinic": "amb_int_home",
+    "shop": "amb_int_home",
+    "bakery": "amb_int_home",
+    "smithy": "amb_int_home",
+    "mill": "amb_int_home",
+    "work": "amb_int_home",
+    "workshop": "amb_int_home",
+    "palace": "amb_int_palace",
+    "castle": "amb_int_palace",
+    "hall": "amb_int_palace"
+  },
+  "captions": {
+    "amb_pt_branch_snap": { "key": "audio.cap.amb_pt_branch_snap", "level": "important" },
+    "amb_pt_crow_burst": { "key": "audio.cap.amb_pt_crow_burst", "level": "important" },
+    "amb_pt_church_bell": { "key": "audio.cap.amb_pt_church_bell", "level": "all" },
+    "amb_pt_wolf_howl_far": { "key": "audio.cap.amb_pt_wolf_howl_far", "level": "all" },
+    "amb_pt_thunder": { "key": "audio.cap.amb_pt_thunder", "level": "all" }
+  }
+}

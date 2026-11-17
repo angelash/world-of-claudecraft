@@ -1,165 +1,135 @@
-// Story windows: the Thousand Doors corridor and the quest log.
+// Story windows: `ui_win_doors` (K), which opens the corridor mode `ui_mode_corridor`
+// (./corridor/corridor_mode.ts), and `ui_win_quests` (L), the quest log of
+// ux_and_onboarding.md 14.1: tabs by kind, kind badges, the act and its week, explicit
+// deadlines, the ended tab with what happened afterwards and the path taken, choice answers
+// and the tracking toggle. Thin painter over ./quest_log_model.ts.
 
+import './quest_log.css';
+import { contentKey } from '../../core/content_key';
 import { el } from '../../shared_ui/dom';
-import { t } from '../../shared_ui/i18n';
-import type { QuestView } from '../../systems/quests';
-import { objectiveText } from '../adapters/social';
+import { t, tOr } from '../../shared_ui/i18n';
+import { corridorMode } from './corridor/corridor_mode';
 import { actionButton, badge, empty, rebuilder } from './kit';
+import { type QuestRow, type QuestTab, questLogModel } from './quest_log_model';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
-const DOOR_ORDER: Record<string, number> = {
-  openable: 0,
-  opened: 1,
-  hinted: 2,
-  locked: 3,
-  closed: 4,
-  hidden: 5,
-};
-
 export function doorsWindow(ctx: WindowContext): WindowContent {
-  const ad = ctx.adapters.doors;
-  if (!ad) return placeholderWindow();
-  const root = el('div', { className: 'hk-doors' });
-  const update = rebuilder(
-    root,
-    () =>
-      ad
-        .doors(ctx.view)
-        .sort((a, b) => (DOOR_ORDER[a.state] ?? 9) - (DOOR_ORDER[b.state] ?? 9) || a.act - b.act),
-    (doors) => {
-      const opened = doors.filter((d) => d.state === 'opened').length;
-      root.append(
-        el('div', { className: 'hk-muted', text: t('ui.win.doors.seal', { n: opened }) }),
-      );
-      if (doors.length === 0) root.append(empty(t('ui.win.doors.empty_state')));
-      for (const d of doors) {
-        const head = el('div', { className: 'hk-card-head' }, [
-          el('strong', { text: d.name }),
-          el('span', { className: 'hk-row-inline' }, [
-            badge(d.categoryName),
-            badge(d.stateName, `door-${d.state}`),
-            d.danger ? badge(t('ui.win.doors.danger'), 'danger') : null,
-          ]),
-        ]);
-        const body: (HTMLElement | null)[] = [
-          el('div', { className: 'hk-card-text', text: d.desc ?? d.hint }),
-        ];
-        if (d.keys.length) {
-          body.push(
-            el(
-              'ul',
-              { className: 'hk-keys' },
-              d.keys.map((k) =>
-                el('li', {
-                  className: k.met ? 'met' : '',
-                  text: k.need ? `${k.label} ${k.cur ?? 0}/${k.need}` : k.label,
-                }),
-              ),
-            ),
-          );
-        }
-        const buttons: HTMLElement[] = [];
-        if (d.state === 'openable')
-          buttons.push(
-            actionButton(ctx, t('ui.win.doors.open'), () => ad.open(ctx.view, d.id), {
-              cls: 'hk-btn-primary',
-            }),
-          );
-        if (d.state === 'opened' && d.closable) {
-          buttons.push(
-            actionButton(ctx, t('ui.win.doors.close'), () => ad.close(ctx.view, d.id), {
-              confirm: t('ui.win.doors.confirm_close'),
-            }),
-          );
-        }
-        if (buttons.length) body.push(el('div', { className: 'hk-row' }, buttons));
-        root.append(el('div', { className: `hk-card door-${d.state}` }, [head, ...body]));
-      }
-    },
-  );
-  return { el: root, update };
+  if (!ctx.adapters.corridor || !ctx.adapters.doors) return placeholderWindow();
+  return corridorMode(ctx);
 }
 
-function personaName(ctx: WindowContext, id: string | undefined): string {
-  if (!id) return '';
-  return ctx.view.content.npcs?.find((p) => p.id === id)?.name ?? id;
+function personaName(ctx: WindowContext, id: string): string {
+  const raw = ctx.view.content.npcs?.find((p) => p.id === id)?.name ?? id;
+  return tOr(contentKey('npcs', id, 'name'), raw);
 }
 
-function questCard(ctx: WindowContext, q: QuestView, ready: boolean): HTMLElement {
+function questCard(ctx: WindowContext, r: QuestRow, onTrack: (id: string) => void): HTMLElement {
   const ad = ctx.adapters.quests;
-  const objectives = el(
-    'ul',
-    { className: 'hk-objectives' },
-    q.objectives.map((o) =>
-      el('li', { className: o.done ? 'met' : '' }, [
-        `${objectiveText(o)}${o.optional ? t('ui.win.quests.optional') : ''}`,
-        ...(o.options && !o.done && ad
-          ? o.options.map((opt) =>
-              actionButton(ctx, opt.label, () => ad.choose(ctx.view, q.id, opt.id), {
-                cls: 'hk-btn-inline',
-              }),
-            )
-          : []),
-      ]),
-    ),
-  );
-  const who = ready
-    ? q.turnIn
-      ? t('ui.win.quests.turn_in', { who: personaName(ctx, q.turnIn) })
-      : ''
-    : q.giver
-      ? t('ui.win.quests.giver', { who: personaName(ctx, q.giver) })
-      : '';
-  return el('div', { className: `hk-card quest-${q.kind}${ready ? ' ready' : ''}` }, [
+  const objectives = r.objectives.length
+    ? el(
+        'ul',
+        { className: 'hk-objectives' },
+        r.objectives.map((o) =>
+          el('li', { className: o.done ? 'met' : '' }, [
+            `${o.text}${o.optional ? t('ui.win.quests.optional') : ''}`,
+            ...(ad
+              ? o.options.map((opt) =>
+                  actionButton(ctx, opt.label, () => ad.choose(ctx.view, r.id, opt.id), {
+                    cls: 'hk-btn-inline',
+                  }),
+                )
+              : []),
+          ]),
+        ),
+      )
+    : null;
+  const track = r.trackable
+    ? el('button', {
+        className: `hk-btn hk-btn-small${r.tracked ? ' active' : ''}`,
+        text: t(r.tracked ? 'ui.win.quests.untrack' : 'ui.win.quests.track'),
+        attrs: { type: 'button', 'aria-pressed': r.tracked ? 'true' : 'false' },
+        on: { click: () => onTrack(r.id) },
+      })
+    : null;
+  return el('div', { className: `hk-card quest-${r.kind}${r.ready ? ' ready' : ''}` }, [
     el('div', { className: 'hk-card-head' }, [
-      el('strong', { text: q.title }),
-      badge(q.kind === 'main' ? t('ui.win.quests.main') : t('ui.win.quests.side'), q.kind),
+      el('strong', { text: r.title }),
+      el('span', { className: 'hk-row-inline' }, [
+        badge(r.kindLabel, `kind-${r.kind}`),
+        r.ready ? badge(t('ui.win.quests.ready'), 'ready') : null,
+        r.tracked ? badge(t('ui.win.quests.tracking'), 'tracking') : null,
+      ]),
     ]),
-    el('div', { className: 'hk-card-text', text: q.stageDesc || q.desc }),
+    el('div', { className: 'hk-card-text', text: r.text }),
     objectives,
-    who ? el('div', { className: 'hk-muted', text: who }) : null,
+    r.deadline ? el('div', { className: 'hk-quest-deadline', text: r.deadline }) : null,
+    r.outcome ? el('div', { className: 'hk-quest-outcome', text: r.outcome }) : null,
+    r.path ? el('div', { className: 'hk-muted', text: r.path }) : null,
+    r.who ? el('div', { className: 'hk-muted', text: r.who }) : null,
+    track ? el('div', { className: 'hk-row' }, [track]) : null,
   ]);
 }
 
 export function questsWindow(ctx: WindowContext): WindowContent {
   const ad = ctx.adapters.quests;
   if (!ad) return placeholderWindow();
+  let tab: QuestTab = 'main';
+  /** a toggle refused because five quests are tracked by hand (shown once) */
+  let full = false;
   const root = el('div', { className: 'hk-quests' });
+  const detail = ctx.adapters.questDetail;
+  const onTrack = (id: string) => {
+    full = !ctx.tracker.toggle(id);
+    update();
+  };
   const update = rebuilder(
     root,
-    () => ad.log(ctx.view),
-    (log) => {
+    () => ({
+      m: questLogModel(ad.log(ctx.view), {
+        tab,
+        actWeek: detail?.actWeek(ctx.view) ?? 0,
+        detail: (id) => detail?.detail(ctx.view, id) ?? null,
+        tracked: (id) => ctx.tracker.isTracked(id),
+        personName: (id) => personaName(ctx, id),
+      }),
+      full,
+      v: ctx.tracker.version,
+    }),
+    ({ m, full: refused }) => {
+      root.append(el('div', { className: 'hk-quests-act', text: m.header }));
       root.append(
-        el('div', {
-          className: 'hk-quests-act',
-          text: t('ui.win.quests.act', { title: log.actTitle }),
-        }),
-      );
-      if (!log.active.length && !log.ready.length && !log.done.length)
-        root.append(empty(t('ui.win.quests.empty_state')));
-      if (log.ready.length) {
-        root.append(el('h3', { text: t('ui.win.quests.ready') }));
-        for (const q of log.ready) root.append(questCard(ctx, q, true));
-      }
-      if (log.active.length) {
-        root.append(el('h3', { text: t('ui.win.quests.active') }));
-        for (const q of log.active) root.append(questCard(ctx, q, false));
-      }
-      if (log.done.length) {
-        root.append(el('h3', { text: `${t('ui.win.quests.done')} ${log.done.length}` }));
-        root.append(
-          el(
-            'ul',
-            { className: 'hk-done-list' },
-            log.done
-              .slice(-12)
-              .reverse()
-              .map((q) => el('li', { text: q.title })),
+        el(
+          'div',
+          { className: 'hk-tabs', attrs: { role: 'tablist' } },
+          m.tabs.map((x) =>
+            el('button', {
+              className: `hk-tab${x.id === m.tab ? ' active' : ''}`,
+              text:
+                x.count > 0
+                  ? t('ui.win.quests.tab_count', { label: x.label, n: x.count })
+                  : x.label,
+              attrs: {
+                type: 'button',
+                role: 'tab',
+                'aria-selected': x.id === m.tab ? 'true' : 'false',
+              },
+              on: {
+                click: () => {
+                  tab = x.id;
+                  full = false;
+                  update();
+                },
+              },
+            }),
           ),
-        );
-      }
+        ),
+      );
+      if (refused)
+        root.append(el('p', { className: 'hk-quest-note', text: t('ui.win.quests.track_full') }));
+      if (m.empty) root.append(empty(m.empty));
+      for (const r of m.rows) root.append(questCard(ctx, r, onTrack));
     },
   );
   return { el: root, update };

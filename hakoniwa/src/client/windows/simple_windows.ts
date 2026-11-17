@@ -1,81 +1,45 @@
-// Small windows: save slots, the Esc menu, controls help, and the placeholder shown by
-// windows whose systems arrive in phase 2.
+// Small windows: `ui_win_saves` (ux_and_onboarding.md 6.2.13, the shared save list of
+// ../hud/save_list.ts), `ui_win_menu` (6.2.14), and the placeholder shown by windows whose
+// systems arrive in phase 2 (the help window is ./help_window.ts).
 
-import { clear, el } from '../../shared_ui/dom';
+import { el } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { LOAD_SLOTS, SLOT_IDS, type SlotId, slotLabel } from '../hud/save_slots';
+import { askConfirm } from '../hud/confirm_pop';
+import { SaveList } from '../hud/save_list';
+import { saveListModel } from '../hud/save_list_model';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
 export function savesWindow(ctx: WindowContext): WindowContent {
-  const root = el('div', { className: 'hk-saves' });
-  let sig = '';
-  const render = () => {
-    const list = ctx.saves.list();
-    const next = JSON.stringify(list);
-    if (next === sig) return;
-    sig = next;
-    clear(root);
-    for (const slot of LOAD_SLOTS) {
-      const meta = list[slot as SlotId];
-      // Autosave slots are written by the game only; they appear once they hold a save.
-      const writable = SLOT_IDS.includes(slot);
-      if (!writable && !meta) continue;
-      const btn = (text: string, onClick: () => void, disabled = false) =>
-        el('button', {
-          className: 'hk-btn hk-btn-small',
-          text,
-          attrs: disabled ? { type: 'button', disabled: '' } : { type: 'button' },
-          on: { click: onClick },
-        });
-      root.append(
-        el('div', { className: 'hk-save-row' }, [
-          el('div', { className: 'hk-save-info' }, [
-            el('strong', { text: slotLabel(slot) }),
-            el('span', {
-              className: 'hk-muted',
-              text: meta
-                ? t('ui.win.saves.meta', { date: meta.date, map: meta.mapName })
-                : t('ui.win.saves.empty'),
-            }),
-          ]),
-          btn(
-            t('ui.win.saves.save'),
-            () => {
-              if (meta && !window.confirm(t('ui.win.saves.confirm_overwrite'))) return;
-              ctx.actions.saveTo(slot);
-              sig = '';
-              render();
-            },
-            !writable,
-          ),
-          btn(
-            t('ui.win.saves.load'),
-            () => {
-              if (!window.confirm(t('ui.win.saves.confirm_load'))) return;
-              ctx.actions.loadFrom(slot);
-            },
-            !meta,
-          ),
-          btn(
-            t('ui.win.saves.remove'),
-            () => {
-              if (!window.confirm(t('ui.win.saves.confirm_remove'))) return;
-              const redraw = () => {
-                sig = '';
-                render();
-              };
-              ctx.saves.remove(slot).then(redraw, (err) => {
-                console.warn('[saves] delete failed', err);
-                redraw();
-              });
-            },
-            !meta,
-          ),
-        ]),
-      );
-    }
-  };
+  const list: SaveList = new SaveList({
+    save: (slot) => {
+      ctx.actions.saveTo(slot);
+      list.invalidate();
+    },
+    load: (slot) => ctx.actions.loadFrom(slot),
+    remove: (slot) => {
+      const redraw = () => {
+        list.invalidate();
+        render();
+      };
+      ctx.saves.remove(slot).then(redraw, (err) => {
+        console.warn('[saves] delete failed', err);
+        redraw();
+      });
+    },
+  });
+  const render = () =>
+    list.update(
+      saveListModel({
+        mode: 'game',
+        list: ctx.saves.list(),
+        problems: ctx.saves.problems(),
+        block: ctx.actions.saveBlock(),
+        run: { id: ctx.saves.runId, ironman: ctx.saves.ironman },
+        manualLimit: ctx.saves.manualLimit,
+      }),
+    );
+  const root = el('div', { className: 'hk-saves' }, [list.el]);
   return { el: root, update: render };
 }
 
@@ -102,23 +66,18 @@ export function menuWindow(ctx: WindowContext): WindowContent {
       ctx.actions.openWindow('help');
     }),
     item(t('ui.win.menu.to_title'), () => {
-      if (window.confirm(t('ui.win.menu.confirm_title'))) ctx.actions.toTitle();
+      void askConfirm({
+        title: t('ui.win.menu.to_title'),
+        // An ironman run saves on the way out (3.4.1); any other run loses unsaved progress.
+        body: ctx.saves.ironman
+          ? t('ui.win.menu.confirm_title_ironman')
+          : t('ui.win.menu.confirm_title'),
+      }).then((yes) => {
+        if (yes) ctx.actions.toTitle();
+      });
     }),
   ]);
   return { el: root };
-}
-
-/** The help lines in order (ux_and_onboarding.md 17.7 replaces them with bound keys, PK-M1-07). */
-const HELP_LINES = Array.from({ length: 16 }, (_, i) => `ui.win.help.line.${i}` as const);
-
-export function helpWindow(): WindowContent {
-  return {
-    el: el(
-      'ul',
-      { className: 'hk-help' },
-      HELP_LINES.map((k) => el('li', { text: t(k) })),
-    ),
-  };
 }
 
 export function placeholderWindow(): WindowContent {

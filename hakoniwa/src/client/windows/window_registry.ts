@@ -76,6 +76,13 @@ export interface WindowDef extends WindowEntry<WindowId> {
   /** shown as a button on the menu bar */
   menuBar: boolean;
   width: number;
+  /**
+   * An interface mode (ux_and_onboarding.md 1.2, 1.3): full screen, closes every other
+   * window, takes the input through its own context and pauses the world while open.
+   */
+  mode?: boolean;
+  /** the world stands still while it is open: settings, saves, menu and help (1.3) */
+  pauses?: boolean;
 }
 
 /** The catalogue fields of window `id` from its key family `ui.win.<id>.*`. */
@@ -94,13 +101,15 @@ function entry<Id extends string>(id: Id, milestone: UiMilestone): WindowEntry<I
 export const WINDOW_DEFS: readonly WindowDef[] = [
   { ...entry('character', 'M1'), hotkey: 'C', menuBar: true, width: 360 },
   { ...entry('inventory', 'M1'), hotkey: 'I', menuBar: true, width: 380 },
-  // the corridor shows once the first door opens (thousand_doors.md 8 row 1)
+  // the corridor shows once the first door opens (thousand_doors.md 8 row 1); opening it
+  // enters ui_mode_corridor (9)
   {
     ...entry('doors', 'M1'),
     requiresAll: ['feature.door_corridor'],
     hotkey: 'K',
     menuBar: true,
     width: 420,
+    mode: true,
   },
   { ...entry('quests', 'M1'), hotkey: 'L', menuBar: true, width: 380 },
   { ...entry('rumors', 'M1'), menuBar: true, width: 400 },
@@ -121,11 +130,11 @@ export const WINDOW_DEFS: readonly WindowDef[] = [
   { ...entry('battle', 'M2'), requiresAll: ['feature.rts'], menuBar: true, width: 920 },
   { ...entry('strategy', 'M3'), requiresAll: ['feature.slg'], menuBar: true, width: 900 },
   { ...entry('goddess', 'M1'), menuBar: true, width: 400 },
-  { ...entry('saves', 'M1'), menuBar: true, width: 420 },
-  { ...entry('menu', 'M1'), menuBar: false, width: 260 },
-  { ...entry('help', 'M1'), menuBar: false, width: 320 },
+  { ...entry('saves', 'M1'), pauses: true, menuBar: true, width: 420 },
+  { ...entry('menu', 'M1'), pauses: true, menuBar: false, width: 260 },
+  { ...entry('help', 'M1'), pauses: true, menuBar: false, width: 320 },
   { ...entry('trade', 'M1'), menuBar: false, width: 460 },
-  { ...entry('settings', 'M1'), menuBar: false, width: 380 },
+  { ...entry('settings', 'M1'), pauses: true, menuBar: false, width: 660 },
   { ...entry('debug', 'M0'), hotkey: '`', devOnly: true, menuBar: true, width: 460 },
 ];
 

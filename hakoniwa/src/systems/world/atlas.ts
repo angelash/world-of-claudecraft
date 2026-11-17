@@ -4,7 +4,8 @@
 // says where it is, which act opens it and how a traveller gets there. Content validation
 // reads it (atlasProblems), so the registry cannot drift away from the built maps (their
 // size, exits, region, sediment and style pack), the style packs and the continent
-// provinces.
+// provinces. Each map also registers its audio (music, beds, details, reverb zone), which
+// only the client reads.
 
 import { isStyleId, type StyleId, styleOf } from './look';
 import { isAtlasExempt } from './map_roles';
@@ -112,6 +113,37 @@ export type SkyPack = (typeof SKY_STYLES)[number] | (typeof SPECIAL_SKIES)[numbe
 export const BATTLE_SKY_PATTERN = /^art_bg_battle_[a-z0-9_]+$/;
 
 /**
+ * Reverb zones (audio_direction.md 8.4): outdoors, town streets, a small room, a large hall,
+ * a dungeon, the sewers, the divine court, a dream. A map's `reverbZone` names one.
+ */
+export const REVERB_ZONES = [
+  'outdoor',
+  'street',
+  'room',
+  'hall',
+  'dungeon',
+  'sewer',
+  'divine',
+  'dream',
+] as const;
+export type ReverbZoneId = (typeof REVERB_ZONES)[number];
+
+/** An ambience bed of a map (audio_direction.md 6.1): always, or only by day or by night. */
+export type AtlasAmbienceBed = string | { id: string; time: 'day' | 'night' };
+
+/** One detail of a map's pool (6.1, 6.12): weight, and the time of day it may play. */
+export interface AtlasAmbiencePoint {
+  id: string;
+  weight: number;
+  /** dawn: 5 to 8 o'clock (the rooster) */
+  time?: 'day' | 'night' | 'dawn';
+}
+
+const MUSIC_ID = /^mus_[a-z0-9]+(?:_[a-z0-9]+)*$/;
+const AMB_ID = /^amb_[a-z0-9]+(?:_[a-z0-9]+)*$/;
+const AMB_POINT_ID = /^amb_pt_[a-z0-9]+(?:_[a-z0-9]+)*$/;
+
+/**
  * Map codes: P (prologue and the divine realm), X (private realm), A to F by act series
  * (A to C from geography.md 7.4; D, E, F for acts 4, 5 and 6 with the epilogue), and a
  * numbered sub entry after a hyphen (B6-1 is the first sub entry under B6).
@@ -179,6 +211,19 @@ export interface AtlasMapDef {
   /** canon sources, for traceability */
   source?: string;
   note?: string;
+  /**
+   * Audio (audio_direction.md 5.1, 6.1, 8.4; read by the client only): the day track, or null
+   * when the scenes on the map drive the music; required on every built map and every map of
+   * the prologue and act 1 except battles, as are `ambience` and `reverbZone`.
+   */
+  music?: string | null;
+  /** the night track; absent or null: the day track with the night reduction (5.3) */
+  musicNight?: string | null;
+  /** ambience beds: the base and fauna layers by time of day (6.1) */
+  ambience?: AtlasAmbienceBed[];
+  /** the one-shot detail pool with weights (6.1) */
+  ambiencePoints?: AtlasAmbiencePoint[];
+  reverbZone?: ReverbZoneId;
 }
 
 export type TravelHours = Partial<Record<TravelMode, number>>;
@@ -246,6 +291,8 @@ export interface AtlasInput {
   links?: readonly { a: string; b: string }[];
   /** battle grids (battle_scenarios) */
   scenarios?: readonly { id: string; width: number; height: number }[];
+  /** sound ids of the prompt library: every audio id a map names must be one of them */
+  soundIds?: ReadonlySet<string>;
 }
 
 const has = (list: readonly string[], v: unknown): boolean =>
@@ -383,6 +430,7 @@ export function atlasProblems(input: AtlasInput): string[] {
           `${who}: province ${m.province} lies in ${p.region}, region ${m.region} is ${region.slgRegion}`,
         );
     }
+    out.push(...atlasAudioProblems(m, input.soundIds));
   }
 
   // Built entries against the content maps, both ways, with sizes.
@@ -486,6 +534,93 @@ export function atlasProblems(input: AtlasInput): string[] {
   }
 
   out.push(...reachProblems(input));
+  return out;
+}
+
+/** Whether a map must register its audio: every built map and every map of the prologue and act 1, battles aside. */
+export function needsAudio(m: Pick<AtlasMapDef, 'status' | 'role' | 'acts'>): boolean {
+  if (m.role === 'battle') return false;
+  return (
+    m.status === 'built' || (Array.isArray(m.acts) && (m.acts.includes(0) || m.acts.includes(1)))
+  );
+}
+
+/**
+ * The audio fields of one map (audio_direction.md 5.1, 6.1, 8.4, 10.6): id shapes, the night
+ * track only beside a day track, beds and detail pools without repeats, weights above zero,
+ * a known reverb zone; the fields every map that needs audio must carry; and, given the prompt
+ * library's ids, that every named sound exists.
+ */
+export function atlasAudioProblems(m: AtlasMapDef, soundIds?: ReadonlySet<string>): string[] {
+  const out: string[] = [];
+  const who = `atlas_map ${m.id}`;
+  const named: string[] = [];
+  const track = (field: string, v: unknown): void => {
+    if (v === null || v === undefined) return;
+    if (typeof v !== 'string' || !MUSIC_ID.test(v))
+      out.push(`${who}: ${field} '${String(v)}' is not a mus_ id`);
+    else named.push(v);
+  };
+  track('music', m.music);
+  track('musicNight', m.musicNight);
+  if (m.musicNight && !m.music) out.push(`${who}: musicNight without a day track`);
+  if (m.ambience !== undefined) {
+    if (!Array.isArray(m.ambience)) out.push(`${who}: ambience must be a list`);
+    else {
+      const seen = new Set<string>();
+      for (const b of m.ambience) {
+        const id = typeof b === 'string' ? b : b?.id;
+        const time = typeof b === 'string' ? 'always' : b?.time;
+        if (typeof b !== 'string' && time !== 'day' && time !== 'night')
+          out.push(`${who}: ambience ${String(id)} time must be day or night`);
+        if (typeof id !== 'string' || !AMB_ID.test(id) || AMB_POINT_ID.test(id)) {
+          out.push(`${who}: ambience '${String(id)}' is not an amb_ bed id`);
+          continue;
+        }
+        // A bed plays always or by time of day, never both ways.
+        if (
+          seen.has(`${id}@${time}`) ||
+          (time === 'always'
+            ? [...seen].some((k) => k.startsWith(`${id}@`))
+            : seen.has(`${id}@always`))
+        )
+          out.push(`${who}: ambience ${id} listed twice`);
+        seen.add(`${id}@${time}`);
+        named.push(id);
+      }
+    }
+  }
+  if (m.ambiencePoints !== undefined) {
+    if (!Array.isArray(m.ambiencePoints)) out.push(`${who}: ambiencePoints must be a list`);
+    else {
+      const seen = new Set<string>();
+      for (const p of m.ambiencePoints) {
+        const id = p?.id;
+        if (typeof id !== 'string' || !AMB_POINT_ID.test(id)) {
+          out.push(`${who}: ambience point '${String(id)}' is not an amb_pt_ id`);
+          continue;
+        }
+        if (!(typeof p.weight === 'number' && p.weight > 0))
+          out.push(`${who}: ambience point ${id} needs a positive weight`);
+        if (p.time !== undefined && p.time !== 'day' && p.time !== 'night' && p.time !== 'dawn')
+          out.push(`${who}: ambience point ${id} time must be day, night or dawn`);
+        if (seen.has(id)) out.push(`${who}: ambience point ${id} listed twice`);
+        seen.add(id);
+        named.push(id);
+      }
+    }
+  }
+  if (m.reverbZone !== undefined && !has(REVERB_ZONES, m.reverbZone))
+    out.push(`${who}: unknown reverb zone '${m.reverbZone}'`);
+  if (needsAudio(m)) {
+    if (!('music' in m)) out.push(`${who}: needs its music (a mus_ id, or null for scene-driven)`);
+    if (!Array.isArray(m.ambience) || m.ambience.length === 0)
+      out.push(`${who}: needs its ambience beds`);
+    if (m.reverbZone === undefined) out.push(`${who}: needs its reverb zone`);
+  }
+  if (soundIds)
+    for (const id of named)
+      if (!soundIds.has(id)) out.push(`${who}: ${id} is not in the prompt library`);
   return out;
 }
 

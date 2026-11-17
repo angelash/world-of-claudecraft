@@ -152,6 +152,8 @@ export interface ConversationLineView {
   speakerName: string;
   text: string;
   kind: string;
+  /** the line is a model's output (its text is raw model text, ux 7.3 AI mark) */
+  generated?: boolean;
 }
 
 export interface ConversationOptionView {
@@ -160,6 +162,8 @@ export interface ConversationOptionView {
   label: string;
   hint?: string;
   system: string;
+  /** why the option cannot be taken now (ux 7.4; no system gives one yet) */
+  disabled?: string;
 }
 
 export interface ConversationView {
@@ -168,6 +172,8 @@ export interface ConversationView {
   lines: ConversationLineView[];
   options: ConversationOptionView[];
   pending: boolean;
+  /** the other side's attitude tag (ux 7.1; no system gives one yet) */
+  attitude?: string;
 }
 
 export interface ConversationAdapter {
@@ -269,10 +275,57 @@ export interface DoorsAdapter {
   close(view: GameView, doorId: string): Commands;
 }
 
+/**
+ * The corridor mode (ux_and_onboarding.md 9.5, `CorridorAdapter` extending `DoorsAdapter`):
+ * the doors with their texts rendered, the grown segments and the door mirror's readings
+ * (never the seal). Implemented in src/client/adapters/corridor.ts.
+ */
+export interface CorridorAdapter {
+  corridor(view: GameView): CorridorData;
+  /** the door mirror alone (cheap: the HUD gauges read it every refresh) */
+  mirror(view: GameView): CorridorData['mirror'];
+}
+
+/** One door as the corridor shows it: every text already in the interface language. */
+export interface CorridorDoorView extends DoorView<string> {
+  /** the wing's display name */
+  wingName: string;
+}
+
+export interface CorridorData {
+  /** the corridor has shown itself (feature.door_corridor) */
+  open: boolean;
+  /** segments grown so far (1 once it shows, then one per act) */
+  segments: number[];
+  doors: CorridorDoorView[];
+  /** the door mirror (9.4): rank, blockage and its tier, fatigue */
+  mirror: { rank: number; blockage: number; blockageTier: number; fatigue: number };
+}
+
 export interface QuestsAdapter {
   log(view: GameView): QuestLogView;
   /** answer a choice objective from the log */
   choose(view: GameView, questId: string, optionId: string): Commands;
+}
+
+/**
+ * Display data the quest log and the tracker add to `QuestLogView` (ux_and_onboarding.md
+ * 14.1, 14.2): the act week, explicit deadlines and the label of the path taken. Implemented
+ * in src/client/adapters/quest_log.ts.
+ */
+export interface QuestDetailAdapter {
+  /** act_week (0 in an act without weeks, the prologue) */
+  actWeek(view: GameView): number;
+  /** the quest's title, the label of its path taken and its explicit expiry week */
+  detail(view: GameView, questId: string): QuestDetail | null;
+}
+
+export interface QuestDetail {
+  title: string;
+  /** label of the solution path taken ('' when none) */
+  pathLabel: string;
+  /** act week by which the quest runs out, in its own act; null when it names none */
+  expiryWeek: number | null;
 }
 
 /** A rumor book entry with its texts rendered for display. */
@@ -425,7 +478,9 @@ export interface ClientAdapters {
   banner?: BannerAdapter;
   character?: CharacterAdapter;
   doors?: DoorsAdapter;
+  corridor?: CorridorAdapter;
   quests?: QuestsAdapter;
+  questDetail?: QuestDetailAdapter;
   rumors?: RumorsAdapter;
   party?: PartyAdapter;
   company?: CompanyAdapter;

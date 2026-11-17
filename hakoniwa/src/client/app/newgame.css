@@ -1,0 +1,108 @@
+/* ui_scr_newgame (ux_and_onboarding.md 3.4): difficulty cards, ironman, guidance, model card. */
+.hk-newgame {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(226, 176, 74, 0.18), transparent 60%),
+    linear-gradient(180deg, #1c1830, #0e0c16);
+  color: var(--hk-text);
+  font-family: var(--hk-font);
+}
+.hk-newgame-card {
+  width: min(880px, 94vw);
+  margin: 24px 0;
+  padding: 22px 26px 18px;
+  background: rgba(20, 17, 30, 0.9);
+  border: 1px solid rgba(226, 176, 74, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+.hk-newgame-title {
+  margin: 0 0 14px;
+  font-size: 20px;
+  color: var(--hk-gold-soft);
+}
+.hk-newgame-diffs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 760px) {
+  .hk-newgame-diffs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.hk-newgame-diff {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--hk-text);
+  font: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(226, 176, 74, 0.25);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.hk-newgame-diff strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+.hk-newgame-diff ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--hk-muted);
+}
+.hk-newgame-diff.selected {
+  border-color: #3fa88a;
+  outline: 2px solid #3fa88a;
+  background: rgba(63, 168, 138, 0.12);
+}
+.hk-newgame-diff:focus-visible {
+  outline: 2px solid var(--hk-gold);
+}
+.hk-newgame-row,
+.hk-newgame-model {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hk-newgame-label {
+  font-weight: 700;
+}
+.hk-newgame-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hk-newgame-guidance {
+  display: flex;
+  gap: 6px;
+}
+.hk-newgame-model {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+.hk-newgame-warning {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(232, 176, 74, 0.14);
+  color: var(--hk-gold-soft);
+}
+.hk-newgame-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}

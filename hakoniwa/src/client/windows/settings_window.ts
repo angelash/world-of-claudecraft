@@ -1,94 +1,140 @@
-// Settings window: the large-model switch (AI residents and goddesses) with the proxy
-// status, the degrade level and budget, and the energy-saving note; the display section
-// picks the quality tier (art_pipeline.md 2.11) and the camera preset.
+// Implements `ui_win_settings`, which opens the settings shell `ui_scr_settings`
+// (ux_and_onboarding.md 4.1, 6.2.17): the pages this build paints as vertical tabs on the left
+// (window tab keys and the pad's LB and RB step through them), the page on the right, and
+// "restore this page's defaults" at the bottom. Pages: `ui_set_graphics`, `ui_set_audio`
+// (PK-M1-06), `ui_set_controls`, `ui_set_gameplay` (first part), `ui_set_llm` (the model switch
+// until PK-M1-02) and `ui_set_language`; accessibility and data join with their packages
+// (shell_model.ts PAGE_OWNERS). A page is built when first shown and kept. Thin painter over
+// ./settings/shell_model.ts.
 
-import { el, setText } from '../../shared_ui/dom';
+import './settings/settings.css';
+import { el, setClass, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { QUALITY_IDS, type QualityId } from '../hd2d/quality';
+import { askConfirm } from '../hud/confirm_pop';
+import { audioPage } from './settings/audio_page';
+import { controlsPage } from './settings/controls_page';
+import { gameplayPage } from './settings/gameplay_page';
+import { graphicsPage, resetGraphics } from './settings/graphics_page';
+import { languagePage } from './settings/language_page';
+import { llmPage } from './settings/llm_page';
+import type { SettingsPage, SettingsPageFactory } from './settings/page';
+import {
+  hasPageDefaults,
+  initialPage,
+  pageDefaultsPatch,
+  type SettingsPageId,
+  settingsTabs,
+} from './settings/shell_model';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
-export function aiStatusText(s: ReturnType<WindowContext['settings']['ai']>): string {
-  if (!s.enabled) return t('ui.set.llm.off');
-  if (!s.available) return t('ui.set.llm.unavailable');
-  const level = t(`ui.set.llm.level.${Math.max(0, Math.min(4, s.level))}`);
-  const parts = [s.active ? t('ui.set.llm.on') : t('ui.set.llm.restart'), level];
-  if (s.budgetCap)
-    parts.push(
-      t('ui.set.llm.budget', { used: (s.budgetUsed ?? 0).toFixed(2), cap: s.budgetCap.toFixed(2) }),
-    );
-  return parts.filter(Boolean).join('  ');
-}
+/** The page painters of this build (a page without one is not shown, 1.6). */
+const PAINTERS: Partial<Record<SettingsPageId, SettingsPageFactory>> = {
+  graphics: graphicsPage,
+  audio: audioPage,
+  controls: controlsPage,
+  gameplay: gameplayPage,
+  llm: llmPage,
+  language: languagePage,
+};
 
-function displaySection(ctx: WindowContext): { el: HTMLElement; update(): void } {
-  const select = el('select', { attrs: { id: 'hk-quality' } }) as HTMLSelectElement;
-  for (const id of QUALITY_IDS) {
-    const opt = el('option', {
-      text: t(`ui.set.graphics.quality_name.${id}`),
-      attrs: { value: id },
-    });
-    select.append(opt);
-  }
-  select.value = ctx.actions.display().quality;
-  select.addEventListener('change', () => ctx.actions.setQuality(select.value as QualityId));
-  const current = el('div', { className: 'hk-muted' });
-  const street = el('button', { className: 'hk-btn', text: t('ui.set.graphics.view_street') });
-  street.addEventListener('click', () => ctx.actions.setViewPreset('street'));
-  const overview = el('button', { className: 'hk-btn', text: t('ui.set.graphics.view_overview') });
-  overview.addEventListener('click', () => ctx.actions.setViewPreset('overview'));
-  const root = el('div', {}, [
-    el('h3', { text: t('ui.set.graphics.display') }),
-    el('label', { className: 'hk-inv-row', attrs: { for: 'hk-quality' } }, [
-      t('ui.set.graphics.quality'),
-      select,
-    ]),
-    current,
-    el('div', { className: 'hk-muted', text: t('ui.set.graphics.quality_hint') }),
-    el('h3', { text: t('ui.set.graphics.view') }),
-    el('div', { className: 'hk-inv-row' }, [street, overview]),
-    el('div', { className: 'hk-muted', text: t('ui.set.graphics.view_hint') }),
-  ]);
-  return {
-    el: root,
-    update: () => {
-      const d = ctx.actions.display();
-      if (select.value !== d.quality && document.activeElement !== select) select.value = d.quality;
-      const text = !d.webgl
-        ? t('ui.set.graphics.no_webgl')
-        : d.renderer === 'hd2d'
-          ? t('ui.set.graphics.renderer_hd')
-          : t('ui.set.graphics.renderer_flat');
-      setText(current, text);
-      street.toggleAttribute('disabled', d.renderer !== 'hd2d');
-      overview.toggleAttribute('disabled', d.renderer !== 'hd2d');
-    },
-  };
-}
+/** The page the next settings window opens on (the last one shown). */
+let lastPage: SettingsPageId | null = null;
 
 export function settingsWindow(ctx: WindowContext): WindowContent {
-  const display = displaySection(ctx);
-  const box = el('input', { attrs: { type: 'checkbox', id: 'hk-ai-toggle' } });
-  box.checked = ctx.settings.ai().enabled;
-  box.addEventListener('change', () => ctx.settings.setAiEnabled(box.checked));
-  const status = el('div', { className: 'hk-muted' });
-  const root = el('div', { className: 'hk-settings' }, [
-    el('h3', { text: t('ui.set.llm.title') }),
-    el('label', { className: 'hk-inv-row', attrs: { for: 'hk-ai-toggle' } }, [
-      box,
-      t('ui.set.llm.enabled'),
+  const tabs = settingsTabs(new Set(Object.keys(PAINTERS) as SettingsPageId[]));
+  let current = initialPage(tabs, lastPage) as SettingsPageId;
+  const built = new Map<SettingsPageId, SettingsPage>();
+  let error = '';
+
+  const pageHost = el('div', { className: 'hk-set-page', attrs: { role: 'tabpanel' } });
+  const status = el('div', { className: 'hk-set-status' });
+  const reset = el('button', {
+    className: 'hk-btn hk-btn-small',
+    text: t('ui.scr.settings.reset_page'),
+    attrs: { type: 'button' },
+    on: { click: () => void resetPage() },
+  });
+  const tabButtons = tabs.map((tab) =>
+    el('button', {
+      className: 'hk-set-tab',
+      text: t(tab.labelKey),
+      dataset: { page: tab.id },
+      attrs: { type: 'button', role: 'tab', 'aria-selected': String(tab.id === current) },
+      on: { click: () => show(tab.id) },
+    }),
+  );
+  const root = el('div', { className: 'hk-set-shell' }, [
+    el(
+      'nav',
+      {
+        className: 'hk-set-tabs',
+        attrs: { role: 'tablist', 'aria-orientation': 'vertical' },
+      },
+      tabButtons,
+    ),
+    el('div', { className: 'hk-set-main' }, [
+      pageHost,
+      el('div', { className: 'hk-set-foot' }, [status, reset]),
     ]),
-    status,
-    el('div', { className: 'hk-muted', text: t('ui.set.llm.restart') }),
-    el('div', { className: 'hk-muted', text: t('ui.set.llm.eco_hint') }),
-    display.el,
   ]);
+
+  function page(id: SettingsPageId): SettingsPage {
+    let p = built.get(id);
+    if (!p) {
+      p = (PAINTERS[id] as SettingsPageFactory)(ctx);
+      built.set(id, p);
+    }
+    return p;
+  }
+
+  function show(id: SettingsPageId): void {
+    current = id;
+    lastPage = id;
+    error = '';
+    for (const b of tabButtons) b.setAttribute('aria-selected', String(b.dataset.page === id));
+    const p = page(id);
+    pageHost.replaceChildren(p.el);
+    p.update();
+    update();
+  }
+
+  async function resetPage(): Promise<void> {
+    const id = current;
+    const label = t(`ui.set.${id}.tab`);
+    const yes = await askConfirm({
+      title: t('ui.scr.settings.reset_page'),
+      body: t('ui.scr.settings.reset_body', { page: label }),
+    });
+    if (!yes) return;
+    if (id === 'graphics') resetGraphics(ctx);
+    else {
+      const patch = pageDefaultsPatch(id, ctx.prefs.sync);
+      if (patch && !ctx.prefs.updateSync(patch)) {
+        error = t('ui.win.settings.error_state', { reason: t('ui.scr.settings.invalid') });
+      }
+    }
+    // a page keeps its own state (recording, pickers): build it again from the stored values
+    built.get(id)?.dispose?.();
+    built.delete(id);
+    show(id);
+  }
+
+  function update(): void {
+    built.get(current)?.update();
+    reset.hidden = !hasPageDefaults(current);
+    const note = error || (ctx.prefs.readOnly('sync') ? t('ui.scr.settings.newer_version') : '');
+    setText(status, note);
+    setClass(status, 'error', !!error);
+  }
+
+  show(current);
   return {
     el: root,
-    update: () => {
-      const s = ctx.settings.ai();
-      if (box.checked !== s.enabled && document.activeElement !== box) box.checked = s.enabled;
-      setText(status, t('ui.set.llm.status', { status: aiStatusText(s) }));
-      display.update();
+    update,
+    dispose: () => {
+      for (const p of built.values()) p.dispose?.();
+      built.clear();
     },
   };
 }

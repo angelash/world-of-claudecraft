@@ -1,8 +1,11 @@
-// Title screen: start a new journey or load a save slot. Thin DOM.
+// Title screen: start a new journey (the new game page, ui_scr_newgame) or load a save slot
+// through the shared save list (ui_scr_load, ux_and_onboarding.md 3.5). Thin DOM.
 
 import { clear, el } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { type ClientSaves, LOAD_SLOTS, type SlotId, slotLabel } from '../hud/save_slots';
+import { SaveList } from '../hud/save_list';
+import { saveListModel } from '../hud/save_list_model';
+import type { ClientSaves, SlotId } from '../hud/save_slots';
 
 export interface BootActions {
   newGame(seed?: number): void;
@@ -55,7 +58,8 @@ export class BootScreen {
         })
       : null;
     if (seedInput && this.devSeed !== undefined) seedInput.value = String(this.devSeed);
-    const hasSaves = Object.keys(this.saves.list()).length > 0;
+    const hasSaves =
+      Object.keys(this.saves.list()).length > 0 || Object.keys(this.saves.problems()).length > 0;
     this.body.append(
       el('button', {
         className: 'hk-btn hk-btn-wide hk-btn-primary',
@@ -65,9 +69,8 @@ export class BootScreen {
           click: () => {
             const raw = seedInput?.value.trim();
             const seed = raw && Number.isFinite(Number(raw)) ? Number(raw) | 0 : undefined;
-            this.setStatus(t('ui.scr.boot.loading'));
-            // Let the status paint before the synchronous world build.
-            setTimeout(() => this.actions.newGame(seed), 16);
+            // The new game page (ui_scr_newgame) comes first; it starts the build.
+            this.actions.newGame(seed);
           },
         },
       }),
@@ -83,40 +86,47 @@ export class BootScreen {
 
   private showLoad(): void {
     clear(this.body);
-    const list = this.saves.list();
-    let any = false;
-    for (const slot of LOAD_SLOTS) {
-      const meta = list[slot];
-      if (!meta) continue;
-      any = true;
-      this.body.append(
-        el(
-          'button',
-          {
-            className: 'hk-btn hk-btn-wide hk-boot-slot',
-            attrs: { type: 'button' },
-            on: {
-              click: () => {
-                this.setStatus(t('ui.scr.boot.loading'));
-                setTimeout(() => this.actions.load(slot), 16);
-              },
-            },
-          },
-          [
-            el('strong', { text: slotLabel(slot) }),
-            el('span', { text: t('ui.win.saves.meta', { date: meta.date, map: meta.mapName }) }),
-          ],
-        ),
+    this.el.classList.add('loading-list');
+    const list: SaveList = new SaveList({
+      load: (slot) => {
+        this.setStatus(t('ui.scr.boot.loading'));
+        setTimeout(() => this.actions.load(slot), 16);
+      },
+      remove: (slot) => {
+        const redraw = () => {
+          list.invalidate();
+          paint();
+        };
+        this.saves.remove(slot).then(redraw, (err) => {
+          console.warn('[saves] delete failed', err);
+          redraw();
+        });
+      },
+    });
+    const paint = () =>
+      list.update(
+        saveListModel({
+          mode: 'title',
+          list: this.saves.list(),
+          problems: this.saves.problems(),
+          block: null,
+          run: null,
+          manualLimit: this.saves.manualLimit,
+        }),
       );
-    }
-    if (!any)
-      this.body.append(el('p', { className: 'hk-muted', text: t('ui.scr.title.no_saves') }));
+    paint();
+    this.body.append(list.el);
     this.body.append(
       el('button', {
         className: 'hk-btn hk-btn-wide',
         text: t('ui.scr.title.back'),
         attrs: { type: 'button' },
-        on: { click: () => this.showMain() },
+        on: {
+          click: () => {
+            this.el.classList.remove('loading-list');
+            this.showMain();
+          },
+        },
       }),
     );
   }

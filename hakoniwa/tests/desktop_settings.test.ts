@@ -123,6 +123,15 @@ describe('desktop settings files', () => {
       },
       subtitles: 'off',
       volume: { master: 1, music: 2, ambience: 3, sfx: 4, ui: 5, background: 'normal' },
+      gameplay: { textSpeed: 60, autoAdvance: true, guidance: 'off' },
+      audio: {
+        output: 'mono',
+        dynamicRange: 'night',
+        combatMusic: false,
+        dialogueBlips: true,
+        llmThinking: false,
+        reduceLoud: true,
+      },
     };
     const wrote = await s.set('sync', sync);
     expect(wrote).toEqual({ ok: true, value: sync });
@@ -764,6 +773,7 @@ describe('desktop imports from the client', () => {
     const schema = readFileSync(join(CLIENT, 'app', 'settings_schema.ts'), 'utf8');
     const deps = [...schema.matchAll(/from '([^']+)'/g)].map((m) => m[1]).sort();
     expect(deps).toEqual([
+      '../audio/audio_settings',
       '../audio/bus_model',
       '../hd2d/quality',
       '../hd2d/view',

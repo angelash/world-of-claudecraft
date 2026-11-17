@@ -34,6 +34,7 @@ import type { ClientCommand, GameView } from '../view/game_view';
 import type { WindowManager } from '../windows/window_manager';
 import { type WindowId, windowTitle } from '../windows/window_registry';
 import type { FixedStepClock } from './clock';
+import type { StoryInputHost } from './story_wiring';
 
 export interface PlayerInputHost {
   readonly view: GameView;
@@ -42,7 +43,8 @@ export interface PlayerInputHost {
   readonly windows: Pick<
     WindowManager,
     'toggle' | 'show' | 'closeTop' | 'closeAll' | 'anyOpen' | 'available' | 'isOpen'
-  >;
+  > &
+    Partial<Pick<WindowManager, 'modeOpen' | 'modeAction'>>;
   readonly loose: DialogueQueue;
   readonly clock: FixedStepClock;
   selection: string | null;
@@ -50,6 +52,10 @@ export interface PlayerInputHost {
   placing: unknown;
   queue(cmds: readonly ClientCommand[] | null | undefined): void;
   logLine(text: string, category?: string): void;
+  /** a light notification (ui_hud_notify 5.4: why a press did nothing; never logged) */
+  notifyLight?(text: string): void;
+  /** the focus action (ui_hud_focus): the candidate becomes the focus, the same one lets go */
+  toggleFocus?(candidate: string | null): boolean;
   inScene(): boolean;
   select(id: string | null): void;
   /** camera: zoom by whole steps, turn, toggle street view and overview, reset, orbit */
@@ -72,6 +78,8 @@ export interface PlayerInputHost {
   confirmPlacement(): void;
   saveTo(slot: 'quick'): void;
   loadFrom(slot: 'quick'): void;
+  /** the dialogue panel and the cutscene player's reading state (absent in tests) */
+  readonly story?: StoryInputHost;
 }
 
 /** Field actions that toggle a window (16.2); planned windows are not built yet. */
@@ -185,6 +193,7 @@ export class PlayerInput implements GameSink {
       conversation,
       windows: this.s.windows.anyOpen,
       placing: !!this.s.placing,
+      corridor: this.s.windows.modeOpen === 'doors',
     };
   }
 
@@ -293,13 +302,18 @@ export class PlayerInput implements GameSink {
   // -------------------------------------------------------------------------
   // pointer
 
-  click(sx: number, sy: number, double: boolean): void {
+  click(sx: number, sy: number, double: boolean, shift = false): void {
     if (this.s.placing) {
       this.s.confirmPlacement();
       return;
     }
     if (this.s.inScene()) return;
     const id = this.s.pick(sx, sy);
+    // Shift and a click sets the focus (ux_and_onboarding.md 5.2 ui_hud_focus)
+    if (shift && id && id !== this.v.playerId() && this.s.toggleFocus) {
+      this.s.toggleFocus(id);
+      return;
+    }
     if (id && id !== this.v.playerId()) {
       this.s.select(id);
       if (double) this.interact();
@@ -342,7 +356,9 @@ export class PlayerInput implements GameSink {
     const target = this.targetForUse();
     const res = combat.activateSlot(this.v, slot, target);
     if (typeof res === 'string') {
-      this.s.logLine(res, 'warning');
+      // the light notification line above the hotbar (5.2, 5.4); hosts without one log it
+      if (this.s.notifyLight) this.s.notifyLight(res);
+      else this.s.logLine(res, 'warning');
       return;
     }
     if (res.length > 0 && !this.s.selection && target && this.settings.lockOnCast) this.lockSoft();
@@ -429,7 +445,10 @@ export class PlayerInput implements GameSink {
     if (sv) {
       const act = sceneKey(scenePanelModel(sv), { action: 'number', n });
       if (act?.type !== 'choose') return false;
-      this.s.queue(a.scene?.choose(this.v, act.choiceId));
+      // no pick before the choices show (the node's lines still typing, 13.2)
+      if (this.s.story && !this.s.story.sceneChoicesShown()) return true;
+      if (this.s.story) this.s.story.chooseScene(act.choiceId);
+      else this.s.queue(a.scene?.choose(this.v, act.choiceId));
       return true;
     }
     const conv = a.conversation?.conversation(this.v);
@@ -441,6 +460,8 @@ export class PlayerInput implements GameSink {
 
   /** Space, Enter or A: the scene first, then the pad's option cursor, then loose lines. */
   advance(device: InputDevice = 'kbm'): boolean {
+    // a typing line completes, the next line of a node shows, a card closes (7.3, 13.2)
+    if (this.s.story?.press()) return true;
     const sv = this.s.adapters.scene?.scene(this.v);
     if (sv) {
       const mode = sceneMode(sv.waiting);
@@ -485,7 +506,11 @@ export class PlayerInput implements GameSink {
       s.cancelPlacement();
       return true;
     }
-    if (s.windows.closeTop()) return true;
+    if (s.windows.closeTop()) {
+      s.story?.spendBack();
+      return true;
+    }
+    if (s.story?.back()) return true;
     if (a.scene?.scene(this.v)) return openMenu;
     if (a.conversation?.conversation(this.v) || s.loose.current) {
       this.closeConversation();
@@ -512,9 +537,12 @@ export class PlayerInput implements GameSink {
         return this.dialogueAction(action, device);
       case 'field':
         return this.fieldAction(action);
+      case 'corridor':
+        // the corridor mode (ux_and_onboarding.md 9) runs in the window manager
+        return this.s.windows.modeAction?.(action) ?? false;
       default:
-        // corridor, lord, battle, continent, travel and court run in their own windows
-        // until their modes are built (act 2 and later)
+        // lord, battle, continent, travel and court run in their own windows until their
+        // modes are built (act 2 and later)
         return false;
     }
   }
@@ -561,6 +589,9 @@ export class PlayerInput implements GameSink {
     if (action === 'advance') return this.advance(device);
     if (action === 'option_next') return this.moveOption(1);
     if (action === 'option_prev') return this.moveOption(-1);
+    // backlog, auto advance and hidden text (8.2)
+    if (action === 'recall' || action === 'auto_advance' || action === 'hide_text')
+      return this.s.story?.action(action) ?? false;
     const m = OPTION_ACTION.exec(action);
     if (m) {
       // an open conversation keeps its number keys (no hotbar casts mid-talk); with only a
@@ -638,6 +669,9 @@ export class PlayerInput implements GameSink {
       case 'select_self':
         s.select(this.v.playerId());
         return true;
+      case 'focus':
+        // Shift and a click, or a long R3: the target (or the soft target) becomes the focus
+        return s.toggleFocus?.(s.selection ?? this.softTarget) ?? false;
       case 'party_next':
         return this.cycleParty(1);
       case 'party_prev':
@@ -737,7 +771,9 @@ export class PlayerInput implements GameSink {
   ringOpen(open: boolean): void {
     const me = unitOf(this.v.world as never, this.v.playerId());
     const fighting = !!me && me.combatUntil > this.v.tick;
-    this.s.setTimeScale(open && fighting ? RING_TIME_SCALE : 1);
+    // Legend difficulty keeps the world at full speed behind an open ring (16.5).
+    const legend = this.v.flag('difficulty') === 'legend';
+    this.s.setTimeScale(open && fighting && !legend ? RING_TIME_SCALE : 1);
   }
 
   // -------------------------------------------------------------------------

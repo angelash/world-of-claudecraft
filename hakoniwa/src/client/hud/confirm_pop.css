@@ -1,0 +1,66 @@
+/* ui_pop_confirm (ux_and_onboarding.md 6.4): the modal confirm popup over everything. */
+.hk-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 12, 0.55);
+  pointer-events: auto;
+}
+.hk-confirm-card {
+  width: min(420px, 90vw);
+  padding: 18px 20px 14px;
+  background: var(--hk-bg-solid);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+  color: var(--hk-text);
+  font-family: var(--hk-font);
+}
+.hk-confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.hk-confirm-body {
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.hk-confirm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.hk-confirm-ok {
+  position: relative;
+  overflow: hidden;
+}
+.hk-confirm-ok.danger {
+  background: #8e2f28;
+  border-color: #e5534b;
+}
+.hk-confirm-ok.armed {
+  outline: 2px solid #e5534b;
+}
+.hk-confirm-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+.hk-confirm-ok-text {
+  position: relative;
+}
+.hk-confirm-how {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--hk-muted);
+}

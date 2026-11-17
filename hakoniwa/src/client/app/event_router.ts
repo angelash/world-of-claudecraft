@@ -1,12 +1,14 @@
 // Routes world events to client presentation: message log lines (core formatter plus the
 // system log adapters), speech bubbles, loose lines for the conversation box, animation
-// cues, floating combat text, banners, and "something changed" signals for the map,
+// cues, floating combat text, banners, notifications (ui_hud_notify, through the optional
+// notify sink), and "something changed" signals for the map,
 // window availability, conversations, scenes, battles and trade.
 
 import type { AnyWorldEvent } from '../../core/contracts';
 import { t } from '../../shared_ui/i18n';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import { formatEvent, type LogContext, type LogLine } from '../hud/log_format';
+import { type NotifyEventContext, type NotifySpec, notifyOf } from '../hud/notify_model';
 import type { AnimTracker } from '../render/anim_state';
 import type { BubbleBoard } from '../render/bubbles';
 import type { FloatingBoard } from '../render/floating_text';
@@ -14,6 +16,7 @@ import type { BannerView, ClientAdapters } from '../view/adapters';
 import { contentNames } from '../view/content_names';
 import type { GameView } from '../view/game_view';
 import type { WindowId } from '../windows/window_registry';
+import { notifyContext } from './notify_context';
 
 export interface EventSinks {
   log(line: LogLine): void;
@@ -24,6 +27,8 @@ export interface EventSinks {
   featuresChanged(): void;
   openWindow(id: WindowId): void;
   closeWindow(id: WindowId): void;
+  /** a notification for ui_hud_notify (ux_and_onboarding.md 5.4) */
+  notify?(n: NotifySpec): void;
 }
 
 export class EventRouter {
@@ -54,6 +59,7 @@ export class EventRouter {
     const a = this.adapters;
     const v = this.view;
     let story = false;
+    let notes: NotifyEventContext | undefined;
     const inScene = () => !!a.scene?.scene(v);
     for (const ev of events) {
       // Scene lines live in the scene panel; the log keeps everything else.
@@ -65,6 +71,11 @@ export class EventRouter {
       }
       const banner = a.banner?.banner(v, ev);
       if (banner) this.sinks.banner(banner);
+      if (this.sinks.notify) {
+        notes ??= notifyContext(v, a);
+        const n = notifyOf(ev, notes);
+        if (n) this.sinks.notify(n);
+      }
       if (a.combat) {
         for (const cue of a.combat.animationCues(v, ev))
           this.anim.cue(cue.entityId, cue.anim, nowMs);

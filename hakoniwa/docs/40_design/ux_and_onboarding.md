@@ -204,18 +204,18 @@
 | `ui_scr_boot` | 启动与加载 | `src/client/app/boot_screen.ts` | 3.1 | M1 |
 | `ui_scr_first_run` | 首次启动 | 无 | 3.2 | M1 |
 | `ui_scr_title` | 标题（活的标题场景、模型提示卡、赏景） | `boot_screen.ts` | 3.3 | M1 |
-| `ui_scr_newgame` | 新游戏（难度、铁人、引导级别） | 无（标题直接开局） | 3.4 | M1 |
-| `ui_scr_load` | 读档 | `src/client/hud/save_slots.ts` | 3.5 | M1 |
-| `ui_scr_settings` | 设置外壳 | `src/client/windows/settings_window.ts` | 4.1 | M1 |
+| `ui_scr_newgame` | 新游戏（难度、铁人、引导级别） | `src/client/app/newgame_model.ts`、`newgame_screen.ts`（PK-M1-22；连接弹层与新周目项未做） | 3.4 | M1 |
+| `ui_scr_load` | 读档 | `src/client/hud/save_list_model.ts`、`save_list.ts`（与 `ui_win_saves` 共用）、`save_slots.ts`、`slot_extras.ts` | 3.5 | M1 |
+| `ui_scr_settings` | 设置外壳 | `src/client/windows/settings_window.ts`、`settings/shell_model.ts`（只列已有画手的页） | 4.1 | M1 |
 | `ui_scr_credits` | 制作名单与 AI 生成内容披露 | 无 | 3.6 | M4 |
 | `ui_scr_loading` | 场景加载 | 无 | 3.7 | M1 |
-| `ui_set_graphics` | 画质与显示 | `settings_window.ts` 的画面段 | 4.2 | M1 |
+| `ui_set_graphics` | 画质与显示 | `src/client/windows/settings/graphics_page.ts`（画质档与视角） | 4.2 | M1 |
 | `ui_set_audio` | 音频 | 无 | 4.3 | M1 |
-| `ui_set_controls` | 操作与改键 | 无 | 4.4 | M1 |
-| `ui_set_gameplay` | 游戏性 | 无 | 4.5 | M1 |
-| `ui_set_llm` | 大模型 | `settings_window.ts` 的大模型开关 | 4.6 | M1 |
+| `ui_set_controls` | 操作与改键 | `src/client/windows/settings/controls_model.ts`、`controls_page.ts` | 4.4 | M1 |
+| `ui_set_gameplay` | 游戏性 | `src/client/windows/settings/gameplay_model.ts`、`gameplay_page.ts`（文字速度、自动推进、引导级别、难度只读；其余项在 PK-M1-57） | 4.5 | M1 |
+| `ui_set_llm` | 大模型 | `src/client/windows/settings/llm_page.ts`（大模型开关，屏 A 到屏 J 在 PK-M1-02） | 4.6 | M1 |
 | `ui_set_access` | 无障碍 | 无 | 4.7 | M1 |
-| `ui_set_language` | 语言 | 无 | 4.8 | M1（1.x 加语言） |
+| `ui_set_language` | 语言 | `src/client/windows/settings/language_page.ts` | 4.8 | M1（1.x 加语言） |
 | `ui_set_data` | 存档、云存档与隐私 | 无 | 4.9 | M1 |
 
 ### 2.2 HUD 元件（22）与覆盖层（11）
@@ -224,16 +224,16 @@
 | --- | --- | --- | --- | --- |
 | `ui_hud_player` | 玩家框 | `src/client/hud/unit_frames.ts` | 5.2 | M1 |
 | `ui_hud_target` | 目标框与目标的目标 | `unit_frames.ts` | 5.2 | M1 |
-| `ui_hud_focus` | 焦点框 | 无 | 5.2 | M2 |
-| `ui_hud_party` | 队伍框 | 无 | 5.2 | M1 |
+| `ui_hud_focus` | 焦点框 | `src/client/hud/focus_model.ts`、`focus_frame.ts` | 5.2 | M2 |
+| `ui_hud_party` | 队伍框 | `src/client/hud/party_model.ts`、`party_frames.ts`（团队格在 M2） | 5.2 | M1 |
 | `ui_hud_castbar` | 施法条 | `unit_frames.ts`（框内） | 5.2 | M1 |
 | `ui_hud_hotbar` | 快捷栏 | `src/client/hud/hotbar.ts`（9 格） | 5.2 | M1 |
 | `ui_hud_auras` | 光环栏 | `unit_frames.ts`（框内） | 5.2 | M1 |
-| `ui_hud_gauges` | 门代价与澱染计量 | 无 | 5.2 | M1 |
+| `ui_hud_gauges` | 门代价与澱染计量 | `src/client/hud/gauges_model.ts`、`gauges.ts` | 5.2 | M1 |
 | `ui_hud_minimap` | 小地图 | `src/client/hud/minimap.ts` | 5.2 | M1 |
 | `ui_hud_clock` | 时钟与速度 | `src/client/hud/clock_panel.ts` | 5.2 | M1 |
-| `ui_hud_tracker` | 任务追踪 | 无 | 5.2、14 | M1 |
-| `ui_hud_notify` | 通知 | 无（消息里一行） | 5.4 | M1 |
+| `ui_hud_tracker` | 任务追踪 | `src/client/hud/tracker_model.ts`、`tracker.ts` | 5.2、14 | M1 |
+| `ui_hud_notify` | 通知 | `src/client/hud/notify_model.ts`、`notify.ts`、`src/client/app/notify_context.ts` | 5.4 | M1 |
 | `ui_hud_banner` | 全屏公告 | `src/client/hud/banner.ts` 的 `Banner` | 5.2 | M1 |
 | `ui_hud_log` | 消息与动态 | `src/client/hud/message_log.ts` | 5.2 | M1 |
 | `ui_hud_prompt` | 交互提示 | 覆盖层文字 | 5.2 | M1 |
@@ -242,7 +242,7 @@
 | `ui_hud_coin` | 梅尔卡硬币角标 | 无 | 5.2 | M1 |
 | `ui_hud_warprompt` | 战事提示 | `banner.ts` 的 `WarPrompt` | 5.2 | M2 |
 | `ui_hud_dungeon` | 场地状态条（迷宫、试炼） | 无 | 5.2 | M1 |
-| `ui_hud_hint` | 引导提示条 | 无 | 17.2 | M1 |
+| `ui_hud_hint` | 引导提示条 | `src/client/hud/hint_model.ts`、`hint_bar.ts`（只有移动与交谈两条首次提示；全部 `tut_` 在 PK-M1-23） | 17.2 | M1 |
 | `ui_hud_wheel` | 环形菜单 | 无 | 16.5 | M1 |
 | `ui_ovl_nameplate` | 名字与头顶标记 | `src/client/render/overlay_painter.ts`、`markers.ts` | 5.3 | M1 |
 | `ui_ovl_speech` | 发言气泡 | `src/client/render/bubbles.ts` | 5.3 | M1 |
@@ -264,8 +264,8 @@
 | --- | --- | --- | --- | --- |
 | `ui_win_character` | 角色与技能 | `character_window.ts` | 6.2.1 | M1 |
 | `ui_win_inventory` | 背包与装备 | `inventory_window.ts`、`inventory_view.ts` | 6.2.2 | M1 |
-| `ui_win_doors` | 千门回廊（打开即进入 `ui_mode_corridor`） | `story_windows.ts` | 9 | M1 |
-| `ui_win_quests` | 任务 | `story_windows.ts` | 6.2.4、14 | M1 |
+| `ui_win_doors` | 千门回廊（打开即进入 `ui_mode_corridor`） | `story_windows.ts`（模式窗口，`window_registry.ts` 的 `mode`） | 9 | M1 |
+| `ui_win_quests` | 任务 | `story_windows.ts`、`quest_log_model.ts` | 6.2.4、14 | M1 |
 | `ui_win_rumors` | 传闻簿与声望 | `social_windows.ts` | 6.2.5、15 | M1 |
 | `ui_win_map` | 地图 | `map_window.ts` | 6.2.6 | M1 |
 | `ui_win_party` | 同伴 | `social_windows.ts` | 6.2.7 | M1 |
@@ -274,11 +274,11 @@
 | `ui_win_battle` | 战场（打开即进入 `ui_mode_battle`） | `battle_window.ts`、`battle_model.ts` | 11 | M2 |
 | `ui_win_strategy` | 大陆（打开即进入 `ui_mode_continent`） | `strategy_window.ts`、`strategy_model.ts` | 12 | M3 |
 | `ui_win_goddess` | 女神与神之记录 | `social_windows.ts` | 6.2.12 | M1 |
-| `ui_win_saves` | 存档 | `simple_windows.ts`、`save_slots.ts` | 6.2.13 | M1 |
+| `ui_win_saves` | 存档 | `simple_windows.ts`、`src/client/hud/save_list.ts`、`save_slots.ts` | 6.2.13 | M1 |
 | `ui_win_menu` | 菜单 | `simple_windows.ts` | 6.2.14 | M1 |
-| `ui_win_help` | 帮助与术语表 | `simple_windows.ts` | 6.2.15、17.7 | M1 |
+| `ui_win_help` | 帮助与术语表 | `help_model.ts`、`help_window.ts`（按键随设备重画；术语表在 PK-M1-23） | 6.2.15、17.7 | M1 |
 | `ui_win_trade` | 交易与修理 | `economy_windows.ts` | 6.2.16 | M1 |
-| `ui_win_settings` | 设置（游戏中打开 `ui_scr_settings`） | `settings_window.ts` | 4 | M1 |
+| `ui_win_settings` | 设置（游戏中打开 `ui_scr_settings`） | `settings_window.ts`、`settings/` | 4 | M1 |
 | `ui_win_debug` | 世界状态与旗标（开发构建） | `debug_window.ts` | 6.2.18 | M0 |
 | `ui_win_deeds` | 事迹与称号 | 无 | 6.3.1 | M1 |
 | `ui_win_codex` | 图鉴与收藏 | 无 | 6.3.2 | M1 |
@@ -299,9 +299,9 @@
 | 编号 | 名称 | 现有 | 目标 | 里程碑 |
 | --- | --- | --- | --- | --- |
 | `ui_mode_creator` | 灵镜（外貌） | 无 | 3.4.3 | M1 |
-| `ui_mode_dialogue` | 对话 | `src/client/hud/conversation_box.ts` | 7 | M1 |
-| `ui_mode_cutscene` | 过场与剧场 | `src/client/hud/scene_panel.ts`、`banner.ts` | 8 | M1 |
-| `ui_mode_corridor` | 千门回廊 | `story_windows.ts`（列表） | 9 | M1 |
+| `ui_mode_dialogue` | 对话 | `src/client/hud/story/`（`dialogue_model.ts`、`dialogue_panel.ts`、`portrait_plan.ts`）、`src/client/app/story_wiring.ts` | 7 | M1 |
+| `ui_mode_cutscene` | 过场与剧场 | `src/client/hud/story/`（`cutscene_model.ts`、`cutscene_player.ts`、`stage.ts`、`letter_card.ts`）、`banner.ts` | 8 | M1 |
+| `ui_mode_corridor` | 千门回廊 | `src/client/windows/corridor/`（平面示意图；HD-2D 回廊场景未做） | 9 | M1 |
 | `ui_mode_lord` | 领主视图 | 无（领地窗口加摆放预览） | 10.1 | M2 |
 | `ui_mode_placement` | 城建摆放 | `territory_window.ts` 的摆放入口 | 10.3 | M2 |
 | `ui_mode_battle` | 战场 | `battle_window.ts` | 11 | M2 |
@@ -310,7 +310,7 @@
 | `ui_mode_court` | 审庭 | `scene_panel.ts` 的证据呈示 | 13 | M3 |
 | `ui_mode_credits` | 片尾（结局的职员表与片尾底图） | 无 | 8.5 | M3 |
 | `ui_mode_record` | 最后的记录（后日谈逐条显示） | `src/systems/scenes/epilogue.ts` 的组装结果 | 8.6 | M3 |
-| `ui_pop_confirm` | 确认 | 原生 `confirm` | 6.4 | M1 |
+| `ui_pop_confirm` | 确认 | `src/client/hud/confirm_model.ts`、`confirm_pop.ts` | 6.4 | M1 |
 | `ui_pop_tooltip` | 提示框（物品、技能、光环、门、术语） | `title` 属性 | 6.4 | M1 |
 | `ui_pop_appraisal` | 鉴定卡与公会卡 | 无 | 6.4 | M1 |
 | `ui_pop_charcard` | 人物卡 | 无 | 6.4 | M1 |

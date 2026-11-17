@@ -1,8 +1,8 @@
 // The settings model (docs/50_tech/release_engineering.md 5.2, 13.10; D-088): two parts,
 // `sync` (keys, contextual key and pad overrides, input options, language, accessibility,
-// sound captions, volume; follows the cloud) and
-// `local` (quality, camera view, window, GPU preference, frame cap, install id and the `llm`
-// partition; stays on this machine). Each part carries a version and migrates step by step
+// sound captions, volume and the audio options; follows the cloud) and
+// `local` (quality, camera view, window, GPU preference, frame cap, install id, the audio
+// output device and the `llm` partition; stays on this machine). Each part carries a version and migrates step by step
 // like saves do; a part from a newer version is read best-effort and never written back.
 // Every known field is checked on its own: a bad value falls back to its default and the
 // other fields stay. Unknown top-level fields are kept (a newer build may add a field without
@@ -15,6 +15,12 @@
 // Pure (no DOM, no clock): the renderer's SettingsStore (./settings_store.ts) and the
 // desktop main process (desktop/settings.ts) run the same checks.
 
+import {
+  AUDIO_OUTPUTS,
+  type AudioOptions,
+  DYNAMIC_RANGES,
+  defaultAudioOptions,
+} from '../audio/audio_settings';
 import { BUSES, type BusId, DEFAULT_VOLUMES } from '../audio/bus_model';
 import { QUALITY_IDS, type QualityId } from '../hd2d/quality';
 import { PITCH_MAX, PITCH_MIN, ZOOM_STEPS } from '../hd2d/view';
@@ -73,6 +79,17 @@ export type FlashMode = (typeof FLASH_MODES)[number];
 export const CAPTION_MODES = ['off', 'important', 'all'] as const;
 export type CaptionMode = (typeof CAPTION_MODES)[number];
 
+/**
+ * Text speed of dialogue and cutscenes (ux_and_onboarding.md 4.5, catalog_cutscenes.md 13.2):
+ * characters per second, or the whole line at once.
+ */
+export const TEXT_SPEEDS = [30, 60, 'instant'] as const;
+export type TextSpeed = (typeof TEXT_SPEEDS)[number];
+
+/** Guidance levels (ux_and_onboarding.md 17.3). */
+export const GUIDANCE_LEVELS = ['full', 'brief', 'off'] as const;
+export type GuidanceLevel = (typeof GUIDANCE_LEVELS)[number];
+
 /** Volume while the window is in the background (9.7). */
 export const BACKGROUND_AUDIO = ['mute', 'lower', 'normal'] as const;
 export type BackgroundAudio = (typeof BACKGROUND_AUDIO)[number];
@@ -130,6 +147,18 @@ export interface Accessibility {
 
 export type Volume = Record<BusId, number> & { background: BackgroundAudio };
 
+/**
+ * The gameplay page's reading settings (ux_and_onboarding.md 4.5): text speed and auto advance
+ * for dialogue and cutscenes, and the guidance level (17.3). The guidance level is kept here
+ * until the tutorial store keeps it in the save's client segment (17.8, PK-M1-23); the new game
+ * page writes it.
+ */
+export interface GameplaySettings {
+  textSpeed: TextSpeed;
+  autoAdvance: boolean;
+  guidance: GuidanceLevel;
+}
+
 export interface SyncSettings {
   version: number;
   /** Changes to the default key map by KeyboardEvent.code; null unbinds a default key. */
@@ -151,6 +180,10 @@ export interface SyncSettings {
   subtitles: CaptionMode;
   /** Bus sliders 0 to 100 and the background rule. */
   volume: Volume;
+  /** Text speed, auto advance and the guidance level (4.5). */
+  gameplay: GameplaySettings;
+  /** Output, dynamic range and the audio switches of audio_direction.md 10.3 (PK-M1-06). */
+  audio: AudioOptions;
 }
 
 /** The HD-2D camera (art_pipeline.md 1.2); the session clamps it again for its renderer. */
@@ -186,6 +219,8 @@ export interface LocalSettings {
   frameCap: FrameCapSetting;
   /** Random id of this installation (13.10); the desktop save writer id is derived from it. */
   installId: string | null;
+  /** Audio output device id (desktop, audio_direction.md 10.3); null is the system default. */
+  audioDevice: string | null;
   /** The model settings partition (llm_providers.md 4.7); absent until first written. */
   llm?: Record<string, unknown>;
 }
@@ -423,6 +458,10 @@ const parseBounds: Parse<WindowBounds> = exact<WindowBounds>({
 const parseInstallId: Parse<string> = (v) =>
   typeof v === 'string' && INSTALL_ID.test(v) ? v : undefined;
 
+/** An output device id as the browser reports it (MediaDeviceInfo.deviceId). */
+const parseAudioDevice: Parse<string> = (v) =>
+  typeof v === 'string' && v.length > 0 && v.length <= 256 ? v : undefined;
+
 const parseLlm: Parse<Record<string, unknown>> = (v) => (isPlainObject(v) ? v : undefined);
 
 type Fields<T> = { [K in keyof T]-?: Field<Exclude<T[K], undefined>> };
@@ -466,6 +505,31 @@ function partFields(
         def: defaultVolume,
         parse: struct<Volume>(volumeFields(), (s) => issue(`volume.${s}`)),
       },
+      gameplay: {
+        def: defaultGameplay,
+        parse: struct<GameplaySettings>(
+          {
+            textSpeed: { def: () => 30, parse: oneOf(TEXT_SPEEDS) },
+            autoAdvance: { def: () => false, parse: bool },
+            guidance: { def: () => 'full', parse: oneOf(GUIDANCE_LEVELS) },
+          },
+          (s) => issue(`gameplay.${s}`),
+        ),
+      },
+      audio: {
+        def: defaultAudioOptions,
+        parse: struct<AudioOptions>(
+          {
+            output: { def: () => 'stereo', parse: oneOf(AUDIO_OUTPUTS) },
+            dynamicRange: { def: () => 'full', parse: oneOf(DYNAMIC_RANGES) },
+            combatMusic: { def: () => true, parse: bool },
+            dialogueBlips: { def: () => true, parse: bool },
+            llmThinking: { def: () => true, parse: bool },
+            reduceLoud: { def: () => false, parse: bool },
+          },
+          (s) => issue(`audio.${s}`),
+        ),
+      },
     };
     return sync;
   }
@@ -486,6 +550,7 @@ function partFields(
     gpu: { def: () => 'high_performance', parse: oneOf(GPU_PREFERENCES) },
     frameCap: { def: () => 60, parse: oneOf(FRAME_CAPS) },
     installId: { def: () => null, parse: nullable(parseInstallId) },
+    audioDevice: { def: () => null, parse: nullable(parseAudioDevice) },
     llm: { def: () => ({}), parse: parseLlm },
   };
   return local;
@@ -525,6 +590,10 @@ function defaultAccessibility(): Accessibility {
 
 function defaultVolume(): Volume {
   return { ...DEFAULT_VOLUMES, background: 'lower' };
+}
+
+export function defaultGameplay(): GameplaySettings {
+  return { textSpeed: 30, autoAdvance: false, guidance: 'full' };
 }
 
 function defaultWindow(): WindowSettings {

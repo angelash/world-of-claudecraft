@@ -1,7 +1,8 @@
 // The five buses as data (audio_direction.md 8.2, 8.3, 10.2 and 10.3): default volumes, the
 // slider-to-decibel curve, the ducking table, the background-window rule and the voice caps.
-// `mixBuses` turns settings plus the active duck triggers into one gain (and filter) per bus;
-// the Web Audio graph (audio_bus, PK-M1-06) only applies the result. Pure, no audio context.
+// `mixBuses` turns settings plus the active duck triggers into one gain (and filter) per bus,
+// and `masterChain` the master processing; the Web Audio graph (./audio_bus.ts) only applies
+// the result. Pure, no audio context.
 
 export type BusId = 'master' | 'music' | 'ambience' | 'sfx' | 'ui';
 
@@ -42,7 +43,9 @@ export type DuckTrigger =
   | 'cutscene'
   | 'pause'
   | 'presence'
-  | 'scripted_silence';
+  | 'scripted_silence'
+  | 'rain'
+  | 'storm';
 
 export interface Duck {
   db: number;
@@ -52,6 +55,8 @@ export interface Duck {
   highCutHz?: number;
   /** Only this sound group of the bus is ducked (the cutscene lowers world sounds, not its own). */
   group?: string;
+  /** Only these sound groups (a written silence keeps the cutscene's own sound alone). */
+  groups?: readonly string[];
   attackMs: number;
   releaseMs: number;
 }
@@ -78,7 +83,16 @@ export const DUCKS: Readonly<Record<DuckTrigger, Partial<Record<Exclude<BusId, '
     cutscene: { ambience: D(-6), sfx: D(-12, { group: 'world' }) },
     pause: { music: D(-6, { lowpassHz: 800 }), ambience: D(-9, { lowpassHz: 800 }) },
     presence: { music: D(-4, { highCutHz: 6000 }), ambience: D(-6) },
-    scripted_silence: { music: D(Number.NEGATIVE_INFINITY), ambience: D(-24) },
+    // A written silence (5.9, 8.2): the music stops, the ambience falls to -24 dB, and of the
+    // effects only the written one (the cutscene group) is heard.
+    scripted_silence: {
+      music: D(Number.NEGATIVE_INFINITY),
+      ambience: D(-24),
+      sfx: D(Number.NEGATIVE_INFINITY, { groups: ['combat', 'world', 'army', 'divine'] }),
+    },
+    // Weather (5.6): rain lowers the music 2 dB behind a 10 kHz low-pass, heavy rain 4 dB.
+    rain: { music: D(-2, { lowpassHz: 10000, attackMs: 2000, releaseMs: 2000 }) },
+    storm: { music: D(-4, { lowpassHz: 10000, attackMs: 2000, releaseMs: 2000 }) },
   };
 
 export interface MixSettings {
@@ -96,6 +110,9 @@ export interface BusState {
   paused?: boolean;
   /** Extra gain per sound group of the bus (group ducks). */
   groupDb?: Record<string, number>;
+  /** The deepest duck's press and release times (8.2), when a duck is on. */
+  attackMs?: number;
+  releaseMs?: number;
 }
 
 export function defaultMixSettings(): MixSettings {
@@ -121,14 +138,17 @@ export function mixBuses(
     }
     if (bus !== 'master') {
       let duck = 0;
+      let times: Duck | null = null;
       const groupDb: Record<string, number> = {};
       for (const t of active) {
         const d = DUCKS[t][bus];
         if (!d) continue;
-        if (d.group) {
-          groupDb[d.group] = Math.min(groupDb[d.group] ?? 0, d.db);
+        if (d.group || d.groups) {
+          for (const g of d.groups ?? [d.group as string])
+            groupDb[g] = Math.min(groupDb[g] ?? 0, d.db);
           continue;
         }
+        if (!times || d.db < duck) times = d;
         duck = Math.min(duck, d.db);
         if (d.lowpassHz)
           lowpassHz = lowpassHz === null ? d.lowpassHz : Math.min(lowpassHz, d.lowpassHz);
@@ -142,12 +162,38 @@ export function mixBuses(
         highCutHz,
         ...(bus === 'sfx' && active.includes('pause') ? { paused: true } : {}),
         ...(Object.keys(groupDb).length > 0 ? { groupDb } : {}),
+        ...(times ? { attackMs: times.attackMs, releaseMs: times.releaseMs } : {}),
       };
       continue;
     }
     out[bus] = { db, lowpassHz, highCutHz };
   }
   return out;
+}
+
+/**
+ * The master chain (8.1, 8.2, 10.4): the true-peak limiter at -1 dBTP always; night mode adds
+ * 3:1 compression above -24 LUFS (about 12 dB between loudest and softest); reduce sudden loud
+ * sounds puts a look-ahead limiter on the sfx bus at -18 (momentary); mono folds the output.
+ */
+export interface MasterChain {
+  limiterDb: number;
+  night: { thresholdDb: number; ratio: number } | null;
+  sfxLimiterDb: number | null;
+  mono: boolean;
+}
+
+/** Extra cut on sounds marked loud (cutscene hits, boss roars) under reduce loud sounds (10.4). */
+export const REDUCE_LOUD_CUT_DB = -6;
+
+export function masterChain(opts: { night: boolean; reduceLoud: boolean; mono: boolean }) {
+  const chain: MasterChain = {
+    limiterDb: -1,
+    night: opts.night ? { thresholdDb: -24, ratio: 3 } : null,
+    sfxLimiterDb: opts.reduceLoud ? -18 : null,
+    mono: opts.mono,
+  };
+  return chain;
 }
 
 /** Effective gain in dB of one sound on a bus (bus plus master, plus its group's duck). */

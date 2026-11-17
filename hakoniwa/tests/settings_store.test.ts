@@ -78,6 +78,15 @@ const SYNC_DEFAULTS: SyncSettings = {
   },
   subtitles: 'important',
   volume: { master: 100, music: 70, ambience: 80, sfx: 90, ui: 70, background: 'lower' },
+  gameplay: { textSpeed: 30, autoAdvance: false, guidance: 'full' },
+  audio: {
+    output: 'stereo',
+    dynamicRange: 'full',
+    combatMusic: true,
+    dialogueBlips: true,
+    llmThinking: true,
+    reduceLoud: false,
+  },
 };
 
 const LOCAL_DEFAULTS: LocalSettings = {
@@ -88,6 +97,7 @@ const LOCAL_DEFAULTS: LocalSettings = {
   gpu: 'high_performance',
   frameCap: 60,
   installId: null,
+  audioDevice: null,
 };
 
 /** A value other than the default for every field of each part. */
@@ -122,6 +132,15 @@ const SYNC_CHANGED: Omit<SyncSettings, 'version'> = {
   },
   subtitles: 'all',
   volume: { master: 50, music: 0, ambience: 10, sfx: 100, ui: 33, background: 'mute' },
+  gameplay: { textSpeed: 'instant', autoAdvance: true, guidance: 'brief' },
+  audio: {
+    output: 'mono',
+    dynamicRange: 'night',
+    combatMusic: false,
+    dialogueBlips: false,
+    llmThinking: false,
+    reduceLoud: true,
+  },
 };
 
 const LOCAL_CHANGED: Omit<LocalSettings, 'version'> = {
@@ -131,6 +150,7 @@ const LOCAL_CHANGED: Omit<LocalSettings, 'version'> = {
   gpu: 'system',
   frameCap: 30,
   installId: '0123456789abcdef',
+  audioDevice: 'speakers-2',
   llm: { version: 1, preset: 'off' },
 };
 
@@ -192,6 +212,7 @@ describe('settings schema', () => {
       frameCap: 144,
       gpu: 'discrete',
       installId: 'NOT-HEX',
+      audioDevice: 42,
       llm: 'on',
     });
     expect(l.values).toEqual({ ...LOCAL_DEFAULTS });
@@ -205,6 +226,7 @@ describe('settings schema', () => {
         'frameCap',
         'gpu',
         'installId',
+        'audioDevice',
         'llm',
       ].sort(),
     );

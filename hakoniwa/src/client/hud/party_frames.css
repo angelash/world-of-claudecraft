@@ -1,0 +1,102 @@
+/* ui_hud_party (ux_and_onboarding.md 5.2): small frames under the player frame. */
+.hk-party {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 200px;
+  margin-top: 6px;
+}
+.hk-party-frame {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 6px;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: var(--hk-radius);
+  cursor: pointer;
+}
+.hk-party-portrait {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 5px;
+  background: radial-gradient(circle at 40% 35%, #3a344c, #1a1624);
+  border: 1px solid rgba(92, 203, 122, 0.55);
+  overflow: hidden;
+}
+.hk-party-portrait-canvas {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+.hk-party-main {
+  flex: 1;
+  min-width: 0;
+}
+.hk-party-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 12px;
+}
+.hk-party-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hk-party-order {
+  flex: none;
+  color: var(--hk-muted);
+}
+.hk-party-frame .hk-bar {
+  height: 9px;
+  margin-top: 2px;
+}
+.hk-party-frame .hk-bar-text {
+  font-size: 9px;
+  line-height: 9px;
+}
+.hk-party-debuffs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 10px;
+}
+.hk-party-down {
+  font-size: 11px;
+  color: var(--hk-danger);
+}
+.hk-party-frame.downed .hk-party-portrait {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.hk-party-frame.downed .hk-party-name {
+  color: var(--hk-muted);
+}
+/* ui_hud_focus (5.2): the compact focus frame under the party frames. */
+.hk-focus {
+  width: 200px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: var(--hk-bg);
+  border: 1px solid rgba(63, 168, 138, 0.8);
+  border-radius: var(--hk-radius);
+  cursor: pointer;
+}
+.hk-focus .hk-bar {
+  height: 9px;
+  margin-top: 2px;
+}
+.hk-focus .hk-bar-text {
+  font-size: 9px;
+  line-height: 9px;
+}
+/* The player frame column of the top-left HUD group: player, party, focus (5.1). */
+.hk-hud-tl-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}

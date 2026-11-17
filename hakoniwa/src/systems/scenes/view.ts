@@ -7,7 +7,7 @@ import type { World } from '../../core/world';
 import { evaluate, flagResolver } from '../quests/conditions';
 import { presentable } from './court';
 import { COURT_END, EVIDENCE_PREFIX, nodeOf, sceneDef } from './runner';
-import type { SceneWait, ShownLine } from './types';
+import type { ScenePresentation, SceneWait, ShownLine, StageDirective } from './types';
 
 export interface SceneView {
   sceneId: string;
@@ -15,11 +15,23 @@ export interface SceneView {
   nodeId: string;
   waiting: SceneWait;
   lines: ShownLine[];
-  choices: { id: string; label: TextParam; hint?: string }[];
+  choices: { id: string; label: TextParam; hint?: string; confirm?: boolean }[];
   input: { prompt: string; maxLength: number } | null;
   court: { goddess: string; presented: string[]; limit: number } | null;
   /** scenes waiting to play after this one */
   queued: string[];
+  /** client presentation (ux_and_onboarding.md 8.1); theater when the scene names none */
+  presentation: ScenePresentation;
+  /** the full-screen still of an illustration scene */
+  illustration: string | null;
+  /** the skip summary card text (content), '' when the scene has none */
+  summary: string;
+  /** the act the scene belongs to ('' when it names none) */
+  act: string;
+  /** the current node's stage directives (catalog_cutscenes.md 13.5) */
+  stage: StageDirective[];
+  /** the current node is an anchor (skipping stops here) */
+  anchor: boolean;
 }
 
 export function sceneView(
@@ -37,7 +49,7 @@ export function sceneView(
   if (run.waiting === 'choice') {
     choices = (node.choices ?? [])
       .filter((c) => evaluate(c.when, resolve) && !(c.once && run.picked.includes(c.id)))
-      .map((c) => ({ id: c.id, label: c.label, hint: c.hint }));
+      .map((c) => ({ id: c.id, label: c.label, hint: c.hint, confirm: c.confirm }));
   } else if (run.waiting === 'court' && node.court) {
     const spec = node.court;
     const full = !!spec.limit && run.presented.length >= spec.limit;
@@ -66,6 +78,12 @@ export function sceneView(
       ? { goddess: node.court.goddess, presented: [...run.presented], limit: node.court.limit ?? 0 }
       : null,
     queued: [...world.slices.scenes.queue],
+    presentation: scene.presentation ?? 'theater',
+    illustration: scene.illustration ?? null,
+    summary: scene.summary ?? '',
+    act: scene.act ?? '',
+    stage: (node.stage ?? []).map((d) => ({ ...d })),
+    anchor: !!node.anchor,
   };
 }
 

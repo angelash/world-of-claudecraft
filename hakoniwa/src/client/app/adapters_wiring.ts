@@ -8,6 +8,7 @@ import {
   createCombatAdapter,
   createUnitFrameAdapter,
 } from '../adapters/combat';
+import { createCorridorAdapter, createQuestDetailAdapter } from '../adapters/corridor';
 import {
   createBattleAdapter,
   createCompanyAdapter,
@@ -44,7 +45,9 @@ export function createAdapters(): ClientAdapters {
     banner: createBannerAdapter(),
     character: createCharacterAdapter(),
     doors: createDoorsAdapter(),
+    corridor: createCorridorAdapter(),
     quests: createQuestsAdapter(),
+    questDetail: createQuestDetailAdapter(),
     rumors: createRumorsAdapter(),
     party: createPartyAdapter(),
     company: createCompanyAdapter(),

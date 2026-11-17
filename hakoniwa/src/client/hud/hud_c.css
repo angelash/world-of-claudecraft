@@ -1,0 +1,94 @@
+/* ui_hud_gauges and ui_hud_tracker (ux_and_onboarding.md 5.2, 14.2). */
+.hk-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 260px;
+  padding: 4px 8px;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: var(--hk-radius);
+  font-size: 12px;
+}
+.hk-gauge {
+  display: grid;
+  grid-template-columns: 2.6em 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+.hk-gauge-label {
+  color: var(--hk-muted);
+}
+.hk-gauge-track {
+  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hk-gauge-fill {
+  height: 100%;
+  background: #e8cf8a;
+}
+.hk-gauge-taint .hk-gauge-fill {
+  background: #a47cc4;
+}
+.hk-gauge-taint .hk-gauge-track {
+  background: #4a2c5e;
+}
+.hk-gauge-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.hk-gauge-state {
+  color: var(--hk-text);
+  font-weight: 600;
+}
+.hk-gauge-taint .hk-gauge-state {
+  color: #a47cc4;
+}
+
+.hk-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 220px;
+  max-height: 46vh;
+  overflow: hidden;
+}
+.hk-tracker-entry {
+  padding: 6px 8px;
+  background: var(--hk-bg);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: var(--hk-radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+.hk-tracker-name {
+  font-weight: 700;
+  color: var(--hk-gold-soft);
+}
+.hk-tracker-line {
+  color: var(--hk-text);
+}
+.hk-tracker-line::before {
+  content: "\25CB\00A0";
+  color: var(--hk-muted);
+}
+.hk-tracker-line.done {
+  color: var(--hk-muted);
+  text-decoration: line-through;
+}
+.hk-tracker-line.done::before {
+  content: "\25CF\00A0";
+}
+.hk-tracker-deadline {
+  color: #e8b04a;
+  font-size: 12px;
+}
+.hk-tracker-door .hk-tracker-name {
+  color: #e8cf8a;
+}

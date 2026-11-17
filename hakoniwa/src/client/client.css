@@ -379,73 +379,6 @@ body {
   color: var(--hk-muted);
 }
 
-/* dialogue box */
-.hk-dlg {
-  width: min(720px, 60vw);
-  min-height: 64px;
-  padding: 12px 18px 10px;
-  background: rgba(16, 13, 24, 0.92);
-  border: 1px solid rgba(226, 176, 74, 0.5);
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
-}
-.hk-dlg-speaker {
-  color: var(--hk-gold-soft);
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.hk-dlg-speaker:empty {
-  display: none;
-}
-.hk-dlg-text {
-  font-size: 15px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-.hk-dlg-options {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-.hk-dlg-options:empty {
-  display: none;
-}
-.hk-dlg-option {
-  text-align: left;
-}
-.hk-dlg-hint {
-  margin-top: 6px;
-  text-align: right;
-  font-size: 11px;
-  color: var(--hk-muted);
-}
-.hk-dlg.narrate .hk-dlg-text {
-  font-style: italic;
-  color: #d8d0c0;
-}
-.hk-dlg.think .hk-dlg-text {
-  font-style: italic;
-}
-.hk-dlg.divine {
-  background: linear-gradient(180deg, rgba(60, 46, 20, 0.94), rgba(26, 20, 12, 0.94));
-  border-color: #f2d78a;
-  box-shadow:
-    0 0 28px rgba(255, 220, 140, 0.45),
-    0 6px 24px rgba(0, 0, 0, 0.45);
-}
-.hk-dlg.divine .hk-dlg-speaker {
-  color: #fff2c8;
-  letter-spacing: 0.2em;
-  text-align: center;
-}
-.hk-dlg.divine .hk-dlg-text {
-  color: #fff6dc;
-  text-align: center;
-  font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
-}
-
 /* hotbar */
 .hk-hotbar {
   display: flex;
@@ -666,28 +599,6 @@ body {
   flex: 1;
 }
 
-/* saves */
-.hk-save-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-.hk-save-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-  min-width: 0;
-}
-.hk-save-info span {
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .hk-help {
   margin: 0;
   padding-left: 18px;
@@ -820,9 +731,6 @@ body {
   .hk-menubar {
     max-width: 240px;
   }
-  .hk-dlg {
-    width: 92vw;
-  }
   .hk-hud-bc {
     bottom: 8px;
   }
@@ -895,165 +803,6 @@ body {
   color: #fff;
   text-shadow: 0 1px 2px #000;
   pointer-events: none;
-}
-
-/* conversation */
-.hk-dlg.talk {
-  cursor: default;
-}
-.hk-dlg-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.hk-dlg-lines {
-  max-height: 180px;
-  overflow-y: auto;
-  font-size: 14px;
-  line-height: 1.55;
-}
-.hk-dlg-line {
-  padding: 1px 0;
-}
-.hk-dlg-line.mine {
-  color: #c8d8f0;
-}
-.hk-dlg-line.kind-divine {
-  color: #ffe6a0;
-}
-.hk-dlg-line.kind-narrate {
-  color: #c8c0b0;
-  font-style: italic;
-}
-.hk-dlg-who {
-  color: var(--hk-gold-soft);
-  margin-right: 6px;
-}
-.hk-dlg-who:empty {
-  display: none;
-}
-.hk-dlg-pending {
-  font-size: 12px;
-  color: var(--hk-muted);
-  font-style: italic;
-}
-.hk-dlg-say {
-  margin-top: 8px;
-}
-.hk-dlg-option.sys-quests {
-  border-color: var(--hk-gold);
-}
-.hk-dlg-option.sys-economy {
-  border-color: #6cd06a;
-}
-
-/* scene panel */
-.hk-scene {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 7vh;
-  background: radial-gradient(ellipse at 50% 40%, rgba(12, 10, 20, 0.35), rgba(8, 6, 14, 0.82));
-  pointer-events: auto;
-  z-index: 50;
-}
-.hk-scene-card {
-  width: min(820px, 92vw);
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px 24px 14px;
-  background: rgba(18, 15, 26, 0.95);
-  border: 1px solid rgba(226, 176, 74, 0.55);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-}
-.hk-scene-title {
-  color: var(--hk-gold-soft);
-  font-size: 13px;
-  letter-spacing: 0.2em;
-}
-.hk-scene-lines {
-  overflow-y: auto;
-  max-height: 46vh;
-  font-size: 16px;
-  line-height: 1.75;
-}
-.hk-scene-line {
-  margin: 2px 0;
-}
-.hk-scene-speaker {
-  color: var(--hk-gold-soft);
-  font-weight: 700;
-  margin-right: 8px;
-}
-.hk-scene-line.kind-narrate {
-  color: #d8d0c0;
-  font-style: italic;
-}
-.hk-scene-line.kind-think {
-  color: #c8d0e0;
-  font-style: italic;
-}
-.hk-scene-line.kind-divine .hk-scene-text {
-  color: #fff2c8;
-  text-shadow: 0 0 12px rgba(255, 220, 140, 0.55);
-  font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
-}
-.hk-scene-line.kind-divine .hk-scene-speaker {
-  color: #fff6dc;
-}
-.hk-scene-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.hk-scene-choices:empty {
-  display: none;
-}
-.hk-scene-choice {
-  text-align: left;
-  font-size: 14px;
-  padding: 7px 12px;
-}
-.hk-scene-num {
-  display: inline-block;
-  min-width: 1.4em;
-  color: var(--hk-gold-soft);
-  font-weight: 700;
-}
-.hk-scene-prompt {
-  color: var(--hk-gold-soft);
-}
-.hk-scene-input-row {
-  display: flex;
-  gap: 8px;
-}
-.hk-scene-input {
-  font-size: 16px;
-}
-.hk-scene-court {
-  font-size: 12px;
-  color: var(--hk-muted);
-}
-.hk-scene-foot {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--hk-muted);
-}
-.hk-scene.resolving .hk-scene-hint {
-  animation: hk-pulse 1.2s infinite;
-}
-@keyframes hk-pulse {
-  50% {
-    opacity: 0.4;
-  }
 }
 
 /* banners */

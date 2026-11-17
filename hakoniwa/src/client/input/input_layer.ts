@@ -8,6 +8,7 @@
 
 import { isTypingTarget } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
+import { confirmOpen } from '../hud/confirm_pop';
 import { FloatingKeyboard } from '../hud/floating_keyboard';
 import { type HotbarLayout, hotbarLayout } from '../hud/hotbar_model';
 import { RadialMenu } from '../hud/radial_menu';
@@ -34,7 +35,7 @@ export interface InputSettingsSource {
 export interface InputGame extends GameSink {
   configure(settings: InputSettings): void;
   optionCursor(): { kind: 'scene' | 'conversation'; index: number; count: number } | null;
-  click(sx: number, sy: number, double: boolean): void;
+  click(sx: number, sy: number, double: boolean, shift?: boolean): void;
 }
 
 export interface InputLayerDeps {
@@ -94,7 +95,7 @@ export class InputLayer implements UiSink {
         mouseButton: (button, phase, mods) => this.hub.mouseButton(button, phase, mods),
         pointer: (x, y, travel) => this.hub.pointer(x, y, travel, performance.now()),
         release: () => this.hub.releaseAll(),
-        click: (sx, sy, dbl) => d.game.click(sx, sy, dbl),
+        click: (sx, sy, dbl, shift) => d.game.click(sx, sy, dbl, shift),
         secondary: (sx, sy) => d.pointer.secondary(sx, sy),
         hover: (sx, sy) => d.pointer.hover(sx, sy),
         zoom: (delta) => d.pointer.zoom(delta),
@@ -152,6 +153,12 @@ export class InputLayer implements UiSink {
   /** Every animation frame: poll the pad, keep the pad's focus and option cursor shown. */
   frame(nowMs: number): void {
     const snap = readGamepad();
+    if (confirmOpen()) {
+      // the confirm popup reads the pad itself (6.4); nothing it pressed reaches the game,
+      // even a button still held when it closes
+      this.hub.consumeHeld(snap, nowMs);
+      return;
+    }
     if (snap || this.padConnected) {
       this.padConnected = !!snap;
       this.hub.padFrame(snap, nowMs);
@@ -235,7 +242,7 @@ export class InputLayer implements UiSink {
   private paintOptionCursor(): void {
     if (this.frontWindow()) return;
     const c = this.d.game.optionCursor();
-    const sel = c?.kind === 'scene' ? '.hk-scene-choice' : '.hk-dlg-option';
+    const sel = c?.kind === 'scene' ? '.hk-cut-choice' : '.hk-dlg2-option';
     const list = c ? [...this.d.root.querySelectorAll<HTMLElement>(sel)] : [];
     const target = c ? list[c.index] : undefined;
     const sig = target ? `${c?.kind}/${c?.index}/${list.length}` : '';

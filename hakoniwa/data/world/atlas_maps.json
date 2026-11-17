@@ -13,7 +13,10 @@
     "sediment": 0,
     "size": [24, 16],
     "source": "序章 1；六幕 2.1",
-    "note": "序章的候见厅与面试厅，第六幕变为审庭（庭镜、庭之席、证人台）。终战段等级按第六幕。"
+    "note": "序章的候见厅与面试厅，第六幕变为审庭（庭镜、庭之席、证人台）。终战段等级按第六幕。",
+    "music": "mus_pro_antechamber",
+    "ambience": ["amb_divine_court"],
+    "reverbZone": "divine"
   },
   {
     "id": "inner_court",
@@ -28,7 +31,11 @@
     "sediment": 0,
     "size": [24, 20],
     "source": "城建 2；力量 9.6",
-    "note": "第一幕末梦后开启；从任意地点以门的能力进出，在神之视线之外。"
+    "note": "第一幕末梦后开启；从任意地点以门的能力进出，在神之视线之外。",
+    "music": "mus_inner_court_day",
+    "musicNight": "mus_inner_court_night",
+    "ambience": ["amb_inner_court"],
+    "reverbZone": "outdoor"
   },
   {
     "id": "borderstone",
@@ -46,7 +53,21 @@
     "levels": [1, 15],
     "size": [56, 44],
     "source": "地理 4.4、7.4 A1；一幕 2.1 到 2.2",
-    "note": "第一幕主枢纽；兽潮之夜就在本图打（战斗波次 tide_*）；第三幕起是灰烬边境领的领主府候选，第四幕起暂作庭外之国的国都（提案）。"
+    "note": "第一幕主枢纽；兽潮之夜就在本图打（战斗波次 tide_*）；第三幕起是灰烬边境领的领主府候选，第四幕起暂作庭外之国的国都（提案）。",
+    "music": "mus_town_borderstone_day",
+    "musicNight": "mus_town_borderstone_night",
+    "ambience": [
+      { "id": "amb_town_day", "time": "day" },
+      { "id": "amb_town_night", "time": "night" },
+      { "id": "amb_fauna_temperate_night", "time": "night" }
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_dog_bark", "weight": 3 },
+      { "id": "amb_pt_rooster", "weight": 2, "time": "dawn" },
+      { "id": "amb_pt_church_bell", "weight": 1, "time": "day" },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "street"
   },
   {
     "id": "borderstone_north",
@@ -63,7 +84,21 @@
     "levels": [3, 8],
     "size": [128, 96],
     "source": "地理 4.2、4.3、7.4 A2",
-    "note": "镇北小路、界石（史料 S01）、锈岭矿口；灰溪上溯往折桥驿的灰路也从这里起。"
+    "note": "镇北小路、界石（史料 S01）、锈岭矿口；灰溪上溯往折桥驿的灰路也从这里起。",
+    "music": "mus_reg_lotha_north",
+    "ambience": [
+      "amb_base_forest",
+      { "id": "amb_fauna_temperate_day", "time": "day" },
+      { "id": "amb_fauna_temperate_night", "time": "night" }
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_crow_burst", "weight": 2 },
+      { "id": "amb_pt_wolf_howl_far", "weight": 2, "time": "night" },
+      { "id": "amb_pt_owl", "weight": 2, "time": "night" },
+      { "id": "amb_pt_branch_snap", "weight": 2 },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "seal_ruins",
@@ -81,7 +116,10 @@
     "levels": [1, 4],
     "size": [36, 28],
     "source": "地理 4.4、7.4 A3、A4；一幕 2.4",
-    "note": "数据名为封门遗迹（上层）：入口外环、神纹大厅、回廊、落灰阶；玩家在第六神纹下醒来。第四幕的界石垒在遗迹前。"
+    "note": "数据名为封门遗迹（上层）：入口外环、神纹大厅、回廊、落灰阶；玩家在第六神纹下醒来。第四幕的界石垒在遗迹前。",
+    "music": "mus_dg_ancient",
+    "ambience": ["amb_dg_ruins"],
+    "reverbZone": "dungeon"
   },
   {
     "id": "seal_ruins_depths",
@@ -98,7 +136,10 @@
     "levels": [1, 8],
     "size": [30, 24],
     "source": "地理 4.4；一幕 2.4、2.5",
-    "note": "灰烬室（阿什）、封门、巢井与巨鸦之巢、渗泉暗渠（第 3 周起的调查终点）。"
+    "note": "灰烬室（阿什）、封门、巢井与巨鸦之巢、渗泉暗渠（第 3 周起的调查终点）。",
+    "music": "mus_dg_ancient",
+    "ambience": ["amb_dg_ruins"],
+    "reverbZone": "dungeon"
   },
   {
     "id": "rustridge_mine",
@@ -115,7 +156,10 @@
     "levels": [6, 12],
     "size": [64, 64],
     "source": "地理 3.1、4.3、7.4 A5；一幕 2.3 W2",
-    "note": "上层坑道、塌方口、下层晶脉、走私营地、晶背之母的巢；一夜打通矿道的舞台。方位从地理志（西北），矿口骑在界石线上；矿工把矿口一侧的旧矿道叫边石旧矿（A5-2 `dg_old_mine`）。风格包 forge_deep（地图简报第 13.2 节第 8 条）。"
+    "note": "上层坑道、塌方口、下层晶脉、走私营地、晶背之母的巢；一夜打通矿道的舞台。方位从地理志（西北），矿口骑在界石线上；矿工把矿口一侧的旧矿道叫边石旧矿（A5-2 `dg_old_mine`）。风格包 forge_deep（地图简报第 13.2 节第 8 条）。",
+    "music": "mus_dg_mixed",
+    "ambience": ["amb_dg_mine"],
+    "reverbZone": "dungeon"
   },
   {
     "id": "forest_edge",
@@ -132,7 +176,21 @@
     "levels": [2, 10],
     "size": [48, 32],
     "source": "地理 4.3、7.4 A6；一幕 2.3 W1",
-    "note": "猎径、约树、蛛谷、狼穴、鹿泉、伐区；林地之争的现场。"
+    "note": "猎径、约树、蛛谷、狼穴、鹿泉、伐区；林地之争的现场。",
+    "music": "mus_reg_lotha_north",
+    "ambience": [
+      "amb_base_forest",
+      { "id": "amb_fauna_temperate_day", "time": "day" },
+      { "id": "amb_fauna_temperate_night", "time": "night" }
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_crow_burst", "weight": 2 },
+      { "id": "amb_pt_wolf_howl_far", "weight": 2, "time": "night" },
+      { "id": "amb_pt_owl", "weight": 2, "time": "night" },
+      { "id": "amb_pt_branch_snap", "weight": 2 },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "ironhemlock_deep",
@@ -149,7 +207,21 @@
     "levels": [8, 13],
     "size": [128, 128],
     "source": "地理 3.1、7.4 A7",
-    "note": "魔物巢；魔物季事件。"
+    "note": "魔物巢；魔物季事件。",
+    "music": "mus_reg_lotha_north",
+    "ambience": [
+      "amb_base_forest",
+      { "id": "amb_fauna_temperate_day", "time": "day" },
+      { "id": "amb_fauna_temperate_night", "time": "night" }
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_crow_burst", "weight": 2 },
+      { "id": "amb_pt_wolf_howl_far", "weight": 2, "time": "night" },
+      { "id": "amb_pt_owl", "weight": 2, "time": "night" },
+      { "id": "amb_pt_branch_snap", "weight": 2 },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "brokenspan_post",
@@ -166,7 +238,14 @@
     "levels": [7, 12],
     "size": [128, 96],
     "source": "地理 3.2、4.3、7.4 A8",
-    "note": "独眼团的老巢，灰路的中转；税与匪纷争的据点。"
+    "note": "独眼团的老巢，灰路的中转；税与匪纷争的据点。",
+    "music": "mus_reg_ash_rim",
+    "ambience": ["amb_ash_rim", { "id": "amb_dian_low", "time": "night" }],
+    "ambiencePoints": [
+      { "id": "amb_pt_ash_whistle", "weight": 3 },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "ash_waste",
@@ -184,7 +263,14 @@
     "levels": [8, 30],
     "size": [48, 40],
     "source": "地理 4.5 外缘、7.4 A9、B9；一幕 2.3 W4",
-    "note": "灰沙坡、枯树林、碎门坡。第一轮还把荒原中层门址、圣战军营、红牙丘与古澱边缘压在本图，红牙试货与无貌之王的波次也在这里。"
+    "note": "灰沙坡、枯树林、碎门坡。第一轮还把荒原中层门址、圣战军营、红牙丘与古澱边缘压在本图，红牙试货与无貌之王的波次也在这里。",
+    "music": "mus_reg_ash_rim",
+    "ambience": ["amb_ash_rim", { "id": "amb_dian_low", "time": "night" }],
+    "ambiencePoints": [
+      { "id": "amb_pt_ash_whistle", "weight": 3 },
+      { "id": "amb_pt_wind_gust", "weight": 2 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "old_outpost",
@@ -202,7 +288,18 @@
     "levels": [8, 30],
     "size": [48, 40],
     "source": "地理 4.4、7.4 A10、B8；一幕 2.3 W3；二幕 2.3",
-    "note": "第一幕是独眼团盘踞的废村，第二幕起是村落建设地块，第三幕并入灰烬边境领。"
+    "note": "第一幕是独眼团盘踞的废村，第二幕起是村落建设地块，第三幕并入灰烬边境领。",
+    "music": "mus_reg_lotha_north",
+    "ambience": [
+      "amb_base_field",
+      { "id": "amb_fauna_temperate_day", "time": "day" },
+      { "id": "amb_fauna_temperate_night", "time": "night" }
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_crow_burst", "weight": 2 },
+      { "id": "amb_pt_wind_gust", "weight": 3 }
+    ],
+    "reverbZone": "outdoor"
   },
   {
     "id": "wallenburg",
@@ -221,7 +318,19 @@
     "levels": [15, 30],
     "size": [60, 48],
     "source": "地理 4.4、7.4 B1 到 B3；二幕 2.1、2.2",
-    "note": "第一轮的精简城区，上城、中城、下城与河港合在一张图；门前渡北岸与南岸的老船夫小屋也在图内。第五幕联盟军议设在这里。"
+    "note": "第一轮的精简城区，上城、中城、下城与河港合在一张图；门前渡北岸与南岸的老船夫小屋也在图内。第五幕联盟军议设在这里。",
+    "music": "mus_city_wallenburg_day",
+    "musicNight": "mus_city_wallenburg_night",
+    "ambience": [
+      { "id": "amb_city_day", "time": "day" },
+      { "id": "amb_city_night", "time": "night" },
+      "amb_base_river"
+    ],
+    "ambiencePoints": [
+      { "id": "amb_pt_church_bell", "weight": 2, "time": "day" },
+      { "id": "amb_pt_dog_bark", "weight": 2 }
+    ],
+    "reverbZone": "street"
   },
   {
     "id": "wallenburg_outskirts",
@@ -274,7 +383,10 @@
     "levels": [16, 30],
     "size": [40, 30],
     "source": "地理 4.4、7.4 B6；二幕 7.1",
-    "note": "第一轮把排水廊、沉锁闸、旧城基、澱晶窟与第三十七门前厅压在一层；设计风格包为 sealed_ruins（art_pipeline.md 1.4），数据当前按 region 落在 valen_city。"
+    "note": "第一轮把排水廊、沉锁闸、旧城基、澱晶窟与第三十七门前厅压在一层；设计风格包为 sealed_ruins（art_pipeline.md 1.4），数据当前按 region 落在 valen_city。",
+    "music": "mus_dg_pale",
+    "ambience": ["amb_dg_sewer"],
+    "reverbZone": "sewer"
   },
   {
     "id": "broken_door_hall",
@@ -1051,7 +1163,10 @@
     "sediment": 0,
     "size": [24, 8],
     "source": "序章 1；地图简报 P1",
-    "note": "过场布景：序章开场 A 与真结局回到地球 A，以过场的 teleport 进入，无出口。"
+    "note": "过场布景：序章开场 A 与真结局回到地球 A，以过场的 teleport 进入，无出口。",
+    "music": "mus_pro_earth",
+    "ambience": ["amb_earth_last_train"],
+    "reverbZone": "room"
   },
   {
     "id": "earth_store",
@@ -1067,7 +1182,10 @@
     "sediment": 0,
     "size": [16, 12],
     "source": "序章 1；地图简报 P2",
-    "note": "过场布景：序章开场 B 与真结局回到地球 B，以过场的 teleport 进入，无出口。"
+    "note": "过场布景：序章开场 B 与真结局回到地球 B，以过场的 teleport 进入，无出口。",
+    "music": "mus_pro_earth",
+    "ambience": ["amb_earth_store_rain"],
+    "reverbZone": "room"
   },
   {
     "id": "earth_hospital",
@@ -1083,7 +1201,10 @@
     "sediment": 0,
     "size": [24, 8],
     "source": "序章 1；地图简报 P3",
-    "note": "过场布景：序章开场 C 与真结局回到地球 C，以过场的 teleport 进入，无出口。"
+    "note": "过场布景：序章开场 C 与真结局回到地球 C，以过场的 teleport 进入，无出口。",
+    "music": "mus_pro_earth",
+    "ambience": ["amb_earth_hospital"],
+    "reverbZone": "hall"
   },
   {
     "id": "earth_house",
@@ -1099,7 +1220,10 @@
     "sediment": 0,
     "size": [12, 10],
     "source": "序章 1；地图简报 P4",
-    "note": "过场布景：序章开场 D、真结局回到地球 D 与隐藏结局\"回去\"版，以过场的 teleport 进入，无出口。"
+    "note": "过场布景：序章开场 D、真结局回到地球 D 与隐藏结局\"回去\"版，以过场的 teleport 进入，无出口。",
+    "music": "mus_pro_earth",
+    "ambience": ["amb_earth_old_house"],
+    "reverbZone": "room"
   },
   {
     "id": "gap_void",
@@ -1114,7 +1238,10 @@
     "sediment": 0,
     "size": [16, 16],
     "source": "序章 1；五幕；六幕；地图简报 X2",
-    "note": "过场布景：序章坠落、最后一扇门的门后、地球真相里门外的黑与回收结局，无地面，以过场的 teleport 进入。"
+    "note": "过场布景：序章坠落、最后一扇门的门后、地球真相里门外的黑与回收结局，无地面，以过场的 teleport 进入。",
+    "music": null,
+    "ambience": ["amb_fall_void"],
+    "reverbZone": "outdoor"
   },
   {
     "id": "door_corridor",
@@ -1129,7 +1256,10 @@
     "sediment": 0,
     "size": [64, 16],
     "source": "千门；地图简报 X3",
-    "note": "过场布景：开门演出、离手之门、千门回廊之战与隐藏结局\"留下\"版；回廊界面 ui_mode_corridor 的门列表不是这张图。第六幕的中段与尽头在 M3。"
+    "note": "过场布景：开门演出、离手之门、千门回廊之战与隐藏结局\"留下\"版；回廊界面 ui_mode_corridor 的门列表不是这张图。第六幕的中段与尽头在 M3。",
+    "music": null,
+    "ambience": ["amb_dream_door"],
+    "reverbZone": "dream"
   },
   {
     "id": "dream_doorway",
@@ -1145,7 +1275,10 @@
     "sediment": 0,
     "size": [16, 12],
     "source": "地图简报 X4",
-    "note": "过场布景：门口的女人出现的全部梦境，以过场的 teleport 进入。"
+    "note": "过场布景：门口的女人出现的全部梦境，以过场的 teleport 进入。",
+    "music": "mus_cue_dream_door",
+    "ambience": ["amb_dream_door"],
+    "reverbZone": "dream"
   },
   {
     "id": "boundary_cairn_battle",
@@ -1526,6 +1659,9 @@
     "levels": [6, 12],
     "size": [48, 48],
     "source": "一幕 2.3 W2；地图简报 9.1",
-    "note": "锈岭矿口一侧的旧矿道（矿工叫它边石旧矿），锈岭矿的子场景。"
+    "note": "锈岭矿口一侧的旧矿道（矿工叫它边石旧矿），锈岭矿的子场景。",
+    "music": "mus_dg_mixed",
+    "ambience": ["amb_dg_mine"],
+    "reverbZone": "dungeon"
   }
 ]

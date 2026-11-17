@@ -305,7 +305,7 @@ describe('processing on decoded PCM', () => {
     const seam = seamOf(res.outputs[0]!.pcm, FS);
     expect(seam.levelStepDb).toBeLessThan(3);
     expect(Math.abs(res.lufs! - -18)).toBeLessThanOrEqual(1);
-    expect(res.processing.stems).toMatch(/not run/);
+    expect(res.processing.stems).toMatch(/processed as one layer/);
   });
 
   it('a loop with no stated body takes the longest body the source allows', () => {
@@ -889,17 +889,19 @@ describe('audio director state machine', () => {
     });
     const n = new AudioDirector();
     n.update(base());
+    // Day and night versions: the night track starts where the day track is (aligned).
     expect(n.update(base({ night: true })).transition).toEqual({
       kind: 'crossfade',
       ms: 8000,
       align: 'bar',
+      aligned: true,
     });
     const b = new AudioDirector();
     b.update(base());
     expect(b.update(base({ boss: { music: 'mus_boss_raven' } })).transition?.kind).toBe(
       'after_roar',
     );
-    expect(b.update(base()).transition).toMatchObject({
+    expect(b.update(base({ bossVictory: true })).transition).toMatchObject({
       kind: 'victory',
       stinger: 'mus_stg_victory',
     });
@@ -943,7 +945,11 @@ describe('audio director state machine', () => {
     const fight = { hostiles: [foe({ rank: 'boss' })], playerLevel: 10, wave: false };
     d.update(base({ nowMs: 100, boss: { music: 'mus_boss_raven' }, combat: fight }));
     const out = d.update(
-      base({ nowMs: 200, combat: { hostiles: [], playerLevel: 10, wave: false } }),
+      base({
+        nowMs: 200,
+        bossVictory: true,
+        combat: { hostiles: [], playerLevel: 10, wave: false },
+      }),
     );
     expect([out.context, out.combatTier, out.music.id]).toEqual([
       'location',

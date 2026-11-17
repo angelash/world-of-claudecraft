@@ -117,7 +117,9 @@
       "leaves",
       "bone"
     ],
-    "gait": ["walk", "run"]
+    "gait": ["walk", "run"],
+    "rangedWeapon": ["bow", "crossbow", "thrown"],
+    "seal": ["faint", "small", "mid", "large", "extreme"]
   },
   "cues": [
     {
@@ -125,6 +127,9 @@
       "event": "anim.swing",
       "when": {
         "isMonster": false
+      },
+      "unless": {
+        "attack": ["ranged", "spell"]
       },
       "select": {
         "pattern": "sfx_wpn_{weapon}_{weight}",
@@ -667,6 +672,7 @@
       "priority": 0,
       "caption": "audio.cap.sfx_boss_roar",
       "captionLevel": "important",
+      "loud": true,
       "note": "The boss track enters when the roar ends (5.3)."
     },
     {
@@ -693,6 +699,8 @@
       "bus": "music",
       "priority": 3,
       "stinger": true,
+      "stingerClass": "level",
+      "queue": true,
       "note": "Deferred until combat ends (5.7)."
     },
     {
@@ -701,7 +709,9 @@
       "sound": "mus_stg_quest_done",
       "bus": "music",
       "priority": 4,
-      "stinger": true
+      "stinger": true,
+      "stingerClass": "quest",
+      "queue": true
     },
     {
       "id": "quest_new",
@@ -709,7 +719,8 @@
       "sound": "mus_stg_quest_new",
       "bus": "music",
       "priority": 4,
-      "stinger": true
+      "stinger": true,
+      "stingerClass": "quest"
     },
     {
       "id": "quest_update",
@@ -736,7 +747,7 @@
     },
     {
       "id": "threat_offscreen",
-      "event": "ui.threat_offscreen",
+      "event": "client.threat_offscreen",
       "sound": "sfx_ui_threat_offscreen",
       "bus": "ui",
       "priority": 2,
@@ -745,7 +756,7 @@
     },
     {
       "id": "llm_thinking",
-      "event": "ui.llm_waiting",
+      "event": "client.llm_waiting",
       "sound": "sfx_ui_llm_thinking",
       "bus": "ui",
       "priority": 4,
@@ -753,17 +764,138 @@
     },
     {
       "id": "llm_reply",
-      "event": "ui.llm_reply",
+      "event": "client.llm_reply",
       "sound": "sfx_ui_llm_reply",
       "bus": "ui",
       "priority": 4
     },
     {
       "id": "llm_error",
-      "event": "ui.llm_error",
+      "event": "client.llm_error",
       "sound": "sfx_ui_llm_error",
       "bus": "ui",
       "priority": 0
+    },
+    {
+      "id": "ranged_release",
+      "event": "anim.swing",
+      "when": {
+        "attack": "ranged"
+      },
+      "pick": {
+        "field": "rangedWeapon",
+        "map": {
+          "bow": "sfx_rng_bow_release",
+          "crossbow": "sfx_rng_crossbow_release",
+          "thrown": "sfx_rng_throw_knife"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ],
+      "note": "Bow, crossbow or thrown release by the striking hand's weapon class (combat 8.3)."
+    },
+    {
+      "id": "door_seal",
+      "event": "door.opened",
+      "pick": {
+        "field": "seal",
+        "map": {
+          "faint": "sfx_door_seal_faint",
+          "small": "sfx_door_seal_small",
+          "mid": "sfx_door_seal_mid",
+          "large": "sfx_door_seal_large",
+          "extreme": "sfx_door_seal_extreme"
+        }
+      },
+      "bus": "sfx",
+      "group": "world",
+      "priority": 2,
+      "note": "The seal's low layer under the opening, five steps by the looseness the door adds (1.1)."
+    },
+    {
+      "id": "door_phrase",
+      "event": "door.opened",
+      "sound": "mus_stg_door_open",
+      "bus": "music",
+      "priority": 2,
+      "stinger": true,
+      "stingerClass": "door",
+      "queue": true
+    },
+    {
+      "id": "seal_loosen",
+      "event": "door.opened",
+      "when": {
+        "seal": ["large", "extreme"]
+      },
+      "sound": "mus_stg_seal_loosen",
+      "bus": "music",
+      "priority": 2,
+      "stinger": true,
+      "stingerClass": "door",
+      "queue": true
+    },
+    {
+      "id": "quest_fail",
+      "event": "quest.failed",
+      "sound": "mus_stg_quest_fail",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true,
+      "stingerClass": "quest"
+    },
+    {
+      "id": "player_defeat",
+      "event": "entity.died",
+      "when": {
+        "isPlayer": true
+      },
+      "sound": "mus_stg_defeat",
+      "bus": "music",
+      "priority": 0,
+      "stinger": true,
+      "stingerClass": "story"
+    },
+    {
+      "id": "companion_join",
+      "event": "party.joined",
+      "sound": "mus_stg_companion_join",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
+    },
+    {
+      "id": "deed_granted",
+      "event": "deed.granted",
+      "sound": "mus_stg_deed",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
+    },
+    {
+      "id": "title_granted",
+      "event": "title.granted",
+      "sound": "mus_stg_deed",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
+    },
+    {
+      "id": "rest_done",
+      "event": "time.skipped",
+      "sound": "mus_stg_rest",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
     }
   ]
 }

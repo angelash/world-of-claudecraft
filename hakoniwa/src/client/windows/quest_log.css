@@ -1,0 +1,23 @@
+/* ui_win_quests (ux_and_onboarding.md 14.1): deadlines, outcomes and the tracking note. */
+.hk-quests .hk-tabs {
+  margin: 6px 0 8px;
+}
+.hk-quest-deadline {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #e8b04a;
+}
+.hk-quest-outcome {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--hk-text);
+  font-style: italic;
+}
+.hk-quest-note {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #e8b04a;
+}
+.hk-badge.tracking {
+  border-color: #3fa88a;
+}

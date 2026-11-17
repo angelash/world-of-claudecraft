@@ -1,0 +1,190 @@
+/* ui_scr_settings, the settings shell (ux_and_onboarding.md 4.1), and its pages: left
+   vertical tabs, the page on the right, the restore-defaults row at the bottom. */
+.hk-set-shell {
+  display: flex;
+  gap: 12px;
+  min-height: 360px;
+}
+.hk-set-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 96px;
+  border-right: 1px solid rgba(226, 176, 74, 0.25);
+  padding-right: 8px;
+}
+.hk-set-tab {
+  font: inherit;
+  text-align: left;
+  color: var(--hk-muted);
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0 4px 4px 0;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.hk-set-tab[aria-selected="true"] {
+  color: var(--hk-gold-soft);
+  border-left-color: #3fa88a;
+  background: rgba(63, 168, 138, 0.12);
+}
+.hk-set-tab:focus-visible {
+  outline: 2px solid var(--hk-gold);
+}
+.hk-set-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.hk-set-page {
+  flex: 1;
+}
+.hk-set-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.hk-set-status {
+  flex: 1;
+  font-size: 12px;
+  color: var(--hk-muted);
+}
+.hk-set-status.error {
+  color: var(--hk-danger);
+}
+.hk-set-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+}
+.hk-set-row > label,
+.hk-set-row > .hk-set-label {
+  flex: 0 0 132px;
+}
+.hk-set-row input[type="range"] {
+  flex: 1;
+}
+.hk-set-value {
+  min-width: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--hk-gold-soft);
+}
+.hk-set-note {
+  font-size: 12px;
+  color: var(--hk-muted);
+  margin: 2px 0 8px;
+}
+.hk-set-shell select {
+  font: inherit;
+  color: var(--hk-text);
+  background: rgba(10, 8, 16, 0.7);
+  border: 1px solid rgba(226, 176, 74, 0.3);
+  border-radius: 5px;
+  padding: 3px 6px;
+}
+
+/* ui_set_controls */
+.hk-ctl-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.hk-ctl-bar .hk-btn[aria-pressed="true"] {
+  background: rgba(63, 168, 138, 0.3);
+  border-color: #3fa88a;
+}
+.hk-ctl-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.hk-ctl-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.hk-ctl-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.hk-ctl-row.conflict {
+  background: rgba(229, 83, 75, 0.12);
+}
+.hk-ctl-slot {
+  font: inherit;
+  font-size: 12px;
+  color: var(--hk-text);
+  background: rgba(10, 8, 16, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  padding: 3px 6px;
+  min-height: 24px;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hk-ctl-slot.empty {
+  color: var(--hk-muted);
+}
+.hk-ctl-slot.changed {
+  border-color: rgba(63, 168, 138, 0.7);
+}
+.hk-ctl-slot.conflict {
+  border-color: #e5534b;
+  color: #ff9a92;
+}
+.hk-ctl-slot.recording {
+  border-color: var(--hk-gold);
+  color: var(--hk-gold-soft);
+}
+.hk-ctl-slot:disabled,
+.hk-ctl-slot.fixed {
+  cursor: default;
+  opacity: 0.75;
+  border-style: dashed;
+}
+.hk-ctl-notice {
+  margin: 4px 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  background: rgba(229, 83, 75, 0.14);
+  border: 1px solid rgba(229, 83, 75, 0.5);
+}
+.hk-ctl-notice.info {
+  background: rgba(63, 168, 138, 0.12);
+  border-color: rgba(63, 168, 138, 0.5);
+}
+.hk-ctl-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0 6px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.hk-ctl-scheme textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 90px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  color: var(--hk-text);
+  background: rgba(10, 8, 16, 0.7);
+  border: 1px solid rgba(226, 176, 74, 0.3);
+  border-radius: 5px;
+}

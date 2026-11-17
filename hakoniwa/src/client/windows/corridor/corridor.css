@@ -1,0 +1,220 @@
+/* ui_mode_corridor (ux_and_onboarding.md 9): the flat corridor diagram. Door states read by
+   shape and text (a slit, a dashed frame, a lit frame, an open frame, a barred frame, a closed
+   frame with a scar), never by colour alone; door gold is the reserved token of the door family. */
+.hk-corridor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  height: 100%;
+  color: var(--hk-text);
+}
+.hk-cor-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.hk-cor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.hk-cor-title {
+  margin: 0;
+  font-size: 20px;
+  color: #e8cf8a;
+}
+.hk-cor-mirror {
+  display: flex;
+  gap: 10px;
+  padding: 4px 10px;
+  border: 1px solid rgba(232, 207, 138, 0.45);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.hk-cor-leave {
+  margin-left: auto;
+}
+.hk-cor-map {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+.hk-cor-seg {
+  border-left: 3px solid rgba(232, 207, 138, 0.5);
+  padding-left: 12px;
+}
+.hk-cor-seg-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--hk-gold-soft);
+}
+.hk-cor-wing {
+  display: grid;
+  grid-template-columns: 7em 1fr;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 6px;
+}
+.hk-cor-wing-name {
+  color: var(--hk-muted);
+  font-size: 13px;
+  padding-top: 6px;
+}
+.hk-cor-doors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hk-cor-door {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--hk-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.hk-cor-door.selected {
+  outline: 2px solid #3fa88a;
+  outline-offset: 1px;
+}
+.hk-cor-door-mark,
+.hk-cor-door-keys {
+  color: var(--hk-muted);
+  font-size: 12px;
+}
+.hk-cor-pin {
+  font-size: 11px;
+  color: #e8cf8a;
+}
+.hk-cor-door-danger {
+  font-size: 11px;
+  color: #e5534b;
+}
+/* the door glyph: a small door outline whose form tells the state */
+.hk-cor-glyph {
+  display: inline-block;
+  width: 12px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  box-sizing: border-box;
+  flex: none;
+}
+.shape-crack .hk-cor-glyph {
+  width: 3px;
+  border: none;
+  border-left: 2px dotted rgba(232, 207, 138, 0.7);
+  border-radius: 0;
+}
+.shape-glimpse .hk-cor-glyph {
+  border-style: dashed;
+  border-color: rgba(232, 207, 138, 0.7);
+}
+.shape-openable .hk-cor-glyph {
+  border-color: #e8cf8a;
+  box-shadow: inset 2px 0 0 #e8cf8a;
+}
+.shape-opened .hk-cor-glyph {
+  border-color: #e8cf8a;
+  background: rgba(232, 207, 138, 0.45);
+}
+.shape-locked .hk-cor-glyph {
+  background: linear-gradient(
+    transparent 45%,
+    rgba(255, 255, 255, 0.7) 45%,
+    rgba(255, 255, 255, 0.7) 60%,
+    transparent 60%
+  );
+}
+.shape-closed .hk-cor-glyph {
+  border-top-width: 4px;
+}
+.hk-cor-card {
+  overflow: auto;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 12px;
+}
+.hk-cor-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+}
+.hk-cor-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.hk-cor-sect h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--hk-muted);
+}
+.hk-cor-sect p {
+  margin: 0;
+  line-height: 1.6;
+}
+.hk-cor-hint {
+  font-style: italic;
+}
+.hk-cor-keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.hk-cor-keys li {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+.hk-cor-key-mark {
+  flex: none;
+  min-width: 2.4em;
+  color: var(--hk-muted);
+}
+.hk-cor-keys li.met .hk-cor-key-mark {
+  color: #e8cf8a;
+  font-weight: 700;
+}
+.hk-cor-refusal {
+  margin-top: 10px;
+  color: #e8b04a;
+}
+.hk-cor-actions {
+  margin-top: 12px;
+}
+.hk-cor-foot {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--hk-muted);
+}
+/* the mode layer itself (window_manager.ts `mode` windows) */
+.hk-mode-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  padding: 18px 22px;
+  background: rgba(10, 8, 16, 0.94);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+@media (max-width: 900px) {
+  .hk-corridor {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
