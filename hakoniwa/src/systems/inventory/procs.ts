@@ -5,7 +5,9 @@
 // stream `combat.proc` only for pieces that carry a matching trigger, per-piece internal
 // cooldowns, and no chaining (damage or healing from a trigger fires nothing but `kill`).
 // A fired trigger is an `item.proc` event with the effect resolved; combat applies it.
-// Broken pieces fire nothing and do not count toward sets.
+// Broken pieces fire nothing and do not count toward sets. A weapon coating (cd_coat) is a
+// fourth source after the main-hand piece's own triggers: the coating item's `procs`, live
+// while the coating has hits left; every weapon hit spends one (catalog_consumables 2.1).
 
 import type { SystemContext } from '../../core/system';
 import { calendarAt, isNight, TICK_HZ } from '../../core/time';
@@ -229,7 +231,7 @@ export function resolveEffect(spec: ProcEffectSpec, level: number): ProcEffect {
 export interface ProcSource {
   /** per-piece key of the internal cooldowns */
   key: string;
-  kind: 'item' | 'enchant' | 'set';
+  kind: 'item' | 'enchant' | 'set' | 'coating';
   /** the item, enchant or set id */
   sourceId: string;
   itemId?: string;
@@ -262,6 +264,19 @@ export function procSources(pieces: WornPiece[], content: ContentLike): ProcSour
       if (e?.procs?.length) {
         out.push({ ...base, key: `${key}/${a}`, kind: 'enchant', sourceId: a, procs: e.procs });
       }
+    }
+    const coat = p.slot === 'main_hand' ? p.inst?.coating : undefined;
+    const coatDef =
+      coat && coat.charges > 0 ? content.items.find((i) => i.id === coat.itemId) : undefined;
+    if (coat && coatDef?.procs?.length) {
+      out.push({
+        ...base,
+        key: `${key}/coat:${coat.itemId}`,
+        kind: 'coating',
+        sourceId: coat.itemId,
+        level: coatDef.level ?? base.level,
+        procs: coatDef.procs,
+      });
     }
   }
   for (const a of activeSets(pieces, content)) {
@@ -339,7 +354,8 @@ function mayTrigger(h: Holding, content: ContentLike): boolean {
     if (def && (def.procs?.length || def.set)) return true;
   }
   for (const iid of Object.values(h.worn ?? {})) {
-    if (iid && (h.instances?.[iid]?.affixes?.length ?? 0) > 0) return true;
+    const inst = iid ? h.instances?.[iid] : undefined;
+    if ((inst?.affixes?.length ?? 0) > 0 || (inst?.coating?.charges ?? 0) > 0) return true;
   }
   return false;
 }
@@ -434,7 +450,10 @@ interface DamageLike {
   fromProc?: boolean;
 }
 
-/** hit, spell, crit for the dealer; struck and block for the one hit (13.3). */
+/**
+ * hit, spell, crit for the dealer; struck and block for the one hit (13.3). A weapon hit
+ * spends one hit of the dealer's weapon coating after its triggers were checked.
+ */
 export function onDamage(ctx: SystemContext, d: DamageLike): void {
   if (d.fromProc) return;
   const landed = d.outcome === 'hit' || d.outcome === 'crit';
@@ -444,6 +463,7 @@ export function onDamage(ctx: SystemContext, d: DamageLike): void {
     const physical = d.school === 'physical';
     if (weapon || (physical && d.weaponClass === undefined)) {
       fireProcs(ctx, d.sourceId, 'hit', { targetId: d.targetId, env });
+      if (mainHandWorks(ctx, d.sourceId)) spendCoatingCharges(ctx, d.sourceId, 1);
     } else if (!physical) fireProcs(ctx, d.sourceId, 'spell', { targetId: d.targetId, env });
   }
   if (d.outcome === 'crit') fireProcs(ctx, d.sourceId, 'crit', { targetId: d.targetId, env });
@@ -493,4 +513,71 @@ export function addMarks(ctx: SystemContext, ownerId: string, points: number, fr
     p.inst.markFrom ??= {};
     p.inst.markFrom[from] = (p.inst.markFrom[from] ?? 0) + add;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Weapon coatings (catalog_consumables_magitools.md 2.1 `cd_coat`, 3.14)
+
+export type CoatFailure = 'no_weapon' | 'no_coating';
+
+/** The worn working main-hand weapon record of an owner, if any. */
+function coatableWeapon(ctx: SystemContext, ownerId: string) {
+  const p = wornPieces(ctx.world, ctx.content, ownerId).find((x) => x.slot === 'main_hand');
+  return p?.inst && p.working && p.def.kind === 'weapon' ? p : undefined;
+}
+
+/**
+ * Coat the owner's main-hand weapon with a coating item: one coating at a time (a new one
+ * replaces the old), lasting `use.amount` weapon hits; its triggers are the coating item's
+ * `procs`. Emits `item.coating`.
+ */
+export function applyCoating(
+  ctx: SystemContext,
+  ownerId: string,
+  coating: ItemDef,
+): { ok: boolean; failure?: CoatFailure } {
+  const hits = Math.floor(coating.use?.amount ?? 0);
+  if (hits <= 0 || !coating.procs?.length) return { ok: false, failure: 'no_coating' };
+  const p = coatableWeapon(ctx, ownerId);
+  if (!p?.inst) return { ok: false, failure: 'no_weapon' };
+  p.inst.coating = { itemId: coating.id, charges: hits };
+  ctx.emit('item.coating', {
+    ownerId,
+    instanceId: p.inst.instanceId,
+    itemId: p.def.id,
+    coatingId: coating.id,
+    charges: hits,
+  });
+  return { ok: true };
+}
+
+/** Whether the owner's worn main-hand piece is working (a broken weapon swings as bare hands). */
+function mainHandWorks(ctx: SystemContext, ownerId: string): boolean {
+  const p = wornPieces(ctx.world, ctx.content, ownerId).find((x) => x.slot === 'main_hand');
+  return !!p?.working;
+}
+
+/**
+ * Spend `n` hits of the owner's main-hand coating. The inventory itself spends one on every
+ * weapon hit it sees in `combat.damage` (with a working weapon), so combat calls this only for
+ * hits that event does not carry. The coating is gone at 0, with an `item.coating` at
+ * charges 0. Returns the hits left (0 when there is none).
+ */
+export function spendCoatingCharges(ctx: SystemContext, ownerId: string, n = 1): number {
+  const h = ctx.world.slices.inventory.owners[ownerId];
+  const iid = h?.worn?.main_hand;
+  const inst = iid ? h?.instances?.[iid] : undefined;
+  const coat = inst?.coating;
+  if (!inst || !coat || n <= 0) return coat?.charges ?? 0;
+  coat.charges = Math.max(0, coat.charges - Math.floor(n));
+  if (coat.charges > 0) return coat.charges;
+  delete inst.coating;
+  ctx.emit('item.coating', {
+    ownerId,
+    instanceId: inst.instanceId,
+    itemId: inst.defId,
+    coatingId: coat.itemId,
+    charges: 0,
+  });
+  return 0;
 }

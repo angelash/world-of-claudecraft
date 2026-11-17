@@ -12,11 +12,19 @@ import {
   enchantSlots,
   grainOf,
   isInstanced,
-  MAX_REFINE,
+  maxRefine,
   REFINE_SKILL,
   type Smith,
+  smithSkill,
 } from './rules';
-import type { EnchantDef, Holding, ItemDef, ItemInstance, StackQualifiers } from './types';
+import type {
+  EnchantDef,
+  Holding,
+  ItemDef,
+  ItemInstance,
+  RefineLevel,
+  StackQualifiers,
+} from './types';
 
 /** The signature of the player's own work: the record keeps no name for them. */
 export const UNRECORDED = 'unrecorded';
@@ -81,7 +89,11 @@ export function purifyStack(
 
 export type RefineFailure = 'no_instance' | 'max' | 'smith';
 
-/** Refine a piece one level (the recipe's materials are the crafting system's). */
+/**
+ * Refine a piece one level (the recipe's materials are the crafting system's): up to +3,
+ * +4 on deep-hammer work; the smith needs the level's skill in the piece's trade, a named
+ * piece a master.
+ */
 export function refineInstance(
   ctx: SystemContext,
   ownerId: string,
@@ -91,13 +103,13 @@ export function refineInstance(
   const f = find(ctx, ownerId, instanceId);
   if (!f?.def?.slot) return { ok: false, failure: 'no_instance' };
   const next = (f.inst.refine ?? 0) + 1;
-  if (next > MAX_REFINE) return { ok: false, failure: 'max' };
+  if (next > maxRefine(f.def)) return { ok: false, failure: 'max' };
   const skill = REFINE_SKILL[next] ?? Number.POSITIVE_INFINITY;
   const named = f.def.quality >= 4;
-  if ((named && !smith.master) || (!smith.master && smith.skill < skill)) {
+  if ((named && !smith.master) || (!smith.master && smithSkill(smith, f.def) < skill)) {
     return { ok: false, failure: 'smith' };
   }
-  f.inst.refine = next as 1 | 2 | 3;
+  f.inst.refine = next as RefineLevel;
   ctx.emit('item.refined', { ownerId, instanceId, itemId: f.inst.defId, refine: next });
   return { ok: true, refine: next };
 }

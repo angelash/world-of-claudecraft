@@ -1,12 +1,20 @@
 // What the worn gear gives (combat_and_classes.md 13.1 to 13.3): every working worn piece
-// as an effective definition (refining, sediment grain and enchant stats folded in), the
-// same-forge sets by distinct working pieces, and the set bonuses. A piece at 0 durability
-// counts for nothing: no stats, no weapon, no enchant, no set piece. Read-only queries; a
-// holding from before the instance layer reads as pristine pieces.
+// as an effective definition (refining, sediment grain and enchant stats folded in, cut to
+// BOUND_STAT_SHARE on anyone but the person a maker's bond names), the same-forge sets by
+// distinct working pieces, and the set bonuses. A piece at 0 durability counts for nothing:
+// no stats, no weapon, no enchant, no set piece. Read-only queries; a holding from before
+// the instance layer reads as pristine pieces.
 
 import { getEntity, mapById, sedimentAt } from '../world';
 import type { MapDef } from '../world/types';
-import { grainOf, isWorking, REFINE_STEP, sedBonus } from './rules';
+import {
+  BOUND_STAT_SHARE,
+  boundElsewhere,
+  grainOf,
+  isWorking,
+  REFINE_STEP,
+  sedBonus,
+} from './rules';
 import {
   type EnchantDef,
   type EquipSlot,
@@ -67,16 +75,26 @@ function enchantDef(content: ContentLike, id: string): EnchantDef | undefined {
   return content.enchants?.find((e) => e.id === id);
 }
 
+/** The person id an owner wears gear as: the entity's person id, else the owner id. */
+export function wearerOf(world: unknown, ownerId: string): string {
+  const w = world as { slices: { world?: { entities: Record<string, unknown> } } };
+  if (!w.slices.world) return ownerId;
+  return getEntity(w as never, ownerId)?.ref ?? ownerId;
+}
+
 /**
  * The piece as it counts in combat: stats scaled by refining (5% a level) and an
  * unpurified grain (3%, 6%, 10%, doubled where sediment >= 4), weapon damage scaled by
- * refining, plus the stats of its enchants. The definition itself when nothing applies.
+ * refining, plus the stats of its enchants; every stat cut to BOUND_STAT_SHARE when the
+ * piece is bound to someone other than `wearer` (a maker's bond). The definition itself
+ * when nothing applies.
  */
 export function effectiveDef(
   def: ItemDef,
   inst: ItemInstance | undefined,
   content: ContentLike,
   sediment = 0,
+  wearer?: string,
 ): ItemDef {
   const refine = inst?.refine ?? 0;
   const grain = sedBonus(def, inst, sediment);
@@ -93,15 +111,17 @@ export function effectiveDef(
       def.sed !== undefined &&
       sed.grade === def.sed.grade &&
       (sed.purified ?? false) === (def.sed.purified ?? false));
-  if (refine === 0 && grain === 0 && enchants.length === 0 && sameSed) return def;
+  const bound = wearer !== undefined && boundElsewhere(inst, wearer);
+  if (refine === 0 && grain === 0 && enchants.length === 0 && sameSed && !bound) return def;
   const k = 1 + refine * REFINE_STEP + grain;
   const out: ItemDef = { ...def };
-  if (refine !== 0 || grain !== 0 || enchants.length > 0) {
+  if (refine !== 0 || grain !== 0 || enchants.length > 0 || bound) {
     const stats: Record<string, number> = {};
     for (const [s, v] of Object.entries(def.stats ?? {})) stats[s] = v * k;
     for (const e of enchants) {
       for (const [s, v] of Object.entries(e.stats ?? {})) stats[s] = (stats[s] ?? 0) + v;
     }
+    if (bound) for (const s of Object.keys(stats)) stats[s] = (stats[s] ?? 0) * BOUND_STAT_SHARE;
     out.stats = stats;
   }
   if (def.weapon && refine > 0) {
@@ -165,9 +185,10 @@ export function equippedDefs(world: WorldLike, content: ContentLike, ownerId: st
   const sediment = needsSediment(pieces)
     ? ownerSediment(world, content as { maps?: MapDef[] }, ownerId)
     : 0;
+  const wearer = pieces.some((p) => p.inst?.boundTo) ? wearerOf(world, ownerId) : undefined;
   const out: ItemDef[] = [];
   for (const p of pieces) {
-    if (p.working) out.push(effectiveDef(p.def, p.inst, content, sediment));
+    if (p.working) out.push(effectiveDef(p.def, p.inst, content, sediment, wearer));
   }
   for (const a of activeSets(pieces, content)) {
     const stats: Record<string, number> = {};

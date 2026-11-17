@@ -42,6 +42,9 @@ export const ENTITY_KINDS: readonly EntityKind[] = [
   { table: 'guildBoards', kind: 'guild board', protectedKind: true },
   { table: 'dungeons', kind: 'dungeon', protectedKind: true },
   { table: 'nests', kind: 'nest', protectedKind: true },
+  { table: 'gatherNodes', kind: 'gathering node', protectedKind: true },
+  { table: 'craftStations', kind: 'work station', protectedKind: true },
+  { table: 'recipes', kind: 'recipe', protectedKind: true },
 ];
 
 export interface EntityIdIndex {

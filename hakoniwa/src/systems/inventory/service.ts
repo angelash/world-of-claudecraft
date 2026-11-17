@@ -2,15 +2,16 @@
 // a person whose entity carries the `smith` tag offers "repair" in conversation when the
 // player carries damaged gear they can mend, with the price in the hint; choosing it
 // repairs everything that smith may repair, worn pieces first, from the player's purse.
-// Until crafting skills arrive (PK-M1-49) a smith counts as an ordinary one: common and
-// uncommon pieces, plus any piece of their own making.
+// The smith's trade skills and master standing come from the `crafters` data (the crafting
+// pack, PK-M1-49): fine pieces need 75 in the piece's trade. A smith without a record there
+// counts as an ordinary one: common and uncommon pieces, plus any piece of their own making.
 
 import type { SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
 import { distance, getEntity } from '../world';
 import { damagedInstances, type RepairFailure, repairInstance } from './durability';
 import { canRepair, repairQuote, type Smith } from './rules';
-import type { ItemInstance } from './types';
+import type { CrafterDef, ItemInstance } from './types';
 
 /** Entity tags that offer a service (a closed vocabulary of tags, not content ids). */
 export const SERVICE_TAGS = ['smith'] as const;
@@ -20,11 +21,22 @@ export const SMITH_REACH = 4;
 
 type WorldArg = Parameters<typeof getEntity>[0];
 
+/** A person's smith record from the `crafters` data: trade skills and master standing. */
+export function crafterSmith(
+  content: { crafters?: CrafterDef[] },
+  personId: string,
+): Pick<Smith, 'skills' | 'master'> | undefined {
+  const c = (content.crafters ?? []).find((x) => x.id === personId);
+  if (!c) return undefined;
+  return { skills: { ...c.skills }, ...(c.master ? { master: true } : {}) };
+}
+
 /** The smith an entity is, or undefined when it offers no repairs. */
 export function smithOf(ctx: SystemContext, npcId: string): Smith | undefined {
   const e = getEntity(ctx.world as unknown as WorldArg, npcId);
   if (!e?.tags.includes(SERVICE_TAGS[0])) return undefined;
-  return { skill: 0, id: e.ref ?? npcId };
+  const id = e.ref ?? npcId;
+  return { skill: 0, id, ...crafterSmith(ctx.content, id) };
 }
 
 /** Whether the owner stands within reach of the smith (same map). */

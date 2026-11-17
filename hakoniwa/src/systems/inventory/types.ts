@@ -111,8 +111,21 @@ export const CONSUMABLE_GROUPS: readonly ConsumableGroup[] = [
 /** Sediment grain grades of an item definition (catalog_equipment.md 2.6). */
 export type SedGrade = 'light' | 'mid' | 'heavy';
 
+/**
+ * What a sediment cure treats (catalog_consumables_magitools.md 3.6; the ailments system reads
+ * it): the sickness stages it works on (every stage when it names none) and how far it brings
+ * one down (a number of stages, or `all` for straight to healthy).
+ */
+export interface ItemCure {
+  treats?: string[];
+  down?: number | 'all';
+}
+
 export interface ItemUse {
-  /** effect id interpreted by the owning system (combat, quests; `repair` is the inventory's) */
+  /**
+   * effect id interpreted by the owning system (combat, quests, ailments; `repair` and `coat`
+   * are the inventory's, `sober` the crafting system's)
+   */
   effect: string;
   amount?: number;
   ability?: string;
@@ -120,6 +133,15 @@ export interface ItemUse {
   group?: ConsumableGroup;
   /** the item's own cooldown in seconds (charms, specials: each kind on its own timer) */
   cooldown?: number;
+  /**
+   * taint the use adds to whoever takes it, on any effect (crystal draughts, unpurified food;
+   * negative takes some away); the ailments system applies it (catalog_consumables 2.4, 2.9)
+   */
+  taint?: number;
+  /** the stages a `sed_cure` treats and how far (the ailments system applies it) */
+  sed?: ItemCure;
+  /** drunkenness layers a drink adds (catalog_consumables 3.10; the crafting system keeps them) */
+  drunk?: number;
 }
 
 export interface ItemDef {
@@ -163,6 +185,9 @@ export interface ItemDef {
   repairMaterial?: string;
 }
 
+/** A refining level: +1 to +3, a fourth on deep-hammer work (catalog_equipment.md 2.5, 2.8). */
+export type RefineLevel = 0 | 1 | 2 | 3 | 4;
+
 /** One item with its own record (catalog_equipment.md 1.6; combat_and_classes.md 19.3). */
 export interface ItemInstance {
   instanceId: string;
@@ -179,9 +204,12 @@ export interface ItemInstance {
   /** sediment grain 0 none, 1 light, 2 mid, 3 heavy */
   sedTier?: 0 | 1 | 2 | 3;
   purified?: boolean;
-  /** refining 0 to 3 */
-  refine?: 0 | 1 | 2 | 3;
+  /** refining 0 to 3; 4 on a deep-hammer piece (rules.ts maxRefine) */
+  refine?: RefineLevel;
+  /** the maker's bond (匠契): only this person gets the piece's full stats (rules.ts) */
   boundTo?: string;
+  /** a weapon coating: the coating item and the hits it has left (cd_coat, procs.ts) */
+  coating?: { itemId: string; charges: number };
   /** the current holder (named and legendary pieces) */
   holder?: string;
   appraisalLevel?: string;
@@ -261,4 +289,40 @@ export interface EnchantDef {
   tier: number;
   stats?: Record<string, number>;
   procs?: ProcDef[];
+}
+
+// ---------------------------------------------------------------------------
+// Livelihoods (catalog_gathering_crafting.md 2.1, 2.2): the skills crafting keeps and the
+// trades a repair or a refine reads. Beastcarving is a tag activity, not a livelihood.
+
+/** The four gathering livelihoods. */
+export const GATHER_PROFESSIONS = ['mining', 'logging', 'herbalism', 'fishing'] as const;
+/** The ten crafting livelihoods in ring order (the main project's CRAFT_RING). */
+export const CRAFT_PROFESSIONS = [
+  'engineering',
+  'alchemy',
+  'cooking',
+  'leatherworking',
+  'tailoring',
+  'inscription',
+  'enchanting',
+  'jewelcrafting',
+  'weaponcrafting',
+  'armorcrafting',
+] as const;
+export type GatherProfession = (typeof GATHER_PROFESSIONS)[number];
+export type CraftProfession = (typeof CRAFT_PROFESSIONS)[number];
+export type Profession = GatherProfession | CraftProfession;
+export const PROFESSIONS: readonly Profession[] = [...GATHER_PROFESSIONS, ...CRAFT_PROFESSIONS];
+
+/**
+ * A person's livelihood skills (crafting data, `crafters`, PK-M1-49): what a smith may repair
+ * and refine. The id is the person id (an NPC or a companion).
+ */
+export interface CrafterDef {
+  id: string;
+  /** skill per livelihood, 0 to 150 */
+  skills: Partial<Record<Profession, number>>;
+  /** a master (名匠): named pieces, every refine level */
+  master?: boolean;
 }

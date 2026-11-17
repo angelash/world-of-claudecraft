@@ -1,0 +1,22 @@
+[
+  {
+    "id": "rcp_smelt_iron",
+    "name": "炼铁",
+    "desc": "三份铁矿两份炭，炼出一锭铁。杰作得署名锭。",
+    "profession": "mining",
+    "tier": 1,
+    "station": "smelter",
+    "inputs": [{ "itemId": "iron_ore", "count": 3 }, { "itemId": "charcoal", "count": 2 }],
+    "output": { "itemId": "iron_ingot", "count": 1 }
+  },
+  {
+    "id": "rcp_charcoal",
+    "name": "烧炭",
+    "desc": "三份木材入窑，烧出四份炭。",
+    "profession": "logging",
+    "tier": 1,
+    "station": "racks",
+    "inputs": [{ "itemId": "wood", "count": 3 }],
+    "output": { "itemId": "charcoal", "count": 4 }
+  }
+]

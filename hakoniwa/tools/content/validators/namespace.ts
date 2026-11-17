@@ -48,8 +48,14 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'mat_', owner: 'catalog_gathering_crafting.md', tables: ITEMS },
   { prefix: 'part_', owner: 'catalog_gathering_crafting.md', tables: ITEMS },
   { prefix: 'src_', owner: 'catalog_gathering_crafting.md', tables: ITEMS },
-  { prefix: 'node_', owner: 'catalog_gathering_crafting.md', tables: [] },
-  { prefix: 'rcp_', owner: 'catalog_gathering_crafting.md', tables: ['trade_recipes'] },
+  { prefix: 'node_', owner: 'catalog_gathering_crafting.md', tables: ['gatherNodes'] },
+  {
+    prefix: 'rcp_',
+    owner: 'catalog_gathering_crafting.md',
+    tables: ['trade_recipes', 'recipes'],
+  },
+  // work stations at map places (catalog_gathering_crafting.md 2.4; PK-M1-49)
+  { prefix: 'stn_', owner: 'catalog_gathering_crafting.md (stations)', tables: ['craftStations'] },
   { prefix: 'tg_', owner: 'catalog_trade_goods.md', tables: ITEMS },
   { prefix: 'rl_', owner: 'catalog_relics_lore.md', tables: ITEMS },
   { prefix: 'lb_', owner: 'catalog_relics_lore.md', tables: ITEMS },
@@ -136,6 +142,9 @@ export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   enchants: ['ench_'],
   dungeons: ['dg_'],
   nests: ['nest_'],
+  gatherNodes: ['node_'],
+  recipes: ['rcp_'],
+  craftStations: ['stn_'],
 };
 
 /**

@@ -1,0 +1,36 @@
+{
+  "baseLayer": 1,
+  "layers": [{ "when": "act>=1", "layer": 2 }],
+  "gain": 1,
+  "gainCurve": [1, 0.5, 0.25, 0],
+  "masterwork": {
+    "base": 0.03,
+    "perTierAbove": 0.01,
+    "signed": 0.02,
+    "specialization": 0.03,
+    "stationTier": { "3": 0.01, "4": 0.02 },
+    "cap": 0.15
+  },
+  "maxCraftQuality": 3,
+  "stationTiers": [1, 1, 2, 3, 4, 4],
+  "gather": {
+    "rareOneIn": 90,
+    "rareMultiplier": 5,
+    "refreshDays": [1, 2, 3, 5, 0, 0],
+    "reach": 1
+  },
+  "throttle": { "count": 10, "minutes": 1 },
+  "maxRuns": 10,
+  "tools": [
+    { "tag": "pick", "professions": ["mining"] },
+    { "tag": "axe", "professions": ["logging"] },
+    { "tag": "sickle", "professions": ["herbalism"] },
+    { "tag": "rod", "professions": ["fishing"] },
+    { "tag": "alembic", "professions": ["alchemy"] },
+    { "tag": "quill", "professions": ["inscription"] },
+    { "tag": "hammer", "professions": ["weaponcrafting", "armorcrafting"] },
+    { "tag": "needle", "professions": ["tailoring", "leatherworking"] }
+  ],
+  "toolWear": 1,
+  "drunk": { "max": 10, "decayPerHour": 1, "soberMinutes": 10 }
+}

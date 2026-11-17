@@ -1,15 +1,20 @@
 // Inventory pack: the same-forge sets (`set_`) and enchants (`ench_`) of the instance
 // layer (D-072; catalog_equipment.md 1.5, 5, 6), the editor schema every item table
 // reuses, and the cross-pack item validation: triggers in the one `procs` shape, cooldown
-// groups, sediment grain, set and enchant references, makers and repair materials.
+// groups, sediment grain, set and enchant references, makers and repair materials, and the
+// use fields other systems read (`use.taint`, `use.sed`, `use.drunk`, the `coat` effect).
+// The `crafters` table starts empty here; the crafting pack fills and checks it.
 
 import enchants from '../../../data/inventory/enchants.json';
 import itemSets from '../../../data/inventory/item_sets.json';
 import type { ContentMap } from '../../core/contracts';
+import { SED_STAGES } from '../../systems/ailments/types';
 import { parseProcDo, procProblems } from '../../systems/inventory/procs';
 import {
   CONSUMABLE_GROUPS,
+  type CrafterDef,
   type EnchantDef,
+  type ItemDef,
   type ItemSetDef,
   type ProcDef,
 } from '../../systems/inventory/types';
@@ -46,7 +51,7 @@ export const ITEM_FIELDS: FieldSchema[] = [
     key: 'use',
     label: '使用效果',
     type: 'json',
-    help: 'effect、amount、ability、group（冷却组 cd_*）、cooldown（秒）',
+    help: 'effect、amount、ability、group（冷却组 cd_*）、cooldown（秒）、taint（澱染增减）、sed（澱药：treats 阶段、down 阶数或 all）、drunk（醉意层）',
   },
   { key: 'level', label: '需求等级', type: 'number', min: 1, max: 60 },
   {
@@ -70,6 +75,39 @@ const PROC_FIELDS: FieldSchema[] = [
 ];
 
 const SED_GRADES = ['light', 'mid', 'heavy'];
+/** The sickness stages a cure can name (the stage `none` is no sickness). */
+const CURE_STAGES: readonly string[] = SED_STAGES.filter((s) => s !== 'none');
+
+/** Problems with the use fields other systems read (taint, sed, drunk, coat). */
+function useProblems(at: string, it: ItemDef): string[] {
+  const u = it.use;
+  if (!u) return [];
+  const out: string[] = [];
+  if (u.taint !== undefined && !Number.isFinite(u.taint)) out.push(`${at}: use.taint is no number`);
+  if (u.sed !== undefined) {
+    const treats = u.sed?.treats;
+    if (
+      treats !== undefined &&
+      !(Array.isArray(treats) && treats.every((t) => CURE_STAGES.includes(t)))
+    )
+      out.push(`${at}: use.sed.treats names no sickness stage`);
+    const down = u.sed?.down;
+    if (down !== undefined && down !== 'all' && !(Number.isInteger(down) && down >= 1))
+      out.push(`${at}: use.sed.down must be stages above 0 or all`);
+  }
+  if (u.drunk !== undefined && !(Number.isInteger(u.drunk) && u.drunk >= 1))
+    out.push(`${at}: use.drunk must be whole layers above 0`);
+  if (u.effect === 'coat') {
+    if (it.kind !== 'consumable')
+      out.push(`${at}: a coating is a consumable (used up when applied)`);
+    if ((it.procs ?? []).some((p) => p?.on !== 'hit'))
+      out.push(`${at}: a coating triggers on weapon hits only (on: hit)`);
+    if (!(Number.isInteger(u.amount) && (u.amount ?? 0) >= 1))
+      out.push(`${at}: a coating needs use.amount, the hits it lasts`);
+    if (!it.procs?.length) out.push(`${at}: a coating needs procs, what its hits do`);
+  }
+  return out;
+}
 const ENCHANT_SLOTS = ['wpn', 'off', 'head', 'chest', 'legs', 'hands', 'feet', 'trk'];
 
 function procsOf(at: string, procs: unknown, auras: Set<string>, out: string[]): void {
@@ -100,6 +138,7 @@ export const pack: ContentPack = {
     items: [],
     itemSets: itemSets as unknown as ItemSetDef[],
     enchants: enchants as unknown as EnchantDef[],
+    crafters: [] as CrafterDef[],
   },
   schemas: [
     {
@@ -169,6 +208,7 @@ export const pack: ContentPack = {
       if (it.use?.cooldown !== undefined && !(it.use.cooldown >= 0)) {
         problems.push(`${at}: bad use cooldown`);
       }
+      problems.push(...useProblems(at, it));
       procsOf(at, it.procs, auras, problems);
       if (it.set !== undefined && !sets.has(it.set)) problems.push(`${at}: unknown set ${it.set}`);
       if (it.sed !== undefined && !SED_GRADES.includes(it.sed?.grade)) {

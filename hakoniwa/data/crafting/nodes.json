@@ -1,0 +1,23 @@
+[
+  {
+    "id": "node_lotha_ironhemlock",
+    "name": "铁杉林",
+    "desc": "边石镇东面林缘的铁杉林，越过林约界线伐木会惹出事端。",
+    "kind": "wood",
+    "tier": 1,
+    "yields": [{ "itemId": "wood", "count": [1, 3] }],
+    "places": [{ "mapId": "forest_edge", "location": "logging_site" }]
+  },
+  {
+    "id": "node_lotha_north_spring",
+    "name": "北泉泉边",
+    "desc": "边石镇北的泉边，泉边草长得最好。",
+    "kind": "herb",
+    "tier": 1,
+    "yields": [
+      { "itemId": "spring_herb", "count": [1, 2] },
+      { "itemId": "herb", "count": 1, "chance": 0.5 }
+    ],
+    "places": [{ "mapId": "borderstone", "location": "north_spring" }]
+  }
+]

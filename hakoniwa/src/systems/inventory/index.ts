@@ -12,8 +12,10 @@
 // the records sit in `instances`, the worn record of each slot in `worn`, qualified stack
 // parts in `stacks`. Modules: types, rules (pure rules), holding (the ledger), ports
 // (write ports), gear (what worn gear gives), durability (wear and repair), procs
-// (triggers), use_groups (consumable cooldowns), workshop (sign, purify, refine,
-// enchant), slice (save check, rename fields, the backfill of older saves).
+// (triggers and weapon coatings), use_groups (consumable cooldowns), use_gate (the combat
+// side's item gate as a port), workshop (sign, purify, refine, enchant), service (the
+// smith's repair, with the smith's trade skills from the `crafters` data), slice (save
+// check, rename fields, the backfill of older saves).
 
 import { ok, reject } from '../../core';
 import type { GameSystem } from '../../core/system';
@@ -24,11 +26,12 @@ import { itemDef } from './gear';
 import { syncItem, unwear, wear, wearingOrder } from './holding';
 import { holderId, holding, removeItem, transferItem } from './ports';
 import type { ProcEffect } from './procs';
-import { onDamage, onHeal, onKill } from './procs';
+import { applyCoating, onDamage, onHeal, onKill } from './procs';
 import { hasTag, type Smith } from './rules';
 import { chooseRepair, nearSmith, offerRepair, repairAll, smithOf } from './service';
 import { freshSlice, INVENTORY_ID_FIELDS, upgradeOnce, validateInventorySlice } from './slice';
 import type {
+  CrafterDef,
   EnchantDef,
   EquipSlot,
   Holding,
@@ -37,6 +40,7 @@ import type {
   ItemSetDef,
   ProcOn,
 } from './types';
+import { checkUseGate } from './use_gate';
 import { GROUP_RULES, startUseTimers, useWait } from './use_groups';
 
 export * from './durability';
@@ -65,6 +69,8 @@ export {
 export * from './ports';
 export {
   addMarks,
+  applyCoating,
+  type CoatFailure,
   envFor,
   type FiredProc,
   fireProcs,
@@ -79,6 +85,7 @@ export {
   procProblems,
   procSources,
   resolveEffect,
+  spendCoatingCharges,
 } from './procs';
 export * from './rules';
 export * from './service';
@@ -91,6 +98,7 @@ export {
   validateInventorySlice,
 } from './slice';
 export * from './types';
+export * from './use_gate';
 export { GROUP_RULES, type GroupRule, groupReadyAt, useWait } from './use_groups';
 export * from './workshop';
 
@@ -102,6 +110,8 @@ declare module '../../core/contracts' {
     items: ItemDef[];
     itemSets: ItemSetDef[];
     enchants: EnchantDef[];
+    /** persons' livelihood skills (the crafting pack's data; smiths read them for repairs) */
+    crafters: CrafterDef[];
   }
   interface EventMap {
     'inventory.changed': { ownerId: string; itemId: string; delta: number; reason: string };
@@ -132,7 +142,7 @@ declare module '../../core/contracts' {
       ownerId: string;
       targetId?: string;
       on: ProcOn;
-      source: 'item' | 'enchant' | 'set';
+      source: 'item' | 'enchant' | 'set' | 'coating';
       sourceId: string;
       itemId?: string;
       instanceId?: string;
@@ -147,6 +157,14 @@ declare module '../../core/contracts' {
       itemId: string;
       enchantId: string;
       replaced?: string;
+    };
+    /** a weapon was coated (charges: the hits it lasts), or its coating ran out (charges 0) */
+    'item.coating': {
+      ownerId: string;
+      instanceId: string;
+      itemId: string;
+      coatingId: string;
+      charges: number;
     };
   }
   interface CommandMap {
@@ -254,12 +272,15 @@ export const system: GameSystem & {
     },
   },
   commands: {
-    'inventory.use'(ctx, d) {
+    'inventory.use'(ctx, d, source) {
       const def = itemDef(ctx.content, d.itemId);
       if (!def) return reject('no_item', tr('sys.inventory.reject.no_item'));
       if (!def.use) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
       const h = holding(ctx, d.ownerId);
       if (!canUse(h, def)) return reject('missing', tr('sys.inventory.reject.missing.bag'));
+      // the combat side's item gate (14.1): in-combat bans, the global cooldown, a downed user
+      const gate = checkUseGate(ctx, d.ownerId, d.itemId, source);
+      if (!gate.ok) return reject(gate.code, gate.reason);
       const slice = ctx.world.slices.inventory;
       const wait = useWait(slice, d.ownerId, def, ctx.tick, d.targetId);
       // a sediment cure taken early goes down but does nothing and poisons a little; the
@@ -276,6 +297,12 @@ export const system: GameSystem & {
         if (fieldRepair(ctx, d.ownerId, def, share).length === 0) {
           return reject('nothing_to_mend', tr('sys.inventory.reject.nothing_to_mend'));
         }
+      }
+      if (def.use.effect === 'coat' && !early) {
+        const coat = applyCoating(ctx, d.ownerId, def);
+        if (coat.failure === 'no_weapon')
+          return reject('no_weapon', tr('sys.inventory.reject.no_weapon'));
+        if (!coat.ok) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
       }
       if (def.kind === 'consumable') removeItem(ctx, d.ownerId, d.itemId, 1, 'use');
       if (!early) startUseTimers(slice, d.ownerId, def, ctx.tick, d.targetId);

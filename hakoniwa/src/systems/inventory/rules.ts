@@ -9,6 +9,8 @@ import type {
   EquipSlot,
   ItemDef,
   ItemInstance,
+  Profession,
+  RefineLevel,
   SedGrade,
   StackQualifiers,
 } from './types';
@@ -41,6 +43,15 @@ const METAL_TAGS: readonly ItemTagWord[] = ['mail', 'plate', 'metal'];
 
 export const hasTag = (def: ItemDef, tag: ItemTagWord): boolean => def.tags?.includes(tag) ?? false;
 const has = hasTag;
+
+/**
+ * The regional style tags these rules read (catalog_equipment.md 2.5): gold-scale trinkets
+ * carry one more enchant slot, deep-hammer pieces one more refining level.
+ */
+export const STYLE_TAGS = ['style:goldscale', 'style:deephammer'] as const;
+export type StyleTag = (typeof STYLE_TAGS)[number];
+
+export const hasStyle = (def: ItemDef, tag: StyleTag): boolean => def.tags?.includes(tag) ?? false;
 
 // ---------------------------------------------------------------------------
 // Which items are instances
@@ -165,15 +176,44 @@ export function sedResist(def: ItemDef, inst?: ItemInstance): number {
 // Refining and enchants (catalog_equipment.md 2.8, 6)
 
 export const MAX_REFINE = 3;
+/** Deep-hammer work refines one level further (catalog_equipment.md 2.5, 2.8). */
+export const DEEP_REFINE_BONUS = 1;
 /** Each refine adds 5% to base armor or weapon damage and 5% to the stat budget. */
 export const REFINE_STEP = 0.05;
-/** The crafting skill each refine level needs: +1 layer two, +2 layer three, +3 layer four. */
-export const REFINE_SKILL: readonly number[] = [0, 50, 75, 100];
+/**
+ * The crafting skill each refine level needs: +1 layer two, +2 layer three, +3 layer four,
+ * and the deep-hammer +4 one layer further, layer five.
+ */
+export const REFINE_SKILL: readonly number[] = [0, 50, 75, 100, 125];
 
-/** Enchant slots: poor none, common to fine one, named and legendary two. */
+/** The highest refining level of a piece: three, four on deep-hammer work. */
+export function maxRefine(def: ItemDef): RefineLevel {
+  return (MAX_REFINE + (hasStyle(def, 'style:deephammer') ? DEEP_REFINE_BONUS : 0)) as RefineLevel;
+}
+
+/**
+ * Enchant slots: poor none, common to fine one, named and legendary two; a gold-scale
+ * trinket one more (catalog_equipment.md 2.3, 2.5).
+ */
 export function enchantSlots(def: ItemDef): number {
   if (def.quality <= 0) return 0;
-  return def.quality >= 4 ? 2 : 1;
+  const base = def.quality >= 4 ? 2 : 1;
+  return base + (def.slot === 'trinket' && hasStyle(def, 'style:goldscale') ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// The maker's bond (catalog_gathering_crafting.md 1.5; catalog_equipment.md 1.6)
+
+/**
+ * The share of a bound piece's stats anyone but the bound person gets: only the one it is
+ * bound to wears it at full strength (the catalogs name no number; one half until a balance
+ * pass sets it).
+ */
+export const BOUND_STAT_SHARE = 0.5;
+
+/** Whether a piece is bound to someone other than `person` (its stats are cut). */
+export function boundElsewhere(inst: ItemInstance | undefined, person: string): boolean {
+  return !!inst?.boundTo && inst.boundTo !== person;
 }
 
 export const ENCHANT_SLOT_OF: Readonly<Record<EquipSlot, EnchantSlot>> = {
@@ -197,11 +237,36 @@ export const REPAIR_FINE_SKILL = 75;
 /** A field kit mends this share of the maximum, on fine and lesser pieces of its tier. */
 export const FIELD_REPAIR_SHARE = 0.3;
 
-/** Who repairs: a smith's crafting skill, whether a master, and their person id (the maker). */
+/**
+ * Who repairs: a smith's crafting skill (any trade), their skill per trade when known (the
+ * `crafters` data; a trade the smith has wins over `skill`), whether a master, their person
+ * id (the maker), and whether they work at a T6 repair site (the gate-bronze workshop).
+ */
 export interface Smith {
   skill: number;
+  skills?: Partial<Record<Profession, number>>;
   master?: boolean;
   id?: string;
+  t6?: boolean;
+}
+
+/**
+ * The trade a piece is repaired and refined in (catalog_equipment.md 2.7 "对口生业"):
+ * cloth tailoring, leather and tack leatherworking, trinkets jewelcrafting, tools
+ * engineering, other armor armorcrafting, weapons weaponcrafting.
+ */
+export function repairTrade(def: ItemDef): Profession {
+  if (has(def, 'tool')) return 'engineering';
+  if (def.kind === 'trinket' || def.slot === 'trinket') return 'jewelcrafting';
+  if (has(def, 'cloth')) return 'tailoring';
+  if (has(def, 'leather') || has(def, 'tack')) return 'leatherworking';
+  if (def.kind === 'weapon') return 'weaponcrafting';
+  return 'armorcrafting';
+}
+
+/** A smith's skill in the trade of a piece (the trade's own skill, else their general one). */
+export function smithSkill(smith: Smith, def: ItemDef): number {
+  return smith.skills?.[repairTrade(def)] ?? smith.skill;
 }
 
 export interface RepairQuote {
@@ -224,14 +289,17 @@ export function repairQuote(def: ItemDef, inst: ItemInstance): RepairQuote | nul
 }
 
 /**
- * Common and uncommon: any smith; fine: skill 75 (or a master); named: a master; any
- * piece its own maker signed: that maker. Legendary pieces never need it.
+ * Common and uncommon: any smith; fine: skill 75 in the piece's trade (or a master); named: a
+ * master; any piece its own maker signed: that maker. Legendary pieces never need it. A T6
+ * piece (gate-bronze work) is mended only at a T6 repair site (catalog_equipment.md 2.7).
  */
 export function canRepair(def: ItemDef, inst: ItemInstance, smith: Smith): boolean {
   if (def.quality >= 5) return false;
+  if (tierOfLevel(def.level) >= 6 && !smith.t6) return false;
   if (smith.id && inst.signature === smith.id) return true;
   if (def.quality <= 2) return true;
-  if (def.quality === 3) return smith.skill >= REPAIR_FINE_SKILL || smith.master === true;
+  if (def.quality === 3)
+    return smithSkill(smith, def) >= REPAIR_FINE_SKILL || smith.master === true;
   return smith.master === true;
 }
 

@@ -364,6 +364,7 @@ const SYSTEMS = [
   'guild',
   'ailments',
   'dungeons',
+  'crafting',
 ];
 const SYSTEM_ALIASES: Record<string, string> = {
   court: 'scenes',

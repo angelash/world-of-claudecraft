@@ -34,6 +34,7 @@ export const INVENTORY_ID_FIELDS: readonly IdField[] = [
   { path: 'owners.*.instances.*.defId', kind: 'item' },
   { path: 'owners.*.stacks.*.itemId', kind: 'item' },
   { path: 'owners.*.instances.*.affixes.*', kind: 'enchant' },
+  { path: 'owners.*.instances.*.coating.itemId', kind: 'item' },
   { path: 'owners.*.instances.*.signature', kind: 'npc' },
   { path: 'owners.*.instances.*.holder', kind: 'npc' },
   { path: 'owners.*.instances.*.boundTo', kind: 'npc' },
@@ -167,7 +168,8 @@ export function validateInventorySlice(slice: unknown): string[] {
               d.cur <= d.max;
             if (!ok) out.push(`${at}.instances.${id}.durability is bad`);
           }
-          const caps = { marks: 100, refine: 3, sedTier: 3 } as const;
+          // refining runs to 4 on deep-hammer work (rules.ts maxRefine)
+          const caps = { marks: 100, refine: 4, sedTier: 3 } as const;
           for (const k of ['marks', 'refine', 'sedTier'] as const) {
             const v = inst[k];
             if (v !== undefined && !(isCount(v) && v <= caps[k])) {
@@ -180,6 +182,18 @@ export function validateInventorySlice(slice: unknown): string[] {
             !(Array.isArray(aff) && aff.every((a) => typeof a === 'string'))
           ) {
             out.push(`${at}.instances.${id}.affixes is bad`);
+          }
+          const coat = inst.coating;
+          // a coating whose item the rename table removed: it fires nothing and runs out
+          if (
+            coat !== undefined &&
+            !(
+              isObj(coat) &&
+              (coat.itemId === undefined || typeof coat.itemId === 'string') &&
+              isCount(coat.charges)
+            )
+          ) {
+            out.push(`${at}.instances.${id}.coating is bad`);
           }
         }
     }

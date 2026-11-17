@@ -1,0 +1,37 @@
+[
+  {
+    "id": "stn_bs_smithy_forge",
+    "name": "巴尔加铁匠铺的砧炉",
+    "type": "forge",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "smithy" }]
+  },
+  {
+    "id": "stn_bs_smithy_smelter",
+    "name": "边石镇的村熔炉",
+    "type": "smelter",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "smithy" }]
+  },
+  {
+    "id": "stn_bs_lumberyard_kiln",
+    "name": "伐木场的炭窑",
+    "type": "racks",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "lumberyard" }]
+  },
+  {
+    "id": "stn_bs_herb_hut",
+    "name": "欧拉的药草小屋",
+    "type": "apothecary",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "herb_hut" }]
+  },
+  {
+    "id": "stn_bs_moon_kitchen",
+    "name": "醉月亭后厨",
+    "type": "kitchens",
+    "tier": 2,
+    "places": [{ "mapId": "borderstone", "location": "drunk_moon" }]
+  }
+]

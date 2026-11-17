@@ -18,5 +18,6 @@
   "sys.inventory.option.repair_hint": "修好身上和包里能修的装备，共 {m, money}",
   "sys.inventory.say.repaired": "修好了，收你 {m, money}。",
   "sys.inventory.say.no_money": "钱不够，修不了。",
-  "sys.inventory.say.cannot": "这件我修不了，去找别人吧。"
+  "sys.inventory.say.cannot": "这件我修不了，去找别人吧。",
+  "sys.inventory.reject.no_weapon": "主手没有能涂的武器"
 }
