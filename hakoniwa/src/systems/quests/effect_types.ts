@@ -19,6 +19,22 @@ export const DOOR_HINTS: readonly DoorHint[] = [
 
 export type LineKind = 'say' | 'think' | 'narrate' | 'divine';
 
+/**
+ * The eight kinds of key (power_system.md 9.4; thousand_doors.md 5.1): history (deed), item,
+ * bond, choice, place, rank, knowledge (know) and time.
+ */
+export const KEY_KINDS = [
+  'deed',
+  'item',
+  'bond',
+  'choice',
+  'place',
+  'rank',
+  'know',
+  'time',
+] as const;
+export type KeyKind = (typeof KEY_KINDS)[number];
+
 /** Named computations the content may trigger (kept in code, not data). */
 export type ComputeFn =
   | 'prologue_door_hints'
@@ -80,7 +96,12 @@ export type EffectBody =
   /** a named computation implemented in code */
   | { type: 'compute'; fn: ComputeFn }
   /** emit one dialogue line (quests use it for short barks) */
-  | { type: 'line'; speaker: string; text: string; kind?: LineKind };
+  | { type: 'line'; speaker: string; text: string; kind?: LineKind }
+  /**
+   * a key event (catalog_quests_acts1_3.md 1.6): the quest grants one key of a door; the
+   * doors system decides the door (flag door_key.<doorId>.<keyId> = keyKind, event quest.key)
+   */
+  | { type: 'key'; doorId: string; keyKind: KeyKind; keyId: string };
 
 export type Effect = EffectBody & { when?: string };
 
@@ -113,4 +134,5 @@ export const EFFECT_TYPES: readonly EffectType[] = [
   'revelation',
   'compute',
   'line',
+  'key',
 ];

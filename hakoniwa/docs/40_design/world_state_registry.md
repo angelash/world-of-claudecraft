@@ -84,7 +84,7 @@
 
 | 前缀或族 | 种 | 内容 | 写入者 | 例 |
 | --- | --- | --- | --- | --- |
-| `act`、`act_week`、`day`、`season`、`year`、`hour` | 内置 | 幕与历法 | 内核 | `act >= 3` |
+| `act`、`act_week`、`day`、`season`、`year`、`hour`、`weekday`、`night`、`dark_moon` | 内置 | 幕与历法 | 内核 | `act >= 3` |
 | `ai_enabled`、`difficulty`、`ironman`、`cycle` | 内置 | 运行设置与周目 | 内核与新游戏 | `cycle >= 2` |
 | `player.` | 内置 | 玩家的等级、名字、澱染、伤病与少数行为标记 | combat、inventory、goddess | `player.level` |
 | 无前缀 | 全局 | 跨幕持续的量 | 第 8.2 节逐个写明 | `church_suspicion` |
@@ -573,11 +573,14 @@
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
 | `act` | `act_index` | 枚举 | `prologue`、`act1` 到 `act6`、`epilogue`；与数字比较按 0 到 7 | 新游戏；幕切换（quests 的 `act` 效果，`acts`） | 全部任务触发（`q`）、台账解锁（`lore`）、女神（`gd`）、门钥（`dr`） |
-| `act_week` | 无 | 整数 | 1 到 33（各幕周数：12、14、24、31、33、26） | 内核日历（幕开始置 1，每 7 日加 1） | 任务时间窗、纷争链、默认发展、`act_week` 窗口（任务目录） |
+| `act_week` | 无 | 整数 | 1 到 33（各幕周数：12、14、24、31、33、26） | quests 的幕时钟（内核日历：幕开始那一周置 1，此后每逢历法周首，即周第 1 日 0 点，加 1；写成旗标，跳时中照常推进；序章与终章不计周，进入时置 0） | 任务时间窗、纷争链、默认发展、`act_week` 窗口（任务目录）、传书 |
 | `day` | 无 | 整数 | ≥ 0 | 内核时钟 | 期限、冷却 |
 | `season` | 无 | 枚举 | `spring`、`summer`、`autumn`、`winter` | 内核日历（13 周一季） | 事件、产出、行军 |
 | `year` | 无 | 整数 | 998 起 | 内核日历 | 编年显示、事件 |
 | `hour` | 无 | 整数 | 0 到 23 | 内核时钟 | 时辰事件、日程 |
+| `weekday` | 无 | 整数 | 1 到 7 | 内核时钟（不写旗标，叙事条件的历法项） | 任务条件的历法项 |
+| `night` | 无 | 布尔 | | 内核时钟（20 点到次日 6 点为真；不写旗标） | 任务条件的历法项（"第 3 周夜里"） |
+| `dark_moon` | 无 | 布尔 | | 内核时钟（每周第 6 日之夜为暗月夜，日落到黎明为真；不写旗标） | 任务条件的历法项：第一幕兽潮夜、夜间事件与魔物 |
 | `ai_enabled` | 无 | 布尔 | | 设置与提供方连接测试 | 序章分支（`s0`） |
 | `difficulty` | 无 | 枚举 | `story`、`standard`、`hard`、`legend` | 新游戏与设置 | 战斗与事件的明示修正（[成长 15][pp]） |
 | `ironman` | `rule.ironman` | 布尔 | | 新游戏时开启；开局后可关闭，关闭不可逆（与难度无关） | 同伴与将领的死亡结算（D-073） |
@@ -991,7 +994,7 @@
 | `ring_node.<节点>.integrity` | 无 | 整数 | `R01` 到 `R07`；0 到 100 | 众门环守备 `bat_a5_ring_node`（[战争目录][war]） | 战线结算 |
 | `ring_node.<节点>.built` | 无 | 派生标记 | `ring_node.<节点>` 为 `built` 或 `held` | 派生 | 国家事件 `nev_crisis_ring_works` |
 | `nev.<事件>` | 无 | 枚举 | 国家事件 ID 去掉 `nev_` 前缀；值为玩家或 AI 所选的选项代号 | strategy 国家事件结算（[战争目录 9][war]） | 后续事件、外交、任务 |
-| `act.<幕号>.entered` | 无 | 派生标记 | `1` 到 `6`；等价于 `act >= 幕号`，每幕开头写入 | 幕切换 | 地图刷新组与出口的 `requiresFlags`（只接受旗标的场合，[地图简报][mb]） |
+| `act.<幕号>.entered` | 无 | 派生标记 | `1` 到 `6`；等价于 `act >= 幕号`，每幕开头写入 | quests 的幕时钟：幕切换时写入本幕及之前各幕（只计有幕时钟的第一到第六幕） | 地图刷新组与出口的 `requiresFlags`（只接受旗标的场合，[地图简报][mb]） |
 | `hero_state.<人>` | `hero_state_<人>`、`hero_state_lu` | 枚举 | `luchen`：`loyal`、`wavering`、`final_light`、`shed`、`dead`；`yui`：`loyal`、`wavering`、`defected`、`bannerless`、`saint_witness`、`dead`、`vessel`；`aiden`：`rear`、`with_player`、`tempted`、`scholar`、`traitor`、`vanished`；`marcus`：`defected`、`wavering`、`dead`、`rear`、`south` | 第三幕勇者团线 | 第四到六幕 |
 | `key_fate.<钥>` | 无 | 枚举 | `k3`、`k5`、`k6`；`merca`、`player`、`remnants`、`sylvie`、`lost` | 钥匙失窃 | 第五六幕 |
 | `door.<门>` | 第 7.7 节 | 标记 | 门 ID；为真表示已开且未闭 | doors 开门（闭门时置假） | 门钥（`dr`）、`pc` |
@@ -1055,7 +1058,8 @@
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
 | `quest.<任务>.stage` | `quest_stage.<任务>` | 枚举 | 当前阶段代号 | quests | 台词 `when` 条件（`progress` 槽的版本） |
-| `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号 | quests | 日志"还有别的做法"、传闻版本 |
+| `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号（最近一次达成的、带解法代号的目标或抉择选项） | quests | 日志"还有别的做法"、传闻版本 |
+| `door_key.<门>.<钥>` | 无 | 枚举 | `deed`、`item`、`bond`、`choice`、`place`、`rank`、`know`、`time`（钥类，[千门 5.1][td] 的八种钥） | quests 的开门钥事件效果 `key`（`{doorId, keyKind, keyId}`，[任务目录（前）][qa13]第 1.6 节） | 门的钥：门数据以 `flag` 钥读它，开门由千门判定 |
 | `cmm_count.<模板>` | 无 | 整数 | 委托模板 ID；本周完成次数 | quests 委托板 | 委托经验递减 |
 | `trade_count.<人>` | 无 | 整数 | 人物 ID；与此人的合作交易次数 | economy、quests | 纷争节点、前世之门加成 |
 | `route_state.<路>` | 无 | 整数 | 路线 ID（图集路线 `data/world/atlas_routes.json` 或商路 `data/economy/routes.json` 的 `id`，两表同名即同一条路；灰路是 `ash_road_upstream` 与 `brokenspan_crystal_gully`，夜风走廊是 `nightwind_south_mouth`）；风险档 -3 到 3（委托与事件按周增减；3 是断路：路段不能通行，期满由写入方回落） | quests、world | 途中事件、委托报酬 |
@@ -1226,7 +1230,7 @@
 | `a1_tess_in_crowd` | 无 | 出口 | 布尔 | 默认假 | quests：`A1-M09` 的 `verdict` 阶段开场结算（`trust.isa >= 60`、`A1-S19` 守密、或孩子已改住磨坊时为假） | `cut_a1_trial` | 审判时苔丝在人群里；内核在审判开场结算：伊莎信任 60 以上、或 S19 守密、或孩子已改住磨坊时为否 |
 | `a1_vouched` | 无 | 标记 | 标记 | 默认假 | cognition 社会结算（任一人物信任不低于 80，且在审判、传讯或广场公开替玩家说话）；`cut_a1_trial`（布伦作证） | `cut_a1_talent`、`cut_a1_trial` | 一位凡人当众替玩家担保（任一 NPC 信任 80 以上，在审判、传讯或广场公开替玩家说话；识才之门的第三把钥）；社会结算写入，`cut_a1_trial` 的布伦作证也写 |
 | `a1_vouch_by` | 无 | 出口 | 文本 | 人物 ID；默认空 | 与 `a1_vouched` 同时写入（第一次当众担保的人） | `cut_a1_talent` | 第一次当众担保的人 |
-| `a1_tide_night` | 无 | 标记 | 标记 | 默认假 | quests：`A1-M12` 开始（暗月夜日落） | `cut_a1_tide` | 暗月夜日落 |
+| `a1_tide_night` | 无 | 标记 | 标记 | 默认假 | quests 的幕时钟：第一幕的兽潮夜规则（`seal_unrest` 达到 100 那周的暗月夜日落，钳制在第 8 到 10 周）；`A1-M12` 以它开始 | `cut_a1_tide` | 暗月夜日落 |
 | `a1_tide_stage` | 无 | 出口 | 整数 | 0 到 5；默认 0 | combat 兽潮波次结算（`A1-M12` 的 `dusk` 到 `dawn`，[第一幕 8.2][a1]） | `cut_a1_tide` | 兽潮阶段（第一幕 8.2） |
 | `a1_colossus_target` | 无 | 出口 | 枚举 | `player`、`children`；默认未写入 | combat：澱巨像抵达时按玩家是否在射程内结算（`A1-M12` 的 `colossus` 阶段） | `cut_a1_tide` | 巨像抵达时追的目标（玩家在射程内追玩家，否则追门纹孩子） |
 | `a1_tide_weakest` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`；默认未写入 | combat 防线结算（`A1-M12` 的 `second_surge` 之前，按 [第一幕 8.6][a1] 的防御值） | `cut_a1_tide`、`cut_a1_martha` | 第二波扑向的最弱面 |

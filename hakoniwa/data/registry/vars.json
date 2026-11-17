@@ -10674,7 +10674,7 @@
       "default": 0,
       "values": null,
       "aliases": [],
-      "writers": ["core"],
+      "writers": ["core", "quests"],
       "readers": ["content"],
       "derive": null,
       "monotone": false,
@@ -11185,6 +11185,25 @@
       "ai": "ledger",
       "label": "var.danger_doors_opened",
       "source": "8.2"
+    },
+    {
+      "name": "dark_moon",
+      "kind": "bool",
+      "scope": "builtin",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["core"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.dark_moon",
+      "source": "8.1"
     },
     {
       "name": "day",
@@ -12119,6 +12138,25 @@
       "ai": "ledger",
       "label": "var.nation.power",
       "source": "8.6"
+    },
+    {
+      "name": "night",
+      "kind": "bool",
+      "scope": "builtin",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["core"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.night",
+      "source": "8.1"
     },
     {
       "name": "npc.bron.secret_kept",
@@ -13566,6 +13604,25 @@
       "source": "8.9"
     },
     {
+      "name": "weekday",
+      "kind": "int",
+      "scope": "builtin",
+      "range": [1, 7],
+      "step": null,
+      "default": 0,
+      "values": null,
+      "aliases": [],
+      "writers": ["core"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.weekday",
+      "source": "8.1"
+    },
+    {
       "name": "xp_overflow",
       "kind": "int",
       "scope": "global",
@@ -13826,7 +13883,7 @@
       "default": false,
       "values": null,
       "aliases": [],
-      "writers": ["content"],
+      "writers": ["content", "quests"],
       "readers": [],
       "derive": "act >= 幕号",
       "monotone": true,
@@ -14487,6 +14544,37 @@
         {
           "name": "door",
           "domain": "door",
+          "keys": null
+        }
+      ]
+    },
+    {
+      "name": "door_key.<door>.<key>",
+      "kind": "enum",
+      "scope": "family",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": ["deed", "item", "bond", "choice", "place", "rank", "know", "time"],
+      "aliases": [],
+      "writers": ["content", "quests"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.door_key.door.key",
+      "source": "8.7",
+      "slots": [
+        {
+          "name": "door",
+          "domain": "door",
+          "keys": null
+        },
+        {
+          "name": "key",
+          "domain": null,
           "keys": null
         }
       ]

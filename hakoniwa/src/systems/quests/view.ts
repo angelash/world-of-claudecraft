@@ -3,7 +3,8 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { openingActId } from './act_order';
-import type { ActDef, Objective, QuestDef, QuestStatus, QuestsSlice } from './types';
+import { objectiveNeed, objectiveProgress } from './objectives';
+import type { ActDef, QuestDef, QuestKind, QuestStatus, QuestsSlice } from './types';
 
 export interface ObjectiveView {
   label: string;
@@ -19,8 +20,10 @@ export interface QuestView {
   id: string;
   title: string;
   act: string;
-  kind: 'main' | 'side';
+  kind: QuestKind;
   status: QuestStatus;
+  /** the solution path taken (quest.<id>.path) */
+  path?: string;
   desc: string;
   stageDesc: string;
   giver?: string;
@@ -34,13 +37,11 @@ export interface QuestLogView {
   active: QuestView[];
   ready: QuestView[];
   done: QuestView[];
+  /** closed without the player finishing them: failed, expired, done by someone else */
+  ended: QuestView[];
 }
 
 type LogWorld = { slices: { quests: QuestsSlice }; meta: { flags: Record<string, FlagValue> } };
-
-function need(o: Objective): number {
-  return 'count' in o && typeof o.count === 'number' ? o.count : 1;
-}
 
 export function questView(
   world: LogWorld,
@@ -57,6 +58,7 @@ export function questView(
     act: def.act,
     kind: def.kind,
     status: q.status,
+    path: q.path,
     desc: def.desc,
     stageDesc: q.status === 'active' ? (stage?.desc ?? '') : '',
     giver: def.giver,
@@ -65,8 +67,8 @@ export function questView(
       q.status === 'active' && stage
         ? stage.objectives.map((o, i) => ({
             label: o.label,
-            progress: Math.min(need(o), q.met[i] ? need(o) : (q.counts[i] ?? 0)),
-            need: need(o),
+            progress: objectiveProgress(o, q, i),
+            need: objectiveNeed(o),
             done: !!q.met[i],
             optional: !!o.optional,
             options:
@@ -92,6 +94,9 @@ export function questLog(
     active: views.filter((v) => v.status === 'active'),
     ready: views.filter((v) => v.status === 'ready'),
     done: views.filter((v) => v.status === 'done'),
+    ended: views.filter(
+      (v) => v.status === 'failed' || v.status === 'expired' || v.status === 'by_other',
+    ),
   };
 }
 

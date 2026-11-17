@@ -10,23 +10,75 @@
       { "type": "flag", "key": "a1_wake_ruins", "value": true },
       { "type": "flag", "key": "seal_looseness", "value": 5 },
       { "type": "flag", "key": "continent", "value": 70 }
-    ]
+    ],
+    "clock": {
+      "weeks": 12,
+      "beats": [
+        { "id": "landing", "from": 1, "to": 5 },
+        { "id": "dark", "from": 6, "to": 9 },
+        { "id": "climax", "from": 10, "to": 10 },
+        { "id": "pullback", "from": 11, "to": 12 }
+      ],
+      "weekly": [
+        {
+          "type": "add",
+          "key": "seal_unrest",
+          "amount": 9,
+          "max": 100,
+          "when": "NOT a1_tide_night AND NOT a1_beast_tide_cleared"
+        }
+      ],
+      "nights": [
+        {
+          "id": "tide",
+          "night": "dark_moon",
+          "from": 8,
+          "to": 10,
+          "when": "seal_unrest >= 100",
+          "unless": "a1_beast_tide_cleared",
+          "effects": [
+            { "type": "flag", "key": "seal_unrest", "value": 100 },
+            { "type": "flag", "key": "a1_tide_night", "value": true }
+          ]
+        }
+      ]
+    }
   },
-  { "id": "act2", "index": 2, "title": "第二幕：瓦伦堡", "introScene": "act2_intro" },
-  { "id": "act3", "index": 3, "title": "第三幕：王国之乱", "introScene": "act3_intro" },
+  {
+    "id": "act2",
+    "index": 2,
+    "title": "第二幕：瓦伦堡",
+    "introScene": "act2_intro",
+    "clock": { "weeks": 14 }
+  },
+  {
+    "id": "act3",
+    "index": 3,
+    "title": "第三幕：王国之乱",
+    "introScene": "act3_intro",
+    "clock": { "weeks": 24 }
+  },
   {
     "id": "act4",
     "index": 4,
     "title": "第四幕：诸国棋局",
     "introScene": "act4_intro",
-    "onEnter": [{ "type": "feature", "feature": "slg" }]
+    "onEnter": [{ "type": "feature", "feature": "slg" }],
+    "clock": { "weeks": 31 }
   },
-  { "id": "act5", "index": 5, "title": "第五幕：诸族之战", "introScene": "act5_intro" },
+  {
+    "id": "act5",
+    "index": 5,
+    "title": "第五幕：诸族之战",
+    "introScene": "act5_intro",
+    "clock": { "weeks": 33 }
+  },
   {
     "id": "act6",
     "index": 6,
     "title": "第六幕：诸神审定",
-    "entry": { "mapId": "divine_court", "location": "antechamber" }
+    "entry": { "mapId": "divine_court", "location": "antechamber" },
+    "clock": { "weeks": 26 }
   },
   { "id": "epilogue", "index": 7, "title": "终章：离手" }
 ]

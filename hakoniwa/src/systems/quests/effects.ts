@@ -12,12 +12,25 @@ import { issueRevelation } from '../goddess/wake';
 import { addItem, addMoney, holdingOf, removeItem } from '../inventory';
 import { mapById, setAppearance, teleportEntity } from '../world';
 import { setAct } from './acts';
+import { calendarTerms } from './calendar_terms';
 import { evaluate, flagResolver } from './conditions';
-import type { ComputeFn, Effect } from './effect_types';
+import type { ComputeFn, Effect, KeyKind } from './effect_types';
 import { startQuest } from './progress';
 import { defaultKind, fillSlots, speakerName } from './speakers';
 
 type ComputeImpl = (ctx: SystemContext) => void;
+
+declare module '../../core/contracts' {
+  interface EventMap {
+    /** a quest granted a key of a door (the key event of quests_and_events.md 3.4) */
+    'quest.key': { doorId: string; keyKind: KeyKind; keyId: string };
+  }
+}
+
+/** The flag a key event writes (registry family door_key.<door>.<key>; value: the key kind). */
+export function keyFlag(doorId: string, keyId: string): string {
+  return `door_key.${doorId}.${keyId}`;
+}
 
 // A hoisted function holds the registry so registration from other modules works no
 // matter which module of an import cycle finishes evaluating first.
@@ -36,11 +49,17 @@ export function hasCompute(fn: ComputeFn): boolean {
   return registry().has(fn);
 }
 
-/** Condition resolver over flags plus the built-ins available to content. */
+/**
+ * Condition resolver over flags plus the built-ins available to content: `ai_enabled` and
+ * the calendar terms of the current tick (calendar_terms.ts).
+ */
 export function narrativeResolver(ctx: SystemContext) {
   // A replay runs in mode 'replay'; treating every mode but 'off' alike keeps replays of
   // model runs on the same branches (the kernel re-applies the logged proposals).
-  return flagResolver(ctx.world.meta.flags, { ai_enabled: ctx.world.ai.mode !== 'off' });
+  return flagResolver(ctx.world.meta.flags, {
+    ...calendarTerms(ctx.tick),
+    ai_enabled: ctx.world.ai.mode !== 'off',
+  });
 }
 
 export function conditionHolds(ctx: SystemContext, expr: string | undefined): boolean {
@@ -177,6 +196,12 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
     }
     case 'compute':
       registry().get(e.fn)?.(ctx);
+      return;
+    case 'key':
+      // the doors system reads the flag in a door's keys ({ type: 'flag', key }) or counts
+      // the event; opening stays its decision (quests_and_events.md 3.4)
+      ctx.setFlag(keyFlag(e.doorId, e.keyId), e.keyKind);
+      ctx.emit('quest.key', { doorId: e.doorId, keyKind: e.keyKind, keyId: e.keyId });
       return;
     case 'line': {
       const flags = ctx.world.meta.flags;

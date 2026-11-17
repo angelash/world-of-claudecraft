@@ -79,6 +79,11 @@ export function effectWrites(e: Record<string, unknown>): { key: string; value?:
       return s(e.act) ? [{ key: 'act', value: e.act as string }] : [];
     case 'quest':
       return s(e.quest) ? [{ key: `quest.${e.quest}`, value: 'active' }] : [];
+    // the key event of the quest model (systems/quests/effect_types.ts)
+    case 'key':
+      return s(e.doorId) && s(e.keyId)
+        ? [{ key: `door_key.${e.doorId}.${e.keyId}`, value: s(e.keyKind) }]
+        : [];
     default:
       return [];
   }

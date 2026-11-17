@@ -21,6 +21,7 @@ import { canWait, MAX_SKIP_HOURS, skipState } from '../../systems/travel';
 import { pendingScenario } from '../../systems/warfare';
 import { mapById, playerEntity } from '../../systems/world';
 import type { Entity } from '../../systems/world/types';
+import { clockExtras, clockWait, waitsOnClock, windowOpenIn } from './clock';
 import { DomainPlanner } from './domains';
 import {
   attackers,
@@ -38,6 +39,7 @@ import {
 } from './fight';
 import { gearUpgrade } from './goods';
 import { insideLocation, locationPoint, nextLeg } from './nav';
+import { modelObjectivePlan } from './objective_plan';
 import { upcomingWaveBosses } from './prepare';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
@@ -192,7 +194,7 @@ export class Autoplayer {
   }
 
   holds(cond: string | undefined): boolean {
-    return evaluate(cond, flagResolver(this.flags, { ai_enabled: false }));
+    return evaluate(cond, flagResolver(this.flags, clockExtras(this.world)));
   }
 
   send(cmd: Cmd): void {
@@ -674,7 +676,14 @@ export class Autoplayer {
     }
     // 2. accept main quests on offer
     const offers = this.content.quests
-      .filter((d) => d.giver && d.kind === 'main' && !slice.quests[d.id] && this.holds(d.trigger))
+      .filter(
+        (d) =>
+          d.giver &&
+          d.kind === 'main' &&
+          !slice.quests[d.id] &&
+          windowOpenIn(this.world, this.content, d) &&
+          this.holds(d.trigger),
+      )
       .sort(mainFirst);
     for (const def of offers) {
       return this.talk(def.giver as string, `quests:accept:${def.id}`, `accept ${def.id}`);
@@ -709,6 +718,19 @@ export class Autoplayer {
       }
     }
     if (waiting !== null) return -waiting;
+    // 5. a main quest that only the act clock can open (a week window, a calendar term):
+    // let time pass to the clock's next move
+    const gated = this.content.quests.filter(
+      (d) =>
+        d.kind === 'main' &&
+        !slice.quests[d.id] &&
+        waitsOnClock(this.world, this.content, d) &&
+        !(windowOpenIn(this.world, this.content, d) && this.holds(d.trigger)),
+    );
+    if (gated.length > 0) {
+      this.intent = { what: `wait for the act clock: ${gated.map((d) => d.id).join(', ')}` };
+      return -clockWait(this.world, gated);
+    }
     this.intent = { what: 'idle' };
     return -IDLE_STEP;
   }
@@ -769,6 +791,21 @@ export class Autoplayer {
         return -TICKS_PER_GAME_HOUR;
       case 'level':
         return this.grind(why);
+    }
+    // the objective kinds of the quest model (objective_plan.ts)
+    const plan = modelObjectivePlan(o);
+    if (plan?.kind === 'talk')
+      return this.objective(def, { type: 'talk', npc: plan.npc, label: o.label });
+    if (plan?.kind === 'reach')
+      return this.objective(def, {
+        type: 'reach',
+        mapId: plan.mapId,
+        location: plan.location,
+        label: o.label,
+      });
+    if (plan?.kind === 'wait') {
+      this.intent = { what: `${why} (waiting on ${o.type})` };
+      return -TICKS_PER_GAME_HOUR;
     }
     return null;
   }

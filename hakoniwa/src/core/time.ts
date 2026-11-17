@@ -3,7 +3,8 @@
 // day is 28800 ticks (24 real minutes at 1x). See docs/50_tech/architecture.md 4.1.
 // The calendar (D-083; progression_and_pacing.md 13.1): weeks of 7 days, seasons of
 // 13 weeks (91 days), years of four seasons (364 days); the solstices fall on day 1 of
-// week 7 of summer and of winter. Every date is a pure function of the tick.
+// week 7 of summer and of winter; the moon goes dark on the sixth night of every week.
+// Every date is a pure function of the tick.
 
 export const TICK_HZ = 20;
 export const DT = 1 / TICK_HZ;
@@ -134,8 +135,55 @@ export function seasonPart(cal: Pick<Calendar, 'week'>): 'early' | 'mid' | 'late
   return 'late';
 }
 
+/** Night runs from dusk (20:00) to dawn (06:00); a night belongs to the day of its dusk. */
+export const DUSK_HOUR = 20;
+export const DAWN_HOUR = 6;
+
 export function isNight(cal: Calendar): boolean {
-  return cal.hour < 6 || cal.hour >= 20;
+  return cal.hour < DAWN_HOUR || cal.hour >= DUSK_HOUR;
+}
+
+/**
+ * The moon (act1_borderstone.md 1.2 and 7.3): it runs on a fixed track of one week, so
+ * every week has exactly one dark-moon night, the night of its sixth day (weekday 6). The
+ * whole night, dusk to dawn, lies inside that week (the week turns at midnight after the
+ * seventh day). The act 1 tide falls on "the dark-moon night of the week seal_unrest
+ * reaches 100".
+ */
+export const MOON_CYCLE_DAYS = DAYS_PER_WEEK;
+export const DARK_MOON_WEEKDAY = 6;
+
+/** Whole calendar weeks since the opening (0-based); a week starts on weekday 1 at 00:00. */
+export function weekIndexOf(dayIndex: number): number {
+  return Math.floor(dayIndex / DAYS_PER_WEEK);
+}
+
+/** The first tick of a calendar week (weekday 1, 00:00; the opening week starts at tick 0). */
+export function weekStartTick(weekIndex: number): number {
+  return tickAtDay(weekIndex * DAYS_PER_WEEK, 0);
+}
+
+/** Days since the last dark-moon day (0 on the dark-moon day itself). */
+export function moonAge(dayIndex: number): number {
+  const offset = DARK_MOON_WEEKDAY - 1;
+  return (((dayIndex - offset) % MOON_CYCLE_DAYS) + MOON_CYCLE_DAYS) % MOON_CYCLE_DAYS;
+}
+
+/** Whether the night of this day (its dusk to the next dawn) is a dark-moon night. */
+export function isDarkMoonDay(dayIndex: number): boolean {
+  return moonAge(dayIndex) === 0;
+}
+
+/** The tick of dusk on a day: the start of that day's night. */
+export function duskTick(dayIndex: number): number {
+  return tickAtDay(dayIndex, DUSK_HOUR);
+}
+
+/** The day whose night it is at this moment (the previous day before dawn), or null by day. */
+export function nightDayOf(cal: Calendar): number | null {
+  if (cal.hour >= DUSK_HOUR) return cal.dayIndex;
+  if (cal.hour < DAWN_HOUR) return cal.dayIndex - 1;
+  return null;
 }
 
 /** Daylight factor 0..1 for rendering and NPC schedules. */

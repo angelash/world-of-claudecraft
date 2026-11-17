@@ -9,29 +9,46 @@ import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity } from '../world';
+import { advanceActClock } from './act_clock';
 import { openingAct, setAct } from './acts';
 import { applyEffects } from './effects';
 import './endings';
 import type { LoreDef, TermDef } from '../goddess/types';
+import {
+  accrueObjectives,
+  deathObjectives,
+  isPlayerSide,
+  mapChangedObjectives,
+  objectiveSubscriptions,
+  talkObjectives,
+} from './objective_events';
 import {
   activeQuests,
   bump,
   checkStage,
   currentStage,
   finishQuest,
+  markMet,
   offerable,
   questDef,
   scanAvailability,
+  setPath,
   startQuest,
 } from './progress';
 import type { ActDef, QuestDef } from './types';
 
+export * from './act_clock';
 export * from './acts';
+export * from './calendar_terms';
 export * from './conditions';
+export * from './disputes';
 export * from './effect_types';
 export * from './effects';
 export * from './endings';
 export * from './lore';
+export * from './objective_events';
+export * from './objectives';
+export * from './outcomes';
 export * from './progress';
 export * from './speakers';
 export * from './types';
@@ -69,13 +86,6 @@ export const SYSTEM_ID = 'quests';
 /** Objective poll period (ticks) and availability rescan period. */
 const POLL_EVERY = 10;
 const SCAN_EVERY = 100;
-
-function isPlayerSide(ctx: SystemContext, id: string | undefined): boolean {
-  if (!id) return false;
-  if (id === ctx.world.slices.world.playerId) return true;
-  const e = getEntity(ctx.world, id);
-  return !!e && (e.kind === 'companion' || e.tags.includes('companion'));
-}
 
 function accept(ctx: SystemContext, questId: string): ReturnType<typeof ok> {
   const def = questDef(ctx.content, questId);
@@ -120,6 +130,7 @@ function choose(
     q.choices[String(i)] = optionId;
     q.met[i] = true;
     ctx.setFlag(`quest.${questId}.choice`, optionId);
+    if (opt.path) setPath(ctx, def, q, opt.path);
     applyEffects(ctx, opt.effects);
     ctx.emit('quest.progress', { questId, objective: i, done: true });
     checkStage(ctx, def, q);
@@ -128,9 +139,12 @@ function choose(
   return reject('no_option', tr('sys.quests.reject.no_option'));
 }
 
-// A time skip's hour-coarse step (travel_and_exploration.md 7.5, "任务"): quest timers
-// (wait objectives) and polled conditions settle once per step, as the polls would have.
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5, "任务"): the act clock
+// settles the week starts and dusks the step crossed, then quest timers (wait objectives)
+// and polled conditions settle once per step, as the polls would have.
 registerSkipHandler(SYSTEM_ID, (ctx) => {
+  advanceActClock(ctx);
+  accrueObjectives(ctx);
   scanAvailability(ctx);
   for (const { def, q } of activeQuests(ctx)) checkStage(ctx, def, q);
 });
@@ -157,10 +171,12 @@ export const system: GameSystem = {
   },
 
   tick(ctx) {
+    advanceActClock(ctx);
     const slice = ctx.world.slices.quests;
     const flagsMoved = slice.dirty;
     if (flagsMoved || ctx.tick % SCAN_EVERY === 0) scanAvailability(ctx);
     if (flagsMoved || ctx.tick % POLL_EVERY === 0) {
+      accrueObjectives(ctx);
       for (const { def, q } of activeQuests(ctx)) checkStage(ctx, def, q);
     }
   },
@@ -178,12 +194,14 @@ export const system: GameSystem = {
   },
 
   on: {
+    ...objectiveSubscriptions,
     'flag.changed'(ctx) {
       // Batched: availability and flag objectives are re-checked once on the next tick.
       ctx.world.slices.quests.dirty = true;
     },
     'entity.died'(ctx, e) {
       const d = e.data;
+      deathObjectives(ctx, d);
       const boss = (getEntity(ctx.world, d.id)?.tags ?? []).includes('boss');
       if (!boss && !isPlayerSide(ctx, d.killerId)) return;
       bump(ctx, (o) => {
@@ -198,6 +216,7 @@ export const system: GameSystem = {
     'player.talked'(ctx, e) {
       const npc = e.data.npcRef ?? e.data.npcId;
       bump(ctx, (o) => o.type === 'talk' && (o.npc === npc || o.npc === e.data.npcId));
+      talkObjectives(ctx, npc);
       const options: { id: string; label: TextParam; hint?: TextParam }[] = [];
       for (const def of offerable(ctx, npc)) {
         options.push({
@@ -262,8 +281,7 @@ export const system: GameSystem = {
         stage?.objectives.forEach((o, i) => {
           if (o.type !== 'battle' || o.scenario !== scenario || q.met[i]) return;
           if (e.data.victor === 'player') {
-            q.met[i] = true;
-            ctx.emit('quest.progress', { questId: def.id, objective: i, done: true });
+            markMet(ctx, def, q, i);
           } else {
             applyEffects(ctx, o.onLose);
             ctx.setFlag('war.pending', scenario);
@@ -290,6 +308,7 @@ export const system: GameSystem = {
     },
     'world.map_changed'(ctx, e) {
       if (e.data.id !== ctx.world.slices.world.playerId) return;
+      mapChangedObjectives(ctx);
       for (const { def, q } of activeQuests(ctx)) checkStage(ctx, def, q);
     },
   },

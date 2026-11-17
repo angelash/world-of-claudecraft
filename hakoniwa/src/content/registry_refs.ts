@@ -181,6 +181,12 @@ export function collectFlagUses(content: ContentMap): {
         );
       } else if (type === 'wave' && typeof o.wave === 'string') {
         uses.push(at('wave', { kind: 'write', op: 'typed', value: 'go' }, `combat.wave.${o.wave}`));
+      } else if (type === 'key' && typeof o.doorId === 'string' && typeof o.keyId === 'string') {
+        // the key event of the quest model: door_key.<door>.<key> = the key kind
+        const kind = typeof o.keyKind === 'string' ? o.keyKind : undefined;
+        uses.push(
+          at('key', { kind: 'write', op: 'typed', value: kind }, `door_key.${o.doorId}.${o.keyId}`),
+        );
       }
     }
     for (const [k, x] of Object.entries(o)) {

@@ -1,12 +1,25 @@
 // Quest progress: starting, objective bookkeeping, stage transitions, turn-in and
 // completion. Objectives advance from events (kills, talks, buildings, battles, doors,
-// scenes) and from a periodic poll (flags, items, position, time, level).
+// scenes, trades, gathering, crafting, duels) and from a periodic poll (flags, items,
+// position, time, level, clues, people's places); the model's objective kinds and their
+// failures are in objectives.ts, the closing outcomes (failed, expired, by_other) in
+// outcomes.ts.
 
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { countItem, removeItem } from '../inventory';
 import { playerEntity } from '../world';
+import { currentActId } from './act_order';
 import { applyEffects, conditionHolds } from './effects';
+import {
+  atPlace,
+  FAILED,
+  objectiveNeed,
+  type PollResult,
+  pollModelObjective,
+  startStageObjectives,
+} from './objectives';
+import { failQuest, settleOutcomes } from './outcomes';
 import type { Objective, QuestDef, QuestProgress, QuestStage } from './types';
 
 export function questDef(content: { quests: QuestDef[] }, id: string): QuestDef | undefined {
@@ -46,18 +59,24 @@ export function startQuest(ctx: SystemContext, id: string): boolean {
   return true;
 }
 
-function enterStage(ctx: SystemContext, def: QuestDef, q: QuestProgress, idx: number): void {
+/** Enter a stage by index (the next one, or a failure branch's target). */
+export function enterStage(ctx: SystemContext, def: QuestDef, q: QuestProgress, idx: number): void {
   const stage = def.stages[idx];
   q.stage = idx;
   q.stageStartTick = ctx.tick;
+  q.accrued = ctx.tick;
   q.counts = stage ? stage.objectives.map(() => 0) : [];
   q.met = stage ? stage.objectives.map(() => false) : [];
+  if (q.clues) delete q.clues;
   if (!stage) {
     stageDone(ctx, def, q);
     return;
   }
+  // the current stage's code, for the line variants of the progress slot (registry 8.7)
+  ctx.setFlag(`quest.${def.id}.stage`, stage.id);
   ctx.emit('quest.stage', { questId: def.id, stage: idx, desc: stage.desc });
   applyEffects(ctx, stage.onEnter);
+  startStageObjectives(ctx, stage);
   // A scene objective whose scene was already seen counts at once.
   stage.objectives.forEach((o, i) => {
     if (o.type === 'scene' && ctx.world.slices.quests.scenesSeen.includes(o.scene)) q.met[i] = true;
@@ -90,8 +109,32 @@ export function finishQuest(ctx: SystemContext, def: QuestDef, q: QuestProgress)
   markDirty(ctx);
 }
 
+/**
+ * Record that an objective is met: the flag, the progress event and its solution path
+ * (quest.<id>.path, the latest path taken; registry 8.7).
+ */
+export function markMet(ctx: SystemContext, def: QuestDef, q: QuestProgress, i: number): void {
+  if (q.met[i]) return;
+  q.met[i] = true;
+  ctx.emit('quest.progress', { questId: def.id, objective: i, done: true });
+  const path = currentStage(def, q)?.objectives[i]?.path;
+  if (path) setPath(ctx, def, q, path);
+}
+
+/** Write the solution path taken (quest.<id>.path). */
+export function setPath(ctx: SystemContext, def: QuestDef, q: QuestProgress, path: string): void {
+  q.path = path;
+  ctx.setFlag(`quest.${def.id}.path`, path);
+}
+
 /** Polled satisfaction of an objective (event-driven ones keep their own flag). */
-function polled(ctx: SystemContext, q: QuestProgress, o: Objective, i: number): boolean {
+function polled(
+  ctx: SystemContext,
+  def: QuestDef,
+  q: QuestProgress,
+  o: Objective,
+  i: number,
+): boolean | PollResult {
   if (o.orWhen && conditionHolds(ctx, o.orWhen)) return true;
   if (q.met[i]) return true;
   switch (o.type) {
@@ -107,21 +150,12 @@ function polled(ctx: SystemContext, q: QuestProgress, o: Objective, i: number): 
       const ticks = (o.days ?? 0) * TICKS_PER_GAME_DAY + (o.hours ?? 0) * TICKS_PER_GAME_HOUR;
       return ctx.tick - q.stageStartTick >= ticks;
     }
-    case 'reach': {
-      const p = playerEntity(ctx.world);
-      if (!p || p.mapId !== o.mapId) return false;
-      if (!o.location) return true;
-      const map = ctx.content.maps.find((m) => m.id === o.mapId);
-      const loc = map?.locations.find((l) => l.id === o.location);
-      if (!loc) return true;
-      return (
-        p.x >= loc.x - 1 && p.x <= loc.x + loc.w + 1 && p.y >= loc.y - 1 && p.y <= loc.y + loc.h + 1
-      );
-    }
+    case 'reach':
+      return atPlace(ctx, playerEntity(ctx.world), o.mapId, o.location);
     case 'scene':
       return ctx.world.slices.quests.scenesSeen.includes(o.scene);
     default:
-      return false;
+      return pollModelObjective(ctx, def, q, o, i);
   }
 }
 
@@ -132,15 +166,25 @@ export function checkStage(ctx: SystemContext, def: QuestDef, q: QuestProgress):
   if (!stage) return;
   let all = true;
   let any = false;
+  let failed = -1;
   stage.objectives.forEach((o, i) => {
-    if (!q.met[i] && polled(ctx, q, o, i)) {
-      q.met[i] = true;
-      ctx.emit('quest.progress', { questId: def.id, objective: i, done: true });
+    if (!q.met[i]) {
+      const r = polled(ctx, def, q, o, i);
+      if (r === true || r === 'met') markMet(ctx, def, q, i);
+      else if (r === 'fail') {
+        // an optional objective only drops out; a required one fails the stage (below)
+        if (o.optional) objectiveFailed(ctx, def, q, i);
+        else if (failed < 0) failed = i;
+      }
     }
     if (q.met[i]) any = true;
     if (!q.met[i] && !o.optional) all = false;
   });
-  if (stage.complete === 'any' ? !any : !all) return;
+  const complete = stage.complete === 'any' ? any : all;
+  if (!complete) {
+    if (failed >= 0) objectiveFailed(ctx, def, q, failed);
+    return;
+  }
   stage.objectives.forEach((o) => {
     if (o.type === 'collect' && o.consume) {
       removeItem(ctx, ctx.world.slices.world.playerId, o.item, o.count, 'quest');
@@ -148,6 +192,37 @@ export function checkStage(ctx: SystemContext, def: QuestDef, q: QuestProgress):
   });
   applyEffects(ctx, stage.onComplete);
   stageDone(ctx, def, q);
+}
+
+/**
+ * An objective failed (an escortee died, the player was seen, the guide was lost): an
+ * optional one drops out (unmet, no longer polled); a required one applies the stage's
+ * onFail and moves the quest to the stage's failure branch (failTo), or fails it forward
+ * (quests_and_events.md 3.5).
+ */
+export function objectiveFailed(
+  ctx: SystemContext,
+  def: QuestDef,
+  q: QuestProgress,
+  i: number,
+): void {
+  if (q.status !== 'active') return;
+  const stage = currentStage(def, q);
+  const o = stage?.objectives[i];
+  if (!stage || !o || q.met[i] || q.counts[i] === FAILED) return;
+  ctx.emit('quest.progress', { questId: def.id, objective: i, done: false });
+  if (o.optional) {
+    q.counts[i] = FAILED;
+    return;
+  }
+  applyEffects(ctx, stage.onFail);
+  if (q.status !== 'active') return;
+  const to = stage.failTo ? def.stages.findIndex((s) => s.id === stage.failTo) : -1;
+  if (to >= 0) {
+    enterStage(ctx, def, q, to);
+    return;
+  }
+  failQuest(ctx, def, q);
 }
 
 /** Active quests with their definitions, in start order. */
@@ -170,30 +245,55 @@ export function bump(ctx: SystemContext, match: (o: Objective) => boolean, amoun
     let changed = false;
     stage.objectives.forEach((o, i) => {
       if (q.met[i] || !match(o)) return;
-      const need = 'count' in o && typeof o.count === 'number' ? o.count : 1;
+      const need = objectiveNeed(o);
       q.counts[i] = (q.counts[i] ?? 0) + amount;
-      ctx.emit('quest.progress', { questId: def.id, objective: i, done: q.counts[i] >= need });
-      if ((q.counts[i] ?? 0) >= need) q.met[i] = true;
+      const done = (q.counts[i] ?? 0) >= need;
+      ctx.emit('quest.progress', { questId: def.id, objective: i, done });
+      if (done) {
+        q.met[i] = true;
+        if (o.path) setPath(ctx, def, q, o.path);
+      }
       changed = true;
     });
     if (changed) checkStage(ctx, def, q);
   }
 }
 
-/** Start every automatic quest whose trigger holds (giverless quests). */
+/**
+ * Whether a quest's week window is open: always without a window; otherwise only while
+ * the world is in the quest's own act and act_week is inside the window.
+ */
+export function windowOpen(ctx: SystemContext, def: QuestDef): boolean {
+  const w = def.weekWindow;
+  if (!w) return true;
+  if (currentActId(ctx) !== def.act) return false;
+  const week = Number(ctx.flag('act_week') ?? 0);
+  return week >= (w.from ?? 1) && (w.to === undefined || week <= w.to);
+}
+
+/** Whether a quest that was never started could start now (window open, trigger holds). */
+export function available(ctx: SystemContext, def: QuestDef): boolean {
+  return windowOpen(ctx, def) && conditionHolds(ctx, def.trigger);
+}
+
+/**
+ * Settle the closing outcomes (by_other, expiry, failure; outcomes.ts), then start every
+ * automatic quest whose trigger holds (giverless quests).
+ */
 export function scanAvailability(ctx: SystemContext): void {
   const slice = ctx.world.slices.quests;
   slice.dirty = false;
+  settleOutcomes(ctx);
   for (const def of ctx.content.quests) {
     if (slice.quests[def.id] || def.giver) continue;
-    if (conditionHolds(ctx, def.trigger)) startQuest(ctx, def.id);
+    if (available(ctx, def)) startQuest(ctx, def.id);
   }
 }
 
-/** Quests an NPC could offer right now (not started, trigger holds). */
+/** Quests an NPC could offer right now (not started, window open, trigger holds). */
 export function offerable(ctx: SystemContext, npc: string): QuestDef[] {
   const slice = ctx.world.slices.quests;
   return ctx.content.quests.filter(
-    (d) => d.giver === npc && !slice.quests[d.id] && conditionHolds(ctx, d.trigger),
+    (d) => d.giver === npc && !slice.quests[d.id] && available(ctx, d),
   );
 }
