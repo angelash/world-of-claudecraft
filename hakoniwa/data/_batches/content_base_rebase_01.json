@@ -39,24 +39,19 @@
       "catalog": "docs/40_design/content/catalog_bestiary.md",
       "section": "1.3"
     },
-    { "mapping": "manual", "catalog": "docs/40_design/content/catalog_bestiary.md", "section": "5" },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/content/catalog_bestiary.md",
+      "section": "5"
+    },
     {
       "mapping": "manual",
       "catalog": "docs/40_design/content/catalog_gathering_crafting.md",
       "section": "3.5"
     }
   ],
-  "files": [
-    "combat/items.json",
-    "combat/monsters.json",
-    "economy/items.json"
-  ],
-  "added": [
-    "crystal_small_raw",
-    "crystal_medium_raw",
-    "crystal_large_raw",
-    "crystal_king_raw"
-  ],
+  "files": ["combat/items.json", "combat/monsters.json", "economy/items.json"],
+  "added": ["crystal_small_raw", "crystal_medium_raw", "crystal_large_raw", "crystal_king_raw"],
   "changed": [
     { "id": "rusty_shortsword", "fields": ["value"] },
     { "id": "recruit_longsword", "fields": ["value"] },
@@ -156,9 +151,7 @@
       "file": "economy/items.json",
       "table": "items",
       "added": [],
-      "changed": [
-        { "id": "wool", "fields": ["desc"] }
-      ],
+      "changed": [{ "id": "wool", "fields": ["desc"] }],
       "unchanged": []
     }
   ],
