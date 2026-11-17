@@ -30,12 +30,14 @@ they run for every contributor.
   agent. A Stop hook fires every turn, so anything heavier here would tax every iteration,
   and a hook is a shell command that cannot spawn an agent anyway.
 - **`pre-push`** runs the heavier deterministic checks once, at the push boundary (infrequent,
-  so it does not slow the inner loop): `tsc --noEmit`, the determinism/purity and i18n-matcher
-  guard tests, `biome` scoped to the branch's changed files, and a copy-rule scan of the push
-  diff. The copy scan diffs against the branch's upstream (else `origin/main`), so if it flags
-  lines you did not write, set the upstream to the PR base
-  (`git branch --set-upstream-to origin/<base>`) so it scans only your commits; do not reach
-  for `--no-verify`. Bypass in a genuine emergency with `git push --no-verify`.
+  so it does not slow the inner loop): `tsc --noEmit`, then a regen of the gitignored i18n
+  status registry (`scripts/i18n_scan.mjs`, ~20s) so the next step reads a current one instead
+  of whatever an earlier `npm test`/`npm run i18n:gen` happened to leave on disk, then the
+  determinism/purity and i18n-matcher guard tests, `biome` scoped to the branch's changed
+  files, and a copy-rule scan of the push diff. The copy scan diffs against the branch's
+  upstream (else `origin/main`), so if it flags lines you did not write, set the upstream to
+  the PR base (`git branch --set-upstream-to origin/<base>`) so it scans only your commits; do
+  not reach for `--no-verify`. Bypass in a genuine emergency with `git push --no-verify`.
 - **`ensure-hooks.sh`** (a `SessionStart` hook) points this clone's `core.hooksPath` at
   `.githooks` so the pre-push floor actually runs. It is idempotent and only acts when nothing
   already owns the local hook path, so it never clobbers husky or your own repo-local setup

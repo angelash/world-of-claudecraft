@@ -36,10 +36,12 @@ boundary.
 
 ### Deterministic floor
 
-`.githooks/pre-push` runs the heavier fast checks at the push boundary: TypeScript,
-determinism and purity guards, i18n matcher guards, Biome on changed files, and copy
-checks over the push diff. The shared `.claude/hooks/ensure-hooks.sh` idempotently points
-`core.hooksPath` at `.githooks`; both agent runtimes call it at session start.
+`.githooks/pre-push` runs the heavier fast checks at the push boundary: TypeScript, a
+regen of the gitignored i18n status registry (`scripts/i18n_scan.mjs`) so the guard below
+reads a current one, determinism and purity guards, i18n matcher guards, Biome on changed
+files, and copy checks over the push diff. The shared `.claude/hooks/ensure-hooks.sh`
+idempotently points `core.hooksPath` at `.githooks`; both agent runtimes call it at session
+start.
 
 `git push --no-verify` remains an emergency bypass, not a substitute for reporting and
 fixing a red gate.

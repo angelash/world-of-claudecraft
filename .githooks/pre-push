@@ -6,6 +6,7 @@
 # breakage before it reaches a PR without taxing the edit loop. This runs only fast, high-signal
 # gates, not the full build (that stays in CI):
 #   - tsc --noEmit               (type safety)
+#   - regenerate the i18n status registry (src/ui/i18n.status.json), which the next step reads
 #   - the determinism / purity and i18n-matcher guard tests
 #   - biome on the files this branch changed (scoped, so it does not trip on deferred repo debt)
 #   - a copy-rule scan of the push diff (no em dashes, en dashes, or emojis)
@@ -37,18 +38,29 @@ if [ "$tools_ok" = 1 ]; then
     fails+=("tsc --noEmit failed (type errors)")
   fi
 
-  # 2) Determinism / purity and i18n-matcher guards (fast, targeted).
+  # 2) Regenerate the i18n status registry the next step's S3 guard reads
+  # (src/ui/i18n.status.json, gitignored and build/test-only: see scripts/i18n_scan.mjs).
+  # It is a pure function of the current source + the blocked-string seed, so it goes stale
+  # whenever either changes (an upstream sync is the common case) and a vitest run skips the
+  # `pretest` regen that `npm test` normally does. Regenerating it here, rather than only
+  # noticing it is missing, is what keeps this floor from blocking on drift that is not a
+  # real regression.
+  if ! node scripts/i18n_scan.mjs >/dev/null; then
+    fails+=("scripts/i18n_scan.mjs failed to regenerate the i18n status registry")
+  fi
+
+  # 3) Determinism / purity and i18n-matcher guards (fast, targeted).
   if ! npx --no-install vitest run tests/architecture.test.ts tests/localization_fixes.test.ts; then
     fails+=("guard tests failed (tests/architecture.test.ts or tests/localization_fixes.test.ts)")
   fi
 
-  # 3) Lint, scoped to this branch's changed files (avoids the deferred repo-wide biome debt).
+  # 4) Lint, scoped to this branch's changed files (avoids the deferred repo-wide biome debt).
   if ! npm run --silent ci:changed; then
     fails+=("biome ci --changed failed on the files this branch changed")
   fi
 fi
 
-# 4) Copy rules over the push diff: no em dash, en dash, or emoji (locale overlays excluded).
+# 5) Copy rules over the push diff: no em dash, en dash, or emoji (locale overlays excluded).
 # The Russian doc mirrors are the one prose exception: Russian typography uses the
 # em dash correctly, so docs/i18n/*.ru_RU.md is excluded the same way the game's
 # locale overlays are. Every other locale mirror stays in scope.
