@@ -5,12 +5,19 @@
 // allowance 18.2 (story bosses up to five over the band); the ladder content_bible.md 3.1
 // (content level per tier, material unit prices); the price formula content_bible.md 6.4.
 //
-// A row that declares its act (quests, scenes, imported bestiary rows) is judged at that
-// act and blocks. A monster without one is judged at the earliest act the content places
-// it (its spawn maps, waves and kill objectives, ./acts.ts); that inference is coarse (a
-// map visitable from act 1 may hold deeper spawns), so it warns until the level rescale
-// (PK-M0-29, development_plan.md) and blocks from M1.
+// A row that declares its act (quests, scenes, bestiary rows) is judged at that act and
+// blocks. A monster without one is judged at the earliest act the content places it (its
+// spawn maps, waves and kill objectives, ./acts.ts); that inference is coarse (a map
+// visitable from act 1 may hold deeper spawns, which therefore declare their bestiary
+// act), so it warns at M0 and blocks from M1 (the PK-M0-29 rescale put every placed
+// monster inside its band). A monster that only ability summon effects place takes its
+// summoner's level (a warlock's imp; progression 3.3: summons and beast companions have
+// no level of their own), so its row range is not a content level and is not judged.
+// Quest experience counts every xp effect of a quest: its start, its stages (the
+// settlement points of progression 3.1.1) and its rewards.
 
+import { collectRefs, REF_PATHS } from '../../../src/content/references';
+import { LEVEL_BANDS } from '../../../src/systems/combat/progression';
 import { earliestActs } from './acts';
 import type { Finding, ValidationInput, Validator } from './types';
 
@@ -20,15 +27,8 @@ export const INFERRED_BLOCKING_FROM = 1;
 /** Tables whose rows are judged at an inferred act when they declare none. */
 export const INFERRED_ACT_TABLES: readonly string[] = ['monsters'];
 
-/** Level band per act (1 to 6). */
-export const ACT_BANDS: Readonly<Record<number, readonly [number, number]>> = {
-  1: [1, 15],
-  2: [15, 30],
-  3: [30, 45],
-  4: [45, 55],
-  5: [55, 60],
-  6: [60, 60],
-};
+/** Level band per act (1 to 6): the kernel's table (src/systems/combat/progression.ts). */
+export const ACT_BANDS: Readonly<Record<number, readonly [number, number]>> = LEVEL_BANDS;
 
 /** Story bosses may exceed the band's upper end by this much (progression 18.2). */
 export const BOSS_ALLOWANCE = 5;
@@ -145,11 +145,45 @@ function rowsOf(input: ValidationInput, table: string): Record<string, unknown>[
   return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
 }
 
+/** Monsters that only ability summon effects place (their level is the summoner's). */
+export function summonOnlyMonsters(content: ValidationInput['content']): Set<string> {
+  const by = new Map<string, Set<string>>();
+  for (const u of collectRefs(content, REF_PATHS)) {
+    if (!u.row || !u.to.includes('monsters')) continue;
+    const tables = by.get(u.value) ?? new Set<string>();
+    tables.add(
+      u.table === 'abilities' && /^effects\[\d+\]\.monster$/.test(u.path) ? 'summon' : u.table,
+    );
+    by.set(u.value, tables);
+  }
+  const out = new Set<string>();
+  for (const [id, tables] of by) if (tables.size === 1 && tables.has('summon')) out.add(id);
+  return out;
+}
+
+/** Every xp effect a quest grants: on start, on entering or completing a stage, on completion. */
+export function questXp(q: Record<string, unknown>): number {
+  const lists: unknown[] = [q.onStart, q.rewards];
+  for (const s of Array.isArray(q.stages) ? q.stages : [])
+    if (s && typeof s === 'object') {
+      const st = s as { onEnter?: unknown; onComplete?: unknown };
+      lists.push(st.onEnter, st.onComplete);
+    }
+  let sum = 0;
+  for (const list of lists)
+    for (const e of Array.isArray(list) ? list : [])
+      if ((e as { type?: unknown }).type === 'xp')
+        sum += num((e as { amount?: unknown }).amount) ?? 0;
+  return sum;
+}
+
 export function balanceFindings(input: ValidationInput): Finding[] {
   const out: Finding[] = [];
   const tables = input.content as unknown as Record<string, unknown>;
   const inferred = earliestActs(input.content);
+  const summons = summonOnlyMonsters(input.content);
   const unplaced: string[] = [];
+  const summoned: string[] = [];
   // levels and tiers of every row that declares them
   for (const [table, value] of Object.entries(tables)) {
     if (!Array.isArray(value)) continue;
@@ -161,7 +195,8 @@ export function balanceFindings(input: ValidationInput): Finding[] {
       const own = actOf(r.act);
       let act = own;
       if (act === null && INFERRED_ACT_TABLES.includes(table)) {
-        if (inferred.known(table, id)) act = inferred.of(table, id);
+        if (table === 'monsters' && summons.has(id)) summoned.push(id);
+        else if (inferred.known(table, id)) act = inferred.of(table, id);
         else unplaced.push(id);
       }
       const band = act !== null ? ACT_BANDS[act] : undefined;
@@ -194,6 +229,11 @@ export function balanceFindings(input: ValidationInput): Finding[] {
     out.push({
       level: 'info',
       message: `${unplaced.length} levelled monsters are placed nowhere (no act to judge): ${unplaced.join(', ')}`,
+    });
+  if (summoned.length)
+    out.push({
+      level: 'info',
+      message: `${summoned.length} monsters only summons place (level follows the summoner): ${summoned.join(', ')}`,
     });
   // prices of items (warnings until the price batch content_base_rebase_01, C45)
   for (const it of rowsOf(input, 'items')) {
@@ -239,9 +279,7 @@ export function balanceFindings(input: ValidationInput): Finding[] {
   for (const q of rowsOf(input, 'quests')) {
     const act = actOf(q.act);
     if (act === null || !ACT_XP[act]) continue;
-    const sum = (Array.isArray(q.rewards) ? q.rewards : [])
-      .filter((r) => (r as { type?: unknown }).type === 'xp')
-      .reduce((s, r) => s + (num((r as { amount?: unknown }).amount) ?? 0), 0);
+    const sum = questXp(q);
     xp[act] ??= { main: 0, side: 0 };
     const slot = xp[act] as { main: number; side: number };
     if (q.kind === 'main') slot.main += sum;

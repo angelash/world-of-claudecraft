@@ -303,18 +303,24 @@ describe('kernel', () => {
       playerLevel: 12,
     }).heroes.find((h) => h.id === 'player');
     expect(last?.maxHp).toBe(200 + 60 * 55);
-    // other scenarios keep the player's own level
-    const bone = content.battle_scenarios.find((x) => x.id === 'act3_bone_field');
-    if (!bone) throw new Error('no bone field');
-    const hero = createBattleState(bone, {
-      id: 'b2',
-      scenarioId: bone.id,
-      seed: 1,
-      data,
-      mode: 'manual',
-      playerLevel: 12,
-    }).heroes.find((h) => h.id === 'player');
-    expect(hero?.maxHp).toBe(200 + 60 * 12);
+    // the other story battles carry the floors of progression 18.2 (城下潮 28, 骨原夜袭 30,
+    // 红牙 at 霜脊堡 36); a stronger player keeps their own level
+    const hero = (scenarioId: string, playerLevel: number) => {
+      const sc = content.battle_scenarios.find((x) => x.id === scenarioId);
+      if (!sc) throw new Error(`no ${scenarioId}`);
+      return createBattleState(sc, {
+        id: 'b2',
+        scenarioId: sc.id,
+        seed: 1,
+        data,
+        mode: 'manual',
+        playerLevel,
+      }).heroes.find((h) => h.id === 'player');
+    };
+    expect(hero('act2_city_defense', 12)?.maxHp).toBe(200 + 60 * 28);
+    expect(hero('act3_bone_field', 12)?.maxHp).toBe(200 + 60 * 30);
+    expect(hero('act3_north_raid', 12)?.maxHp).toBe(200 + 60 * 36);
+    expect(hero('act3_bone_field', 35)?.maxHp).toBe(200 + 60 * 35);
   });
 
   it('resolves contact by expected value and routs broken regiments', () => {

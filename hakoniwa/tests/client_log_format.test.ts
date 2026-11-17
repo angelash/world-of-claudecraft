@@ -135,7 +135,8 @@ describe('client HUD calendar formatting', () => {
   });
 
   it('rolls seasons and pads minutes', () => {
-    const cal = calendarAt(tickAtDay(28 + 3, 21, 5));
+    // seasons are 91 days (13 weeks, D-083), no longer 28: day 4 of summer is day 91 + 3
+    const cal = calendarAt(tickAtDay(91 + 3, 21, 5));
     expect(formatDate(cal)).toBe('圣历 998 年 夏 第 4 日');
     expect(formatTime(cal)).toBe('21:05');
     expect(timeOfDayLabel(cal)).toBe('夜晚');

@@ -1,6 +1,9 @@
 // Fixed-step simulation clock and the in-world calendar (Sacred Era).
 // One tick is 1/20 real second at 1x and advances 3 game seconds, so one game
 // day is 28800 ticks (24 real minutes at 1x). See docs/50_tech/architecture.md 4.1.
+// The calendar (D-083; progression_and_pacing.md 13.1): weeks of 7 days, seasons of
+// 13 weeks (91 days), years of four seasons (364 days); the solstices fall on day 1 of
+// week 7 of summer and of winter. Every date is a pure function of the tick.
 
 export const TICK_HZ = 20;
 export const DT = 1 / TICK_HZ;
@@ -8,9 +11,26 @@ export const GAME_SECONDS_PER_TICK = 3;
 export const TICKS_PER_GAME_MINUTE = 60 / GAME_SECONDS_PER_TICK;
 export const TICKS_PER_GAME_HOUR = TICKS_PER_GAME_MINUTE * 60;
 export const TICKS_PER_GAME_DAY = TICKS_PER_GAME_HOUR * 24;
-export const DAYS_PER_SEASON = 28;
+export const DAYS_PER_WEEK = 7;
+export const WEEKS_PER_SEASON = 13;
+export const DAYS_PER_SEASON = WEEKS_PER_SEASON * DAYS_PER_WEEK;
 export const SEASONS_PER_YEAR = 4;
 export const DAYS_PER_YEAR = DAYS_PER_SEASON * SEASONS_PER_YEAR;
+export const WEEKS_PER_YEAR = WEEKS_PER_SEASON * SEASONS_PER_YEAR;
+
+/** Seasons by index: 0 spring, 1 summer, 2 autumn, 3 winter. */
+export const SPRING = 0;
+export const SUMMER = 1;
+export const AUTUMN = 2;
+export const WINTER = 3;
+
+/** The solstices: day 1 of this week (1-based) of summer and of winter. */
+export const SOLSTICE_WEEK = 7;
+export type Solstice = 'summer' | 'winter';
+export const SOLSTICE_SEASON: Readonly<Record<Solstice, number>> = {
+  summer: SUMMER,
+  winter: WINTER,
+};
 
 /** The opening moment: Sacred Era 998, spring (season 0), day 1, 06:00. */
 export const START_YEAR = 998;
@@ -20,8 +40,14 @@ export interface Calendar {
   year: number;
   /** 0 spring, 1 summer, 2 autumn, 3 winter */
   season: number;
-  /** 1-based day of season */
+  /** 1-based day of season (1 to 91) */
   day: number;
+  /** 1-based week of season (1 to 13) */
+  week: number;
+  /** 1-based day of the week (1 to 7) */
+  weekday: number;
+  /** 1-based week of the year (1 to 52), as the calendar of progression 13.6 counts */
+  weekOfYear: number;
   hour: number;
   minute: number;
   /** whole game days elapsed since the opening moment */
@@ -30,20 +56,32 @@ export interface Calendar {
   minuteOfDay: number;
 }
 
+/** The calendar date of a day (0-based from the opening). */
+function dateOfDay(dayIndex: number): Omit<Calendar, 'hour' | 'minute' | 'minuteOfDay'> {
+  const yearOffset = Math.floor(dayIndex / DAYS_PER_YEAR);
+  const dayOfYear = dayIndex - yearOffset * DAYS_PER_YEAR;
+  const season = Math.floor(dayOfYear / DAYS_PER_SEASON);
+  const dayOfSeason = dayOfYear - season * DAYS_PER_SEASON;
+  const week = Math.floor(dayOfSeason / DAYS_PER_WEEK);
+  return {
+    year: START_YEAR + yearOffset,
+    season,
+    day: dayOfSeason + 1,
+    week: week + 1,
+    weekday: dayOfSeason - week * DAYS_PER_WEEK + 1,
+    weekOfYear: season * WEEKS_PER_SEASON + week + 1,
+    dayIndex,
+  };
+}
+
 export function calendarAt(tick: number): Calendar {
   const totalMinutes = Math.floor(tick / TICKS_PER_GAME_MINUTE) + START_HOUR * 60;
   const dayIndex = Math.floor(totalMinutes / (24 * 60));
   const minuteOfDay = totalMinutes - dayIndex * 24 * 60;
-  const yearOffset = Math.floor(dayIndex / DAYS_PER_YEAR);
-  const dayOfYear = dayIndex - yearOffset * DAYS_PER_YEAR;
-  const season = Math.floor(dayOfYear / DAYS_PER_SEASON);
   return {
-    year: START_YEAR + yearOffset,
-    season,
-    day: dayOfYear - season * DAYS_PER_SEASON + 1,
+    ...dateOfDay(dayIndex),
     hour: Math.floor(minuteOfDay / 60),
     minute: minuteOfDay % 60,
-    dayIndex,
     minuteOfDay,
   };
 }
@@ -52,6 +90,48 @@ export function calendarAt(tick: number): Calendar {
 export function tickAtDay(dayIndex: number, hour = 0, minute = 0): number {
   const minutes = dayIndex * 24 * 60 + hour * 60 + minute - START_HOUR * 60;
   return Math.max(0, minutes * TICKS_PER_GAME_MINUTE);
+}
+
+/**
+ * The game day (0-based from the opening) of a calendar date: `season` 0 to 3, `day` the
+ * 1-based day of that season. The inverse of the date part of calendarAt.
+ */
+export function dayIndexOf(year: number, season: number, day: number): number {
+  return (year - START_YEAR) * DAYS_PER_YEAR + season * DAYS_PER_SEASON + (day - 1);
+}
+
+/** The game day of a solstice in the given year (day 1 of week 7 of summer or winter). */
+export function solsticeDay(year: number, which: Solstice): number {
+  return dayIndexOf(year, SOLSTICE_SEASON[which], (SOLSTICE_WEEK - 1) * DAYS_PER_WEEK + 1);
+}
+
+/** The solstice falling on this calendar day, or null. */
+export function solsticeOf(cal: Pick<Calendar, 'season' | 'day'>): Solstice | null {
+  if (cal.day !== (SOLSTICE_WEEK - 1) * DAYS_PER_WEEK + 1) return null;
+  if (cal.season === SUMMER) return 'summer';
+  if (cal.season === WINTER) return 'winter';
+  return null;
+}
+
+/** The first solstice on or after the given game day. */
+export function nextSolstice(dayIndex: number): { which: Solstice; dayIndex: number } {
+  const year = dateOfDay(Math.max(0, dayIndex)).year;
+  for (let y = year; ; y++) {
+    for (const which of ['summer', 'winter'] as const) {
+      const d = solsticeDay(y, which);
+      if (d >= dayIndex) return { which, dayIndex: d };
+    }
+  }
+}
+
+/**
+ * The third of the season a day falls in (progression 13.1): early (weeks 1 to 4), mid
+ * (weeks 5 to 9) and late (weeks 10 to 13); the acts' "midsummer" and "late autumn".
+ */
+export function seasonPart(cal: Pick<Calendar, 'week'>): 'early' | 'mid' | 'late' {
+  if (cal.week <= 4) return 'early';
+  if (cal.week <= 9) return 'mid';
+  return 'late';
 }
 
 export function isNight(cal: Calendar): boolean {

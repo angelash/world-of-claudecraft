@@ -39,6 +39,7 @@ import {
 } from '../src/systems/combat';
 import { resourceName } from '../src/systems/combat/abilities';
 import { deriveStats } from '../src/systems/combat/stats';
+import { syncToParty } from '../src/systems/combat/threat';
 import { system as doors } from '../src/systems/doors';
 import { addItem, system as inventory } from '../src/systems/inventory';
 import { system as modifiers, registerModifier } from '../src/systems/modifiers';
@@ -602,7 +603,8 @@ describe('bosses, yielding and waves', () => {
     g.queue('combat.attack', { on: true, targetId: id });
     fight(g, 20 * 11);
     expect(units(g)[id]?.auras.some((a) => a.id === 'tempering')).toBe(true);
-    beat(g, id, 0.2005);
+    // a hair above the 20% line: an ungeared player chips the 18.2 health (hpMult 8.2) slowly
+    beat(g, id, 0.2002);
     fight(g, 200, () => !!g.world.meta.flags['boss.sasha.defeated']);
     expect(g.world.meta.flags['boss.sasha.yielded']).toBe(true);
     expect(events(g, 'dialogue.line').some((e) => t(e.data.text).includes('看走眼'))).toBe(true);
@@ -666,37 +668,52 @@ describe('bosses, yielding and waves', () => {
     expect(g.world.meta.flags['combat.wave.forest_vanguard.state']).toBe('active');
   });
 
-  it('story bosses sync to the party level when first pulled (capped at their design level)', () => {
-    const g = makeGame();
-    isolate(g);
-    withCtx(g, (ctx) => {
-      const u = ctx.world.slices.combat.units.player;
-      if (u) u.level = 20;
-    });
-    const king = spawnNear(g, 'faceless_king', 58, 3);
-    expect(units(g)[king]?.level).toBe(58);
-    g.queue('combat.attack', { on: true, targetId: king });
-    // Idle monsters think on a staggered schedule (by id hash), so step until the first
-    // pull rather than a fixed tick count.
-    for (let i = 0; i < 80 && units(g)[king]?.level === 58; i++) g.step(1);
-    // partySync { offset: -2, min: 10 }: two levels under the party of four, full health
-    const u = units(g)[king];
-    expect(u?.level).toBe(18);
-    if (!u) throw new Error('no king');
-    expect(u.hp).toBe(deriveStats(g.world, g.content, u).maxHp);
-    // never above the design level, never below the floor; ordinary monsters keep theirs
-    withCtx(g, (ctx) => {
+  it('story bosses sync to the player only at or below the catch-up line (progression 4.3)', () => {
+    /** Level of a monster after the player pulls it, with the act and player level set. */
+    function pulled(act: string | null, playerLevel: number, monsterId: string, level: number) {
+      const g = makeGame();
+      isolate(g);
+      if (act) g.queue('flag.set', { key: 'act', value: act });
+      withCtx(g, (ctx) => {
+        const u = ctx.world.slices.combat.units.player;
+        if (u) u.level = playerLevel;
+      });
+      const id = spawnNear(g, monsterId, level, 3);
+      expect(units(g)[id]?.level).toBe(level);
+      g.queue('combat.attack', { on: true, targetId: id });
+      // Idle monsters think on a staggered schedule (by id hash), so step until the first
+      // pull rather than a fixed tick count.
+      for (let i = 0; i < 80 && units(g)[id]?.ai?.state === 'idle'; i++) g.step(1);
+      const u = units(g)[id];
+      if (!u) throw new Error(`no ${monsterId}`);
+      expect(u.ai?.state).not.toBe('idle');
+      return { g, id, level: u.level, full: u.hp === deriveStats(g.world, g.content, u).maxHp };
+    }
+    // act 5 (band 55 to 60): the line is 53; partySync { offset: 0, min: 10 } (18.2)
+    const atLine = pulled('act5', 53, 'faceless_king', 60);
+    expect([atLine.level, atLine.full]).toEqual([53, true]);
+    const below = pulled('act5', 20, 'faceless_king', 60);
+    expect([below.level, below.full]).toEqual([20, true]);
+    expect(pulled('act5', 54, 'faceless_king', 60).level).toBe(60);
+    // act 2 (band 15 to 30): the line is 13; never below the sync floor (min 8)
+    const rat = pulled('act2', 13, 'rat_king', 18);
+    expect(rat.level).toBe(13);
+    expect(pulled('act2', 5, 'rat_king', 18).level).toBe(8);
+    expect(pulled('act2', 14, 'rat_king', 18).level).toBe(18);
+    // synced down once, the boss is back at its design level when the next pull (after an
+    // evade, say) finds the player over the line
+    withCtx(rat.g, (ctx) => {
       const p = ctx.world.slices.combat.units.player;
-      if (p) p.level = 60;
+      if (p) p.level = 14;
+      const boss = ctx.world.slices.combat.units[rat.id];
+      if (boss) syncToParty(ctx, boss);
     });
-    const second = spawnNear(g, 'rat_king', 18, -3);
-    g.queue('combat.attack', { on: true, targetId: second });
-    g.step(3);
-    expect(units(g)[second]?.level).toBe(18);
-    const wolf = spawnNear(g, 'grey_wolf', 3, 2);
-    g.queue('combat.attack', { on: true, targetId: wolf });
-    g.step(3);
-    expect(units(g)[wolf]?.level).toBe(3);
+    expect(units(rat.g)[rat.id]?.level).toBe(18);
+    // act 1 (band 1 to 15): the line is -1, so the colossus always keeps its design level;
+    // outside the acts (prologue) nothing syncs either; ordinary monsters never sync
+    expect(pulled('act1', 1, 'dian_colossus', 14).level).toBe(14);
+    expect(pulled(null, 20, 'faceless_king', 60).level).toBe(60);
+    expect(pulled('act5', 2, 'grey_wolf', 4).level).toBe(4);
   });
 });
 

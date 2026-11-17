@@ -6,6 +6,7 @@ import type { SystemContext } from '../../core/system';
 import type { World } from '../../core/world';
 import { entitiesNear, getEntity } from '../world';
 import { COMBAT_LINGER, monsterDef, secs } from './defs';
+import { syncLevel } from './progression';
 import type { Unit } from './types';
 import { canAttack, fillUp, liveUnit, setLevel, unitOf } from './units';
 
@@ -51,10 +52,12 @@ export function engage(ctx: SystemContext, u: Unit, attacker: Unit): void {
 }
 
 /**
- * Story encounters level-synced to the party (mechanics.partySync): when the monster is
- * first pulled, its level becomes the player's level plus the offset, kept between the
- * sync floor and the monster's own maximum (its design level). A scripted story beat the
- * player cannot defer stays a fight of the intended shape at any story-following level.
+ * Story bosses level-synced to the player (mechanics.partySync, the D-060 safety net of
+ * progression 4.3): on the first pull, only while the player is at or below the act's
+ * catch-up line (band floor minus 2), the level becomes the player's level plus the
+ * offset (0 under progression 18.2), kept between the sync floor and the design level.
+ * Above the line the boss is at its design level, also when an earlier pull had synced it
+ * down and the player has since climbed over the line.
  */
 export function syncToParty(ctx: SystemContext, u: Unit): void {
   const mon = monsterDef(ctx.content, u.monsterId);
@@ -62,7 +65,9 @@ export function syncToParty(ctx: SystemContext, u: Unit): void {
   if (!mon || !sync) return;
   const player = unitOf(ctx.world, ctx.world.slices.world.playerId);
   if (!player) return;
-  const level = Math.max(sync.min ?? 1, Math.min(mon.maxLevel, player.level + sync.offset));
+  const level =
+    syncLevel(sync, mon.maxLevel, player.level, ctx.flag('act')) ??
+    Math.max(mon.minLevel, Math.min(mon.maxLevel, u.level));
   if (level === u.level) return;
   setLevel(ctx, u, level);
   fillUp(ctx.world, ctx.content, u);

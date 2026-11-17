@@ -1,0 +1,262 @@
+{
+  "batch": "content_base_progression_01",
+  "status": "promoted",
+  "scope": "progression_and_pacing.md 18.1 (the 37 quest experience values, split at the stage settlement points of 3.1.1), 18.2 (boss and named-rare levels, layer multipliers and partySync, the RTS hero level floors), 13.1 and D-083 (the strategy truce of one 91-day season, D-049), and the bestiary act of the monsters V6 judges (release_engineering.md 7.4)",
+  "depends": [],
+  "sources": [
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/progression_and_pacing.md",
+      "section": "18.1"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/progression_and_pacing.md",
+      "section": "18.2"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/progression_and_pacing.md",
+      "section": "18.2"
+    },
+    {
+      "mapping": "manual",
+      "catalog": "docs/40_design/systems/grand_strategy_slg.md",
+      "section": "SLG-4"
+    },
+    { "mapping": "manual", "catalog": "docs/40_design/content/catalog_bestiary.md", "section": "3" }
+  ],
+  "files": [
+    "quests/quests.json",
+    "combat/monsters.json",
+    "warfare/scenarios.json",
+    "strategy/config.json"
+  ],
+  "added": [],
+  "changed": [
+    { "id": "q_a1_m02_raven", "fields": ["rewards"] },
+    { "id": "q_a1_m03_town", "fields": ["rewards"] },
+    { "id": "q_a1_m03_register", "fields": ["rewards"] },
+    { "id": "q_a1_m04_hunt", "fields": ["stages", "rewards"] },
+    { "id": "q_a1_m05_grey_wolf", "fields": ["stages", "rewards"] },
+    { "id": "q_a1_m06_mine", "fields": ["stages", "rewards"] },
+    { "id": "q_a1_m07_spring", "fields": ["rewards"] },
+    { "id": "q_a1_s09_coin", "fields": ["rewards"] },
+    { "id": "q_a1_m09_trial", "fields": ["stages", "rewards"] },
+    { "id": "q_a1_m12_tide", "fields": ["stages", "rewards"] },
+    { "id": "q_a1_m13_dream", "fields": ["rewards"] },
+    { "id": "q_a1_m13_letter", "fields": ["rewards"] },
+    { "id": "q_a2_m01_city", "fields": ["rewards"] },
+    { "id": "q_a2_m02_exam", "fields": ["stages", "rewards"] },
+    { "id": "q_a2_m03_company", "fields": ["rewards"] },
+    { "id": "q_a2_m03_village", "fields": ["rewards"] },
+    { "id": "q_a2_m12_defense", "fields": ["stages", "rewards"] },
+    { "id": "q_a3_m01_territory", "fields": ["rewards"] },
+    { "id": "q_a3_m01_build", "fields": ["rewards"] },
+    { "id": "q_a3_m02_thousand", "fields": ["stages", "rewards"] },
+    { "id": "q_a3_m09_ash", "fields": ["stages", "rewards"] },
+    { "id": "q_a3_m11_ashline", "fields": ["stages", "rewards"] },
+    { "id": "q_a4_m01_nation", "fields": ["stages", "rewards"] },
+    { "id": "q_a4_m02_feast", "fields": ["stages", "rewards"] },
+    { "id": "q_a4_m03_versions", "fields": ["rewards"] },
+    { "id": "q_a4_m13_conclave", "fields": ["stages", "rewards"] },
+    { "id": "q_a4_m14_revelation", "fields": ["rewards"] },
+    { "id": "q_a5_m03_born", "fields": ["rewards"] },
+    { "id": "q_a5_m08_route", "fields": ["rewards"] },
+    { "id": "q_a5_m11_final", "fields": ["stages", "rewards"] },
+    { "id": "q_a5_m12_trial", "fields": ["rewards"] },
+    { "id": "q_a6_m12_court", "fields": ["stages", "rewards"] },
+    { "id": "q_gl_merca_01", "fields": ["rewards"] },
+    { "id": "q_gl_eluen_01", "fields": ["rewards"] },
+    { "id": "q_a2_s07_archivist", "fields": ["rewards"] },
+    { "id": "q_a3_s04_sealed_room", "fields": ["rewards"] },
+    { "id": "split_ear", "fields": ["hpMult", "dmgMult", "xpMult"] },
+    { "id": "burrow_worm", "fields": ["act"] },
+    { "id": "black_ridge", "fields": ["hpMult", "dmgMult", "xpMult"] },
+    {
+      "id": "crystal_mother",
+      "fields": ["minLevel", "maxLevel", "hpMult", "dmgMult", "act", "xpMult"]
+    },
+    { "id": "vero", "fields": ["act"] },
+    { "id": "seg_oneeye", "fields": ["hpMult", "dmgMult", "mechanics", "act", "xpMult"] },
+    { "id": "guardian_raven", "fields": ["minLevel", "maxLevel", "xpMult"] },
+    { "id": "dian_colossus", "fields": ["hpMult", "dmgMult", "mechanics", "xpMult"] },
+    { "id": "disciple_cultist", "fields": ["act"] },
+    { "id": "rat_king", "fields": ["hpMult", "dmgMult", "mechanics", "xpMult"] },
+    { "id": "crystal_centipede", "fields": ["hpMult", "dmgMult", "xpMult"] },
+    { "id": "waste_ghoul", "fields": ["act"] },
+    { "id": "ash_elemental", "fields": ["act"] },
+    { "id": "ashen_knight", "fields": ["act"] },
+    { "id": "dian_drake", "fields": ["act"] },
+    { "id": "crusader_soldier", "fields": ["act"] },
+    { "id": "crusader_inquisitor", "fields": ["act"] },
+    { "id": "redfang_brute", "fields": ["act"] },
+    { "id": "wing_demon_scout", "fields": ["act"] },
+    { "id": "night_demon_caster", "fields": ["act"] },
+    { "id": "disciple_guide", "fields": ["minLevel", "maxLevel"] },
+    { "id": "faceless_soldier", "fields": ["minLevel", "maxLevel"] },
+    { "id": "sasha", "fields": ["hpMult", "dmgMult", "xpMult", "act"] },
+    { "id": "faceless_king", "fields": ["minLevel", "maxLevel", "mechanics", "xpMult"] },
+    { "id": "act2_city_defense", "fields": ["teams"] },
+    { "id": "act3_bone_field", "fields": ["teams"] },
+    { "id": "act3_north_raid", "fields": ["teams"] },
+    { "id": "slg_config", "fields": ["truceDays"] }
+  ],
+  "removed": [],
+  "diff": [
+    {
+      "file": "quests/quests.json",
+      "table": "quests",
+      "added": [],
+      "changed": [
+        { "id": "q_a1_m02_raven", "fields": ["rewards"] },
+        { "id": "q_a1_m03_town", "fields": ["rewards"] },
+        { "id": "q_a1_m03_register", "fields": ["rewards"] },
+        { "id": "q_a1_m04_hunt", "fields": ["stages", "rewards"] },
+        { "id": "q_a1_m05_grey_wolf", "fields": ["stages", "rewards"] },
+        { "id": "q_a1_m06_mine", "fields": ["stages", "rewards"] },
+        { "id": "q_a1_m07_spring", "fields": ["rewards"] },
+        { "id": "q_a1_s09_coin", "fields": ["rewards"] },
+        { "id": "q_a1_m09_trial", "fields": ["stages", "rewards"] },
+        { "id": "q_a1_m12_tide", "fields": ["stages", "rewards"] },
+        { "id": "q_a1_m13_dream", "fields": ["rewards"] },
+        { "id": "q_a1_m13_letter", "fields": ["rewards"] },
+        { "id": "q_a2_m01_city", "fields": ["rewards"] },
+        { "id": "q_a2_m02_exam", "fields": ["stages", "rewards"] },
+        { "id": "q_a2_m03_company", "fields": ["rewards"] },
+        { "id": "q_a2_m03_village", "fields": ["rewards"] },
+        { "id": "q_a2_m12_defense", "fields": ["stages", "rewards"] },
+        { "id": "q_a3_m01_territory", "fields": ["rewards"] },
+        { "id": "q_a3_m01_build", "fields": ["rewards"] },
+        { "id": "q_a3_m02_thousand", "fields": ["stages", "rewards"] },
+        { "id": "q_a3_m09_ash", "fields": ["stages", "rewards"] },
+        { "id": "q_a3_m11_ashline", "fields": ["stages", "rewards"] },
+        { "id": "q_a4_m01_nation", "fields": ["stages", "rewards"] },
+        { "id": "q_a4_m02_feast", "fields": ["stages", "rewards"] },
+        { "id": "q_a4_m03_versions", "fields": ["rewards"] },
+        { "id": "q_a4_m13_conclave", "fields": ["stages", "rewards"] },
+        { "id": "q_a4_m14_revelation", "fields": ["rewards"] },
+        { "id": "q_a5_m03_born", "fields": ["rewards"] },
+        { "id": "q_a5_m08_route", "fields": ["rewards"] },
+        { "id": "q_a5_m11_final", "fields": ["stages", "rewards"] },
+        { "id": "q_a5_m12_trial", "fields": ["rewards"] },
+        { "id": "q_a6_m12_court", "fields": ["stages", "rewards"] },
+        { "id": "q_gl_merca_01", "fields": ["rewards"] },
+        { "id": "q_gl_eluen_01", "fields": ["rewards"] },
+        { "id": "q_a2_s07_archivist", "fields": ["rewards"] },
+        { "id": "q_a3_s04_sealed_room", "fields": ["rewards"] }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "combat/monsters.json",
+      "table": "monsters",
+      "added": [],
+      "changed": [
+        { "id": "split_ear", "fields": ["hpMult", "dmgMult", "xpMult"] },
+        { "id": "burrow_worm", "fields": ["act"] },
+        { "id": "black_ridge", "fields": ["hpMult", "dmgMult", "xpMult"] },
+        {
+          "id": "crystal_mother",
+          "fields": ["minLevel", "maxLevel", "hpMult", "dmgMult", "act", "xpMult"]
+        },
+        { "id": "vero", "fields": ["act"] },
+        { "id": "seg_oneeye", "fields": ["hpMult", "dmgMult", "mechanics", "act", "xpMult"] },
+        { "id": "guardian_raven", "fields": ["minLevel", "maxLevel", "xpMult"] },
+        { "id": "dian_colossus", "fields": ["hpMult", "dmgMult", "mechanics", "xpMult"] },
+        { "id": "disciple_cultist", "fields": ["act"] },
+        { "id": "rat_king", "fields": ["hpMult", "dmgMult", "mechanics", "xpMult"] },
+        { "id": "crystal_centipede", "fields": ["hpMult", "dmgMult", "xpMult"] },
+        { "id": "waste_ghoul", "fields": ["act"] },
+        { "id": "ash_elemental", "fields": ["act"] },
+        { "id": "ashen_knight", "fields": ["act"] },
+        { "id": "dian_drake", "fields": ["act"] },
+        { "id": "crusader_soldier", "fields": ["act"] },
+        { "id": "crusader_inquisitor", "fields": ["act"] },
+        { "id": "redfang_brute", "fields": ["act"] },
+        { "id": "wing_demon_scout", "fields": ["act"] },
+        { "id": "night_demon_caster", "fields": ["act"] },
+        { "id": "disciple_guide", "fields": ["minLevel", "maxLevel"] },
+        { "id": "faceless_soldier", "fields": ["minLevel", "maxLevel"] },
+        { "id": "sasha", "fields": ["hpMult", "dmgMult", "xpMult", "act"] },
+        { "id": "faceless_king", "fields": ["minLevel", "maxLevel", "mechanics", "xpMult"] }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "warfare/scenarios.json",
+      "table": "battle_scenarios",
+      "added": [],
+      "changed": [
+        { "id": "act2_city_defense", "fields": ["teams"] },
+        { "id": "act3_bone_field", "fields": ["teams"] },
+        { "id": "act3_north_raid", "fields": ["teams"] }
+      ],
+      "unchanged": []
+    },
+    {
+      "file": "strategy/config.json",
+      "table": "slg_config",
+      "added": [],
+      "changed": [{ "id": "slg_config", "fields": ["truceDays"] }],
+      "unchanged": []
+    }
+  ],
+  "unmapped": [],
+  "validation": {
+    "milestone": "M0",
+    "at": "2026-11-16",
+    "ok": true,
+    "results": [
+      { "id": "V1", "title": "schema", "errors": 0, "warnings": 0 },
+      { "id": "V2", "title": "references", "errors": 0, "warnings": 0 },
+      { "id": "V3", "title": "namespaces", "errors": 0, "warnings": 0 },
+      { "id": "V4", "title": "variable registry", "errors": 0, "warnings": 337 },
+      { "id": "V5", "title": "reveal ledger", "errors": 0, "warnings": 9 },
+      { "id": "V6", "title": "numeric bands", "errors": 0, "warnings": 18 },
+      { "id": "V7", "title": "asset references", "errors": 0, "warnings": 3 },
+      { "id": "V8", "title": "text", "errors": 0, "warnings": 0 },
+      { "id": "V9", "title": "reachability", "errors": 0, "warnings": 9 },
+      { "id": "V10", "title": "proper nouns", "errors": 0, "warnings": 3 }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "scope",
+      "at": "2026-11-16",
+      "note": "PK-M0-29: one batch for the 18.1 quest experience and the 18.2 boss rescale, with the RTS hero floors, the truce of one season and the bestiary acts V6 needs to block from M1"
+    },
+    {
+      "step": 3,
+      "name": "fill",
+      "at": "2026-11-16",
+      "note": "direct edit of the four data files (no catalog mapping covers progression tables): quest xp rewards and stage onComplete xp at the settlement points of 18.1; monster levels, hpMult, dmgMult, xpMult and partySync offset 0 for the story bosses of 18.2 (deviation: disciple_guide keeps its partySync, which 18.2 removes, and faceless_soldier keeps its own, because both only appear as the summoned adds of the synced final boss; both move into the act 5 band, 55 to 57 and 55 to 58, off the 50 to 52 and 52 to 55 of catalog_bestiary.md 3; deviation: faceless_king takes the 18.2 level 60, xpMult 5 and partySync offset 0 but keeps hpMult 3 and dmgMult 0.6, because with 10.4 and 1.47 the no-model release route dies at the synced final boss over and over (measured from a snapshot at the king stage, player level 35 with three companions: at 10.4 and 1.47, 30 deaths over 530,000 ticks without a yield; at 7.5 or 5 no yield in five times the run time the old values needed; at 3 and 0.6 a yield after 14 deaths and 146,000 ticks); 18.2 leaves the final values to the boss metrics of section 17); the bestiary act on fifteen monsters: ten placed on act 1 maps but belonging to acts 2 and 3, five placed nowhere yet (burrow_worm, crystal_mother, vero, seg_oneeye, sasha); minLevel 28, 30 and 36 on the player hero of act2_city_defense, act3_bone_field and act3_north_raid; truceDays 91"
+    },
+    {
+      "step": 4,
+      "name": "validate",
+      "at": "2026-11-16",
+      "command": "node tools/content/validate.ts --warnings",
+      "note": "V1 to V10 green at M0; V6 0 errors at M1 (node tools/content/validate.ts --only V6 --milestone M1)"
+    },
+    {
+      "step": 5,
+      "name": "promote",
+      "at": "2026-11-16",
+      "note": "edited in place under data/, so the files keep their formatting; this record was written from the git diff of the four files"
+    },
+    {
+      "step": 6,
+      "name": "verify",
+      "at": "2026-11-16",
+      "note": "npm run typecheck: clean; npm test: 1915 passed, 2 failed, neither from this batch (art_manifest: untracked art files of another package; core.test hour and day events: a 30 s timeout under load, 8 of 8 pass alone); node tools/content/validate.ts: V1 to V10 green at M0, V6 0 errors at M1; npm run registry:check: current; npm run playthrough: act 1 minimal route passed (level 13 at the change into act 2, tick 558,750), rule_merca passed, replay passed; release finished the route (ending release, 2,366,897 ticks) but hit the 30 minute test timeout under parallel load, and passed alone in 1,494 s; replay_segments hit its 30 minute hook timeout (act 5 reached, tick 2,025,300). Boss check from snapshots: the 18.2 faceless_king health and damage make the synced final unwinnable for the no-model party, so they stay at the old values (step 3)"
+    },
+    {
+      "step": 7,
+      "name": "report",
+      "at": "2026-11-16",
+      "note": "old and new values: progression_and_pacing.md 18.1 and 18.2 (their old and new columns); this record lists the changed ids and fields; deviations from 18.2 are named in step 3"
+    }
+  ]
+}

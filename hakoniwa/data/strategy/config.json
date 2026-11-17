@@ -1,7 +1,7 @@
 {
   "loreScale": 30,
   "maxKernelRegiment": 300,
-  "truceDays": 28,
+  "truceDays": 91,
   "rulerEveryDays": 28,
   "playerProvinces": ["ash_border", "ash_rim"],
   "playerNation": {

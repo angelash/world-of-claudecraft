@@ -43,7 +43,13 @@ import {
 } from '../tools/content/validators';
 import { earliestActs } from '../tools/content/validators/acts';
 import { assetFindings, assetStems } from '../tools/content/validators/assets';
-import { balanceFindings, materialTiers, tierForLevel } from '../tools/content/validators/balance';
+import {
+  balanceFindings,
+  materialTiers,
+  questXp,
+  summonOnlyMonsters,
+  tierForLevel,
+} from '../tools/content/validators/balance';
 import { ledgerFindings, worldWhere } from '../tools/content/validators/ledger';
 import { nameFindings } from '../tools/content/validators/names';
 import { namespaceFindings, namespaceOf } from '../tools/content/validators/namespace';
@@ -352,13 +358,82 @@ describe('V6 numeric bands', () => {
     expect(tierForLevel(35)).toBe(4);
   });
 
-  it('judges real monsters at the act the content places them: warns at M0, blocks from M1', () => {
-    const inferred = (fs: { message: string }[]) =>
+  it('judges monsters at the act the content places them: warns at M0, blocks from M1', () => {
+    const inferred = <F extends { message: string }>(fs: F[]) =>
       fs.filter((f) => f.message.includes('act inferred'));
-    const at0 = balanceFindings(real);
-    expect(inferred(at0).length).toBeGreaterThan(0);
-    expect(errors(inferred(at0) as { level: string; message: string }[])).toEqual([]);
-    expect(errors(balanceFindings({ ...real, milestone: 1 })).length).toBe(inferred(at0).length);
+    // the PK-M0-29 rescale left every placed monster of the real data inside its band
+    expect(inferred(balanceFindings(real))).toEqual([]);
+    expect(errors(balanceFindings({ ...real, milestone: 1 }))).toEqual([]);
+    // a monster of an act 1 map (wandering_bones, ash_waste) moved out of the act 1 band
+    const deep = (patch: Row) =>
+      withTables({
+        monsters: rows(real, 'monsters').map((m) =>
+          m.id === 'wandering_bones' ? { ...m, minLevel: 30, maxLevel: 34, ...patch } : m,
+        ),
+      });
+    const at0 = inferred(balanceFindings(deep({})));
+    expect(at0.map((f) => [f.row, f.level])).toEqual([['wandering_bones', 'warning']]);
+    expect(errors(balanceFindings({ ...deep({}), milestone: 1 }))).toEqual([
+      'monsters:wandering_bones: level 30 to 34 outside act 1 band 1 to 15 (act inferred from where the content places it)',
+    ]);
+    // the bestiary act a row declares wins over the inference (and blocks at once)
+    expect(errors(balanceFindings({ ...deep({ act: 'act3' }), milestone: 1 }))).toEqual([]);
+    expect(errors(balanceFindings(deep({ act: 'act2' })))).toEqual([
+      'monsters:wandering_bones: level 30 to 34 outside act 2 band 15 to 30',
+    ]);
+  });
+
+  it('leaves a monster only summons place to its summoner level (a warlock imp)', () => {
+    expect(summonOnlyMonsters(real.content).has('contract_imp')).toBe(true);
+    expect(summonOnlyMonsters(real.content).has('dian_spirit')).toBe(false);
+    expect(errors(balanceFindings({ ...real, milestone: 1 })).join('\n')).not.toContain(
+      'contract_imp',
+    );
+    expect(
+      balanceFindings(real).some(
+        (f) =>
+          f.level === 'info' &&
+          f.message.includes('only summons place') &&
+          f.message.includes('contract_imp'),
+      ),
+    ).toBe(true);
+    // placed by a map as well, the same row is judged again
+    const placed = withTables({
+      maps: rows(real, 'maps').map((m) =>
+        m.id === 'forest_edge'
+          ? {
+              ...m,
+              spawns: [
+                ...((m.spawns as unknown[]) ?? []),
+                { id: 'x_imp', kind: 'monster', ref: 'contract_imp', x: 1, y: 1 },
+              ],
+            }
+          : m,
+      ),
+    });
+    expect(summonOnlyMonsters(placed.content).has('contract_imp')).toBe(false);
+    expect(errors(balanceFindings({ ...placed, milestone: 1 })).join('\n')).toContain(
+      'monsters:contract_imp: level 1 to 60 outside act 1 band',
+    );
+  });
+
+  it('counts every xp effect of a quest: start, stages and rewards', () => {
+    expect(
+      questXp({
+        onStart: [{ type: 'xp', amount: 5 }],
+        stages: [
+          { onEnter: [{ type: 'xp', amount: 10 }], onComplete: [{ type: 'xp', amount: 20 }] },
+          { onComplete: [{ type: 'flag', key: 'x', value: true }] },
+        ],
+        rewards: [
+          { type: 'money', amount: 999 },
+          { type: 'xp', amount: 40 },
+        ],
+      }),
+    ).toBe(75);
+    // the rescaled act 1 main line of progression 18.1 (q_a1_m07_spring is data side)
+    const act1 = rows(real, 'quests').filter((q) => q.act === 'act1' && q.kind === 'main');
+    expect(act1.reduce((s, q) => s + questXp(q), 0)).toBe(21190);
   });
 });
 

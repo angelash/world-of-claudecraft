@@ -224,6 +224,13 @@ export const pack: ContentPack = {
           ],
         },
         { key: 'faction', label: '势力', type: 'string' },
+        {
+          key: 'act',
+          label: '首见幕',
+          type: 'enum',
+          options: ['act1', 'act2', 'act3', 'act4', 'act5', 'act6'],
+          help: '图鉴的首见幕；数值带校验（V6）按此幕的等级带判定',
+        },
         { key: 'minLevel', label: '最低等级', type: 'number', min: 1, max: 60 },
         { key: 'maxLevel', label: '最高等级', type: 'number', min: 1, max: 60 },
         { key: 'rank', label: '级别', type: 'enum', options: ['normal', 'elite', 'rare', 'boss'] },

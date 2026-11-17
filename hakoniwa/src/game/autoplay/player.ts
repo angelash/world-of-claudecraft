@@ -9,6 +9,7 @@ import type { Engine } from '../../core/engine';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { courtSite } from '../../systems/city/common';
 import { unitView, xpProgress } from '../../systems/combat';
+import { catchUpActive } from '../../systems/combat/progression';
 import { currentConversation } from '../../systems/dialogue';
 import { corridorView } from '../../systems/doors';
 import { holdingOf } from '../../systems/inventory';
@@ -36,6 +37,7 @@ import {
 } from './fight';
 import { gearUpgrade } from './goods';
 import { insideLocation, locationPoint, nextLeg } from './nav';
+import { upcomingWaveBosses } from './prepare';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
 
@@ -661,7 +663,13 @@ export class Autoplayer {
     for (const def of offers) {
       return this.talk(def.giver as string, `quests:accept:${def.id}`, `accept ${def.id}`);
     }
-    // 3. work on the active main quests, in start order
+    // 3. a boss the coming beats bring in with a wave arrives too late to level for it:
+    // get ready for it first, wherever there is prey for the player's level
+    for (const ref of upcomingWaveBosses(this.content, slice.quests, slice.order)) {
+      if (this.readyFor(ref, true) || !this.huntingGround()) continue;
+      return this.grind(`prepare for ${ref}`);
+    }
+    // 4. work on the active main quests, in start order
     let waiting: number | null = null;
     for (const id of slice.order) {
       const q = slice.quests[id];
@@ -715,7 +723,9 @@ export class Autoplayer {
       case 'kill': {
         if (o.ref && this.holds(o.orWhen)) return -20;
         const named = o.ref ?? (o.refs?.length === 1 ? o.refs[0] : undefined);
-        if (named && !this.readyFor(named)) return this.grind(`${why} (not ready)`);
+        // not ready: level first, unless no prey is left anywhere (the fight is the way on)
+        if (named && !this.readyFor(named) && this.huntingGround())
+          return this.grind(`${why} (not ready)`);
         if (named && !this.fitFor(3) && attackers(this.world).length === 0) {
           return this.rest(`${why}: rest to full before the fight`);
         }
@@ -802,16 +812,23 @@ export class Autoplayer {
   }
 
   /** Level the player wants before taking on this monster (bosses need a margin). */
-  readyFor(ref: string): boolean {
-    // story bosses meet the party at its own level (mechanics.partySync): no grind helps
+  readyFor(ref: string, ahead = false): boolean {
+    // story bosses meet a player at or below the catch-up line at its own level
+    // (mechanics.partySync, progression 4.3): no grind helps; above it they keep their
+    // design level and need the margin below
     const def = this.content.monsters.find((m) => m.id === ref);
-    if (def?.mechanics?.partySync) return true;
+    if (def?.mechanics?.partySync && catchUpActive(xpProgress(this.world).level, this.flags.act))
+      return true;
     let level = 0;
     for (const e of Object.values(this.world.slices.world.entities)) {
       if (e.ref === ref && e.kind === 'monster' && e.alive) {
         level = Math.max(level, unitLevel(this.world, e.id));
       }
     }
+    // looking ahead to a boss not yet in the world: its design level; a story boss an
+    // earlier pull synced down is back at its design range on the next pull above the line
+    if (level === 0 && ahead && def) level = def.maxLevel;
+    if (level > 0 && def?.mechanics?.partySync) level = Math.max(level, def.minLevel);
     if (level === 0) return true;
     // an outsider alone needs a clear margin over a boss and its adds; companions close it
     const party = Object.keys(this.world.slices.party?.members ?? {}).length;
@@ -820,14 +837,25 @@ export class Autoplayer {
     return xpProgress(this.world).level >= level + margin + Math.min(losses, 4);
   }
 
-  /** Gain experience on the best nearby hunting ground for the player's level. */
-  grind(why: string): number {
+  /**
+   * The best reachable map with prey for the player's level (the lightest pull and the
+   * fewest hops), or null when there is none.
+   */
+  private huntingGround(): { id: string; cost: number; reach: number } | null {
+    // prey up to one level above the player; when there is none anywhere (the next
+    // dungeon starts a few levels up), up to three above
+    for (let reach = 1; reach <= 3; reach++) {
+      const ground = this.groundWithin(reach);
+      if (ground) return { ...ground, reach };
+    }
+    return null;
+  }
+
+  private groundWithin(reach: number): { id: string; cost: number } | null {
     const p = this.player();
-    if (!p) return IDLE_STEP;
+    if (!p) return null;
     const me = xpProgress(this.world).level;
-    const fit = (lvl: number) => lvl <= me + 1 && lvl >= me - 5;
-    // what the party can take: its strength, or the lightest pull around when nothing
-    // that light exists (pairs everywhere early on), taken only at full health
+    const fit = (lvl: number) => lvl <= me + reach && lvl >= me - 5;
     const strength = partyStrength(this.world);
     const pulls = new Map<string, { cost: number; n: number }>();
     for (const u of Object.values(this.world.slices.combat.units)) {
@@ -850,10 +878,23 @@ export class Autoplayer {
       const score = Math.max(v.cost, strength * 0.8) * 4 + hops - Math.min(v.n, 8) * 0.25;
       if (!best || score < best.score) best = { id, cost: v.cost, score };
     }
+    return best;
+  }
+
+  /** Gain experience on the best nearby hunting ground for the player's level. */
+  grind(why: string): number {
+    const p = this.player();
+    if (!p) return IDLE_STEP;
+    const me = xpProgress(this.world).level;
+    // what the party can take: its strength, or the lightest pull around when nothing
+    // that light exists (pairs everywhere early on), taken only at full health
+    const strength = partyStrength(this.world);
+    const best = this.huntingGround();
     if (!best) {
       this.intent = { what: `${why}: no prey for Lv${me}` };
       return IDLE_STEP;
     }
+    const fit = (lvl: number) => lvl <= me + best.reach && lvl >= me - 5;
     const limit = Math.max(strength, best.cost + 0.05);
     if (best.id === p.mapId) {
       const here = huntable(this.world, (e, u) => e.kind === 'monster' && fit(u.level)).filter(

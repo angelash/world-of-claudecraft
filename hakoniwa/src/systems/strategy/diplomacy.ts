@@ -6,6 +6,7 @@ import { type CommandResult, ok, reject } from '../../core';
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { joinText, type KeyText, tr } from '../../core/text';
+import { DAYS_PER_SEASON } from '../../core/time';
 import { neighbors } from './map';
 import {
   addTreaty,
@@ -108,7 +109,7 @@ export function makePeace(ctx: SystemContext, war: War, kind: 'truce' | 'peace')
   const s = strat(ctx);
   s.wars = s.wars.filter((w) => w.id !== war.id);
   const act = currentAct(ctx);
-  const truceDays = ctx.content.slg_config?.truceDays ?? 28;
+  const truceDays = ctx.content.slg_config?.truceDays ?? DAYS_PER_SEASON;
   for (const a of war.attackers) {
     for (const d of war.defenders) {
       s.truces.push({ a, b: d, untilDay: s.day + truceDays, act });

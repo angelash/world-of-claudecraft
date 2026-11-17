@@ -291,6 +291,11 @@ export interface MonsterDef {
   /** race tag for humanoids that are people, not monsters (power_system.md 7.3) */
   race?: string;
   faction: string;
+  /**
+   * act of first appearance (act1 to act6) as the bestiary declares it; the content
+   * validator judges the level band at this act (V6). The kernel does not read it.
+   */
+  act?: string;
   minLevel: number;
   maxLevel: number;
   rank?: MonsterRank;

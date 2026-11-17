@@ -134,7 +134,9 @@ describe('acts and the main line', () => {
     g.step(1);
     expect(g.world.meta.flags['quest.q_a1_m04_hunt']).toBe('done');
     expect(g.world.slices.inventory.owners.player?.money).toBe(300);
-    expect(g.world.recent.some((e) => e.kind === 'xp.awarded' && e.data.amount === 250)).toBe(true);
+    // progression 18.1: 640 paid at two settlement points, the hunt (stage) and the turn-in
+    const xp = g.world.recent.flatMap((e) => (e.kind === 'xp.awarded' ? [e.data.amount] : []));
+    expect(xp).toEqual([320, 320]);
   });
 
   it('completes a boss objective through the combat flag (orWhen) and recruits the companion', () => {

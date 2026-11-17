@@ -439,8 +439,8 @@
 | `redfang_brute` | 红牙军鬼人重步兵 | 环境·无·人 | humanoid E（鬼人） | 38到42 | `waste` 红牙丘；北境 | 同上 | 一名士兵，不是"鬼人类魔物" |
 | `wing_demon_scout` | 翼魔游骑 | 环境·无·人 | humanoid N（翼魔） | 38到42 | 同上 | 同上 | 无 |
 | `night_demon_caster` | 夜魔施法者 | 环境·无·人 | humanoid N（夜魔） | 40到44 | 同上 | 同上 | 无 |
-| `disciple_guide` | 门徒会引导者 | 环境·无·人 | humanoid E（混族） | 50到52 | `waste` 核心；第五幕门环线 | 本文 | 无 |
-| `faceless_soldier` | 千貌兵 | 5·古·澱生 | elemental N | 52到55 | `waste` 核心；灰潮；北线 | 本文 | 戴着死者与被吞者的脸（[五幕 2.2][a5]） |
+| `disciple_guide` | 门徒会引导者 | 环境·无·人 | humanoid E（混族） | 55到57 | `waste` 核心；第五幕门环线 | 本文 | 无 |
+| `faceless_soldier` | 千貌兵 | 5·古·澱生 | elemental N | 55到58 | `waste` 核心；灰潮；北线 | 本文 | 戴着死者与被吞者的脸（[五幕 2.2][a5]） |
 | `sasha` | 红牙将军萨莎 | 环境·无·人 | humanoid B（鬼人） | 48 | `lotha` 北境霜脊堡（霜脊堡之战，三） | 对手战与人物目录 | 无 |
 | `faceless_king` | 无貌之王 | 临界·古·侵蚀者（魔王） | undead B | 58 | `dg_main_gate_pit` | 迷宫与首领目录 | 无 |
 | `contract_imp` | 契约小鬼 | 环境·契·契约魔 | demon N | 1到60 | 术士的召唤 | 兽伴坐骑目录（`fiend_`） | 野外同类见 `breach_imp` |

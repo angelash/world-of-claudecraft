@@ -80,7 +80,8 @@
             "x": 16.5,
             "y": 10.5,
             "abilities": ["charge", "inspire", "cleave"],
-            "ref": "player"
+            "ref": "player",
+            "minLevel": 28
           },
           {
             "id": "ron",
@@ -340,7 +341,8 @@
             "x": 18,
             "y": 13.5,
             "abilities": ["charge", "inspire", "cleave"],
-            "ref": "player"
+            "ref": "player",
+            "minLevel": 30
           },
           {
             "id": "ron",
@@ -578,7 +580,8 @@
             "x": 22,
             "y": 17.5,
             "abilities": ["charge", "inspire", "cleave"],
-            "ref": "player"
+            "ref": "player",
+            "minLevel": 36
           },
           {
             "id": "ron",

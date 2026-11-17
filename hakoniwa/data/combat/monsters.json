@@ -132,8 +132,8 @@
     "minLevel": 6,
     "maxLevel": 6,
     "rank": "rare",
-    "hpMult": 0.9,
-    "dmgMult": 0.8,
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
     "speed": 4.8,
     "aggroRadius": 6,
     "leash": 20,
@@ -153,6 +153,7 @@
       }
     ],
     "money": [20, 40],
+    "xpMult": 1.5,
     "appearance": {
       "base": "wolf",
       "colors": ["#6e6a63", "#47443f", "#b33a2a", "#1a1a1a"],
@@ -262,6 +263,7 @@
     "desc": "旧矿里的大虫，从石缝里钻出来。",
     "family": "burrower",
     "faction": "monster",
+    "act": "act1",
     "minLevel": 5,
     "maxLevel": 8,
     "hpMult": 1.1,
@@ -389,7 +391,8 @@
     "minLevel": 11,
     "maxLevel": 11,
     "rank": "rare",
-    "hpMult": 1.2,
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
     "speed": 4,
     "aggroRadius": 6,
     "leash": 22,
@@ -407,6 +410,7 @@
       }
     ],
     "money": [60, 120],
+    "xpMult": 1.5,
     "appearance": {
       "base": "bear",
       "colors": ["#1f1d1b", "#3d3833", "#7a6f64", "#0c0b0a"],
@@ -444,11 +448,12 @@
     "desc": "旧矿下层晶脉里的巢主，背上长满澱晶。打它的时候矿顶会落晶。",
     "family": "burrower",
     "faction": "monster",
-    "minLevel": 9,
-    "maxLevel": 9,
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 8,
     "rank": "boss",
-    "hpMult": 1.6,
-    "dmgMult": 0.7,
+    "hpMult": 3.48,
+    "dmgMult": 1.2,
     "speed": 3,
     "aggroRadius": 6,
     "leash": 24,
@@ -477,6 +482,7 @@
       }
     ],
     "money": [40, 80],
+    "xpMult": 2.5,
     "appearance": {
       "base": "beetle",
       "colors": ["#6a6f7a", "#9fb4c8", "#d9e4ef", "#2a2d33"],
@@ -490,6 +496,7 @@
     "family": "humanoid",
     "race": "human",
     "faction": "oneeye",
+    "act": "act1",
     "minLevel": 10,
     "maxLevel": 10,
     "rank": "elite",
@@ -522,11 +529,12 @@
     "family": "humanoid",
     "race": "human",
     "faction": "oneeye",
+    "act": "act1",
     "minLevel": 12,
     "maxLevel": 12,
     "rank": "boss",
-    "hpMult": 1.3,
-    "dmgMult": 0.8,
+    "hpMult": 3.48,
+    "dmgMult": 1.2,
     "speed": 3.8,
     "aggroRadius": 5,
     "leash": 22,
@@ -539,6 +547,9 @@
         "belowPct": 0.3,
         "aura": "blood_rage",
         "say": "再来！"
+      },
+      "partySync": {
+        "offset": 0
       }
     },
     "loot": [
@@ -552,6 +563,7 @@
       }
     ],
     "money": [80, 160],
+    "xpMult": 2.5,
     "appearance": {
       "base": "human",
       "colors": ["#4a3a2a", "#2b211a", "#d6a888", "#141414"],
@@ -564,8 +576,8 @@
     "desc": "被澱侵蚀多年的雅努信使，守着巢井不让任何东西出入。它不会死。",
     "family": "beast",
     "faction": "ruin_ravens",
-    "minLevel": 5,
-    "maxLevel": 5,
+    "minLevel": 3,
+    "maxLevel": 3,
     "rank": "boss",
     "hpMult": 1,
     "dmgMult": 0.45,
@@ -614,7 +626,7 @@
       }
     ],
     "money": [30, 60],
-    "xpMult": 2,
+    "xpMult": 1,
     "appearance": {
       "base": "bird",
       "colors": ["#141418", "#3a3a44", "#c8a24a", "#c0c8d0"],
@@ -630,8 +642,8 @@
     "minLevel": 14,
     "maxLevel": 14,
     "rank": "boss",
-    "hpMult": 3,
-    "dmgMult": 0.8,
+    "hpMult": 4.72,
+    "dmgMult": 1.33,
     "attackSpeed": 2.6,
     "speed": 2.8,
     "aggroRadius": 9,
@@ -666,7 +678,10 @@
         "belowPct": 0.35,
         "aura": "enrage"
       },
-      "presence": 4
+      "presence": 4,
+      "partySync": {
+        "offset": 0
+      }
     },
     "loot": [
       {
@@ -681,7 +696,7 @@
       }
     ],
     "money": [120, 240],
-    "xpMult": 3,
+    "xpMult": 4,
     "appearance": {
       "base": "golem",
       "colors": ["#4d4a46", "#2a2826", "#8c857c", "#b8c4d0"],
@@ -837,6 +852,7 @@
     "family": "humanoid",
     "race": "human",
     "faction": "disciples",
+    "act": "act2",
     "minLevel": 25,
     "maxLevel": 27,
     "hpMult": 0.9,
@@ -877,8 +893,8 @@
     "minLevel": 18,
     "maxLevel": 18,
     "rank": "boss",
-    "hpMult": 2.5,
-    "dmgMult": 0.7,
+    "hpMult": 3.4,
+    "dmgMult": 1.33,
     "attackSpeed": 1.6,
     "speed": 3.4,
     "aggroRadius": 6,
@@ -886,7 +902,7 @@
     "abilities": ["monster_cleave", "dian_bite"],
     "mechanics": {
       "partySync": {
-        "offset": 2,
+        "offset": 0,
         "min": 8
       },
       "summon": [
@@ -925,7 +941,7 @@
       }
     ],
     "money": [100, 200],
-    "xpMult": 2,
+    "xpMult": 4,
     "appearance": {
       "base": "rat",
       "colors": ["#5e544a", "#3a332c", "#c9a9a0", "#1e1a16"],
@@ -941,8 +957,8 @@
     "minLevel": 27,
     "maxLevel": 27,
     "rank": "boss",
-    "hpMult": 3,
-    "dmgMult": 0.75,
+    "hpMult": 6.52,
+    "dmgMult": 1.33,
     "speed": 3.4,
     "aggroRadius": 7,
     "leash": 28,
@@ -978,7 +994,7 @@
       }
     ],
     "money": [300, 600],
-    "xpMult": 2,
+    "xpMult": 4,
     "appearance": {
       "base": "centipede",
       "colors": ["#3c4a58", "#7fa6c6", "#d6ecff", "#12171c"],
@@ -991,6 +1007,7 @@
     "desc": "穿着千年前衣服的亡灵，身上有门形的空洞。",
     "family": "undead",
     "faction": "monster",
+    "act": "act3",
     "minLevel": 30,
     "maxLevel": 34,
     "speed": 3.6,
@@ -1022,6 +1039,7 @@
     "desc": "古澱凝成的灰色旋涡。",
     "family": "elemental",
     "faction": "monster",
+    "act": "act3",
     "minLevel": 36,
     "maxLevel": 40,
     "speed": 3.2,
@@ -1052,6 +1070,7 @@
     "desc": "千年前的骑士铠，里面只有灰。精英。",
     "family": "undead",
     "faction": "monster",
+    "act": "act3",
     "minLevel": 35,
     "maxLevel": 38,
     "rank": "elite",
@@ -1082,6 +1101,7 @@
     "desc": "凡人叫它恶龙，其实是澱化的飞蜥。精英。",
     "family": "dragonkin",
     "faction": "monster",
+    "act": "act3",
     "minLevel": 40,
     "maxLevel": 44,
     "rank": "elite",
@@ -1117,6 +1137,7 @@
     "family": "humanoid",
     "race": "human",
     "faction": "crusade",
+    "act": "act3",
     "minLevel": 32,
     "maxLevel": 36,
     "speed": 3.6,
@@ -1146,6 +1167,7 @@
     "family": "humanoid",
     "race": "human",
     "faction": "crusade",
+    "act": "act3",
     "minLevel": 36,
     "maxLevel": 40,
     "rank": "elite",
@@ -1175,6 +1197,7 @@
     "family": "humanoid",
     "race": "demonkin",
     "faction": "redfang",
+    "act": "act3",
     "minLevel": 38,
     "maxLevel": 42,
     "rank": "elite",
@@ -1204,6 +1227,7 @@
     "family": "humanoid",
     "race": "demonkin",
     "faction": "redfang",
+    "act": "act3",
     "minLevel": 38,
     "maxLevel": 42,
     "speed": 4.6,
@@ -1234,6 +1258,7 @@
     "family": "humanoid",
     "race": "demonkin",
     "faction": "redfang",
+    "act": "act3",
     "minLevel": 40,
     "maxLevel": 44,
     "speed": 3.4,
@@ -1261,8 +1286,8 @@
     "family": "humanoid",
     "race": "human",
     "faction": "disciples",
-    "minLevel": 50,
-    "maxLevel": 52,
+    "minLevel": 55,
+    "maxLevel": 57,
     "rank": "elite",
     "speed": 3.4,
     "aggroRadius": 7,
@@ -1296,8 +1321,8 @@
     "desc": "无貌之王以澱造出的影子兵，外形是你曾经击败过的强敌。",
     "family": "elemental",
     "faction": "faceless",
-    "minLevel": 52,
-    "maxLevel": 55,
+    "minLevel": 55,
+    "maxLevel": 58,
     "speed": 3.6,
     "aggroRadius": 8,
     "leash": 30,
@@ -1331,11 +1356,12 @@
     "family": "humanoid",
     "race": "human",
     "faction": "redfang",
+    "act": "act3",
     "minLevel": 48,
     "maxLevel": 48,
     "rank": "boss",
-    "hpMult": 4,
-    "dmgMult": 1.1,
+    "hpMult": 8.2,
+    "dmgMult": 1.47,
     "attackSpeed": 1.6,
     "speed": 4.6,
     "aggroRadius": 10,
@@ -1366,7 +1392,7 @@
       }
     ],
     "money": [800, 1600],
-    "xpMult": 4,
+    "xpMult": 5,
     "appearance": {
       "base": "human",
       "colors": ["#8a1f1f", "#2a2a2a", "#e8c0a0", "#c83a2a"],
@@ -1379,8 +1405,8 @@
     "desc": "第九代魔王。他说：我就是你没被选中的样子。",
     "family": "undead",
     "faction": "faceless",
-    "minLevel": 58,
-    "maxLevel": 58,
+    "minLevel": 60,
+    "maxLevel": 60,
     "rank": "boss",
     "hpMult": 3,
     "dmgMult": 0.6,
@@ -1391,7 +1417,7 @@
     "abilities": ["rift_slash", "dian_mark"],
     "mechanics": {
       "partySync": {
-        "offset": -2,
+        "offset": 0,
         "min": 10
       },
       "passives": ["faceless_veil"],
@@ -1444,7 +1470,7 @@
       }
     ],
     "money": [2000, 4000],
-    "xpMult": 6,
+    "xpMult": 5,
     "appearance": {
       "base": "spirit",
       "colors": ["#0e0e12", "#2a2a34", "#e8e8f0", "#6a2a8a"],

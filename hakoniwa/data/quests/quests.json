@@ -106,7 +106,7 @@
       },
       {
         "type": "xp",
-        "amount": 250,
+        "amount": 230,
         "reason": "quest"
       },
       {
@@ -146,7 +146,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 60,
+        "amount": 90,
         "reason": "quest"
       }
     ]
@@ -184,7 +184,7 @@
       },
       {
         "type": "xp",
-        "amount": 60,
+        "amount": 210,
         "reason": "quest"
       },
       {
@@ -215,6 +215,13 @@
             "count": 5,
             "label": "在林缘讨伐魔物"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 320,
+            "reason": "quest"
+          }
         ]
       }
     ],
@@ -230,7 +237,7 @@
       },
       {
         "type": "xp",
-        "amount": 250,
+        "amount": 320,
         "reason": "quest"
       },
       {
@@ -262,6 +269,13 @@
             "count": 3,
             "label": "清剿灰色的狼"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 540,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -291,7 +305,7 @@
       },
       {
         "type": "xp",
-        "amount": 300,
+        "amount": 900,
         "reason": "quest"
       },
       {
@@ -322,6 +336,13 @@
             "count": 4,
             "label": "清理掘穴虫"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 810,
+            "reason": "quest"
+          }
         ]
       }
     ],
@@ -348,7 +369,7 @@
       },
       {
         "type": "xp",
-        "amount": 300,
+        "amount": 1350,
         "reason": "quest"
       },
       {
@@ -400,7 +421,7 @@
       },
       {
         "type": "xp",
-        "amount": 150,
+        "amount": 810,
         "reason": "quest"
       },
       {
@@ -457,7 +478,7 @@
       },
       {
         "type": "xp",
-        "amount": 100,
+        "amount": 180,
         "reason": "quest"
       }
     ]
@@ -504,6 +525,13 @@
             "npc": "cassian",
             "label": "与卡西安神父交谈"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1140,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -521,13 +549,25 @@
             "when": "a1_oola_fate",
             "label": "在光之鉴上作出你的选择"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1320,
+            "reason": "quest"
+          },
+          {
+            "type": "xp",
+            "amount": 1320,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 400,
+        "amount": 2200,
         "reason": "quest"
       }
     ]
@@ -568,6 +608,18 @@
             "hours": 6,
             "label": "等到天黑"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1530,
+            "reason": "quest"
+          },
+          {
+            "type": "xp",
+            "amount": 1530,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -601,6 +653,13 @@
             "count": 6,
             "label": "击退兽潮前锋",
             "orWhen": "(combat.wave.tide_first.state == cleared AND combat.wave.tide_second.state == cleared)"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1710,
+            "reason": "quest"
           }
         ]
       },
@@ -659,7 +718,7 @@
       },
       {
         "type": "xp",
-        "amount": 1200,
+        "amount": 2850,
         "reason": "quest"
       },
       {
@@ -709,7 +768,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 200,
+        "amount": 1950,
         "reason": "quest"
       }
     ]
@@ -738,7 +797,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 200,
+        "amount": 810,
         "reason": "quest"
       },
       {
@@ -781,7 +840,7 @@
       },
       {
         "type": "xp",
-        "amount": 300,
+        "amount": 2150,
         "reason": "quest"
       },
       {
@@ -819,6 +878,13 @@
             "label": "讨伐百尾鼠王",
             "orWhen": "boss.rat_king.defeated"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 4450,
+            "reason": "quest"
+          }
         ]
       }
     ],
@@ -842,7 +908,7 @@
       },
       {
         "type": "xp",
-        "amount": 900,
+        "amount": 2650,
         "reason": "quest"
       },
       {
@@ -904,7 +970,7 @@
       },
       {
         "type": "xp",
-        "amount": 400,
+        "amount": 2900,
         "reason": "quest"
       }
     ]
@@ -964,7 +1030,7 @@
       },
       {
         "type": "xp",
-        "amount": 400,
+        "amount": 3200,
         "reason": "quest"
       },
       {
@@ -1012,6 +1078,13 @@
               }
             ]
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 6650,
+            "reason": "quest"
+          }
         ]
       }
     ],
@@ -1024,7 +1097,7 @@
       },
       {
         "type": "xp",
-        "amount": 1800,
+        "amount": 11100,
         "reason": "quest"
       },
       {
@@ -1068,7 +1141,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 500,
+        "amount": 7150,
         "reason": "quest"
       },
       {
@@ -1106,7 +1179,7 @@
       },
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 7600,
         "reason": "quest"
       }
     ]
@@ -1149,13 +1222,20 @@
               }
             ]
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 7600,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 1000,
+        "amount": 12700,
         "reason": "quest"
       },
       {
@@ -1189,6 +1269,13 @@
             "location": "ash_chamber",
             "label": "走进灰烬室"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 14400,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -1206,13 +1293,20 @@
             "scene": "a3_ash_sundering",
             "label": "听守门人讲述"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 24000,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 15200,
         "reason": "quest"
       }
     ]
@@ -1249,13 +1343,25 @@
               }
             ]
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 16800,
+            "reason": "quest"
+          },
+          {
+            "type": "xp",
+            "amount": 16800,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 2500,
+        "amount": 28000,
         "reason": "quest"
       },
       {
@@ -1282,6 +1388,13 @@
             "when": "a4_nation_founded",
             "label": "建立庭外之国"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 18500,
+            "reason": "quest"
+          }
         ]
       }
     ],
@@ -1297,7 +1410,7 @@
       },
       {
         "type": "xp",
-        "amount": 1500,
+        "amount": 30800,
         "reason": "quest"
       },
       {
@@ -1331,13 +1444,20 @@
             "scene": "a4_feast",
             "label": "出席强者之宴"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 19400,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 32300,
         "reason": "quest"
       }
     ]
@@ -1372,7 +1492,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 21200,
         "reason": "quest"
       }
     ]
@@ -1401,6 +1521,13 @@
             "days": 1,
             "label": "会盟之期"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 25100,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -1424,7 +1551,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 1000,
+        "amount": 41800,
         "reason": "quest"
       }
     ]
@@ -1463,7 +1590,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 500,
+        "amount": 10900,
         "reason": "quest"
       }
     ]
@@ -1498,7 +1625,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 27100,
         "reason": "quest"
       }
     ]
@@ -1533,7 +1660,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 800,
+        "amount": 29300,
         "reason": "quest"
       }
     ]
@@ -1570,6 +1697,13 @@
               }
             ]
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 31500,
+            "reason": "quest"
+          }
         ]
       },
       {
@@ -1589,13 +1723,20 @@
             "label": "击败无貌之王",
             "orWhen": "boss.faceless_king.defeated OR boss.faceless_king.yielded OR combat.wave.faceless_king.state == cleared"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 52500,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "xp",
-        "amount": 3000,
+        "amount": 52500,
         "reason": "quest"
       },
       {
@@ -1638,7 +1779,7 @@
     "rewards": [
       {
         "type": "xp",
-        "amount": 500,
+        "amount": 13100,
         "reason": "quest"
       }
     ]
@@ -1667,7 +1808,21 @@
             "scene": "a6_court",
             "label": "完成神庭审定"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 31500,
+            "reason": "quest"
+          }
         ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 52500,
+        "reason": "quest"
       }
     ]
   },
@@ -1705,7 +1860,7 @@
       },
       {
         "type": "xp",
-        "amount": 150,
+        "amount": 360,
         "reason": "quest"
       }
     ]
@@ -1745,7 +1900,7 @@
       },
       {
         "type": "xp",
-        "amount": 150,
+        "amount": 280,
         "reason": "quest"
       }
     ]
@@ -1786,7 +1941,7 @@
       },
       {
         "type": "xp",
-        "amount": 200,
+        "amount": 3700,
         "reason": "quest"
       }
     ]
@@ -1821,7 +1976,7 @@
       },
       {
         "type": "xp",
-        "amount": 400,
+        "amount": 6800,
         "reason": "quest"
       }
     ]

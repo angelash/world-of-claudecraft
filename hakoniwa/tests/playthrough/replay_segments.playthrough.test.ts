@@ -1,6 +1,9 @@
-// PK-M0-17 acceptance (release_engineering.md 13.6) on the full true-ending route: the
-// autoplayer plays from the prologue to the ending while the game saves 40 and more times
-// into a save directory on disk (the desktop layout, node:fs). Every save drains the
+// PK-M0-17 acceptance (release_engineering.md 13.6: a complete route, saved 40 times) on
+// the full rule_merca route, prologue to epilogue through act 6: the shorter of the two
+// ending routes since the PK-M0-29 rescale (about 1.78 million ticks against 2.37 million
+// for the true ending, which release.playthrough.test.ts plays). The autoplayer plays
+// from the prologue to the ending while the game saves 40 and more times into a save
+// directory on disk (the desktop layout, node:fs). Every save drains the
 // engine's replay log into a commands segment and is an anchor. Then every segment is
 // replayed from its anchor, and one long replay runs from a middle anchor to the end;
 // each must reach the world the run saved (world hash and full state hash). The replays
@@ -33,10 +36,18 @@ import { Autoplayer, type AutoplayResult } from '../../src/game/autoplay';
 import { createGame, resumeGame } from '../../src/game/create';
 import { ACT_ORDER, CHEATS, SEED } from './harness';
 
-const EVERY = 45_000;
+/** Ticks between saves: 46 saves on the route (measured), room above the 40 of 13.6. */
+const EVERY = 40_000;
+const ROUTE = 'rule_merca';
 const MB = 1024 * 1024;
 const VERSIONS = { gameVersion: 'test', contentVersion: 'c-test', renameVersion: 0, build: 'test' };
-const HALF_HOUR = 30 * 60 * 1000;
+/**
+ * Time limit of the recording and of each replay. Measured alone on the shared M0 machine
+ * (five other node processes at full load): the recording took 27.7 minutes and the two
+ * replays 36.2 minutes together, 64 minutes for the file; 45 minutes each leaves room for
+ * the load without hiding a run that is stuck (the autoplayer reports a stall itself).
+ */
+const LIMIT = 45 * 60 * 1000;
 
 interface Save {
   tick: number;
@@ -81,7 +92,7 @@ beforeAll(async () => {
     // Every save is an anchor, so any of them can start a replay.
     anchors: { everyTicks: 0, keep: 1000 },
   });
-  const bot = new Autoplayer(engine, { route: 'release', log: () => {} });
+  const bot = new Autoplayer(engine, { route: ROUTE, log: () => {} });
   const save = async (slot: SlotId) => {
     const drained = engine.world.log.length;
     const res = await saver.save(engine, {
@@ -137,7 +148,7 @@ beforeAll(async () => {
     `[replay_segments] ${saves.length} saves, ending=${result.ending} tick=${engine.tick} ` +
       `segments=${header.files.segments.length} anchors=${header.files.anchors.length}`,
   );
-}, HALF_HOUR);
+}, LIMIT);
 
 afterAll(() => {
   if (dir) rmSync(dir, { recursive: true, force: true });
@@ -147,7 +158,7 @@ describe('command log segments over the full route (PK-M0-17)', () => {
   it('finishes the route while saving 40 times and more, draining the log each time', () => {
     expect(result.stuck).toBeUndefined();
     expect(result.finished).toBe(true);
-    expect(result.ending).toBe('release');
+    expect(result.ending).toBe(ROUTE);
     expect(result.acts.map((a) => a.act)).toEqual(ACT_ORDER);
     for (const kind of CHEATS) expect(result.commands[kind] ?? 0, kind).toBe(0);
     expect(saves.length).toBeGreaterThanOrEqual(40);
@@ -183,7 +194,7 @@ describe('command log segments over the full route (PK-M0-17)', () => {
       expect(lines.length).toBe(anchors.length - 1);
       expect(lines.filter((l) => !l.startsWith('same '))).toEqual([]);
     },
-    HALF_HOUR,
+    LIMIT,
   );
 
   it(
@@ -197,6 +208,6 @@ describe('command log segments over the full route (PK-M0-17)', () => {
       expect(run.state).toBe(saved?.state);
       expect(run.days.length).toBeGreaterThan(10);
     },
-    HALF_HOUR,
+    LIMIT,
   );
 });

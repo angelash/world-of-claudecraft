@@ -4,6 +4,11 @@
       "batch": "content_act1_items_01",
       "status": "promoted",
       "file": "_batches/content_act1_items_01.json"
+    },
+    {
+      "batch": "content_base_progression_01",
+      "status": "promoted",
+      "file": "_batches/content_base_progression_01.json"
     }
   ]
 }

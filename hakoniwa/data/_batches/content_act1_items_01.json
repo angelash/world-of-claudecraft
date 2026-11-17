@@ -10,17 +10,8 @@
       "section": "3.8"
     }
   ],
-  "files": [
-    "combat/items.json"
-  ],
-  "added": [
-    "src_pale_1",
-    "src_war_1",
-    "src_pact_1",
-    "src_bloom_1",
-    "src_script_1",
-    "src_hollow_1"
-  ],
+  "files": ["combat/items.json"],
+  "added": ["src_pale_1", "src_war_1", "src_pact_1", "src_bloom_1", "src_script_1", "src_hollow_1"],
   "changed": [],
   "removed": [],
   "diff": [

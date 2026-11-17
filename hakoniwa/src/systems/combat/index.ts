@@ -15,7 +15,7 @@ import { classDef, monsterDef, REGEN_EVERY } from './defs';
 import { onItemUsed } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
 import { tickPresence } from './presence';
-import { gainXp } from './rewards';
+import { applyAwardedXp } from './rewards';
 import { onFlag, placeFixtures, populateAll, spawnMonster, tickSpawns } from './spawning';
 import { deriveStats } from './stats';
 import { forgetAttacker } from './threat';
@@ -249,7 +249,7 @@ export const system: GameSystem = {
     },
     'xp.awarded'(ctx, ev) {
       const u = unitOf(ctx.world, ev.data.entityId);
-      if (u) gainXp(ctx, u, ev.data.amount, ev.data.reason);
+      if (u) applyAwardedXp(ctx, u, ev.data.amount, ev.data.reason);
     },
     'item.used'(ctx, ev) {
       onItemUsed(ctx, ev.data);
