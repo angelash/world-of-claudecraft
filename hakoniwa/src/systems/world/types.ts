@@ -97,6 +97,13 @@ export interface MapDef extends MapLook {
   exits: ExitDef[];
   /** 0..7, the sediment (澱) level scale of power_system.md */
   sediment?: number;
+  /**
+   * A deep-sediment timed zone over the whole map (catalog_dungeons_bosses.md `sedimentClock`):
+   * nobody waits or sleeps here outside a location tagged `ward` or a camp
+   * (travel_and_exploration.md 7.2 rule 3). A single location can carry the tag
+   * `sediment_clock` instead.
+   */
+  sedimentClock?: boolean;
   indoor?: boolean;
   /**
    * Respawn role (thousand_doors.md 6.3): 'door' is where the door puts a fallen player once

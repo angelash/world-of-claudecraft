@@ -65,7 +65,7 @@ import {
 } from '../view/game_view';
 import { registerWindows, WindowManager } from '../windows';
 import type { ClientSettings, DisplayView } from '../windows/window_context';
-import { FixedStepClock, type Speed } from './clock';
+import { FixedStepClock, framesToRun, type Speed } from './clock';
 import { EventRouter } from './event_router';
 import { PlayerInput, type PlayerInputHost } from './player_input';
 import type { LocalSettings, StoredView } from './settings_schema';
@@ -497,12 +497,13 @@ export class GameSession implements PlayerInputHost {
     const dt = now - this.last;
     this.last = now;
     const { steps, alpha } = this.clock.advance(dt);
-    for (let i = 0; i < steps; i++) {
+    const ranSteps = framesToRun(steps, !!this.engine.clockStep());
+    for (let i = 0; i < ranSteps; i++) {
       this.engine.step(1);
       this.capture();
       this.opts.hooks?.afterStep?.(this.engine);
     }
-    if (steps > 0) this.actions.afterSteps();
+    if (ranSteps > 0) this.actions.afterSteps();
     if (this.engine.logFull) this.autosaveAtSafePoint();
     this.alpha = alpha;
     this.present(now, dt);

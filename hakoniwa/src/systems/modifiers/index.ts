@@ -6,6 +6,7 @@
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextRef, tr } from '../../core/text';
+import { registerSkipHandler } from '../travel/skip_registry';
 
 export type ModifierTarget =
   | 'price'
@@ -219,23 +220,27 @@ export function applyModifiers(
   return modifierBreakdown(world, target, key, base).total;
 }
 
+/** Drop the modifiers whose time ran out (every tick, and every hour-coarse skip step). */
+function expireModifiers(ctx: SystemContext): void {
+  const slice = ctx.world.slices.modifiers;
+  if (slice.active.length === 0) return;
+  const keep: Modifier[] = [];
+  for (const m of slice.active) {
+    if (m.untilTick > ctx.tick) keep.push(m);
+    else ctx.emit('modifier.expired', { id: m.id, target: m.target, key: m.key, source: m.source });
+  }
+  slice.active = keep;
+}
+
+registerSkipHandler('modifiers', expireModifiers);
+
 export const system: GameSystem = {
   id: 'modifiers',
   order: 5,
   init(ctx) {
     ctx.world.slices.modifiers = { active: [], history: [] };
   },
-  tick(ctx) {
-    const slice = ctx.world.slices.modifiers;
-    if (slice.active.length === 0) return;
-    const keep: Modifier[] = [];
-    for (const m of slice.active) {
-      if (m.untilTick > ctx.tick) keep.push(m);
-      else
-        ctx.emit('modifier.expired', { id: m.id, target: m.target, key: m.key, source: m.source });
-    }
-    slice.active = keep;
-  },
+  tick: expireModifiers,
   commands: {
     'modifier.register'(ctx, d) {
       if (d.untilTick <= ctx.tick) return reject('expired', tr('sys.modifiers.reject.expired'));

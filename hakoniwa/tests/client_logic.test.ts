@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FixedStepClock } from '../src/client/app/clock';
+import { FixedStepClock, framesToRun } from '../src/client/app/clock';
 import { parseConfig } from '../src/client/app/config';
 import { createSandboxGame, resumeSandboxGame } from '../src/client/app/sandbox';
 import { buildLayout } from '../src/client/hd2d/layout';
@@ -108,6 +108,19 @@ describe('client main-loop clock', () => {
     const capped = new FixedStepClock(100000, 12);
     capped.setSpeed(4);
     expect(capped.advance(10000).steps).toBe(12);
+  });
+
+  it('paces the main loop to one coarse step per frame during a time skip', () => {
+    // outside a skip: every real-time tick slot this frame runs, as always
+    expect(framesToRun(5, false)).toBe(5);
+    expect(framesToRun(0, false)).toBe(0);
+    // a long time skip's coarse step (travel_and_exploration.md 7.5) jumps a whole game
+    // hour per Engine.step(1) call; running every slot the real-time clock counted this
+    // frame would race the skip to its end in a handful of frames with no pacing, so the
+    // loop takes at most one such step per frame regardless of how many slots elapsed
+    expect(framesToRun(5, true)).toBe(1);
+    expect(framesToRun(1, true)).toBe(1);
+    expect(framesToRun(0, true)).toBe(0); // nothing elapsed: still nothing to run
   });
 });
 

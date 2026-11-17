@@ -5,11 +5,16 @@
 //   4. drain events to subscribers in system order (handlers may emit more),
 //   5. record recent events and notify external listeners.
 // Same seed + same logged inbox commands = same world. See architecture.md 4.
+// A time skip (travel_and_exploration.md 7.5) changes the step through the systems'
+// `clock` hook: an hour-coarse step jumps the clock and runs the systems' `skip` handlers
+// in place of `tick`, and model requests filed while a skip runs are held (no request is
+// handed to the model until it ends).
 // The replay log lives on the world until a save drains it into a `commands` segment
 // (drainLog, release_engineering.md 13.6); a world snapshot plus the segments after it
 // replay with replayFrom.
 
 import type { AiMode, AiPort, AiRequest, AiRequestSpec, AiResolution } from './ai_port';
+import { type BrainTrace, TraceBook } from './brain/trace';
 import type {
   AnyCommand,
   AnyWorldEvent,
@@ -24,7 +29,7 @@ import type {
   WorldEvent,
 } from './contracts';
 import { hashSeed, Rng } from './rng';
-import type { GameSystem, SystemContext } from './system';
+import type { GameSystem, SkipClockStep, SystemContext } from './system';
 import { rawText } from './text';
 import { createWorld, type LoggedCommand, type World } from './world';
 
@@ -53,6 +58,8 @@ const OFF_REPLAY_SOURCES = new Set(['player', 'script']);
 
 export class Engine {
   readonly systems: readonly GameSystem[];
+  /** Built-in decision explanations (builtin_ai.md 2.6): in memory only, never saved. */
+  private readonly traces = new TraceBook();
   private readonly listeners = new Set<EventListener>();
   private readonly recentLimit: number;
   private readonly maxEventsPerTick: number;
@@ -217,15 +224,43 @@ export class Engine {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * Advance the clock by at least `ticks` ticks. Ordinary steps advance one tick each; an
+   * hour-coarse step of a time skip advances many at once and is never split, so the clock
+   * can end past the target (only ever at a step boundary the live run also had).
+   */
   step(ticks = 1): void {
-    for (let i = 0; i < ticks; i++) this.runTick();
+    const target = this.world.meta.tick + ticks;
+    while (this.world.meta.tick < target) this.runTick();
   }
 
-  /** Hand pending, not yet dispatched AI requests to the AI layer (highest priority first). */
+  /**
+   * How the next step advances the clock: the first system (in phase order) whose `clock`
+   * hook answers. Null outside a time skip.
+   */
+  clockStep(): SkipClockStep | null {
+    for (const s of this.systems) {
+      const c = s.clock?.(this.world);
+      if (c) return c;
+    }
+    return null;
+  }
+
+  /** The hold a running time skip puts on model requests (null when none, or the AI is off). */
+  private aiHold(): SkipClockStep['hold'] {
+    if (this.world.ai.mode === 'off') return null;
+    return this.clockStep()?.hold ?? null;
+  }
+
+  /**
+   * Hand pending, not yet dispatched AI requests to the AI layer (highest priority first).
+   * Nothing is handed over while a time skip holds requests.
+   */
   takeAiRequests(limit = Number.POSITIVE_INFINITY): AiRequest[] {
     if (this.world.ai.mode !== 'external') return [];
+    if (this.aiHold()) return [];
     const fresh = this.world.ai.pending
-      .filter((r) => !r.dispatched)
+      .filter((r) => !r.dispatched && !r.hold)
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.createdTick - b.createdTick);
     const taken = fresh.slice(0, limit);
     for (const r of taken) r.dispatched = true;
@@ -277,7 +312,10 @@ export class Engine {
 
   private runTick(): void {
     const world = this.world;
-    world.meta.tick += 1;
+    const clock = this.clockStep();
+    const from = world.meta.tick;
+    world.meta.tick += clock && clock.stride > 1 ? Math.floor(clock.stride) : 1;
+    const coarse = world.meta.tick - from > 1;
     const pending: AnyWorldEvent[] = [];
     const ctx = this.makeContext(pending);
 
@@ -293,6 +331,7 @@ export class Engine {
       }
     }
 
+    if (!clock?.hold) this.releaseBackfill(ctx);
     this.expireAiRequests(ctx);
 
     const external = world.inbox;
@@ -302,9 +341,23 @@ export class Engine {
     for (const cmd of external) this.applyCommand(ctx, cmd);
     for (const cmd of internal) this.applyCommand(ctx, cmd);
 
-    for (const s of this.systems) s.tick?.(ctx);
+    if (coarse) {
+      const step = { from, to: world.meta.tick };
+      for (const s of this.systems) s.skip?.(ctx, step);
+    } else {
+      for (const s of this.systems) s.tick?.(ctx);
+    }
 
     this.drain(ctx, pending);
+  }
+
+  /** The skip has ended: text-only requests it held now go to the model with a fresh deadline. */
+  private releaseBackfill(ctx: SystemContext): void {
+    for (const req of this.world.ai.pending) {
+      if (req.hold !== 'backfill') continue;
+      delete req.hold;
+      req.deadlineTick = ctx.tick + Math.max(1, req.deadlineTicks);
+    }
   }
 
   private expireAiRequests(ctx: SystemContext): void {
@@ -313,8 +366,14 @@ export class Engine {
     const keep: AiRequest[] = [];
     for (const req of ai.pending) {
       // With the AI off, requests resolve to their fallback on the very next tick,
-      // so a no-model run is fully determined by seed plus player input.
-      const due = ai.mode === 'off' ? req.createdTick < ctx.tick : req.deadlineTick <= ctx.tick;
+      // so a no-model run is fully determined by seed plus player input. A request a time
+      // skip held for its fallback does the same; one held for backfill waits for the end.
+      const due =
+        req.hold === 'backfill'
+          ? false
+          : ai.mode === 'off' || req.hold === 'fallback'
+            ? req.createdTick < ctx.tick
+            : req.deadlineTick <= ctx.tick;
       if (!due) {
         keep.push(req);
         continue;
@@ -330,7 +389,7 @@ export class Engine {
       ctx.emit('ai.resolved', {
         requestId: req.id,
         agentId: req.agentId,
-        outcome: ai.mode === 'off' ? 'fallback' : 'expired',
+        outcome: ai.mode === 'off' || req.hold === 'fallback' ? 'fallback' : 'expired',
       });
     }
     ai.pending = keep;
@@ -413,6 +472,7 @@ export class Engine {
   private makeContext(pending: AnyWorldEvent[]): SystemContext {
     const world = this.world;
     const streams = new Map<string, Rng>();
+    const engine = this;
     const ai: AiPort = {
       get enabled() {
         return world.ai.mode === 'external';
@@ -426,6 +486,11 @@ export class Engine {
           deadlineTick: world.meta.tick + Math.max(1, spec.deadlineTicks),
           dispatched: false,
         };
+        const hold = engine.aiHold();
+        if (hold) {
+          const waiting = world.ai.pending.filter((r) => r.hold === 'backfill').length;
+          req.hold = spec.backfill && waiting < hold.backfill ? 'backfill' : 'fallback';
+        }
         world.ai.pending.push(req);
         ctx.emit('ai.requested', {
           requestId: id,
@@ -485,7 +550,20 @@ export class Engine {
         world.meta.flags[key] = value;
         ctx.emit('flag.changed', { key, value, previous });
       },
+      brainTrace(trace: BrainTrace): void {
+        engine.traces.push(trace);
+      },
     };
     return ctx;
+  }
+
+  /** The actor's recent built-in decision traces, oldest first (builtin_ai.md 2.6, 15). */
+  recentTraces(actor: string): readonly BrainTrace[] {
+    return this.traces.recent(actor);
+  }
+
+  /** Actors with at least one recorded trace, sorted by id (for the debug panel's picker). */
+  traceActors(): string[] {
+    return this.traces.actors();
   }
 }

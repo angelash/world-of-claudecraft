@@ -3,6 +3,7 @@
 // written every day (D-043). See docs/40_design/systems/grand_strategy_slg.md.
 
 import type { GameSystem, SystemContext } from '../../core/system';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { requestRulerPolicies, runAiOperations, runAntiCoalition } from './ai';
 import {
   convene,
@@ -57,6 +58,10 @@ export function runStrategyDay(ctx: SystemContext, dayIndex: number): void {
   s.releaseIndex = releaseIndex(s, ctx.world.meta.flags, ctx.world.slices.modifiers);
   ctx.setFlag('release_index', s.releaseIndex);
 }
+
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5): the continent steps one
+// day at a time on world.day, which the world's step sends; nothing else to settle.
+registerSkipHandler('strategy', () => {});
 
 export const system: GameSystem = {
   id: 'strategy',

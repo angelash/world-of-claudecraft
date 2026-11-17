@@ -17,6 +17,7 @@ import { openingActId } from '../../systems/quests/act_order';
 import { evaluate, flagResolver } from '../../systems/quests/conditions';
 import type { Objective, QuestDef } from '../../systems/quests/types';
 import { sceneView } from '../../systems/scenes';
+import { canWait, MAX_SKIP_HOURS, skipState } from '../../systems/travel';
 import { pendingScenario } from '../../systems/warfare';
 import { mapById, playerEntity } from '../../systems/world';
 import type { Entity } from '../../systems/world/types';
@@ -273,6 +274,11 @@ export class Autoplayer {
     if (sv) return this.playScene(sv);
     const domain = this.domains.urgent();
     if (domain !== null) return domain;
+    // a skip from an earlier wait() is running: ride it out rather than second-guess it;
+    // the kernel's own interrupts (travel_and_exploration.md 7.4) end it on anything that
+    // needs a decision, and only then does the rest of think() see the world again
+    const running = skipState(this.world);
+    if (running) return Math.max(1, running.endTick - this.engine.tick);
     const p = this.player();
     if (!p) return IDLE_STEP;
     if (p.mapId === courtSite(this.content)?.mapId) {
@@ -341,12 +347,22 @@ export class Autoplayer {
     const p = this.player();
     this.stopMoving();
     if (!p) return IDLE_STEP;
+    // a skip queued by an earlier wait() is now running (commands land the tick after
+    // they are sent): ride it out, the same kernel entry a player's own wait uses (D-071)
+    const running = skipState(this.world);
+    if (running) return Math.max(1, running.endTick - this.engine.tick);
     const danger = huntable(this.world, (e) => e.kind === 'monster').some((id) => {
       const e = this.world.slices.world.entities[id];
       return !!e && Math.hypot(e.x - p.x, e.y - p.y) <= 14;
     });
-    // a long safe wait: the companions stand down (and stop scanning for fights)
-    if (!danger && ticks >= TICKS_PER_GAME_HOUR) this.partyOrder('passive');
+    // a long safe wait: ask the kernel to skip it, one hour or more at once instead of
+    // stepping tick by tick; the companions stand down too (same as always)
+    if (!danger && ticks >= TICKS_PER_GAME_HOUR && canWait(this, p.id).ok) {
+      this.partyOrder('passive');
+      const hours = Math.min(MAX_SKIP_HOURS, Math.max(1, Math.floor(ticks / TICKS_PER_GAME_HOUR)));
+      this.send({ kind: 'time.skip', data: { hours, kind: 'wait', mode: 'long' } });
+      return 1;
+    }
     return Math.max(1, Math.min(ticks, danger ? IDLE_STEP : TICKS_PER_GAME_HOUR));
   }
 

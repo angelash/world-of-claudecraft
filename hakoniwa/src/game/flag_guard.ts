@@ -72,6 +72,7 @@ function guardedContext(
     emit: (kind, data) => running.ctx.emit(kind, data),
     dispatch: (kind, data, source) => running.ctx.dispatch(kind, data, source),
     newId: (prefix) => running.ctx.newId(prefix),
+    brainTrace: (trace) => running.ctx.brainTrace(trace),
     flag(key: string): FlagValue | undefined {
       const ctx = running.ctx;
       const r = registry.resolve(key);
@@ -95,7 +96,7 @@ function guardedContext(
 }
 
 /**
- * Wrap the systems so every handler (init, tick, commands, events) gets the guarded
+ * Wrap the systems so every handler (init, tick, skip, commands, events) gets the guarded
  * context. Already guarded systems are returned as they are.
  */
 export function guardSystems(
@@ -123,6 +124,10 @@ export function guardSystems(
     if (s.tick) {
       const tick = s.tick;
       out.tick = (ctx) => tick(wrap(ctx, id));
+    }
+    if (s.skip) {
+      const skip = s.skip;
+      out.skip = (ctx, step) => skip(wrap(ctx, id), step);
     }
     if (s.commands) {
       const commands: Record<string, unknown> = {};

@@ -9,6 +9,7 @@ import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { addMoney } from '../inventory';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity } from '../world';
 import {
   canFoundCompany,
@@ -65,6 +66,12 @@ function runDay(ctx: SystemContext, dayIndex: number): void {
   updateScale(ctx);
   ctx.emit('economy.prices_updated', { day: dayIndex });
 }
+
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5, "经济"): production and
+// caravans settle on world.hour and the daily market round on world.day, which the world's
+// step sends for every hour it covers; the economy keeps no per-tick clock of its own, so
+// its handler has nothing more to settle.
+registerSkipHandler('economy', () => {});
 
 export const system: GameSystem = {
   id: SYSTEM,

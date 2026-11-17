@@ -167,6 +167,8 @@ export function requestDiaries(ctx: SystemContext, day: number): void {
         fallback,
         deadlineTicks: DIARY_DEADLINE,
         priority: 0,
+        // diary text only: a time skip holds it for the model until the skip ends
+        backfill: true,
       });
     }
   }

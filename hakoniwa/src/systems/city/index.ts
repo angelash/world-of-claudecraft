@@ -6,6 +6,7 @@ import { ok, reject } from '../../core';
 import { contentText } from '../../core/content_key';
 import type { GameSystem } from '../../core/system';
 import { tr } from '../../core/text';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { siteDef, today } from './common';
 import { cancelBuilding, placeBuilding } from './construction';
 import { deposit, enterCourt, leaveCourt, presence, withdraw } from './court';
@@ -47,6 +48,12 @@ export {
   settlementView,
 } from './queries';
 export * from './types';
+
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5, "城建"): settlers'
+// schedules run on world.hour and production, population and building on world.day, which
+// the world's step sends for every hour it covers; the settlement keeps no per-tick clock
+// of its own yet, so its handler has nothing more to settle.
+registerSkipHandler('city', () => {});
 
 export const system: GameSystem = {
   id: 'city',

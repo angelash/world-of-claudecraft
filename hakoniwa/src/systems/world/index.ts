@@ -6,6 +6,7 @@ import { ok, reject, systemSource } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { calendarAt, DT } from '../../core/time';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { findPath, isWalkable, nearestWalkable } from './grid';
 import type {
   Appearance,
@@ -303,6 +304,57 @@ function rollWeather(ctx: SystemContext, season: number): Weather {
   return rng.weighted(table);
 }
 
+/** The hour and day events and the daily weather roll, when the clock crossed them. */
+function advanceClock(ctx: SystemContext): void {
+  const ws = ctx.world.slices.world;
+  const cal = calendarAt(ctx.tick);
+  if (cal.hour !== ws.lastHour) {
+    ws.lastHour = cal.hour;
+    ctx.emit('world.hour', { hour: cal.hour, dayIndex: cal.dayIndex });
+  }
+  if (cal.dayIndex !== ws.lastDay) {
+    ws.lastDay = cal.dayIndex;
+    ctx.emit('world.day', { dayIndex: cal.dayIndex, season: cal.season, year: cal.year });
+    const ov = ws.weatherOverride;
+    if (ov && ov.untilTick > ctx.tick) {
+      ws.weather = ov.weather;
+    } else {
+      ws.weatherOverride = null;
+      ws.weather = rollWeather(ctx, cal.season);
+    }
+    ctx.emit('world.weather', { weather: ws.weather, forced: !!ws.weatherOverride });
+  }
+}
+
+/**
+ * An hour-coarse skip step (travel_and_exploration.md 7.5): every walk ordered before the
+ * step has arrived (an hour is longer than any walk on one map), so movers are put at
+ * their goals and stop; then the clock events of the hour go out, so hourly and daily
+ * subscribers (NPC schedules, the economy, the settlement, the weather) settle as they
+ * would have.
+ */
+function skipStep(ctx: SystemContext): void {
+  const ws = ctx.world.slices.world;
+  for (const id of Object.keys(ws.entities).sort()) {
+    const e = ws.entities[id];
+    if (!e) continue;
+    e.intent = null;
+    const mv = e.move;
+    if (!mv) continue;
+    const map = mapById(ctx.content, e.mapId);
+    const last = mv.path[mv.path.length - 1];
+    const goal =
+      map && isWalkable(map, mv.goal.x, mv.goal.y) ? mv.goal : (last ?? { x: e.x, y: e.y });
+    e.x = goal.x;
+    e.y = goal.y;
+    e.move = null;
+    ctx.emit('world.arrived', { id: e.id, x: e.x, y: e.y });
+  }
+  advanceClock(ctx);
+}
+
+registerSkipHandler('world', skipStep);
+
 export const system: GameSystem = {
   id: 'world',
   order: 10,
@@ -347,23 +399,7 @@ export const system: GameSystem = {
       const e = ws.entities[id];
       if (e) stepMovement(ctx, e);
     }
-    const cal = calendarAt(ctx.tick);
-    if (cal.hour !== ws.lastHour) {
-      ws.lastHour = cal.hour;
-      ctx.emit('world.hour', { hour: cal.hour, dayIndex: cal.dayIndex });
-    }
-    if (cal.dayIndex !== ws.lastDay) {
-      ws.lastDay = cal.dayIndex;
-      ctx.emit('world.day', { dayIndex: cal.dayIndex, season: cal.season, year: cal.year });
-      const ov = ws.weatherOverride;
-      if (ov && ov.untilTick > ctx.tick) {
-        ws.weather = ov.weather;
-      } else {
-        ws.weatherOverride = null;
-        ws.weather = rollWeather(ctx, cal.season);
-      }
-      ctx.emit('world.weather', { weather: ws.weather, forced: !!ws.weatherOverride });
-    }
+    advanceClock(ctx);
   },
 
   on: {

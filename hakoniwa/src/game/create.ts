@@ -1,12 +1,14 @@
 // Game factory: content + systems + engine. Used by the client, the editor workbench,
 // headless runs and tests. Every system's flag access goes through the variable
-// registry (./flag_guard.ts, world_state_registry.md 9.4).
+// registry (./flag_guard.ts, world_state_registry.md 9.4), and every system carries its
+// registered skip handler (src/systems/travel/skip_registry.ts).
 
 import { buildContent } from '../content';
 import type { ContentMap } from '../core/contracts';
 import { Engine, type EngineOptions } from '../core/engine';
 import type { GameSystem } from '../core/system';
 import type { World } from '../core/world';
+import { attachSkipHandlers } from '../systems/travel/skip_registry';
 import { type FlagPolicy, guardSystems, registryFor } from './flag_guard';
 import { allSystems } from './registry';
 
@@ -19,7 +21,8 @@ export interface GameOptions extends EngineOptions {
 }
 
 function guarded(content: ContentMap, opts: GameOptions): GameSystem[] {
-  return guardSystems(opts.systems ?? allSystems(), registryFor(content), opts.flagPolicy);
+  const systems = attachSkipHandlers(opts.systems ?? allSystems());
+  return guardSystems(systems, registryFor(content), opts.flagPolicy);
 }
 
 export function createGame(opts: GameOptions = {}): Engine {

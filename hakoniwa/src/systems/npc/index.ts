@@ -22,6 +22,7 @@ import { resumeFrozen } from './ports';
 import { decayRelations } from './relations';
 import { ACT_NAMES } from './schedule';
 import { spawnAll, syncPresence } from './spawn';
+import './skip';
 import { recomputeTiers } from './tiers';
 import { ACTIVITIES, type NpcState, type PlanState } from './types';
 

@@ -56,3 +56,18 @@ export class FixedStepClock {
     this.acc = 0;
   }
 }
+
+/**
+ * How many of this frame's real-time tick slots the main loop should actually simulate.
+ * `steps` counts 20 Hz tick slots elapsed in real time; it has nothing to do with how far
+ * one `Engine.step(1)` call advances the clock. Most of the time those agree (one slot,
+ * one tick), but a time skip's long tier (travel_and_exploration.md 7.5) makes one
+ * `step(1)` call jump a whole game hour, so running it `steps` times in a frame would race
+ * an 8-hour skip to its end in a handful of frames with no visible pacing. While a coarse
+ * step is live (`duringCoarseStep` true), the main loop runs at most one coarse step per
+ * frame, which still reaches the same tick a real-time run would (a coarse step is never
+ * split either way) but lets the player watch time pass instead of it vanishing.
+ */
+export function framesToRun(steps: number, duringCoarseStep: boolean): number {
+  return duringCoarseStep ? Math.min(steps, 1) : steps;
+}

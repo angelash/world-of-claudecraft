@@ -29,6 +29,13 @@ export interface AiRequestSpec {
   deadlineTicks: number;
   /** Higher first when the AI layer has to choose. */
   priority?: number;
+  /**
+   * A text-only request (a diary, an inner voice) whose answer changes text and never
+   * settled state. Filed during a time skip, it waits undispatched and goes to the model
+   * after the skip, within the skip's backfill cap (travel_and_exploration.md 7.5); any
+   * other request filed during a skip falls back to the built-in AI at once.
+   */
+  backfill?: boolean;
 }
 
 /**
@@ -63,6 +70,12 @@ export interface AiRequest extends AiRequestSpec {
   createdTick: number;
   deadlineTick: number;
   dispatched: boolean;
+  /**
+   * Held by a running time skip (never handed to the model while held): 'fallback'
+   * resolves to its fallback on the next tick; 'backfill' waits for the skip's end and then
+   * gets a fresh deadline. Absent for ordinary requests.
+   */
+  hold?: 'fallback' | 'backfill';
 }
 
 export type AiResolution =

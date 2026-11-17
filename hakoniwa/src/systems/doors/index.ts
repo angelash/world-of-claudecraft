@@ -9,6 +9,7 @@ import type { EventHandler, GameSystem, SystemContext } from '../../core/system'
 import { tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
 import { removeItem } from '../inventory';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity, mapById } from '../world';
 import { applyDoorEffects, revertDoorEffects } from './effects';
 import { countEvent, keysMet, revealed, visitTargets } from './keys';
@@ -131,6 +132,13 @@ for (const kind of COUNTABLE) {
     countEvent(ctx.world, ctx.content, ev.kind, ev.data as unknown as Record<string, unknown>);
   };
 }
+
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5): the door states refresh
+// once per step, as the periodic check would have.
+registerSkipHandler('doors', (ctx) => {
+  recordVisits(ctx);
+  refreshDoors(ctx);
+});
 
 export const system: GameSystem = {
   id: 'doors',

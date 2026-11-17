@@ -16,6 +16,7 @@ import { onItemUsed } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
 import { tickPresence } from './presence';
 import { applyAwardedXp } from './rewards';
+import { restAfterSleep } from './skip';
 import { onFlag, placeFixtures, populateAll, spawnMonster, tickSpawns } from './spawning';
 import { deriveStats } from './stats';
 import { forgetAttacker } from './threat';
@@ -257,6 +258,11 @@ export const system: GameSystem = {
     'item.equipped'(ctx, ev) {
       const u = unitOf(ctx.world, ev.data.ownerId);
       if (u) clampPools(ctx.world, ctx.content, u);
+    },
+    'time.skipped'(ctx, ev) {
+      if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') {
+        restAfterSleep(ctx, ev.data.entityId);
+      }
     },
   },
 };

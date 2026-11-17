@@ -7,6 +7,7 @@ import { ok, reject } from '../../core';
 import { contentText } from '../../core/content_key';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
+import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity } from '../world';
 import { openingAct, setAct } from './acts';
 import { applyEffects } from './effects';
@@ -126,6 +127,13 @@ function choose(
   }
   return reject('no_option', tr('sys.quests.reject.no_option'));
 }
+
+// A time skip's hour-coarse step (travel_and_exploration.md 7.5, "任务"): quest timers
+// (wait objectives) and polled conditions settle once per step, as the polls would have.
+registerSkipHandler(SYSTEM_ID, (ctx) => {
+  scanAvailability(ctx);
+  for (const { def, q } of activeQuests(ctx)) checkStage(ctx, def, q);
+});
 
 export const system: GameSystem = {
   id: SYSTEM_ID,

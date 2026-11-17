@@ -199,7 +199,12 @@ export function externalInputs(log: readonly LoggedCommand[]): LoggedCommand[] {
   );
 }
 
-/** Step an engine to `ticks`, feeding each input into the inbox right before its tick. */
+/**
+ * Step an engine to `ticks`, feeding each input into the inbox right before the tick it
+ * lands on. A time skip (travel_and_exploration.md 7.5) may advance the clock by more than
+ * one tick per `engine.step(1)` call (an hour-coarse step is never split), so the next
+ * landing tick is read from the engine's own clock seam instead of assumed to be `tick + 1`.
+ */
 export function runWithInputs(
   engine: Engine,
   ticks: number,
@@ -211,8 +216,9 @@ export function runWithInputs(
     .map((x) => x.l);
   let next = 0;
   while (engine.tick < ticks) {
-    const tick = engine.tick + 1;
-    while (next < sorted.length && (sorted[next] as LoggedCommand).tick <= tick) {
+    const stride = engine.clockStep()?.stride ?? 1;
+    const landing = engine.tick + Math.max(1, Math.floor(stride));
+    while (next < sorted.length && (sorted[next] as LoggedCommand).tick <= landing) {
       engine.world.inbox.push((sorted[next] as LoggedCommand).command);
       next++;
     }
