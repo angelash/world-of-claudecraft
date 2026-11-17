@@ -10788,7 +10788,7 @@
       "default": 0,
       "values": null,
       "aliases": [],
-      "writers": ["content"],
+      "writers": ["doors"],
       "readers": ["content"],
       "derive": null,
       "monotone": false,
@@ -11309,7 +11309,7 @@
       "default": 0,
       "values": null,
       "aliases": [],
-      "writers": ["content"],
+      "writers": ["doors"],
       "readers": ["content"],
       "derive": null,
       "monotone": false,
@@ -13308,7 +13308,7 @@
       "default": 0,
       "values": null,
       "aliases": [],
-      "writers": ["content"],
+      "writers": ["content", "doors"],
       "readers": [],
       "derive": null,
       "monotone": false,
@@ -16485,6 +16485,37 @@
             "guild",
             "academy"
           ]
+        }
+      ]
+    },
+    {
+      "name": "taught.<door>.<npc>",
+      "kind": "flag",
+      "scope": "family",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": true,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.taught.door.npc",
+      "source": "8.5",
+      "slots": [
+        {
+          "name": "door",
+          "domain": "door",
+          "keys": null
+        },
+        {
+          "name": "npc",
+          "domain": "npc",
+          "keys": null
         }
       ]
     },

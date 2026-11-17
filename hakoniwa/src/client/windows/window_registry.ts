@@ -94,7 +94,14 @@ function entry<Id extends string>(id: Id, milestone: UiMilestone): WindowEntry<I
 export const WINDOW_DEFS: readonly WindowDef[] = [
   { ...entry('character', 'M1'), hotkey: 'C', menuBar: true, width: 360 },
   { ...entry('inventory', 'M1'), hotkey: 'I', menuBar: true, width: 380 },
-  { ...entry('doors', 'M1'), hotkey: 'K', menuBar: true, width: 420 },
+  // the corridor shows once the first door opens (thousand_doors.md 8 row 1)
+  {
+    ...entry('doors', 'M1'),
+    requiresAll: ['feature.door_corridor'],
+    hotkey: 'K',
+    menuBar: true,
+    width: 420,
+  },
   { ...entry('quests', 'M1'), hotkey: 'L', menuBar: true, width: 380 },
   { ...entry('rumors', 'M1'), menuBar: true, width: 400 },
   { ...entry('party', 'M1'), menuBar: true, width: 360 },

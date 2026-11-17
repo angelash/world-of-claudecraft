@@ -22,5 +22,19 @@
   "sys.doors.status.openable": "可开",
   "sys.doors.status.opened": "已开",
   "sys.doors.status.locked": "锁闭",
-  "sys.doors.status.closed": "关闭"
+  "sys.doors.status.closed": "关闭",
+  "sys.doors.wing.hall_front": "门前厅",
+  "sys.doors.wing.mirror": "镜廊",
+  "sys.doors.wing.steles": "七碑廊",
+  "sys.doors.wing.vocations": "九职长廊",
+  "sys.doors.wing.schools": "流派龛",
+  "sys.doors.wing.crossing": "交手廊",
+  "sys.doors.wing.crafts": "百工廊",
+  "sys.doors.wing.six_chairs": "六椅厅",
+  "sys.doors.wing.knots": "结绳廊",
+  "sys.doors.wing.paths": "行路翼",
+  "sys.doors.wing.court": "庭翼",
+  "sys.doors.wing.grey": "灰廊",
+  "sys.doors.wing.draft": "风口",
+  "sys.doors.wing.end": "尽头"
 }

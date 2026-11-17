@@ -594,13 +594,13 @@
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
 | `seal_looseness` | `door_seal`、`janu.seal_loosening`、`SEAL` | 小数 | 0 到 100，半分 | 第一幕开场置起始值（`acts`）；之后每次开门（doors）；门徒会行动 | `a3_seal_aware`、女神察觉阈值、`s25`、结局 |
-| `seal_unrest` | 无 | 整数 | 0 到 100；序章末 10；兽潮后重置 30 加修正 | 序章末；第一幕每周 +9；开门（D-031 范围）；任务效果（`q`） | 兽潮时钟、第二幕遗迹危险度 |
+| `seal_unrest` | 无 | 整数 | 0 到 100；序章末 10；兽潮后重置 30 加修正 | 序章末；第一幕每周 +9；doors 开门（D-031 范围，[千门 6.4.4][td]）；任务效果（`q`） | 兽潮时钟、第二幕遗迹危险度 |
 | `doors_opened` | 无 | 整数 | ≥ 0 | doors 开门 | 计数门钥、事迹 |
 | `danger_doors_opened` | 无 | 整数 | 0 到 9 | doors 开危险之门 | 揭示台账、结局与事迹、新神倾向（无主之制读 `danger_doors_act3`） |
 | `door_rank` | 无 | 整数 | 1 到 99 | doors 开门（[千门 4][td]） | 阶钥、门技分档、兽伴与驯兽上限 |
-| `blockage` | 无 | 整数 | 0 到 100 | 澱染折算、渊契技能、深澱死亡（[千门 6.2][td]） | 门失灵、吞门 |
+| `blockage` | 无 | 整数 | 0 到 100 | doors：澱染折算、过载复苏、渊契技能、深澱死亡（[千门 6.2][td]） | 门失灵、吞门 |
 | `blockage_survived` | 无 | 标记 | | 灰廊之夜撑过 | 残页之门 |
-| `door_fatigue` | 无 | 整数 | 0 到 100 | 退回门内、门技过用（[千门 6.3][td]） | 门技、复苏 |
+| `door_fatigue` | 无 | 整数 | 0 到 100 | doors：退回门内、门技过用（[千门 6.3][td]） | 门技、复苏 |
 | `seal_points` | 无 | 整数 | 0 到 200（半分） | doors 开门与闭门、门以外的来源（[千门 6.4][td]） | 内核内部；对外只读镜像 `seal_looseness` = `seal_points` / 2 |
 | `seal_stage` | 无 | 整数 | 0 到 6；只升不降，按幕封顶（阶段不超过当前幕次） | doors 封印结算（[千门 6.4.3][td]） | 女神察觉（`seal.stage_up`）、雅努入梦与出手、回廊"门后的风"的阶段名（[界面][ux]） |
 | `breach_count` | `doors.breach` | 整数 | ≥ 0 | 破门之门每强开一扇门（[千门 10.2][td]） | 无貌者的镜像对白、事迹 |
@@ -998,6 +998,7 @@
 | `door.<门>.tier` | 无 | 整数 | 1 到 2 | 两阶门进阶（[千门 3.5][td]） | 门效果 |
 | `door_state.<门>` | 无 | 枚举 | `hidden`、`hinted`、`openable`、`opened`、`locked`、`closed` | doors | 回廊界面、提示导演 |
 | `door_hint.<门>` | 无 | 标记 | 门 ID | 雅努的提示（goddess） | 门显影 |
+| `taught.<门>.<人>` | 无 | 标记 | 门 ID、师傅的人物 ID | 师傅的一次授课场景（[千门 5.4][td]） | 门的师傅钥 `taught`（`dr`） |
 | `p_hint.<倾向>` | `prologue.hint.<倾向>` | 整数 | `blade`、`beast`、`breath`、`pact`、`shadow`、`spirit` | 序章回答（`s0`） | `p_door_hints` |
 | `p_free.<话题>` | `prologue.free.<话题>` | 文本 | `eluen`、`valda`、`merca`、`sylvie`、`moira`、`past_life`、`rejection`、`call`、`appraise`、`last_words` | 序章自由回答（`s0` 的 `storeAs`；`call` 由 `cut_p_call`、`appraise` 由 `cut_p_judgement` 写入；`last_words` 是 N12 自由说的最后一句，至多 60 字） | 女神题面、第六幕 |
 

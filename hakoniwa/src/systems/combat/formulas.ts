@@ -288,13 +288,15 @@ export function presencePenalty(
 // Death (power_system.md 9.8)
 
 /**
- * Door fatigue (门疲) in game minutes after returning through the door: one game hour
- * plus one more per ten levels, multiplied by 1.5 for each other death in the recent
- * window (overload). Mirrors the main project's resurrection sickness scaling with level.
+ * The revival-fatigue state (复苏门疲) in game minutes after returning through the door
+ * (thousand_doors.md 6.3, combat_and_classes.md 15.1): 2 game hours plus one per ten door
+ * ranks, at most 10, times (1 + 0.5 x overload stacks), the stacks being the other deaths
+ * within one game day, at most three. Door rank 45 gives 6 hours; two stacks make it 12.
  */
-export function doorFatigueMinutes(level: number, recentDeaths: number): number {
-  const base = 60 * (1 + Math.floor(level / 10));
-  return Math.round(base * (1 + 0.5 * Math.max(0, recentDeaths)));
+export function doorFatigueMinutes(doorRank: number, recentDeaths: number): number {
+  const hours = Math.min(10, 2 + Math.floor(Math.max(1, doorRank) / 10));
+  const stacks = Math.min(3, Math.max(0, recentDeaths));
+  return Math.round(60 * hours * (1 + 0.5 * stacks));
 }
 
 /** Share of carried money left behind where the player fell (遗落). */

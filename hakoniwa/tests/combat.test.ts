@@ -507,7 +507,8 @@ describe('the return through the door (power_system.md 9.8)', () => {
       innerCourt: false,
       toMap: 'seal_ruins',
       moneyLost: 100,
-      fatigueMinutes: 60,
+      // door rank 1: two game hours (thousand_doors.md 6.3)
+      fatigueMinutes: 120,
     });
     expect(g.world.slices.inventory.owners.player?.money).toBe(900);
     expect(units(g).player?.auras.map((a) => a.id)).toContain('door_fatigue');

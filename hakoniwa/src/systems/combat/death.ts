@@ -178,7 +178,8 @@ function returnThroughDoor(ctx: SystemContext, u: Unit, e: Entity): void {
   removeAurasWhere(ctx, u, (a) => a.expires !== 0);
   teleportEntity(ctx, u.id, dest.mapId, dest.x, dest.y);
   fillUp(ctx.world, ctx.content, u);
-  const minutes = doorFatigueMinutes(u.level, recent);
+  const rank = ctx.flag('door_rank');
+  const minutes = doorFatigueMinutes(typeof rank === 'number' ? rank : 1, recent);
   applyAura(ctx, u, 'door_fatigue', u, { durationTicks: minutes * TICKS_PER_GAME_MINUTE });
   const money = holdingOf(ctx.world, u.id).money;
   const lost = Math.floor(money * DEATH_MONEY_LOSS);

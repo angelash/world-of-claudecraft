@@ -1,7 +1,9 @@
-// Doors system (千门回廊), phase 30: tracks every door's state (hidden, hinted, openable,
-// opened, locked, closed), counts the events its keys ask for, records visits, opens
-// story doors on their own, applies door effects to the player through the combat ports,
-// and moves the hidden seal variables (power_system.md 9.5 to 9.7, decision D-031).
+// Doors system (千门回廊, thousand_doors.md): tracks every door's state (hidden, hinted,
+// openable, opened, locked, closed) and hint level, counts the events its keys ask for,
+// records visits, grows the corridor's segments, opens story doors on their own, applies
+// door effects through the combat ports, and keeps the door costs: the door rank (4), the
+// seal points and stage with seal_unrest (6.4), blockage (6.2) and door fatigue (6.3).
+// The opening settles in the fixed order of 3.5.
 
 import { ok, reject } from '../../core';
 import type { EventKind } from '../../core/contracts';
@@ -11,9 +13,17 @@ import { TICK_HZ } from '../../core/time';
 import { removeItem } from '../inventory';
 import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity, mapById } from '../world';
+import { costFlagWritten, playerReturned, settleFatigue, taintChanged } from './costs';
 import { applyDoorEffects, revertDoorEffects } from './effects';
-import { countEvent, keysMet, revealed, visitTargets } from './keys';
-import type { DoorDef, DoorStatus, KeyCond } from './types';
+import { applyExclusion, liftActLocks } from './exclusive';
+import { discover, droughtHint, onSlept } from './hints';
+import { actNumber, consumedItems, countEvent, keysMet, readDoor, visitTargets } from './keys';
+import { contentCurve, rankFromPoints, rankValueOf } from './rank';
+import { sealFlagWritten, sealOnClose, sealOnOpen, unrestOnOpen, updateStage } from './seal';
+import { advanceSequences } from './sequence';
+import { ensureDoorEntries, ensureSlice, freshSlice } from './slice';
+import { setState } from './state';
+import { COUNTABLE_EVENTS, type DoorDef, type DoorStatus } from './types';
 
 export type * from './types';
 export * from './view';
@@ -21,72 +31,68 @@ export * from './view';
 const EVERY = 10;
 
 /** Events door keys may count. Doors listens to all of them; counters filter by content. */
-const COUNTABLE: EventKind[] = [
-  'combat.kill',
-  'combat.boss_defeated',
-  'combat.presence_felt',
-  'combat.player_returned',
-  'combat.wave_cleared',
-  'combat.level_up',
-  'entity.died',
-  'feat.performed',
-  'item.used',
-  'player.talked',
-  'dialogue.option_chosen',
-  'building.completed',
-  'battle.ended',
-  'world.map_changed',
-  'door.opened',
-  'feature.unlocked',
-];
+const COUNTABLE: readonly EventKind[] = COUNTABLE_EVENTS;
 
 function doorDef(ctx: SystemContext, id: string): DoorDef | undefined {
   return (ctx.content.doors ?? []).find((d) => d.id === id);
 }
 
-function setState(ctx: SystemContext, id: string, to: DoorStatus): void {
-  const rt = ctx.world.slices.doors.doors[id];
-  if (!rt || rt.state === to) return;
-  const from = rt.state;
-  rt.state = to;
-  rt.since = ctx.tick;
-  ctx.emit('doors.state', { doorId: id, from, to });
-}
-
-function bump(ctx: SystemContext, key: string, delta: number, min = 0, max = 100): void {
+function bump(ctx: SystemContext, key: string, delta: number, min = 0, max = 1000): void {
   const cur = ctx.flag(key);
   const n = typeof cur === 'number' ? cur : 0;
   ctx.setFlag(key, Math.max(min, Math.min(max, n + delta)));
 }
 
-function consumeItems(ctx: SystemContext, keys: KeyCond[]): void {
-  const pid = ctx.world.slices.world.playerId;
-  for (const k of keys) {
-    if (k.type === 'item' && k.consume) removeItem(ctx, pid, k.itemId, k.count ?? 1, 'door_key');
-    else if (k.type === 'any') consumeItems(ctx, k.of);
-  }
+/** Add a door's rank value and recompute the rank (only an opening moves it, 4.1). */
+function advanceRank(ctx: SystemContext, door: DoorDef): void {
+  const slice = ensureSlice(ctx.world, ctx.content);
+  const from = slice.rank ?? 1;
+  slice.rankPoints = (slice.rankPoints ?? 0) + rankValueOf(door);
+  const to = rankFromPoints(contentCurve(ctx.content), slice.rankPoints);
+  slice.rank = to;
+  if (to !== from || ctx.flag('door_rank') !== to) ctx.setFlag('door_rank', to);
+  if (to !== from) ctx.emit('doors.rank_up', { rank: to, from });
 }
 
-/** Open a door: effects, flag door.<id>, seal variables, exclusive locks, door.opened. */
+/** Close an opened door (3.6): powers taken back, part of the seal settles; never reopens. */
+export function closeDoor(ctx: SystemContext, door: DoorDef): void {
+  revertDoorEffects(ctx, door);
+  ctx.setFlag(`door.${door.id}`, false);
+  const delta = sealOnClose(ctx, door);
+  setState(ctx, door.id, 'closed');
+  ctx.emit('doors.closed', { doorId: door.id, sealDelta: delta });
+}
+
+/** Open a door, settling in the order of thousand_doors.md 3.5. */
 export function openDoor(ctx: SystemContext, door: DoorDef): void {
-  const slice = ctx.world.slices.doors;
+  const slice = ensureSlice(ctx.world, ctx.content);
+  const pid = ctx.world.slices.world.playerId;
+  // 1. the item keys that go into the door
+  for (const used of consumedItems(ctx.world, door, ctx.content))
+    removeItem(ctx, pid, used.itemId, used.count, 'door_key');
+  // 2. effects, 3. the door flag
   applyDoorEffects(ctx, door);
-  consumeItems(ctx, door.keys);
   ctx.setFlag(`door.${door.id}`, true);
-  bump(ctx, 'seal_looseness', door.sealLooseness);
-  bump(ctx, 'seal_unrest', door.sealUnrest);
-  bump(ctx, 'doors_opened', 1, 0, 1000);
-  if (door.danger) bump(ctx, 'danger_doors_opened', 1, 0, 1000);
   setState(ctx, door.id, 'opened');
   const rt = slice.doors[door.id];
   if (rt) rt.openedTick = ctx.tick;
-  for (const other of ctx.content.doors ?? []) {
-    if (other.id === door.id) continue;
-    const shared = other.exclusive?.some((g) => door.exclusive?.includes(g));
-    const st = slice.doors[other.id]?.state;
-    if (shared && st !== 'opened' && st !== 'closed') setState(ctx, other.id, 'locked');
+  // 4. the seal and seal_unrest
+  const sealDelta = sealOnOpen(ctx, door);
+  unrestOnOpen(ctx, door);
+  // 5. the counts
+  bump(ctx, 'doors_opened', 1);
+  if (door.forbidden) {
+    bump(ctx, 'danger_doors_opened', 1);
+    if (actNumber(ctx.flag('act')) === 3) bump(ctx, 'danger_doors_act3', 1);
   }
-  ctx.emit('door.opened', { doorId: door.id, sealDelta: door.sealLooseness });
+  // 6. the door rank
+  advanceRank(ctx, door);
+  // 7. exclusion
+  applyExclusion(ctx, door, { setState, close: closeDoor });
+  // 8. the fact, 9. the drought clock
+  ctx.emit('door.opened', { doorId: door.id, sealDelta });
+  slice.lastOpenTick = ctx.tick;
+  slice.drought = 0;
 }
 
 function recordVisits(ctx: SystemContext): void {
@@ -108,16 +114,20 @@ function recordVisits(ctx: SystemContext): void {
 
 /** Re-evaluate every door; open story doors whose keys are met. */
 export function refreshDoors(ctx: SystemContext): void {
-  const slice = ctx.world.slices.doors;
+  const slice = ensureSlice(ctx.world, ctx.content);
+  advanceSequences(ctx.world, ctx.content);
+  discover(ctx);
   for (const door of ctx.content.doors ?? []) {
     const rt = slice.doors[door.id];
     if (!rt || rt.state === 'opened' || rt.state === 'locked' || rt.state === 'closed') continue;
-    let next: DoorStatus = keysMet(ctx.world, door)
-      ? 'openable'
-      : revealed(ctx.world, door)
-        ? 'hinted'
-        : 'hidden';
+    const read = readDoor(ctx.world, door, ctx.content);
+    let next: DoorStatus = read.met ? 'openable' : read.shown ? 'hinted' : 'hidden';
     if (next === 'hidden' && rt.state !== 'hidden') next = 'hinted';
+    // its own keys under way show the door's look (glimpse); a bare hint flag a crack (3.2)
+    if (read.shown) {
+      const level = read.byKeys ? 2 : 1;
+      if ((rt.hintLevel ?? 0) < level) rt.hintLevel = level;
+    }
     setState(ctx, door.id, next);
     if (next !== 'openable') continue;
     const waited = (ctx.tick - rt.since) / TICK_HZ;
@@ -126,17 +136,56 @@ export function refreshDoors(ctx: SystemContext): void {
   }
 }
 
-const on: { [K in EventKind]?: EventHandler<K> } = {};
+function onFlag(ctx: SystemContext, key: string, value: unknown, previous: unknown): void {
+  // a sequence step may have just been met (its order matters, 5.1)
+  advanceSequences(ctx.world, ctx.content);
+  switch (key) {
+    case 'act':
+      updateStage(ctx);
+      liftActLocks(ctx, setState);
+      discover(ctx);
+      return;
+    case 'p_door_hints':
+    case 'feature.door_corridor':
+      discover(ctx);
+      return;
+    case 'seal_looseness':
+    case 'seal_points':
+      sealFlagWritten(ctx, key);
+      return;
+    case 'player.taint':
+      taintChanged(ctx, value, previous);
+      return;
+    case 'blockage':
+    case 'door_fatigue':
+      costFlagWritten(ctx, key);
+      return;
+    default:
+      return;
+  }
+}
+
+const on: { [K in EventKind]?: EventHandler<K> } = {
+  'flag.changed': (ctx, ev) => onFlag(ctx, ev.data.key, ev.data.value, ev.data.previous),
+  'time.skipped': (ctx, ev) => {
+    if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') onSlept(ctx);
+  },
+};
 for (const kind of COUNTABLE) {
   (on as Record<string, EventHandler<EventKind>>)[kind] = (ctx, ev) => {
     countEvent(ctx.world, ctx.content, ev.kind, ev.data as unknown as Record<string, unknown>);
+    advanceSequences(ctx.world, ctx.content);
+    if (ev.kind === 'combat.player_returned') playerReturned(ctx);
   };
 }
 
 // A time skip's hour-coarse step (travel_and_exploration.md 7.5): the door states refresh
-// once per step, as the periodic check would have.
+// and the fatigue wears off once per step, as the periodic check would have; a skip is no
+// drought (17.4 counts live play only).
 registerSkipHandler('doors', (ctx) => {
+  ensureDoorEntries(ctx.world, ctx.content);
   recordVisits(ctx);
+  settleFatigue(ctx);
   refreshDoors(ctx);
 });
 
@@ -145,15 +194,22 @@ export const system: GameSystem = {
   order: 30,
 
   init(ctx) {
-    const doors: Record<string, { state: DoorStatus; since: number }> = {};
-    for (const d of ctx.content.doors ?? []) doors[d.id] = { state: 'hidden', since: 0 };
-    ctx.world.slices.doors = { doors, counters: {}, visited: {} };
+    ctx.world.slices.doors = freshSlice(ctx.content);
   },
 
   tick(ctx) {
     if (ctx.tick % EVERY !== 5) return;
+    const slice = ensureSlice(ctx.world, ctx.content);
+    ensureDoorEntries(ctx.world, ctx.content);
+    slice.drought = (slice.drought ?? 0) + EVERY;
+    // a save from before the door rank and the seal stage: write their mirrors once
+    if ((slice.rankPoints ?? 0) > 0 && ctx.flag('door_rank') !== slice.rank)
+      ctx.setFlag('door_rank', slice.rank ?? 1);
+    updateStage(ctx);
+    settleFatigue(ctx);
     recordVisits(ctx);
     refreshDoors(ctx);
+    droughtHint(ctx);
   },
 
   commands: {
@@ -164,7 +220,8 @@ export const system: GameSystem = {
       if (rt.state === 'opened') return reject('already_open', tr('sys.doors.reject.already_open'));
       if (rt.state === 'locked') return reject('locked', tr('sys.doors.reject.locked'));
       if (rt.state === 'closed') return reject('closed', tr('sys.doors.reject.closed'));
-      if (!keysMet(ctx.world, door)) return reject('no_key', tr('sys.doors.reject.no_key'));
+      if (!keysMet(ctx.world, door, ctx.content))
+        return reject('no_key', tr('sys.doors.reject.no_key'));
       openDoor(ctx, door);
       return ok();
     },
@@ -174,12 +231,7 @@ export const system: GameSystem = {
       if (!door || !rt) return reject('no_door', tr('sys.doors.reject.no_door'));
       if (rt.state !== 'opened') return reject('not_open', tr('sys.doors.reject.not_open'));
       if (!door.closable) return reject('not_closable', tr('sys.doors.reject.not_closable'));
-      revertDoorEffects(ctx, door);
-      ctx.setFlag(`door.${door.id}`, false);
-      const back = Math.floor(door.sealLooseness / 2);
-      bump(ctx, 'seal_looseness', -back);
-      setState(ctx, door.id, 'closed');
-      ctx.emit('doors.closed', { doorId: door.id, sealDelta: -back });
+      closeDoor(ctx, door);
       return ok();
     },
   },

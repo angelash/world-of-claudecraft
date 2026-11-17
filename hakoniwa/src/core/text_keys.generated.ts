@@ -516,6 +516,20 @@ export type TextKey =
   | 'sys.doors.status.locked'
   | 'sys.doors.status.openable'
   | 'sys.doors.status.opened'
+  | 'sys.doors.wing.court'
+  | 'sys.doors.wing.crafts'
+  | 'sys.doors.wing.crossing'
+  | 'sys.doors.wing.draft'
+  | 'sys.doors.wing.end'
+  | 'sys.doors.wing.grey'
+  | 'sys.doors.wing.hall_front'
+  | 'sys.doors.wing.knots'
+  | 'sys.doors.wing.mirror'
+  | 'sys.doors.wing.paths'
+  | 'sys.doors.wing.schools'
+  | 'sys.doors.wing.six_chairs'
+  | 'sys.doors.wing.steles'
+  | 'sys.doors.wing.vocations'
   | 'sys.economy.competitor.hoard'
   | 'sys.economy.competitor.imitate'
   | 'sys.economy.competitor.offer'
@@ -2078,5 +2092,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (2074). */
-export const TEXT_KEY_COUNT = 2074;
+/** Number of keys in TextKey (2088). */
+export const TEXT_KEY_COUNT = 2088;

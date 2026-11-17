@@ -225,7 +225,7 @@
 达到门阶 r 所需的 P = 不小于 (r / 2)^(4/3) 的最小整数
 ```
 
-内核不在运行时算浮点幂：`data/doors/rank_curve.json` 存 1 到 99 每一阶的整数门槛，由构建脚本按上式生成，测试钉住下表各点。
+内核不在运行时算浮点幂：`data/doors/rank_curve.json` 存 1 到 99 每一阶的整数门槛，由 `tools/doors/rank_curve.ts` 按上式的整数形式（门阶 r 的门槛是满足 16 × P^3 >= r^4 的最小整数 P）生成，内容校验逐阶比对（21.6 第 8 条），测试钉住下表各点。
 
 | 门阶 | 5 | 10 | 15 | 20 | 25 | 28 | 30 | 35 | 40 | 45 | 50 | 55 | 60 | 61 | 70 | 80 | 90 | 99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -307,7 +307,7 @@
 | 历钥 | `flag` | 已登记的剧情标记 | 世界标记（D-076 注册表） | `a3_ash_tells_sundering` |
 | 历钥 | `trial` | `trial_wins.<司> >= N` 或 `trial_<id>` 胜 | 女神试炼胜场与可挑战段结果 | `trial_wins.merca >= 3` |
 | 物钥 | `item` | 物品 ID、数量、`consume` | 背包（开门那一刻持有） | `ky_messenger_plume`（消耗） |
-| 缘钥 | `trust` | 人物 ID、门槛、替钥 | `trust.<id>`（NPC 关系的信任维度，[台账 0.4][rl]） | `trust.oola >= 60` |
+| 缘钥 | `trust` | 人物 ID、门槛、替钥 | `trust.<id>`（NPC 关系的信任维度，[台账 0.4][rl]）；人物写 `*` 时读任一人物的最高信任（识才之门"一位凡人当众担保"） | `trust.oola >= 60` |
 | 缘钥 | `bond` | 同伴 ID、门槛、替钥 | 同伴的羁绊值（party 切片，跨过的门槛算数，[同伴 8.1][cmp]） | 希雅的羁绊不低于 20 |
 | 缘钥 | `taught` | 门 ID、师傅 ID | 师傅教过（5.4） | 刃之门由 `barto` 教过 |
 | 择钥 | `choice` | 抉择标记与取值 | 世界标记 | `a4_refused_to_let_go` |
@@ -325,8 +325,8 @@
 | --- | --- | --- |
 | `all` | 全取（默认） | 子钥全满足 |
 | `any` | N 取 M | `need` 缺省 1 |
-| `seq` | 序钥 | 子钥按序满足；计数器 `seq:<门>:<路径>` 记当前步；后一步先于前一步发生时该步作废，从这一步重来 |
-| `alt` | 替钥 | 第一项是原钥，后面是替钥；原钥人物进入缺位状态（5.4）时界面改显替钥，判定任一满足即可 |
+| `seq` | 序钥 | 子钥按序满足；计数器 `seq:<门>:<路径>` 记已完成的步数；计数步轮到它之前不计数（只能按序挣得），其余步先于前一步满足时这把序钥永久作废（计数器记 -1）；同一 tick 里一起满足的几步按书写顺序计 |
+| `alt` | 替钥 | 第一项是原钥，后面是替钥；原钥人物进入缺位状态（5.4）时界面改显替钥，此后原钥或任一替钥满足即可；原钥不落在人物身上时，用 `when`（揭示台账语法的条件）写替钥何时生效（例：借形之门 `a1_oola_fate` 已定且不为 `cleared`） |
 
 ### 5.2 判定接口
 
@@ -362,7 +362,9 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
   3. 写 `taught.<门>.<师傅>`；同一扇门有多位候选师傅时，任一教过即可；
   4. 授课本身计入该师傅的羁绊（若是同伴）与玩家的事迹（若门目录写了对应事迹）。
 - **缺位状态**：NPC 系统给出 `npcState(id)` ∈ 在世可用、死亡、离开（本幕不回来）、被捕、敌对、在泉畔。原钥人物处于后五种时启用替钥。
-- **校验**：凡一扇门的缘钥只落在一个 NPC 身上，内容校验要求有 `alt`（门目录 1.3 第 2 条的机器化）。
+  判定读注册表变量：`npc.<id>.dead`、`companion.<id>.state` 为 `left` 或 `dead`、`companion.<id>.lost`；内容里还没有的人物也算缺位（人不在世界里就帮不上忙）；被捕、敌对、在泉畔三种随 NPC 系统的对应变量接入。
+- **校验**：凡一扇门的缘钥只落在一个 NPC 身上，内容校验要求有 `alt`（门目录 1.3 第 2 条的机器化）。"只落在一个人身上"指开门必需（不在 `any`、`alt` 之内）的 `trust` 钥、读 `trust.<id>` 的旗标钥与只写一位师傅的 `taught` 钥；
+  同伴的 `bond` 钥按同伴系统的离队与铁人规则另管，不在本条之内。
 
 ### 5.5 物钥：记住与消耗
 
@@ -388,7 +390,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 ### 5.8 显影钥与钥标签的披露
 
 - `reveal` 写了的门：显影钥任一满足即显影；没写的门：任一钥有进度即显影。
-- 钥标签按 `hintLevel` 披露（3.2）：门缝只露第一条；门相露已满足的与"还差 N 把"；门相全露全部。
+- 钥标签按 `hintLevel` 披露（3.2）：门缝只露第一条，不露门名；门相露已满足的与已有进度的钥，另写"还差 N 把"；门相全露全部；可开、已开、关闭与锁闭的门露全部。
 - 钥标签是玩家可见文本，受台账约束：真相门的钥标签只写凡人可见的说法（[事迹目录 1.6][dt]的称谓表）；第六幕前不出现第六司的名字（D-023，21.6 的校验）。
 
 ## 6. 门的代价三量：淤塞、门疲、封印松动
@@ -424,7 +426,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 
 | 来源 | 淤塞 | 依据 |
 | --- | --- | --- |
-| 澱染折算 | 每得 4 点澱染记 1 点淤塞（澱染本身照常累积） | [消耗品 2.4][csm]（C83） |
+| 澱染折算 | 每得 4 点澱染记 1 点淤塞（澱染本身照常累积；千门系统读澱染系统写的镜像 `player.taint` 的增量，余数留到下一次） | [消耗品 2.4][csm]（C83） |
 | 澱回流：死在深澱（四级）区域 | +5 | [力量 9.8][pow] |
 | 澱回流：死在渊澱（五级）区域 | +10 | 同上 |
 | 过载复苏（6.3）每层 | +3 | 同上第 4 条 |
@@ -637,7 +639,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 
 | 序 | 功能键 | 门 | 读取方（模块） | 做什么 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `door_corridor` | 初门·醒 | 客户端窗口注册表 `src/client/windows/window_registry.ts`（回廊窗口，`requiresAll` 为 `feature.door_corridor`）；千门视图 `corridorView`；HUD 的门镜部件 | 回廊界面与门镜第一次可用；序章门提示的两道门缝在这一刻出现；之前任何界面都不显示回廊入口 | 新接 |
+| 1 | `door_corridor` | 初门·醒 | 客户端窗口注册表 `src/client/windows/window_registry.ts`（回廊窗口，`requiresAll` 为 `feature.door_corridor`）；千门查询 `corridorOpen`、`corridorLayout`（第一段随它长出）；HUD 的门镜部件 | 回廊界面与门镜第一次可用；序章门提示的两道门缝在这一刻出现；之前任何界面都不显示回廊入口 | 窗口与查询已接；门镜部件新接 |
 | 2 | `tide_sight` | 观澜之门 | 战斗查询 `src/systems/combat/queries.ts` 的 `strengthReading`、`targetInfo` | 目标框显示等级区间；精度与"？"阈值按 4.7 节随门阶变化 | 已接；精度分档新接 |
 | 3 | `servant` | 契约之门 | 同伴系统新模块 `src/systems/party/retainers.ts`；战斗的力竭结算（`yieldAtPct`） | 力竭目标旁出现"伸手"交互；命令 `doors.pact` 缔结从契（3.7）：目标净化为从兽或人形从者，进入名册，占从者位 | 新接 |
 | 4 | `appraise_talent` | 识才之门 | 认知鉴定 `src/systems/cognition/appraise.ts` | 鉴定 NPC 时读出底页潜质 | 已接 |
@@ -692,7 +694,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 | 机制 `mode` | 含义 |
 | --- | --- |
 | `lock` | 同组另一扇开启时，本门若未开则锁闭（永久） |
-| `actLock` | 只在某一幕内锁闭；该幕结束后本门回到未见，按钥重新判定 |
+| `actLock` | 只在 `act` 那一幕内开启同组另一扇时锁闭；`act` 到达 `until`（缺省为 `act` + 1）时本门回到未见，按钥重新判定 |
 | `forceClose` | 同组另一扇开启时，本门若已开则被强制闭门（按闭门结算，封印回落照常），若未开则锁闭 |
 | `freeze` | 冻结叠加态，可被撤回（只用于 X7） |
 | `rack` | 软互斥：都能开，但同一时刻只有一扇"当架"（只用于 X13） |
@@ -701,17 +703,17 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 | 组 | 成员 | 机制 | 说明 |
 | --- | --- | --- | --- |
 | X1 | 前世之门八种变体 | `lock` | 序章面试结算时七扇锁闭 |
-| X2 | 渊契之门（第一幕版本）与借形之门 | `actLock`（第一幕） | 渊契之门有两套钥：第一幕钥（澱核）与第三幕钥（大澱晶）。借形已开时澱核在伸手前碎掉（`dian_core` 被移除），第一幕钥作废，第三幕钥照常；握住澱核开门则借形之门在第一幕锁闭，第三幕开始回到未见 |
+| X2 | 渊契之门（第一幕版本）与借形之门 | `actLock`（`act` 1，`until` 3） | 渊契之门有两套钥：第一幕钥（澱核）与第三幕钥（大澱晶）。借形已开时澱核在伸手前碎掉（`dian_core` 被移除），第一幕钥作废，第三幕钥照常；握住澱核开门则借形之门在第一幕锁闭，第三幕开始回到未见 |
 | X3 | 渊契之门与澄流之门 | `lock` | 以澱为力与把澱解开不能并存 |
 | X4 | 裂隙之门与残影之门 | `lock` | 同一块主门碎片只能撕一次 |
 | X5 | 司掌之门与终门 | `lock` | 开司掌则终门锁闭 |
 | X6 | 复原之门与离手之门 | 复原开启：离手 `lock`；离手走完：复原 `vanish` | |
 | X7 | 受页之门与回廊中一切未开的非时钥门 | `freeze` | 第 11 节；时钥门（登庭、名讳）不受影响 |
 | X8 | 残页之门与澄流之门、受页之门 | `lock`（三向） | 开其一，其余锁闭 |
-| X9 | 渡魂之门与四季之门 | `forceClose` | 渡魂开启时四季之门已开则强制闭门，未开则锁闭 |
+| X9 | 渡魂之门与四季之门 | 四季之门 `forceClose`；渡魂之门 `source`（单向） | 渡魂开启时四季之门已开则强制闭门，未开则锁闭 |
 | X10 | 双账之门与"把奈拉交出去" | `forceClose`，由标记 `npc.nera.handed_over` 触发 | 交出奈拉（交给哈特或逐出商会）时写这个标记 |
 | X11 | 无名之钥门三扇与对应门钥的去向 | 门钥交给梅尔卡、遗民或希尔薇：`forceClose`；门钥锁进众门环节点：`shut`，节点锁定期间失效 | 门钥只在玩家手里时门才认它 |
-| X12 | 誓光之门与受页之门 | `forceClose` | 以自己的名义立的誓，不能挂在她的页上；撕页后不恢复 |
+| X12 | 誓光之门与受页之门 | 誓光之门 `forceClose`；受页之门 `source`（单向） | 以自己的名义立的誓，不能挂在她的页上；撕页后不恢复 |
 | X13 | 同一职能门下的三扇流派之门 | `rack` | 见 9.5 |
 
 **锁闭的门在界面上**：门框蒙灰，门卡写"这扇门不会再为你打开"，并写明是哪一次抉择关上了它（例："你握住了澱核"）。
@@ -1159,6 +1161,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
    - 本门上一次被提示之后每过一个游戏日 +5。
    同分时按门 ID 字典序，不抽随机。
 3. **渠道**：按封印阶段与已开功能，选第一个可用的渠道：雅努入梦（阶段 1 起，玩家在安全处入睡）；钥孔鲤；师傅台词（玩家与持钥者同在一地）；传闻注入（向当前地区的传闻池加一条"门址"或"师傅"的传闻）。
+   入梦在一夜睡到清晨（`time.skipped` 的 `sleep` 完成）时结算；门旱超过 120 分钟且当天还没有提示时走传闻注入，每个游戏日至多一次。序章门缝不是导演的提示，不占每日两次。
 4. **强度**：通常把该门的强度提一档；门旱超过 120 分钟时提两档，超过 240 分钟时直接到 4（地钥）或 3（其他）。
 5. **限制**：每个游戏日至多两次提示；真相门的提示只给凡人可见的说法；任何提示都过揭示台账与 D-023 的过滤。
 6. **有模型时**：模型可以从得分前三的门里选一扇并写梦的措辞；内核校验它选的门在前三之内、措辞不含未解锁的真相与禁名，校验失败则回到规则选择与预写台词。
@@ -1246,13 +1249,17 @@ DoorDef {
   seal: 'none'|'micro'|'small'|'medium'|'large'|'extreme'   // 松动档（6.4.1）
   forbidden?: true               // 禁门加权，计入 danger_doors_opened
   unrest?: 'default'|'none'|'ruins'                          // seal_unrest 规则（6.4.4）
-  rankValue?: 0|1|2              // 门阶值，缺省按 4.2 推出
+  rankValue: 0|1|2               // 门阶值，按 4.2 逐门写明
+  hall?: true                    // 段尾之厅里的门：段长出时以门相档显影（2.1）
+  main?: true                    // 主线门（17.3 极简清单）：提示导演 +15，不加阶钥
+  tendency?: Tendency            // 序章倾向（blade、beast、breath、pact、shadow、spirit）：第一幕开局的门缝（18.1）
   keys: KeyCond[]                // 一阶的钥
   tiers?: { keys: KeyCond[], effects: DoorEffect[] }[]       // 两阶门的二阶
   keySets?: { act: number, keys: KeyCond[] }[]               // 按幕的多套钥（渊契之门）
   reveal?: KeyCond[]
   effects: DoorEffect[]
-  exclusive?: { group: string, mode: 'lock'|'actLock'|'forceClose'|'freeze'|'rack'|'vanish', act?: number }[]
+  exclusive?: { group: string, mode: 'lock'|'actLock'|'forceClose'|'freeze'|'rack'|'vanish',
+                act?: number, until?: number, source?: true }[]   // source：单向组的发动方（X9、X12），同组别的门开启时不受影响
   closable: boolean
   auto?: true                    // 剧情必开门
   scripted?: true                // 只由场景开启（契约之门、前世之门、受页之门）
@@ -1316,10 +1323,14 @@ DoorsSlice {
   visited: Record<string, true>
   touched: Record<string, true>           // 隔扉之门触碰过的门
   rankPoints: number                      // 门阶值总和
+  rank: number                            // 门阶，按 data/doors/rank_curve.json 由 rankPoints 查得，镜像到 door_rank
   sealPoints: number                      // 半分（镜像到 seal_looseness）
-  blockage: number                        // 淤塞
+  sealStage: number                       // 已到达的封印阶段，镜像到 seal_stage
+  blockage: number                        // 淤塞，以十分之一点存整数，镜像到 blockage（取整）
+  taintCarry: number                      // 未满 4 点、尚未折算的澱染
   fatigue: number                         // 门疲
-  revive: { stacks, dayIndex, sicknessUntil? }
+  fatigueAt: tick                         // 门疲消退结算到的时刻
+  revive: { deaths: tick[], stacks }      // 一个游戏日内退回门内的时刻与最近一次的过载层数
   markers: { id, mapId, x, y }[]          // 门标
   pulses: ResourceKind[]                  // 当架池
   racks: Record<vocationDoorId, schoolDoorId>   // 当架
@@ -1327,7 +1338,8 @@ DoorsSlice {
   falsePage?: { name, level, vocation, title, skill }
   ferry: { held?: { soulId, untilTick }, lastSeason? }
   breach: { lastDay? }
-  hints: { lastTick, today: number, log: { doorId, tick, channel, level }[] }   // 有界日志，至多 200 条
+  hints: { day, today: number, log: { doorId, tick, channel, level }[] }   // 有界日志，至多 200 条
+  drought: number                         // 门旱：上一次开门或有门进入可开之后的实玩 tick（不含跳时）
   lastOpenTick: number
 }
 ```
@@ -1372,7 +1384,7 @@ DoorsSlice {
 
 1. 每扇门的 `segment`、`wing`、`seal`、`jam` 都已填写；`wing` 与门类相符（2.2）。
 2. 每个 `flag`、`choice`、`time`、`know`、`cond` 钥引用的键都已登记在 `data/registry/vars.json`（D-076）。
-3. 每个只落在一个 NPC 身上的缘钥有 `alt`；每个分支事迹作历钥的门有 `alt`（5.3、5.4）。
+3. 每个只落在一个 NPC 身上的缘钥有 `alt`；每个分支事迹作历钥的门有 `alt`（5.3、5.4；"只落在一个人身上"的口径见 5.4）。
 4. 物钥不引用商品与商店常备物品（5.5）。
 5. 剧情必开门与主线门没有 `rank` 钥（4.6）。
 6. **D-023 校验**：第六幕之前可见的全部门名、门相、提示句、钥标签与效果说明的中英文文本，不含第六司的名字与其变体；名讳之门之后的文本另列白名单。

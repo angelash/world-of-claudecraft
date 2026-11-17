@@ -153,7 +153,8 @@ describe('story doors', () => {
     expect(abilityBar(g.world, g.content).map((s) => s.id)).toEqual(['door_strike', 'door_step']);
     expect(g.world.slices.inventory.owners.player?.equipped.main_hand).toBe('rusty_shortsword');
     expect(g.world.slices.combat.units.player?.auras.map((a) => a.id)).toContain('door_mirror');
-    expect(sealState(g.world)).toEqual({ looseness: 0, unrest: 0, opened: 1 });
+    // the first door is micro (half a point of looseness) and never moves seal_unrest
+    expect(sealState(g.world)).toEqual({ looseness: 0.5, unrest: 0, opened: 1 });
     expect(events(g, 'door.opened').map((e) => e.data.doorId)).toContain('awaken');
   });
 
@@ -216,11 +217,11 @@ describe('chosen doors', () => {
       ['territory_autonomy', 'yeyu_letters', 'remnants', 'ending'].includes(key);
     const keys: { door: string; key: string; danger: boolean }[] = [];
     const visit = (
-      door: { id: string; danger?: boolean },
+      door: { id: string; forbidden?: boolean },
       k: { type: string; key?: string; of?: unknown[] },
     ) => {
       if (k.type === 'flag' && k.key)
-        keys.push({ door: door.id, key: k.key, danger: !!door.danger });
+        keys.push({ door: door.id, key: k.key, danger: !!door.forbidden });
       for (const sub of (k.of ?? []) as { type: string; key?: string }[]) visit(door, sub);
     };
     const content = buildContent();
@@ -265,7 +266,8 @@ describe('chosen doors', () => {
     expect(countItem(g.world, 'player', 'dian_core')).toBe(0);
     expect(doorState(g.world, 'vocation_druid')).toBe('locked');
     expect(doorState(g.world, 'clear_flow')).toBe('locked');
-    expect(flags(g)).toMatchObject({ danger_doors_opened: 1, seal_unrest: 18, seal_looseness: 3 });
+    // medium (+2) with the forbidden weight (+2); act 1 unrest 3 plus the weight 15
+    expect(flags(g)).toMatchObject({ danger_doors_opened: 1, seal_unrest: 18, seal_looseness: 4 });
     expect(g.world.slices.combat.units.player?.res.mana).toBeGreaterThan(0);
     g.queue('doors.open', { doorId: 'vocation_druid' });
     g.step(1);
@@ -278,12 +280,14 @@ describe('chosen doors', () => {
     g.queue('doors.open', { doorId: 'breach' });
     g.step(1);
     expect(flags(g)['feature.breach']).toBe(true);
-    expect(flags(g).seal_looseness).toBe(12);
+    // extreme (+8) with the forbidden weight (+2)
+    expect(flags(g).seal_looseness).toBe(10);
     g.queue('doors.close', { doorId: 'breach' });
     g.step(1);
     expect(lastResult(g, 'doors.close')?.ok).toBe(true);
     expect(flags(g)['feature.breach']).toBe(false);
     expect(flags(g)['door.breach']).toBe(false);
+    // an extreme door settles 4 back; the forbidden weight stays
     expect(flags(g).seal_looseness).toBe(6);
     expect(doorState(g.world, 'breach')).toBe('closed');
     g.queue('doors.open', { doorId: 'breach' });
@@ -326,7 +330,8 @@ describe('chosen doors', () => {
   it('reads companion bonds from the party and compares the act flag by its index', () => {
     const g = makeGame();
     const hunter = g.content.doors.find((d) => d.id === 'vocation_hunter');
-    const bond = hunter?.keys.find((k) => k.type === 'bond');
+    const alt = hunter?.keys.find((k) => k.type === 'alt');
+    const bond = alt?.type === 'alt' ? alt.of[0] : undefined;
     if (!hunter || !bond) throw new Error('no bond key on vocation_hunter');
     expect(bond).toMatchObject({ type: 'bond', companion: 'shiya', min: 20 });
     expect(evalKey(g.world, hunter, bond, '0').met).toBe(false);
@@ -393,7 +398,10 @@ describe('corridor view', () => {
     expect(
       corridorView(g.world, g.content).find((d) => d.id === 'talent_sight')?.keys[0]?.cur,
     ).toBe(1);
+    // the third key: a mortal vouches for the player in public (anyone's trust at 80)
     setFlags(g, { a1_beast_tide_cleared: true });
+    expect(doorState(g.world, 'talent_sight')).toBe('hinted');
+    setFlags(g, { 'trust.martha': 80 });
     const open = corridorView(g.world, g.content).find((d) => d.id === 'talent_sight');
     expect(open?.state).toBe('openable');
     expect(corridorView(g.world, g.content, true).length).toBe(g.content.doors.length);
