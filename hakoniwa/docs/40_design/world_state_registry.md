@@ -1678,7 +1678,7 @@
 
 | 序 | 规则 | 级别 |
 | --- | --- | --- |
-| 1 | 每个被读取或写入的名字（条件、效果 `key`、门钥 `flag`、`requiresFlags`、`endOnFlag`、`pacifiedBy`、`removeOnFlag`、`storeAs`、`from`、`trustKey`、`evidenceFlags`、`revealWhen`、`hideWhen`）都能解析到规范名或族成员 | 错误 |
+| 1 | 每个被读取或写入的名字（条件、效果 `key`、门钥 `flag`、`requiresFlags`、`endOnFlag`、`pacifiedBy`、`removeOnFlag`、`storeAs`、`from`、`trustKey`、`evidenceFlags`、`revealWhen`、`hideWhen`、地图开关格的 `openWhen`）都能解析到规范名或族成员；地图刷新点 `requiresFlags` 的否定条目 `!名` 按 `名` 解析，别处的 `!` 不是否定 | 错误 |
 | 2 | 族成员的键属于该族的键域（人物 ID、门 ID、物品 ID、证据编号等） | 错误 |
 | 3 | 使用别名：M0 到 M1 为警告并自动换成规范名；M2 起为错误 | 警告到错误 |
 | 4 | 条件能被 `checkCondition` 解析；枚举字面量在值集内；`HAS` 的左项是集合；`IN` 的列表项在值集内 | 错误 |

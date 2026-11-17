@@ -7,12 +7,15 @@
     "kind": "trail",
     "road": "镇北小路（上残阶坡）",
     "km": 6,
-    "hours": { "walk": 1.5, "ride": 0.5 },
+    "hours": {
+      "walk": 1.5,
+      "ride": 0.5
+    },
     "acts": [1, 2, 3, 4, 5],
     "fromExit": "to_seal_ruins",
     "toExit": "to_borderstone",
     "status": "built",
-    "note": "第一幕往返的主路；第一轮直连，镇北与界石线地块建成后北路从它穿过。"
+    "note": "第一幕往返的主路；第一轮直连。镇北与界石线（A2）建成后，北门出口改通 A2，本路线起点改为 borderstone_north、公里 3（地图简报 A2）。"
   },
   {
     "id": "seal_ruins_stairs",
@@ -48,7 +51,9 @@
     "kind": "road",
     "road": "东门外林缘路",
     "km": 3,
-    "hours": { "walk": 0.7 },
+    "hours": {
+      "walk": 0.7
+    },
     "acts": [1, 2, 3, 4, 5],
     "fromExit": "to_forest_edge",
     "toExit": "to_borderstone",
@@ -62,7 +67,10 @@
     "kind": "road",
     "road": "旧巡逻道（贴铁杉林南缘东行）",
     "km": 12,
-    "hours": { "walk": 12, "ride": 2 },
+    "hours": {
+      "walk": 12,
+      "ride": 2
+    },
     "acts": [1, 2, 3, 4, 5],
     "fromExit": "to_old_outpost",
     "toExit": "to_borderstone",
@@ -90,7 +98,11 @@
     "kind": "road",
     "road": "南大路（经苇桥村不停留）",
     "km": 60,
-    "hours": { "walk": 60, "ride": 24, "caravan": 72 },
+    "hours": {
+      "walk": 60,
+      "ride": 24,
+      "caravan": 72
+    },
     "acts": [2, 3, 4, 5],
     "fromExit": "to_wallenburg",
     "toExit": "to_borderstone",
@@ -112,6 +124,17 @@
     "status": "built"
   },
   {
+    "status": "planned",
+    "id": "castle_well_shaft",
+    "from": "wallenburg",
+    "to": "broken_door_hall",
+    "layer": "tile",
+    "kind": "passage",
+    "road": "鹰丘旧井",
+    "acts": [2, 3, 4, 5],
+    "opens": "第二幕第 13 周后经伯爵许可"
+  },
+  {
     "id": "borderstone_inner_court",
     "from": "borderstone",
     "to": "inner_court",
@@ -125,6 +148,26 @@
     "note": "由城建系统的门内庭院传送实现，不经地图出口。"
   },
   {
+    "status": "planned",
+    "id": "boundary_cairn_battle_call",
+    "from": "borderstone",
+    "to": "boundary_cairn_battle",
+    "layer": "event",
+    "kind": "battle",
+    "acts": [4],
+    "note": "界石之战 bat_a4_boundary_war（第四幕必经）。"
+  },
+  {
+    "status": "planned",
+    "id": "borderstone_rear_battle_call",
+    "from": "borderstone",
+    "to": "borderstone_rear_battle",
+    "layer": "event",
+    "kind": "battle",
+    "acts": [5],
+    "note": "后方·边石 bat_a5_front_rear。"
+  },
+  {
     "id": "borderstone_north_road",
     "from": "borderstone",
     "to": "borderstone_north",
@@ -132,9 +175,26 @@
     "kind": "trail",
     "road": "西北矿道口",
     "km": 3,
-    "hours": { "walk": 0.7 },
+    "hours": {
+      "walk": 0.7
+    },
     "acts": [1, 2, 3, 4, 5],
     "status": "planned"
+  },
+  {
+    "status": "planned",
+    "id": "borderstone_north_trail",
+    "from": "borderstone",
+    "to": "borderstone_north",
+    "layer": "tile",
+    "kind": "trail",
+    "road": "镇北小路",
+    "km": 3,
+    "hours": {
+      "walk": 0.7
+    },
+    "acts": [1, 2, 3, 4, 5],
+    "note": "A1 北门到 A2 南缘；A2 建成后北门出口改走这里（地图简报第 9.1 节）。"
   },
   {
     "id": "rustridge_mine_mouth",
@@ -146,6 +206,39 @@
     "acts": [1, 2, 3, 4, 5],
     "status": "planned",
     "opens": "第 2 到 3 周的矿道委托；下层在一夜打通塌方后开放"
+  },
+  {
+    "status": "planned",
+    "id": "rustridge_old_mine",
+    "from": "rustridge_mine",
+    "to": "dg_old_mine",
+    "layer": "tile",
+    "kind": "passage",
+    "road": "边石旧矿的旧矿道",
+    "acts": [1],
+    "note": "锈岭矿口一侧的旧矿道（A5-2）。"
+  },
+  {
+    "status": "planned",
+    "id": "rustridge_deep_rift",
+    "from": "rustridge_mine",
+    "to": "rustridge_deep",
+    "layer": "tile",
+    "kind": "passage",
+    "road": "空心石裂缝",
+    "acts": [3, 4, 5],
+    "opens": "第三幕"
+  },
+  {
+    "status": "planned",
+    "id": "rustridge_new_shaft",
+    "from": "borderstone_north",
+    "to": "rustridge_deep",
+    "layer": "tile",
+    "kind": "passage",
+    "road": "锈岭新竖井",
+    "acts": [3, 4, 5],
+    "opens": "旧矿被毁、塌死旧路时由领地另挖，工期两周"
   },
   {
     "id": "forest_edge_deep",
@@ -166,7 +259,9 @@
     "kind": "waste",
     "road": "灰路（沿灰溪逆流而上）",
     "km": 12,
-    "hours": { "walk": 15 },
+    "hours": {
+      "walk": 15
+    },
     "acts": [1, 2, 3, 4, 5],
     "status": "planned",
     "note": "灰地难行，不宜骑马；由地理志 4.3 边石镇到折桥驿 15 公里减去镇北 3 公里折算（提案）。"
@@ -191,7 +286,11 @@
     "kind": "road",
     "road": "南大路北段（沿灰溪东岸）",
     "km": 30,
-    "hours": { "walk": 24, "ride": 12, "caravan": 36 },
+    "hours": {
+      "walk": 24,
+      "ride": 12,
+      "caravan": 36
+    },
     "acts": [2, 3, 4, 5],
     "status": "planned",
     "events": ["caravan", "refugees", "bandits", "church_patrol"]
@@ -204,7 +303,11 @@
     "kind": "road",
     "road": "南大路南段（过苇桥转入瓦伦河谷）",
     "km": 30,
-    "hours": { "walk": 24, "ride": 12, "caravan": 36 },
+    "hours": {
+      "walk": 24,
+      "ride": 12,
+      "caravan": 36
+    },
     "acts": [2, 3, 4, 5],
     "status": "planned",
     "events": ["caravan", "refugees", "rumor", "church_patrol"]
@@ -296,6 +399,16 @@
     "opens": "第三幕第 2 周夜"
   },
   {
+    "status": "planned",
+    "id": "valen_fields_battle_call",
+    "from": "old_outpost",
+    "to": "valen_fields_battle",
+    "layer": "event",
+    "kind": "battle",
+    "acts": [3],
+    "note": "第二战线 bat_a3_second_front（与灰烬防线同时，自动结算为主）。"
+  },
+  {
     "id": "reedpond_path",
     "from": "reedbridge",
     "to": "reedpond",
@@ -322,23 +435,55 @@
     "to": "orien_banks",
     "layer": "region",
     "kind": "river",
-    "road": "瓦伦河谷（河路与陆路并行）",
+    "road": "瓦伦河（河路）",
     "km": 240,
-    "hours": { "walk": 240, "ride": 132, "boat": 96, "boatBack": 192 },
+    "hours": {
+      "boat": 96,
+      "boatBack": 192
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 4 周王都觐见",
+    "events": ["caravan", "patrol", "pilgrims", "rumor", "army"],
+    "note": "只有船行，起点是瓦伦堡河港；陆路走光径北支 lightway_north（地图简报第 9.1 节）。"
+  },
+  {
+    "status": "planned",
+    "id": "lightway_north",
+    "from": "gatefront_south",
+    "to": "orien_banks",
+    "layer": "region",
+    "kind": "road",
+    "road": "光径北支",
+    "km": 240,
+    "hours": {
+      "walk": 240,
+      "ride": 132,
+      "caravan": 288
+    },
+    "acts": [3, 4, 5],
+    "opens": "第三幕第 4 周",
     "events": ["caravan", "patrol", "pilgrims", "rumor", "army"]
   },
   {
-    "id": "orien_bridges",
+    "status": "planned",
+    "id": "orien_bridge_north",
     "from": "orien_banks",
     "to": "orien_isle",
     "layer": "tile",
     "kind": "road",
-    "road": "王岛的两座石桥",
-    "acts": [3, 4, 5],
-    "status": "planned"
+    "road": "王岛北桥",
+    "acts": [3, 4, 5]
+  },
+  {
+    "status": "planned",
+    "id": "orien_bridge_south",
+    "from": "orien_banks",
+    "to": "orien_isle",
+    "layer": "tile",
+    "kind": "road",
+    "road": "王岛南桥",
+    "acts": [3, 4, 5]
   },
   {
     "id": "sunrise_gate_battle_call",
@@ -358,7 +503,10 @@
     "kind": "road",
     "road": "王道（横原大道西段）",
     "km": 180,
-    "hours": { "walk": 192, "ride": 96 },
+    "hours": {
+      "walk": 192,
+      "ride": 96
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "events": ["caravan", "patrol", "army", "rumor"]
@@ -371,7 +519,10 @@
     "kind": "trail",
     "road": "苍榆林地小路",
     "km": 50,
-    "hours": { "walk": 48, "ride": 24 },
+    "hours": {
+      "walk": 48,
+      "ride": 24
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "events": ["refugees", "monsters", "rumor"]
@@ -394,7 +545,11 @@
     "kind": "road",
     "road": "北境大道（沿瓦伦河上溯）",
     "km": 120,
-    "hours": { "walk": 120, "ride": 72, "boat": 96 },
+    "hours": {
+      "walk": 120,
+      "ride": 72,
+      "boat": 96
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 9 周",
@@ -408,7 +563,10 @@
     "kind": "trail",
     "road": "旧巡逻道东段（荒原南缘与北境丘陵之间）",
     "km": 100,
-    "hours": { "walk": 96, "ride": 60 },
+    "hours": {
+      "walk": 96,
+      "ride": 60
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 9 周",
@@ -452,7 +610,10 @@
     "kind": "trail",
     "road": "北境丘陵西端谷地",
     "km": 70,
-    "hours": { "walk": 72, "ride": 36 },
+    "hours": {
+      "walk": 72,
+      "ride": 36
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 5 周起",
@@ -466,7 +627,9 @@
     "kind": "waste",
     "road": "无路（外缘到中层）",
     "km": 35,
-    "hours": { "walk": 48 },
+    "hours": {
+      "walk": 48
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 13 周",
@@ -481,7 +644,9 @@
     "kind": "waste",
     "road": "无路（中层西侧）",
     "km": 25,
-    "hours": { "walk": 48 },
+    "hours": {
+      "walk": 48
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "events": ["ashstorm", "monsters"],
@@ -498,6 +663,33 @@
     "status": "planned"
   },
   {
+    "status": "planned",
+    "id": "glass_plain_gate_station_se",
+    "from": "glass_plain",
+    "to": "gate_station_ruins_se",
+    "layer": "tile",
+    "kind": "waste",
+    "acts": [3, 4, 5]
+  },
+  {
+    "status": "planned",
+    "id": "glass_plain_gate_station_ne",
+    "from": "glass_plain",
+    "to": "gate_station_ruins_ne",
+    "layer": "tile",
+    "kind": "waste",
+    "acts": [3, 4, 5]
+  },
+  {
+    "status": "planned",
+    "id": "ash_sea_gate_station_w",
+    "from": "ash_sea",
+    "to": "gate_station_ruins_w",
+    "layer": "tile",
+    "kind": "waste",
+    "acts": [3, 4, 5]
+  },
+  {
     "id": "glass_plain_gatepicker_camp",
     "from": "glass_plain",
     "to": "gatepicker_camp",
@@ -508,6 +700,15 @@
     "status": "planned"
   },
   {
+    "status": "planned",
+    "id": "glass_plain_gatepicker_camp_east",
+    "from": "glass_plain",
+    "to": "gatepicker_camp_east",
+    "layer": "tile",
+    "kind": "waste",
+    "acts": [3, 4, 5]
+  },
+  {
     "id": "glass_plain_outer_rings",
     "from": "glass_plain",
     "to": "thousand_gates_ring",
@@ -515,7 +716,9 @@
     "kind": "waste",
     "road": "无路（中层到外环）",
     "km": 35,
-    "hours": { "walk": 60 },
+    "hours": {
+      "walk": 60
+    },
     "acts": [3, 4, 5],
     "status": "planned",
     "opens": "第三幕第 14 周（深澱，停留限时）",
@@ -575,6 +778,22 @@
     "opens": "莫伊拉现身的触发条件成立后"
   },
   {
+    "status": "planned",
+    "id": "grantis_redgravel_road",
+    "from": "grantis",
+    "to": "redgravel_pit",
+    "layer": "region",
+    "kind": "road",
+    "km": 100,
+    "hours": {
+      "walk": 96,
+      "ride": 48
+    },
+    "acts": [4, 5],
+    "opens": "第四幕；\"无名战士\"木牌",
+    "events": ["caravan", "patrol", "rumor"]
+  },
+  {
     "id": "goldbay_vault",
     "from": "goldbay",
     "to": "deep_ledger_vault",
@@ -586,6 +805,33 @@
     "opens": "深账库之夜之后"
   },
   {
+    "status": "planned",
+    "id": "goldbay_wreck_bay",
+    "from": "goldbay",
+    "to": "wreck_bay",
+    "layer": "tile",
+    "kind": "trail",
+    "road": "海崖小路",
+    "acts": [4, 5],
+    "opens": "退潮时"
+  },
+  {
+    "status": "planned",
+    "id": "goldbay_deep_dive",
+    "from": "goldbay",
+    "to": "abyss_lord_wreck",
+    "layer": "region",
+    "kind": "river",
+    "road": "海路（同盟深潜船）",
+    "km": 300,
+    "hours": {
+      "boat": 72
+    },
+    "acts": [5],
+    "opens": "第五幕；同盟深潜船",
+    "events": ["weather"]
+  },
+  {
     "id": "wellspring_path",
     "from": "ringwood_court",
     "to": "world_tree",
@@ -593,7 +839,9 @@
     "kind": "trail",
     "road": "回泉路（林中无路，靠精灵向导）",
     "km": 40,
-    "hours": { "walk": 48 },
+    "hours": {
+      "walk": 48
+    },
     "acts": [4, 5],
     "status": "planned",
     "events": ["monsters", "pilgrims", "weather"],
@@ -611,6 +859,41 @@
     "opens": "森林的秘密第 1 步（林中烟）"
   },
   {
+    "status": "planned",
+    "id": "worldtree_root_descent",
+    "from": "world_tree",
+    "to": "root_abyss",
+    "layer": "tile",
+    "kind": "passage",
+    "acts": [4, 5],
+    "opens": "庇护公开或迁入时开放，被毁时封闭到第五幕"
+  },
+  {
+    "status": "planned",
+    "id": "ringwood_withered_path",
+    "from": "ringwood_court",
+    "to": "withered_ring",
+    "layer": "region",
+    "kind": "trail",
+    "km": 60,
+    "hours": {
+      "walk": 72
+    },
+    "acts": [5],
+    "opens": "第五幕；守护者许可或森林线达成",
+    "events": ["monsters", "weather"]
+  },
+  {
+    "status": "planned",
+    "id": "rootcourt_battle_call",
+    "from": "world_tree",
+    "to": "rootcourt_battle",
+    "layer": "event",
+    "kind": "battle",
+    "acts": [4],
+    "note": "根下庭之夜 bat_a4_rootcourt_night。"
+  },
+  {
     "id": "seran_catacombs",
     "from": "seran",
     "to": "martyrlight_catacombs",
@@ -622,6 +905,88 @@
     "opens": "后期潜入"
   },
   {
+    "status": "planned",
+    "id": "windfang_barrow_steps",
+    "from": "windfang_rock",
+    "to": "ancestor_barrow",
+    "layer": "tile",
+    "kind": "passage",
+    "acts": [4, 5]
+  },
+  {
+    "status": "planned",
+    "id": "windfang_rock_battle_call",
+    "from": "windfang_rock",
+    "to": "windfang_rock_battle",
+    "layer": "event",
+    "kind": "battle",
+    "acts": [4],
+    "note": "红帐血战 bat_a4_redtent_bloodfight（兽王之争的血战分支）。"
+  },
+  {
+    "status": "planned",
+    "id": "vaulttouch_north_descent",
+    "from": "seven_seats",
+    "to": "fallen_hero_tomb",
+    "layer": "region",
+    "kind": "pass",
+    "km": 40,
+    "hours": {
+      "walk": 48
+    },
+    "acts": [5],
+    "opens": "第五幕；《堕勇手记》或观穹台隐修者",
+    "events": ["monsters", "weather"]
+  },
+  {
+    "status": "planned",
+    "id": "duskcrown_horncrown_road",
+    "from": "duskcrown",
+    "to": "horncrown_ruins",
+    "layer": "region",
+    "kind": "road",
+    "km": 50,
+    "hours": {
+      "walk": 48,
+      "ride": 24
+    },
+    "acts": [4, 5],
+    "opens": "第四幕；夜后许可或月下之约",
+    "events": ["monsters", "patrol"]
+  },
+  {
+    "status": "planned",
+    "id": "duskcrown_edgetrial_road",
+    "from": "duskcrown",
+    "to": "edgetrial_caves",
+    "layer": "region",
+    "kind": "road",
+    "km": 125,
+    "hours": {
+      "walk": 120,
+      "ride": 60
+    },
+    "acts": [4, 5],
+    "opens": "第四幕；祭斗季或萨莎、夜后引荐",
+    "events": ["pilgrims", "monsters", "rumor"]
+  },
+  {
+    "status": "planned",
+    "id": "duskcrown_kingwomb_road",
+    "from": "duskcrown",
+    "to": "kingwomb_abyss",
+    "layer": "region",
+    "kind": "trail",
+    "km": 70,
+    "hours": {
+      "walk": 72,
+      "ride": 36
+    },
+    "acts": [5],
+    "opens": "第五幕；月下之约或诸侯派打开渊口",
+    "events": ["monsters", "army"]
+  },
+  {
     "id": "outer_rings_core",
     "from": "thousand_gates_ring",
     "to": "thousand_gates_core",
@@ -629,7 +994,9 @@
     "kind": "waste",
     "road": "封门到主门坑的进军线（核心段）",
     "km": 30,
-    "hours": { "walk": 48 },
+    "hours": {
+      "walk": 48
+    },
     "acts": [5],
     "status": "planned",
     "events": ["ashstorm", "undead", "army"]
@@ -643,6 +1010,18 @@
     "road": "坑沿",
     "acts": [5],
     "status": "planned"
+  },
+  {
+    "status": "planned",
+    "id": "ring_crater_rim",
+    "from": "thousand_gates_ring",
+    "to": "main_gate_crater",
+    "layer": "tile",
+    "kind": "waste",
+    "road": "坑沿小路",
+    "acts": [4],
+    "opens": "第四幕只到坑沿的凿碑台与门框断面",
+    "note": "第四幕世界图经省份 thousand_gates 接入主门坑（地图简报第 13.3 节）。"
   },
   {
     "id": "ashen_final_battle_call",
@@ -719,5 +1098,15 @@
     "acts": [5],
     "status": "planned",
     "opens": "同上，且艾斯卡同意"
+  },
+  {
+    "status": "planned",
+    "id": "redanvil_forge_descent",
+    "from": "redanvil",
+    "to": "deep_forge",
+    "layer": "tile",
+    "kind": "passage",
+    "acts": [4, 5],
+    "opens": "炉长会许可或契约法庭的试约委托"
   }
 ]

@@ -1,5 +1,6 @@
-// Monster spawning: map spawn points (kind monster, honouring requiresFlags), timed
-// respawns in game minutes, registered monster modifiers (count by map id, strength by
+// Monster spawning: map spawn points (kind monster, honouring requiresFlags with its
+// negated entries and the map-assigned level, world spawn_rules.ts), timed respawns in
+// game minutes, registered monster modifiers (count by map id, strength by
 // `<mapId>:power`), scripted waves (flag combat.wave.<id> = 'go'), summons, corpses,
 // purification (pacifiedBy) and scripted removal (removeOnFlag), and the fixed
 // presences combat places itself (the gatekeeper Ash).
@@ -8,12 +9,16 @@ import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { applyModifiers } from '../modifiers';
 import {
+  flagListMet,
+  flagListNames,
   getEntity,
   haltEntity,
   mapById,
   nearestWalkable,
   removeEntity,
+  rollSpawnLevel,
   spawnEntity,
+  walkMap,
 } from '../world';
 import type { MapDef, SpawnDef } from '../world/types';
 import { applyAura } from './auras';
@@ -109,7 +114,7 @@ export function spawnKeyOf(mapId: string, spawnId: string): string {
 }
 
 function flagsMet(ctx: SystemContext, flags: string[] | undefined): boolean {
-  return !flags || flags.every((f) => !!ctx.flag(f));
+  return flagListMet(flags, (f) => ctx.flag(f));
 }
 
 function spawnPointFor(
@@ -127,11 +132,18 @@ function placeOne(ctx: SystemContext, map: MapDef, spawn: SpawnDef, key: string)
   const r = (spawn.radius ?? 1) * 0.7;
   const a = rng.next() * Math.PI * 2;
   const d = rng.next() * r;
-  const p = nearestWalkable(map, spawn.x + Math.cos(a) * d, spawn.y + Math.sin(a) * d) ?? {
+  // the live map: no spawn lands inside a closed switch tile area
+  const live = walkMap(ctx, map.id) ?? map;
+  const p = nearestWalkable(live, spawn.x + Math.cos(a) * d, spawn.y + Math.sin(a) * d) ?? {
     x: spawn.x,
     y: spawn.y,
   };
-  return spawnMonster(ctx, spawn.ref, map.id, p.x, p.y, { spawnKey: key });
+  // a map-assigned band rolls on the same stream as the bestiary roll it replaces
+  const level = rollSpawnLevel(spawn, rng);
+  return spawnMonster(ctx, spawn.ref, map.id, p.x, p.y, {
+    spawnKey: key,
+    ...(level !== undefined ? { level } : {}),
+  });
 }
 
 /** Bring a spawn point up to its (modified) count. */
@@ -294,7 +306,7 @@ export function onFlag(ctx: SystemContext, key: string, value: unknown): void {
   }
   for (const map of ctx.content.maps) {
     for (const spawn of map.spawns) {
-      if (spawn.kind !== 'monster' || !spawn.requiresFlags?.includes(key)) continue;
+      if (spawn.kind !== 'monster' || !flagListNames(spawn.requiresFlags).includes(key)) continue;
       const st = ctx.world.slices.combat.spawns[spawnKeyOf(map.id, spawn.id)];
       if (!st || (st.alive.length === 0 && st.respawn.length === 0)) populate(ctx, map, spawn);
     }

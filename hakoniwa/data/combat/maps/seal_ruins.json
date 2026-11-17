@@ -1,10 +1,10 @@
 {
   "id": "seal_ruins",
   "name": "封门遗迹（上层）",
-  "region": "borderstone_wilds",
+  "region": "ashen_waste",
   "width": 36,
   "height": 28,
-  "sediment": 3,
+  "sediment": 2,
   "indoor": true,
   "respawn": "wake",
   "rows": [

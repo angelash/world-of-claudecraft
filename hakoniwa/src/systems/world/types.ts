@@ -3,24 +3,27 @@
 
 import type { MapLook } from './look';
 
-export type TileKind =
-  | 'grass'
-  | 'dirt'
-  | 'road'
-  | 'stone'
-  | 'floor'
-  | 'sand'
-  | 'ash'
-  | 'snow'
-  | 'crop'
-  | 'bridge'
-  | 'door'
-  | 'water'
-  | 'deep_water'
-  | 'wall'
-  | 'tree'
-  | 'rock'
-  | 'void';
+/** Every tile kind of the spatial layer, in legend order. */
+export const TILE_KINDS = [
+  'grass',
+  'dirt',
+  'road',
+  'stone',
+  'floor',
+  'sand',
+  'ash',
+  'snow',
+  'crop',
+  'bridge',
+  'door',
+  'water',
+  'deep_water',
+  'wall',
+  'tree',
+  'rock',
+  'void',
+] as const;
+export type TileKind = (typeof TILE_KINDS)[number];
 
 export const BLOCKING_TILES: ReadonlySet<TileKind> = new Set<TileKind>([
   'water',
@@ -42,10 +45,26 @@ export interface Rect {
 export interface LocationDef extends Rect {
   id: string;
   name: string;
-  /** home, work, shop, church, guild, tavern, plaza, field, ruin, gate, camp, ... */
+  /**
+   * home, work, shop, church, guild, tavern, plaza, field, ruin, gate, camp, ...;
+   * `gate_site` marks a gate site, whose landing is the walkable tile nearest its centre
+   * (map_briefs.md 1.10, gateSiteLanding)
+   */
   kind: string;
   tags?: string[];
+  /**
+   * Local sediment hot spot: the canon level (0 to 5, critical 6) inside this rectangle,
+   * overriding the map's (map_briefs.md 1.2; sedimentAt)
+   */
+  sediment?: number;
 }
+
+/**
+ * A spawn's level: one fixed level, or a band [low, high] rolled per spawn. Written when
+ * the bestiary level sits two or more below the map's level band (map_briefs.md 1.6);
+ * the monster id stays the same.
+ */
+export type SpawnLevel = number | [number, number];
 
 export interface SpawnDef {
   id: string;
@@ -59,8 +78,26 @@ export interface SpawnDef {
   radius?: number;
   /** respawn delay in game minutes (monsters) */
   respawnMinutes?: number;
-  /** spawn only when every listed flag is truthy */
+  /**
+   * spawn only when every listed flag holds: `name` needs the flag truthy, `!name` needs it
+   * falsy (an act group that gives way to a later act's group; flagListMet)
+   */
   requiresFlags?: string[];
+  /** the level the map assigns (monsters); without it the bestiary band of the monster */
+  level?: SpawnLevel;
+}
+
+/**
+ * A switch tile area (map_briefs.md 1.10): a rectangle that is `closedTile` (rock fall,
+ * sluice, iron gate, reed path) while the condition `openWhen` is false, and the map's own
+ * tiles once it is true. Walkability follows the flags at once (liveMap); only the
+ * renderer fades the change.
+ */
+export interface SwitchDef extends Rect {
+  id: string;
+  closedTile: TileKind;
+  /** a condition expression over world flags (the quest condition language) */
+  openWhen: string;
 }
 
 export interface ExitDef {
@@ -85,7 +122,10 @@ export interface ExitDef {
 export interface MapDef extends MapLook {
   id: string;
   name: string;
-  /** region id from docs/20_world/geography.md */
+  /**
+   * atlas region id (data/world/atlas_regions.json), equal to the region of the map's atlas
+   * entry (map_briefs.md 1.3); picks the style pack when the map writes no `style`
+   */
   region: string;
   width: number;
   height: number;
@@ -95,7 +135,13 @@ export interface MapDef extends MapLook {
   locations: LocationDef[];
   spawns: SpawnDef[];
   exits: ExitDef[];
-  /** 0..7, the sediment (澱) level scale of power_system.md */
+  /** switch tile areas whose walkability follows world flags */
+  switches?: SwitchDef[];
+  /**
+   * The canon sediment level (D-039, power_system.md 7.2): 0 (clear) to 5 (abyssal), 6 for
+   * critical; equal to the atlas entry's. Logic and the settlement read it as is; the
+   * renderer converts it to its 0 to 7 haze scale (renderSedimentLevel).
+   */
   sediment?: number;
   /**
    * A deep-sediment timed zone over the whole map (catalog_dungeons_bosses.md `sedimentClock`):

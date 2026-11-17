@@ -2,10 +2,11 @@
   {
     "id": "divine_court",
     "name": "神庭候见厅",
-    "region": "divine_court",
+    "region": "divine_realm",
     "width": 24,
     "height": 16,
     "indoor": true,
+    "sediment": 0,
     "rows": [
       "########################",
       "#......................#",

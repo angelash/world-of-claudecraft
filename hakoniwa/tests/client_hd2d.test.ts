@@ -665,7 +665,7 @@ describe('the sixteen style packs (art_pipeline.md 1.4)', () => {
     }
     expect(styleOf({ region: 'holy_see' })).toBe('holy_see_white');
     expect(styleOf({ region: 'edgestone_area' })).toBe('lothar_plain');
-    expect(styleOf({ region: 'borderstone_wilds' })).toBe('wild_forest');
+    expect(styleOf({ region: 'earth' })).toBe('earth_modern');
   });
 
   it('builds dome, cone and spire roofs that cover the shell and face up and out', () => {

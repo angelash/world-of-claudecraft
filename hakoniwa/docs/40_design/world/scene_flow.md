@@ -275,7 +275,7 @@
 
 ### 4.2 封门遗迹上层（`seal_ruins`，A3/A4，第一幕；第三幕回访）
 
-**定位**：外庭与中殿。`indoor`。区域 `borderstone_wilds` 默认映射到 `wild_forest`（林地），所以外观层显式指定 `sealed_ruins`（冷灰石、无天光）。
+**定位**：外庭与中殿。`indoor`。区域 `ashen_waste` 默认映射到 `ash_waste`（荒原），所以外观层显式指定 `sealed_ruins`（冷灰石、无天光）。
 36 × 28，可走 508 格（50%）。
 
 **入口与出口**：苏醒点（第六神纹下）；落灰阶顶（从深处回来）；巢井井口（首领后从深处攀上来，落在外面的草地上）；正门（从边石镇来）。
@@ -1074,10 +1074,10 @@ f 漏灯酒窖，g 铁闸营，h 沙环，i 河港，j 上城宅邸，k 北门�
 | 地图 | 风格包 | 件数 | 构成 |
 | --- | --- | --- | --- |
 | `divine_court` | 按区域（`divine_court`） | 2 | 长椅 2 |
-| `seal_ruins` | `sealed_ruins`（区域默认 `wild_forest`） | 6 | 火盆 4、石碑 1（借墓碑）、路牌 1 |
-| `seal_ruins_depths` | `sealed_ruins`（区域默认 `wild_forest`） | 5 | 火盆 4、木箱 1 |
+| `seal_ruins` | `sealed_ruins`（区域默认 `ash_waste`） | 6 | 火盆 4、石碑 1（借墓碑）、路牌 1 |
+| `seal_ruins_depths` | `sealed_ruins`（区域默认 `ash_waste`） | 5 | 火盆 4、木箱 1 |
 | `borderstone` | 按区域（`lothar_plain`） | 55 | 路灯 13、旗帜 6、火盆 3、路牌与告示 4、井 2、长椅 3、货摊 5、木箱 5、木桶 4、推车 3、墓碑 4、草垛 2、栅栏 1 |
-| `forest_edge` | 按区域（`wild_forest`） | 12 | 路灯 1、路牌 2、火盆 2、木箱 4、木桶 2、推车 1 |
+| `forest_edge` | `wild_forest`（区域默认 `lothar_plain`） | 12 | 路灯 1、路牌 2、火盆 2、木箱 4、木桶 2、推车 1 |
 | `old_outpost` | 按区域（`lothar_plain`） | 10 | 路牌 3、推车 1、墓碑 3、木箱 1、木桶 1、火盆 1 |
 | `ash_waste` | 按区域（`ash_waste`） | 12 | 路灯 1、路牌 1、火盆 4、木箱 1、长椅 1、旗帜 4 |
 | `inner_court` | 按区域（`divine_court`） | 6 | 路灯 1、长椅 1、木桶 1、栅栏 2、草垛 1 |

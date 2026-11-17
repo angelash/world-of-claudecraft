@@ -83,7 +83,9 @@
   渲染上从 2 跳到 4，玩家一进浓澱就看得出来。
 - **局部热点**：地点（`LocationDef`）可选 `sediment` 字段，玩家站进该矩形时渲染按局部值淡入（2 秒），逻辑层的澱染累积也按局部值。
   例：`ash_waste` 的晶沟与灰心局部三，主门坑的古澱湖局部临界。
-- **现有十张图的数值**（数据导入时按此改写，同时图集校验增加"`MapDef.sediment` 等于图集 `sediment`"一条）：
+- **实现**：`src/systems/world/sediment.ts` 的 `renderSedimentLevel`（换算公式）与 `sedimentAt`（某点的正典级：含该点、自带 `sediment` 的最小地点，否则取地图的值）；
+  渲染层 `src/client/render/scene.ts` 的 `sedimentLevel(map, x, y)` 按镜头焦点取值后除以 7；内容校验要求地图与地点的值是 0 到 6 的整数。
+- **现有十张图的数值**（地图数据按此填写；图集校验要求"`MapDef.sediment` 等于图集 `sediment`"）：
 
 | 地图 | 现有值 | 正典级 | 存储值 | 渲染级 |
 | --- | --- | --- | --- | --- |
@@ -133,8 +135,8 @@
 | `wallenburg` | `valen_valley` | `valen_valley` | 不写 |
 | `wallenburg_sewers` | `wallenburg` | `valen_valley` | `sealed_ruins`（已有） |
 
-- 迁移顺序：先在 `REGION_STYLE` 加入图集键并保留旧键，十张图改写后删去旧键（`borderstone_region`、`lotha_north`、`lothar_north`、`borderstone_wilds`、`wallenburg`、`ash_waste`、`divine`、`divine_court`），
-  同一次改动给图集校验加两条：`MapDef.region` 等于图集 `region`；`styleOf(map)` 等于图集条目的 `style`（条目不写时取区域的）。M1 前完成。
+- 十张图按上表写图集区域；`REGION_STYLE` 只以图集区域为键（geography.md 的旧区域名不再出现）。
+  图集校验对每张已建图检查三条：`MapDef.region` 等于图集 `region`；`MapDef.sediment` 等于图集 `sediment`；`styleOf(map)` 等于图集条目的 `style`（条目不写时取区域的）。
 
 ### 1.4 动线模板与镜头（D-063）
 
@@ -209,7 +211,7 @@
 
 ### 1.10 本文需要的空间层与逻辑层机制
 
-这些机制在多张图上重复出现，统一在这里定义；实现归内核与世界系统，作为请求列在第 13.3 节。
+这些机制在多张图上重复出现，统一在这里定义；实现在内核与世界系统（表后"实现"），内容校验由世界包统一调用。
 
 | 机制 | 定义 | 用到的图 |
 | --- | --- | --- |
@@ -219,6 +221,22 @@
 | 跨图日程 | NPC 日程段的地点可写 `<地图>:<地点>`；玩家不在该图时按离屏规则执行，玩家在该图时在该地点生成 | 猎户入林、矿工上工、守墓人巡墓 |
 | 新装饰种类 | `standing_stone`（立石：边石、界石、禁碑）、`doorframe`（门框：门影、残门，变体 1 为倒伏的拱门）、`ground_mark`（地面记号：粉笔记号、血迹、圣痕）、`dry_well`（枯井）、`shrine_ruin`（砸毁的神龛）、`landmark_tree`（地标树：约树、世界树落枝处）、`mine_lamp`（矿灯，夜里亮，半径 3） | 第一幕多张图与后续各幕 |
 | 门址标记 | 地点 `kind` 为 `gate_site` 的矩形；行路之门进阶的落点取其中心最近的可走格 | 封门遗迹、旧水道、门站残墟、无字碑林、万户街、沉船湾、主门坑 |
+| 按图定级 | `SpawnDef.level`：一个等级，或等级段 `[低, 高]`（每只按刷新随机取，与图鉴等级共用同一随机流）；只用于魔物刷新点，取值 1 到 60 | 第 1.6 节"按图定级"的各图 |
+
+实现：
+
+| 机制 | 字段与写法 | 代码 |
+| --- | --- | --- |
+| 开关格 | `MapDef.switches` 的每项：`id`、矩形 `x`、`y`、`w`、`h`、`closedTile`（地块种类）、`openWhen`（任务条件语言的表达式，引用的变量照常进注册表核对）；条件为假时矩形按 `closedTile` 画进可走性 | `src/systems/world/switches.ts` 的 `liveMap`；世界系统的移动、寻路与落点读 `walkMap`。地图数据本身不变 |
+| 局部澱度 | 见第 1.2 节 | `src/systems/world/sediment.ts` |
+| 否定旗标 | 刷新点 `requiresFlags` 的条目写 `!名`；多幕图的分幕组写 `act.<n>.entered`（前一幕的组写 `!act.<n>.entered`）；出口与其他表不认否定 | `src/systems/world/spawn_rules.ts` 的 `flagListMet`；战斗刷新的生成、补刷与旗标变化监听都按它判定；被取代的组不再生成与补刷，已在场的个体留到被击败 |
+| 跨图日程 | 日程段 `at` 写 `<地图>:<地点 ID>` 或 `<地图>:@<地点种类>`；`@home`、`@work` 不带前缀 | `src/systems/npc/places.ts` 的 `resolvePlaceOn`；NPC 换图时瞬移（玩家在该图时就在该地点出现）；大模型提议的日程只能去模板里已有的外图地点 |
+| 新装饰种类 | 7 种按上表；`landmark_tree` 是唯一站在树格上的装饰（替换该格的树），其余装饰照旧只站可走格；`mine_lamp` 夜里亮，半径 3 | `src/systems/world/look.ts` 的 `DECOR_KINDS`、`DECOR_LIGHTS`、`TREE_DECOR`；程序化立牌在 `src/client/render/decor_art.ts` |
+| 门址 | 地点 `kind: gate_site`；另有主种类的地点（例：封门遗迹神纹大厅是 `ruin`）带标签 `gate_site` 同样算门址 | `src/systems/world/map_rules.ts` 的 `isGateSite`、`gateSiteLanding` |
+| 按图定级 | `SpawnDef.level` | `src/systems/world/spawn_rules.ts` 的 `rollSpawnLevel` |
+
+动线度量（第 1.4 节、第 15 节第 2 条）的计算在 `src/systems/world/map_metrics.ts`（首次接触、警戒圈压线、按幕旗标的常驻等级），`tests/map_metrics.test.ts` 每张已建图一个用例；
+扩建前未达标的图在测试里登记现测值与改法（第 12 节），改好后删去登记。
 
 ### 1.11 扩建的做法（已建十张图）
 
@@ -2305,7 +2323,10 @@
 ## 9. 图集补登
 
 图集 67 个条目之外，下列地图在分幕、迷宫目录或本文的布局里必须有落图；按 [`world_map.md`](world_map.md) 第 1.2 节的编号规则补登（子条目继承父编号的字母）。
-数据写入 `data/world/atlas_maps.json` 与 `atlas_routes.json` 属数据负责方，作为请求列在第 13.3 节。
+条目与路线登记在 `data/world/atlas_maps.json` 与 `atlas_routes.json`。表里没有给路线 id 的三处：A5-2 由锈岭矿的旧矿道 `rustridge_old_mine` 进入；
+A10-1 由领地中心旧哨村的战役入口 `valen_fields_battle_call` 进入；A1-2 由边石镇的战役入口 `borderstone_rear_battle_call` 进入。
+A10-1 的省份 `valen_plain` 不在大陆图省份表里，图集条目不写省份（战场不经世界图进入）。
+第四幕主门坑经外环的坑沿小路 `ring_crater_rim` 接入（只到坑沿的凿碑台与门框断面），第五幕照旧经核心的 `core_crater`。
 
 ### 9.1 补登总表
 
@@ -2979,16 +3000,13 @@ WWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWW
 | 同上 | 4.3 距离与路线表 | 追加第 13.2 节第 3 条的距离（作为地理志的行程行） |
 | `docs/30_story/arcs/act5_war_of_races.md` | 第 2.5、6.3 节与第 10、12 节表中表示"残澱爆散"的"灰暴" | 写为"灰爆"；新增命名表"灰暴 Ashburst"一行写为"灰爆 Ashburst" |
 | `docs/30_story/arcs/act4_continental_board.md` | 4.2 建国事件链第 4 步之后 | 加一行"界石之战（`bat_a4_boundary_war`，地图 `boundary_cairn_battle`）：立国后 30 到 90 日的一个夜里，门徒会借封印受震叩封门，封印躁动的澱与门徒会精锐扑向界石垒，不认新国的邻居同夜从另一侧压来；守住则界石誓由众人复述" |
-| `data/world/atlas_maps.json` | 全表 | 补登第 9.1 节 22 个条目；已建十张扩建后写实际尺寸；`frostbone_catacombs` 的 `levels` 为 36 到 42；`martyrlight_catacombs` 为 45 到 50；`rustridge_mine` 为 6 到 12；`ash_waste` 迁移后为 5 到 30；D2-1 的 `note` 写明含 `dg_skriva_vault` |
-| `data/world/atlas_regions.json` | 全表 | 新区域 `earth`（`tier: realm`，`acts` [0, 7]，`style` `earth_modern`，无澱度）；`court_gap` 的 `acts` 为 [0, 1, 2, 3, 4, 5, 6, 7] |
-| `data/world/atlas_maps.json` | 过场布景与主门坑 | 第 3 节 P1 到 P4、X2 到 X4 七个过场布景（`tier: scene`，`role: stage`，`status: planned`，不写 `hubOf`）；`main_gate_crater` 的 `acts` 为 [4, 5]，`note` 补"第四幕只开放坑沿的凿碑台与门框断面（`A4-S01`、`A4-S02`、`A4-M14` 与天启之后的天亮）" |
-| `data/world/atlas_routes.json` | 全表 | 第 9.1 节的新路线；第四幕世界图到 `main_gate_crater` 的接入（省份 `thousand_gates`）；`borderstone_seal_ruins` 起点为 `borderstone_north`、公里 3；`valen_river` 只留船行；`orien_bridges` 拆为两条 |
-| `data/world/atlas_maps.json` 与 `src/systems/world/atlas.ts` | 战场图与众门环节点图 | 按第 1.7 节写 `battleSky`：每张地上战场图与五个地上节点图各写一张，地下节点不写；`AtlasMapDef` 加可选字段 `battleSky`，图集校验要求它以 `art_bg_battle_` 开头 |
+| `data/world/atlas_maps.json` | 全表 | 已建十张扩建后写实际尺寸（各图上线时）；`ash_waste` 的替身内容迁出后（第 11 节）等级段为 5 到 30 |
+| `data/world/atlas_routes.json` | `borderstone_seal_ruins` | A2 建成、北门出口改通 A2 时，起点改为 `borderstone_north`、公里 3 |
 | `docs/40_design/content/catalog_dungeons_bosses.md` 与 `content_bible.md` 4.4 | `dg_frostbone_crypt`、`dg_martyr_catacomb`、`dg_gate_stations` | 霜骨墓窟 36 到 42（首领 38、40、42，专属魔物同步加 10）；殉光地下墓 45 到 50（首领 46、48、50）；门站群的玻璃原段 30 到 35、灰海段 33 到 37（与第三幕 7.5 一致） |
 | `docs/40_design/content/catalog_gathering_crafting.md` | 6.3 | 加 `node_waste_first_gate`（封门遗迹外庭门槛，special，T3，`mat_gate_dust`，第二幕末到第三幕） |
 | `docs/40_design/content/catalog_bestiary.md` | 1.2 或 4 节前言 | 写明"野外刷新点可按所在图的等级带定级（`SpawnDef.level`），图鉴等级是地表种群的基准"；`black_ridge` 的地点写"铁杉林深处" |
 | `docs/40_design/content/catalog_warfare_strategy.md` | 战场剧本 | 鹿渡、朝阳门之夜、界石之战、红帐血战四个剧本的 `map` 写本文的图集 id（已在战争目录第 5.24 节落地）；1 战场格 = 8 米 |
-| 内核与世界系统（`src/systems/world/`） | 类型与校验 | `SpawnDef.level`；`requiresFlags` 支持否定；开关格 `switches`；`LocationDef.sediment`；跨图日程；7 种新装饰；`MapDef.sediment` 注释写正典级；`REGION_STYLE` 用图集键；图集校验加"`MapDef.region` 与 `sediment` 等于图集""`styleOf` 等于图集风格包"；城门"一个出口多种去处"的选择界面 |
+| 客户端（`src/client/`） | 城门与开关格 | 城门"一个出口多种去处"的选择界面；开关格开合的淡入淡出与局部澱度的 2 秒淡入（内核已按旗标改可走性，见第 1.10 节） |
 | `docs/README.md` | 索引 | 加入本文与 `travel_and_exploration.md` |
 
 ## 14. 制作优先级与里程碑总表

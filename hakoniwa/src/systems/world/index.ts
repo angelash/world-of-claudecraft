@@ -3,11 +3,13 @@
 // move entities only through the ports exported here.
 
 import { ok, reject, systemSource } from '../../core';
+import type { FlagValue } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { calendarAt, DT } from '../../core/time';
 import { registerSkipHandler } from '../travel/skip_registry';
 import { findPath, isWalkable, nearestWalkable } from './grid';
+import { liveMap } from './switches';
 import type {
   Appearance,
   Entity,
@@ -22,8 +24,13 @@ import type {
 
 export * from './grid';
 export * from './look';
+export * from './map_metrics';
 export * from './map_roles';
+export * from './map_rules';
 export * from './ports';
+export * from './sediment';
+export * from './spawn_rules';
+export * from './switches';
 export * from './types';
 
 export interface WorldStart {
@@ -85,6 +92,18 @@ export function mapById(content: { maps: MapDef[] }, id: string): MapDef | undef
   return content.maps.find((m) => m.id === id);
 }
 
+/**
+ * The map an entity walks on: the content map with its switch tile areas as the world
+ * flags leave them (switches.ts liveMap). Movement, pathing and placement read this one.
+ */
+export function walkMap(
+  ctx: { content: { maps: MapDef[] }; world: { meta: { flags: Record<string, FlagValue> } } },
+  id: string,
+): MapDef | undefined {
+  const map = mapById(ctx.content, id);
+  return map ? liveMap(map, ctx.world.meta.flags) : undefined;
+}
+
 export function entitiesOnMap(world: { slices: { world: WorldSlice } }, mapId: string): Entity[] {
   return Object.values(world.slices.world.entities).filter((e) => e.mapId === mapId);
 }
@@ -133,7 +152,7 @@ export function currentWeather(world: { slices: { world: WorldSlice } }): Weathe
 export function spawnEntity(ctx: SystemContext, spec: SpawnEntitySpec): Entity {
   const ws = ctx.world.slices.world;
   const id = spec.id ?? ctx.newId(spec.kind === 'player' ? 'player' : `${spec.kind}_`);
-  const map = mapById(ctx.content, spec.mapId);
+  const map = walkMap(ctx, spec.mapId);
   const pos = map ? (nearestWalkable(map, spec.x, spec.y) ?? { x: spec.x, y: spec.y }) : spec;
   const e: Entity = {
     id,
@@ -188,7 +207,7 @@ export function orderMove(
 ): boolean {
   const e = ctx.world.slices.world.entities[id];
   if (!e || !e.alive) return false;
-  const map = mapById(ctx.content, e.mapId);
+  const map = walkMap(ctx, e.mapId);
   if (!map) return false;
   const path = findPath(map, e, { x, y });
   if (!path) return false;
@@ -205,7 +224,7 @@ export function teleportEntity(
   y: number,
 ): boolean {
   const e = ctx.world.slices.world.entities[id];
-  const map = mapById(ctx.content, mapId);
+  const map = walkMap(ctx, mapId);
   if (!e || !map) return false;
   const pos = nearestWalkable(map, x, y);
   if (!pos) return false;
@@ -236,9 +255,27 @@ export function forceWeather(
 // ---------------------------------------------------------------------------
 // Simulation
 
+/**
+ * On a map with switch tile areas (only there: everywhere else every entity already stands
+ * on a walkable tile and every path stays walkable), a switch that closes under an entity
+ * pushes it to the nearest walkable tile and ends its walk.
+ */
+function leaveClosedSwitch(ctx: SystemContext, map: MapDef, e: Entity): void {
+  if (!map.switches?.length || isWalkable(map, e.x, e.y)) return;
+  const p = nearestWalkable(map, e.x, e.y);
+  if (!p) return;
+  e.x = p.x;
+  e.y = p.y;
+  if (e.move) {
+    e.move = null;
+    ctx.emit('world.move_failed', { id: e.id, reason: tr('sys.world.reject.unreachable') });
+  }
+}
+
 function stepMovement(ctx: SystemContext, e: Entity): void {
-  const map = mapById(ctx.content, e.mapId);
+  const map = walkMap(ctx, e.mapId);
   if (!map || !e.alive) return;
+  leaveClosedSwitch(ctx, map, e);
   const stepLen = e.speed * DT;
   if (e.intent && (e.intent.dx !== 0 || e.intent.dy !== 0)) {
     const len = Math.hypot(e.intent.dx, e.intent.dy);
@@ -254,6 +291,12 @@ function stepMovement(ctx: SystemContext, e: Entity): void {
   let budget = stepLen;
   while (budget > 0 && mv.path.length > 0) {
     const wp = mv.path[0] as Waypoint;
+    // a switch closed across the planned path: stop short of it
+    if (map.switches?.length && !isWalkable(map, wp.x, wp.y)) {
+      e.move = null;
+      ctx.emit('world.move_failed', { id: e.id, reason: tr('sys.world.reject.unreachable') });
+      return;
+    }
     const dx = wp.x - e.x;
     const dy = wp.y - e.y;
     const d = Math.hypot(dx, dy);
@@ -341,7 +384,7 @@ function skipStep(ctx: SystemContext): void {
     e.intent = null;
     const mv = e.move;
     if (!mv) continue;
-    const map = mapById(ctx.content, e.mapId);
+    const map = walkMap(ctx, e.mapId);
     const last = mv.path[mv.path.length - 1];
     const goal =
       map && isWalkable(map, mv.goal.x, mv.goal.y) ? mv.goal : (last ?? { x: e.x, y: e.y });

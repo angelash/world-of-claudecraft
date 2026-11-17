@@ -711,7 +711,7 @@ export class MapTool implements EditorTool {
     const sed = h('input', {
       type: 'number',
       min: 0,
-      max: 7,
+      max: 6,
       value: map.sediment === undefined ? '' : String(map.sediment),
       disabled: ro,
     });

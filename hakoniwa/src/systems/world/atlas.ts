@@ -1,11 +1,12 @@
 // The world atlas (docs/40_design/world/world_map.md): the design registry of every built
 // and planned tile map and scene, the regions they belong to and the routes between them.
 // It sits above the map documents: a map document says what one map looks like, the atlas
-// says where it is, which act opens it and how a traveller gets there. The kernel does not
-// read it yet; content validation does (atlasProblems), so the registry cannot drift away
-// from the built maps, their exits, the style packs and the continent provinces.
+// says where it is, which act opens it and how a traveller gets there. Content validation
+// reads it (atlasProblems), so the registry cannot drift away from the built maps (their
+// size, exits, region, sediment and style pack), the style packs and the continent
+// provinces.
 
-import { isStyleId, type StyleId } from './look';
+import { isStyleId, type StyleId, styleOf } from './look';
 import { isAtlasExempt } from './map_roles';
 
 /** Region tiers: the continent (world map), a region with its region map, a realm outside the world. */
@@ -80,6 +81,37 @@ export const ATLAS_LAST_ACT = 7;
 export const ATLAS_MAX_SEDIMENT = 5;
 
 /**
+ * Sky packs (map_briefs.md 1.7, D-078): the twelve outdoor style packs that have their own
+ * far, mid and cloud layers, and the five special skies (two layers each). An atlas entry's
+ * `sky` names one of them when the brief points the map at another pack's sky.
+ */
+export const SKY_STYLES = [
+  'lothar_plain',
+  'valen_city',
+  'wild_forest',
+  'ash_waste',
+  'divine_court',
+  'holy_see_white',
+  'grantia_ochre',
+  'mercato_coast',
+  'silva_canopy',
+  'windfang_steppe',
+  'night_basalt',
+  'sleepscale_snow',
+] as const;
+export const SPECIAL_SKIES = [
+  'earth_night_city',
+  'dream_door_sea',
+  'divine_heights',
+  'vault',
+  'mist_edge',
+] as const;
+export type SkyPack = (typeof SKY_STYLES)[number] | (typeof SPECIAL_SKIES)[number];
+
+/** A battle far-mountain layer asset id (art_bg_battle_<name>). */
+export const BATTLE_SKY_PATTERN = /^art_bg_battle_[a-z0-9_]+$/;
+
+/**
  * Map codes: P (prologue and the divine realm), X (private realm), A to F by act series
  * (A to C from geography.md 7.4; D, E, F for acts 4, 5 and 6 with the epilogue), and a
  * numbered sub entry after a hyphen (B6-1 is the first sub entry under B6).
@@ -127,6 +159,13 @@ export interface AtlasMapDef {
   hubOf?: number[];
   style?: StyleId;
   stylePlan?: string;
+  /** sky pack when the brief names another than the map's (or its region's) style pack */
+  sky?: SkyPack;
+  /**
+   * the battle far-mountain layer (art_bg_battle_<name>): always on a battle map, on a ring
+   * node's map only during its node battle; it replaces the sky pack's far layer only
+   */
+  battleSky?: string;
   /** canonical sediment grade 0 to 5 */
   sediment: number;
   /** level band [low, high] */
@@ -178,20 +217,29 @@ declare module '../../core/contracts' {
   }
 }
 
+/** The fields of a built content map (MapDef) the atlas checks. */
+export interface AtlasContentMap {
+  id: string;
+  width: number;
+  height: number;
+  exits: readonly { id: string; toMap: string }[];
+  /** atlas region id; must equal the entry's (map_briefs.md 1.3) */
+  region: string;
+  /** canon sediment level; must equal the entry's (map_briefs.md 1.2) */
+  sediment?: number;
+  style?: string;
+  indoor?: boolean;
+  /** a test or tooling map outside the world (MapDef.atlasExempt): no entry needed */
+  atlasExempt?: boolean;
+}
+
 /** What atlasProblems checks against. Optional inputs switch their cross checks on. */
 export interface AtlasInput {
   regions: readonly AtlasRegionDef[];
   maps: readonly AtlasMapDef[];
   routes: readonly AtlasRouteDef[];
   /** the built content maps; omitted for partial content builds that carry no story maps */
-  contentMaps?: readonly {
-    id: string;
-    width: number;
-    height: number;
-    exits: readonly { id: string; toMap: string }[];
-    /** a test or tooling map outside the world (MapDef.atlasExempt): no entry needed */
-    atlasExempt?: boolean;
-  }[];
+  contentMaps?: readonly AtlasContentMap[];
   /** continent provinces (slg_provinces) */
   provinces?: readonly { id: string; region: string }[];
   /** continent province links (slg_links) */
@@ -215,6 +263,10 @@ function actProblems(who: string, acts: unknown): string[] {
   }
   return out;
 }
+
+/** A region's planned pack when it is already a style id (the national packs of act 4). */
+const plannedStyle = (plan: string | undefined): StyleId | undefined =>
+  plan !== undefined && isStyleId(plan) ? plan : undefined;
 
 const validGrade = (n: unknown): boolean =>
   Number.isInteger(n) && (n as number) >= 0 && (n as number) <= ATLAS_MAX_SEDIMENT;
@@ -293,6 +345,15 @@ export function atlasProblems(input: AtlasInput): string[] {
       out.push(`${who}: unknown style pack '${m.style}'`);
     if (!m.style && !m.stylePlan && !region?.style && !region?.stylePlan)
       out.push(`${who}: no style pack and no planned one, on the map or its region`);
+    if (m.sky !== undefined && !has(SKY_STYLES, m.sky) && !has(SPECIAL_SKIES, m.sky))
+      out.push(`${who}: unknown sky pack '${m.sky}'`);
+    if (
+      m.battleSky !== undefined &&
+      !(typeof m.battleSky === 'string' && BATTLE_SKY_PATTERN.test(m.battleSky))
+    )
+      out.push(`${who}: battleSky '${m.battleSky}' is not an art_bg_battle_ asset id`);
+    if (m.role === 'battle' && m.battleSky === undefined)
+      out.push(`${who}: a battle map needs its battleSky`);
     if (!validGrade(m.sediment))
       out.push(`${who}: sediment ${m.sediment} outside 0..${ATLAS_MAX_SEDIMENT}`);
     if (m.levels !== undefined) {
@@ -337,9 +398,22 @@ export function atlasProblems(input: AtlasInput): string[] {
     for (const m of input.maps) {
       if (m.status !== 'built') continue;
       const c = content.get(m.id);
-      if (!c) out.push(`atlas_map ${m.id}: marked built but no content map has this id`);
-      else if (Array.isArray(m.size) && (m.size[0] !== c.width || m.size[1] !== c.height))
+      if (!c) {
+        out.push(`atlas_map ${m.id}: marked built but no content map has this id`);
+        continue;
+      }
+      if (Array.isArray(m.size) && (m.size[0] !== c.width || m.size[1] !== c.height))
         out.push(`atlas_map ${m.id}: size ${m.size[0]}x${m.size[1]} != map ${c.width}x${c.height}`);
+      // map_briefs.md 15 rule 1: the map document carries the entry's region, sediment, pack
+      if (c.region !== m.region)
+        out.push(`atlas_map ${m.id}: map region '${c.region}' != atlas region '${m.region}'`);
+      if (c.sediment !== m.sediment)
+        out.push(`atlas_map ${m.id}: map sediment ${c.sediment} != atlas sediment ${m.sediment}`);
+      const region = regions.get(m.region);
+      const want = m.style ?? region?.style ?? plannedStyle(region?.stylePlan);
+      const got = styleOf(c);
+      if (want !== undefined && got !== want)
+        out.push(`atlas_map ${m.id}: map is painted with '${got}', atlas wants '${want}'`);
     }
     // Every exit of every built map is cited by a route.
     for (const c of input.contentMaps) {
@@ -415,7 +489,22 @@ export function atlasProblems(input: AtlasInput): string[] {
   return out;
 }
 
-/** Every act's maps are reachable from that act's single hub. */
+/**
+ * A cutscene stage (world_map.md 9.2 rule 6): a stage that is no hub and that no route
+ * touches. Only a cutscene's teleport enters it, so reachability skips it.
+ */
+export function isCutsceneStage(
+  m: Pick<AtlasMapDef, 'id' | 'role' | 'hubOf'>,
+  routes: readonly Pick<AtlasRouteDef, 'from' | 'to'>[],
+): boolean {
+  return (
+    m.role === 'stage' &&
+    (m.hubOf ?? []).length === 0 &&
+    !routes.some((r) => r.from === m.id || r.to === m.id)
+  );
+}
+
+/** Every act's maps are reachable from that act's single hub (cutscene stages aside). */
 function reachProblems(input: AtlasInput): string[] {
   const out: string[] = [];
   const continent = input.regions.find((r) => r.tier === 'continent');
@@ -462,7 +551,8 @@ function reachProblems(input: AtlasInput): string[] {
         }
     }
     for (const m of inAct)
-      if (!seen.has(m.id)) out.push(`atlas act ${act}: ${m.id} unreachable from hub ${hub.id}`);
+      if (!seen.has(m.id) && !isCutsceneStage(m, input.routes))
+        out.push(`atlas act ${act}: ${m.id} unreachable from hub ${hub.id}`);
   }
   return out;
 }

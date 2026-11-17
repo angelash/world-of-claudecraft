@@ -6,6 +6,9 @@
 //    src/content/entity_kinds.ts), except the shared place codes: maps, regions,
 //    provinces, nations, settlement sites and markets reuse the place code (content_bible.md
 //    12.2, "markets keep the data layer's city code"; a nation shares its region's code).
+// Map tables follow the world map's ids: a dungeon's own sub-scene map takes the
+// dungeon's `dg_` id (map_briefs.md 9.1), and the place names of MAP_PLACE_IDS read like
+// another prefix without being that owner's entries.
 // Ids that predate the namespace table are listed in ./namespace_legacy.json with the
 // batch that will rename them; a listed id that no longer exists is a stale entry.
 
@@ -28,7 +31,8 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'tpl_', owner: 'catalog_characters_lotha.md', tables: ['npcResidents'] },
   { prefix: 'nm_', owner: 'catalog_bestiary.md', tables: ITEMS },
   { prefix: 'mtide_', owner: 'catalog_bestiary.md', tables: ['waves'] },
-  { prefix: 'dg_', owner: 'catalog_dungeons_bosses.md', tables: [] },
+  // a dungeon's sub-scene map carries the dungeon id (map_briefs.md 9.1, A5-2 dg_old_mine)
+  { prefix: 'dg_', owner: 'catalog_dungeons_bosses.md', tables: ['maps', 'atlas_maps'] },
   { prefix: 'trial_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'afx_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'eq_', owner: 'catalog_equipment.md', tables: ITEMS },
@@ -110,6 +114,14 @@ export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   letters: ['ltr_'],
 };
 
+/**
+ * Map ids of the world map (world_map.md 4.1) that begin like another owner's prefix but
+ * name a place, not that owner's entry: X3 the corridor of a thousand doors is no door.
+ * They may stand in the map tables only.
+ */
+export const MAP_PLACE_IDS: readonly string[] = ['door_corridor'];
+const MAP_TABLES: readonly string[] = ['maps', 'atlas_maps'];
+
 /** Entity kinds that legitimately share one id: the place codes. */
 export const SHARED_KINDS: readonly (readonly string[])[] = [
   ['map', 'region', 'province', 'nation', 'site', 'market'],
@@ -165,7 +177,8 @@ export function namespaceFindings(
         continue;
       }
       const ns = namespaceOf(id, namespaces);
-      if (ns && !ns.tables.includes(table)) {
+      const place = MAP_TABLES.includes(table) && MAP_PLACE_IDS.includes(id);
+      if (ns && !ns.tables.includes(table) && !place) {
         out.push({
           level: 'error',
           message: `${table}:${id}: prefix ${ns.prefix} belongs to ${ns.owner} (${ns.tables.length ? `tables ${ns.tables.join(', ')}` : 'no content table'}), not to ${table}`,

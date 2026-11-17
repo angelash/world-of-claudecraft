@@ -1,10 +1,10 @@
 {
   "id": "ash_waste",
   "name": "灰烬荒原外缘",
-  "region": "ash_waste",
+  "region": "ashen_waste",
   "width": 48,
   "height": 40,
-  "sediment": 4,
+  "sediment": 2,
   "rows": [
     "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
     "^::xxxxx:::xxx::::xxxxx::::xxx:::xxxxxx:::xxxx:^",

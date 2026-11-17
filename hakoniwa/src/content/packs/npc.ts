@@ -8,7 +8,7 @@ import personas from '../../../data/npc/personas.json';
 import residents from '../../../data/npc/residents.json';
 import schedules from '../../../data/npc/schedules.json';
 import type { ContentMap } from '../../core/contracts';
-import { resolvePlace } from '../../systems/npc/places';
+import { resolvePlace, splitPlaceRef } from '../../systems/npc/places';
 import {
   ACTIVITIES,
   type KnowledgeEntry,
@@ -67,7 +67,7 @@ function checkSegments(
       problems.push(`${owner}: bad hours ${s.from}-${s.to}`);
     if (!ACTIVITIES.includes(s.act)) problems.push(`${owner}: unknown activity ${s.act}`);
     if (!resolvePlace(content, card, s.at))
-      problems.push(`${owner}: place ${s.at} not on ${card.map}`);
+      problems.push(`${owner}: place ${s.at} not on ${splitPlaceRef(s.at).mapId ?? card.map}`);
   }
 }
 

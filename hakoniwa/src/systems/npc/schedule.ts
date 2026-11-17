@@ -4,7 +4,7 @@
 import type { ContentMap } from '../../core/contracts';
 import { isTextRef, joinText, type KeyText, tr } from '../../core/text';
 import type { CardView } from './personas';
-import { resolvePlace } from './places';
+import { resolvePlaceOn } from './places';
 import {
   ACTIVITIES,
   type Activity,
@@ -87,9 +87,10 @@ export function validatePlan(
   if (!Array.isArray(slots) || slots.length === 0) return tr('sys.npc.plan.reject.empty');
   // places of the person's own schedule template are pre-approved (the replacement table)
   const usual = new Set<string>();
+  const keyOf = (p: { mapId: string; loc: { id: string } }) => `${p.mapId}/${p.loc.id}`;
   for (const seg of scheduleOf(content, card)) {
-    const loc = resolvePlace(content, card, seg.at);
-    if (loc) usual.add(loc.id);
+    const place = resolvePlaceOn(content, card, seg.at);
+    if (place) usual.add(keyOf(place));
   }
   if (slots.length > 12) return tr('sys.npc.plan.reject.too_many');
   for (let i = 0; i < slots.length; i++) {
@@ -106,10 +107,15 @@ export function validatePlan(
       return tr('sys.npc.plan.reject.bad_time', { n });
     if (!ACTIVITIES.includes(s.act))
       return tr('sys.npc.plan.reject.bad_act', { n, act: String(s.act) });
-    const loc = resolvePlace(content, card, s.at);
-    if (!loc) return tr('sys.npc.plan.reject.bad_place', { n, at: String(s.at) });
-    const own = loc.id === card.home || loc.id === card.work;
-    if (!own && !usual.has(loc.id) && PRIVATE_KINDS.has(loc.kind))
+    const place = resolvePlaceOn(content, card, s.at);
+    if (!place) return tr('sys.npc.plan.reject.bad_place', { n, at: String(s.at) });
+    const { loc } = place;
+    const away = place.mapId !== card.map;
+    // another map only where the person's own schedule already goes
+    if (away && !usual.has(keyOf(place)))
+      return tr('sys.npc.plan.reject.bad_place', { n, at: String(s.at) });
+    const own = !away && (loc.id === card.home || loc.id === card.work);
+    if (!own && !usual.has(keyOf(place)) && PRIVATE_KINDS.has(loc.kind))
       return tr('sys.npc.plan.reject.private', { n, place: loc.name });
     if (s.act === 'sleep' && !own) return tr('sys.npc.plan.reject.sleep_away', { n });
     // a rule plan's own note is a text key; a proposed (model) note is a short string

@@ -1,5 +1,7 @@
 // Location helpers for schedules: resolve '@home', '@work' and '@<kind>' placeholders
-// against the persona's map, pick a point inside a place, find the place under a point.
+// against the persona's map, `<map>:<place>` references to another map (cross-map
+// schedules, map_briefs.md 1.10: hunters into the forest, miners to the shaft), pick a
+// point inside a place, find the place under a point.
 
 import type { ContentMap } from '../../core/contracts';
 import type { Rng } from '../../core/rng';
@@ -35,23 +37,72 @@ const KIND_FALLBACK: Record<string, string[]> = {
   orphanage: ['church'],
 };
 
-/** Resolve a schedule place reference for a card. */
+/** Separates the map from the place in a cross-map reference (`forest_edge:hunter_camp`). */
+export const MAP_PLACE_SEPARATOR = ':';
+
+/** A place reference split into its map (null for the persona's own map) and the place. */
+export function splitPlaceRef(at: string): { mapId: string | null; place: string } {
+  const i = at.indexOf(MAP_PLACE_SEPARATOR);
+  if (i <= 0) return { mapId: null, place: at };
+  return { mapId: at.slice(0, i), place: at.slice(i + 1) };
+}
+
+/** The reference of a place as seen from a home map: bare on it, `<map>:<id>` elsewhere. */
+export function placeRef(homeMap: string, mapId: string, locId: string): string {
+  return mapId === homeMap ? locId : `${mapId}${MAP_PLACE_SEPARATOR}${locId}`;
+}
+
+/** A resolved place: the map it is on and the location. */
+export interface PlaceOnMap {
+  mapId: string;
+  loc: LocationDef;
+}
+
+/**
+ * Resolve a schedule place reference for a card, with its map: '@home' and '@work' on the
+ * card's map, '@<kind>' and a location id on the card's map or on the map a `<map>:`
+ * prefix names ('@home' and '@work' take no prefix).
+ */
+export function resolvePlaceOn(
+  content: Pick<ContentMap, 'maps'>,
+  card: Pick<CardView, 'map' | 'home' | 'work'>,
+  at: string,
+): PlaceOnMap | undefined {
+  const { mapId: other, place } = splitPlaceRef(at);
+  const mapId = other ?? card.map;
+  const on = (loc: LocationDef | undefined) => (loc ? { mapId, loc } : undefined);
+  if (place === '@home' || place === '@work') {
+    if (other !== null) return undefined;
+    return on(locationById(content, mapId, place === '@home' ? card.home : card.work));
+  }
+  if (place.startsWith('@')) {
+    const kind = place.slice(1);
+    for (const k of [kind, ...(KIND_FALLBACK[kind] ?? [])]) {
+      const loc = locationOfKind(content, mapId, k);
+      if (loc) return { mapId, loc };
+    }
+    return undefined;
+  }
+  return on(locationById(content, mapId, place));
+}
+
+/** Resolve a schedule place reference for a card (the location only; see resolvePlaceOn). */
 export function resolvePlace(
   content: Pick<ContentMap, 'maps'>,
   card: Pick<CardView, 'map' | 'home' | 'work'>,
   at: string,
 ): LocationDef | undefined {
-  if (at === '@home') return locationById(content, card.map, card.home);
-  if (at === '@work') return locationById(content, card.map, card.work);
-  if (at.startsWith('@')) {
-    const kind = at.slice(1);
-    for (const k of [kind, ...(KIND_FALLBACK[kind] ?? [])]) {
-      const loc = locationOfKind(content, card.map, k);
-      if (loc) return loc;
-    }
-    return undefined;
-  }
-  return locationById(content, card.map, at);
+  return resolvePlaceOn(content, card, at)?.loc;
+}
+
+/** The location a stored reference names, read from a home map (see placeRef). */
+export function locationOfRef(
+  content: Pick<ContentMap, 'maps'>,
+  homeMap: string,
+  ref: string,
+): LocationDef | undefined {
+  const { mapId, place } = splitPlaceRef(ref);
+  return locationById(content, mapId ?? homeMap, place);
 }
 
 /** A point inside a location (tile centres), deterministic for the given stream. */

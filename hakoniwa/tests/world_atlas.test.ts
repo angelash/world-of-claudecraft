@@ -8,12 +8,15 @@ import { pack as inventoryPack } from '../src/content/packs/inventory';
 import { pack as strategyPack } from '../src/content/packs/strategy';
 import { pack as warfarePack } from '../src/content/packs/warfare';
 import { pack as worldPack } from '../src/content/packs/world';
+import { isAtlasExempt, styleOf } from '../src/systems/world';
 import {
+  type AtlasContentMap,
   type AtlasInput,
   type AtlasMapDef,
   type AtlasRegionDef,
   type AtlasRouteDef,
   atlasProblems,
+  isCutsceneStage,
 } from '../src/systems/world/atlas';
 
 // ---------------------------------------------------------------------------
@@ -24,13 +27,7 @@ interface Fixture {
   regions: AtlasRegionDef[];
   maps: AtlasMapDef[];
   routes: AtlasRouteDef[];
-  contentMaps: {
-    id: string;
-    width: number;
-    height: number;
-    exits: { id: string; toMap: string }[];
-    atlasExempt?: boolean;
-  }[];
+  contentMaps: (AtlasContentMap & { exits: { id: string; toMap: string }[] })[];
   provinces?: { id: string; region: string }[];
   links?: { a: string; b: string }[];
   scenarios?: { id: string; width: number; height: number }[];
@@ -126,6 +123,7 @@ function fixture(): Fixture {
         sediment: 1,
         size: [8, 5],
         scenario: 'war1',
+        battleSky: 'art_bg_battle_war1',
       },
     ],
     routes: [
@@ -151,10 +149,35 @@ function fixture(): Fixture {
       },
     ],
     contentMaps: [
-      { id: 'town', width: 10, height: 8, exits: [{ id: 'down', toMap: 'cave' }] },
-      { id: 'cave', width: 6, height: 6, exits: [{ id: 'up', toMap: 'town' }] },
-      { id: 'hall', width: 4, height: 4, exits: [] },
-      { id: 'testfield', width: 20, height: 12, exits: [], atlasExempt: true },
+      {
+        id: 'town',
+        region: 'home',
+        sediment: 1,
+        style: 'lothar_plain',
+        width: 10,
+        height: 8,
+        exits: [{ id: 'down', toMap: 'cave' }],
+      },
+      {
+        id: 'cave',
+        region: 'home',
+        sediment: 3,
+        style: 'sealed_ruins',
+        width: 6,
+        height: 6,
+        exits: [{ id: 'up', toMap: 'town' }],
+      },
+      {
+        id: 'hall',
+        region: 'void',
+        sediment: 0,
+        indoor: true,
+        style: 'divine_court',
+        width: 4,
+        height: 4,
+        exits: [],
+      },
+      { id: 'testfield', region: 'test', width: 20, height: 12, exits: [], atlasExempt: true },
     ],
     provinces: [
       { id: 'p1', region: 'r1' },
@@ -188,7 +211,9 @@ describe('atlasProblems on the fixture', () => {
   describe('built entries match the content maps one to one', () => {
     it('flags a content map without an entry', () => {
       expect(
-        after((f) => f.contentMaps.push({ id: 'orphan', width: 3, height: 3, exits: [] })),
+        after((f) =>
+          f.contentMaps.push({ id: 'orphan', region: 'home', width: 3, height: 3, exits: [] }),
+        ),
       ).toContain('atlas: content map orphan has no atlas entry');
     });
     it('flags a built entry that no content map backs', () => {
@@ -198,8 +223,30 @@ describe('atlasProblems on the fixture', () => {
     });
     it('flags a content map whose entry is still planned', () => {
       expect(
-        after((f) => f.contentMaps.push({ id: 'field', width: 96, height: 96, exits: [] })),
+        after((f) =>
+          f.contentMaps.push({ id: 'field', region: 'home', width: 96, height: 96, exits: [] }),
+        ),
       ).toContain('atlas_map field: exists in content but is marked planned');
+    });
+    it('holds the map document to the entry: region, sediment, style pack (map_briefs 15)', () => {
+      const cave = (f: Fixture) => f.contentMaps.find((c) => c.id === 'cave') as AtlasContentMap;
+      expect(after((f) => ((cave(f) as { region: string }).region = 'borderstone_wilds'))).toEqual([
+        "atlas_map cave: map region 'borderstone_wilds' != atlas region 'home'",
+      ]);
+      expect(after((f) => ((cave(f) as { sediment?: number }).sediment = 4))).toEqual([
+        'atlas_map cave: map sediment 4 != atlas sediment 3',
+      ]);
+      expect(after((f) => ((cave(f) as { sediment?: number }).sediment = undefined))).toEqual([
+        'atlas_map cave: map sediment undefined != atlas sediment 3',
+      ]);
+      // the cave's entry names sealed_ruins: a map without it paints its region's pack
+      expect(after((f) => ((cave(f) as { style?: string }).style = undefined))).toEqual([
+        "atlas_map cave: map is painted with 'lothar_plain', atlas wants 'sealed_ruins'",
+      ]);
+      // an entry without a style holds the map to its region's pack
+      expect(after((f) => ((f.contentMaps[0] as { style?: string }).style = 'ash_waste'))).toEqual([
+        "atlas_map town: map is painted with 'ash_waste', atlas wants 'lothar_plain'",
+      ]);
     });
     it('flags a built size that differs from the map', () => {
       expect(after((f) => (mapOf(f, 'cave').size = [7, 6]))).toContain(
@@ -261,6 +308,26 @@ describe('atlasProblems on the fixture', () => {
           }),
         ),
       ).toContain('atlas_route odd: cites exits but an end is not a built map');
+    });
+  });
+
+  describe('sky packs and battle far layers (map_briefs 1.7)', () => {
+    it('accepts an outdoor pack or a special sky and flags anything else', () => {
+      expect(after((f) => (mapOf(f, 'field').sky = 'valen_city'))).toEqual([]);
+      expect(after((f) => (mapOf(f, 'hall').sky = 'earth_night_city'))).toEqual([]);
+      expect(after((f) => (mapOf(f, 'cave').sky = 'sealed_ruins' as never))).toEqual([
+        "atlas_map cave: unknown sky pack 'sealed_ruins'",
+      ]);
+    });
+    it('needs an art_bg_battle_ far layer on every battle and a well-formed one anywhere', () => {
+      expect(after((f) => (mapOf(f, 'fight').battleSky = undefined))).toEqual([
+        'atlas_map fight: a battle map needs its battleSky',
+      ]);
+      expect(after((f) => (mapOf(f, 'fight').battleSky = 'art_bg_war1'))).toEqual([
+        "atlas_map fight: battleSky 'art_bg_war1' is not an art_bg_battle_ asset id",
+      ]);
+      // a ring node's map carries one for its node battle
+      expect(after((f) => (mapOf(f, 'field').battleSky = 'art_bg_battle_ring_r09'))).toEqual([]);
     });
   });
 
@@ -412,6 +479,51 @@ describe('atlasProblems on the fixture', () => {
       // Without the link table every province-bearing tile shares one world node.
       expect(after((f) => (f.links = undefined))).toEqual([]);
     });
+    it('skips cutscene stages: no hub, no route, entered by a cutscene teleport only', () => {
+      const stage = (f: Fixture) =>
+        f.maps.push({
+          ...(mapOf(f, 'hall') as AtlasMapDef),
+          id: 'dream',
+          code: 'X4',
+          status: 'planned',
+          hubOf: undefined,
+          acts: [0],
+        });
+      expect(after(stage)).toEqual([]);
+      // a stage a route touches is a place like any other and must be reachable
+      expect(
+        after((f) => {
+          stage(f);
+          f.maps.push({
+            ...(mapOf(f, 'hall') as AtlasMapDef),
+            id: 'nook',
+            code: 'P9',
+            status: 'planned',
+            hubOf: undefined,
+            acts: [0],
+          });
+          f.routes.push({
+            id: 'peek',
+            from: 'dream',
+            to: 'nook',
+            layer: 'tile',
+            kind: 'passage',
+            acts: [0],
+            status: 'planned',
+          });
+        }),
+      ).toEqual([
+        'atlas act 0: dream unreachable from hub hall',
+        'atlas act 0: nook unreachable from hub hall',
+      ]);
+      // any other role is held to reachability
+      expect(
+        after((f) => {
+          stage(f);
+          mapOf(f, 'dream').role = 'private';
+        }),
+      ).toEqual(['atlas act 0: dream unreachable from hub hall']);
+    });
     it('does not enter scenes from the world map', () => {
       expect(
         after((f) => {
@@ -551,6 +663,293 @@ describe('the real atlas', () => {
       reedbridge_battle: 'act3_ash_line',
       ashen_final_battle: 'act5_final_war',
     });
+  });
+
+  it('keeps every built map document on its entry: region, sediment and style pack', () => {
+    const regions = new Map(content.atlas_regions.map((r) => [r.id, r]));
+    for (const m of content.maps) {
+      if (isAtlasExempt(m)) continue;
+      const entry = content.atlas_maps.find((a) => a.id === m.id) as AtlasMapDef;
+      expect(m.region, m.id).toBe(entry.region);
+      expect(m.sediment, m.id).toBe(entry.sediment);
+      expect(styleOf(m), m.id).toBe(entry.style ?? regions.get(entry.region)?.style);
+    }
+    // the ten built maps on atlas regions (map_briefs.md 1.3), canon sediment (1.2)
+    const of = (id: string) => content.maps.find((m) => m.id === id);
+    expect(
+      Object.fromEntries(
+        content.maps.filter((m) => !isAtlasExempt(m)).map((m) => [m.id, [m.region, m.sediment]]),
+      ),
+    ).toEqual({
+      divine_court: ['divine_realm', 0],
+      inner_court: ['court_gap', 0],
+      borderstone: ['edgestone_area', 1],
+      forest_edge: ['edgestone_area', 1],
+      old_outpost: ['edgestone_area', 1],
+      seal_ruins: ['ashen_waste', 2],
+      seal_ruins_depths: ['ashen_waste', 3],
+      ash_waste: ['ashen_waste', 2],
+      wallenburg: ['valen_valley', 1],
+      wallenburg_sewers: ['valen_valley', 3],
+    });
+    expect(of('forest_edge')?.style).toBe('wild_forest');
+  });
+
+  it('registers the cutscene stages and the twenty-two map_briefs 9.1 entries', () => {
+    const codes = (ids: string[]) =>
+      Object.fromEntries(ids.map((id) => [id, content.atlas_maps.find((m) => m.id === id)?.code]));
+    const stages = content.atlas_maps.filter((m) => isCutsceneStage(m, content.atlas_routes));
+    expect(stages.map((m) => m.code).sort()).toEqual(['P1', 'P2', 'P3', 'P4', 'X2', 'X3', 'X4']);
+    expect(
+      codes([
+        'boundary_cairn_battle',
+        'rustridge_deep',
+        'gate_station_ruins_se',
+        'gate_station_ruins_w',
+        'gate_station_ruins_ne',
+        'gatepicker_camp_east',
+        'redgravel_pit',
+        'wreck_bay',
+        'abyss_lord_wreck',
+        'withered_ring',
+        'ancestor_barrow',
+        'windfang_rock_battle',
+        'fallen_hero_tomb',
+        'horncrown_ruins',
+        'edgetrial_caves',
+        'kingwomb_abyss',
+        'root_abyss',
+        'deep_forge',
+        'valen_fields_battle',
+        'rootcourt_battle',
+        'borderstone_rear_battle',
+        'dg_old_mine',
+      ]),
+    ).toEqual({
+      boundary_cairn_battle: 'A1-1',
+      rustridge_deep: 'A5-1',
+      gate_station_ruins_se: 'C9-4',
+      gate_station_ruins_w: 'C9-5',
+      gate_station_ruins_ne: 'C9-6',
+      gatepicker_camp_east: 'C9-7',
+      redgravel_pit: 'D1-2',
+      wreck_bay: 'D3-2',
+      abyss_lord_wreck: 'D3-3',
+      withered_ring: 'D4-2',
+      ancestor_barrow: 'D5-1',
+      windfang_rock_battle: 'D5-2',
+      fallen_hero_tomb: 'D6-1',
+      horncrown_ruins: 'D8-1',
+      edgetrial_caves: 'D8-2',
+      kingwomb_abyss: 'D8-3',
+      root_abyss: 'E4-1',
+      deep_forge: 'E5-1',
+      valen_fields_battle: 'A10-1',
+      rootcourt_battle: 'E4-2',
+      borderstone_rear_battle: 'A1-2',
+      dg_old_mine: 'A5-2',
+    });
+    // 67 entries of the world map plus the 22 registered ones
+    expect(content.atlas_maps).toHaveLength(89);
+    expect(content.atlas_regions.find((r) => r.id === 'earth')).toMatchObject({
+      tier: 'realm',
+      acts: [0, 7],
+      style: 'earth_modern',
+    });
+    expect(content.atlas_regions.find((r) => r.id === 'court_gap')?.acts).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7,
+    ]);
+  });
+
+  it('pins every field of the registered entries and the cutscene stages', () => {
+    const row = (m: AtlasMapDef) =>
+      [
+        m.code,
+        m.tier,
+        m.role,
+        m.region,
+        m.province ?? '-',
+        m.acts.join(','),
+        m.style ?? '-',
+        m.sediment,
+        (m.levels ?? []).join('-') || '-',
+        m.size.join('x'),
+        m.optional ? 'opt' : 'req',
+      ].join(' ');
+    const want: Record<string, string> = {
+      boundary_cairn_battle:
+        'A1-1 scene battle edgestone_area ash_border 4 wild_forest 2 45-48 56x36 req',
+      rustridge_deep:
+        'A5-1 scene dungeon edgestone_area ash_border 3,4,5 forge_deep 3 34-40 64x64 opt',
+      gate_station_ruins_se:
+        'C9-4 scene dungeon ashen_waste ash_middle 3,4,5 ash_waste 3 35-40 48x48 req',
+      gate_station_ruins_w:
+        'C9-5 scene dungeon ashen_waste ash_middle 3,4,5 ash_waste 3 35-40 48x48 req',
+      gate_station_ruins_ne:
+        'C9-6 scene dungeon ashen_waste ash_middle 3,4,5 ash_waste 3 35-40 48x48 req',
+      gatepicker_camp_east:
+        'C9-7 scene dungeon ashen_waste ash_middle 3,4,5 ash_waste 3 35-40 64x64 opt',
+      redgravel_pit: 'D1-2 scene dungeon grantia redgravel 4,5 - 2 45-55 48x48 opt',
+      wreck_bay: 'D3-2 scene dungeon mercato goldbay 4,5 - 3 46-50 96x64 opt',
+      abyss_lord_wreck: 'D3-3 scene dungeon mercato goldbay 5 sealed_ruins 3 58-60 128x96 opt',
+      withered_ring: 'D4-2 scene dungeon silva ringwood 5 - 3 55-58 96x96 opt',
+      ancestor_barrow:
+        'D5-1 scene dungeon windfang windfang_rock 4,5 sealed_ruins 3 47-51 96x96 req',
+      windfang_rock_battle: 'D5-2 scene battle windfang windfang_rock 4 - 1 48-52 64x40 opt',
+      fallen_hero_tomb: 'D6-1 scene dungeon sleepscale vaulttouch 5 sealed_ruins 4 57-60 64x64 opt',
+      horncrown_ruins: 'D8-1 scene dungeon nightrealm duskcrown 4,5 - 4 50-54 96x96 opt',
+      edgetrial_caves: 'D8-2 scene dungeon nightrealm edgetrial 4,5 - 3 48-54 64x96 opt',
+      kingwomb_abyss: 'D8-3 scene dungeon nightrealm duskcrown 5 - 4 56-60 96x128 opt',
+      root_abyss: 'E4-1 scene dungeon silva ringwood 4,5 - 3 50-54 96x96 opt',
+      deep_forge: 'E5-1 scene dungeon mercato redanvil 4,5 forge_deep 3 48-52 96x96 opt',
+      valen_fields_battle: 'A10-1 scene battle valen_valley - 3 lothar_plain 1 43-45 56x36 req',
+      rootcourt_battle: 'E4-2 scene battle silva ringwood 4 - 2 47-50 48x36 req',
+      borderstone_rear_battle: 'A1-2 scene battle edgestone_area ash_border 5 - 2 55-58 48x32 req',
+      dg_old_mine: 'A5-2 scene dungeon edgestone_area ash_border 1 forge_deep 2 6-12 48x48 req',
+      earth_train: 'P1 scene stage earth - 0,7 earth_modern 0 - 24x8 req',
+      earth_store: 'P2 scene stage earth - 0,7 earth_modern 0 - 16x12 req',
+      earth_hospital: 'P3 scene stage earth - 0,7 earth_modern 0 - 24x8 req',
+      earth_house: 'P4 scene stage earth - 0,7 earth_modern 0 - 12x10 req',
+      gap_void: 'X2 scene stage court_gap - 0,5,6,7 door_corridor 0 - 16x16 req',
+      door_corridor: 'X3 scene stage court_gap - 1,2,3,4,5,6,7 door_corridor 0 - 64x16 req',
+      dream_doorway: 'X4 scene stage court_gap - 1,2,3,4,5 door_corridor 0 - 16x12 req',
+    };
+    const got = Object.fromEntries(
+      Object.keys(want).map((id) => [
+        id,
+        row(content.atlas_maps.find((m) => m.id === id) as AtlasMapDef),
+      ]),
+    );
+    expect(got).toEqual(want);
+  });
+
+  it('pins the ends, layer, kind, acts and legs of every new route', () => {
+    const row = (r: AtlasRouteDef) =>
+      [
+        `${r.from}>${r.to}`,
+        r.layer,
+        r.kind,
+        r.acts.join(','),
+        r.km ?? '-',
+        JSON.stringify(r.hours ?? {}).replace(/"/g, ''),
+      ].join(' ');
+    const want: Record<string, string> = {
+      borderstone_north_trail: 'borderstone>borderstone_north tile trail 1,2,3,4,5 3 {walk:0.7}',
+      rustridge_old_mine: 'rustridge_mine>dg_old_mine tile passage 1 - {}',
+      rustridge_deep_rift: 'rustridge_mine>rustridge_deep tile passage 3,4,5 - {}',
+      rustridge_new_shaft: 'borderstone_north>rustridge_deep tile passage 3,4,5 - {}',
+      castle_well_shaft: 'wallenburg>broken_door_hall tile passage 2,3,4,5 - {}',
+      orien_bridge_north: 'orien_banks>orien_isle tile road 3,4,5 - {}',
+      orien_bridge_south: 'orien_banks>orien_isle tile road 3,4,5 - {}',
+      lightway_north:
+        'gatefront_south>orien_banks region road 3,4,5 240 {walk:240,ride:132,caravan:288}',
+      glass_plain_gate_station_se: 'glass_plain>gate_station_ruins_se tile waste 3,4,5 - {}',
+      glass_plain_gate_station_ne: 'glass_plain>gate_station_ruins_ne tile waste 3,4,5 - {}',
+      ash_sea_gate_station_w: 'ash_sea>gate_station_ruins_w tile waste 3,4,5 - {}',
+      glass_plain_gatepicker_camp_east: 'glass_plain>gatepicker_camp_east tile waste 3,4,5 - {}',
+      goldbay_wreck_bay: 'goldbay>wreck_bay tile trail 4,5 - {}',
+      goldbay_deep_dive: 'goldbay>abyss_lord_wreck region river 5 300 {boat:72}',
+      grantis_redgravel_road: 'grantis>redgravel_pit region road 4,5 100 {walk:96,ride:48}',
+      worldtree_root_descent: 'world_tree>root_abyss tile passage 4,5 - {}',
+      ringwood_withered_path: 'ringwood_court>withered_ring region trail 5 60 {walk:72}',
+      rootcourt_battle_call: 'world_tree>rootcourt_battle event battle 4 - {}',
+      windfang_barrow_steps: 'windfang_rock>ancestor_barrow tile passage 4,5 - {}',
+      windfang_rock_battle_call: 'windfang_rock>windfang_rock_battle event battle 4 - {}',
+      vaulttouch_north_descent: 'seven_seats>fallen_hero_tomb region pass 5 40 {walk:48}',
+      duskcrown_horncrown_road: 'duskcrown>horncrown_ruins region road 4,5 50 {walk:48,ride:24}',
+      duskcrown_edgetrial_road: 'duskcrown>edgetrial_caves region road 4,5 125 {walk:120,ride:60}',
+      duskcrown_kingwomb_road: 'duskcrown>kingwomb_abyss region trail 5 70 {walk:72,ride:36}',
+      ring_crater_rim: 'thousand_gates_ring>main_gate_crater tile waste 4 - {}',
+      redanvil_forge_descent: 'redanvil>deep_forge tile passage 4,5 - {}',
+      boundary_cairn_battle_call: 'borderstone>boundary_cairn_battle event battle 4 - {}',
+      borderstone_rear_battle_call: 'borderstone>borderstone_rear_battle event battle 5 - {}',
+      valen_fields_battle_call: 'old_outpost>valen_fields_battle event battle 3 - {}',
+    };
+    const got = Object.fromEntries(
+      Object.keys(want).map((id) => [
+        id,
+        row(content.atlas_routes.find((r) => r.id === id) as AtlasRouteDef),
+      ]),
+    );
+    expect(got).toEqual(want);
+  });
+
+  it('carries the new routes of map_briefs 9.1 and 13.3 with their legs', () => {
+    const r = (id: string) => content.atlas_routes.find((x) => x.id === id);
+    for (const id of [
+      'borderstone_north_trail',
+      'rustridge_old_mine',
+      'rustridge_deep_rift',
+      'rustridge_new_shaft',
+      'castle_well_shaft',
+      'orien_bridge_north',
+      'orien_bridge_south',
+      'glass_plain_gate_station_se',
+      'glass_plain_gate_station_ne',
+      'ash_sea_gate_station_w',
+      'glass_plain_gatepicker_camp_east',
+      'goldbay_wreck_bay',
+      'windfang_barrow_steps',
+      'worldtree_root_descent',
+      'redanvil_forge_descent',
+      'boundary_cairn_battle_call',
+      'windfang_rock_battle_call',
+      'valen_fields_battle_call',
+      'rootcourt_battle_call',
+      'borderstone_rear_battle_call',
+      'ring_crater_rim',
+    ])
+      expect(r(id), id).toBeDefined();
+    expect(r('orien_bridges')).toBeUndefined();
+    expect(r('valen_river')?.hours).toEqual({ boat: 96, boatBack: 192 });
+    expect(r('lightway_north')).toMatchObject({ from: 'gatefront_south', km: 240 });
+    expect(r('lightway_north')?.hours).toEqual({ walk: 240, ride: 132, caravan: 288 });
+    expect(r('borderstone_north_trail')).toMatchObject({ km: 3, hours: { walk: 0.7 } });
+    const legs = Object.fromEntries(
+      [
+        'grantis_redgravel_road',
+        'goldbay_deep_dive',
+        'ringwood_withered_path',
+        'vaulttouch_north_descent',
+        'duskcrown_horncrown_road',
+        'duskcrown_edgetrial_road',
+        'duskcrown_kingwomb_road',
+      ].map((id) => [id, [r(id)?.layer, r(id)?.km]]),
+    );
+    expect(legs).toEqual({
+      grantis_redgravel_road: ['region', 100],
+      goldbay_deep_dive: ['region', 300],
+      ringwood_withered_path: ['region', 60],
+      vaulttouch_north_descent: ['region', 40],
+      duskcrown_horncrown_road: ['region', 50],
+      duskcrown_edgetrial_road: ['region', 125],
+      duskcrown_kingwomb_road: ['region', 70],
+    });
+    // the crater opens its rim in act 4 through the outer rings
+    expect(content.atlas_maps.find((m) => m.id === 'main_gate_crater')?.acts).toEqual([4, 5]);
+    expect(r('ring_crater_rim')).toMatchObject({ from: 'thousand_gates_ring', acts: [4] });
+  });
+
+  it('names a battle far layer for every battle and the five above-ground ring nodes', () => {
+    const skies = Object.fromEntries(
+      content.atlas_maps.filter((m) => m.battleSky).map((m) => [m.id, m.battleSky]),
+    );
+    for (const m of content.atlas_maps.filter((x) => x.role === 'battle'))
+      expect(skies[m.id], m.id).toMatch(/^art_bg_battle_/);
+    expect(
+      ['main_gate_crater', 'world_tree', 'windfang_rock', 'duskcrown', 'seven_seats'].map(
+        (id) => skies[id],
+      ),
+    ).toEqual([
+      'art_bg_battle_ring_r01',
+      'art_bg_battle_ring_r02',
+      'art_bg_battle_ring_r04',
+      'art_bg_battle_ring_r05',
+      'art_bg_battle_ring_r07',
+    ]);
+    // the underground nodes show no sky
+    expect(skies.redanvil).toBeUndefined();
+    expect(skies.broken_door_hall).toBeUndefined();
   });
 
   it('names one hub for every act from the prologue to the epilogue', () => {

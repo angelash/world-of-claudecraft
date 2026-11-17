@@ -2,7 +2,7 @@
   {
     "id": "borderstone",
     "name": "边石镇",
-    "region": "borderstone_region",
+    "region": "edgestone_area",
     "width": 56,
     "height": 44,
     "storyActs": ["act1"],

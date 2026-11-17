@@ -18,12 +18,20 @@
   },
   {
     "id": "court_gap",
-    "name": "庭间之隙（门内庭院）",
+    "name": "庭间之隙（门内庭院与过场布景）",
     "tier": "realm",
-    "acts": [1, 2, 3, 4, 5],
+    "acts": [0, 1, 2, 3, 4, 5, 6, 7],
     "style": "divine_court",
     "sediment": [0, 0],
-    "note": "门内庭院是庭间之隙的一角，在箱庭之外，由门的能力进出（power_system.md 9.6）。"
+    "note": "庭间之隙在箱庭之外：门内庭院一角由门的能力进出（power_system.md 9.6）；坠落、千门回廊与梦中的门口三处过场布景只由过场传送进入。"
+  },
+  {
+    "id": "earth",
+    "name": "地球（过场布景）",
+    "tier": "realm",
+    "acts": [0, 7],
+    "style": "earth_modern",
+    "note": "序章与终章的四处地球开场布景（末班车、雨夜便利店、医院走廊、老宅），不在箱庭的地理范围内，无澱度。"
   },
   {
     "id": "edgestone_area",
@@ -34,8 +42,8 @@
     "slgRegion": "lotha",
     "acts": [1, 2, 3, 4, 5],
     "style": "lothar_plain",
-    "sediment": [1, 2],
-    "note": "地理志 7.4 第一幕 A 系列的界石线以南部分：边石镇、林缘、锈岭、旧巡逻道。"
+    "sediment": [1, 3],
+    "note": "地理志 7.4 第一幕 A 系列的界石线以南部分：边石镇、林缘、锈岭、旧巡逻道。锈岭矿深层（A5-1）是区域里唯一的三级（地图简报第 9.1 节）。"
   },
   {
     "id": "valen_valley",
@@ -154,7 +162,7 @@
     "slgRegion": "sleepscale",
     "acts": [4, 5],
     "stylePlan": "sleepscale_snow",
-    "sediment": [1, 1],
-    "note": "原龙所在之处几乎不积澱。风格包为提案（冰蓝、雪白）。"
+    "sediment": [1, 4],
+    "note": "原龙所在之处几乎不积澱，地面一级；堕勇之墓（D6-1）的地下墓道是四级（地图简报第 9.1 节）。风格包为提案（冰蓝、雪白）。"
   }
 ]

@@ -32,15 +32,16 @@ export const STYLE_IDS = [
 export type StyleId = (typeof STYLE_IDS)[number];
 
 /**
- * Region to its default style pack. The keys are the atlas regions of
- * data/world/atlas_regions.json (their `style`, or the `stylePlan` of a region whose pack
- * arrives later; the continent has none), followed by the geography.md region names the
- * built maps still carry until their `region` moves to atlas regions (development plan
- * PK-M1-16). tests/look_layer.test.ts keeps the atlas half equal to the atlas data.
+ * Region to its default style pack: the atlas regions of data/world/atlas_regions.json
+ * (their `style`, or the `stylePlan` of a region whose pack arrives later; the continent
+ * has none). Maps name their atlas region (MapDef.region, map_briefs.md 1.3) and write
+ * `style` only where they differ from it. tests/look_layer.test.ts keeps this table equal
+ * to the atlas data.
  */
 export const REGION_STYLE: Readonly<Record<string, StyleId>> = {
   divine_realm: 'divine_court',
   court_gap: 'divine_court',
+  earth: 'earth_modern',
   edgestone_area: 'lothar_plain',
   valen_valley: 'valen_city',
   lotha_realm: 'lothar_plain',
@@ -52,15 +53,6 @@ export const REGION_STYLE: Readonly<Record<string, StyleId>> = {
   windfang: 'windfang_steppe',
   nightrealm: 'night_basalt',
   sleepscale: 'sleepscale_snow',
-  // geography.md names on the built maps
-  borderstone_region: 'lothar_plain',
-  lotha_north: 'lothar_plain',
-  lothar_north: 'lothar_plain',
-  wallenburg: 'valen_city',
-  borderstone_wilds: 'wild_forest',
-  ash_waste: 'ash_waste',
-  divine_court: 'divine_court',
-  divine: 'divine_court',
 };
 
 /**
@@ -131,11 +123,44 @@ export const DECOR_KINDS = [
   'grave',
   'haystack',
   'cart',
+  // map_briefs.md 1.10: boundary and forbidding stones, door frames (variant 1 a fallen
+  // arch), ground marks (chalk, blood, holy scars), dry wells, smashed shrines, landmark
+  // trees (the pact oak) and mine lamps
+  'standing_stone',
+  'doorframe',
+  'ground_mark',
+  'dry_well',
+  'shrine_ruin',
+  'landmark_tree',
+  'mine_lamp',
 ] as const;
 export type DecorKind = (typeof DECOR_KINDS)[number];
 
-/** Decor that emits light when lit (lamps at night, braziers always). */
-export const LIGHT_DECOR: ReadonlySet<DecorKind> = new Set<DecorKind>(['lamp', 'brazier']);
+/**
+ * The light a lit decor kind gives (art_pipeline.md 2.7; scene_flow.md 1 reads the radii
+ * for its lighting cover): height of the flame in metres, radius in tiles, colour, and
+ * whether it is lit only at night (lamps, mine lamps) or always (braziers).
+ */
+export interface DecorLight {
+  h: number;
+  radius: number;
+  color: number;
+  night: boolean;
+}
+
+export const DECOR_LIGHTS: Readonly<Partial<Record<DecorKind, DecorLight>>> = {
+  lamp: { h: 2.4, radius: 4.2, color: 0xffc878, night: true },
+  brazier: { h: 0.9, radius: 3.4, color: 0xff9a48, night: false },
+  mine_lamp: { h: 1.6, radius: 3, color: 0xffb860, night: true },
+};
+
+/** Decor that emits light when lit (the kinds of DECOR_LIGHTS). */
+export const LIGHT_DECOR: ReadonlySet<DecorKind> = new Set(
+  Object.keys(DECOR_LIGHTS) as DecorKind[],
+);
+
+/** Decor that stands on a tree tile and replaces that tile's tree (map_briefs.md 12, row 13). */
+export const TREE_DECOR: ReadonlySet<DecorKind> = new Set<DecorKind>(['landmark_tree']);
 
 export interface DecorDef {
   kind: DecorKind;
@@ -169,6 +194,7 @@ export function styleOf(map: { style?: string; region?: string; indoor?: boolean
  * Problems in a map's look layer (content validation). Pure. Decor is drawn but never
  * blocks, so it must stand where a person could stand: its foot tile is walkable, and it
  * is neither a door (it would sit in the doorway) nor an exit (it would hide the way out).
+ * The landmark tree is the exception: it stands on a tree tile and replaces that tree.
  * The spatial layer (rows, legend) and the exits are read for that; a character missing
  * from the legend counts as void, as in the walkability grid.
  */
@@ -218,7 +244,10 @@ export function lookProblems(map: {
     const ch = map.rows[ty]?.[tx];
     const tile: TileKind =
       ch !== undefined && Object.hasOwn(map.legend, ch) ? (map.legend[ch] as TileKind) : 'void';
-    if (BLOCKING_TILES.has(tile))
+    if (TREE_DECOR.has(d.kind)) {
+      if (tile !== 'tree')
+        out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) ${d.kind} must stand on a tree tile`);
+    } else if (BLOCKING_TILES.has(tile))
       out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) on a blocking ${tile} tile`);
     else if (tile === 'door') out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) on a door tile`);
     const exit = exitAt.get(`${tx},${ty}`);

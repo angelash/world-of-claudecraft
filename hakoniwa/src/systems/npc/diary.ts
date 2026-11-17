@@ -10,8 +10,8 @@ import { commandText, joinText, type KeyText, type TextParam, tr } from '../../c
 import { mapById } from '../world';
 import { DIARY_BATCH, DIARY_CAP, DIARY_DEADLINE } from './constants';
 import { addMemory, timeLabel } from './memory';
-import { personaById } from './personas';
-import { locationById } from './places';
+import { cardOf, personaById } from './personas';
+import { locationOfRef } from './places';
 import {
   DIARY_KINDS,
   type DiaryEntryData,
@@ -64,6 +64,11 @@ const RULE_TEXT: Record<DiaryKind, KeyText> = {
   chat: tr('sys.npc.diary.rule.chat'),
 };
 
+/** The map a person's track references are relative to (their card's home map). */
+function homeMapOf(ctx: SystemContext, st: NpcState): string {
+  return cardOf(ctx.world.slices.npc, ctx.content, st.id)?.map ?? st.mapId;
+}
+
 /** Rule diary: up to three distinct telling items per resident. */
 export function ruleDiary(ctx: SystemContext, st: NpcState): DiaryEntryData[] {
   const out: DiaryEntryData[] = [];
@@ -74,7 +79,8 @@ export function ruleDiary(ctx: SystemContext, st: NpcState): DiaryEntryData[] {
     if (!item || used.has(kind)) continue;
     used.add(kind);
     const loc =
-      locationById(ctx.content, st.mapId, item.loc)?.name ?? tr('sys.npc.diary.somewhere');
+      locationOfRef(ctx.content, homeMapOf(ctx, st), item.loc)?.name ??
+      tr('sys.npc.diary.somewhere');
     out.push({
       npcId: st.id,
       kind,
@@ -85,7 +91,7 @@ export function ruleDiary(ctx: SystemContext, st: NpcState): DiaryEntryData[] {
 }
 
 function trackLine(ctx: SystemContext, st: NpcState, t: TrackItem): KeyText {
-  const loc = locationById(ctx.content, st.mapId, t.loc)?.name ?? t.loc;
+  const loc = locationOfRef(ctx.content, homeMapOf(ctx, st), t.loc)?.name ?? t.loc;
   return tr('sys.npc.diary.track', {
     hh: String(t.hour).padStart(2, '0'),
     loc,

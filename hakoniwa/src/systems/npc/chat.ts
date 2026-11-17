@@ -16,7 +16,7 @@ import { baseContext } from './ai_context';
 import { CHAT_BASE, CHAT_COOLDOWN, CHAT_DEADLINE, SAY_AI_COOLDOWN } from './constants';
 import { addMemory } from './memory';
 import { cardOf, personaById } from './personas';
-import { inside, locationById } from './places';
+import { inside, locationById, placeRef } from './places';
 import { adjustRelation, relationBand, relationOf } from './relations';
 import type { Activity, NpcState } from './types';
 
@@ -97,8 +97,9 @@ export function converse(ctx: SystemContext, a: NpcState, b: NpcState, loc: Loca
     sour ? { like: -2 } : { like: 1, trust: 0.5 },
     sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
   );
-  pushTrack(a, hour, knewA ? kind : 'meet', loc.id, cardB.name);
-  pushTrack(b, hour, knewB ? kind : 'meet', loc.id, cardA.name);
+  // track places are references from each person's home map (cross-map schedules)
+  pushTrack(a, hour, knewA ? kind : 'meet', placeRef(cardA.map, a.mapId, loc.id), cardB.name);
+  pushTrack(b, hour, knewB ? kind : 'meet', placeRef(cardB.map, b.mapId, loc.id), cardA.name);
   addMemory(ctx, a.id, {
     text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
       place: loc.name,

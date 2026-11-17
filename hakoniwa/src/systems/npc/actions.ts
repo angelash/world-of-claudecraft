@@ -1,6 +1,8 @@
 // Executing the day (npc_society_ai.md 4.1 and 7.3): pick the activity for an hour
 // from the plan or schedule plus need overrides, move there (walk on the player's map,
-// snap elsewhere), book wages and purchases, and settle money once a day.
+// snap elsewhere, and snap onto another map for a cross-map place: the person appears at
+// the place when the player is there), book wages and purchases, and settle money once a
+// day.
 
 import type { SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
@@ -11,7 +13,7 @@ import type { LocationDef } from '../world/types';
 import { DEFAULT_WAGE, MEAL_HOME, MEAL_TAVERN, TRACK_CAP } from './constants';
 import { needOverride, stepNeeds } from './needs';
 import { type CardView, npcEntityId, personaIndex } from './personas';
-import { locationById, pointIn, resolvePlace } from './places';
+import { locationById, placeRef, pointIn, resolvePlaceOn } from './places';
 import { scheduleOf, segmentAt } from './schedule';
 import type { Activity, DiaryKind, NpcState, ScheduleSegment } from './types';
 
@@ -109,22 +111,23 @@ export function applyDecision(
   d: Decision,
   hour: number,
 ): void {
-  const loc =
-    resolvePlace(ctx.content, card, d.at) ??
-    locationById(ctx.content, card.map, card.home) ??
-    undefined;
-  if (!loc) return;
-  const changed = loc.id !== st.locId || d.act !== st.activity;
+  const home = locationById(ctx.content, card.map, card.home);
+  const target =
+    resolvePlaceOn(ctx.content, card, d.at) ?? (home ? { mapId: card.map, loc: home } : undefined);
+  if (!target) return;
+  const { loc } = target;
+  const changed = loc.id !== st.locId || target.mapId !== st.mapId || d.act !== st.activity;
   st.activity = d.act;
   st.note = d.note;
   if (!changed) return;
   st.locId = loc.id;
+  st.mapId = target.mapId;
   const visible = st.mapId === ctx.world.slices.npc.playerMap;
   moveInto(ctx, st, loc, visible);
   const kind = TRACK_KIND[d.act];
-  if (kind) pushTrack(st, hour, kind, loc.id);
+  if (kind) pushTrack(st, hour, kind, placeRef(card.map, target.mapId, loc.id));
   if (d.act === 'eat') {
-    const atHome = loc.id === card.home;
+    const atHome = target.mapId === card.map && loc.id === card.home;
     book(st, atHome ? '' : payeeAt(ctx, st.mapId, loc.id), atHome ? MEAL_HOME : MEAL_TAVERN);
   } else if (d.act === 'shop') {
     book(st, payeeAt(ctx, st.mapId, loc.id), 5);

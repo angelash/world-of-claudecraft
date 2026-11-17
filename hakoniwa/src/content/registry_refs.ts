@@ -1,11 +1,13 @@
 // Every world-state variable the content reads or writes, with where it sits
 // (world_state_registry.md 9.3 rule 1): conditions, effect keys, door keys and door
-// effects, requiresFlags, endOnFlag, pacifiedBy, removeOnFlag, storeAs, from, trustKey,
+// effects, requiresFlags (a negated `!name` entry of a map spawn point reads `name`),
+// endOnFlag, pacifiedBy, removeOnFlag, storeAs, from, trustKey,
 // evidenceFlags, revealWhen, hideWhen, the goddess gaze and yield flags, the director
 // menu writes and the companion bond flags. Pure: walks a ContentMap, no world.
 
 import type { ContentMap, FlagValue } from '../core/contracts';
 import { actIndex, checkCondition, comparisons } from '../systems/quests/conditions';
+import { flagEntryName } from '../systems/world/spawn_rules';
 
 export interface FlagUse {
   /** the name as written */
@@ -51,6 +53,10 @@ export const CONDITION_FIELDS = new Set([
   'actsWhen',
   'appearsWhen',
   'bonus',
+  // map switch tile areas (systems/world/switches.ts)
+  'openWhen',
+  // act clock night rules and dispute default steps (systems/quests): the drop condition
+  'unless',
 ]);
 
 /** String fields naming one flag the kernel reads. */
@@ -189,8 +195,12 @@ export function collectFlagUses(content: ContentMap): {
           at(k, { kind: 'write', op: k === 'trustKey' ? 'typed' : 'store', path: fmt(p) }, x),
         );
       } else if (Array.isArray(x) && READ_LIST_FIELDS.has(k)) {
+        // only map spawn points read negated entries (systems/world/spawn_rules.ts); anywhere
+        // else `!name` stays a name and the registry reports it
+        const negatable = ctx.table === 'maps' && path.includes('spawns');
         x.forEach((name, i) => {
-          if (typeof name === 'string') uses.push(at(k, { path: fmt([...p, i]) }, name));
+          if (typeof name === 'string')
+            uses.push(at(k, { path: fmt([...p, i]) }, negatable ? flagEntryName(name) : name));
         });
       } else if (Array.isArray(x) && CONDITION_LIST_FIELDS.has(k)) {
         x.forEach((expr, i) => {

@@ -7,6 +7,7 @@
 import type { ContentMap, FlagValue } from '../core/contracts';
 import type { FlagRegistry } from '../core/registry';
 import { rewriteCondition } from '../systems/quests/conditions';
+import { flagEntryName } from '../systems/world/spawn_rules';
 import { CONDITION_FIELDS } from './registry_refs';
 
 export interface CanonEdit {
@@ -91,8 +92,12 @@ export function canonEdits(table: string, value: unknown, registry: FlagRegistry
       if (typeof x === 'string' && CONDITION_FIELDS.has(k)) condition(x, p);
       else if (typeof x === 'string' && NAME_FIELDS.has(k)) edit(p, x, canonName(registry, x));
       else if (Array.isArray(x) && NAME_LIST_FIELDS.has(k)) {
+        // a negated entry of a map spawn point keeps its prefix around the canonical name
+        const negatable = table === 'maps' && path.includes('spawns');
         x.forEach((n, i) => {
-          if (typeof n === 'string') edit([...p, i], n, canonName(registry, n));
+          if (typeof n !== 'string') return;
+          const bare = negatable ? flagEntryName(n) : n;
+          edit([...p, i], n, n.slice(0, n.length - bare.length) + canonName(registry, bare));
         });
       } else if (Array.isArray(x) && k === 'hideWhen') {
         x.forEach((n, i) => {

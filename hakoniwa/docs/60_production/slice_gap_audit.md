@@ -62,7 +62,7 @@
 | 前世之门效果与识才之门潜质的读取方 | 序章第 2.2 节；第一幕第 5.3 节 | PK-M1-56 |
 | 标 M1 而无主的界面编号 | 界面第 2 节 | PK-M1-57 |
 | 魔物机制字段（`nightOnly`、`purifyTo`、`ambushEmerge`、`packFrenzy`、`deathThroes` 等）与兽潮编成的压力预算；澱巨像"追最大的门" | 图鉴第 9 节；第一幕第 10.4 节 | PK-M1-12 |
-| 地图机制（开关格、地点澱度、否定旗标、跨图日程、新装饰与 `gate_site`、区域取图集区域、扩建的存档迁移） | 地图简报第 1 节 | PK-M1-16、PK-M1-35 |
+| 扩建地图的存档迁移；开关格开合与局部澱度的客户端表现；幕切换写 `act.<n>.entered` | 地图简报第 1.11、13.3 节；变量注册表第 8.5 节 | PK-M1-35、PK-M1-24、PK-M1-45 |
 | 兽伴与坐骑 | 同伴第 2.3 节 | PK-M1-15 |
 | 两条没有设计条目的第一幕技能类条目：套装 `set_dg_seal_ruins` 的装备光环 `ember_door`；渊契之门第一幕版本的契约魔 `fiend_colossus_remnant` 的技能与数值 | 装备目录第 11.2 节第 4 条；战斗与职能第 6.5.8、12.3 节 | PK-M1-26（先补设计再导入） |
 
@@ -83,7 +83,6 @@
 | `q_a1_m12_tide` | 开始时 `seal_unrest = 100`（设计由周时钟驱动）；无条件写 `a1_martha_strike`（设计有第 8.5 节的条件）；结束把 `seal_unrest` 归 0（设计 30 加修正）；钱 2,000 对 660；无条件给 `colossus_core`（设计是选择） | 第一幕第 8.5、8.6 节；A1-M12 |
 | `q_gl_merca_01`、`q_gl_eluen_01` | 钱 500、300 对 70、55 铜；目标是笼统的"击杀 3" | 任务目录（前）第 5.5 节 |
 | `data/combat/waves.json` | `tide_flood` 在设计里没有对应（设计的 `second_surge` 是目击节拍，不是战斗）；`tide_second` 缺 `raven_flock` 与条件出现的 `dian_dreg` | 第一幕第 8.2 节 |
-| `MapDef.region` | 用旧编号（`borderstone_region`、`borderstone_wilds` 等），图集已有 `edgestone_area`、`ashen_waste`、`divine_realm` | 地图简报第 1.3 节 |
 | `data/doors/doors.json` | `talent_sight` 第三把钥是 `a1_beast_tide_cleared`，设计是凡人当众为玩家作保（认知阈值）；希雅相关的钥读队伍 `bond`，任务目录读 `trust.shiya` | 门目录第 6 节；D-089 |
 | `data/scenes/prologue.json` | 炉灶前世没有给 `lb_otherworld_menu` | 序章第 2.2 节 |
 

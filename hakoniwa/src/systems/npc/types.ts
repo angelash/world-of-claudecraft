@@ -57,7 +57,10 @@ export interface ScheduleSegment {
   from: number;
   /** end hour 1..24; smaller than from wraps past midnight */
   to: number;
-  /** location id on the persona's map, or '@home', '@work', '@<location kind>' */
+  /**
+   * location id on the persona's map, '@home', '@work', '@<location kind>', or a place on
+   * another map as '<map>:<location id or @kind>' (cross-map schedules, places.ts)
+   */
   at: string;
   act: Activity;
   /** short display note (content text, or a text key for rule and need notes) */
@@ -260,6 +263,7 @@ export interface PlanState {
 export interface TrackItem {
   hour: number;
   kind: DiaryKind;
+  /** the place as seen from the persona's map (places.ts placeRef) */
   loc: string;
   with?: string;
 }

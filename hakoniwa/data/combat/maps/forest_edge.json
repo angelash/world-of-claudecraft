@@ -1,10 +1,10 @@
 {
   "id": "forest_edge",
   "name": "林缘（东林）",
-  "region": "borderstone_wilds",
+  "region": "edgestone_area",
   "width": 48,
   "height": 32,
-  "sediment": 2,
+  "sediment": 1,
   "rows": [
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     "TTTTTTTTTTTTTTTTTTT\"\"TTTTTT\"TTTTTTTTT\"\"\"\"\"\"\"\"TTT",
@@ -243,6 +243,7 @@
       "label": "回边石镇"
     }
   ],
+  "style": "wild_forest",
   "decor": [
     { "kind": "lamp", "x": 1.5, "y": 15.5 },
     { "kind": "sign", "x": 5.5, "y": 17.5 },

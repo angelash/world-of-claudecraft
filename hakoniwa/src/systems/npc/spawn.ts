@@ -16,7 +16,7 @@ import {
   personaById,
   trustFlagKey,
 } from './personas';
-import { locationById, pointIn, resolvePlace } from './places';
+import { locationById, pointIn, resolvePlaceOn } from './places';
 import { seedMind } from './relations';
 import { scheduleOf, segmentAt } from './schedule';
 import type { GoneReason, NpcState, PersonaCard, ResidentCard } from './types';
@@ -69,18 +69,21 @@ function spawnFor(ctx: SystemContext, st: NpcState, card: CardView): void {
   }
   const hour = calendarAt(ctx.tick).hour;
   const seg = segmentAt(scheduleOf(ctx.content, card), hour);
-  const loc =
-    resolvePlace(ctx.content, card, seg.at) ?? locationById(ctx.content, card.map, card.home);
-  if (!loc) {
+  const home = locationById(ctx.content, card.map, card.home);
+  const target =
+    resolvePlaceOn(ctx.content, card, seg.at) ??
+    (home ? { mapId: card.map, loc: home } : undefined);
+  if (!target) {
     st.gone = 'absent';
     return;
   }
+  const { loc } = target;
   const pt = pointIn(loc, ctx.rng('npc.spawn'));
   spawnEntity(ctx, {
     id: st.entityId,
     kind: 'npc',
     name: card.name,
-    mapId: card.map,
+    mapId: target.mapId,
     x: pt.x,
     y: pt.y,
     faction: card.faction,
@@ -89,7 +92,7 @@ function spawnFor(ctx: SystemContext, st: NpcState, card: CardView): void {
     tags: entityTagsFor(card),
     ref: card.id,
   });
-  st.mapId = card.map;
+  st.mapId = target.mapId;
   st.locId = loc.id;
   st.activity = seg.act;
   st.note = seg.note;

@@ -392,6 +392,10 @@ export function validateCombat(content: ContentMap): string[] {
       if (s.kind === 'monster' && !monsterIds.has(s.ref)) {
         problems.push(`map ${map.id}: spawn ${s.id} unknown monster ${s.ref}`);
       }
+      // a story boss syncs to the party on its first pull and would undo a map level
+      const mon = s.level !== undefined ? content.monsters?.find((m) => m.id === s.ref) : undefined;
+      if (mon?.mechanics?.partySync)
+        problems.push(`map ${map.id}: spawn ${s.id} sets a level on party-synced ${s.ref}`);
     }
   }
   for (const w of content.waves ?? []) {

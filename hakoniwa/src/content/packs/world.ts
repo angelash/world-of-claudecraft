@@ -6,7 +6,7 @@ import atlasMaps from '../../../data/world/atlas_maps.json';
 import atlasRegions from '../../../data/world/atlas_regions.json';
 import atlasRoutes from '../../../data/world/atlas_routes.json';
 import testMaps from '../../../data/world/maps_test.json';
-import { lookProblems, STYLE_IDS, type WorldStart } from '../../systems/world';
+import { lookProblems, mapMechanicProblems, STYLE_IDS, type WorldStart } from '../../systems/world';
 import {
   ATLAS_REGION_TIERS,
   ATLAS_ROLES,
@@ -18,6 +18,8 @@ import {
   atlasProblems,
   ROUTE_KINDS,
   ROUTE_LAYERS,
+  SKY_STYLES,
+  SPECIAL_SKIES,
 } from '../../systems/world/atlas';
 import { isAtlasExempt, mapRoleProblems } from '../../systems/world/map_roles';
 import type { MapDef } from '../../systems/world/types';
@@ -119,6 +121,19 @@ export const pack: ContentPack = {
         { key: 'hubOf', label: '作为枢纽的幕', type: 'list' },
         { key: 'style', label: '风格包', type: 'enum', options: STYLES },
         { key: 'stylePlan', label: '规划风格包（提案）', type: 'string' },
+        {
+          key: 'sky',
+          label: '天幕包',
+          type: 'enum',
+          options: [...SKY_STYLES, ...SPECIAL_SKIES],
+          help: '不写时用本图风格包的天幕，没有天幕时用区域风格包的（地图简报第 1.7 节）',
+        },
+        {
+          key: 'battleSky',
+          label: '战场远山层',
+          type: 'string',
+          help: 'art_bg_battle_ 开头；战场图必写，众门环节点图只在节点战斗时用',
+        },
         { key: 'sediment', label: '澱度', type: 'number', min: 0, max: 5, required: true },
         { key: 'levels', label: '等级段', type: 'json' },
         { key: 'size', label: '尺寸（格）', type: 'json', required: true },
@@ -175,6 +190,7 @@ export const pack: ContentPack = {
       for (const x of m.exits)
         if (!ids.has(x.toMap)) problems.push(`map ${m.id}: exit ${x.id} -> unknown map ${x.toMap}`);
       problems.push(...lookProblems(m));
+      problems.push(...mapMechanicProblems(m));
     }
     for (const s of content.worldStarts)
       if (!ids.has(s.mapId)) problems.push(`worldStart -> unknown map ${s.mapId}`);

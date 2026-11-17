@@ -88,7 +88,7 @@
 | `divine_realm` | 神域 | 界外领域 | 无 | 无 | 序章、六、终章 | `divine_court` | 零 |
 | `court_gap` | 庭间之隙（门内庭院与过场布景） | 界外领域 | 无 | 无 | 序章到终章 | `divine_court` | 零 |
 | `earth` | 地球（过场布景） | 界外领域 | 无 | 无 | 序章、终章 | `earth_modern` | 无 |
-| `edgestone_area` | 边石镇区域 | 区域 | 洛萨王国 | `lotha` | 一到五 | `lothar_plain` | 一到二 |
+| `edgestone_area` | 边石镇区域 | 区域 | 洛萨王国 | `lotha` | 一到五 | `lothar_plain` | 一到三（三只有锈岭矿深层） |
 | `valen_valley` | 瓦伦河谷区域（北段） | 区域 | 洛萨王国 | `lotha` | 二到五 | `valen_city` | 一到三 |
 | `lotha_realm` | 洛萨王国区域 | 区域 | 洛萨王国 | `lotha` | 三到五 | `lothar_plain` | 一到三 |
 | `ashen_waste` | 灰烬荒原 | 区域 | 灰烬荒原 | `ashen_waste` | 一到五 | `ash_waste` | 二到五 |
@@ -98,11 +98,11 @@
 | `silva` | 希尔瓦大森林 | 区域 | 希尔瓦大森林 | `silva` | 四到五 | `silva_canopy` | 零到三 |
 | `windfang` | 风牙草原 | 区域 | 风牙草原 | `windfang` | 四到五 | `windfang_steppe` | 一到三 |
 | `nightrealm` | 夜境 | 区域 | 夜境 | `nightrealm` | 四到五 | `night_basalt` | 二到五 |
-| `sleepscale` | 眠鳞山脉 | 区域 | 眠鳞山脉 | `sleepscale` | 四到五 | `sleepscale_snow` | 一 |
+| `sleepscale` | 眠鳞山脉 | 区域 | 眠鳞山脉 | `sleepscale` | 四到五 | `sleepscale_snow` | 一到四（地面一；四只有堕勇之墓） |
 
 - 洛萨王国在图集里拆成三个区域，对应地理志 7.4 的三组地块：边石镇区域（A）、瓦伦河谷区域（B）、洛萨王国区域（C）。
   三者都落在大陆图的 `lotha` 区域里。
-- 封门遗迹按地理志 3.2 归灰烬荒原（荒原南沿，界石线以北），所以第一幕的地图分属两个区域；现有数据里它的 `region` 是 `borderstone_wilds`，只用来选风格包。
+- 封门遗迹按地理志 3.2 归灰烬荒原（荒原南沿，界石线以北），所以第一幕的地图分属两个区域；地图的 `region` 写图集区域 `ashen_waste`，风格包在地图上显式写 `sealed_ruins`。
 - 第四幕起各国的风格包编号以 [`../../50_tech/art_pipeline.md`](../../50_tech/art_pipeline.md) 第 1.4 节为准（取材于地理志 7.5 的主色与标志物）；风格包实装前图集用 `stylePlan` 写编号；地下场景用 `sealed_ruins`，矿坑与炉城用 `forge_deep`。
 - 环海诸岛与终雾不进图集：前者是远期内容，后者主线不可到达（地理志 1.1、3.10）。
 
@@ -355,10 +355,10 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0 | `divine_court` | 候见厅（审庭） | 场景 | 序章、六 | `divine_court` | 零 清域 | 无 | 24×16 | 舞台 | 已建 | 无（单场景） |
 | X1 | `inner_court` | 门内庭院 | 场景 | 一到五 | `divine_court` | 零 清域 | 无 | 24×20 | 私人 | 已建 | 门 borderstone |
-| P1 | `earth_train` | 末班车车厢 | 场景 | 序章、终章 | `earth_modern` | 无 | 无 | 24×8 | 舞台 | 规划 | 无（过场传送） |
-| P2 | `earth_store` | 雨夜便利店 | 场景 | 序章、终章 | `earth_modern` | 无 | 无 | 16×12 | 舞台 | 规划 | 无（过场传送） |
-| P3 | `earth_hospital` | 凌晨的医院走廊 | 场景 | 序章、终章 | `earth_modern` | 无 | 无 | 24×8 | 舞台 | 规划 | 无（过场传送） |
-| P4 | `earth_house` | 老宅最后一个房间 | 场景 | 序章、终章 | `earth_modern` | 无 | 无 | 12×10 | 舞台 | 规划 | 无（过场传送） |
+| P1 | `earth_train` | 末班车车厢 | 场景 | 序章、终章 | `earth_modern` | 零 清域 | 无 | 24×8 | 舞台 | 规划 | 无（过场传送） |
+| P2 | `earth_store` | 雨夜便利店 | 场景 | 序章、终章 | `earth_modern` | 零 清域 | 无 | 16×12 | 舞台 | 规划 | 无（过场传送） |
+| P3 | `earth_hospital` | 凌晨的医院走廊 | 场景 | 序章、终章 | `earth_modern` | 零 清域 | 无 | 24×8 | 舞台 | 规划 | 无（过场传送） |
+| P4 | `earth_house` | 老宅最后一个房间 | 场景 | 序章、终章 | `earth_modern` | 零 清域 | 无 | 12×10 | 舞台 | 规划 | 无（过场传送） |
 | X2 | `gap_void` | 庭间之隙（坠落与黑） | 场景 | 序章、五、六、终章 | `door_corridor` | 零 清域 | 无 | 16×16 | 舞台 | 规划 | 无（过场传送） |
 | X3 | `door_corridor` | 千门回廊 | 场景 | 一到六、终章 | `door_corridor` | 零 清域 | 无 | 64×16 | 舞台 | 规划 | 无（过场传送） |
 | X4 | `dream_doorway` | 梦中的门口 | 场景 | 一到五 | `door_corridor` | 零 清域 | 无 | 16×12 | 舞台 | 规划 | 无（过场传送） |
@@ -371,7 +371,7 @@
 | A2 | `borderstone_north` | 镇北与界石线 | 地块 | 一到五 | `wild_forest` | 二 积澱 | 3 到 8 | 128×96 | 野外 | 规划 | 步 borderstone 3；步 rustridge_mine；步 brokenspan_post 12；世 ash_border |
 | A3（含 A4） | `seal_ruins` | 封门遗迹（外庭、中殿） | 场景 | 一到五 | `sealed_ruins` | 二 积澱 | 1 到 4 | 36×28 | 迷宫 | 已建 | 步 borderstone 6；步 seal_ruins_depths；步 seal_ruins_depths（单向来） |
 | A4 | `seal_ruins_depths` | 封门遗迹深处（回廊、鸦巢、灰烬之厅） | 场景 | 一到五 | `sealed_ruins` | 三 浓澱 | 1 到 8 | 30×24 | 迷宫 | 已建 | 步 seal_ruins；步 seal_ruins（单向去） |
-| A5 | `rustridge_mine` | 锈岭矿 | 场景 | 一到五 | `sealed_ruins` | 二 积澱 | 5 到 10 | 64×64 | 迷宫 | 规划 | 步 borderstone_north |
+| A5 | `rustridge_mine` | 锈岭矿 | 场景 | 一到五 | `forge_deep` | 二 积澱 | 6 到 12 | 64×64 | 迷宫 | 规划 | 步 borderstone_north；步 dg_old_mine；步 rustridge_deep |
 | A6 | `forest_edge` | 铁杉林林缘 | 地块 | 一到五 | `wild_forest` | 一 薄澱 | 2 到 10 | 48×32 | 野外 | 已建 | 步 borderstone 3；步 ironhemlock_deep；世 ash_border |
 | A7 | `ironhemlock_deep` | 铁杉林深处 | 地块 | 一到五 | `wild_forest` | 二 积澱 | 8 到 13 | 128×128 | 野外 | 规划 | 步 forest_edge；世 ash_border |
 | A8 | `brokenspan_post` | 灰溪上游与折桥驿 | 地块 | 一到五 | `ash_waste` | 二 积澱 | 7 到 12 | 128×96 | 野外 | 规划 | 步 borderstone_north 12；步 ash_waste 5；世 ash_rim |
@@ -625,9 +625,9 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 | 地块尺寸 | 已建地块 48×32 到 60×48 | 地理志 7.1 建议 96 到 192 | 已建地块是压缩版，按地图简报第 1.11 节逐张扩到建议尺寸；扩建时同步图集 `size`，校验对不一致报错 |
 | 荒原外缘 `ash_waste` | 一张图承载 A9、B9，还放了荒原中层门址、圣战军营、红牙丘、古澱边缘，以及红牙试货、萨莎决斗与无貌之王的战斗波次 | 外缘只承担 A9、B9；中层、外环、核心各有规划图 | C9、C10、E1、E2 建成后把相应地点与波次迁走（地图简报第 11 节） |
 | 旧水道 | 排水廊到第三十七门前厅压成一层；没有断门厅与渡口水门 | B6 加 B6-1 断门厅，加渡口水门路线 | 第二幕补完时做 B6-1 |
-| 旧水道的风格包 | `region` 为 `wallenburg`，按 `REGION_STYLE` 落在 `valen_city` | `art_pipeline.md` 1.4 把旧水道归 `sealed_ruins`，图集按此登记 | 地图显式写 `style: sealed_ruins`（地图简报第 1.3 节与 B6） |
-| 澱度字段 | `MapDef.sediment` 注释为 0 到 7，渲染按七分之几画雾；`ash_waste` 填 4、`seal_ruins` 3、`forest_edge` 2、`wallenburg_sewers` 2 | 图集按正典六级记：外缘二、封门遗迹上层二、林缘一、旧水道三 | 存正典级（0 到 5，临界记 6），渲染按"渲染级 = 正典级 × 7 / 6 四舍五入"换算（地图简报第 1.2 节，[`art_pipeline.md`](../../50_tech/art_pipeline.md) 第 2.8 节）；十张已建图的数值按地图简报第 1.2 节的表改写 |
-| `MapDef.region` | 九个只用于选风格包的键（`borderstone_region`、`lotha_north`、`borderstone_wilds` 等） | 图集区域对齐地理志 2.2 与大陆图区域 | `MapDef.region` 用图集区域 id，`REGION_STYLE` 按图集补齐（地图简报第 1.3 节） |
+| 旧水道的风格包 | `region` 为 `valen_valley`，地图显式写 `style: sealed_ruins` | `art_pipeline.md` 1.4 把旧水道归 `sealed_ruins`，图集按此登记 | 一致，图集校验核对 |
+| 澱度字段 | `MapDef.sediment` 存正典级（0 到 5，临界记 6），十张已建图按地图简报第 1.2 节的表填写；地点可写局部 `sediment` | 图集按正典六级记 | 渲染按"渲染级 = 正典级 × 7 / 6 四舍五入"换算（地图简报第 1.2 节，[`art_pipeline.md`](../../50_tech/art_pipeline.md) 第 2.8 节）；图集校验核对地图与图集相等 |
+| `MapDef.region` | 十张已建图写图集区域 id；`REGION_STYLE` 只以图集区域为键 | 图集区域对齐地理志 2.2 与大陆图区域 | 图集校验核对地图与图集相等（地图简报第 1.3 节） |
 | 战场 | 五个 `battle_scenarios` 是独立网格，不挂地图 | 图集登记为战场条目，用战役路线挂到宿主地块 | 鹿渡之战、朝阳门之夜的网格见地图简报第 10.2、10.3 节，界石之战与红帐血战见第 10.4、10.5 节 |
 | 苇桥村 | 没有地块；灰烬防线之战只有网格 | B7 规划，是 C11 的宿主，也是第二幕南大路的中继 | 第二幕补完时做 |
 | 门内庭院 | 由城建系统的门内庭院能力传送 | 门路线 `borderstone_inner_court` 以枢纽代表"任意地点" | 无 |
@@ -727,9 +727,10 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 
 内容校验时由世界包调用；只装了部分内容包、没有剧情地图的构建（只测某几个系统的测试）跳过与地图数据的交叉检查，图集自身的检查照做。
 
-1. **已建条目与内容地图一一对应**（`testfield` 除外）：每张内容地图都有 `built` 条目，每个 `built` 条目都有内容地图，尺寸一致；规划与战场网格条目不得与内容地图同 id。
+1. **已建条目与内容地图一一对应**（`testfield` 除外）：每张内容地图都有 `built` 条目，每个 `built` 条目都有内容地图，尺寸一致；规划与战场网格条目不得与内容地图同 id；
+   地图的 `region` 与 `sediment` 等于条目的，`styleOf(map)` 等于条目的 `style`（条目不写时取区域的；区域只有规划编号且已是风格包编号时取它）。
 2. **每个已建地图的每个出口都被一条路线引用**（`fromExit`，或双向路线的 `toExit`），被引用的出口存在且通向另一端；已建的步与区路线必须写出口。
-3. **风格包合法**：地图与区域的 `style` 是 `STYLE_IDS` 之一；每张图在自身或区域上至少有风格包或规划中的风格包编号；`sky` 是 12 个室外风格包或 5 套特殊天幕之一；`battleSky` 以 `art_bg_battle_` 开头。
+3. **风格包合法**：地图与区域的 `style` 是 `STYLE_IDS` 之一；每张图在自身或区域上至少有风格包或规划中的风格包编号；`sky` 是 12 个室外风格包或 5 套特殊天幕之一；`battleSky` 以 `art_bg_battle_` 开头，每张战场图必写。
 4. **引用存在**：区域、父区域、路线两端、省份、大陆图区域、战场网格；战场网格的尺寸与 `battle_scenarios` 一致；地图的省份与区域落在同一个大陆图区域。
 5. **编号**：`code` 符合 P、X、A 到 F 加数字（可带 `-序号`）且全表唯一；`covers` 同格式。
 6. **每幕从枢纽出发全部可达**：每幕恰好一个枢纽；按该幕开放的路线（单向路线只按方向）走，世界图开放的幕再按省份连线走；该幕每张图都要走得到。
@@ -740,8 +741,9 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 ### 9.3 测试
 
 `tests/world_atlas.test.ts`：一个小型夹具覆盖每条规则的正反两面（合法夹具无问题，每次只改一处，断言出现对应的问题文本）；
-真实内容在全部交叉检查打开时零问题；已建条目与编号、战场网格与网格 id、每幕枢纽都以字面值钉住；部分内容构建不误报；
-编辑器表单声明了图集三表的全部字段。
+真实内容在全部交叉检查打开时零问题；已建条目与编号、战场网格与网格 id、每幕枢纽、十张已建图的区域与澱度、过场布景、
+[地图简报](map_briefs.md)第 9.1 节的补登条目与新路线、战场远山层都以字面值钉住；部分内容构建不误报；编辑器表单声明了图集三表的全部字段。
+动线度量在 `tests/map_metrics.test.ts`（地图简报第 15 节）。
 
 ## 10. 依据
 

@@ -209,6 +209,14 @@ export function adHocRevelation(
   return rev;
 }
 
+/**
+ * The item tags an offering weighs (catalog_relics_lore.md: the `earth` mark of things
+ * from Earth): a closed vocabulary of tag words, not the region of the same name.
+ */
+type OfferingTag = 'earth' | 'luxury';
+/** Goods from Earth count triple and move Merca three times as much. */
+const EARTH_GOODS: OfferingTag = 'earth';
+
 /** Merca's exchange rate by coin terms (prologue 4.9). */
 export function offeringRate(terms: FlagValue | undefined, offeringsSoFar: number): number {
   if (terms === 'interest_free') return 1;
@@ -243,7 +251,7 @@ export function makeOffering(
   if (countItem(ctx.world, playerId, d.itemId) <= 0)
     return { code: 'missing', reason: tr('sys.goddess.reject.missing') };
   const done = Number(ctx.flag('merca_offerings') ?? 0);
-  const earth = (item.tags ?? []).includes('earth');
+  const earth = (item.tags ?? []).includes(EARTH_GOODS);
   const points = Math.round(
     Math.max(10, item.value) * (earth ? 3 : 1) * offeringRate(ctx.flag('p_coin_terms'), done),
   );

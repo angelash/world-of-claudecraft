@@ -457,7 +457,10 @@ describe('T-09: sleeping (7.1, 7.3, 7.4)', () => {
       at: tickAtDay(0, 22),
       content: QUIET,
     });
-    expect(sleepAmbushChance(camp, 'player', camp.tick)).toBeCloseTo(lit);
+    // the forest edge is canon sediment level one (map_briefs.md 1.2), half the level above
+    expect(sleepAmbushChance(camp, 'player', camp.tick)).toBeCloseTo(
+      ambushChance(1, { night: true, fire: true }),
+    );
     const inn = game(TAVERN.map, TAVERN.x, TAVERN.y, { at: tickAtDay(0, 22) });
     expect(sleepAmbushChance(inn, 'player', inn.tick)).toBe(0);
   });

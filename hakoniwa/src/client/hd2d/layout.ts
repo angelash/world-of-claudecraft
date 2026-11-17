@@ -6,7 +6,12 @@
 // nothing here feeds back into the kernel. Pure; Node-tested.
 
 import { tileAt } from '../../systems/world/grid';
-import { type DecorKind, LIGHT_DECOR, type WallMaterial } from '../../systems/world/look';
+import {
+  DECOR_LIGHTS,
+  type DecorKind,
+  TREE_DECOR,
+  type WallMaterial,
+} from '../../systems/world/look';
 import type { MapDef, Rect, TileKind } from '../../systems/world/types';
 import { hasRoof } from '../render/roofs';
 import { hash3, hashString } from '../sprites/pixels';
@@ -233,10 +238,17 @@ export function buildLayout(map: MapDef, pack: StylePack): SceneLayout {
 
   const standees: StandeePlacement[] = [];
   const salt = hashString(map.id);
+  // A landmark tree replaces the tree of its tile (map_briefs.md 12, row 13).
+  const replaced = new Set(
+    (map.decor ?? [])
+      .filter((d) => TREE_DECOR.has(d.kind))
+      .map((d) => `${Math.floor(d.x)},${Math.floor(d.y)}`),
+  );
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
       const k = kind(x, y);
       if (k !== 'tree' && k !== 'rock') continue;
+      if (k === 'tree' && replaced.has(`${x},${y}`)) continue;
       const v = hash3(x, y, salt + 7) % 3;
       // Trees stand a little off the tile centre so a forest edge does not read as a grid.
       const jx = k === 'tree' ? ((hash3(x, y, salt + 3) % 5) - 2) * 0.06 : 0;
@@ -297,16 +309,17 @@ export function buildLayout(map: MapDef, pack: StylePack): SceneLayout {
     }
   }
   (map.decor ?? []).forEach((d, i) => {
-    if (!LIGHT_DECOR.has(d.kind as DecorKind)) return;
+    const light = DECOR_LIGHTS[d.kind as DecorKind];
+    if (!light) return;
     lights.push({
       id: `${map.id}:decor:${i}`,
       x: d.x,
       y: d.y,
-      h: d.kind === 'lamp' ? 2.4 : 0.9,
-      radius: d.kind === 'lamp' ? 4.2 : 3.4,
-      color: d.kind === 'lamp' ? 0xffc878 : 0xff9a48,
+      h: light.h,
+      radius: light.radius,
+      color: light.color,
       intensity: 1,
-      night: d.kind === 'lamp',
+      night: light.night,
     });
   });
 

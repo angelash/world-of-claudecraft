@@ -1,10 +1,10 @@
 {
   "id": "wallenburg_sewers",
   "name": "旧水道迷宫",
-  "region": "wallenburg",
+  "region": "valen_valley",
   "width": 40,
   "height": 30,
-  "sediment": 2,
+  "sediment": 3,
   "indoor": true,
   "rows": [
     "########################################",

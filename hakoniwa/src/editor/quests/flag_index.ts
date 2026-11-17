@@ -6,6 +6,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { checkCondition, referencedVars } from '../../systems/quests';
+import { flagEntryName } from '../../systems/world';
 
 export interface FlagRef {
   /** exact key, or a pattern where '*' stands for a templated part; '*' alone = dynamic */
@@ -38,6 +39,10 @@ export const CONDITION_FIELDS = new Set([
   'actsWhen',
   'appearsWhen',
   'bonus',
+  // map switch tile areas (systems/world/switches.ts)
+  'openWhen',
+  // act clock night rules and dispute default steps (systems/quests): the drop condition
+  'unless',
 ]);
 
 /** Data fields that name a flag the kernel writes (goddess gaze alias, a court seat's yield). */
@@ -167,8 +172,10 @@ export function indexData(file: string, data: unknown): FlagRef[] {
           });
         }
       } else if (k === 'requiresFlags' && Array.isArray(x)) {
-        for (const key of x) {
-          if (typeof key === 'string') {
+        for (const entry of x) {
+          if (typeof entry === 'string') {
+            // a negated entry of a map spawn point (`!name`) reads the flag `name`
+            const key = path.includes('spawns') ? flagEntryName(entry) : entry;
             out.push({ key, kind: 'read', origin: 'data', file, where: `${where}.${k}`, via: k });
           }
         }

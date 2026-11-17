@@ -1,5 +1,6 @@
 // Procedural decor and building-sign sprites (art_pipeline.md 1.7 and 6.2): street lamps,
-// wells, barrels, crates, fences, stalls and the rest of the look layer's decor kinds,
+// wells, barrels, crates, fences, stalls, standing stones, door frames, ground marks,
+// landmark trees, mine lamps and the rest of the look layer's decor kinds,
 // drawn with the same shape-grid pipeline as the paper doll (upper-left light, outline
 // from the neighbour's ramp) at 16 pixels per metre. Both renderers use these: the
 // HD-2D scene as standees, the flat fallback as depth-sorted props. Pure; Node-tested.
@@ -221,6 +222,146 @@ function cart(): DecorSprite {
   return finish(g, { [SLOT.PRIMARY]: WOOD, [SLOT.LEATHER]: DARK_WOOD, [SLOT.METAL]: IRON }, 14, 18);
 }
 
+function standingStone(variant: number): DecorSprite {
+  const g = createShape(14, 30);
+  if (variant === 2) {
+    // a weathered, leaning stone
+    fillTriangle(g, 2, 28, 12, 28, 9, 2, SLOT.PRIMARY);
+    fillRect(g, 3, 20, 9, 8, SLOT.PRIMARY);
+  } else {
+    fillRect(g, 3, 6, 8, 22, SLOT.PRIMARY);
+    fillEllipse(g, 7, 6, 4, 3, SLOT.PRIMARY);
+  }
+  fillRect(g, 1, 27, 12, 2, SLOT.SECONDARY);
+  // variant 1: the carved boundary line of a border or forbidding stone
+  if (variant === 1) {
+    drawLine(g, 5, 9, 9, 9, 1, SLOT.ACCENT);
+    drawLine(g, 7, 10, 7, 17, 1, SLOT.ACCENT);
+  }
+  return finish(
+    g,
+    { [SLOT.PRIMARY]: 0x8e8a80, [SLOT.SECONDARY]: 0x5e6a48, [SLOT.ACCENT]: 0x4a463e },
+    7,
+    28,
+  );
+}
+
+function doorframe(variant: number): DecorSprite {
+  if (variant === 1) {
+    // a fallen arch lying on the ground
+    const g = createShape(32, 14);
+    fillRect(g, 2, 6, 28, 3, SLOT.PRIMARY);
+    fillRect(g, 2, 3, 3, 9, SLOT.PRIMARY);
+    fillRect(g, 27, 3, 3, 9, SLOT.PRIMARY);
+    fillRect(g, 5, 9, 22, 3, SLOT.SECONDARY);
+    return finish(g, { [SLOT.PRIMARY]: 0x9a958a, [SLOT.SECONDARY]: 0x6a665e }, 16, 12);
+  }
+  const g = createShape(22, 36);
+  fillRect(g, 2, 4, 3, 31, SLOT.PRIMARY);
+  if (variant === 2) {
+    // a broken frame: one post and half a lintel
+    fillRect(g, 2, 2, 11, 3, SLOT.PRIMARY);
+  } else {
+    fillRect(g, 17, 4, 3, 31, SLOT.PRIMARY);
+    fillRect(g, 1, 1, 20, 4, SLOT.PRIMARY, 1);
+    fillRect(g, 9, 2, 4, 1, SLOT.ACCENT);
+  }
+  return finish(g, { [SLOT.PRIMARY]: 0x8a7a60, [SLOT.ACCENT]: 0xd8b04a }, 11, 34);
+}
+
+function groundMark(variant: number): DecorSprite {
+  const g = createShape(16, 8);
+  // 0 chalk (a scratched door sign), 1 blood, 2 a holy scar
+  if (variant === 1) {
+    fillEllipse(g, 7, 4, 5, 2.5, SLOT.PRIMARY);
+    fillEllipse(g, 12, 5, 2, 1.5, SLOT.PRIMARY);
+  } else {
+    drawLine(g, 3, 6, 8, 1, 1, SLOT.PRIMARY);
+    drawLine(g, 8, 1, 13, 6, 1, SLOT.PRIMARY);
+    drawLine(g, 5, 4, 11, 4, 1, SLOT.PRIMARY);
+  }
+  const color = variant === 1 ? 0x6a1e1a : variant === 2 ? 0xd8b04a : 0xe8e4d8;
+  return finish(g, { [SLOT.PRIMARY]: color }, 8, 6);
+}
+
+function dryWell(): DecorSprite {
+  const g = createShape(24, 18);
+  fillEllipse(g, 12, 11, 11, 5, SLOT.SECONDARY);
+  fillRect(g, 1, 9, 22, 6, SLOT.SECONDARY);
+  fillEllipse(g, 12, 9, 8, 3, SLOT.HAIR);
+  // a broken post where the roof stood
+  fillRect(g, 3, 2, 2, 8, SLOT.LEATHER);
+  return finish(
+    g,
+    { [SLOT.SECONDARY]: STONE, [SLOT.HAIR]: 0x2a2620, [SLOT.LEATHER]: DARK_WOOD },
+    12,
+    16,
+  );
+}
+
+function shrineRuin(): DecorSprite {
+  const g = createShape(20, 24);
+  fillRect(g, 3, 15, 14, 7, SLOT.SECONDARY);
+  fillRect(g, 6, 7, 8, 8, SLOT.PRIMARY);
+  // the smashed roof and the broken figure lying beside the base
+  fillTriangle(g, 4, 8, 12, 8, 6, 3, SLOT.PRIMARY);
+  fillRect(g, 14, 20, 5, 2, SLOT.ACCENT);
+  drawLine(g, 9, 9, 12, 13, 1, SLOT.HAIR);
+  return finish(
+    g,
+    {
+      [SLOT.PRIMARY]: 0xa8a294,
+      [SLOT.SECONDARY]: 0x7a766c,
+      [SLOT.ACCENT]: 0xb8b4a8,
+      [SLOT.HAIR]: 0x3a362e,
+    },
+    10,
+    22,
+  );
+}
+
+function landmarkTree(): DecorSprite {
+  const g = createShape(44, 60);
+  fillRect(g, 18, 34, 8, 24, SLOT.LEATHER);
+  drawLine(g, 18, 36, 10, 28, 3, SLOT.LEATHER);
+  drawLine(g, 26, 36, 34, 27, 3, SLOT.LEATHER);
+  fillEllipse(g, 22, 20, 20, 15, SLOT.PRIMARY);
+  fillEllipse(g, 11, 27, 9, 7, SLOT.PRIMARY);
+  fillEllipse(g, 33, 26, 9, 7, SLOT.PRIMARY);
+  fillEllipse(g, 22, 9, 12, 8, SLOT.PRIMARY, 1);
+  // the cloth band that marks a pact tree
+  fillRect(g, 18, 44, 8, 2, SLOT.ACCENT);
+  fillRect(g, 25, 45, 2, 5, SLOT.ACCENT);
+  fillRect(g, 14, 56, 16, 3, SLOT.SECONDARY);
+  return finish(
+    g,
+    {
+      [SLOT.PRIMARY]: 0x4e6e36,
+      [SLOT.SECONDARY]: 0x5e4a30,
+      [SLOT.LEATHER]: 0x6a4e34,
+      [SLOT.ACCENT]: 0xd8ccb0,
+    },
+    22,
+    58,
+  );
+}
+
+function mineLamp(): DecorSprite {
+  const g = createShape(12, 24);
+  fillRect(g, 2, 4, 2, 19, SLOT.LEATHER);
+  fillRect(g, 2, 4, 7, 2, SLOT.LEATHER);
+  fillRect(g, 6, 7, 5, 6, SLOT.METAL);
+  fillRect(g, 7, 8, 3, 4, SLOT.GLOW);
+  return finish(
+    g,
+    { [SLOT.LEATHER]: DARK_WOOD, [SLOT.METAL]: IRON },
+    3,
+    22,
+    { x: 8, y: 10 },
+    0xffd090,
+  );
+}
+
 function signBoard(): DecorSprite {
   const g = createShape(14, 26);
   fillRect(g, 6, 8, 2, 17, SLOT.LEATHER);
@@ -282,6 +423,27 @@ export function decorSprite(kind: DecorKind, variant = 0): DecorSprite {
       break;
     case 'cart':
       s = cart();
+      break;
+    case 'standing_stone':
+      s = standingStone(v);
+      break;
+    case 'doorframe':
+      s = doorframe(v);
+      break;
+    case 'ground_mark':
+      s = groundMark(v);
+      break;
+    case 'dry_well':
+      s = dryWell();
+      break;
+    case 'shrine_ruin':
+      s = shrineRuin();
+      break;
+    case 'landmark_tree':
+      s = landmarkTree();
+      break;
+    case 'mine_lamp':
+      s = mineLamp();
       break;
     default:
       s = signBoard();

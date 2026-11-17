@@ -7,7 +7,7 @@ import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
-import { entitiesNear, getEntity, haltEntity, isWalkable, mapById, teleportEntity } from '../world';
+import { entitiesNear, getEntity, haltEntity, isWalkable, teleportEntity, walkMap } from '../world';
 import { applyAura, dispel, hasAura } from './auras';
 import { healUnit, resolveHit } from './damage';
 import { abilityDef, ENERGY_GCD_TICKS, GCD_TICKS, MELEE_RANGE, scaled, secs } from './defs';
@@ -455,7 +455,8 @@ function moveBeside(ctx: SystemContext, mover: Unit, to: Unit): void {
 function push(ctx: SystemContext, from: Unit, who: Unit, distance: number): void {
   const a = getEntity(ctx.world, from.id);
   const b = getEntity(ctx.world, who.id);
-  const map = b ? mapById(ctx.content, b.mapId) : undefined;
+  // the live map: a knockback stops at a closed switch tile area
+  const map = b ? walkMap(ctx, b.mapId) : undefined;
   if (!a || !b || !map) return;
   const dx = b.x - a.x;
   const dy = b.y - a.y;

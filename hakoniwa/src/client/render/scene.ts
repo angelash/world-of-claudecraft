@@ -5,6 +5,7 @@
 // scene gets the same order from upright standee depth (art_pipeline.md 2.4). Pure.
 
 import type { Calendar } from '../../core/time';
+import { renderSedimentLevel, SEDIMENT_RENDER_MAX, sedimentAt } from '../../systems/world/sediment';
 import type { Entity, MapDef, Weather } from '../../systems/world/types';
 import type { StandeePlacement, StaticLight } from '../hd2d/layout';
 import type { ViewRequest } from '../hd2d/view';
@@ -88,7 +89,10 @@ export interface Scene {
   /** lights that move or come and go (the player's night light, glows, content lights) */
   dynamicLights: SceneLight[];
   weather: Weather;
-  /** 0..1 sediment haze (map.sediment / 7) */
+  /**
+   * 0..1 sediment haze: the render level of the canon level where the camera looks (the
+   * map's, or a location's local hot spot), over the render scale (sedimentLevel)
+   */
   sediment: number;
   /** 0..1 divine-court radiance */
   divine: number;
@@ -140,15 +144,20 @@ export interface SceneInput {
   placement?: PlacementOverlay | null;
 }
 
-/** Maps whose ids mark the divine court get the radiance ambience. */
+/** Maps of the divine realm (atlas region) get the radiance ambience. */
 export function divineLevel(map: MapDef): number {
-  return map.id === 'divine_court' || map.region === 'divine_court' || map.region === 'divine'
-    ? 1
-    : 0;
+  return map.region === 'divine_realm' ? 1 : 0;
 }
 
-export function sedimentLevel(map: MapDef): number {
-  return Math.max(0, Math.min(1, (map.sediment ?? 0) / 7));
+/**
+ * The sediment haze, 0..1: the canon level at (x, y) (a location's local hot spot, else
+ * the map's; the map's when no point is given) converted to the render scale
+ * (map_briefs.md 1.2: round(level x 7 / 6)) and divided by its top. Every quality tier
+ * draws it (art_pipeline.md 2.12): the haze tells the player how dense the place is.
+ */
+export function sedimentLevel(map: MapDef, x?: number, y?: number): number {
+  const canon = x === undefined || y === undefined ? (map.sediment ?? 0) : sedimentAt(map, x, y);
+  return Math.max(0, Math.min(1, renderSedimentLevel(canon) / SEDIMENT_RENDER_MAX));
 }
 
 export function shouldShowName(
@@ -261,7 +270,7 @@ export function buildScene(input: SceneInput): Scene {
     staticLights,
     dynamicLights,
     weather: map.indoor ? 'clear' : input.weather,
-    sediment: sedimentLevel(map),
+    sediment: sedimentLevel(map, input.view.focusX, input.view.focusY),
     divine: divineLevel(map),
     bubbles: input.bubbles,
     moveTarget: input.moveTarget ?? null,

@@ -10,13 +10,16 @@ import { buildContent, validateContent } from '../src/content';
 import { appearanceProblems, DOLL_LAYERS } from '../src/systems/world/appearance';
 import {
   DECOR_KINDS,
+  DECOR_LIGHTS,
   type DecorDef,
   isStyleId,
+  LIGHT_DECOR,
   lookProblems,
   REGION_STYLE,
   ROOF_SHAPES,
   STYLE_IDS,
   styleOf,
+  TREE_DECOR,
 } from '../src/systems/world/look';
 import {
   type Appearance,
@@ -30,7 +33,7 @@ import {
 const PLAZA: MapDef = {
   id: 'plaza_test',
   name: '测试广场',
-  region: 'borderstone_region',
+  region: 'edgestone_area',
   width: 10,
   height: 3,
   rows: ['.,=s_aAncb', '#~WTrx+.e?', '..........'],
@@ -131,6 +134,45 @@ describe('lookProblems: decor stands where a person could stand', () => {
     expect(out).toEqual([
       "map plaza_test: decor 0 unknown kind 'rocket'",
       'map plaza_test: decor 0 (0.5,1.5) on a blocking wall tile',
+    ]);
+  });
+});
+
+describe('the map-brief decor kinds (map_briefs.md 1.10 and 12)', () => {
+  it('knows the seven new kinds after the first fourteen', () => {
+    expect(DECOR_KINDS.slice(14)).toEqual([
+      'standing_stone',
+      'doorframe',
+      'ground_mark',
+      'dry_well',
+      'shrine_ruin',
+      'landmark_tree',
+      'mine_lamp',
+    ]);
+    for (const kind of DECOR_KINDS.slice(14))
+      if (kind !== 'landmark_tree') expect(problemsFor([at(kind, 7.5, 1.5)]), kind).toEqual([]);
+  });
+
+  it('lights the mine lamp at night with radius 3, beside the lamp and the brazier', () => {
+    expect([...LIGHT_DECOR].sort()).toEqual(['brazier', 'lamp', 'mine_lamp']);
+    expect(DECOR_LIGHTS.mine_lamp).toMatchObject({ radius: 3, night: true });
+    // the radii scene_flow.md 1 measures lighting cover with
+    expect(DECOR_LIGHTS.lamp).toMatchObject({ radius: 4.2, night: true });
+    expect(DECOR_LIGHTS.brazier).toMatchObject({ radius: 3.4, night: false });
+  });
+
+  it('lets the landmark tree stand on a tree tile only, where no other decor may stand', () => {
+    expect([...TREE_DECOR]).toEqual(['landmark_tree']);
+    // (3.5, 1.5) is the tree tile of the fixture
+    expect(problemsFor([at('landmark_tree', 3.5, 1.5)])).toEqual([]);
+    expect(problemsFor([at('landmark_tree', 0.5, 0.5)])).toEqual([
+      'map plaza_test: decor 0 (0.5,0.5) landmark_tree must stand on a tree tile',
+    ]);
+    expect(problemsFor([at('landmark_tree', 0.5, 1.5)])).toEqual([
+      'map plaza_test: decor 0 (0.5,1.5) landmark_tree must stand on a tree tile',
+    ]);
+    expect(problemsFor([at('standing_stone', 3.5, 1.5)])).toEqual([
+      'map plaza_test: decor 0 (3.5,1.5) on a blocking tree tile',
     ]);
   });
 });
@@ -236,7 +278,24 @@ describe('the region table follows the atlas regions (art_pipeline.md 1.4)', () 
       expect(styleOf({ region: r.id }), r.id).toBe(want);
       mapped++;
     }
-    expect(mapped).toBe(13);
+    expect(mapped).toBe(14);
+  });
+
+  it('keys only atlas regions: the geography names the first maps carried are gone', () => {
+    const ids = new Set(regions.map((r) => r.id));
+    for (const key of Object.keys(REGION_STYLE)) expect(ids.has(key), key).toBe(true);
+    for (const old of [
+      'borderstone_region',
+      'lotha_north',
+      'lothar_north',
+      'borderstone_wilds',
+      'wallenburg',
+      'ash_waste',
+      'divine',
+      'divine_court',
+    ])
+      expect(Object.hasOwn(REGION_STYLE, old), old).toBe(false);
+    expect(styleOf({ region: 'earth' })).toBe('earth_modern');
   });
 
   it('names only style packs, and every national pack has a region', () => {
