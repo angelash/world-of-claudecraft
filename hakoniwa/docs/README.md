@@ -109,7 +109,7 @@
 | [world_state_registry.md](40_design/world_state_registry.md) | 世界状态变量注册表：命名规则、类型与范围、写入者与读取者、条件文法、编号规则、全部规范名与别名、`data/registry/vars.json` 与内容校验 |
 | [ux_and_onboarding.md](40_design/ux_and_onboarding.md) | 界面信息架构、操作与改键、新手引导、无障碍、文本规范与本地化（`ui_`、`tut_`） |
 | [audio_direction.md](40_design/audio_direction.md) | 音频方向与完整清单：动机体系、区域音色、`mus_`、`amb_`、`sfx_`、自适应规则、混音标准、音频系统需求、AI 生成工作流 |
-| [systems/combat_and_classes.md](40_design/systems/combat_and_classes.md) | 战斗与职能：战斗模型、公式、1 到 60 级扩展、资源、九职能与编外者（续写中，见决策日志 B-001） |
+| [systems/combat_and_classes.md](40_design/systems/combat_and_classes.md) | 战斗与职能：战斗模型、公式、1 到 60 级扩展、资源、九职能与编外者、首领机制库、魔物机制字段注册表、物品实例、状态与控制、平衡目标与验收（第 0 到 22 节） |
 | [systems/thousand_doors.md](40_design/systems/thousand_doors.md) | 千门回廊：门的状态机、门阶、钥、代价三量与封印预算、功能解锁、危险门仪式、受页、诸神之战、庭院扩建、生业之门 |
 | [systems/companions_and_party.md](40_design/systems/companions_and_party.md) | 同伴与队伍：招募、编成、成长、行为树与指令、羁绊、个人线、重伤与铁人、将领转化、后日谈接口 |
 | [systems/builtin_ai.md](40_design/systems/builtin_ai.md) | 内置 AI：无模型时的 NPC、对话（话题图与意图）、台词包契约、女神、统治者、将领、同伴、官员与导演 |

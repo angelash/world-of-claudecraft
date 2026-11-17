@@ -76,23 +76,21 @@
 | `q_a1_m04_hunt` | 标题与目标不同：设计是三件 F 级委托（酒馆地窖澱鼠 4 只、`mat_silverleaf` 5 份、给 `cassian` 送信）；钱 300 对 270 | A1-M04 |
 | `q_a1_m05_grey_wolf` | 没有 `act_week >= 2` 门槛；击杀数 3 对设计的 6 灰狼加 2 澱狼；无条件给同伴希雅（设计只在同猎路线临时随队，正式入队要林地之约未破或兽潮夜并肩） | A1-M05；同伴第 2.1 节 |
 | `q_a1_m06_mine` | 击杀目标不限地图；没有 `crystal_mother` 目标、`act_week >= 4` 门槛与 `crystal_carapace`、`dian_shard` 奖励 | A1-M06 |
-| `q_a1_m07_spring` | 种类是支线（设计为主线）；写 `a1_north_spring_found`，审判计分读 `a1_spring_source_found`；没有暗渠一战；`trust.oola` 加 20 对 10 | A1-M07 |
+| `q_a1_m07_spring` | 种类是支线（设计为主线）；没有暗渠一战；`trust.oola` 加 20 对 10 | A1-M07 |
 | `q_a1_s09_coin` | 写 `npc.nera.stance = partner`，设计里这是纷争 A1-D03 的结局、A1-M11 的门槛；目标其实是 A1-G03 的神龛引导 | A1-D03、A1-G03 |
 | `q_a1_m09_trial` | 触发是"M04 到 M06 完成"，设计是 `act_week >= 8` 且 `a1_witch_trial_started`；自己写 `a1_witch_trial_started`（设计由 D02 链写）；没有 `a1_summons_answer` 段 | A1-M08、A1-M09 |
 | `q_a1_m12_tide` | 开始时 `seal_unrest = 100`（设计由周时钟驱动）；无条件写 `a1_martha_strike`（设计有第 8.5 节的条件）；结束把 `seal_unrest` 归 0（设计 30 加修正）；钱 2,000 对 660；无条件给 `colossus_core`（设计是选择） | 第一幕第 8.5、8.6 节；A1-M12 |
-| `q_gl_merca_01`、`q_gl_eluen_01` | 钱 500、300 对 70、50 铜；目标是笼统的"击杀 3" | 任务目录（前）第 5.5 节 |
+| `q_gl_merca_01`、`q_gl_eluen_01` | 钱 500、300 对 70、55 铜；目标是笼统的"击杀 3" | 任务目录（前）第 5.5 节 |
 | `data/combat/waves.json` | `tide_flood` 在设计里没有对应（设计的 `second_surge` 是目击节拍，不是战斗）；`tide_second` 缺 `raven_flock` 与条件出现的 `dian_dreg` | 第一幕第 8.2 节 |
 | `MapDef.region` | 用旧编号（`borderstone_region`、`borderstone_wilds` 等），图集已有 `edgestone_area`、`ashen_waste`、`divine_realm` | 地图简报第 1.3 节 |
 | `data/doors/doors.json` | `talent_sight` 第三把钥是 `a1_beast_tide_cleared`，设计是凡人当众为玩家作保（认知阈值）；希雅相关的钥读队伍 `bond`，任务目录读 `trust.shiya` | 门目录第 6 节；D-089 |
-| `data/scenes/prologue.json` | 写 `p_heard_neighbors`，任务 P-S02 写 `p_heard_next_door`，注册表里是两个变量；炉灶前世没有给 `lb_otherworld_menu` | 序章第 2.2 节；任务目录（前）第 4.3 节 |
+| `data/scenes/prologue.json` | 炉灶前世没有给 `lb_otherworld_menu` | 序章第 2.2 节 |
 
 ## 4. 文档之间的冲突
 
 | 冲突 | 落点 |
 | --- | --- |
-| 任务经验：数据已按成长第 18.1 节重标（PK-M0-29），任务目录（前）第 5.1 节仍是旧值（例：A1-M01 60 对 245，第一幕主线合计 22,180 对 23,520） | PK-M0-04：目录对齐成长第 18.1 节 |
 | 首领等级：数据按成长第 18.2 节（`guardian_raven` 3 级、`crystal_mother` 8 级），图鉴第 3 节与任务目录第 5.1 节仍写 5 级、9 级 | PK-M0-04 |
-| 红袜子与收路钱两条支线的收件人：任务目录是居民模板，人物目录第 3.6 节是有名人物 `lene_mahler`、`wilma_ascher` | PK-M0-04 |
 | 第一幕地图张数：开发计划原先写 12 张，地图简报第 14 节是 19 张 | 已按地图简报改 PK-M1-35 |
 
 ## 5. 来源链接

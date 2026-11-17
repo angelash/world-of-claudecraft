@@ -424,6 +424,8 @@
 | `castle_well_open`、`deer_ford_result` | `a2_castle_well_open`、`a3_deer_ford_result` | 地图简报与战争目录的写法，补幕前缀 |
 | `seal_looseness_known` | `a3_ash_warning_doors` | 同一件事（守门人的警告）；界面读它显示"门后的风" |
 | `a1_dian_term_heard` | `term.dian_known` | 称谓切换走称谓族（D-030） |
+| `p_heard_next_door`、`prologue.heard_next_door` | `p_heard_neighbors` | 同一件事：序章候见厅里听到隔壁的面试（N3 贴墙听，或等候叫号前的补听）；写入点在过场 `cut_p_door_white`，现有数据与全部存档用规范名；"贴墙听过"另读可选条目 P-S02 的任务状态 |
+| `a1_north_spring_found` | `a1_spring_source_found` | 同一件事：A1-M07 查到北泉的病源（渗泉暗渠）；任务目录的写入点与审判计分用规范名 |
 | `nera.handed_over`、`cassian.path` | `npc.nera.handed_over`、`npc.cassian.path` | 人物属性族 |
 | `sylvie_enmity` | `goddess.sylvie.enmity` | 女神族 |
 | `a3_danger_door_vow` | `a3_vow_kept_reed_bridge` | 誓光之门不是禁门，不得被按名字计入 `danger_doors_opened`（C91） |
@@ -654,7 +656,7 @@
 | `p_asked_sixth_chair` | `prologue.asked_sixth_chair` | 序章 N5（`s0`） | 第一幕神纹大厅独白（`s1`） |
 | `p_reached_out` | `prologue.reached_out` | 序章 N13（`s0`） | 第一幕梦境（`s1`）、结局（`se`） |
 | `p_mirror_done` | `prologue.mirror_done` | 序章镜前（`s0`） | `s0` |
-| `p_heard_neighbors` | `prologue.heard_neighbors` | 序章偷听（`s0`） | `s0` |
+| `p_heard_neighbors` | `prologue.heard_neighbors`、`p_heard_next_door`、`prologue.heard_next_door` | 序章 N3 贴墙听隔壁（可选条目 `P-S02`），或等候叫号前的补听（P4 必经；`s0`、`cut_p_door_white`） | `s0`、`cut_p_quarrel` 的触发；第二幕初见勇者团时的一句独白读 `quest.q_p_s02_next_door`（只给贴墙听过的玩家） |
 | `a1_wake_ruins` | 无 | 第一幕开场（`acts`） | `lore` |
 | `a1_ruins_gate_cleared` | 无 | 第一幕第 3 周从内侧清开封门遗迹门厅的落石 | 封门遗迹正门的开关格与出口 `to_borderstone`（[地图简报 12][mb]） |
 | `a1_mine_cleared` | 无 | 锈岭矿塌方口一夜打通（第一幕） | 锈岭矿的开关格（[地图简报][mb]） |
@@ -666,7 +668,6 @@
 | `a1_cassian_appraise` | 无 | 卡西安的圣光鉴定失败（`s1`） | 台账 |
 | `a1_bron_drunk_tale` | 无 | A1-S18 布伦的醉话 | 台账 S02 |
 | `a1_coin_story` | 无 | A1-S09（`q` 的 `a1_s02_coin`） | 商契之门（`dr`） |
-| `a1_north_spring_found` | 无 | A1-M07（`q` 的 `a1_s01_spring`） | 借形之门（`dr`）、`s1` |
 | `a1_witch_trial_started` | 无 | 魔女审判开始（`q` 的 `a1_m08_trial`） | `lore` |
 | `a1_orphan_mark_seen` | 无 | 孤儿院门纹胎记（`s1`） | 女神（`gd`）、`lore` |
 | `a1_moss_exposed` | 无 | 揭发莫斯 | 台账 |
@@ -1048,7 +1049,6 @@
 
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
-| `p_heard_next_door` | `prologue.heard_next_door` | 布尔 | | 序章 N3 选项 1（`P-S02`） | 第二幕初见勇者团时的一句独白 |
 | `quest.<任务>.stage` | `quest_stage.<任务>` | 枚举 | 当前阶段代号 | quests | 台词 `when` 条件（`progress` 槽的版本） |
 | `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号 | quests | 日志"还有别的做法"、传闻版本 |
 | `cmm_count.<模板>` | 无 | 整数 | 委托模板 ID；本周完成次数 | quests 委托板 | 委托经验递减 |
@@ -1076,7 +1076,7 @@
 | `a1_three_toes_fate` | `three_toes.fate` | 枚举 | `purified`、`slain` | 三趾（第一幕到第二幕） | 兽伴、希雅 |
 | `a1_wolf_den` | `forest.wolf_den` | 枚举 | `cleared` | 狼穴清剿（林地之争节点 f） | 林地之争结局 |
 | `a1_tide_omen` | 无 | 标记 | | 兽潮前兆事件 `ev_a1_tide_omens` | A1-M11 前置、`cut_a1_yeyu_memory` |
-| `a1_spring_source_found` | `a1_seep_channel_found` | 标记 | | A1-M07 找到渗泉源头 | 魔女审判的物证 |
+| `a1_spring_source_found` | `a1_seep_channel_found`、`a1_north_spring_found` | 标记 | | A1-M07 找到渗泉源头（`q` 的 `q_a1_m07_spring`） | 魔女审判的物证（`cut_a1_trial`）；借形之门的门钥（`dr`）；`s1` |
 | `a1_moss_intercepted` | 无 | 标记 | | 南门截下莫斯的澱晶车 | `a1_moss_fate` 不写 `fled` |
 | `a1_blade_mark_seen` | 无 | 标记 | | 匪徒刀上的暗记 | A1-S02 |
 | `a1_lair_located` | 无 | 标记 | | 护送伏击中活捉匪徒 | 旧哨村据点 |
@@ -1176,7 +1176,7 @@
 | `p_store_role` | `prologue.store_role` | 出口 | 枚举 | `clerk`、`customer`；默认未写入 | `cut_p_earth` | `p_default_past_life`（店员取 `nightlight`，顾客取 `hearth`）、终章回到地球 B（`cut_end_release`） | B 开场站在收银台的哪一边 |
 | `p_waiting_for` | `prologue.waiting_for` | 出口 | 文本 | 至多 12 字；空值"某个人" | `cut_p_earth` | 终章回到地球 C（`cut_end_release`） | C 开场在等谁的结果 |
 | `p_call_free_count` | `prologue.call_free_count` | 出口 | 整数 | 0 到 3；默认 0 | `cut_p_call` | `cut_p_call`（有模型时自由提问的次数上限） | 叫号时有模型的自由提问次数 |
-| `p_round_end.<神>` | `prologue.round_end.<神>` | 族 | 枚举 | 键：`eluen`、`valda`、`merca`、`sylvie`、`moira`；值 `closed`、`soft`、`hard`；默认未写入 | `cut_p_interview` | `cut_p_interview`（`hard` 时由莫伊拉敲桌收尾）、各女神题面（`ai_prompt`） | 有模型时该轮面试的结束方式 |
+| `p_round_end.<神>` | `prologue.round_end.<神>` | 族 | 枚举 | 键：`eluen`、`valda`、`merca`、`sylvie`、`moira`；值：`closed`、`soft`、`hard`；默认未写入 | `cut_p_interview` | `cut_p_interview`（`hard` 时由莫伊拉敲桌收尾）、各女神题面（`ai_prompt`） | 有模型时该轮面试的结束方式 |
 | `p_cycle_name_reaction` | `prologue.cycle_name_reaction` | 出口 | 枚举 | `falter`、`drop`；默认未写入；只在 `cycle >= 2` 写入 | `cut_p_call`、`cut_p_interview` | `cut_p_judgement`、`cut_p_discard`；第六幕证据 E16 的下一期加注（对艾琉恩的事实防线强度 1）、`cut_p_interview` | 下一期在候见厅说出被禁之名时艾琉恩的反应：面试前说出为 `falter`（手在发抖），面试中说出为 `drop`（当场丢弃） |
 
 #### 8.8.2 第一幕

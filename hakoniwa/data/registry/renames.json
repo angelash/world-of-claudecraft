@@ -3,6 +3,7 @@
   "entries": [
     { "since": 1, "kind": "flag", "from": "SEAL", "to": "seal_looseness" },
     { "since": 1, "kind": "flag", "from": "a1_dian_term_heard", "to": "term.dian_known" },
+    { "since": 1, "kind": "flag", "from": "a1_north_spring_found", "to": "a1_spring_source_found" },
     { "since": 1, "kind": "flag", "from": "a1_ola_fate", "to": "a1_oola_fate" },
     {
       "since": 1,
@@ -223,6 +224,7 @@
     { "since": 1, "kind": "flag", "from": "oola.leaf_road_told", "to": "a3_oola_leaf_road_told" },
     { "since": 1, "kind": "flag", "from": "orianna_respect", "to": "a3_orianna_respect" },
     { "since": 1, "kind": "flag", "from": "owen.status", "to": "a1_owen_left" },
+    { "since": 1, "kind": "flag", "from": "p_heard_next_door", "to": "p_heard_neighbors" },
     { "since": 1, "kind": "flag", "from": "p_player_name", "to": "player.name" },
     { "since": 1, "kind": "flag", "from": "patron", "to": "a6_patron" },
     { "since": 1, "kind": "flag", "from": "philip.courage", "to": "a3_philip_courage" },
@@ -279,7 +281,7 @@
     { "since": 1, "kind": "flag", "from": "prologue.free.appraise", "to": "p_free.appraise" },
     { "since": 1, "kind": "flag", "from": "prologue.free.call", "to": "p_free.call" },
     { "since": 1, "kind": "flag", "from": "prologue.heard_neighbors", "to": "p_heard_neighbors" },
-    { "since": 1, "kind": "flag", "from": "prologue.heard_next_door", "to": "p_heard_next_door" },
+    { "since": 1, "kind": "flag", "from": "prologue.heard_next_door", "to": "p_heard_neighbors" },
     { "since": 1, "kind": "flag", "from": "prologue.last_words", "to": "p_last_words" },
     { "since": 1, "kind": "flag", "from": "prologue.merca_valuation", "to": "p_merca_valuation" },
     { "since": 1, "kind": "flag", "from": "prologue.mirror_done", "to": "p_mirror_done" },

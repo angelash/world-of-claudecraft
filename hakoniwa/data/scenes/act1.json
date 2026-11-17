@@ -410,7 +410,7 @@
           {
             "id": "evidence",
             "label": "（举起北泉的灰水）孩子们不是死于巫术，是北泉的灰。",
-            "when": "a1_north_spring_found",
+            "when": "a1_spring_source_found",
             "to": "cleared",
             "effects": [
               {

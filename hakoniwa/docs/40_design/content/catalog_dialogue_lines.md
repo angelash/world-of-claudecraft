@@ -323,7 +323,7 @@
 | `place_bs_smithy` | 地方 | 地区；本人：巴尔加 | | knowledge：K0 | | 无 | 炉火与铁砧；K0 版只说"他睡得晚" |
 | `place_bs_herb_hut` | 地方 | 地区；本人：欧拉 | | knowledge：K0、K1 | | MIS-19（审判期间） | 镇民："药草婆婆""收鸡蛋当诊费"；审判期间"魔女的屋子" |
 | `place_bs_orphanage` | 地方 | 地区；本人：格蕾塔、伊莎 | | knowledge：K0 | | S08-C01 | 十四个孩子、贴着北泉；"孩子常被远房亲戚接走" |
-| `place_bs_north_spring` | 地方 | 地区；本人：欧拉 | | knowledge：K0、K1 | | M04-C02 | K0：不收井税的泉；K1（`a1_north_spring_found`）：水里有灰 |
+| `place_bs_north_spring` | 地方 | 地区；本人：欧拉 | | knowledge：K0、K1 | | M04-C02 | K0：不收井税的泉；K1（`a1_spring_source_found`）：水里有灰 |
 | `place_bs_magistrate` | 地方 | 地区；本人：莫斯、维克 | | knowledge：K0 | | 无 | 镇上唯一的石砌大宅、税务所、拘留室 |
 | `place_bs_salt_lane` | 地方 | 地区 | | knowledge：K0 | | 无 | 每周集日 |
 | `place_bs_guardpost` | 地方 | 地区；本人：巴托 | | knowledge：K0 | | 无 | 北门旁哨所、十二个民兵、警钟 |
@@ -427,7 +427,7 @@
 | `danger_sealed_ruins` | 危险 | 地区；本人：布伦 | | knowledge：K0 | | 无 | 禁地；进去的没好下场 |
 | `danger_south_road` | 危险 | 地区；本人：欧文、巴托 | | knowledge：K0 | | 无 | 南路劫道的独眼团 |
 | `danger_monster_season` | 危险 | 地区 | | knowledge：K0 | | 无 | 魔物季该关门窗、囤盐 |
-| `danger_north_spring` | 危险 | 地区；本人：欧拉 | `a1_north_spring_found` | knowledge：K0 | | M04-C02 | 北泉的水别喝了 |
+| `danger_north_spring` | 危险 | 地区；本人：欧拉 | `a1_spring_source_found` | knowledge：K0 | | M04-C02 | 北泉的水别喝了 |
 | `danger_tide_omens` | 危险 | 地区；本人：玛莎 | `seal_unrest >= 70` | knowledge：K0 | | 无 | 林子空了、泉变色、鸦群夜飞 |
 | `danger_graveyard_wisp` | 危险 | 地区；本人：埃德 | `act_week >= 3` | knowledge：K0 | | 无 | 米洛坟上的"鬼火" |
 

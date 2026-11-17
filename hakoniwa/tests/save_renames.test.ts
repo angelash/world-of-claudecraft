@@ -530,3 +530,94 @@ describe('removed ids, versions and conflicts', () => {
     expect(w.meta.flags.p_answers).toBe('E1');
   });
 });
+
+// ---------------------------------------------------------------------------
+// One fact, one name (PK-M0-04): two pairs of registered variables named the same fact.
+// The registry keeps one name per pair and lists the other spellings as aliases; the rename
+// table carries them, so a save that still holds an old spelling loads under the kept name.
+// The entries are part of rename version 1, the registry migration: development saves
+// written before M2 need no migration between versions (release_engineering.md 10.4 and
+// 13.8), so a save written before the registry (rename version 0) is the case under test.
+
+describe('merged duplicate flags load under the kept name', () => {
+  const MERGED: readonly [string, string][] = [
+    ['a1_north_spring_found', 'a1_spring_source_found'],
+    ['p_heard_next_door', 'p_heard_neighbors'],
+    ['prologue.heard_next_door', 'p_heard_neighbors'],
+  ];
+
+  it('registers each old spelling as an alias and ships its rename entry', () => {
+    for (const [from, to] of MERGED) {
+      expect(REGISTRY.isCanonical(from), from).toBe(false);
+      const r = REGISTRY.resolve(from);
+      expect([r?.name, r?.alias, r?.condition, r?.conversion], from).toEqual([
+        to,
+        true,
+        null,
+        null,
+      ]);
+      const entry = RENAMES.entries.find(
+        (e): e is FlagRename => e.kind === 'flag' && (e as FlagRename).from === from,
+      );
+      expect(entry && [entry.to, entry.scale, entry.offset], from).toEqual([
+        to,
+        undefined,
+        undefined,
+      ]);
+    }
+    // The kept names are registered under their own spelling and stay monotone flags.
+    for (const name of ['a1_spring_source_found', 'p_heard_neighbors']) {
+      expect(REGISTRY.isCanonical(name), name).toBe(true);
+      expect(REGISTRY.resolve(name)?.def.monotone, name).toBe(true);
+    }
+  });
+
+  it('a save written before the registry loads with the old spellings gone', async () => {
+    const backend = new ContainerBackend(new MemoryStorage(), {
+      now: () => 0,
+      writer: { id: 'w-test', name: 'test' },
+      autoCollect: false,
+    });
+    const saver = new RunSaver({
+      backend,
+      runId: RUN,
+      versions: { gameVersion: 'test', contentVersion: 'c-test', renameVersion: 0, build: 'test' },
+    });
+    const w = kernelWorld();
+    w.meta.flags.a1_north_spring_found = true;
+    w.meta.flags.p_heard_next_door = true;
+    w.recent.push({
+      kind: 'flag.changed',
+      tick: 1,
+      seq: 1,
+      data: { key: 'a1_north_spring_found', value: true, previous: false },
+    });
+    const res = await saver.save(
+      { world: w, drainLog: () => [] },
+      { slot: 'quick', savedAt: '2026-11-17T00:00:00.000Z', summary: { act: '', map: '' } },
+    );
+    if (!res.ok) throw new Error(res.reason);
+    const { createMigrator } = await import('../src/core/save');
+    const out = (await loadSlot(backend, 'quick', createMigrator({ owners: [] }))).world;
+    const keys = Object.keys(out.meta.flags);
+    expect(keys).not.toContain('a1_north_spring_found');
+    expect(keys).not.toContain('p_heard_next_door');
+    expect(out.meta.flags.a1_spring_source_found).toBe(true);
+    expect(out.meta.flags.p_heard_neighbors).toBe(true);
+    const ev = out.recent.find((x) => x.kind === 'flag.changed');
+    expect(ev?.kind === 'flag.changed' && ev.data.key).toBe('a1_spring_source_found');
+  });
+
+  it('keeps the value already under the kept name when a save holds both spellings', () => {
+    const w = kernelWorld();
+    w.meta.flags.a1_spring_source_found = true;
+    w.meta.flags.a1_north_spring_found = true;
+    w.meta.flags['prologue.heard_next_door'] = true;
+    const report = applyRenames(w, new RenameSet(RENAMES, 0, REGISTRY));
+    expect(report.conflicts).toEqual(['a1_north_spring_found -> a1_spring_source_found']);
+    expect(w.meta.flags.a1_spring_source_found).toBe(true);
+    expect(w.meta.flags.p_heard_neighbors).toBe(true);
+    expect(Object.keys(w.meta.flags)).not.toContain('a1_north_spring_found');
+    expect(Object.keys(w.meta.flags)).not.toContain('prologue.heard_next_door');
+  });
+});

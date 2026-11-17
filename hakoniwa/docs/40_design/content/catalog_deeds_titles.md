@@ -409,14 +409,14 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_rare_split_ear` | 裂耳落名 | `collectItems:[split_ear_fang]`，交公会领赏 | 10 | 无 | 门：`door_vocation_hunter` 物钥（正典）；认知：东林猎户 | key、cog | | 一 |
 | `deed_rare_black_ridge` | 博罗没有冲过去 | `manual`：兽潮第一波中击倒黑脊 `black_ridge`，且博罗 `boro` 存活 | 10 | 无 | 认知与羁绊：熊族（葛恩、博罗）对你进入"接受"；`black_ridge_mantle` | bond、cog | | 一 |
-| `deed_rare_red_sock` | 红袜子回家了 | `manual`：把 `nm_faded_red_sock` 赠给西田磨坊人家的孩子 | 10 | 无 | 羁绊：西田磨坊一家（无名居民模板具名化）；认知：西田农户把红布挂回去 | bond、cog | | 一 |
+| `deed_rare_red_sock` | 红袜子回家了 | `manual`：把 `nm_faded_red_sock` 赠给西田磨坊人家的孩子 | 10 | 无 | 羁绊：西田磨坊人家莲娜·马勒 `lene_mahler` 一家（[人物一 3.6][chl]）；认知：西田农户把红布挂回去 | bond、cog | | 一 |
 | `deed_rare_three_toes` | 接住的角 | `manual`：净化三趾 `three_toes`，希雅接住它脱落的灰角 | 10 | 无 | 门：兽群之门 `door_school_hunter_beast_mastery` 的历钥候选（把一头二级异兽净化回野兽）；羁绊：`trust.shiya` | key、bond | | 一到二 |
 | `deed_rare_bell_weeper` | 旧哨的钟又响了 | `manual`：重挂村钟后和平送魂哭钟 `bell_weeper` | 10 | 无 | 经营：`nm_oldwatch_clapper` 挂回旧哨村哨塔；认知：行商不再绕路 | manage、cog | | 一到二 |
 | `deed_rare_ironbelly` | 一车铁 | `manual`：讨伐铁胃 `ironbelly`，把 `nm_ironbelly_gizzard` 嵌进领地冶炼坊 | 10 | 无 | 经营：铁锭产出；门：掘脉之门 `door_craft_mining` 高层的辅钥 | manage、key | | 一到二 |
 | `deed_rare_frostbeard` | 活着的号角 | 新·`cond`：霜胡子 `frostbeard` 存活至第三幕末，且它的嚎声至少一次给北境预警 | 25 | 无 | 军需：夜境调兵的活预警；认知：黑橡堡哨兵 | war、cog | | 三 |
 | `deed_rare_oakwall_warden` | 守夜人下哨 | `manual`：送魂黑橡守夜人 `oakwall_warden` | 25 | 无 | 叙事：他的口令；认知：BE-06 | story、cog | | 三 |
 | `deed_rare_pale_bishop` | 座堂的老鼠 | `manual`：把 `nm_porcelain_incisor` 交学院对照 | 10 | 无 | 认知：BE-04（第二幕注意到，第四幕对照） | story、cog | | 三 |
-| `deed_rare_toll_taker` | 铜狗牌回家 | `manual`：把 `nm_brass_dog_tag` 还给边石镇的遗孀 | 10 | 无 | 认知：灰路走私者对你中立；门：影之门 `door_vocation_rogue` 的认可线（门目录口径）；收藏：`col_restitution_ledger` 一笔 | cog、bond | | 一到二 |
+| `deed_rare_toll_taker` | 铜狗牌回家 | `manual`：把 `nm_brass_dog_tag` 还给边石镇的遗孀薇尔玛 `wilma_ascher` | 10 | 无 | 认知：灰路走私者对你中立；门：影之门 `door_vocation_rogue` 的认可线（门目录口径）；收藏：`col_restitution_ledger` 一笔 | cog、bond | | 一到二 |
 | `deed_rare_old_louse` | 老虱的肚子 | `manual`：讨伐晶沟老虱 `old_louse`，把腹晶给掘手看 | 10 | 无 | 认知：掘手不再把老虱腹晶与晶沟深处那块大晶弄混，你不会被引到错的地方 | cog、craft | | 一到二 |
 | `deed_rare_ashstorm_shepherd` | 跟着口哨走 | `manual`：不攻击赶灰的 `ashstorm_shepherd`，跟随口哨走出灰暴，抵达被埋的门址 | 10 | 无 | 门：`door_wayfaring` 进阶的地钥记录；收藏：`nm_bone_whistle` | key、collect | | 二 |
 | `deed_rare_glass_bride` | 婚礼那一夜 | `manual`：送魂玻璃新娘 `glass_bride`，对上戒指内圈的日子 | 25 | 无 | 认知：BE-09；收藏：`nm_glass_sealed_ring` | story、collect | | 三 |
@@ -1115,7 +1115,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | --- | --- | --- |
 | 门目录 | 门的历钥用哪条事迹；照路、拾遗、学识、商眼四类门候选 | 2.7 表与 5.3 节的 `deed_` ID 已写进门目录的钥；四类候选门目录不单立门（[门目录 7.3][drs]）；流派进阶、合技、试炼、羁绊门由五条汇总事迹记录（3.1、3.7、3.10），不逐门立事迹 |
 | 千门系统 | 门读事迹的判定接口；七种新触发的评估器 | 门只读已授予的 `deed.<id>`（[千门 5.3][td]）；七种新触发的读法与结算点见 1.3 的判定接口 |
-| 人物目录 | 葛蕾特·铁栏；苇桥"小领主之子"；祖灵冢的候选人；红袜子的磨坊人家、被吞印戒的失主、收路钱的遗孀 | 葛蕾特是迷宫目录 6.8 的凡人（人物 ID 由人物目录（一）登记为 `grete_ironrail`）；小领主之子、候选人与三户人家用无名居民模板具名化，事迹只认事件，不认 ID |
+| 人物目录 | 葛蕾特·铁栏；苇桥"小领主之子"；祖灵冢的候选人；红袜子的磨坊人家、被吞印戒的失主、收路钱的遗孀 | 葛蕾特是迷宫目录 6.8 的凡人（人物 ID 由人物目录（一）登记为 `grete_ironrail`）；红袜子的磨坊人家、被吞印戒的失主与收路钱的遗孀是有名人物 `lene_mahler`、`lorenz_gild`、`wilma_ascher`（[人物一 3.6][chl]、[人物二 3.13][chc]）；小领主之子与候选人用无名居民模板具名化；事迹只认事件，不认 ID |
 | 遗物目录 | 布伦手录与旧手套的物品 ID；空白纪长歌全本；斗证 | `lb_bron_record`、`brun_glove`（已有数据）；《静苔长歌》`lb_stillmoss_longsong` 是"歌与谣"的隐藏第九件；斗证 `rl_redgravel_pit_token`、`rl_edge_trial_token`（[遗物 3.11][rel]） |
 | 迷宫目录 | 斗证的物品 ID；可挑战段的称号 | 斗证见上；可挑战段只在有命名者愿意给名字时授称号：剑帝的座签、长老的默行者；其余七段的回报落在门钥、关系与他人的称号上（葛蕾特） |
 | 任务与事件 | `rumor.tide_attribution`、`ending` 的"离手"、`moira_published`、`brun.secret_kept`、`deed_world_` 实例键 | 注册表规范名：`a1_tide_credit`（别名 `rumor.tide_attribution`，取值 `player`、`martha`、`light`、`self_collapse`）、`ending == release`、`a5_moira_published`、`npc.bron.secret_kept`（别名 `brun.secret_kept`）；实例键存在事迹系统的状态里（1.3） |

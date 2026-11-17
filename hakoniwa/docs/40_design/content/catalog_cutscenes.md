@@ -2942,7 +2942,7 @@ narrator：巢里还有一枚磨掉了名字的公会旧铜牌。
 | 触发 | `a1_yeyu_bound AND NOT a1_town_entered`，玩家从巢井井口（`seal_ruins` 的 `shaft_top`）爬出地面时开始；请求方 A1-M03（无记载）的前置段"进镇" |
 | 时机 | 首领战之后。按傍晚写；到达时已入夜则镜 1 到 3 用 `夜` 预设，台词不变；必经 |
 | 出场 | `yeyu`、`barto`（巴托）、`jed`（杰德）、`dora`（朵拉）、`lina`（莉娜）、`martha`（玛莎）；`bron`（只有背影，无台词） |
-| 地点 | `seal_ruins` 的 `shaft_top` 与 `gate_borderstone` 外的禁碑；`borderstone` 的 `north_gate`、`plaza`、`drunk_moon` |
+| 地点 | `seal_ruins` 的 `shaft_top` 与圣教禁碑 `forbid_stele`；`borderstone` 的 `north_gate`、`plaza`、`drunk_moon` |
 | 时长 | 约 3 分 30 秒 |
 | 现有数据 | 新建。`a1_m03_town` 的开场句"下面有座镇子，人多，吵，还有吃的。"沿用到镜 3（遗迹在镇北，镇子在遗迹以南，该句前半"出口在北边"不沿用） |
 | 写入旗标 | `a1_town_entered = true`（新）；`npc.martha.assessment` +1（T1：接住且若无其事）；`trust.barto` +5（对卫队长说实话） |
@@ -3431,12 +3431,12 @@ narrator：伊莎修女冲上来，把孩子抱走了。可是该看见的人，
 @镜 7
 @立绘撤
 narrator：所有人都在看你。
-选 water「（举起那瓶北泉的灰水）孩子们喝的是北泉的水。」→ water｜一次｜条件 a1_north_spring_found
+选 water「（举起那瓶北泉的灰水）孩子们喝的是北泉的水。」→ water｜一次｜条件 a1_spring_source_found
 选 witness_isa「请伊莎修女说话。」→ isa｜一次｜条件 a1_isa_will_testify
 选 witness_toma「请钟楼上的托马说话。」→ toma｜一次｜条件 a1_toma_will_testify
 选 witness_greta「请格蕾塔院长说话。」→ greta｜一次｜条件 trust.greta >= 60
 选 witness_bron「公会的见证人在这儿。请布伦说话。」→ bron｜一次｜条件 trust.bron >= 60
-选 debunk「（指着那盏灯）光之鉴照出来的，未必是巫术。」→ debunk｜一次｜条件 a1_grey_lamp_seen AND (NOT a1_toby_state == recovered OR a1_north_spring_found)
+选 debunk「（指着那盏灯）光之鉴照出来的，未必是巫术。」→ debunk｜一次｜条件 a1_grey_lamp_seen AND (NOT a1_toby_state == recovered OR a1_spring_source_found)
 选 debate「（走上台，对所有人说话）」→ debate｜一次｜条件 p_past_life_door == podium OR trust.cassian >= 60
 选 plead「她只是个采药的老人。放了她。」→ plead｜一次
 选 done「（说完了）」→ verdict｜条件 COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate) >= 1
@@ -3444,7 +3444,7 @@ narrator：所有人都在看你。
 【water】
 @镜 8
 narrator：你拔开瓶塞，把瓶子举高。瓶底沉着一层灰。前排的人往后缩了一下。
-narrator［a1_spring_source_found］：你告诉他们，遗迹底下有一条暗渠，灰水就是从那里流到北泉的。
+narrator：你告诉他们，遗迹底下有一条暗渠，灰水就是从那里流到北泉的。
 @立绘 oola sad 左
 oola：荒原病的灰。……我说了一个月，没人听。
 @立绘 cassian pained 右
@@ -3494,7 +3494,7 @@ narrator：你指着那盏灯。病房里的灯总是发灰，你见过不止一
 @立绘 cassian surprised 右
 narrator：广场上安静下来。卡西安看着你，又看着担架上的托比。
 选 touch「请神父先握一握托比的手，再自己捧这盏灯。」→ debunk_touch｜条件 NOT a1_toby_state == recovered
-选 drop「（往灯罩边滴一滴北泉水）」→ debunk_drop｜条件 a1_north_spring_found
+选 drop「（往灯罩边滴一滴北泉水）」→ debunk_drop｜条件 a1_spring_source_found
 【debunk_touch】
 narrator：卡西安犹豫了很久。然后他走下台，在托比的担架边跪下，握了握那只发灰的小手。
 narrator：他回到台上，从欧拉手里接过圣灯。
@@ -3659,7 +3659,7 @@ narrator［a1_lamp_exposed］：桌角那盏小灯，他看了一眼，又看了
 | --- | --- | --- | --- | --- |
 | `cover` | （抢在她说完之前把她抱起来……） | `covered` | `a1_tess_covered`；`trust.oola` +10；门纹不暴露 | 苔丝在人群里（`a1_tess_in_crowd`） |
 | `stand` | （站着没动） | `exposed` | `a1_children_exposed = true`；`church_suspicion` +5 | 同上 |
-| `water` | （举起北泉的灰水） | `water` | 物证 `a1_trial_evidence`（暗渠已找到时多一句） | 一次；`a1_north_spring_found` |
+| `water` | （举起北泉的灰水） | `water` | 物证 `a1_trial_evidence` | 一次；`a1_spring_source_found` |
 | `witness_isa`、`witness_toma`、`witness_greta` | 请证人说话 | 各自节点 | 证词 `a1_trial_testimony`（多名证人只计一项）；托马的证词附带莫斯后门见客 | 一次；伊莎、托马的旗标由 S20、S15 写入；格蕾塔信任 60 以上 |
 | `witness_bron` | 请布伦说话 | `bron` | 不计入平反（他替玩家作证，不替欧拉）；`church_suspicion` -5；信任 80 以上时记一次当众担保 | 一次；`trust.bron >= 60` |
 | `debunk` 后 `touch` 或 `drop` | 拆穿光之鉴 | `debunk_touch`、`debunk_drop` | `a1_lamp_exposed`；平反时 `church_suspicion` 另 +10 | 一次；见过病房的灰灯（`a1_grey_lamp_seen`） |
@@ -3795,7 +3795,7 @@ yeyu：我只是在等。等的人还没来，或者已经来了，我分不清�
 | 写入旗标 | `a1_tide_dusk_seen`、`a1_tide_post`、`a1_east_gate_ordered`、`a1_mob_seen`、`a1_bertha_mob`、`a1_tide_left_post`、`a1_oola_wounded`、`a1_colossus_seen`、`a1_core_choice`、`a1_core_choice_made`（均为新）；`a1_oola_fate = fled`（暴民得逞时）；`trust.yeyu` -20 与道具 `dian_core`（握住澱核时）。读取内核写入的 `a1_tide_night`、`a1_tide_stage`、`a1_colossus_target`、`a1_tide_weakest`。握住澱核被目击时 `church_suspicion` +10 由目击统计结算；渊契之门的 `seal_unrest` +15 与 `danger_doors_opened` 由门系统结算 |
 | 揭示 | M04-C04（兽潮由被惊动的封印涌出的澱引发，首领是澱聚成的巨像；以 `a1_beast_tide_cleared` 解锁）；诺伊"它在叫门"（门纹孩子与巨像的关系，只此一句，不解释） |
 | 音乐与音效 | 黄昏段：镜 1 `mus_town_borderstone_day` 出，镜 2 警钟，镜 7 `mus_act1_beast_tide` 入并延续到战斗。暴民段：`mus_cue_intrigue` 交叉（战斗曲压低），段末交叉回 `mus_act1_beast_tide`。巨像段：`mus_act1_beast_tide` 入，延续到首领战。澱核段：镜 15 `mus_act1_beast_tide` 出，静；镜 18 只有灰潮的低频。`sfx_cin_a1_alarm_bell`、`sfx_cin_a1_mob`、`sfx_cin_a1_colossus_step`、`sfx_cin_a1_colossus_fall`、`sfx_cin_a1_core_smash`、`sfx_cin_a1_core_grasp`、`sfx_cin_a1_dian_surge`；环境 `amb_crowd_tense` |
-| 所需美术 | 实景运镜、`art_bg_cut_a1_colossus`；特写 `art_prop_cut_colossus_slab`、`art_prop_cut_dian_core`；特效 `art_vfx_cut_a1_core_glow`；立绘 `art_bust_cassian`（`neutral`）、`art_bust_bron`（`neutral`）、`art_bust_yeyu`（`neutral`、`angry`、`surprised`）、`art_bust_oola`（`sad`）；头像 `art_por_toma`、`art_por_gaspar`、`art_por_gorn`、`art_por_bertha`、`art_por_isa`、`art_por_noi`；首领立牌 `art_boss_dian_colossus`（需求见美术表） |
+| 所需美术 | 实景运镜、`art_bg_cut_a1_colossus`；特写 `art_prop_cut_colossus_slab`、`art_prop_cut_dian_core`；特效 `art_vfx_cut_a1_core_glow`；立绘 `art_bust_cassian`（`neutral`）、`art_bust_bron`（`neutral`）、`art_bust_yeyu`（`neutral`、`angry`、`surprised`）、`art_bust_oola`（`sad`）；头像 `art_por_toma`、`art_por_gaspar`、`art_por_gorn`、`art_por_bertha`、`art_por_isa`、`art_por_noi`；首领立牌 `art_boss_dian_colossus_parts_d`、`_r`、`_u`（需求见美术表） |
 | 里程碑 | M1 |
 
 **镜头脚本**
@@ -4294,7 +4294,7 @@ narrator：人散了以后，玛莎在擦杯子。她一句话也没有跟你说
 | 写入旗标 | `a1_dream_door_woman = true`（台账）；`a1_janu_dream_answer`（文本，第六幕回扣）；`a1_dream_free_question`（新，文本） |
 | 揭示 | A10 回扣（她的声音与坠落时的"接住你了"相同：M01-C03、M09-C01）；M09-C01（"你来了""门总会开的"）；门内庭院与第一件物品（序章希尔薇题） |
 | 音乐与音效 | 镜 1 黑中 `mus_cue_dream_door` 入（第一阶段配器：只有八音盒与一支弦）；环境 `amb_dream_door`；镜 6 门推开时加第二个声部；镜 8 后白场，曲淡出。`sfx_cin_a1_dream_touch`、`sfx_door_dream_door` |
-| 所需美术 | 立绘 `art_bust_door_woman`（`neutral`、`smile`、`special`、`thinking`）；全屏静帧 `art_bg_cut_a1_dream_door`、`art_bg_cut_a1_dream_court`（门后的院子；十种第一件物品用叠层，不另画十张） |
+| 所需美术 | 立绘 `art_bust_door_woman_silhouette`（第一、二幕的梦用剪影档，各表情键都显示这一张，第 2.7 节）；全屏静帧 `art_bg_cut_a1_dream_door`、`art_bg_cut_a1_dream_court`（门后的院子；十种第一件物品用叠层，不另画十张） |
 | 里程碑 | M1 |
 
 **镜头脚本**

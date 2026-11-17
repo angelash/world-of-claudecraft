@@ -708,7 +708,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.self_oola_herbs.K2 | 1. 荒原病，老辈德鲁伊叫的名字。从北边来，沾上的人皮肤发灰。／2. 我能让它慢下来。治不好。我不骗你。 |
 | topic.lore_grey_sickness.K2 | 1. 荒原病不是诅咒，是灰气进了身子。从水里、从灰里、从遗迹那边来。／2. 草能缓，泉能洗，可根子不在人身上，在北边。 |
 | topic.lore_grey_sickness.K1 | 1. 北边来的病。喝了不干净的水就会得。 |
-| topic.place_bs_north_spring.K1 | 1. 〔when: a1_north_spring_found〕北泉的水发灰。孩子们喝的就是它。／2. 〔when: a1_north_spring_found〕堵上那条暗渠，镇子就能喘口气。 |
+| topic.place_bs_north_spring.K1 | 1. 〔when: a1_spring_source_found〕北泉的水发灰。孩子们喝的就是它。／2. 〔when: a1_spring_source_found〕堵上那条暗渠，镇子就能喘口气。 |
 | topic.place_bs_north_spring.K0 | 1. 北泉不收井税，穷人都喝它。……我叫他们别喝，他们不听。 |
 | topic.person_cassian.K0 | 1. 那个年轻神父？心是好的，脑子被圣典糊住了。／2. 〔when: a1_oola_fate == cleared〕他来道过歉了。比我想的有骨头。 |
 | topic.lore_nameless_god.K1 | 1. 〔when: trust.oola >= 40〕边境的老人管那个叫"无名之神"。别在神父面前提。／2. 〔when: trust.oola >= 40〕我也只听过名字，没见过神。名字也是假的，"无名"嘛。 |
@@ -769,7 +769,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | quest.q_a1_m07_spring.offer | 1. 〔when: trust.oola >= 50〕北区的孩子一个一个倒下。我知道是水。没人信我。你信吗？／2. 夜里去北泉，看看水。带上那个不说话的男孩，他知道路。 |
 | quest.q_a1_m07_spring.accept | 1. 好。小心，别喝那水，别碰那灰。 |
 | quest.q_a1_m07_spring.progress | 1. 这水发灰。底下有东西在渗。／2. 暗渠往北，往遗迹那边。我就知道。 |
-| quest.q_a1_m07_spring.complete | 1. 这是证据。拿着它，神父就不能再说是巫术了。／2. 〔when: a1_north_spring_found〕堵上了？孩子们……孩子们能喝干净水了。 |
+| quest.q_a1_m07_spring.complete | 1. 这是证据。拿着它，神父就不能再说是巫术了。／2. 〔when: a1_spring_source_found〕堵上了？孩子们……孩子们能喝干净水了。 |
 | quest.q_a1_m07_spring.after | 1. 荒原病还在，可至少不从泉里来了。／2. 小崽子，你做了一件大事。别告诉别人是我说的。 |
 | quest.q_a1_s23_deer_spring.offer | 1. 〔when: trust.oola >= 40〕净泉草，林子深处的鹿泉边才有。我给你画个图。 |
 | quest.q_a1_s23_deer_spring.complete | 1. 净泉草！你找着了。鹿带你去的？那就好，鹿认得好人。／2. 这草能救孩子。 |
@@ -935,9 +935,9 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.lore_branded.mis | 1. 烙印者是邪神留下的种子。光会净化他们。 |
 | topic.lore_appraisal.mis | 1. 圣灯照不出的人……无记载，是异端之兆。／2. 光不会赐福给没有记载的人。 |
 | topic.lore_sixth_sigil.mis | 1. 〔when: a1_wake_ruins〕遗迹墙上第六个纹？那是邪神的涂鸦。别多看。 |
-| topic.event_milo_death.mis | 1. 〔when: NOT a1_north_spring_found〕米洛的死……不是自然的。我有理由怀疑是巫术。／2. 光收回了他。可收走他的，也许不是光。 |
+| topic.event_milo_death.mis | 1. 〔when: NOT a1_spring_source_found〕米洛的死……不是自然的。我有理由怀疑是巫术。／2. 光收回了他。可收走他的，也许不是光。 |
 | topic.event_milo_death.K1 | 1. 〔when: a1_oola_fate == cleared〕疫病源于北泉，非人为。我错怪了一位老人。 |
-| topic.person_oola.mis | 1. 〔when: NOT a1_north_spring_found〕药草婆婆……她不进礼拜堂，夜里出入孤儿院。我必须问清楚。 |
+| topic.person_oola.mis | 1. 〔when: NOT a1_spring_source_found〕药草婆婆……她不进礼拜堂，夜里出入孤儿院。我必须问清楚。 |
 | topic.person_oola.K0 | 1. 〔when: a1_oola_fate == cleared〕欧拉女士……她在教我认草药。我学得很慢。 |
 | topic.faith_light_mirror.K0 | 1. 光之鉴是教会传下的圣灯。光会照出真相，是这样的，对吧？／2. 〔when: a1_oola_fate == cleared〕……那盏灯的灯焰，是灰色的。我以前怎么没看见。 |
 | react.feat_seen | 1. 光在上……这是什么？／2. 我、我必须禀报上去。 |
@@ -1332,7 +1332,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.gen_work.K0 | 1. 每天上午去礼拜堂，下午去各家看看。／2. 镇子得干干净净的。 |
 | topic.self_bertha_toby.K0 | 1. 托比六岁，是我唯一的亲人。／2. 〔when: a1_toby_state == recovered〕托比好了！光听见了！ |
 | topic.event_tess_song.K0 | 1. 孤儿院那个丫头唱的歌……门开了，门开了……那是邪歌！ |
-| topic.person_oola.mis | 1. 〔when: NOT a1_north_spring_found〕那个药草婆婆，夜里出入孤儿院，米洛死了，托比病了……还用说吗？ |
+| topic.person_oola.mis | 1. 〔when: NOT a1_spring_source_found〕那个药草婆婆，夜里出入孤儿院，米洛死了，托比病了……还用说吗？ |
 | quest.q_a1_d02_witch_trial.progress | 1. 〔when: a1_witch_trial_started〕审她！光之鉴会照出来的！ |
 | quest.q_a1_d02_witch_trial.after | 1. 〔when: a1_oola_fate == cleared〕……是水？不是她？光啊，我做了什么。／2. 〔when: a1_oola_fate != cleared〕光会给托比讨个公道。 |
 | bark.pray | 1. 光啊，别再收走他。／2. 光保佑！ |
@@ -2543,7 +2543,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.place_bs_herb_hut.K1 | 1. 药草婆婆懂的比神父多，这话别往外说。 |
 | topic.place_bs_orphanage.K0 | 1. 圣灯孤儿院，十四个孩子，贴着北泉。／2. 孩子常被远房亲戚接走，也是好事。 |
 | topic.place_bs_north_spring.K0 | 1. 北泉不收井税，北区的穷人都喝它。／2. 水凉，有点铁味。 |
-| topic.place_bs_north_spring.K1 | 1. 〔when: a1_north_spring_found〕北泉的水发灰，别喝了。病就是从那儿来的。 |
+| topic.place_bs_north_spring.K1 | 1. 〔when: a1_spring_source_found〕北泉的水发灰，别喝了。病就是从那儿来的。 |
 | topic.place_bs_magistrate.K0 | 1. 代官府，镇上唯一的石头房子。前厅收税，侧屋关人。 |
 | topic.place_bs_salt_lane.K0 | 1. 盐巷每周一个集日，什么都有。／2. 集日人多，看好钱袋。 |
 | topic.place_bs_guardpost.K0 | 1. 北门旁边的哨所，十二个民兵，一口警钟。 |
@@ -2575,7 +2575,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.place_merca_shrine.K0 | 1. 商会院子里那座小神龛，商人拜交易的那一位。 |
 | topic.person_cassian.K0 | 1. 卡西安神父，年轻，虔诚得很。／2. 他教孤儿院的孩子认字。 |
 | topic.person_oola.K0 | 1. 药草婆婆，嘴巴刻薄，心软。／2. 〔when: a1_witch_trial_started AND a1_oola_fate != cleared〕神父说她用巫术害了孩子。 |
-| topic.person_oola.mis | 1. 〔when: NOT a1_north_spring_found〕米洛死了，托比病了，都跟那个药草婆婆有关。 |
+| topic.person_oola.mis | 1. 〔when: NOT a1_spring_source_found〕米洛死了，托比病了，都跟那个药草婆婆有关。 |
 | topic.person_martha.K0 | 1. 醉月亭的老板娘，做饭好吃，人爽快。／2. 别在她店里闹事。 |
 | topic.person_bron.K0 | 1. 公会的老布伦，一只胳膊，喝多了就说胡话。 |
 | topic.person_moss.K0 | 1. 代官大人。税是他加的。／2. 他说是为了讨伐魔物。 |
@@ -2617,7 +2617,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.person_adalbert.K0 | 1. 瓦伦边境伯爵，管着这一片。没见过。 |
 | topic.person_adalbert.K1 | 1. 伯爵病了，听说。三个孩子在争家业。／2. 〔when: a1_count_letter IN (a, b, c, d)〕伯爵府来信，要见那个打退兽潮的人。 |
 | topic.event_milo_death.K0 | 1. 孤儿米洛，七岁，没了。棺材那么小。／2. 他先是发灰，后来就起不来了。 |
-| topic.event_milo_death.mis | 1. 〔when: NOT a1_north_spring_found〕药草婆婆夜里去过孤儿院。神父说是巫术。 |
+| topic.event_milo_death.mis | 1. 〔when: NOT a1_spring_source_found〕药草婆婆夜里去过孤儿院。神父说是巫术。 |
 | topic.event_milo_death.K1 | 1. 〔when: a1_oola_fate == cleared〕是北泉的水。不是巫术。神父当众认了错。 |
 | topic.event_tax_hike.K0 | 1. 讨伐税从十取一涨到六取一，说是要募兵讨伐。／2. 〔when: act_week >= 5〕又加了井税。喝口水都要钱。 |
 | topic.event_tax_hike.K1 | 1. 讨伐税收了，讨伐的人呢？没见卫队出过镇。 |
@@ -2690,7 +2690,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.danger_sealed_ruins.K0 | 1. 遗迹是禁地，进去的没好下场。 |
 | topic.danger_south_road.K0 | 1. 南路有匪，独眼团。商队都结伴走。 |
 | topic.danger_monster_season.K0 | 1. 魔物季到了，夜里关好门窗。 |
-| topic.danger_north_spring.K0 | 1. 〔when: a1_north_spring_found〕北泉的水别喝了，打井水喝。 |
+| topic.danger_north_spring.K0 | 1. 〔when: a1_spring_source_found〕北泉的水别喝了，打井水喝。 |
 | topic.danger_tide_omens.K0 | 1. 〔when: seal_unrest >= 70〕林子里的鸟都飞走了，北泉的水变了色。不对劲。／2. 〔when: seal_unrest >= 70〕夜里有乌鸦成群地飞。 |
 | topic.danger_graveyard_wisp.K0 | 1. 〔when: act_week >= 3〕墓地夜里有灰色的鬼火，米洛坟上。 |
 | topic.quest_board.K0 | 1. 〔when: a1_guild_registered〕公会的委托板，新人先接 F 级的活。 |
@@ -2786,7 +2786,7 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | 条件变量 | 全部是注册表已登记的名字或族成员；唯一的新信号 `order.moral_tag` 见台词目录第 1.7 节 |
 | 话题编号 | 全部已在台词目录第 3.3 节登记 |
 | 必备槽位 | 每包按台词目录第 1.5 节逐项覆盖；女神按本批范围覆盖序章、第一幕与跨幕基础 |
-| 台账 | 未解锁内容只出现在带解锁条件的句子里：欧拉的孩子（`trust.oola >= 60` 且 `a1_orphan_mark_seen`）、落叶路（`trust.oola >= 70`）、布伦的门纹（`a1_bron_sees_mark`）、阿什的"她"与故乡（`a3_ash_tells_sundering`）、雅努的"是的"（`a3_seal_aware`）；卡西安与贝莎的误导版本按 `a1_north_spring_found`、`a1_oola_fate` 切换 |
+| 台账 | 未解锁内容只出现在带解锁条件的句子里：欧拉的孩子（`trust.oola >= 60` 且 `a1_orphan_mark_seen`）、落叶路（`trust.oola >= 70`）、布伦的门纹（`a1_bron_sees_mark`）、阿什的"她"与故乡（`a3_ash_tells_sundering`）、雅努的"是的"（`a3_seal_aware`）；卡西安与贝莎的误导版本按 `a1_spring_source_found`、`a1_oola_fate` 切换 |
 | 称谓与俗称 | 第一幕凡人只说灰气、灰病、荒原病、灰晶；"澱"只出自夜羽与阿什；无人说出被禁之名；"没有脸的人"只在布伦的醉话里 |
 | 同构 | 无任何句子点出镇上势力与诸神的对应 |
 

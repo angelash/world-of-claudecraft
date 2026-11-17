@@ -372,7 +372,7 @@
       { "type": "flag", "key": "trust.oola", "min": 60, "label": "欧拉婆婆肯把草方告诉你" },
       { "type": "item", "itemId": "spring_herb", "label": "鹿泉的净泉草" },
       { "type": "visit", "mapId": "forest_edge", "location": "deer_spring", "label": "到过鹿泉" },
-      { "type": "flag", "key": "a1_north_spring_found", "label": "找到病童的病根（北泉的灰）" }
+      { "type": "flag", "key": "a1_spring_source_found", "label": "找到病童的病根（北泉的灰）" }
     ],
     "effects": [
       { "type": "pool", "resource": "mana", "base": 80 },

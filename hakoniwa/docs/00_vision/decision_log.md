@@ -111,9 +111,8 @@
 
 ## 3. 详细设计待办
 
-以下待办在 M0 的设计实施包里完成（`../60_production/development_plan.md`）；其余跨文档缺口已由本轮的系统文档、内容目录、变量注册表与地图简报关闭。
+以下待办随开发计划的实施包完成（`../60_production/development_plan.md`；B-009 在 PK-M3-35）；其余跨文档缺口已由本轮的系统文档、内容目录、变量注册表与地图简报关闭。战斗与职能设计已由 `../40_design/systems/combat_and_classes.md` 第 0 到 22 节写定（首领机制库、魔物机制字段注册表、物品实例与耐久结算、状态与控制、平衡目标与验收），技能、天赋与光环目录 `../40_design/content/catalog_abilities_talents.md` 写定序章与第一幕部分（现有 ID 到 `sk_`、`aur_` 的对照、编外者门技与技架、第一幕同伴与魔物的技能组），九职能全量技能库、流派、铭纹与战场技能在 PK-M2-36。
 
 | 编号  | 待办 | 来源 |
 | ----- | ---- | ---- |
-| B-001 | 完成 `../40_design/systems/combat_and_classes.md`（已写战斗模型、公式与部分职能；续写其余职能、首领机制库、魔物机制字段注册表、物品实例与耐久结算、状态与控制、平衡目标与验收），并新写 `../40_design/content/catalog_abilities_talents.md`（九职能 1 到 60 级技能、天赋树、27 流派两阶、15 合技、编外者门技能、光环 `aur_` 全表、旧编号对照） | 本轮 |
 | B-009 | 第六幕证据标签 E13（瓦尔妲·正当）、E28（希尔薇·必要）、E31（莫伊拉·正当）的取舍：各女神的防线清单已在 `../40_design/content/catalog_quests_acts4_6.md` 第 12.2 节按第六幕第 4.2 节落定，这三处见该目录第 18.2 节第 3 项 | `../30_story/arcs/act6_review_and_epilogue.md` |
