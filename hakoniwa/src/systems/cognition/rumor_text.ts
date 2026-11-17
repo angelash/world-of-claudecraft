@@ -21,7 +21,13 @@ export function featPhrase(content: ContentMap, topic: string): TextParam {
   );
 }
 
+/** The topic of a door hint told as a rumor. */
+export const HINT_TOPIC = 'door_hint';
+
 export function rumorText(content: ContentMap, v: RumorVersion, topic: string): TextParam {
+  // a door hint told as a rumor (thousand_doors.md 18.3): its own text, where it was heard
+  if (topic === HINT_TOPIC)
+    return tr('sys.cognition.rumor.hint', { text: v.details[0] ?? '', place: v.place });
   const parts: TextParam[] = [];
   if (v.story) parts.push(first(content, 'rumor.story'));
   const when = first(content, `rumor.when.${Math.min(3, v.when)}`);

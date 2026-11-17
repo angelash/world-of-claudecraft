@@ -440,9 +440,23 @@ export function tryTell(
 ): boolean {
   const slice = ctx.world.slices.cognition;
   const speaker = personaById(ctx.content, fromId);
+  const npcSlice = ctx.world.slices.npc;
+  // a secret keeper only talks to someone they trust (builtin_ai.md 5.2: trust 70)
+  if ((speaker?.spread ?? 1) <= 0.2 && relationOf(npcSlice, fromId, toId).trust < 70) return false;
+  // which news: heat x the listener's interest (1.5 when it is about someone they know)
+  const interest = (h: RumorHolding) => {
+    const subject = h.v.subject;
+    const knows =
+      subject === 'player' ? !!slice.beliefs[toId]?.player : !!npcSlice.minds[toId]?.rel[subject];
+    return knows ? 1.5 : 1;
+  };
   const list = [...holdingsOf(slice, fromId)]
     .filter((h) => (slice.rumors[h.rumor]?.heat ?? 0) >= HEAT_FLOOR)
-    .sort((a, b) => weightOf(slice, b) - weightOf(slice, a) || a.rumor.localeCompare(b.rumor));
+    .sort(
+      (a, b) =>
+        weightOf(slice, b) * interest(b) - weightOf(slice, a) * interest(a) ||
+        a.rumor.localeCompare(b.rumor),
+    );
   // news the listener lacks first; then a second, independent source; then an eyewitness
   // listener (who may set a wild version straight)
   const pick =

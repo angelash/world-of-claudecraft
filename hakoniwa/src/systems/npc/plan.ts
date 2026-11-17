@@ -7,15 +7,16 @@ import type { SystemContext } from '../../core/system';
 import { commandText, type KeyText, type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { mapById } from '../world';
-import { applyDecision, decideHour, devotionOf, spendable } from './actions';
 import { baseContext, needsText } from './ai_context';
-import { DAILY_DEADLINE } from './constants';
+import { stepNpc } from './brain/step';
+import { DAILY_DEADLINE, HOLY_WEEKDAY, MARKET_WEEKDAY } from './constants';
 import { timeLabel } from './memory';
 import { moneyNeed } from './needs';
 import { type CardView, cardOf, personaById } from './personas';
 import { locationById } from './places';
 import { ACT_NAMES, ruleDayPlan, validatePlan } from './schedule';
 import type { NpcState, PlanSlotData, PlanState } from './types';
+import { devotionOf, spendable } from './wallet';
 
 /** Places a plan may use: the persona's own home and work plus every public place. */
 function placeList(ctx: SystemContext, card: CardView) {
@@ -38,7 +39,11 @@ export function requestDailyPlans(ctx: SystemContext): void {
     if (!p || !card) continue;
     st.planRev += 1;
     const mNeed = moneyNeed(spendable(ctx, st));
-    const rule = ruleDayPlan(ctx.content, card, st.needs, mNeed, devotionOf(card));
+    const weekday = calendarAt(ctx.tick).weekday;
+    const rule = ruleDayPlan(ctx.content, card, st.needs, mNeed, devotionOf(card), {
+      holy: weekday === HOLY_WEEKDAY,
+      market: weekday === MARKET_WEEKDAY,
+    });
     const fallback: AnyCommand[] = [
       {
         kind: 'npc.plan',
@@ -127,8 +132,6 @@ export function applyPlan(
     note: planText(d.note, fromModel),
   };
   ctx.emit('npc.plan_set', { npcId: d.npcId, day: d.day, source });
-  if (!st.talking && ctx.tick >= st.freezeUntil) {
-    applyDecision(ctx, st, card, decideHour(ctx, st, card, cal.hour), cal.hour);
-  }
+  if (!st.talking && ctx.tick >= st.freezeUntil) stepNpc(ctx, st, card);
   return null;
 }

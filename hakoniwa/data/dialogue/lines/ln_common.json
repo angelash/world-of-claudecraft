@@ -11,6 +11,14 @@
       {
         "zh": "{player}？没见过你。新来的吧。",
         "first": true
+      },
+      {
+        "zh": "是你啊。{memory}，这事我还记着。",
+        "w": 3
+      },
+      {
+        "zh": "是你啊。说起来，{diary}",
+        "w": 2
       }
     ],
     "bark.sleep": ["……唔……（睡得正香）", "……唔……让我再睡会儿……"],
@@ -21,12 +29,28 @@
       "是你啊，{player}。有什么能帮上的？",
       "你是真有本事。我认了。",
       "这家伙是真有本事。",
-      "……我认了，是真本事。"
+      "……我认了，是真本事。",
+      {
+        "zh": "{player}！{memory}，我可一直记着呢。",
+        "w": 3
+      },
+      {
+        "zh": "来得正好。{diary}",
+        "w": 2
+      }
     ],
     "react.belief_worship": ["您来了！", "是您！快请快请。"],
     "react.belief_hostile": ["……你来做什么。", "离我远点。", "这不是人能做到的事。离他远点。"],
     "react.belief_exploit": ["正想找你呢，{player}。"],
-    "greet.cold": ["有话快说。", "又是你。"],
+    "greet.cold": [
+      "有话快说。",
+      "又是你。",
+      {
+        "zh": "{memory}，你还好意思来？",
+        "w": 3
+      },
+      "……有事就说。"
+    ],
     "bark.chat": ["今天也就这样吧。{catch}", "日子总得过下去。", "随便聊聊呗。", "你也来凑热闹？"],
     "bark.work": ["活儿还没干完呢。", "忙着呢。{catch}"],
     "bark.eat": [
@@ -40,9 +64,9 @@
     "bark.pray": ["我在祷告，等一会儿。"],
     "bark.shop": ["东西又涨价了。", "盐比上个月贵了。"],
     "bark.wander": ["今天{place}挺热闹。", "随便走走。"],
-    "bark.tired": ["累死了，想睡一觉。"],
-    "bark.worried": ["手头紧，最近得多干点活。"],
-    "bark.happy": ["天气不错。"],
+    "bark.tired": ["累死了，想睡一觉。", "腿都站不直了。"],
+    "bark.worried": ["手头紧，最近得多干点活。", "这日子可怎么过。"],
+    "bark.happy": ["天气不错。", "今天真不错。"],
     "bark.rain": ["要变天了吧。", "这雨下得人心里发潮。"],
     "bark.storm": ["这雷打得吓人，早点回去吧。"],
     "bark.fog": ["雾大，别往荒原那边走。"],
@@ -115,7 +139,18 @@
     "farewell": ["慢走。", "{catch}"],
     "react.confused": ["嗯……你说的这些，我不太明白。", "是吗。"],
     "react.unknown": ["这我可不知道。", "问我也没用。"],
-    "greet.neutral.day": ["你好。", "嗯，你好。"],
+    "greet.neutral.day": [
+      "你好。",
+      "嗯，你好。",
+      {
+        "zh": "你好。{memory}，我还记得。",
+        "w": 3
+      },
+      {
+        "zh": "你好。跟你说，{diary}",
+        "w": 2
+      }
+    ],
     "react.thanked": ["不用谢。", "客气什么。"],
     "react.decline": ["我没空听你说这些。", "哼。"],
     "react.joke": ["哈哈，你这人真有意思。", "说得也是。"],
@@ -160,6 +195,56 @@
     "react.switch.hidden_identity": ["你其实是哪家的少爷吧？"],
     "react.switch.sorcery": ["不是光……那就是别的东西。"],
     "react.switch.conspiracy": ["……这里头一定有人安排。"],
-    "react.feat_seen": ["我看见了，是真的。", "好厉害！"]
+    "react.feat_seen": ["我看见了，是真的。", "好厉害！"],
+    "bark.vendor_call": [
+      "来看看，来看看！",
+      "新到的货，过路的瞧一眼！",
+      "便宜卖了，错过可没有了！"
+    ],
+    "bark.sermon": ["光照着每一个肯回头的人。", "愿光庇佑边石镇。"],
+    "bark.see_player": ["哟，是你。", "又碰上了。"],
+    "bark.see_feat": ["你们看见没有？", "这……怎么做到的？", "我没看花眼吧？"],
+    "bark.fear": ["别过来……", "快回家，把门闩上。"],
+    "bark.angry": ["气死我了。", "哼，这口气我咽不下。"],
+    "bark.patrol": ["都安分点。", "巡一圈，没事就好。"],
+    "bark.home": ["还是家里待着踏实。", "回去歇着。"],
+    "bark.morning": ["一早就得忙起来。", "又是新的一天。"],
+    "bark.evening": ["天要黑了。", "忙完这点就收工。"],
+    "bark.night": ["这么晚了还在外头？", "夜里别乱走。"],
+    "bark.market_day": ["集日人真多。", "今天赶集，东西都便宜点。"],
+    "bark.holy_day": ["礼拜日，可别迟到。", "该去礼拜堂了。"],
+    "react.helped": ["上回多亏了你，{player}。这份情我记着。", "那天要不是你，我真不知道怎么办。"],
+    "react.saved": ["{player}，你救过我的命。这辈子都忘不了。", "那天……谢谢你。真的。"],
+    "react.awe_fear": ["别、别过来！", "你……你到底是什么人？"],
+    "react.heresy_alarm": ["这不是光的手笔……愿光护佑我。", "我得去禀告神父。"],
+    "react.miracle_awe": ["这是神迹……我亲眼看见了。", "光回应了，光真的回应了。"],
+    "react.challenge": [
+      "站住。你跟传闻里说的那个人，长得太像了。",
+      "{player}，跟我走一趟，有话问你。"
+    ],
+    "react.belief_depend": ["{player}，镇上的事，还得靠您拿主意。", "有您在，大家心里就踏实。"],
+    "react.gatefolk_recognize": ["……原来是你。我什么都不会说。", "门的那一边……我懂。"],
+    "react.request_battle": ["外头不太平。让我带人去看看吧。", "要打的话，算我一个。"],
+    "react.rival_taunt": [
+      "哟，F 级的，今天又捡到什么漏了？",
+      "别以为运气好一回，就真当自己有本事。"
+    ],
+    "react.hint": ["你要是真想知道，就别只问我。", "有些东西，得自己去找。"],
+    "topic.gen_trouble": [
+      "{player}，能借一步说话吗？我这儿有件难事。",
+      "不瞒你说，最近遇上点麻烦，想托你帮个忙。"
+    ],
+    "banter.ask_help": ["{other}，能帮我个忙吗？", "实在没法子了，{other}。"],
+    "banter.invite": ["{other}，改天一起喝一杯？", "得空来坐坐，{other}。"],
+    "banter.gift": ["{other}，这个给你。", "拿着吧，{other}，一点心意。"],
+    "banter.reconcile": ["{other}，上回是我不对。", "算了，{other}，别往心里去。"],
+    "banter.gossip": ["{other}，你听说那件事了吗？", "跟你说个新鲜事，{other}。"],
+    "mem.recall": [
+      "说起来，{memory}。",
+      "对了，{memory}，我一直记着。",
+      "我还记得，{memory}。",
+      "{player}，{memory}，你还记得吗？"
+    ],
+    "diary.recall": ["跟你说，{diary}", "说起这几天，{diary}", "唉，{diary}"]
   }
 }

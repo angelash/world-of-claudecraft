@@ -6,6 +6,7 @@ import type { SystemContext } from '../../core/system';
 import type { TextParam } from '../../core/text';
 import { calendarAt } from '../../core/time';
 import { pickLine } from '../dialogue/templates';
+import { ensureBrain } from '../npc/brain/state';
 import { npcEntityId, personaById } from '../npc/personas';
 import type { ObserveOutcome } from './belief';
 import { isAccepted } from './params';
@@ -61,6 +62,9 @@ export function speakReaction(
   if (gate === 'none') return false;
   const text = pickLine(ctx.content, rk.key, vars, ctx.rng('cognition.lines'), p);
   if (!text) return false;
+  // a state change voiced here is not kept as an opener as well (builtin_ai.md 5.7)
+  const st = ctx.world.slices.npc.npcs[observerId];
+  if (st && !st.resident) ensureBrain(st).spokeTick = ctx.tick;
   ctx.emit('dialogue.line', {
     speakerId: npcEntityId(observerId),
     speakerName: p.name,

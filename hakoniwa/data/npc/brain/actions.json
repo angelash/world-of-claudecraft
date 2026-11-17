@@ -1,0 +1,166 @@
+{
+  "_doc": "The generic utility action library of named NPCs (builtin_ai.md 4.1): the need layer and the emergency layer choose among these. Each gate reads a registered input (src/systems/npc/brain/inputs.ts) through a response curve (shape and parameters, built at load), bonuses and costs scale an input, persona names trait dimensions (traits.json). `do` is what the person does: an activity at a schedule place, a note id (sys.npc.note.<note>) and, for the need layer, the need it answers. The idle baseline (builtin_ai 2.1: NPC 0.5) wins when nothing scores higher.",
+  "idle": 0.5,
+  "actions": [
+    {
+      "id": "eat_tavern",
+      "layer": "need",
+      "weight": 2,
+      "gates": [
+        { "name": "hungry", "input": "need.hunger", "curve": ["inv", 0, 60] },
+        { "name": "can_pay", "input": "money.meal", "curve": ["step", 1] }
+      ],
+      "bonuses": [{ "name": "lonely", "input": "low.social", "scale": 1 }],
+      "costs": [{ "name": "price", "input": "price.meal", "scale": 1 }],
+      "persona": ["social"],
+      "do": { "act": "eat", "at": "@tavern", "note": "hungry", "need": "hunger" }
+    },
+    {
+      "id": "eat_home",
+      "layer": "need",
+      "weight": 1.8,
+      "gates": [{ "name": "hungry", "input": "need.hunger", "curve": ["inv", 0, 50] }],
+      "bonuses": [{ "name": "poor", "input": "money.poor", "scale": 1 }],
+      "persona": ["frugal"],
+      "do": { "act": "eat", "at": "@home", "note": "black_bread", "need": "hunger" }
+    },
+    {
+      "id": "sleep_home",
+      "layer": "need",
+      "weight": 2,
+      "gates": [{ "name": "tired", "input": "need.energy", "curve": ["inv", 0, 40] }],
+      "bonuses": [{ "name": "night", "input": "night", "scale": 2 }],
+      "do": { "act": "sleep", "at": "@home", "note": "exhausted", "need": "energy" }
+    },
+    {
+      "id": "pray",
+      "layer": "need",
+      "weight": 1.6,
+      "gates": [
+        { "name": "devout", "input": "devotion", "curve": ["step", 0.2] },
+        { "name": "faith_low", "input": "need.faith", "curve": ["inv", 0, 60] }
+      ],
+      "bonuses": [
+        { "name": "holy_day", "input": "holy_day", "scale": 2 },
+        { "name": "uneasy", "input": "low.peace", "scale": 1.5 }
+      ],
+      "persona": ["pious"],
+      "do": { "act": "pray", "at": "@church", "note": "anxious", "need": "faith" }
+    },
+    {
+      "id": "seek_company",
+      "layer": "need",
+      "weight": 1.6,
+      "gates": [{ "name": "lonely", "input": "need.social", "curve": ["inv", 0, 60] }],
+      "bonuses": [{ "name": "hot_rumor", "input": "hot_rumor", "scale": 1 }],
+      "persona": ["social"],
+      "do": { "act": "chat", "at": "@tavern", "note": "lonely", "need": "social" }
+    },
+    {
+      "id": "overtime",
+      "layer": "need",
+      "weight": 1.5,
+      "gates": [
+        { "name": "money_low", "input": "need.money", "curve": ["inv", 0, 50] },
+        { "name": "near_work", "input": "near_work", "curve": ["step", 1] }
+      ],
+      "persona": ["diligent", "greed"],
+      "do": { "act": "work", "at": "@work", "note": "work_more", "need": "money" }
+    },
+    {
+      "id": "hide_home",
+      "layer": "need",
+      "weight": 1.8,
+      "gates": [{ "name": "unsafe", "input": "need.safety", "curve": ["inv", 0, 40] }],
+      "persona": ["fear"],
+      "do": { "act": "wander", "at": "@home", "note": "afraid", "need": "safety" }
+    },
+    {
+      "id": "confess",
+      "layer": "need",
+      "weight": 1.4,
+      "gates": [
+        { "name": "uneasy", "input": "need.peace", "curve": ["inv", 0, 50] },
+        { "name": "has_cleric", "input": "has_cleric", "curve": ["step", 1] }
+      ],
+      "bonuses": [{ "name": "holy_day", "input": "holy_day", "scale": 1 }],
+      "persona": ["pious"],
+      "do": { "act": "pray", "at": "@church", "note": "confess", "need": "peace" }
+    },
+    {
+      "id": "regain_face",
+      "layer": "need",
+      "weight": 1.3,
+      "gates": [{ "name": "shamed", "input": "need.face", "curve": ["inv", 0, 30] }],
+      "bonuses": [{ "name": "offender_here", "input": "offender_here", "scale": 2 }],
+      "persona": ["proud"],
+      "do": { "act": "chat", "at": "@tavern", "note": "save_face", "need": "face" }
+    },
+    {
+      "id": "do_duty",
+      "layer": "need",
+      "weight": 1.6,
+      "gates": [
+        { "name": "owed", "input": "need.duty", "curve": ["inv", 0, 50] },
+        { "name": "has_work", "input": "has_work", "curve": ["step", 1] }
+      ],
+      "persona": ["duty"],
+      "do": { "act": "work", "at": "@work", "note": "duty", "need": "duty" }
+    },
+    {
+      "id": "flee",
+      "layer": "emergency",
+      "weight": 3,
+      "gates": [{ "name": "danger", "input": "danger", "curve": ["lin", 0, 1] }],
+      "bonuses": [{ "name": "very_unsafe", "input": "low.safety", "scale": 1 }],
+      "persona": ["fear"],
+      "do": { "act": "wander", "at": "@home", "note": "fled" }
+    },
+    {
+      "id": "seek_help",
+      "layer": "emergency",
+      "weight": 2.4,
+      "gates": [
+        { "name": "danger", "input": "danger", "curve": ["lin", 0, 1] },
+        { "name": "has_refuge", "input": "has_refuge", "curve": ["step", 1] }
+      ],
+      "costs": [{ "name": "pride", "input": "proud", "scale": 1 }],
+      "do": { "act": "pray", "at": "@church", "note": "seek_help" }
+    },
+    {
+      "id": "stand_ground",
+      "layer": "emergency",
+      "weight": 2.6,
+      "gates": [
+        { "name": "danger", "input": "danger", "curve": ["lin", 0, 1] },
+        { "name": "fighter", "input": "fighter", "curve": ["step", 1] }
+      ],
+      "persona": ["brave"],
+      "do": { "act": "work", "at": "@work", "note": "stand_ground" }
+    }
+  ],
+  "traitDims": {
+    "outgoing": { "social": 1.4, "gossip": 1.3, "watch": 1.2 },
+    "introvert": { "social": 0.6, "gossip": 0.7 },
+    "timid": { "fear": 1.5, "watch": 0.5, "brave": 0.6 },
+    "brave": { "fear": 0.6, "brave": 1.4 },
+    "greedy": { "greed": 1.3, "generous": 0.8 },
+    "frugal": { "frugal": 1.3 },
+    "proud": { "proud": 1.5, "help": 0.6 },
+    "pious": { "pious": 1.4 },
+    "curious": { "curious": 1.4, "watch": 1.4 },
+    "diligent": { "diligent": 1.3 },
+    "conscientious": { "duty": 1.4 },
+    "generous": { "generous": 1.4 },
+    "merciful": { "mercy": 1.4 },
+    "lawful": { "lawful": 1.3 },
+    "grudging": { "grudge": 1.5 },
+    "forgiving": { "grudge": 0.4 },
+    "stubborn": { "stubborn": 1.3 },
+    "dishonest": { "dishonest": 1.5 },
+    "ambitious": { "ambition": 1.4 },
+    "conscience": { "conscience": 1.3 },
+    "impatient": { "impatient": 1.4 },
+    "warlike": { "warlike": 1.5 }
+  }
+}

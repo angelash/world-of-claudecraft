@@ -174,6 +174,23 @@ interface KeepMem {
 }
 
 /**
+ * The saved form of a runner (builtin_ai.md 2.2 and 18): the per-run memory of the nodes
+ * mid-run (resume points, usel orders, pending command handles) and the decorator history
+ * that outlives a run (cooldown, once, throttle), keyed by stable node id. Plain JSON, so
+ * an owning system keeps it in its slice: after a load the tree resumes where it was and a
+ * `once` that fired today does not fire again.
+ */
+export interface BtRunnerState {
+  run: Record<string, RunMem>;
+  keep: Record<string, KeepMem>;
+}
+
+/** A deep copy of plain node memory (number arrays and records only). */
+function copyMem<T extends object>(m: T): T {
+  return JSON.parse(JSON.stringify(m)) as T;
+}
+
+/**
  * Runs one actor's tree. Composite nodes remember the running child; seq and sel do not
  * re-check finished children (no reactive re-evaluation: a guard decorator gives that
  * where it is wanted). Abandoned branches cancel their pending commands.
@@ -202,6 +219,44 @@ export class BtRunner {
   /** Abandon the running branch (cancelling pending commands); decorator history stays. */
   abort(env: Pick<BtEnv, 'cancel'>): void {
     this.drop(this.root, env);
+  }
+
+  /**
+   * The runner's memory as saveable JSON (copies, sorted by node id): the running branch
+   * and the decorator history. Pair with restore() to survive a save and load, or to run one
+   * tree for many actors with one runner (restore the actor's state, tick, snapshot).
+   */
+  snapshot(): BtRunnerState {
+    const run: Record<string, RunMem> = {};
+    for (const id of [...this.run.keys()].sort()) run[id] = copyMem(this.run.get(id) as RunMem);
+    const keep: Record<string, KeepMem> = {};
+    for (const id of [...this.keep.keys()].sort()) {
+      const k = this.keep.get(id) as KeepMem;
+      if (k.readyAt === undefined && k.day === undefined && (k.uses?.length ?? 0) === 0) continue;
+      keep[id] = copyMem(k);
+    }
+    return { run, keep };
+  }
+
+  /**
+   * Replace the runner's memory with a saved state (copied in); memory of node ids the tree
+   * no longer has is dropped, so a tree edited between save and load starts those fresh.
+   */
+  restore(state: BtRunnerState | undefined): void {
+    this.run.clear();
+    this.keep.clear();
+    this.statusesNow = new Map();
+    if (!state) return;
+    const ids = new Set<string>();
+    const visit = (n: BtNodeDef) => {
+      ids.add(n.id);
+      for (const c of n.children ?? []) visit(c);
+    };
+    visit(this.root);
+    for (const [id, m] of Object.entries(state.run ?? {}))
+      if (ids.has(id)) this.run.set(id, copyMem(m));
+    for (const [id, k] of Object.entries(state.keep ?? {}))
+      if (ids.has(id)) this.keep.set(id, copyMem(k));
   }
 
   private mem(node: BtNodeDef): RunMem {
@@ -244,7 +299,16 @@ export class BtRunner {
       case 'usel': {
         const m = this.mem(node);
         const kids = node.children ?? [];
-        if (!m.order) {
+        // an order restored from a save of an older tree is redrawn rather than trusted, and
+        // the run under it starts over (its resume index pointed into the old order)
+        const stale =
+          !!m.order &&
+          (m.order.length !== kids.length || m.order.some((id) => !kids.some((c) => c.id === id)));
+        if (stale) {
+          delete m.index;
+          for (const c of kids) this.drop(c, env);
+        }
+        if (!m.order || stale) {
           m.order = kids
             .map((c) => ({ id: c.id, score: env.score?.(c, bb) ?? 0 }))
             .sort(byScoreThenId)

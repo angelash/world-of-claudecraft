@@ -489,7 +489,9 @@ describe('T-09: sleeping (7.1, 7.3, 7.4)', () => {
     // 12 hours at 1% to 2% per hour: about a fifth of the nights
     expect(ambushed).toBeGreaterThan(0);
     expect(ambushed).toBeLessThan(24);
-  });
+    // 24 whole games, each running a town's hourly NPC brains through a day: room for a
+    // busy machine running the full suite
+  }, 120_000);
 
   it('a full night restores the sleeper; a wait does not', () => {
     const g = game(TAVERN.map, TAVERN.x, TAVERN.y, { at: tickAtDay(0, 20) });

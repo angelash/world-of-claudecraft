@@ -335,7 +335,8 @@ describe('ln_common migration (catalog_dialogue_lines 4.14)', () => {
     });
     const common = CONTENT.linePacks.find((p) => p.id === 'ln_common') as LinePack;
     const neutral = common.slots['greet.neutral'] as unknown[];
-    expect(neutral.slice(2)).toEqual([
+    // indexes 2 and 3 hold the first-meeting lines; later lines are only appended (7.1)
+    expect(neutral.slice(2, 4)).toEqual([
       { zh: '头一回见啊，{player}。', first: true },
       { zh: '{player}？没见过你。新来的吧。', first: true },
     ]);

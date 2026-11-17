@@ -76,6 +76,9 @@ function bestTrust(world: World): number {
 export function personAbsent(world: World, content: ContentMap | undefined, id: string): boolean {
   const f = world.meta.flags;
   if (truthy(f[`npc.${id}.dead`])) return true;
+  // captured, turned hostile, at the spring (the NPC system's absence variables)
+  if (truthy(f[`npc.${id}.captured`]) || truthy(f[`npc.${id}.hostile`])) return true;
+  if (truthy(f[`npc.${id}.at_spring`])) return true;
   if (truthy(f[`companion.${id}.lost`])) return true;
   const st = f[`companion.${id}.state`];
   if (st === 'left' || st === 'dead') return true;

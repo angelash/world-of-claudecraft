@@ -7,30 +7,68 @@ import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { commandText, type TextParam, tr } from '../../core/text';
-import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
+import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { referencedVars } from '../quests/conditions';
 import { playerEntity } from '../world';
-import { applyDecision, decideHour, passHour, settleMoney } from './actions';
+import { passHour, scheduledWork, settleMoney, trackPlayerTalk } from './actions';
+import {
+  endSpringPeriods,
+  forgetSightings,
+  heldByBeat,
+  isCapturedFlag,
+  logHour,
+  mirrorHostile,
+  onBeliefChanged,
+  onDecided,
+  onDecisionOpened,
+  onDeedFor,
+  onIdentityExposed,
+  onPersonDied,
+  onQuestStage,
+  onTalkedFor,
+  remember,
+  runBeats,
+  senseThreat,
+  setFollow,
+  setWatch,
+  sortedNpcIds,
+  stepFollowers,
+  stepNpc,
+  stepWatchers,
+  upkeepApproaches,
+} from './brain';
 import { runChats } from './chat';
-import { CHAT_TICKS, DAWN_HOUR } from './constants';
+import { CHAT_TICKS, DAWN_HOUR, FOLLOW_TICKS } from './constants';
 import { applyDiary, requestDiaries } from './diary';
 import { consolidateMemory } from './memory';
+import { moneyNeed } from './needs';
 import { cardOf, npcEntityId, personaById } from './personas';
-import { locationById, placeRef, resolvePlaceOn } from './places';
+import { locationById, MAP_PLACE_SEPARATOR, placeRef, resolvePlaceOn } from './places';
 import { applyPlan, requestDailyPlans } from './plan';
 import { resumeFrozen } from './ports';
-import { decayRelations } from './relations';
+import { decayRelations, relationOf } from './relations';
+import { stepTransits } from './routes';
 import { ACT_NAMES } from './schedule';
 import { spawnAll, syncPresence } from './spawn';
 import './skip';
 import { recomputeTiers } from './tiers';
 import { ACTIVITIES, type NpcState, type PlanState } from './types';
+import { devotionOf, spendable } from './wallet';
 
+export {
+  brainDecide,
+  noteOffense,
+  setFollow,
+  setWatch,
+  stepNpc,
+  takeOpener,
+} from './brain';
 export * from './memory';
 export * from './personas';
 export * from './ports';
 export * from './queries';
 export * from './relations';
+export * from './traits';
 export * from './types';
 export { ACT_NAMES };
 
@@ -44,6 +82,7 @@ function presenceFlags(ctx: SystemContext): Set<string> {
     for (const p of ctx.content.npcs ?? []) {
       for (const f of p.requiresFlags ?? []) set.add(f);
       for (const c of p.hideWhen ?? []) for (const v of referencedVars(c)) set.add(v);
+      set.add(`npc.${p.id}.captured`);
     }
     relevantFlagCache.set(ctx.content, set);
   }
@@ -64,20 +103,25 @@ function sayText(v: TextParam, fromModel: boolean): TextParam {
 
 function onHour(ctx: SystemContext, hour: number): void {
   const slice = ctx.world.slices.npc;
-  const ids = Object.keys(slice.npcs).sort();
+  const ids = sortedNpcIds(slice.npcs);
+  const ended = (hour + 23) % 24;
   for (const id of ids) {
     const st = slice.npcs[id] as NpcState;
     const card = cardOf(slice, ctx.content, id);
     if (!card || st.gone) continue;
-    passHour(st, card);
+    logHour(ctx, st, card, ended);
+    passHour(st, card, {
+      scheduledWork: !st.resident && scheduledWork(ctx, card, ended),
+      devotion: devotionOf(card),
+    });
+    if (!st.resident) st.needs.money = Math.round(moneyNeed(spendable(ctx, st)) * 100) / 100;
+    if (!st.resident && st.mapId === slice.playerMap) senseThreat(ctx, st);
   }
   recomputeTiers(ctx);
   for (const id of ids) {
     const st = slice.npcs[id] as NpcState;
-    if (st.gone || st.talking || ctx.tick < st.freezeUntil) continue;
     const card = cardOf(slice, ctx.content, id);
-    if (!card) continue;
-    applyDecision(ctx, st, card, decideHour(ctx, st, card, hour), hour);
+    if (card && !heldByBeat(ctx, st)) stepNpc(ctx, st, card);
   }
   if (hour === DAWN_HOUR) {
     requestDailyPlans(ctx);
@@ -96,6 +140,21 @@ function onDay(ctx: SystemContext, dayIndex: number): void {
     if (!mind) continue;
     consolidateMemory(mind, dayIndex - 1);
     decayRelations(mind);
+  }
+  endSpringPeriods(ctx);
+}
+
+/** A named person died: the absence variables, and those close to them mourn (5.3). */
+function onDeath(ctx: SystemContext, id: string): void {
+  const slice = ctx.world.slices.npc;
+  onPersonDied(ctx, id);
+  const name = cardOf(slice, ctx.content, id)?.name ?? id;
+  for (const other of Object.keys(slice.minds).sort()) {
+    if (other === id || slice.npcs[other]?.gone) continue;
+    if (relationOf(slice, other, id).like < 50) continue;
+    remember(ctx, other, 'mourning', { who: name }, { about: id });
+    const o = slice.npcs[other];
+    if (o?.brain) o.brain.recent.mourning = ctx.tick;
   }
 }
 
@@ -118,6 +177,11 @@ export const system: GameSystem = {
   tick(ctx) {
     if (ctx.tick % CHAT_TICKS === 0) runChats(ctx);
     if (ctx.tick % 20 === 0) resumeFrozen(ctx);
+    runBeats(ctx);
+    stepFollowers(ctx);
+    stepTransits(ctx);
+    if (ctx.tick % FOLLOW_TICKS === 0) upkeepApproaches(ctx);
+    stepWatchers(ctx);
   },
 
   on: {
@@ -128,11 +192,14 @@ export const system: GameSystem = {
       onDay(ctx, e.data.dayIndex);
     },
     'world.map_changed'(ctx, e) {
-      if (e.data.id === ctx.world.slices.world.playerId) recomputeTiers(ctx);
+      if (e.data.id !== ctx.world.slices.world.playerId) return;
+      recomputeTiers(ctx);
+      forgetSightings(ctx);
     },
     'flag.changed'(ctx, e) {
       const k = e.data.key;
-      if (k.startsWith('companion.') || presenceFlags(ctx).has(k)) syncPresence(ctx);
+      if (k.startsWith('companion.') || isCapturedFlag(k) || presenceFlags(ctx).has(k))
+        syncPresence(ctx);
       if (k.startsWith('ai.focus.')) recomputeTiers(ctx);
     },
     'entity.died'(ctx, e) {
@@ -141,7 +208,38 @@ export const system: GameSystem = {
       if (st && e.data.id === st.entityId) {
         st.gone = 'dead';
         st.talking = false;
+        st.follow = null;
+        if (!st.resident) onDeath(ctx, ref as string);
       }
+    },
+    'dispute.decision_opened'(ctx, e) {
+      onDecisionOpened(ctx, e.data);
+    },
+    'dispute.decided'(ctx, e) {
+      onDecided(ctx, e.data);
+    },
+    'cognition.belief_changed'(ctx, e) {
+      onBeliefChanged(ctx, e.data);
+    },
+    'npc.relation_changed'(ctx, e) {
+      if (e.data.to === 'player') mirrorHostile(ctx, e.data.from);
+    },
+    'feat.performed'(ctx, e) {
+      const d = e.data;
+      if (d.actorId !== ctx.world.slices.world.playerId || !d.targetRef) return;
+      if (d.kind === 'rescue' || d.kind === 'heal') onDeedFor(ctx, d.targetRef, d.kind);
+    },
+    'identity.exposed'(ctx, e) {
+      onIdentityExposed(ctx, e.data);
+    },
+    'quest.stage'(ctx, e) {
+      onQuestStage(ctx, e.data.questId, e.data.stage);
+    },
+    'player.talked'(ctx, e) {
+      if (!e.data.npcRef) return;
+      onTalkedFor(ctx, e.data.npcRef);
+      const st = ctx.world.slices.npc.npcs[e.data.npcRef];
+      if (st) trackPlayerTalk(ctx, st);
     },
   },
 
@@ -183,15 +281,36 @@ export const system: GameSystem = {
       const st = slice.npcs[d.npcId];
       const card = cardOf(slice, ctx.content, d.npcId);
       if (!st || !card || st.gone) return reject('no_npc', tr('sys.npc.reject.no_npc'));
-      const place = resolvePlaceOn(ctx.content, card, d.locationId);
+      // a place on another map is named by its map (a cross-map errand)
+      const ref =
+        d.mapId && d.mapId !== card.map
+          ? `${d.mapId}${MAP_PLACE_SEPARATOR}${d.locationId}`
+          : d.locationId;
+      const place = resolvePlaceOn(ctx.content, card, ref);
       if (!place) return reject('no_place', tr('sys.npc.reject.no_place'));
       const act = d.act ?? 'wander';
       if (!ACTIVITIES.includes(act)) return reject('bad_act', tr('sys.npc.reject.bad_act'));
       const hours = Math.max(1, Math.min(24, Math.round(d.hours)));
       const at = placeRef(card.map, place.mapId, place.loc.id);
       st.override = { until: ctx.tick + hours * TICKS_PER_GAME_HOUR, at, act };
-      const hour = calendarAt(ctx.tick).hour;
-      if (!st.talking) applyDecision(ctx, st, card, decideHour(ctx, st, card, hour), hour);
+      st.follow = null;
+      if (!st.talking) {
+        st.transit = null;
+        stepNpc(ctx, st, card);
+      }
+      return ok();
+    },
+    'npc.follow'(ctx, d, src) {
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.npc.reject.follow_not_allowed'));
+      return setFollow(ctx, d.npcId, d.on, d)
+        ? ok()
+        : reject('no_npc', tr('sys.npc.reject.no_npc'));
+    },
+    'npc.watch'(ctx, d, src) {
+      if (src.type === 'player')
+        return reject('not_allowed', tr('sys.npc.reject.watch_not_allowed'));
+      setWatch(ctx, d, d.on);
       return ok();
     },
   },

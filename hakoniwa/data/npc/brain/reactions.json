@@ -1,0 +1,145 @@
+{
+  "_doc": "The NPC reaction table (builtin_ai.md 5.6), read with firstMatch from the highest priority down for each named onlooker of a deed or an identity exposure. `cond` joins predicate names of src/systems/npc/brain/reactions.ts with AND (a leading ! negates); `then` names the reaction's behaviour and its line slot. Row 10 hands over to the cognition-driven unbelief lines (builtin_ai 5.7); row 11 is the plain onlooker.",
+  "rows": [
+    {
+      "id": "awe_fear",
+      "cond": "over_big AND mood_fear",
+      "priority": 110,
+      "then": [
+        {
+          "action": "flee",
+          "params": {
+            "slot": "react.awe_fear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "heresy_alarm",
+      "cond": "devout AND expl_dark",
+      "priority": 100,
+      "then": [
+        {
+          "action": "alarm",
+          "params": {
+            "slot": "react.heresy_alarm"
+          }
+        }
+      ]
+    },
+    {
+      "id": "miracle_awe",
+      "cond": "devout AND expl_miracle",
+      "priority": 90,
+      "then": [
+        {
+          "action": "worship",
+          "params": {
+            "slot": "react.miracle_awe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "challenge",
+      "cond": "lawman AND kind_matched",
+      "priority": 80,
+      "then": [
+        {
+          "action": "challenge",
+          "params": {
+            "slot": "react.challenge"
+          }
+        }
+      ]
+    },
+    {
+      "id": "belief_exploit",
+      "cond": "state_exploit AND trader",
+      "priority": 70,
+      "then": [
+        {
+          "action": "approach",
+          "params": {
+            "slot": "react.belief_exploit"
+          }
+        }
+      ]
+    },
+    {
+      "id": "belief_worship",
+      "cond": "state_worship",
+      "priority": 60,
+      "then": [
+        {
+          "action": "worship",
+          "params": {
+            "slot": "react.belief_worship"
+          }
+        }
+      ]
+    },
+    {
+      "id": "belief_hostile",
+      "cond": "state_hostile",
+      "priority": 50,
+      "then": [
+        {
+          "action": "cold",
+          "params": {
+            "slot": "react.belief_hostile"
+          }
+        }
+      ]
+    },
+    {
+      "id": "belief_depend",
+      "cond": "state_depend",
+      "priority": 40,
+      "then": [
+        {
+          "action": "approach",
+          "params": {
+            "slot": "react.belief_depend"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gatefolk_recognize",
+      "cond": "gatefolk AND kind_gate",
+      "priority": 30,
+      "then": [
+        {
+          "action": "recognize",
+          "params": {
+            "slot": "react.gatefolk_recognize"
+          }
+        }
+      ]
+    },
+    {
+      "id": "unbelief",
+      "cond": "state_unbelief",
+      "priority": 20,
+      "then": [
+        {
+          "action": "unbelief"
+        }
+      ]
+    },
+    {
+      "id": "feat_seen",
+      "cond": "",
+      "priority": 10,
+      "then": [
+        {
+          "action": "onlook",
+          "params": {
+            "slot": "react.feat_seen"
+          }
+        }
+      ]
+    }
+  ]
+}

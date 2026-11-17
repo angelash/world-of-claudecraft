@@ -76,7 +76,18 @@
     },
     "lines": {
       "react.believe": ["我闻得出来。是真的。"]
-    }
+    },
+    "roles": ["recruit", "general", "giver"],
+    "pursuits": [
+      {
+        "id": "forest_lore",
+        "at": "east_slope",
+        "act": "work",
+        "from": 16,
+        "hours": 1,
+        "everyDays": 3
+      }
+    ]
   },
   {
     "id": "ron",
@@ -151,7 +162,18 @@
       "react.switch.hidden_identity": ["你其实是哪家的少爷吧？"],
       "react.wavering": ["不可能。……也许……不，不可能。"],
       "react.accept": ["……好吧，可能。"]
-    }
+    },
+    "roles": ["recruit", "general", "officer"],
+    "pursuits": [
+      {
+        "id": "rank_up",
+        "at": "guild",
+        "act": "work",
+        "from": 14,
+        "hours": 2,
+        "everyDays": 2
+      }
+    ]
   },
   {
     "id": "nera",
@@ -220,7 +242,18 @@
       "martha": {
         "like": 30
       }
-    }
+    },
+    "roles": ["vendor", "info", "recruit"],
+    "pursuits": [
+      {
+        "id": "trade_hub",
+        "at": "salt_market",
+        "act": "shop",
+        "from": 10,
+        "hours": 1,
+        "everyDays": 2
+      }
+    ]
   },
   {
     "id": "oola",
@@ -301,7 +334,19 @@
     },
     "stances": {
       "witch_trial": -1
-    }
+    },
+    "roles": ["healer", "trainer", "officer"],
+    "pursuits": [
+      {
+        "id": "north_cure",
+        "at": "houses_north",
+        "act": "work",
+        "from": 15,
+        "hours": 1,
+        "everyDays": 2,
+        "abandon": "a1_oola_fate == 'executed' OR a1_oola_fate == 'fled'"
+      }
+    ]
   },
   {
     "id": "cassian",
@@ -384,7 +429,21 @@
     "needs": {
       "faith": 1.5,
       "social": 0.6
-    }
+    },
+    "roles": ["cleric", "witness", "healer"],
+    "pursuits": [
+      {
+        "id": "grey_evidence",
+        "at": "orphanage",
+        "act": "wander",
+        "from": 9,
+        "hours": 1,
+        "everyDays": 3,
+        "urge": "a1_witch_trial_started",
+        "done": "a1_spring_source_found",
+        "abandon": "a1_oola_fate == 'cleared'"
+      }
+    ]
   },
   {
     "id": "martha",
@@ -454,7 +513,8 @@
     },
     "needs": {
       "energy": 0.8
-    }
+    },
+    "roles": ["vendor", "info", "general"]
   },
   {
     "id": "bron",
@@ -530,7 +590,18 @@
     "needs": {
       "social": 1.4,
       "energy": 1.2
-    }
+    },
+    "roles": ["info", "officer", "giver"],
+    "pursuits": [
+      {
+        "id": "old_question",
+        "at": "north_gate",
+        "act": "wander",
+        "from": 17,
+        "hours": 1,
+        "everyDays": 4
+      }
+    ]
   },
   {
     "id": "moss",
@@ -595,7 +666,18 @@
         "trust": 30,
         "interest": 20
       }
-    }
+    },
+    "roles": ["rival", "giver", "info"],
+    "pursuits": [
+      {
+        "id": "buy_office",
+        "at": "post_station",
+        "act": "wander",
+        "from": 16,
+        "hours": 1,
+        "everyDays": 5
+      }
+    ]
   },
   {
     "id": "lina",
@@ -653,7 +735,8 @@
     "lines": {
       "appraise.crystal": ["啊，又坏了……这个月第三次了。您别担心，先登记 F 级，水晶修好了再来测。"],
       "react.explain.luck": ["好厉害！……运气真好呀。"]
-    }
+    },
+    "roles": ["giver", "info"]
   },
   {
     "id": "hock",
@@ -703,7 +786,8 @@
         "trust": 80,
         "like": 40
       }
-    }
+    },
+    "roles": ["info", "witness", "crafter"]
   },
   {
     "id": "isa",
@@ -769,7 +853,8 @@
     },
     "needs": {
       "faith": 1.2
-    }
+    },
+    "roles": ["cleric", "witness", "recruit"]
   },
   {
     "id": "toma",
@@ -811,7 +896,8 @@
     "reliability": 0.9,
     "needs": {
       "social": 0.4
-    }
+    },
+    "roles": ["info", "rumor"]
   },
   {
     "id": "bertha",
@@ -865,7 +951,8 @@
     "needs": {
       "faith": 1.5,
       "social": 1.3
-    }
+    },
+    "roles": ["rumor", "rival"]
   },
   {
     "id": "greta",
@@ -920,7 +1007,18 @@
       "nera": {
         "trust": 40
       }
-    }
+    },
+    "roles": ["giver", "witness"],
+    "pursuits": [
+      {
+        "id": "mill_claim",
+        "at": "magistrate",
+        "act": "wander",
+        "from": 10,
+        "hours": 1,
+        "everyDays": 4
+      }
+    ]
   },
   {
     "id": "noi",
@@ -975,7 +1073,8 @@
     },
     "needs": {
       "social": 0.5
-    }
+    },
+    "roles": ["keyholder", "recruit"]
   },
   {
     "id": "tess",
@@ -1019,7 +1118,8 @@
         "trust": 100,
         "like": 100
       }
-    }
+    },
+    "roles": ["keyholder"]
   },
   {
     "id": "barga",
@@ -1076,7 +1176,18 @@
     "needs": {
       "hunger": 1.2,
       "social": 0.6
-    }
+    },
+    "roles": ["crafter", "vendor", "trainer"],
+    "pursuits": [
+      {
+        "id": "worthy_blade",
+        "at": "salt_market",
+        "act": "shop",
+        "from": 8,
+        "hours": 1,
+        "everyDays": 4
+      }
+    ]
   },
   {
     "id": "gaspar",
@@ -1136,7 +1247,8 @@
     },
     "stances": {
       "forest": 0.8
-    }
+    },
+    "roles": ["giver", "crafter", "rival"]
   },
   {
     "id": "nick",
@@ -1188,7 +1300,8 @@
     },
     "stances": {
       "forest": -0.2
-    }
+    },
+    "roles": ["giver", "recruit"]
   },
   {
     "id": "gorn",
@@ -1245,7 +1358,8 @@
     },
     "stances": {
       "forest": -0.9
-    }
+    },
+    "roles": ["trainer", "giver"]
   },
   {
     "id": "ako",
@@ -1288,7 +1402,8 @@
         "trust": 80,
         "like": 85
       }
-    }
+    },
+    "roles": ["recruit"]
   },
   {
     "id": "boro",
@@ -1338,7 +1453,8 @@
     },
     "stances": {
       "forest": -1
-    }
+    },
+    "roles": ["crafter", "recruit"]
   },
   {
     "id": "barto",
@@ -1387,7 +1503,8 @@
       "jed": {
         "trust": 40
       }
-    }
+    },
+    "roles": ["officer", "general", "trainer"]
   },
   {
     "id": "jed",
@@ -1432,7 +1549,8 @@
       "ako": {
         "like": -10
       }
-    }
+    },
+    "roles": ["recruit"]
   },
   {
     "id": "vick",
@@ -1477,7 +1595,8 @@
       "lisa": {
         "interest": 40
       }
-    }
+    },
+    "roles": ["info", "witness"]
   },
   {
     "id": "viro",
@@ -1526,7 +1645,8 @@
         "trust": 20,
         "interest": 40
       }
-    }
+    },
+    "roles": ["info", "vendor", "recruit"]
   },
   {
     "id": "popo",
@@ -1577,7 +1697,8 @@
     "needs": {
       "social": 1.5,
       "hunger": 1.3
-    }
+    },
+    "roles": ["vendor", "recruit", "rumor"]
   },
   {
     "id": "owen",
@@ -1615,7 +1736,8 @@
     "money": 700,
     "wage": 6,
     "spread": 1.2,
-    "reliability": 0.8
+    "reliability": 0.8,
+    "roles": ["vendor", "rumor"]
   },
   {
     "id": "dora",
@@ -1662,7 +1784,18 @@
     },
     "needs": {
       "social": 1.4
-    }
+    },
+    "roles": ["rumor", "info"],
+    "pursuits": [
+      {
+        "id": "singer",
+        "at": "plaza",
+        "act": "chat",
+        "from": 18,
+        "hours": 1,
+        "everyDays": 3
+      }
+    ]
   },
   {
     "id": "ed",
@@ -1700,7 +1833,8 @@
     "wage": 2,
     "spin": "ghost",
     "spread": 0.6,
-    "reliability": 0.4
+    "reliability": 0.4,
+    "roles": ["witness", "info"]
   },
   {
     "id": "ped",
@@ -1746,7 +1880,8 @@
       "vick": {
         "interest": 30
       }
-    }
+    },
+    "roles": ["vendor", "giver"]
   },
   {
     "id": "lisa",
@@ -1789,7 +1924,8 @@
       "ped": {
         "like": 70
       }
-    }
+    },
+    "roles": ["giver"]
   },
   {
     "id": "dris",
@@ -1845,7 +1981,8 @@
     "lines": {
       "react.explain.wounded": ["那是我们打残的。", "那窝东西前几天我们队打残了，你捡了个漏。"],
       "react.again.wounded": ["又捡我们的漏。"]
-    }
+    },
+    "roles": ["recruit", "rival"]
   },
   {
     "id": "simon",
@@ -1888,7 +2025,8 @@
     "reliability": 0.8,
     "lines": {
       "react.explain.luck": ["哪有那种人。碰巧罢了。"]
-    }
+    },
+    "roles": ["recruit", "officer"]
   },
   {
     "id": "marg",
@@ -1927,7 +2065,8 @@
     "personality": "curious",
     "spin": "detail",
     "spread": 1.6,
-    "reliability": 0.75
+    "reliability": 0.75,
+    "roles": ["rumor"]
   },
   {
     "id": "selene",
@@ -1976,7 +2115,8 @@
     "needs": {
       "faith": 1.4,
       "social": 0.6
-    }
+    },
+    "roles": ["rival", "witness", "recruit"]
   },
   {
     "id": "anselm",
@@ -2029,7 +2169,8 @@
     },
     "needs": {
       "faith": 1
-    }
+    },
+    "roles": ["cleric", "patron", "rival"]
   },
   {
     "id": "agnes",
@@ -2067,7 +2208,8 @@
     "wage": 1,
     "personality": "stubborn",
     "spread": 0.8,
-    "reliability": 0.85
+    "reliability": 0.85,
+    "roles": ["healer", "giver", "witness"]
   },
   {
     "id": "krause",
@@ -2117,7 +2259,8 @@
       "reynard": {
         "trust": 50
       }
-    }
+    },
+    "roles": ["patron", "officer", "info"]
   },
   {
     "id": "liese",
@@ -2155,7 +2298,8 @@
     "wage": 5,
     "personality": "curious",
     "spread": 2,
-    "reliability": 0.8
+    "reliability": 0.8,
+    "roles": ["info", "giver", "rumor"]
   },
   {
     "id": "reynard",
@@ -2196,7 +2340,8 @@
     "spin": "self_credit",
     "spread": 1.2,
     "reliability": 0.6,
-    "fame": 0.8
+    "fame": 0.8,
+    "roles": ["rival", "recruit", "giver"]
   },
   {
     "id": "ferryman",
@@ -2240,7 +2385,8 @@
     "spread": 0.3,
     "reliability": 0.7,
     "fame": 0.1,
-    "concealed": true
+    "concealed": true,
+    "roles": ["witness", "trainer", "recruit"]
   },
   {
     "id": "pia",
@@ -2283,7 +2429,8 @@
         "trust": 90,
         "like": 90
       }
-    }
+    },
+    "roles": ["info", "recruit"]
   },
   {
     "id": "luchen",
@@ -2340,7 +2487,8 @@
         "trust": 85,
         "like": 70
       }
-    }
+    },
+    "roles": ["rival", "general"]
   },
   {
     "id": "yui",
@@ -2391,7 +2539,8 @@
       "marcus": {
         "trust": 80
       }
-    }
+    },
+    "roles": ["healer", "cleric"]
   },
   {
     "id": "aiden",
@@ -2433,7 +2582,8 @@
     "personality": "curious",
     "spread": 0.6,
     "reliability": 0.9,
-    "fame": 0.8
+    "fame": 0.8,
+    "roles": ["info", "rival"]
   },
   {
     "id": "marcus",
@@ -2476,7 +2626,8 @@
     "ceiling": 50,
     "spread": 1,
     "reliability": 0.85,
-    "fame": 0.8
+    "fame": 0.8,
+    "roles": ["general", "rival"]
   },
   {
     "id": "edric",
@@ -2528,7 +2679,8 @@
         "trust": 40,
         "like": 10
       }
-    }
+    },
+    "roles": ["patron", "recruit", "officer"]
   },
   {
     "id": "cecilia",
@@ -2570,7 +2722,8 @@
     "oldOrder": 0.4,
     "spread": 0.8,
     "reliability": 0.8,
-    "fame": 0.6
+    "fame": 0.6,
+    "roles": ["patron", "recruit", "officer"]
   },
   {
     "id": "lucas",
@@ -2611,7 +2764,8 @@
     "oldOrder": 0.3,
     "spread": 1,
     "reliability": 0.8,
-    "fame": 0.5
+    "fame": 0.5,
+    "roles": ["patron", "recruit", "general"]
   },
   {
     "id": "fynn",
@@ -2650,7 +2804,8 @@
     "spin": "x5",
     "spread": 2,
     "reliability": 0.3,
-    "fame": 0.3
+    "fame": 0.3,
+    "roles": ["rumor", "recruit", "giver"]
   },
   {
     "id": "karl",
@@ -2694,7 +2849,8 @@
       "fynn": {
         "like": 60
       }
-    }
+    },
+    "roles": ["rumor", "info"]
   },
   {
     "id": "jonas",
@@ -2733,6 +2889,7 @@
     "wage": 4,
     "personality": "curious",
     "spread": 1.2,
-    "reliability": 0.6
+    "reliability": 0.6,
+    "roles": ["info", "witness", "recruit"]
   }
 ]

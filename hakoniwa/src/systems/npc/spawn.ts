@@ -7,6 +7,7 @@ import { calendarAt } from '../../core/time';
 import { addMoney } from '../inventory';
 import { evaluate, flagResolver } from '../quests/conditions';
 import { getEntity, mapById, removeEntity, spawnEntity } from '../world';
+import { setNote } from './actions';
 import { initialNeeds } from './needs';
 import {
   type CardView,
@@ -56,6 +57,8 @@ function matches(ctx: SystemContext, cond: string): boolean {
 /** Why a persona should currently be absent from the world, or null when present. */
 export function absenceReason(ctx: SystemContext, p: PersonaCard): GoneReason | null {
   if (ctx.flag(`companion.${p.id}.recruited`)) return 'recruited';
+  // held by the story (thousand_doors.md 5.4 absence: captured)
+  if (ctx.flag(`npc.${p.id}.captured`)) return 'captured';
   if (p.requiresFlags?.some((f) => !ctx.flag(f))) return 'absent';
   if (p.hideWhen?.some((c) => matches(ctx, c))) return 'hidden';
   return null;
@@ -95,7 +98,7 @@ function spawnFor(ctx: SystemContext, st: NpcState, card: CardView): void {
   st.mapId = target.mapId;
   st.locId = loc.id;
   st.activity = seg.act;
-  st.note = seg.note;
+  setNote(st, seg.note);
 }
 
 /** Generate the nameless residents of every template (deterministic per world seed). */

@@ -10,6 +10,8 @@ import type { MemoryEntry, MemorySource, Mind } from './types';
 
 export interface MemoryInput {
   text: TextParam;
+  /** the short phrase of the {memory} fill slot (builtin_ai.md 5.3) */
+  short?: TextParam;
   src: MemorySource;
   cred?: number;
   about?: string;
@@ -32,6 +34,7 @@ export function addMemory(ctx: SystemContext, npcId: string, input: MemoryInput)
     tick: ctx.tick,
     day: calendarAt(ctx.tick).dayIndex,
     text: clipText(input.text, 120),
+    short: input.short === undefined ? undefined : clipText(input.short, 40),
     src: input.src,
     cred: Math.max(0, Math.min(1, input.cred ?? DEFAULT_CRED[input.src])),
     about: input.about,

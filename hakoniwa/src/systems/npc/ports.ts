@@ -3,8 +3,8 @@
 
 import { systemSource } from '../../core';
 import type { SystemContext } from '../../core/system';
-import { calendarAt } from '../../core/time';
-import { applyDecision, decideHour } from './actions';
+import { sortedNpcIds } from './brain/state';
+import { stepNpc } from './brain/step';
 import { FREEZE_TICKS } from './constants';
 import { cardOf } from './personas';
 import type { NpcState } from './types';
@@ -40,8 +40,7 @@ export function bumpHeat(ctx: SystemContext, npcId: string, amount: number): voi
 /** Resume schedules whose conversation freeze or scripted errand has run out. */
 export function resumeFrozen(ctx: SystemContext): void {
   const slice = ctx.world.slices.npc;
-  const hour = calendarAt(ctx.tick).hour;
-  for (const id of Object.keys(slice.npcs).sort()) {
+  for (const id of sortedNpcIds(slice.npcs)) {
     const st = slice.npcs[id] as NpcState;
     if (st.talking || st.gone) continue;
     const errandOver = !!st.override && ctx.tick >= st.override.until;
@@ -52,6 +51,6 @@ export function resumeFrozen(ctx: SystemContext): void {
     if (st.freezeUntil !== 0) continue;
     const card = cardOf(slice, ctx.content, id);
     if (!card) continue;
-    applyDecision(ctx, st, card, decideHour(ctx, st, card, hour), hour);
+    stepNpc(ctx, st, card);
   }
 }

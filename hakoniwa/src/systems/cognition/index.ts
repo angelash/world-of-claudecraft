@@ -22,6 +22,7 @@ import {
   tryTell,
   witnessVersion,
 } from './rumor';
+import { carryByRoad, injectHint } from './spread';
 import { type AppraisalResult, EVIDENCE_KINDS, type EvidenceKind } from './types';
 import { raiseChurchSuspicion, witnessDeath, witnessFeat } from './witness';
 
@@ -32,6 +33,7 @@ export * from './pressure';
 export * from './queries';
 export { tellPlayer } from './rumor';
 export { rumorText } from './rumor_text';
+export * from './spread';
 export * from './types';
 
 const APPRAISE_RANGE = 8;
@@ -104,6 +106,14 @@ function onPlayerAppraised(ctx: SystemContext, result: AppraisalResult): void {
       imp: 0.45,
     });
   }
+  // the pageless reading seen by others is an identity exposure (builtin_ai.md 5.6)
+  if (result.kind === 'no_record')
+    ctx.emit('identity.exposed', {
+      kind: 'identity_pageless',
+      mapId: target.mapId,
+      x: target.x,
+      y: target.y,
+    });
   const appraiserId = observer.ref;
   const p = appraiserId ? personaById(ctx.content, appraiserId) : undefined;
   if (!p || !appraiserId) return;
@@ -176,8 +186,12 @@ export const system: GameSystem = {
       tryTell(ctx, a, b, mapId, locationKind, visible);
       tryTell(ctx, b, a, mapId, locationKind, visible);
     },
+    'doors.hint'(ctx, e) {
+      if (e.data.channel === 'rumor') injectHint(ctx, e.data.text, e.data.doorId);
+    },
     'world.day'(ctx) {
       const slice = ctx.world.slices.cognition;
+      carryByRoad(ctx);
       coolRumors(slice);
       regressBeliefs(ctx);
       updatePublicStances(ctx);

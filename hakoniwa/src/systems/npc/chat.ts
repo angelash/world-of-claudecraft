@@ -6,19 +6,21 @@
 import { systemSource } from '../../core';
 import type { AnyCommand } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
-import { tr } from '../../core/text';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
+import { speak as speakSlot } from '../dialogue/speak';
 import { pickLine } from '../dialogue/templates';
 import { currentWeather, getEntity } from '../world';
 import type { LocationDef } from '../world/types';
 import { moveInto, pushTrack } from './actions';
 import { baseContext } from './ai_context';
+import { applyInteraction, banterSlot, chooseInteraction, TALK_KINDS } from './brain/social';
 import { CHAT_BASE, CHAT_COOLDOWN, CHAT_DEADLINE, SAY_AI_COOLDOWN } from './constants';
 import { addMemory } from './memory';
 import { cardOf, personaById } from './personas';
 import { inside, locationById, placeRef } from './places';
 import { adjustRelation, relationBand, relationOf } from './relations';
-import type { Activity, NpcState } from './types';
+import type { Activity, DiaryKind, InteractionKind, NpcState } from './types';
 
 const CHATTY: ReadonlySet<Activity> = new Set<Activity>(['chat', 'eat', 'shop', 'wander', 'work']);
 const SOCIAL_KINDS = new Set(['tavern', 'market', 'plaza', 'well', 'creek', 'safe', 'slum']);
@@ -67,70 +69,124 @@ export function runChats(ctx: SystemContext): void {
   strollVisible(ctx);
 }
 
-/** Two residents talk: needs, relations, memory, track, the line, and npc.conversed. */
+/**
+ * Two people talk (builtin_ai.md 5.1). Named pairs choose an interaction of the closed set
+ * (chat, gossip, asking for help, an invitation, a gift, a quarrel, a reconciliation, a
+ * silent tip-off, a trade) and take its consequences; a pair with a nameless resident
+ * keeps the plain chat or quarrel. Talk passes rumors (npc.conversed, read by cognition).
+ */
 export function converse(ctx: SystemContext, a: NpcState, b: NpcState, loc: LocationDef): void {
   const slice = ctx.world.slices.npc;
   const hour = calendarAt(ctx.tick).hour;
   const visible = a.mapId === slice.playerMap;
   a.lastChatTick = ctx.tick;
   b.lastChatTick = ctx.tick;
-  a.needs.social = Math.min(100, a.needs.social + 8);
-  b.needs.social = Math.min(100, b.needs.social + 8);
   const cardA = cardOf(slice, ctx.content, a.id);
   const cardB = cardOf(slice, ctx.content, b.id);
   if (!cardA || !cardB) return;
   const knewA = !!slice.minds[a.id]?.rel[b.id];
   const knewB = !!slice.minds[b.id]?.rel[a.id];
-  const sour = relationOf(slice, a.id, b.id).like < -30;
-  const kind = sour ? 'quarrel' : 'chat';
-  adjustRelation(
-    ctx,
-    a.id,
-    b.id,
-    sour ? { like: -2 } : { like: 1, trust: 0.5 },
-    sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
-  );
-  adjustRelation(
-    ctx,
-    b.id,
-    a.id,
-    sour ? { like: -2 } : { like: 1, trust: 0.5 },
-    sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
-  );
+  const named = !a.resident && !b.resident;
+  const kind: InteractionKind | null = named
+    ? chooseInteraction(ctx, a, b, ctx.rng('npc.chat'), loc.kind === 'market')
+    : relationOf(slice, a.id, b.id).like < -30
+      ? 'quarrel'
+      : 'chat';
+  // two named people below the chat gate pass each other by
+  if (kind === null) return;
+  a.needs.social = Math.min(100, a.needs.social + 8);
+  b.needs.social = Math.min(100, b.needs.social + 8);
+  const sour = kind === 'quarrel';
+  const placeA = placeRef(cardA.map, a.mapId, loc.id);
+  const placeB = placeRef(cardB.map, b.mapId, loc.id);
+  if (named) {
+    applyInteraction(ctx, kind, a, b, {
+      a: cardA.name,
+      b: cardB.name,
+      place: loc.name,
+    });
+  } else {
+    adjustRelation(
+      ctx,
+      a.id,
+      b.id,
+      sour ? { like: -2 } : { like: 1, trust: 0.5 },
+      sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
+    );
+    adjustRelation(
+      ctx,
+      b.id,
+      a.id,
+      sour ? { like: -2 } : { like: 1, trust: 0.5 },
+      sour ? tr('sys.npc.reason.quarrel') : tr('sys.npc.reason.chat'),
+    );
+  }
   // track places are references from each person's home map (cross-map schedules)
-  pushTrack(a, hour, knewA ? kind : 'meet', placeRef(cardA.map, a.mapId, loc.id), cardB.name);
-  pushTrack(b, hour, knewB ? kind : 'meet', placeRef(cardB.map, b.mapId, loc.id), cardA.name);
-  addMemory(ctx, a.id, {
-    text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
-      place: loc.name,
-      other: cardB.name,
-    }),
-    src: 'self',
-    about: b.id,
-    imp: sour ? 0.35 : 0.12,
-  });
-  addMemory(ctx, b.id, {
-    text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
-      place: loc.name,
-      other: cardA.name,
-    }),
-    src: 'self',
-    about: a.id,
-    imp: sour ? 0.35 : 0.12,
-  });
-  ctx.emit('npc.conversed', {
-    a: a.id,
-    b: b.id,
-    mapId: a.mapId,
-    locationId: loc.id,
-    locationKind: loc.kind,
-    visible,
-  });
-  if (visible) speak(ctx, a, b, loc, sour);
+  const trackKind = TRACK_OF[kind];
+  pushTrack(a, hour, knewA ? trackKind : 'meet', placeA, cardB.name, cardB.id);
+  pushTrack(b, hour, knewB ? trackKind : 'meet', placeB, cardA.name, cardA.id);
+  if (kind === 'chat' || kind === 'gossip' || !named) {
+    addMemory(ctx, a.id, {
+      text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
+        place: loc.name,
+        other: cardB.name,
+      }),
+      src: 'self',
+      about: b.id,
+      imp: sour ? 0.35 : 0.12,
+    });
+    addMemory(ctx, b.id, {
+      text: tr(sour ? 'sys.npc.memory.quarrel' : 'sys.npc.memory.chat', {
+        place: loc.name,
+        other: cardA.name,
+      }),
+      src: 'self',
+      about: a.id,
+      imp: sour ? 0.35 : 0.12,
+    });
+  }
+  if (named)
+    ctx.emit('npc.interaction', {
+      kind,
+      a: a.id,
+      b: b.id,
+      mapId: a.mapId,
+      locationId: loc.id,
+      visible,
+    });
+  if (!named || TALK_KINDS.has(kind))
+    ctx.emit('npc.conversed', {
+      a: a.id,
+      b: b.id,
+      mapId: a.mapId,
+      locationId: loc.id,
+      locationKind: loc.kind,
+      visible,
+    });
+  if (visible && kind !== 'inform') speakLine(ctx, a, b, loc, kind);
 }
 
+/** Diary kinds of the interactions (the day's track, builtin_ai 5.4). */
+const TRACK_OF: Record<InteractionKind, DiaryKind> = {
+  chat: 'chat',
+  gossip: 'gossip',
+  ask_help: 'help',
+  invite: 'chat',
+  gift: 'chat',
+  quarrel: 'quarrel',
+  reconcile: 'chat',
+  inform: 'chat',
+  trade: 'trade',
+};
+
 /** The visible line: rule template, or a model request with that template as fallback (L1). */
-function speak(ctx: SystemContext, a: NpcState, b: NpcState, loc: LocationDef, sour: boolean) {
+function speakLine(
+  ctx: SystemContext,
+  a: NpcState,
+  b: NpcState,
+  loc: LocationDef,
+  kind: InteractionKind,
+) {
   const slice = ctx.world.slices.npc;
   const pa = personaById(ctx.content, a.id);
   const cardB = cardOf(slice, ctx.content, b.id);
@@ -139,17 +195,20 @@ function speak(ctx: SystemContext, a: NpcState, b: NpcState, loc: LocationDef, s
   if (pa && (pa.spread ?? 1) < 0.4) return;
   const rng = ctx.rng('npc.lines');
   const weather = currentWeather(ctx.world);
-  const topic = sour
-    ? 'banter.sour'
-    : a.needs.hunger < 40
-      ? 'banter.hungry'
-      : a.needs.energy < 35
-        ? 'banter.tired'
-        : rng.chance(0.4)
-          ? `banter.weather.${weather}`
-          : `banter.${a.activity}`;
   const vars = { other: cardB.name, place: loc.name };
-  const text = pickLine(ctx.content, topic, vars, rng, pa);
+  let text: TextParam = '';
+  if (kind === 'chat' && rng.chance(0.4)) {
+    text = pickLine(ctx.content, `banter.weather.${weather}`, vars, rng, pa);
+  } else if (pa) {
+    const said = speakSlot(ctx, {
+      speaker: a.id,
+      slot: banterSlot(kind, a),
+      ledger: 'none',
+      vars,
+    });
+    text = said?.text ?? '';
+  }
+  if (!text) text = pickLine(ctx.content, banterSlot(kind, a), vars, rng, pa);
   if (!text) return;
   a.sayRev += 1;
   const data = { npcId: a.id, toId: b.id, text, revision: a.sayRev };

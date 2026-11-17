@@ -304,6 +304,25 @@ describe('respondTo world effects (classification drives relation and cognition 
     expect(twice).toBeCloseTo(once, 5);
   });
 
+  it('a second advance on the same day sours the person (repeat_today, builtin_ai 5.5)', () => {
+    const g = game(26);
+    besides(g, ['ron']);
+    g.queue('dialogue.talk', { npcId: npcEntityId('ron') });
+    g.step(1);
+    const before = g.world.slices.npc.minds.ron?.rel.player?.like ?? 0;
+    g.queue('dialogue.say', { text: '我喜欢你' });
+    g.step(2);
+    const first = g.world.slices.npc.minds.ron?.rel.player?.like ?? 0;
+    // the first one is only a reaction: no relation write
+    expect(first).toBeCloseTo(before, 5);
+    g.queue('dialogue.say', { text: '我喜欢你' });
+    g.step(2);
+    const second = g.world.slices.npc.minds.ron?.rel.player?.like ?? 0;
+    expect(second).toBeLessThan(first - 4);
+    // and the repeat counts as an offense of the day (6.4 row 9), the first one did not
+    expect(g.world.slices.dialogue.offenses?.ron?.n).toBe(1);
+  });
+
   it('claim_feat writes cognition evidence toward the belief state machine', () => {
     const g = game(24);
     besides(g, ['ron']);

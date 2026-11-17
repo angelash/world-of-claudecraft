@@ -2,6 +2,7 @@
 // events and commands (the line packs and their content table are ./lines/types.ts).
 
 import type { TextParam } from '../../core/text';
+import type { LineHistory } from './lines/history';
 
 export interface SessionLine {
   speakerId: string;
@@ -35,6 +36,8 @@ export interface DialogueSession {
   options: SessionOption[];
   /** waiting for the NPC's reply (model or fallback) */
   pending: boolean;
+  /** a line of this talk recalled a memory or a diary entry (builtin_ai.md 14.2 metric 9) */
+  recalled?: boolean;
 }
 
 export interface DialogueSlice {
@@ -49,6 +52,17 @@ export interface DialogueSlice {
    * gain last counted.
    */
   intentRelDay: Record<string, number>;
+  /**
+   * Line history of each speaker toward the player (builtin_ai.md 7.7 and 18: at most 64
+   * keys per pair); created on first use, so saves written before it have none.
+   */
+  lines?: Record<string, LineHistory>;
+  /** Bark history of each speaker (3 game days; kept so a load does not reset it). */
+  barks?: Record<string, LineHistory>;
+  /** Barks said at each place (`<map>/<location>`) in the last two game hours. */
+  placeBarks?: Record<string, { key: string; tick: number }[]>;
+  /** Offenses the player gave each person today (the third one ends the talk, builtin_ai 6.1). */
+  offenses?: Record<string, { day: number; n: number }>;
 }
 
 declare module '../../core/contracts' {
@@ -57,7 +71,13 @@ declare module '../../core/contracts' {
   }
   interface EventMap {
     'dialogue.opened': { sessionId: string; npcId: string; npcRef: string };
-    'dialogue.closed': { sessionId: string; npcId: string; reason: string };
+    'dialogue.closed': {
+      sessionId: string;
+      npcId: string;
+      reason: string;
+      /** a line of the talk recalled a memory or a diary entry (alive metric 9) */
+      recalled?: boolean;
+    };
   }
   interface CommandMap {
     /** Start talking to an NPC entity within reach. */

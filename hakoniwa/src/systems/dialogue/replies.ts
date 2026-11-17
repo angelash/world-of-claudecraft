@@ -4,16 +4,24 @@
 
 import type { SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
+import { calendarAt } from '../../core/time';
 import { beliefRaw } from '../cognition/queries';
+import type { BeliefState } from '../cognition/types';
 import { holdingOf } from '../inventory';
+import { angryAtPlayer, moodOf } from '../npc/brain/mood';
+import { takeOpener } from '../npc/brain/reactions';
 import { personaById } from '../npc/personas';
 import { locationById } from '../npc/places';
 import { relationOf } from '../npc/relations';
 import type { PersonaCard } from '../npc/types';
-import { currentWeather } from '../world';
+import { currentWeather, entitiesNear, getEntity } from '../world';
 import { classifyIntent } from './intent/classify';
 import { respondTo } from './intent/respond';
 import type { IntentId } from './intent/types';
+import { newLineHistory } from './lines/history';
+import { dayPartOf, trustBandOf } from './lines/trust';
+import type { TrustBand } from './lines/types';
+import { diaryPhrase, memoryPhrase, speak } from './speak';
 import { pickLine } from './templates';
 
 export interface ReplyVars {
@@ -61,9 +69,94 @@ function persona(ctx: SystemContext, npcRef: string): PersonaCard | undefined {
 }
 
 export function greeting(ctx: SystemContext, npcRef: string, first: boolean): TextParam {
+  return greetingLine(ctx, npcRef, first).text;
+}
+
+/** The trust band of a person toward the player now (builtin_ai.md 7.4). */
+export function trustBand(ctx: SystemContext, npcRef: string): TrustBand {
+  const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
   const st = ctx.world.slices.npc.npcs[npcRef];
-  if (st?.activity === 'sleep') return line(ctx, 'greet.sleep', npcRef);
-  if (first) return line(ctx, 'greet.first', npcRef);
+  return trustBandOf({
+    like: rel.like,
+    trust: rel.trust,
+    angryAtPlayer: !!st && angryAtPlayer(st, ctx.tick),
+    belief: beliefRaw(ctx.world, npcRef, 'player')?.state,
+    companion: !!ctx.flag(`companion.${npcRef}.recruited`),
+  });
+}
+
+/** Someone else stands close enough to hear (builtin_ai.md 5.7: public versus private). */
+function overheard(ctx: SystemContext, npcRef: string): boolean {
+  const st = ctx.world.slices.npc.npcs[npcRef];
+  const e = st ? getEntity(ctx.world, st.entityId) : undefined;
+  if (!e) return false;
+  return (
+    entitiesNear(ctx.world, e.mapId, e.x, e.y, 4, (x) => x.kind === 'npc' && x.id !== e.id).length >
+    0
+  );
+}
+
+/** The greeting slot of a person's stance toward the player (5.7 and 7.4). */
+function stanceSlot(state: BeliefState | undefined, explanation: string | null): string | null {
+  switch (state) {
+    case 'doubt':
+      return 'unbelief.deny';
+    case 'explaining':
+      return explanation ? `unbelief.explain.${explanation}` : 'unbelief.explain';
+    case 'wavering':
+      return 'unbelief.waver';
+    case 'worship':
+    case 'hostile':
+    case 'exploit':
+    case 'depend':
+      return `react.belief_${state}`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The opening line of a conversation (builtin_ai.md 5.7 and 7.4): a line kept from a
+ * transition seen offscreen goes first, once; a person in one of the "do not believe"
+ * stances greets with it (the public stance when others listen, the private one alone);
+ * otherwise the greeting of the trust band and the time of day, which may recall a memory
+ * of the player or a recent diary entry. Residents keep the template greetings.
+ */
+export function greetingLine(
+  ctx: SystemContext,
+  npcRef: string,
+  first: boolean,
+): { text: TextParam; recalled: boolean } {
+  const st = ctx.world.slices.npc.npcs[npcRef];
+  if (st?.activity === 'sleep') return { text: line(ctx, 'greet.sleep', npcRef), recalled: false };
+  const p = persona(ctx, npcRef);
+  // the line kept for this talk goes first, even at a first meeting (5.7)
+  const opener = p && st ? takeOpener(ctx, npcRef) : null;
+  if (opener && st) {
+    const said = speak(ctx, {
+      speaker: npcRef,
+      slot: opener,
+      vars: varsFor(ctx, npcRef),
+      mood: moodOf(st, ctx.tick),
+    });
+    if (said) return { text: said.text, recalled: said.recalled };
+  }
+  if (first) return { text: line(ctx, 'greet.first', npcRef), recalled: false };
+  if (!p || !st) return { text: legacyGreeting(ctx, npcRef), recalled: false };
+  const vars = varsFor(ctx, npcRef);
+  const mood = moodOf(st, ctx.tick);
+  const b = beliefRaw(ctx.world, npcRef, 'player');
+  const state = overheard(ctx, npcRef) ? b?.publicState : b?.state;
+  const slot =
+    stanceSlot(state, b?.explanation ?? null) ??
+    `greet.${trustBand(ctx, npcRef)}.${dayPartOf(calendarAt(ctx.tick).hour)}`;
+  const said = speak(ctx, { speaker: npcRef, slot, vars, mood });
+  if (said) return { text: said.text, recalled: said.recalled };
+  return { text: legacyGreeting(ctx, npcRef), recalled: false };
+}
+
+/** The template greeting of the rule voice before the line packs (residents, gaps). */
+function legacyGreeting(ctx: SystemContext, npcRef: string): TextParam {
   const b = beliefRaw(ctx.world, npcRef, 'player');
   const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
   const state = b?.publicState ?? 'unaware';
@@ -73,6 +166,39 @@ export function greeting(ctx: SystemContext, npcRef: string, first: boolean): Te
 }
 
 export function smallTalk(ctx: SystemContext, npcRef: string): TextParam {
+  return smallTalkLine(ctx, npcRef).text;
+}
+
+/** The share of small talk that brings up a remembered moment when there is one (5.3). */
+export const RECALL_CHANCE = 0.4;
+
+/**
+ * Small talk (builtin_ai.md 5.3 "回忆进对话"): a named person who remembers something of the
+ * player (or wrote a diary entry these days) brings it up now and then; otherwise the
+ * template small talk of their state, the weather or their activity.
+ */
+export function smallTalkLine(
+  ctx: SystemContext,
+  npcRef: string,
+): { text: TextParam; recalled: boolean } {
+  const st = ctx.world.slices.npc.npcs[npcRef];
+  if (st && persona(ctx, npcRef) && st.activity !== 'sleep') {
+    const mem = memoryPhrase(ctx, npcRef);
+    const diary = mem ? undefined : diaryPhrase(ctx, npcRef);
+    if ((mem || diary) && ctx.rng(`dialogue.lines.${npcRef}`).chance(RECALL_CHANCE)) {
+      const said = speak(ctx, {
+        speaker: npcRef,
+        slot: mem ? 'mem.recall' : 'diary.recall',
+        vars: varsFor(ctx, npcRef),
+        mood: moodOf(st, ctx.tick),
+      });
+      if (said) return { text: said.text, recalled: said.recalled };
+    }
+  }
+  return { text: legacySmallTalk(ctx, npcRef), recalled: false };
+}
+
+function legacySmallTalk(ctx: SystemContext, npcRef: string): TextParam {
   const st = ctx.world.slices.npc.npcs[npcRef];
   if (!st) return line(ctx, 'chat', npcRef);
   if (st.activity === 'sleep') return line(ctx, 'chat.sleep', npcRef);
@@ -116,15 +242,20 @@ export function answer(ctx: SystemContext, npcRef: string, text: string): Answer
   // holds (builtin_ai 1.7); without this reader every mention stays forbidden forever,
   // even after the name is public.
   const result = classifyIntent(text, ctx.content, { flag: (key) => ctx.flag(key) });
-  // the per-speaker repetition ledger (builtin_ai 7.7, 18) is not yet a save slice
-  // (PK-M0-25 report; follow-up PK-M1-18): the selector falls back to no suppression.
-  const outcome = respondTo(ctx, { npcRef, text, result, ctx: {} });
+  // the per-speaker repetition ledger toward the player (builtin_ai 7.7, 18), kept in the
+  // dialogue slice so the suppression windows survive save and load
+  const slice = ctx.world.slices.dialogue;
+  slice.lines ??= {};
+  const history = slice.lines[npcRef] ?? newLineHistory();
+  slice.lines[npcRef] = history;
+  const outcome = respondTo(ctx, { npcRef, text, result, ctx: {}, history });
   return {
     line: outcome.line,
     intent: result.main,
     end: outcome.end,
     entry: outcome.entry,
     notify: outcome.notify,
+    offense: !!outcome.offense,
   };
 }
 
@@ -134,4 +265,6 @@ export interface AnswerResult {
   end: boolean;
   entry: { id: string; params: Record<string, string> } | null;
   notify: string[];
+  /** a repeat the rules count as an offense (a second advance on a day, 6.4 row 9) */
+  offense?: boolean;
 }

@@ -7,4 +7,5 @@ export * from './history';
 export * from './legacy';
 export * from './packs';
 export * from './select';
+export * from './trust';
 export * from './types';

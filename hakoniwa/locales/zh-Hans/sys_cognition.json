@@ -150,5 +150,7 @@
   "sys.cognition.rumor.when": "{when}，",
   "sys.cognition.rumor.count": "，足有 {n} 只",
   "sys.cognition.rumor.details": "（{details}）",
-  "sys.cognition.rumor.sentence": "{text}。"
+  "sys.cognition.rumor.sentence": "{text}。",
+  "sys.cognition.teller.travellers": "过路的行商",
+  "sys.cognition.rumor.hint": "听说{place}一带有这么个说法：{text}"
 }

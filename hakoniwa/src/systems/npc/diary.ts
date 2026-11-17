@@ -7,7 +7,10 @@ import type { AiContextV1 } from '../../core/ai_port';
 import type { AnyCommand } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { commandText, joinText, type KeyText, type TextParam, tr } from '../../core/text';
+import { calendarAt } from '../../core/time';
+import { MOODS } from '../dialogue/lines/types';
 import { mapById } from '../world';
+import { moodOf } from './brain/mood';
 import { DIARY_BATCH, DIARY_CAP, DIARY_DEADLINE } from './constants';
 import { addMemory, timeLabel } from './memory';
 import { cardOf, personaById } from './personas';
@@ -69,24 +72,87 @@ function homeMapOf(ctx: SystemContext, st: NpcState): string {
   return cardOf(ctx.world.slices.npc, ctx.content, st.id)?.map ?? st.mapId;
 }
 
-/** Rule diary: up to three distinct telling items per resident. */
-export function ruleDiary(ctx: SystemContext, st: NpcState): DiaryEntryData[] {
+/**
+ * How telling a track item is (builtin_ai.md 5.4): the kind's weight (leaving 6, an
+ * injury 5, a quarrel 5, asking for help 4, meeting someone 3, a trade 3, passing news 3,
+ * trouble at work 3, prayer 2, work 1, small talk 1), plus 4 when it involved the player,
+ * 2 with someone the person feels strongly about (a relation dimension at 50 or more), and
+ * 1 for the first of its kind this week.
+ */
+export const DIARY_WEIGHT: Record<DiaryKind, number> = {
+  leave: 6,
+  injury: 5,
+  quarrel: 5,
+  help: 4,
+  meet: 3,
+  trade: 3,
+  gossip: 3,
+  work_issue: 3,
+  pray: 2,
+  work: 1,
+  chat: 1,
+};
+
+export function diaryScore(ctx: SystemContext, st: NpcState, t: TrackItem, day: number): number {
+  let s = DIARY_WEIGHT[t.kind];
+  const slice = ctx.world.slices.npc;
+  const otherId = t.withId ?? (t.with ? namedIdOf(ctx, t.with) : undefined);
+  if (otherId === 'player') s += 4;
+  else if (otherId) {
+    const r = slice.minds[st.id]?.rel[otherId];
+    if (
+      r &&
+      Math.max(Math.abs(r.like), Math.abs(r.trust - 50) * 2, r.awe, Math.abs(r.interest)) >= 50
+    )
+      s += 2;
+  }
+  if (!st.diary.some((d) => d.kind === t.kind && day - d.day < 7)) s += 1;
+  return s;
+}
+
+/** The persona id a track's "with" names (tracks keep display names). */
+function namedIdOf(ctx: SystemContext, name: TrackItem['with']): string | undefined {
+  if (name === undefined) return undefined;
+  for (const p of ctx.content.npcs ?? []) if (p.name === name) return p.id;
+  return undefined;
+}
+
+/** Rule diary: the three most telling distinct items of the day, with the day's mood. */
+export function ruleDiary(ctx: SystemContext, st: NpcState, day?: number): DiaryEntryData[] {
+  const today = day ?? calendarAt(ctx.tick).dayIndex;
+  const ranked = st.track
+    .map((t, i) => ({ t, i, s: diaryScore(ctx, st, t, today) }))
+    .sort(
+      (a, b) => b.s - a.s || SALIENCE.indexOf(a.t.kind) - SALIENCE.indexOf(b.t.kind) || a.i - b.i,
+    );
   const out: DiaryEntryData[] = [];
   const used = new Set<DiaryKind>();
-  for (const kind of SALIENCE) {
+  const mood = moodOf(st, ctx.tick);
+  for (const { t: item } of ranked) {
     if (out.length >= 3) break;
-    const item = st.track.find((t) => t.kind === kind);
-    if (!item || used.has(kind)) continue;
-    used.add(kind);
+    if (used.has(item.kind)) continue;
+    used.add(item.kind);
     const loc =
       locationOfRef(ctx.content, homeMapOf(ctx, st), item.loc)?.name ??
       tr('sys.npc.diary.somewhere');
+    const other =
+      item.withId === 'player'
+        ? tr('sys.npc.diary.player')
+        : (item.with ?? tr('sys.npc.diary.someone'));
     out.push({
       npcId: st.id,
-      kind,
-      text: tr(RULE_TEXT[kind].key, { loc, with: item.with ?? tr('sys.npc.diary.someone') }),
+      kind: item.kind,
+      text: tr(RULE_TEXT[item.kind].key, { loc, with: other }),
+      mood,
     });
   }
+  // the day ends with its mood (builtin_ai.md 5.4)
+  const last = out.at(-1);
+  if (last)
+    last.text = tr('sys.npc.diary.closing', {
+      text: last.text,
+      mood: tr(`sys.npc.diary.mood.${mood}`),
+    });
   return out;
 }
 
@@ -121,7 +187,7 @@ export function requestDiaries(ctx: SystemContext, day: number): void {
       const tracks: Record<string, DiaryKind[]> = {};
       for (const st of batch) tracks[st.id] = [...new Set(st.track.map((t) => t.kind))];
       slice.diary[key] = { rev, day, roster: batch.map((s) => s.id), tracks, done: false };
-      const fallbackEntries = batch.flatMap((st) => ruleDiary(ctx, st));
+      const fallbackEntries = batch.flatMap((st) => ruleDiary(ctx, st, day));
       const fallback: AnyCommand[] = [
         {
           kind: 'npc.diary_batch',
@@ -214,7 +280,11 @@ export function applyDiary(
     perNpc[e.npcId] = n;
     const st = slice.npcs[e.npcId];
     if (!st) continue;
-    st.diary.push({ day, kind: e.kind, text });
+    const mood =
+      typeof e.mood === 'string' && (MOODS as readonly string[]).includes(e.mood)
+        ? e.mood
+        : undefined;
+    st.diary.push(mood ? { day, kind: e.kind, text, mood } : { day, kind: e.kind, text });
     if (st.diary.length > DIARY_CAP) st.diary.splice(0, st.diary.length - DIARY_CAP);
     addMemory(ctx, e.npcId, {
       text,

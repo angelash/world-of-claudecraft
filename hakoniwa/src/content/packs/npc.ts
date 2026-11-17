@@ -2,15 +2,29 @@
 // L4 resident templates and the speakable knowledge table, with editor schemas and
 // the cross-reference validation of all of them.
 
+import brainActions from '../../../data/npc/brain/actions.json';
+import brainReactions from '../../../data/npc/brain/reactions.json';
+import brainRoles from '../../../data/npc/brain/roles.json';
 import knowledge from '../../../data/npc/knowledge.json';
 import maps from '../../../data/npc/maps.json';
 import personas from '../../../data/npc/personas.json';
 import residents from '../../../data/npc/residents.json';
 import schedules from '../../../data/npc/schedules.json';
 import type { ContentMap } from '../../core/contracts';
+import { defaultRegistry } from '../../core/registry';
+import { resolveSlot } from '../../systems/dialogue/lines/packs';
+import {
+  brainProblems,
+  INPUT_IDS,
+  type NpcBrainContent,
+  PREDICATE_NAMES,
+  REACTION_ACTIONS,
+  REACTION_PREDICATE_NAMES,
+} from '../../systems/npc/brain';
 import { resolvePlace, splitPlaceRef } from '../../systems/npc/places';
 import {
   ACTIVITIES,
+  FUNCTIONAL_ROLES,
   type KnowledgeEntry,
   type PersonaCard,
   type ResidentTemplate,
@@ -18,6 +32,7 @@ import {
   type ScheduleTemplate,
   type SocialClass,
 } from '../../systems/npc/types';
+import { checkCondition, referencedVars } from '../../systems/quests/conditions';
 import { isWalkableTile, mapById } from '../../systems/world';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack, FieldSchema } from '../pack';
@@ -111,7 +126,41 @@ export function validateNpcContent(content: ContentMap): string[] {
     const key = p.trustKey ?? `trust.${p.id}`;
     if (trustKeys.has(key)) problems.push(`${who}: duplicate trust flag ${key}`);
     trustKeys.add(key);
+    // functional roles (content_bible.md 9.2: one to three per named NPC)
+    const roles = p.roles ?? [];
+    if (roles.length < 1 || roles.length > 3) problems.push(`${who}: needs one to three roles`);
+    for (const r of roles)
+      if (!(FUNCTIONAL_ROLES as readonly string[]).includes(r))
+        problems.push(`${who}: unknown role ${r}`);
+    if (new Set(roles).size !== roles.length) problems.push(`${who}: a role is listed twice`);
+    // goal pursuits (builtin_ai.md 3.2)
+    for (const g of p.pursuits ?? []) {
+      const at = `${who} pursuit ${g.id}`;
+      if (!ACTIVITIES.includes(g.act)) problems.push(`${at}: unknown activity ${g.act}`);
+      if (!resolvePlace(content, p, g.at)) problems.push(`${at}: unknown place ${g.at}`);
+      if (!Number.isInteger(g.from) || g.from < 0 || g.from > 23) problems.push(`${at}: bad hour`);
+      if (!(g.hours >= 1 && g.hours <= 6)) problems.push(`${at}: hours must be 1 to 6`);
+      if (!(g.everyDays >= 1)) problems.push(`${at}: everyDays must be at least 1`);
+      for (const c of [g.urge, g.done, g.abandon]) {
+        if (!c) continue;
+        const bad = checkCondition(c);
+        if (bad) problems.push(`${at}: condition does not parse: ${bad}`);
+        else
+          for (const name of referencedVars(c))
+            if (!defaultRegistry().resolve(name))
+              problems.push(`${at}: condition reads unregistered variable ${name}`);
+      }
+    }
   }
+  problems.push(
+    ...brainProblems(content.npcBrain, {
+      inputs: INPUT_IDS,
+      predicates: PREDICATE_NAMES,
+      reactionPredicates: REACTION_PREDICATE_NAMES,
+      reactionActions: REACTION_ACTIONS,
+      slotHasLines: content.linePacks ? (slot) => !!resolveSlot(content, '', slot, {}) : undefined,
+    }),
+  );
   for (const r of content.npcResidents ?? []) {
     const who = `resident ${r.id}`;
     const map = mapById(content, r.map);
@@ -196,6 +245,10 @@ const PERSONA_FIELDS: FieldSchema[] = [
   { key: 'requiresFlags', label: '出现所需旗标', type: 'list' },
   { key: 'hideWhen', label: '隐藏条件', type: 'list' },
   { key: 'trustKey', label: '信任旗标名', type: 'string' },
+  { key: 'roles', label: '功能角色', type: 'list', help: '内容总纲 9.2 的十五种，1 到 3 个' },
+  { key: 'pursuits', label: '目标追求表', type: 'json' },
+  { key: 'likes', label: '喜欢的礼物标签', type: 'list' },
+  { key: 'dislikes', label: '讨厌的礼物标签', type: 'list' },
 ];
 
 export const pack: ContentPack = {
@@ -206,6 +259,13 @@ export const pack: ContentPack = {
     npcSchedules: schedules as unknown as ScheduleTemplate[],
     npcResidents: residents as unknown as ResidentTemplate[],
     npcKnowledge: knowledge as unknown as KnowledgeEntry[],
+    npcBrain: {
+      idle: brainActions.idle,
+      actions: brainActions.actions,
+      traitDims: brainActions.traitDims,
+      roles: brainRoles.roles,
+      reactions: brainReactions.rows,
+    } as unknown as NpcBrainContent,
   },
   schemas: [
     {

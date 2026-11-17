@@ -5,6 +5,7 @@
 
 import type { SystemContext } from '../../core/system';
 import { clipText, type TextParam, tr } from '../../core/text';
+import { react } from '../npc/brain/reactions';
 import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
 import { locationAt } from '../npc/places';
@@ -140,6 +141,8 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
     });
     addMemory(ctx, id, {
       text: tr('sys.cognition.witness.memory', { what, place }),
+      // the {memory} fill slot of later lines to the player (builtin_ai.md 5.3)
+      short: subject === 'player' ? tr('sys.npc.memory.short.feat_seen') : undefined,
       src: 'seen',
       about: subject,
       imp: Math.min(1, 0.4 + 0.1 * d.tier),
@@ -160,12 +163,34 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
     const p = personaById(ctx.content, id);
     if (o && subject === 'player' && p?.class === 'clergy' && o.adopted.includes('sorcery'))
       raiseChurchSuspicion(ctx, 5);
-    if (o && visible) reactions.push({ id, o, rank: reactionRank(o) });
+    if (o) reactions.push({ id, o, rank: reactionRank(o) });
   }
-  // the most telling reactions are said out loud first (state changes before 'again')
+  // the most telling reactions are said out loud first (state changes before 'again'); the
+  // NPC reaction table (builtin_ai.md 5.6) sets every onlooker's behaviour and may say its
+  // own line, else the cognition-driven line of the state change is said (5.7)
   let spoken = 0;
   for (const r of reactions.sort((a, b) => b.rank - a.rank)) {
-    if (spoken >= MAX_SPOKEN) break;
+    const may = visible && spoken < MAX_SPOKEN;
+    if (subject === 'player') {
+      const res = react(
+        ctx,
+        r.id,
+        {
+          kind: 'feat_seen',
+          subject,
+          over: r.o.over,
+          explanation: r.o.belief.explanation,
+          state: r.o.to,
+          changed: r.o.to !== r.o.from,
+        },
+        may,
+      );
+      if (res === 'spoken') {
+        spoken++;
+        continue;
+      }
+    }
+    if (!may) continue;
     const addr = personaById(ctx.content, r.id)?.voice.address ?? tr('sys.cognition.address.you');
     if (
       speakReaction(ctx, r.id, r.o, d.mapId, { player: subject === 'player' ? addr : who, place })

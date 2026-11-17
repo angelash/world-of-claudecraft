@@ -9,12 +9,13 @@ import { commandText, type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
 import type { World } from '../../core/world';
 import { tellPlayer } from '../cognition/rumor';
+import { noteOffense } from '../npc/brain';
 import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
 import { setConversing } from '../npc/ports';
 import { adjustRelation } from '../npc/relations';
 import { distance, getEntity, playerEntity } from '../world';
-import { answer, farewell, greeting, opinion, rumorLine, smallTalk } from './replies';
+import { answer, farewell, greetingLine, opinion, rumorLine, smallTalkLine } from './replies';
 import {
   addOffered,
   BUILTIN_OPTIONS,
@@ -79,6 +80,15 @@ export function canTalkTo(world: World, entityId: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+
+/** Count today's offenses the player gave a person (the third one ends the talk, 6.1). */
+function countOffense(ctx: SystemContext, npcRef: string): void {
+  const slice = ctx.world.slices.dialogue;
+  slice.offenses ??= {};
+  const day = calendarAt(ctx.tick).dayIndex;
+  const prev = slice.offenses[npcRef];
+  slice.offenses[npcRef] = { day, n: prev && prev.day === day ? prev.n + 1 : 1 };
+}
 
 function session(ctx: SystemContext): DialogueSession | null {
   return ctx.world.slices.dialogue.session;
@@ -161,11 +171,14 @@ export const system: GameSystem = {
       setConversing(ctx, npcRef, true);
       ctx.emit('dialogue.opened', { sessionId: s.id, npcId: e.id, npcRef });
       ctx.emit('player.talked', { npcId: e.id, npcRef });
-      npcSays(ctx, s, greeting(ctx, npcRef, first));
+      const hello = greetingLine(ctx, npcRef, first);
+      if (hello.recalled) s.recalled = true;
+      npcSays(ctx, s, hello.text);
       addMemory(ctx, npcRef, {
         text: tr(
           first ? 'sys.dialogue.memory.player_first_talk' : 'sys.dialogue.memory.player_talk',
         ),
+        short: tr('sys.npc.memory.short.talk_player'),
         src: 'self',
         about: 'player',
         imp: first ? 0.4 : 0.15,
@@ -213,6 +226,11 @@ export const system: GameSystem = {
       // reply is requested, so the model can only reword the line, never the outcome
       // (builtin_ai.md 6.3: "分类结果驱动关系与认知写入").
       const answered = answer(ctx, s.npcRef, text);
+      // an insult or a threat angers the person at the player (builtin_ai.md 3.3, 6.1)
+      if (answered.intent === 'insult' || answered.intent === 'threaten' || answered.offense) {
+        noteOffense(ctx, s.npcRef, answered.intent === 'threaten');
+        countOffense(ctx, s.npcRef);
+      }
       for (const notify of answered.notify)
         ctx.emit('dialogue.notified', {
           npcId: s.npcId,
@@ -292,13 +310,9 @@ export const system: GameSystem = {
             tr('sys.dialogue.reason.chat'),
           );
         }
-        requestReply(
-          ctx,
-          s,
-          'small_talk',
-          smallTalk(ctx, s.npcRef),
-          tr('sys.dialogue.prompt.small_talk'),
-        );
+        const talk = smallTalkLine(ctx, s.npcRef);
+        if (talk.recalled) s.recalled = true;
+        requestReply(ctx, s, 'small_talk', talk.text, tr('sys.dialogue.prompt.small_talk'));
         return ok();
       }
       if (opt.id === 'rumors') {

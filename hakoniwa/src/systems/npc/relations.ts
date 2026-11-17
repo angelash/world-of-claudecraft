@@ -6,7 +6,7 @@ import type { SystemContext } from '../../core/system';
 import { type KeyText, type TextParam, tr } from '../../core/text';
 import { RELATION_LOG_CAP } from './constants';
 import { personaById, trustFlagKey } from './personas';
-import TRAIT_WORDS from './trait_words.json';
+import { hasTrait } from './traits';
 import type { Mind, NpcSlice, PersonaCard, RelationDims } from './types';
 
 export function neutralRelation(): RelationDims {
@@ -57,16 +57,16 @@ export function relationOf(slice: NpcSlice, from: string, to: string): RelationD
 }
 
 /**
- * Personality scaling of a change (stubborn, grudging, forgiving; design 6.2). The trait
- * words are content vocabulary matched against the persona cards' trait text; they live in
- * trait_words.json until the cards carry trait codes (data/, content pipeline follow-up).
+ * Personality scaling of a change (stubborn, grudging, forgiving; design 6.2), read
+ * through the trait codes of ./traits.ts (the persona card's trait words matched against
+ * the vocabulary in trait_words.json).
  */
 function scale(p: PersonaCard | undefined, v: number): number {
   if (!p) return v;
   let f = 1;
-  if (p.traits.includes(TRAIT_WORDS.stubborn)) f *= 0.7;
-  if (v < 0 && p.traits.includes(TRAIT_WORDS.grudging)) f *= 1.5;
-  if (v < 0 && p.traits.includes(TRAIT_WORDS.forgiving)) f *= 0.6;
+  if (hasTrait(p, 'stubborn')) f *= 0.7;
+  if (v < 0 && hasTrait(p, 'grudging')) f *= 1.5;
+  if (v < 0 && hasTrait(p, 'forgiving')) f *= 0.6;
   return v * f;
 }
 

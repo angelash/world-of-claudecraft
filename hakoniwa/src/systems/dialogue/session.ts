@@ -64,7 +64,12 @@ export function closeSession(ctx: SystemContext, reason: string): void {
   if (!s) return;
   slice.session = null;
   setConversing(ctx, s.npcRef, false);
-  ctx.emit('dialogue.closed', { sessionId: s.id, npcId: s.npcId, reason });
+  ctx.emit('dialogue.closed', {
+    sessionId: s.id,
+    npcId: s.npcId,
+    reason,
+    recalled: !!s.recalled,
+  });
 }
 
 /** Add options another system offered for this NPC (ids namespaced by system). */

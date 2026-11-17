@@ -13,12 +13,18 @@ import { calendarAt } from '../../../core/time';
 import { observe } from '../../cognition/belief';
 import { tellPlayer } from '../../cognition/rumor';
 import type { EvidenceKind } from '../../cognition/types';
+import { moodOf } from '../../npc/brain/mood';
 import { personaById } from '../../npc/personas';
 import { adjustRelation, relationBand, relationOf } from '../../npc/relations';
 import type { PersonaCard } from '../../npc/types';
-import type { LineHistory } from '../lines/history';
+import { conditionHolds } from '../../quests/effects';
+import { lineText } from '../lines/fill';
+import { suppressionDays } from '../lines/grammar';
+import { type LineHistory, recordLine } from '../lines/history';
 import { selectLine } from '../lines/select';
-import { opinion, rumorLine, smallTalk } from '../replies';
+import { dayPartOf } from '../lines/trust';
+import { opinion, rumorLine, smallTalk, trustBand, varsFor } from '../replies';
+import { speakerLayers } from '../speak';
 import type { ClassifyContext, ClassifyResult, EntityHit, IntentDef, ResponseStep } from './types';
 
 export interface RespondInput {
@@ -40,6 +46,8 @@ export interface RespondOutcome {
   notify: string[];
   /** world-affecting response codes that actually fired, for the caller's own bookkeeping */
   codes: string[];
+  /** the intent repeated today where the rules count a repeat as an offense (6.4 row 9) */
+  offense?: boolean;
 }
 
 function entityOf(entities: readonly EntityHit[], kinds: readonly string[]): EntityHit | undefined {
@@ -47,24 +55,66 @@ function entityOf(entities: readonly EntityHit[], kinds: readonly string[]): Ent
 }
 
 /**
- * Whether a third same-day offense should force-end the talk (builtin_ai 6.1). Not yet
- * tracked: the per-day offense tally belongs to the session state PK-M1-18 adds; until
- * then a single offense never force-ends the talk (R9 is only reached through 'pending').
+ * Whether this offense is the third one today toward the same person (builtin_ai 6.1: the
+ * third offense of a day ends the talk). The dialogue slice counts the offenses after each
+ * reply, so two already counted today make this one the third.
  */
-function thirdOffenseToday(): boolean {
-  return false;
+function thirdOffenseToday(ctx: SystemContext, npcRef: string): boolean {
+  const o = ctx.world.slices.dialogue.offenses?.[npcRef];
+  return !!o && o.day === calendarAt(ctx.tick).dayIndex && o.n >= 2;
 }
 
-/** Trust band of a relation toward the player (builtin_ai 7.4). */
-function trustBand(like: number, trust: number): 'cold' | 'neutral' | 'warm' {
-  if (like <= -15 || trust < 30) return 'cold';
-  if (trust >= 60 && like >= 20) return 'warm';
-  return 'neutral';
+/** The day key of an intent the player already used on a person (`seen:` keeps it apart). */
+function seenKey(npcRef: string, intent: string): string {
+  return `seen:${npcRef}:${intent}`;
+}
+
+/** The same intent toward the same person was already answered today (5.5 anti-farming). */
+function repeatToday(ctx: SystemContext, npcRef: string, intent: string): boolean {
+  return (
+    ctx.world.slices.dialogue.intentRelDay?.[seenKey(npcRef, intent)] ===
+    calendarAt(ctx.tick).dayIndex
+  );
+}
+
+/** Notes that the intent was answered today, for the next `repeat_today` check. */
+function markSeenToday(ctx: SystemContext, npcRef: string, intent: string): void {
+  const slice = ctx.world.slices.dialogue;
+  slice.intentRelDay ??= {};
+  const day = calendarAt(ctx.tick).dayIndex;
+  // only today's marks matter: older ones are dropped so the record stays small
+  for (const [k, d] of Object.entries(slice.intentRelDay))
+    if (k.startsWith('seen:') && d < day) delete slice.intentRelDay[k];
+  slice.intentRelDay[seenKey(npcRef, intent)] = day;
 }
 
 function dayPart(ctx: SystemContext): 'day' | 'night' {
-  const h = calendarAt(ctx.tick).hour;
-  return h >= 6 && h < 18 ? 'day' : 'night';
+  return dayPartOf(calendarAt(ctx.tick).hour);
+}
+
+/**
+ * Whether a persona has a behavioural trait of the lexicon (its `traits` table: a trait
+ * code to the persona trait words that carry it); the card lists the words, not the code.
+ */
+export function personaHasTrait(
+  ctx: SystemContext,
+  persona: PersonaCard | undefined,
+  trait: string,
+): boolean {
+  if (!persona) return false;
+  const words = ctx.content.intentLexicon?.traits[trait];
+  return !!words && persona.traits.some((w) => words.includes(w));
+}
+
+/** Whether a persona reads as a functional kind of the lexicon's `roles` table (entity tags). */
+function personaReadsAs(
+  ctx: SystemContext,
+  persona: PersonaCard | undefined,
+  kind: string,
+): boolean {
+  if (!persona) return false;
+  const tags = ctx.content.intentLexicon?.roles[kind];
+  return !!tags && persona.tags.some((t) => tags.includes(t));
 }
 
 /** Evaluates a response step's `if` against live state (not content data: builtin_ai 6.6). */
@@ -86,28 +136,25 @@ function holds(
     case 'not_offended':
       return rel.like > -15;
     case 'guard':
-      return !!persona?.tags.includes('guard');
+      return personaReadsAs(ctx, persona, 'guard');
     case 'clergy':
-      return persona?.class === 'clergy';
+      return persona?.class === 'clergy' || personaReadsAs(ctx, persona, 'clergy');
     case 'merchant':
-      return (
-        !!persona?.class && (persona.class === 'merchant' || persona.tags.includes('merchant'))
-      );
+      return persona?.class === 'merchant' || personaReadsAs(ctx, persona, 'merchant');
     case 'service':
-      return !!persona && persona.class !== 'peasant';
+      return personaReadsAs(ctx, persona, 'service');
     case 'low_trust':
       return rel.trust < 30;
     case 'troubled': {
-      // the full nine-need, mood-driven "troubled" state is PK-M1-18's own scope; until
-      // then this reads the two needs already tracked (hunger, energy), the same signal
-      // smallTalk() already uses to pick a "not doing great" line (replies.ts).
+      // the mood of builtin_ai.md 3.3: afraid, angry, worried or worn out
       const st = ctx.world.slices.npc.npcs[npcRef];
-      return !!st && (st.needs.hunger < 35 || st.needs.energy < 30);
+      const mood = st ? moodOf(st, ctx.tick) : 'calm';
+      return mood === 'fear' || mood === 'angry' || mood === 'worried' || mood === 'tired';
     }
     case 'repeat_today':
-      return false;
+      return repeatToday(ctx, npcRef, result.main);
     case 'third_insult':
-      return thirdOffenseToday();
+      return thirdOffenseToday(ctx, npcRef);
     case 'pending':
       return !!rctx.afterQuestion;
     case 'in_topic':
@@ -152,12 +199,19 @@ function topicLine(
     ctx.content,
     npcRef,
     slot,
-    { holds: (w) => (w ? ctx.flag(w) !== undefined : true), dayIndex },
+    { holds: (w) => conditionHolds(ctx, w), dayIndex },
     ctx.rng('dialogue.lines'),
     history,
-    { suppressDays: 0, rotate: slot.startsWith('topic.') },
+    {
+      ...speakerLayers(ctx, npcRef),
+      // the suppression windows of 7.7 (reactions 7 days), topics rotate instead
+      suppressDays: history ? suppressionDays(slot) : 0,
+      rotate: slot.startsWith('topic.'),
+    },
   );
-  return r ? { key: r.key, params: {} } : null;
+  if (!r) return null;
+  if (history) recordLine(history, r.key, dayIndex);
+  return lineText({ zh: r.entry.zh, key: r.key }, { ...varsFor(ctx, npcRef), catch: '' });
 }
 
 function reactionLine(
@@ -238,7 +292,7 @@ function applyR7(
   let like = step.like;
   let trust = step.trust;
   for (const t of step.traits ?? []) {
-    if (persona?.traits.includes(t.trait)) {
+    if (personaHasTrait(ctx, persona, t.trait)) {
       if (t.like !== undefined) like = t.like;
       if (t.trust !== undefined) trust = t.trust;
       break;
@@ -270,7 +324,7 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
   const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
   const def: IntentDef | undefined = ctx.content.intentRules?.intents[result.main];
   const out: RespondOutcome = { line: '', end: false, entry: null, notify: [], codes: [] };
-  const band = trustBand(rel.like, rel.trust);
+  const band = trustBand(ctx, npcRef);
   const part = dayPart(ctx);
   const subst = (s: string) => s.replace('{band}', band).replace('{part}', part);
   if (!def) {
@@ -411,6 +465,11 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
       out.end = true;
       out.codes.push('R9');
     }
+  }
+  if (def.respond.some((step) => step.if === 'repeat_today')) {
+    // from the second time on a day it counts as an offense (builtin_ai 6.4 row 9)
+    if (repeatToday(ctx, npcRef, result.main)) out.offense = true;
+    markSeenToday(ctx, npcRef, result.main);
   }
   if (out.line === '')
     out.line =

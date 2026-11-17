@@ -1,0 +1,1219 @@
+{
+  "_doc": "The fifteen functional roles (content_bible.md 9.2; builtin_ai.md 4.2 and 4.3): per role a behavior tree (node ids prefixed with the role, unique across roles) and the role actions its act leaves name. cond and guard arguments are predicate names of src/systems/npc/brain/predicates.ts joined by AND, a leading ! negates; say arguments are line slots; durations are game time (30m, 12h, 1d). A role action's weight is its utility in the duty layer's usel; `do` is the activity, a schedule place ('@here' stays, '@player' walks up to the player, '@patient' goes to the one being treated), a note id and an effect of src/systems/npc/brain/role_effects.ts.",
+  "roles": {
+    "giver": {
+      "actions": {
+        "post_request": {
+          "weight": 1.4,
+          "persona": ["generous"],
+          "do": {
+            "act": "work",
+            "at": "@guild",
+            "note": "post_request",
+            "effect": "request"
+          }
+        }
+      },
+      "tree": {
+        "id": "giver.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "giver.post.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "giver.post.need",
+                "type": "cond",
+                "arg": "has_need AND duty_time"
+              },
+              {
+                "id": "giver.post",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "3d",
+                "children": [
+                  {
+                    "id": "giver.post.act",
+                    "type": "act",
+                    "arg": "post_request"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "vendor": {
+      "actions": {
+        "open_stall": {
+          "weight": 1.5,
+          "persona": ["diligent"],
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "open_stall"
+          }
+        },
+        "restock": {
+          "weight": 1.3,
+          "persona": ["greed"],
+          "do": {
+            "act": "shop",
+            "at": "@market",
+            "note": "restock",
+            "effect": "restock"
+          }
+        },
+        "tend_stall": {
+          "weight": 1.2,
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "tend"
+          }
+        }
+      },
+      "tree": {
+        "id": "vendor.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "vendor.open",
+            "type": "seq",
+            "children": [
+              {
+                "id": "vendor.open.when",
+                "type": "cond",
+                "arg": "duty_time AND !at_work"
+              },
+              {
+                "id": "vendor.open.act",
+                "type": "act",
+                "arg": "open_stall"
+              }
+            ]
+          },
+          {
+            "id": "vendor.restock.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "vendor.restock.when",
+                "type": "cond",
+                "arg": "duty_time AND morning"
+              },
+              {
+                "id": "vendor.restock",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "1d",
+                "children": [
+                  {
+                    "id": "vendor.restock.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.35",
+                    "children": [
+                      {
+                        "id": "vendor.restock.act",
+                        "type": "act",
+                        "arg": "restock"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "vendor.call.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "vendor.call.when",
+                "type": "cond",
+                "arg": "duty_time AND people_near"
+              },
+              {
+                "id": "vendor.call",
+                "type": "deco",
+                "deco": "throttle",
+                "arg": "1,30m",
+                "children": [
+                  {
+                    "id": "vendor.call.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.2",
+                    "children": [
+                      {
+                        "id": "vendor.call.say",
+                        "type": "say",
+                        "arg": "bark.vendor_call"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "vendor.tend",
+            "type": "seq",
+            "children": [
+              {
+                "id": "vendor.tend.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "vendor.tend.act",
+                "type": "act",
+                "arg": "tend_stall"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "crafter": {
+      "actions": {
+        "buy_materials": {
+          "weight": 1.2,
+          "persona": ["frugal"],
+          "do": {
+            "act": "shop",
+            "at": "@market",
+            "note": "buy_materials",
+            "effect": "restock"
+          }
+        },
+        "craft": {
+          "weight": 1.3,
+          "persona": ["diligent"],
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "craft"
+          }
+        }
+      },
+      "tree": {
+        "id": "crafter.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "crafter.buy.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "crafter.buy.when",
+                "type": "cond",
+                "arg": "duty_time AND morning"
+              },
+              {
+                "id": "crafter.buy",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "1d",
+                "children": [
+                  {
+                    "id": "crafter.buy.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.3",
+                    "children": [
+                      {
+                        "id": "crafter.buy.act",
+                        "type": "act",
+                        "arg": "buy_materials"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "crafter.work",
+            "type": "seq",
+            "children": [
+              {
+                "id": "crafter.work.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "crafter.work.act",
+                "type": "act",
+                "arg": "craft"
+              },
+              {
+                "id": "crafter.work.chatter",
+                "type": "sel",
+                "children": [
+                  {
+                    "id": "crafter.work.chatter.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.1",
+                    "children": [
+                      {
+                        "id": "crafter.work.chatter.say",
+                        "type": "say",
+                        "arg": "bark.work"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "crafter.work.chatter.skip",
+                    "type": "cond",
+                    "arg": "always"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "trainer": {
+      "actions": {
+        "train": {
+          "weight": 1.3,
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "train"
+          }
+        },
+        "practice": {
+          "weight": 1.1,
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "practice"
+          }
+        }
+      },
+      "tree": {
+        "id": "trainer.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "trainer.teach",
+            "type": "seq",
+            "children": [
+              {
+                "id": "trainer.teach.when",
+                "type": "cond",
+                "arg": "duty_time AND player_near"
+              },
+              {
+                "id": "trainer.teach.act",
+                "type": "act",
+                "arg": "train"
+              }
+            ]
+          },
+          {
+            "id": "trainer.practice",
+            "type": "seq",
+            "children": [
+              {
+                "id": "trainer.practice.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "trainer.practice.act",
+                "type": "act",
+                "arg": "practice"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "healer": {
+      "actions": {
+        "treat": {
+          "weight": 1.8,
+          "persona": ["mercy"],
+          "do": {
+            "act": "work",
+            "at": "@patient",
+            "note": "treat",
+            "effect": "treat"
+          }
+        },
+        "clinic": {
+          "weight": 1.3,
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "clinic"
+          }
+        },
+        "herbs": {
+          "weight": 1.1,
+          "do": {
+            "act": "shop",
+            "at": "@market",
+            "note": "herbs",
+            "effect": "restock"
+          }
+        }
+      },
+      "tree": {
+        "id": "healer.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "healer.urgent.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "healer.urgent.when",
+                "type": "cond",
+                "arg": "sick_near AND !night"
+              },
+              {
+                "id": "healer.urgent",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "4h",
+                "children": [
+                  {
+                    "id": "healer.urgent.act",
+                    "type": "act",
+                    "arg": "treat"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "healer.herbs.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "healer.herbs.when",
+                "type": "cond",
+                "arg": "duty_time AND morning"
+              },
+              {
+                "id": "healer.herbs",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "1d",
+                "children": [
+                  {
+                    "id": "healer.herbs.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.3",
+                    "children": [
+                      {
+                        "id": "healer.herbs.act",
+                        "type": "act",
+                        "arg": "herbs"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "healer.clinic",
+            "type": "seq",
+            "children": [
+              {
+                "id": "healer.clinic.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "healer.clinic.act",
+                "type": "act",
+                "arg": "clinic"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "info": {
+      "actions": {
+        "collect": {
+          "weight": 1.4,
+          "persona": ["curious"],
+          "do": {
+            "act": "chat",
+            "at": "@here",
+            "note": "listen",
+            "effect": "collect"
+          }
+        },
+        "verify": {
+          "weight": 1.2,
+          "persona": ["curious"],
+          "do": {
+            "act": "wander",
+            "at": "@here",
+            "note": "verify",
+            "effect": "verify"
+          }
+        },
+        "listen": {
+          "weight": 1,
+          "do": {
+            "act": "chat",
+            "at": "@tavern",
+            "note": "listen"
+          }
+        }
+      },
+      "tree": {
+        "id": "info.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "info.collect.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "info.collect.when",
+                "type": "cond",
+                "arg": "at_social_place AND rumor_around AND !night"
+              },
+              {
+                "id": "info.collect",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "2h",
+                "children": [
+                  {
+                    "id": "info.collect.act",
+                    "type": "act",
+                    "arg": "collect"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "info.verify.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "info.verify.when",
+                "type": "cond",
+                "arg": "doubtful_rumor AND !night"
+              },
+              {
+                "id": "info.verify",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "1d",
+                "children": [
+                  {
+                    "id": "info.verify.act",
+                    "type": "act",
+                    "arg": "verify"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rumor": {
+      "actions": {
+        "perform": {
+          "weight": 1.5,
+          "do": {
+            "act": "chat",
+            "at": "@tavern",
+            "note": "perform",
+            "effect": "perform"
+          }
+        },
+        "go_crowd": {
+          "weight": 1.1,
+          "persona": ["gossip"],
+          "do": {
+            "act": "chat",
+            "at": "@crowd",
+            "note": "gossip"
+          }
+        },
+        "broadcast": {
+          "weight": 1.6,
+          "persona": ["gossip"],
+          "do": {
+            "act": "chat",
+            "at": "@here",
+            "note": "gossip",
+            "effect": "broadcast"
+          }
+        }
+      },
+      "tree": {
+        "id": "rumor.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "rumor.perform.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "rumor.perform.when",
+                "type": "cond",
+                "arg": "bard AND evening"
+              },
+              {
+                "id": "rumor.perform",
+                "type": "deco",
+                "deco": "once",
+                "children": [
+                  {
+                    "id": "rumor.perform.act",
+                    "type": "act",
+                    "arg": "perform"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "rumor.broadcast.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "rumor.broadcast.when",
+                "type": "cond",
+                "arg": "hot_rumor AND at_social_place AND people_near"
+              },
+              {
+                "id": "rumor.broadcast",
+                "type": "deco",
+                "deco": "once",
+                "children": [
+                  {
+                    "id": "rumor.broadcast.act",
+                    "type": "act",
+                    "arg": "broadcast"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "rumor.spread.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "rumor.spread.when",
+                "type": "cond",
+                "arg": "hot_rumor AND free_time"
+              },
+              {
+                "id": "rumor.spread",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "3h",
+                "children": [
+                  {
+                    "id": "rumor.spread.act",
+                    "type": "act",
+                    "arg": "go_crowd"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "recruit": {
+      "actions": {},
+      "tree": {
+        "id": "recruit.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "recruit.greet.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "recruit.greet.when",
+                "type": "cond",
+                "arg": "player_near AND likes_player"
+              },
+              {
+                "id": "recruit.greet",
+                "type": "deco",
+                "deco": "throttle",
+                "arg": "1,1d",
+                "children": [
+                  {
+                    "id": "recruit.greet.say",
+                    "type": "say",
+                    "arg": "bark.see_player"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "officer": {
+      "actions": {
+        "office": {
+          "weight": 1.2,
+          "persona": ["duty"],
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "office"
+          }
+        }
+      },
+      "tree": {
+        "id": "officer.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "officer.office",
+            "type": "seq",
+            "children": [
+              {
+                "id": "officer.office.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "officer.office.act",
+                "type": "act",
+                "arg": "office"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "general": {
+      "actions": {
+        "drill": {
+          "weight": 1.3,
+          "persona": ["duty"],
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "drill"
+          }
+        },
+        "patrol": {
+          "weight": 1.2,
+          "persona": ["brave"],
+          "do": {
+            "act": "wander",
+            "at": "@plaza",
+            "note": "patrol"
+          }
+        }
+      },
+      "tree": {
+        "id": "general.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "general.ask.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "general.ask.when",
+                "type": "cond",
+                "arg": "threat_on_map AND player_near"
+              },
+              {
+                "id": "general.ask",
+                "type": "deco",
+                "deco": "throttle",
+                "arg": "1,3d",
+                "children": [
+                  {
+                    "id": "general.ask.say",
+                    "type": "say",
+                    "arg": "react.request_battle"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "general.patrol.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "general.patrol.when",
+                "type": "cond",
+                "arg": "duty_time AND guard"
+              },
+              {
+                "id": "general.patrol",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "6h",
+                "children": [
+                  {
+                    "id": "general.patrol.act",
+                    "type": "act",
+                    "arg": "patrol"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "general.drill",
+            "type": "seq",
+            "children": [
+              {
+                "id": "general.drill.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "general.drill.act",
+                "type": "act",
+                "arg": "drill"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "witness": {
+      "actions": {
+        "avoid": {
+          "weight": 1.6,
+          "persona": ["fear"],
+          "do": {
+            "act": "wander",
+            "at": "@home",
+            "note": "avoid"
+          }
+        },
+        "keep_evidence": {
+          "weight": 0.9,
+          "do": {
+            "act": "wander",
+            "at": "@home",
+            "note": "keep_evidence"
+          }
+        }
+      },
+      "tree": {
+        "id": "witness.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "witness.avoid",
+            "type": "seq",
+            "children": [
+              {
+                "id": "witness.avoid.when",
+                "type": "cond",
+                "arg": "pursuer_near AND fearful"
+              },
+              {
+                "id": "witness.avoid.act",
+                "type": "act",
+                "arg": "avoid"
+              }
+            ]
+          },
+          {
+            "id": "witness.keep.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "witness.keep.when",
+                "type": "cond",
+                "arg": "evidence_held AND free_time"
+              },
+              {
+                "id": "witness.keep",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "2d",
+                "children": [
+                  {
+                    "id": "witness.keep.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "0.2",
+                    "children": [
+                      {
+                        "id": "witness.keep.act",
+                        "type": "act",
+                        "arg": "keep_evidence"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "keyholder": {
+      "actions": {
+        "hide_key": {
+          "weight": 1.4,
+          "do": {
+            "act": "wander",
+            "at": "@home",
+            "note": "hide_key"
+          }
+        }
+      },
+      "tree": {
+        "id": "keyholder.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "keyholder.hide",
+            "type": "seq",
+            "children": [
+              {
+                "id": "keyholder.hide.when",
+                "type": "cond",
+                "arg": "pursuer_near"
+              },
+              {
+                "id": "keyholder.hide.act",
+                "type": "act",
+                "arg": "hide_key"
+              }
+            ]
+          },
+          {
+            "id": "keyholder.hint.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "keyholder.hint.when",
+                "type": "cond",
+                "arg": "player_near AND player_trusts"
+              },
+              {
+                "id": "keyholder.hint",
+                "type": "deco",
+                "deco": "throttle",
+                "arg": "1,2d",
+                "children": [
+                  {
+                    "id": "keyholder.hint.say",
+                    "type": "say",
+                    "arg": "react.hint"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rival": {
+      "actions": {
+        "taunt": {
+          "weight": 1.5,
+          "persona": ["proud"],
+          "do": {
+            "act": "wander",
+            "at": "@player",
+            "note": "taunt"
+          }
+        }
+      },
+      "tree": {
+        "id": "rival.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "rival.taunt.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "rival.taunt.when",
+                "type": "cond",
+                "arg": "player_near AND rival_hot AND !night"
+              },
+              {
+                "id": "rival.taunt",
+                "type": "deco",
+                "deco": "throttle",
+                "arg": "1,1d",
+                "children": [
+                  {
+                    "id": "rival.taunt.seq",
+                    "type": "seq",
+                    "children": [
+                      {
+                        "id": "rival.taunt.act",
+                        "type": "act",
+                        "arg": "taunt"
+                      },
+                      {
+                        "id": "rival.taunt.say",
+                        "type": "say",
+                        "arg": "react.rival_taunt"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "patron": {
+      "actions": {
+        "back": {
+          "weight": 1.2,
+          "persona": ["ambition"],
+          "do": {
+            "act": "wander",
+            "at": "@here",
+            "note": "back",
+            "effect": "back"
+          }
+        }
+      },
+      "tree": {
+        "id": "patron.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "patron.back.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "patron.back.when",
+                "type": "cond",
+                "arg": "worth_backing AND !night"
+              },
+              {
+                "id": "patron.back",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "7d",
+                "children": [
+                  {
+                    "id": "patron.back.act",
+                    "type": "act",
+                    "arg": "back"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "cleric": {
+      "actions": {
+        "service": {
+          "weight": 1.8,
+          "persona": ["pious"],
+          "do": {
+            "act": "pray",
+            "at": "@church",
+            "note": "service",
+            "effect": "sermon"
+          }
+        },
+        "confession": {
+          "weight": 1.4,
+          "persona": ["mercy"],
+          "do": {
+            "act": "pray",
+            "at": "@church",
+            "note": "confession",
+            "effect": "confession"
+          }
+        },
+        "vespers": {
+          "weight": 1.3,
+          "do": {
+            "act": "pray",
+            "at": "@church",
+            "note": "vespers",
+            "effect": "vespers"
+          }
+        },
+        "alms": {
+          "weight": 1.2,
+          "persona": ["mercy"],
+          "do": {
+            "act": "work",
+            "at": "@church",
+            "note": "alms",
+            "effect": "alms"
+          }
+        },
+        "chapel": {
+          "weight": 1.1,
+          "do": {
+            "act": "work",
+            "at": "@work",
+            "note": "chapel"
+          }
+        }
+      },
+      "tree": {
+        "id": "cleric.root",
+        "type": "sel",
+        "children": [
+          {
+            "id": "cleric.service",
+            "type": "seq",
+            "children": [
+              {
+                "id": "cleric.service.when",
+                "type": "cond",
+                "arg": "holy_day AND morning"
+              },
+              {
+                "id": "cleric.service.act",
+                "type": "act",
+                "arg": "service"
+              },
+              {
+                "id": "cleric.service.bark",
+                "type": "sel",
+                "children": [
+                  {
+                    "id": "cleric.service.bark.chance",
+                    "type": "deco",
+                    "deco": "chance",
+                    "arg": "1",
+                    "children": [
+                      {
+                        "id": "cleric.service.bark.say",
+                        "type": "say",
+                        "arg": "bark.sermon"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cleric.service.bark.skip",
+                    "type": "cond",
+                    "arg": "always"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cleric.confession.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "cleric.confession.when",
+                "type": "cond",
+                "arg": "confessor_waiting AND !night"
+              },
+              {
+                "id": "cleric.confession",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "6h",
+                "children": [
+                  {
+                    "id": "cleric.confession.act",
+                    "type": "act",
+                    "arg": "confession"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cleric.vespers.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "cleric.vespers.when",
+                "type": "cond",
+                "arg": "evening"
+              },
+              {
+                "id": "cleric.vespers",
+                "type": "deco",
+                "deco": "once",
+                "children": [
+                  {
+                    "id": "cleric.vespers.act",
+                    "type": "act",
+                    "arg": "vespers"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cleric.alms.when_seq",
+            "type": "seq",
+            "children": [
+              {
+                "id": "cleric.alms.when",
+                "type": "cond",
+                "arg": "duty_time AND poor_around"
+              },
+              {
+                "id": "cleric.alms",
+                "type": "deco",
+                "deco": "cooldown",
+                "arg": "7d",
+                "children": [
+                  {
+                    "id": "cleric.alms.act",
+                    "type": "act",
+                    "arg": "alms"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cleric.chapel",
+            "type": "seq",
+            "children": [
+              {
+                "id": "cleric.chapel.when",
+                "type": "cond",
+                "arg": "duty_time"
+              },
+              {
+                "id": "cleric.chapel.act",
+                "type": "act",
+                "arg": "chapel"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

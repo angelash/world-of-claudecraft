@@ -7,13 +7,14 @@
 //   gather.done, craft.done   the gathering and crafting system (PK-M1-49; nothing emits them
 //                             yet, the objectives are tested with synthetic events);
 //   duel.ended                combat's non-lethal duel (no emitter yet);
-//   stealth.detected          whoever sees the player sneaking (NPC perception, PK-M1-18;
-//                             no emitter yet);
+//   stealth.detected          whoever sees the player sneaking (the NPC system's watchers,
+//                             src/systems/npc/brain/quest_orders.ts);
 //   economy.traded            the economy system (exists).
 // Movement: follow sends the NPC on its way with the NPC system's `npc.goto` command (a
-// place on that person's map); escort, rescue and accompany need the person to walk with the
-// player, which only companions do today (the party's follow order): the NPC-follows-player
-// order is a gap for PK-M1-18 and PK-M1-15.
+// place on that person's map or on another one: the person walks the exits); escort,
+// rescue and accompany need the person to walk with the player: the NPC system starts its
+// follow-the-player order from the quest stage itself (src/systems/npc/brain/quest_orders.ts),
+// companions follow through the party's order.
 
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_MINUTE } from '../../core/time';
@@ -233,7 +234,7 @@ export function startStageObjectives(ctx: SystemContext, stage: QuestStage): voi
     if (o.type !== 'follow') continue;
     ctx.dispatch(
       'npc.goto',
-      { npcId: o.npc, locationId: o.location, hours: o.hours ?? FOLLOW_HOURS },
+      { npcId: o.npc, locationId: o.location, mapId: o.mapId, hours: o.hours ?? FOLLOW_HOURS },
       { type: 'system', system: 'quests' },
     );
   }

@@ -295,7 +295,9 @@ describe('schedules and needs', () => {
     });
     stepTo(g, 0, 10);
     expect(g.world.slices.npc.npcs.ped?.activity).toBe('eat');
-    expect(g.world.slices.npc.npcs.ped?.locId).toBe('drunk_moon');
+    // the need layer's utility (builtin_ai.md 4.1): the frugal baker (算小账, frugal x1.3)
+    // eats at home rather than paying for the tavern
+    expect(g.world.slices.npc.npcs.ped?.locId).toBe('bakery');
     stepTo(g, 1, 0, 5);
     expect(holdingOf(g.world, npcEntityId('barga')).money).toBeGreaterThan(moneyBefore);
     expect(eventsOf(g, 'money.changed').length).toBeGreaterThan(0);
@@ -489,7 +491,8 @@ describe('chat, relations and memory', () => {
   it('mirrors trust toward the player to the ledger flag and decays toward the baseline', () => {
     const g = game();
     runInTick(g, (ctx) => adjustRelation(ctx, 'shiya', 'player', { trust: 20, like: 30 }, '测试'));
-    expect(g.world.meta.flags['trust.shiya']).toBe(65);
+    // Shiya is 倔 (the stubborn trait code, ./traits.ts): changes reach her at x0.7
+    expect(g.world.meta.flags['trust.shiya']).toBe(45 + 14);
     expect(eventsOf(g, 'npc.relation_changed').some((e) => e.data.from === 'shiya')).toBe(true);
     const like = g.world.slices.npc.minds.shiya?.rel.player?.like ?? 0;
     stepTo(g, 3, 0, 5);
@@ -528,11 +531,16 @@ describe('batch diary (L3)', () => {
     expect(diary.length).toBeGreaterThan(0);
     expect(diary.length).toBeLessThanOrEqual(3);
     expect(diary.every((d) => d.day === 0 && t(d.text).length <= 40)).toBe(true);
-    // the rule diary is text keys with the place and the other person as parameters
+    // the rule diary is text keys with the place and the other person as parameters; the
+    // day's last entry closes with the mood line around its rule sentence
+    const ruleKey = (x: unknown) =>
+      isTextRef(x) && (x as KeyText).key.startsWith('sys.npc.diary.rule.');
     expect(
-      diary.every(
-        (d) => isTextRef(d.text) && (d.text as KeyText).key.startsWith('sys.npc.diary.rule.'),
-      ),
+      diary.every((d, i) => {
+        if (i < diary.length - 1) return ruleKey(d.text);
+        const k = d.text as KeyText;
+        return isTextRef(k) && k.key === 'sys.npc.diary.closing' && ruleKey(k.params?.text);
+      }),
     ).toBe(true);
   });
 

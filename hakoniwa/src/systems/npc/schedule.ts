@@ -139,6 +139,7 @@ export function ruleDayPlan(
   needs: Needs,
   moneyNeed: number,
   devotion: number,
+  day: { holy?: boolean; market?: boolean } = {},
 ): { slots: PlanSlotData[]; note: KeyText } {
   const slots: PlanSlotData[] = scheduleOf(content, card).map((s) => ({ ...s }));
   const notes: KeyText[] = [];
@@ -166,6 +167,19 @@ export function ruleDayPlan(
       (s) => s.act === 'wander' && s.from >= 16,
       { act: 'chat', at: '@tavern', note: tr('sys.npc.plan.note.chat') },
       tr('sys.npc.plan.why.chat'),
+    );
+  // the day's kind (builtin_ai.md 3.2 step 2): the week's service, the market day
+  if (day.holy && devotion >= 0.3 && notes.length < 3)
+    swap(
+      (s) => free(s) && s.act !== 'pray' && s.from >= 7 && s.from < 12,
+      { act: 'pray', at: '@church', note: tr('sys.npc.plan.note.service') },
+      tr('sys.npc.plan.why.service'),
+    );
+  if (day.market && notes.length < 3)
+    swap(
+      (s) => free(s) && s.act !== 'shop' && s.from >= 9 && s.from < 17,
+      { act: 'shop', at: '@market', note: tr('sys.npc.plan.note.market') },
+      tr('sys.npc.plan.why.market'),
     );
   return {
     slots,
