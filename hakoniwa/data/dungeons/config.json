@@ -1,0 +1,32 @@
+{
+  "forms": [
+    { "id": "lair", "minPressure": 30, "party": 1 },
+    { "id": "shallow", "minPressure": 100, "party": 2 },
+    { "id": "dungeon", "minPressure": 300, "party": 4 },
+    { "id": "great", "minPressure": 800, "party": 9 }
+  ],
+  "activity": {
+    "max": 100,
+    "active": 60,
+    "afterOverflow": 40,
+    "pagedDeath": 3,
+    "coreKill": -60,
+    "ritual": 30,
+    "idleNurture": 10
+  },
+  "paged": { "kinds": ["npc"], "families": ["humanoid"] },
+  "nurtureGrowth": 0.05,
+  "leftItemDays": 7,
+  "collapseDays": [3, 7],
+  "nest": {
+    "stageDays": 91,
+    "minSediment": 2,
+    "fullSediment": 3,
+    "fullStage": 3,
+    "maxStage": 4,
+    "nurtureStage": 2,
+    "destroyDays": 91,
+    "lordStage": 2,
+    "clearMargin": 6
+  }
+}

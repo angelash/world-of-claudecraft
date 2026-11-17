@@ -40,6 +40,8 @@ export const ENTITY_KINDS: readonly EntityKind[] = [
   { table: 'commissions', kind: 'commission', protectedKind: true },
   { table: 'dynamicEvents', kind: 'dynamic event', protectedKind: true },
   { table: 'guildBoards', kind: 'guild board', protectedKind: true },
+  { table: 'dungeons', kind: 'dungeon', protectedKind: true },
+  { table: 'nests', kind: 'nest', protectedKind: true },
 ];
 
 export interface EntityIdIndex {

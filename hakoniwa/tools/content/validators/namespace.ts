@@ -32,7 +32,12 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'nm_', owner: 'catalog_bestiary.md', tables: ITEMS },
   { prefix: 'mtide_', owner: 'catalog_bestiary.md', tables: ['waves'] },
   // a dungeon's sub-scene map carries the dungeon id (map_briefs.md 9.1, A5-2 dg_old_mine)
-  { prefix: 'dg_', owner: 'catalog_dungeons_bosses.md', tables: ['maps', 'atlas_maps'] },
+  {
+    prefix: 'dg_',
+    owner: 'catalog_dungeons_bosses.md',
+    tables: ['maps', 'atlas_maps', 'dungeons'],
+  },
+  { prefix: 'nest_', owner: 'catalog_bestiary.md', tables: ['nests'] },
   { prefix: 'trial_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'afx_', owner: 'catalog_dungeons_bosses.md', tables: [] },
   { prefix: 'eq_', owner: 'catalog_equipment.md', tables: ITEMS },
@@ -129,6 +134,8 @@ export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   letters: ['ltr_'],
   itemSets: ['set_'],
   enchants: ['ench_'],
+  dungeons: ['dg_'],
+  nests: ['nest_'],
 };
 
 /**
@@ -142,6 +149,8 @@ const MAP_TABLES: readonly string[] = ['maps', 'atlas_maps'];
 /** Entity kinds that legitimately share one id: the place codes. */
 export const SHARED_KINDS: readonly (readonly string[])[] = [
   ['map', 'region', 'province', 'nation', 'site', 'market'],
+  // a dungeon and its own sub-scene map (map_briefs.md 9.1)
+  ['map', 'dungeon'],
 ];
 
 export interface LegacyEntry {

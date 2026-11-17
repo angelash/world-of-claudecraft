@@ -1,0 +1,26 @@
+[
+  {
+    "id": "dg_seal_ruins",
+    "name": "封门遗迹",
+    "act": "act1",
+    "form": "dungeon",
+    "level": [1, 14],
+    "source": "ancient",
+    "owner": "church",
+    "party": 2,
+    "gate": { "mapId": "borderstone", "location": "gate_seal_ruins" },
+    "entry": { "mapId": "seal_ruins", "location": "gate_borderstone" },
+    "floors": [
+      { "id": "surface", "name": "外庭与神纹大厅", "mapId": "seal_ruins", "depth": 0 },
+      { "id": "depths", "name": "阶底与灰烬室", "mapId": "seal_ruins_depths", "depth": 1 },
+      {
+        "id": "shaft",
+        "name": "巢井与鸦巢",
+        "mapId": "seal_ruins_depths",
+        "area": "nest_shaft",
+        "depth": 2,
+        "boss": "guardian_raven"
+      }
+    ]
+  }
+]

@@ -363,6 +363,7 @@ const SYSTEMS = [
   'disputes',
   'guild',
   'ailments',
+  'dungeons',
 ];
 const SYSTEM_ALIASES: Record<string, string> = {
   court: 'scenes',
@@ -371,7 +372,7 @@ const SYSTEM_ALIASES: Record<string, string> = {
   内核: 'core',
   内核日历: 'core',
   内核时钟: 'core',
-  迷宫系统: 'world',
+  迷宫系统: 'dungeons',
   事迹系统: 'records',
   证据系统: 'quests',
   队伍命令处理器: 'party',

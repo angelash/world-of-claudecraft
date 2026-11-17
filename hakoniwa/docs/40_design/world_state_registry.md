@@ -1026,7 +1026,7 @@
 | `war.<剧本>.result` | 无 | 枚举 | `won`、`lost`、`draw` | warfare | 任务 |
 | `war.first_battle_won` | 无 | 标记 | | warfare：骨原夜袭（`bat_a3_bonefield`）里罗恩举旗守住阵线的那一刻，战败也成立 | 千军之门（`dr`） |
 | `war.generals` | `generals` | 集合 | 人物 ID | warfare | 第三幕出口、战线 |
-| `dg.<迷宫>.<字段>` | `dg_state.<迷宫>.<字段>`；不带字段的 `dg_state.<迷宫或巢>` 即 `.choice` | 按字段 | 迷宫或澱巢 ID（迷宫写 `dg_` ID；澱巢写 `nest_` 加巢主 ID，例 `nest_bonepile_lord`，[魔物图鉴][best]第 6 节）；字段 `choice`（养毁净的抉择：`untouched`（未处置，默认）、`nurture`、`destroy`、`purify`）、`cleared`（标记）、`depth`（整数）、`pressure`（整数）、`active`（布尔）、`phase`（枚举 `lair`、`shallow`、`dungeon`、`great`、`overflow`、`purified`） | 迷宫系统 | 门钥、首通经验、城建 |
+| `dg.<迷宫>.<字段>` | `dg_state.<迷宫>.<字段>`；不带字段的 `dg_state.<迷宫或巢>` 即 `.choice` | 按字段 | 迷宫或澱巢 ID（迷宫写 `dg_` ID；澱巢写 `nest_` 加巢主 ID，例 `nest_bonepile_lord`，[魔物图鉴][best]第 6 节）；字段 `choice`（养毁净的抉择：`untouched`（未处置，默认）、`nurture`、`destroy`、`purify`）、`cleared`（标记：守核首领或巢主已倒）、`depth`（整数：到过的最深一层，地上为 0）、`pressure`（整数）、`active`（布尔：活性期）、`phase`（枚举 `lair`、`shallow`、`dungeon`、`great`、`overflow`、`purified`）、`stage`（整数：澱巢的阶 1 到 4，3 为满巢）、`collapsed`（标记：塌陷开关，毁后塌缩完成时写入，地图开关格的 `openWhen` 与刷新点读它） | 迷宫系统（`dungeons`）；任务抉择的效果可直接写 `choice`，后果由迷宫系统结算 | 门钥、首通经验、城建、任务条件、地图开关格 |
 | `city.court_study` | 无 | 标记 | | city 建成（`src/systems/city/construction.ts`） | 配方（`data/economy/recipes.json`） |
 | `city.officials` | `officials` | 集合 | 人物 ID | city 任命 | 第三幕出口 |
 | `econ.company_founded` | 无 | 标记 | | economy 商会成立 | `data/city/buildings.json`、配方、`q`、`s25`、审期 |

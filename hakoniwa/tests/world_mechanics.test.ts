@@ -727,7 +727,7 @@ describe('the content readers understand the map mechanics', () => {
       );
     expect(find({ maps: [{ id: 'dg_cave' }], atlas_maps: [{ id: 'door_corridor' }] })).toEqual([]);
     expect(find({ items: [{ id: 'dg_cave' }] })).toEqual([
-      'items:dg_cave: prefix dg_ belongs to catalog_dungeons_bosses.md (tables maps, atlas_maps), not to items',
+      'items:dg_cave: prefix dg_ belongs to catalog_dungeons_bosses.md (tables maps, atlas_maps, dungeons), not to items',
     ]);
     expect(find({ npcResidents: [{ id: 'door_corridor' }] })[0]).toContain(
       'prefix door_ belongs to catalog_doors.md',
