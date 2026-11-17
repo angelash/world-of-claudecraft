@@ -1,7 +1,8 @@
-// Rewards for a defeated enemy: experience (the player's classic solo value, companions
-// counted on their own, catch-up below the band floor; progression.ts), loot and money
-// through the inventory ports, notable-deed events for witnesses, and boss milestone
-// flags. Also level progression and the pass-on pool past the level cap.
+// Rewards for a defeated enemy: the credit (the player's side dealt a tenth or struck last,
+// 8.5), experience (the player's classic solo value, companions counted on their own,
+// catch-up below the band floor; progression.ts), loot and money through the inventory
+// ports, notable-deed events for witnesses, and boss milestone flags. Also level
+// progression (a level widens the outsider's skill rack) and the pass-on pool past the cap.
 
 import type { SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
@@ -9,10 +10,12 @@ import { addItem, addMoney } from '../inventory';
 import { applyModifiers } from '../modifiers';
 import { getEntity, playerEntity } from '../world';
 import { monsterDef } from './defs';
-import { ELITE_XP, MAX_LEVEL, xpForLevel } from './formulas';
+import { CREDIT_SHARE, ELITE_XP, MAX_LEVEL, xpForLevel } from './formulas';
 import { killXpShare, playerXpFactor, XP_OVERFLOW_FLAG } from './progression';
+import { syncRack } from './rack';
+import { deriveStats } from './stats';
 import type { Unit } from './types';
-import { fillUp, refreshTags, setLevel, unitOf } from './units';
+import { fillUp, isPartySide, refreshTags, setLevel, unitOf } from './units';
 
 /** Party members that share credit: the player and companions near the kill. */
 export function creditParty(ctx: SystemContext, mapId: string, x: number, y: number): Unit[] {
@@ -87,6 +90,8 @@ export function gainXp(ctx: SystemContext, u: Unit, amount: number, reason: Text
   if (leveled) {
     fillUp(ctx.world, ctx.content, u);
     refreshTags(ctx, u);
+    // a wider rack takes the abilities the new levels brought (7)
+    syncRack(ctx.content, u);
   }
   ctx.emit('combat.xp', {
     entityId: u.id,
@@ -95,6 +100,17 @@ export function gainXp(ctx: SystemContext, u: Unit, amount: number, reason: Text
     level: u.level,
     xp: u.xp,
   });
+}
+
+/**
+ * The credit of a fallen enemy (8.5; progression 3.3): the player's side (the player,
+ * companions and their pets) dealt at least 10% of its health, or struck the last blow; a
+ * kill by companions alone counts, one by town guards or another faction alone does not.
+ */
+export function creditedToParty(ctx: SystemContext, victim: Unit, killer: Unit | null): boolean {
+  if (killer && isPartySide(ctx.world, killer)) return true;
+  const max = deriveStats(ctx.world, ctx.content, victim).maxHp;
+  return (victim.partyDamage ?? 0) >= CREDIT_SHARE * max;
 }
 
 /** Experience, loot, deeds and boss flags for an enemy that fell (or yielded). */
@@ -108,7 +124,7 @@ export function award(
   if (!e) return;
   const mon = monsterDef(ctx.content, victim.monsterId);
   const tapper = unitOf(ctx.world, victim.tapped);
-  const credited = tapper?.side === 'ally' || killer?.side === 'ally';
+  const credited = creditedToParty(ctx, victim, killer);
   const player = playerEntity(ctx.world);
 
   if (credited && mon && !victim.summonerId) {

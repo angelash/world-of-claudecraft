@@ -264,12 +264,28 @@ export function tierName(tier: number): KeyText | '' {
   return Number.isInteger(tier) && tier >= 0 && tier <= 7 ? tr(`sys.combat.tier.${tier}`) : '';
 }
 
+/** Presence resistance sources add up to at most this (combat_and_classes.md 3.5). */
+export const PRESENCE_RESIST_CAP = 0.6;
+
 /**
- * Presence (威压) on attacks against a higher rank. Q-003 keeps the level miss penalty
- * capped and adds rank pressure on top: one rank of difference is felt but free, two or
- * more cost 10 hit points and 20% damage per rank beyond the first (hit penalty capped
- * at 40 points, damage floored at 30%). `resist` (0..1) is the share shrugged off by
- * will, faith or a companion at one's side.
+ * The rank pressure table (combat_and_classes.md 3.5, Q-003) by rank gap g = target rank
+ * minus attacker rank: hit points lost and the damage factor of the attacker's blows.
+ */
+const PRESSURE: readonly { hit: number; damage: number }[] = [
+  { hit: 0, damage: 1 },
+  { hit: 0.03, damage: 0.92 },
+  { hit: 0.08, damage: 0.8 },
+  { hit: 0.15, damage: 0.65 },
+  { hit: 0.25, damage: 0.5 },
+];
+
+/**
+ * Presence (威压) on attacks against a higher rank (3.5): from one rank of difference the
+ * attacker misses more and hits softer (gap 1: -3 points and x0.92; 2: -8 and x0.80; 3:
+ * -15 and x0.65; 4 and more: -25 and x0.50). The level miss penalty itself stays capped at
+ * three levels (3.4), so pressure is what makes a far stronger foe dangerous. `resist` is
+ * the share shrugged off (companions at one's side, will, drink; capped at 0.6): both the
+ * hit and the damage part shrink by it. An attacker of the higher rank gains nothing here.
  */
 export function presencePenalty(
   attackerTier: number,
@@ -277,12 +293,109 @@ export function presencePenalty(
   resist = 0,
 ): { hitPenalty: number; damageFactor: number } {
   const gap = targetTier - attackerTier;
-  if (gap < 2) return { hitPenalty: 0, damageFactor: 1 };
-  const k = Math.max(0, Math.min(1, 1 - resist));
-  const hitPenalty = Math.min(0.4, 0.1 * (gap - 1)) * k;
-  const damageFactor = 1 - (1 - Math.max(0.3, 1 - 0.2 * (gap - 1))) * k;
-  return { hitPenalty, damageFactor };
+  if (gap < 1) return { hitPenalty: 0, damageFactor: 1 };
+  const row = PRESSURE[Math.min(PRESSURE.length - 1, gap)] as { hit: number; damage: number };
+  const k = 1 - Math.max(0, Math.min(PRESENCE_RESIST_CAP, resist));
+  return { hitPenalty: row.hit * k, damageFactor: 1 - (1 - row.damage) * k };
 }
+
+/** Control duration factor by rank gap 1 to 4 (3.5): on the higher rank, by the higher rank. */
+const CC_ON_HIGHER: readonly number[] = [1, 0.85, 0.65, 0.45, 0.3];
+const CC_BY_HIGHER: readonly number[] = [1, 1.15, 1.35, 1.6, 2];
+
+/**
+ * The rank factor of a control's duration (3.5, 9.3): a control applied to a higher rank
+ * is shorter (gap 2: x0.65), one a higher rank applies to a lower rank is longer (gap 2:
+ * x1.35). A 6-second control on a target two ranks up lasts 3.9 seconds; the same control
+ * from two ranks up lasts 8.1.
+ */
+export function presenceCcFactor(applierTier: number, targetTier: number): number {
+  const gap = targetTier - applierTier;
+  if (gap === 0) return 1;
+  const i = Math.min(CC_ON_HIGHER.length - 1, Math.abs(gap));
+  return (gap > 0 ? CC_ON_HIGHER[i] : CC_BY_HIGHER[i]) ?? 1;
+}
+
+// ---------------------------------------------------------------------------
+// Control (combat_and_classes.md 9)
+
+/** Duration share of the diminishing-returns ladder: full, half, quarter, immune (9.2). */
+export const DR_LADDER: readonly number[] = [1, 0.5, 0.25, 0];
+/** Seconds without a new control of a category before its ladder is back at full (9.2). */
+export const DR_RESET_SEC = 18;
+/** Duration modifiers add up and stay within -75% and +100% (9.3). */
+export const CC_MOD_MIN = -0.75;
+export const CC_MOD_MAX = 1;
+
+/** The summed duration modifier, kept inside its range (9.3). */
+export function ccModFactor(sum: number): number {
+  return 1 + Math.max(CC_MOD_MIN, Math.min(CC_MOD_MAX, sum));
+}
+
+/**
+ * Longest base duration a monster's control may carry against the player's side (9.1):
+ * stun 3, root 6, silence 4, fear 6, incapacitate 6, disarm 6 seconds. Rank scaling may
+ * lengthen it in play; this caps the data.
+ */
+export const MOB_CC_CAP: Readonly<Partial<Record<string, number>>> = {
+  stun: 3,
+  root: 6,
+  silence: 4,
+  fear: 6,
+  incapacitate: 6,
+  disarm: 6,
+};
+
+/** Fear breaks on a hit with chance damage / (scale x max health), at most 1 (9.7). */
+export function fearBreakChance(damage: number, maxHp: number, scale = 0.1): number {
+  if (damage <= 0 || maxHp <= 0) return 0;
+  return Math.min(1, damage / (Math.max(1e-6, scale) * maxHp));
+}
+
+/** Classic spell pushback (3.9): half a second per hit, at most twice per cast. */
+export const PUSHBACK_SEC = 0.5;
+export const MAX_PUSHBACKS = 2;
+
+// ---------------------------------------------------------------------------
+// Standard amount, the skill rack, party size (combat_and_classes.md 3.1, 7, 5.5)
+
+/**
+ * The standard amount S(L) = round(0.18 x (40 + 10L + 0.9L^2)) (3.1): 18% of a normal
+ * monster's health at level L, the base damage of a 2.5-second single-target spell of
+ * rank level L before power. Abilities are written as k x S(R) for their rank level R.
+ */
+export function standardAmount(level: number): number {
+  return Math.round(0.18 * monsterBaseHp(level));
+}
+
+/** Skill rack capacity by level (7): 8 up to 9, 12 to 19, 16 to 34, 20 to 49, 24 from 50. */
+export function skillRackSize(level: number): number {
+  if (level <= 9) return 8;
+  if (level <= 19) return 12;
+  if (level <= 34) return 16;
+  if (level <= 49) return 20;
+  return 24;
+}
+
+/**
+ * Health scale of a boss fought by fewer than its full party (5.5): (actual / full)^0.8,
+ * never above 1. A lair lord (full party 3) fought alone keeps 0.415 of its health.
+ */
+export function partySizeHpScale(actual: number, full: number): number {
+  if (full <= 0) return 1;
+  return Math.min(1, Math.max(0, actual) / full) ** 0.8;
+}
+
+/**
+ * Full party of each boss layer for the health scale (5.5: lair 2 to 3, dungeon 4 to 5,
+ * great dungeon 6 to 10; the upper end, which gives 17.4's lone duel with Seg: 8 x
+ * (1 / 3)^0.8 = 3.32). The surge lord's open fight has no full party.
+ */
+export const FULL_PARTY: Readonly<Record<string, number>> = {
+  lair: 3,
+  dungeon: 5,
+  raid: 10,
+};
 
 // ---------------------------------------------------------------------------
 // Death (power_system.md 9.8)
@@ -291,13 +404,30 @@ export function presencePenalty(
  * The revival-fatigue state (复苏门疲) in game minutes after returning through the door
  * (thousand_doors.md 6.3, combat_and_classes.md 15.1): 2 game hours plus one per ten door
  * ranks, at most 10, times (1 + 0.5 x overload stacks), the stacks being the other deaths
- * within one game day, at most three. Door rank 45 gives 6 hours; two stacks make it 12.
+ * within one game day, at most three, times the difficulty's death-fatigue factor (16:
+ * story 0.5, legend 1.5). Door rank 45 gives 6 hours; two stacks make it 12.
  */
-export function doorFatigueMinutes(doorRank: number, recentDeaths: number): number {
+export function doorFatigueMinutes(doorRank: number, recentDeaths: number, factor = 1): number {
   const hours = Math.min(10, 2 + Math.floor(Math.max(1, doorRank) / 10));
   const stacks = Math.min(3, Math.max(0, recentDeaths));
-  return Math.round(60 * hours * (1 + 0.5 * stacks));
+  return Math.round(60 * hours * (1 + 0.5 * stacks) * Math.max(0, factor));
 }
 
-/** Share of carried money left behind where the player fell (遗落). */
+/**
+ * Game minutes the player spends reforming in the corridor before the return lands (15.1):
+ * one game hour plus half an hour per overload stack.
+ */
+export function revivalMinutes(stacks: number): number {
+  return 60 + 30 * Math.min(3, Math.max(0, stacks));
+}
+
+/** Share of carried money left behind where the player fell (遗落) at standard difficulty. */
 export const DEATH_MONEY_LOSS = 0.1;
+/** Share of every stack of stackable goods left in the drop bag, rounded down (15.1). */
+export const DROP_STACK_SHARE = 0.25;
+/** Game days a drop bag stays where the player fell (15.1). */
+export const DROP_BAG_DAYS = 3;
+/** Door fatigue a return through the door leaves at least, before difficulty (15.1). */
+export const RETURN_FATIGUE_FLOOR = 60;
+/** Share of a monster's health the player's side must deal for the credit (8.5). */
+export const CREDIT_SHARE = 0.1;

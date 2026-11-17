@@ -17,7 +17,9 @@ export type ModifierTarget =
   | 'morale'
   | 'sediment'
   | 'xp'
-  | 'travel';
+  | 'travel'
+  /** combat items: the difficulty's modifiers and the like (combat/difficulty.ts) */
+  | 'combat';
 
 export interface ModifierSpec {
   target: ModifierTarget;

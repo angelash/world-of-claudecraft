@@ -67,6 +67,8 @@ function attackersOf(
   for (const near of entitiesNear(ctx.world, e.mapId, e.x, e.y, radius)) {
     const foe = unitOf(ctx.world, near.id);
     if (!foe?.target || !ids.has(foe.target) || !canAttack(ctx.world, u, foe)) continue;
+    // a duelist is its duel partner's alone (combat duel.ts)
+    if (foe.duel && foe.duel !== u.duel) continue;
     out.push(foe);
   }
   return out;
@@ -87,7 +89,9 @@ function chooseTarget(
     const [pu] = player;
     const pt = unitOf(ctx.world, pu.target);
     const engaged = pu.autoAttack || !!pu.cast || pu.combatUntil > ctx.tick;
-    if (pt && engaged && canAttack(ctx.world, u, pt) && liveUnit(ctx.world, pt.id)) return pt;
+    const free = !pt?.duel || pt.duel === u.duel;
+    if (pt && free && engaged && canAttack(ctx.world, u, pt) && liveUnit(ctx.world, pt.id))
+      return pt;
   }
   return attackersOf(ctx, u, e, new Set(party.map((p) => p.id)), 12)[0] ?? null;
 }

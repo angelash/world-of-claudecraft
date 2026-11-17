@@ -153,6 +153,22 @@ export function canAttack(world: World, a: Unit, b: Unit): boolean {
   return !!liveUnit(world, b.id);
 }
 
+/**
+ * The player's side in the narrow sense (credit 8.5): the player, companions, and the pets
+ * either of them summoned. Friendly guards and townsfolk fight on the ally side but are not
+ * the player's party.
+ */
+export function isPartySide(world: World, u: Unit): boolean {
+  let cur: Unit | undefined = u;
+  for (let hop = 0; cur && hop < 3; hop++) {
+    const e = getEntity(world, cur.id);
+    if (e && (e.kind === 'player' || e.kind === 'companion')) return true;
+    if (!cur.summonerId) return false;
+    cur = unitOf(world, cur.summonerId);
+  }
+  return false;
+}
+
 export function isFriendlyPair(a: Unit, b: Unit): boolean {
   return a.side === b.side && a.side !== 'neutral';
 }

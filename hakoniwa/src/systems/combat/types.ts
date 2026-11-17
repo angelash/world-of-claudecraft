@@ -4,6 +4,7 @@
 // See docs/50_tech/architecture.md 4.6 (phase 20) and docs/20_world/power_system.md 3 to 5.
 
 import type { TextParam } from '../../core/text';
+import type { Parcel } from '../inventory';
 import type { Appearance } from '../world/types';
 
 export type ResourceKind = 'mana' | 'rage' | 'energy';
@@ -26,7 +27,65 @@ export type StatKey =
   | 'dodge';
 /** Flat stats. crit, hit, haste and dodge are percentage points (5 = 5%). */
 export type StatBlock = Partial<Record<StatKey, number>>;
-export type CcKind = 'stun' | 'root' | 'silence' | 'slow' | 'fear' | 'incapacitate';
+export type CcKind = 'stun' | 'root' | 'silence' | 'slow' | 'fear' | 'incapacitate' | 'disarm';
+/**
+ * Diminishing-returns categories (combat_and_classes.md 9.2): three kinds of stun (active,
+ * opener, proc), root, incapacitate, sleep, polymorph, fear, silence and disarm; each has
+ * its own ladder (full, half, quarter, immune) and its own 18-second reset window.
+ */
+export type DrCategory =
+  | 'stun_ctrl'
+  | 'stun_open'
+  | 'stun_proc'
+  | 'root'
+  | 'incap'
+  | 'sleep'
+  | 'poly'
+  | 'fear'
+  | 'silence'
+  | 'disarm';
+/** Dispel categories (9.5); an aura without one cannot be dispelled. */
+export type DispelType = 'magic' | 'curse' | 'poison' | 'disease';
+/** Aura bar category (8.2; the interface's `AuraView`). */
+export type AuraCategory = 'buff' | 'debuff' | 'state' | 'mount' | 'food';
+/**
+ * Boss layers (5.5): lair lord, dungeon lord, great-dungeon boss, surge lord, story boss,
+ * and the tutorial boss (9.3: controlled like an elite; 17.4: a party of one).
+ */
+export type BossTier = 'lair' | 'dungeon' | 'raid' | 'surge' | 'story' | 'tutorial';
+/** Weapon class of the striking hand (8.3). */
+export type WeaponClass =
+  | 'sword'
+  | 'axe'
+  | 'mace'
+  | 'dagger'
+  | 'polearm'
+  | 'staff'
+  | 'rod'
+  | 'fist'
+  | 'unarmed'
+  | 'bow'
+  | 'crossbow'
+  | 'thrown'
+  | 'none';
+/** Damage kind a weapon class implies (8.3); spells have none. */
+export type DamageKind = 'slash' | 'pierce' | 'blunt' | 'arrow';
+/** Material of the target a hit lands on (8.3). */
+export type HitMaterial =
+  | 'flesh'
+  | 'leather'
+  | 'mail'
+  | 'plate'
+  | 'bone'
+  | 'spirit'
+  | 'ash'
+  | 'crystal'
+  | 'stone'
+  | 'wood';
+/** Armour class of a chest piece or a vocation (8.3, 6.1). */
+export type ArmorClass = 'cloth' | 'leather' | 'mail' | 'plate';
+/** Difficulty levels (16; the registry built-in `difficulty`). */
+export type Difficulty = 'story' | 'standard' | 'hard' | 'legend';
 export type MobFamily =
   | 'beast'
   | 'humanoid'
@@ -115,7 +174,13 @@ export type EffectDef =
   | { type: 'combo'; amount: number }
   | { type: 'taunt' }
   | { type: 'interrupt'; lockout: number }
-  | { type: 'dispel'; kind: 'debuff' | 'buff'; count?: number }
+  | {
+      type: 'dispel';
+      kind: 'debuff' | 'buff';
+      count?: number;
+      /** the dispel categories it removes (9.5); without: every dispellable aura */
+      types?: DispelType[];
+    }
   | { type: 'charge' }
   | { type: 'knockback'; distance: number }
   | { type: 'summon'; monster: string; count: number }
@@ -156,6 +221,12 @@ export interface AbilityDef {
   priority?: number;
   /** spoken line emitted as dialogue.line when a monster uses it */
   say?: string;
+  /** the cast cannot be interrupted; its cast bar carries the shield border (8.1, 18) */
+  uninterruptible?: boolean;
+  /** a charged or heavy weapon blow: the heavy swing sound and the hit stop (8.1, 8.3) */
+  heavy?: boolean;
+  /** diminishing-returns category of the control it applies (9.2); default by the aura */
+  dr?: DrCategory;
 }
 
 export interface AuraPeriodic {
@@ -173,6 +244,16 @@ export interface AuraMods {
   haste?: number;
   speed?: number;
   armorPct?: number;
+  /** maximum health as a fraction (-0.2 takes a fifth off; blood pacts, revival fatigue) */
+  maxHpPct?: number;
+  /** cast and swing interval as a fraction (+0.1 makes both 10% slower; presence 3.5) */
+  interval?: number;
+  /** door-skill cost as a fraction (+0.5 is x1.5; revival fatigue 15.1; door skills read it) */
+  doorSkillCost?: number;
+  /** duration of the control this unit applies, as a fraction (9.3) */
+  ccDurationDone?: number;
+  /** duration of the control this unit suffers, as a fraction (9.3) */
+  ccDurationTaken?: number;
 }
 
 export interface AuraDef {
@@ -200,6 +281,25 @@ export interface AuraDef {
   pulse?: { every: number; radius: number; damage: Scaling; school?: School };
   breakOnDamage?: boolean;
   dispellable?: boolean;
+  /** aura bar category (8.2) */
+  category?: AuraCategory;
+  /** dispel category (9.5); a debuff without one is not dispellable by category */
+  dispelType?: DispelType;
+  /** diminishing-returns category of a control aura (9.2); default by its cc kind */
+  drCategory?: DrCategory;
+  /** fear: each hit breaks it with chance damage / (scale x max health) (9.7; default 0.1) */
+  breakChanceScale?: number;
+  /** periodic auras: one instance per applier, each ticking on its own (8.2) */
+  perSource?: boolean;
+  /** auras of one group do not stack: only the strongest counts (8.2) */
+  group?: string;
+  /** presence resistance per stack, capped (3.5: drink, veils) */
+  presenceResist?: { perStack: number; max: number };
+  /**
+   * Explicit effect per stack count (index = stacks - 1), replacing `slow` and `mods x
+   * stacks`, for an aura whose levels are not multiples of one step (presence 3.5).
+   */
+  byStacks?: { slow?: number; mods?: AuraMods }[];
 }
 
 export interface ClassBase {
@@ -217,7 +317,9 @@ export interface ClassDef {
   /** primary resource; null for the outsider (pools come from doors, R-02) */
   resource: ResourceKind | null;
   role: Role;
-  armorType: 'cloth' | 'leather' | 'mail';
+  armorType: ArmorClass;
+  /** weapon class a member without a known weapon strikes with (humanoid monsters, 8.3) */
+  weaponClass?: WeaponClass;
   base: ClassBase;
   /** per level after the first */
   growth: ClassBase;
@@ -281,6 +383,21 @@ export interface MonsterMechanics {
    * plus `offset`, at least `min`, at most the monster's maxLevel
    */
   partySync?: { offset: number; min?: number };
+  /**
+   * A one-on-one duel (19.2 `duelWatch`): the watchers (monster ids of the same band) stay
+   * out while the player fights alone and all turn hostile once a second fighter of the
+   * player's side deals damage. A duel ends without a death (duel.ended).
+   */
+  duelWatch?: { watchers: string[]; breakOn: 'second_fighter' };
+  /** pets of one group: a summoner keeps one at a time (a warlock's fiends, 6.5.8) */
+  petGroup?: string;
+  /**
+   * A pet that will not obey on some maps (12.3): on each map named here it leaves its
+   * summoner and walks to the named location of that map (map id to location id).
+   */
+  petQuirk?: { walkTo: Record<string, string> };
+  /** while this pet is out its summoner carries this aura (a blood pact) */
+  ownerAura?: string;
 }
 
 export interface MonsterDef {
@@ -320,6 +437,16 @@ export interface MonsterDef {
   /** copper range [min, max] */
   money?: [number, number];
   xpMult?: number;
+  /** boss layer (5.5, 9.3); a boss without one is a lair lord */
+  tier?: BossTier;
+  /** the layer a story boss counts as */
+  storyAs?: Exclude<BossTier, 'story' | 'tutorial'>;
+  /** weapon class of its blows (8.3); default by family */
+  weaponClass?: WeaponClass;
+  /** what a hit on it sounds like (8.3); default by family */
+  material?: HitMaterial;
+  /** voice family (8.3); read by the audio tables only */
+  voice?: string;
   appearance: Appearance;
 }
 
@@ -371,6 +498,22 @@ export interface Aura {
   thorns?: number;
   /** granting door or system for passives */
   origin?: string;
+  /** application order on the unit (a dispel takes the newest first, 9.5) */
+  seq?: number;
+  /** strength of this instance's slow and modifiers (resisted presence, 3.5); default 1 */
+  scale?: number;
+  /** the control part was refused (a slow on a slow-immune target): the rest still counts */
+  ccOff?: boolean;
+  /** the ladder step this control landed at (9.2 icon corner: 1 half, 2 quarter) */
+  dr?: number;
+}
+
+/** One diminishing-returns ladder of a unit (9.2). */
+export interface DrState {
+  /** 0 full, 1 half, 2 quarter, 3 immune */
+  stage: 0 | 1 | 2 | 3;
+  /** the ladder is back at full from this tick unless a control of its category lands */
+  resetAt: number;
 }
 
 export interface CastState {
@@ -380,6 +523,8 @@ export interface CastState {
   end: number;
   x: number;
   y: number;
+  /** pushbacks taken so far (at most two, 3.9) */
+  pushes?: number;
 }
 
 export type BrainState = 'idle' | 'chase' | 'flee' | 'evade' | 'yielded';
@@ -454,6 +599,28 @@ export interface Unit {
   phaseAbilities?: string[];
   /** wave march target */
   march?: { x: number; y: number };
+  /** diminishing-returns ladders by category (9.2) */
+  dr?: Partial<Record<DrCategory, DrState>>;
+  /** times this unit went down in the current fight (15.2) */
+  downs?: number;
+  /** damage the player's side dealt to this unit (credit, 8.5) */
+  partyDamage?: number;
+  /** the outsider's skill rack: the active abilities in use (7) */
+  rack?: string[];
+  /** abilities the player took off the rack by hand (the rack does not refill them) */
+  rackOff?: string[];
+  /** the outsider's driven pool when no dual-pulse door drives more (4.3) */
+  activePool?: ResourceKind;
+  /** presence mode of the restraint door (3.5, 12.2); default normal */
+  presenceMode?: 'normal' | 'veiled' | 'released';
+  /** the duel this unit is in (duel.ts) */
+  duel?: string;
+  /** maximum-health scale while a boss is fought alone (5.5; duel.ts) */
+  hpScale?: number;
+  /** a fight is under way for durability (13.2: one fight wears each worn piece by 1) */
+  fighting?: boolean;
+  /** the tick of the last pulse cross-feed (4.3: at most once per tick) */
+  fedAt?: number;
 }
 
 export interface SpawnState {
@@ -471,6 +638,68 @@ export interface CombatSlice {
   deaths: number[];
   /** `${unitId}>${sourceId}` -> tick of the last presence_felt event */
   presence: Record<string, number>;
+  /** units whose first-entry paralysis fired in this encounter (3.5) */
+  presenceStruck?: Record<string, true>;
+  /** drop bags (遗落包) left where the player fell (15.1) */
+  bags?: Record<string, DropBag>;
+  /** duels in progress (duel.ts) */
+  duels?: Record<string, DuelState>;
+  /** the player reforming in the corridor: the return lands at `at` (15.1 step 7) */
+  pendingReturn?: PendingReturn;
+  /** application counter: aura order on every unit (9.5) */
+  auraSeq?: number;
+  /** the difficulty whose modifier items are registered (difficulty.ts) */
+  difficulty?: Difficulty;
+}
+
+/** What the player left behind where they fell (15.1; thousand_doors.md 6.3). */
+export interface DropBag {
+  id: string;
+  ownerId: string;
+  mapId: string;
+  x: number;
+  y: number;
+  /** what fell, as inventory parcels (counted goods with their qualifiers) */
+  items: Parcel[];
+  money: number;
+  /** the bag crumbles away at this tick (three game days) */
+  expires: number;
+}
+
+/** A one-on-one duel (19.2 duelWatch; duel.ended). */
+export interface DuelState {
+  id: string;
+  /** the player's unit */
+  challengerId: string;
+  opponentId: string;
+  opponentRef: string;
+  /** the watchers' unit ids, out of the fight while it lasts */
+  watchers: string[];
+  /** the sides the duel changed (opponent and watchers), restored at its end */
+  sides: Record<string, Side>;
+  startTick: number;
+}
+
+/** The settled death costs waiting for the end of the revival (15.1 steps 7 and 8). */
+export interface PendingReturn {
+  /** the tick the player reforms */
+  at: number;
+  playerId: string;
+  fromMap: string;
+  x: number;
+  y: number;
+  toMap: string;
+  toX: number;
+  toY: number;
+  innerCourt: boolean;
+  overload: number;
+  packId?: string;
+  moneyLost: number;
+  revivalTicks: number;
+  fatigueTicks: number;
+  fatigueMinutes: number;
+  fatigueFloor: number;
+  witnessed: number;
 }
 
 declare module '../../core/contracts' {
@@ -494,6 +723,18 @@ declare module '../../core/contracts' {
       absorbed: number;
       school: School;
       outcome: HitOutcome;
+      /**
+       * Hit-sound selection fields (8.3). Combat writes all of them on every outcome
+       * (tests/combat_rules.test.ts); they are optional here only so that other systems'
+       * synthetic events in tests need not invent them.
+       */
+      weaponClass?: WeaponClass;
+      damageKind?: DamageKind;
+      material?: HitMaterial;
+      heavy?: boolean;
+      ranged?: boolean;
+      /** the damage came from a trigger and triggers nothing further (13.3) */
+      fromProc?: boolean;
     };
     'combat.heal': {
       sourceId: string;
@@ -502,19 +743,25 @@ declare module '../../core/contracts' {
       amount: number;
       overheal: number;
       crit: boolean;
+      /** healing of a fired trigger: triggers nothing further (13.3) */
+      fromProc?: boolean;
     };
     'combat.aura': {
       targetId: string;
       auraId: string;
       sourceId: string;
-      op: 'applied' | 'refreshed' | 'removed';
+      op: 'applied' | 'refreshed' | 'removed' | 'resisted';
       stacks: number;
+      /** why a control was resisted (9.2, 9.3) */
+      reason?: 'dr' | 'immune' | 'resist';
     };
     'combat.cast': {
       casterId: string;
       abilityId: string;
       targetId?: string;
       op: 'start' | 'finish' | 'interrupted';
+      /** readability (18): false draws the shield border of an uninterruptible cast */
+      interruptible?: boolean;
     };
     'combat.kill': {
       killerId?: string;
@@ -554,7 +801,37 @@ declare module '../../core/contracts' {
       toY: number;
       innerCourt: boolean;
       moneyLost: number;
+      /** game minutes of the revival-fatigue state (15.1) */
       fatigueMinutes: number;
+      /** overload stacks: earlier deaths within one game day, at most three (15.1) */
+      overload?: number;
+      /** the drop bag left where the player fell, when anything was left (15.1) */
+      packId?: string;
+      /** ticks the player spent reforming in the corridor (15.1) */
+      revivalTicks?: number;
+      /** door fatigue floor of this return: 60 times the difficulty factor (15.1, 16) */
+      fatigueFloor?: number;
+      /** believers who saw the body go through a door (15.1) */
+      witnessed?: number;
+    };
+    /** a drop bag appeared, was reclaimed or crumbled away (15.1) */
+    'combat.bag': {
+      bagId: string;
+      ownerId: string;
+      op: 'dropped' | 'reclaimed' | 'expired';
+      mapId: string;
+      items: { itemId: string; count: number }[];
+      money: number;
+    };
+    /** the outsider switched its driven pool (4.3; the switch has its sound and look) */
+    'combat.pool_switched': { entityId: string; resource: ResourceKind };
+    /** a one-on-one duel started (duel.ts); duel.ended reports its end */
+    'combat.duel_started': { duelId: string; challengerId: string; opponentId: string };
+    /** the difficulty in effect changed, or a change was refused (16) */
+    'combat.difficulty': {
+      difficulty: Difficulty;
+      op: 'set' | 'refused';
+      reason?: 'locked' | 'in_combat';
     };
     'combat.wave_spawned': { waveId: string; mapId: string; count: number };
     'combat.wave_cleared': { waveId: string; mapId: string };
@@ -578,5 +855,16 @@ declare module '../../core/contracts' {
       level?: number;
       count?: number;
     };
+    /** put an ability on the outsider's skill rack, or take it off (7) */
+    'combat.rack': { abilityId: string; on: boolean };
+    /** switch the outsider's driven pool, out of combat (4.3) */
+    'combat.switch_pool': { resource: ResourceKind };
+    /** challenge someone to a one-on-one duel (19.2 duelWatch) */
+    'combat.duel': { opponentId: string };
+    /**
+     * Use an item in play (14.1): the cooldown group's in-combat ban and its global cooldown
+     * are checked here, then the inventory uses it
+     */
+    'combat.use_item': { itemId: string; targetId?: string };
   }
 }

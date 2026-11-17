@@ -175,7 +175,14 @@ for (const kind of COUNTABLE) {
   (on as Record<string, EventHandler<EventKind>>)[kind] = (ctx, ev) => {
     countEvent(ctx.world, ctx.content, ev.kind, ev.data as unknown as Record<string, unknown>);
     advanceSequences(ctx.world, ctx.content);
-    if (ev.kind === 'combat.player_returned') playerReturned(ctx);
+    if (ev.kind === 'combat.player_returned') {
+      const d = ev.data as { fatigueFloor?: number; overload?: number };
+      playerReturned(
+        ctx,
+        typeof d.fatigueFloor === 'number' ? d.fatigueFloor : undefined,
+        typeof d.overload === 'number' ? d.overload : undefined,
+      );
+    }
   };
 }
 

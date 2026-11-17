@@ -457,6 +457,7 @@
     "speed": 3,
     "aggroRadius": 6,
     "leash": 24,
+    "tier": "lair",
     "abilities": ["sk_mon_crystalfall"],
     "mechanics": {
       "passives": ["aur_mon_crystalhide"],
@@ -539,10 +540,12 @@
     "aggroRadius": 5,
     "leash": 22,
     "classId": "warrior",
+    "tier": "lair",
     "abilities": ["sk_mon_cleave"],
     "mechanics": {
       "yieldAtPct": 0.1,
       "yieldSay": "……够了。独眼团的规矩，输了就是输了。",
+      "duelWatch": { "watchers": ["oneeye_bandit", "vero"], "breakOn": "second_fighter" },
       "enrage": {
         "belowPct": 0.3,
         "aura": "aur_mon_bloodrage",
@@ -584,6 +587,7 @@
     "speed": 4,
     "aggroRadius": 6,
     "leash": 14,
+    "tier": "tutorial",
     "abilities": ["sk_mon_featherstorm"],
     "mechanics": {
       "summon": [
@@ -648,6 +652,8 @@
     "speed": 2.8,
     "aggroRadius": 9,
     "leash": 60,
+    "tier": "story",
+    "storyAs": "dungeon",
     "abilities": ["sk_mon_dianfist", "sk_mon_stomp", "sk_mon_ashtide"],
     "mechanics": {
       "phases": [
@@ -899,6 +905,7 @@
     "speed": 3.4,
     "aggroRadius": 6,
     "leash": 26,
+    "tier": "dungeon",
     "abilities": ["sk_mon_cleave", "sk_mon_dianbite"],
     "mechanics": {
       "partySync": {
@@ -1502,6 +1509,7 @@
     "leash": 30,
     "range": 6,
     "school": "fire",
+    "mechanics": { "petGroup": "fiend" },
     "appearance": {
       "base": "imp",
       "colors": ["#a83a1a", "#5a1a0a", "#ffb060", "#200800"],
@@ -1523,6 +1531,13 @@
     "aggroRadius": 4,
     "leash": 30,
     "abilities": ["sk_mon_remnantbar", "sk_mon_remnantquake"],
+    "mechanics": {
+      "petGroup": "fiend",
+      "ownerAura": "aur_lok_remnantpact",
+      "petQuirk": {
+        "walkTo": { "seal_ruins": "gate_seal_ruins_depths", "seal_ruins_depths": "ash_chamber" }
+      }
+    },
     "appearance": {
       "base": "golem",
       "colors": ["#3e3b38", "#211f1d", "#7a736a", "#9fb0c4"],

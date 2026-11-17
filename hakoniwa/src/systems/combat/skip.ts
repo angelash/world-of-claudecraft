@@ -18,6 +18,8 @@ import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity } from '../world';
 import { expireAuras } from './auras';
 import { tickRegen } from './auto_attack';
+import { tickReturn } from './death';
+import { tickBags } from './death_costs';
 import { auraDef, REGEN_EVERY } from './defs';
 import { tickPresence } from './presence';
 import { tickSpawns } from './spawning';
@@ -52,6 +54,9 @@ function noteMissedPeriodic(ctx: SystemContext, u: Unit): void {
 /** One hour-coarse step of combat. */
 export function combatSkip(ctx: SystemContext, step: SkipStep): void {
   tickSpawns(ctx);
+  // a revival the step ran past lands now; drop bags crumble or wait (15.1)
+  tickReturn(ctx, step.to);
+  tickBags(ctx);
   const slice = ctx.world.slices.combat;
   const regens = regenTicksIn(step);
   for (const id of sortedUnitIds(ctx.world)) {

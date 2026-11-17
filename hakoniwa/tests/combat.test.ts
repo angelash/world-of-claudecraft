@@ -156,16 +156,27 @@ describe('combat formulas (classic originals)', () => {
     expect(spellHitChance(10, 7)).toBeCloseTo(0.99, 6);
   });
 
-  it('maps levels to ranks and applies presence only two ranks up (Q-003)', () => {
+  it('maps levels to ranks and applies presence from one rank up (Q-003, 3.5)', () => {
     expect([1, 9, 10, 20, 35, 50, 60].map(tierForLevel)).toEqual([0, 0, 1, 2, 3, 4, 5]);
-    expect(presencePenalty(1, 2)).toEqual({ hitPenalty: 0, damageFactor: 1 });
+    expect(presencePenalty(2, 2)).toEqual({ hitPenalty: 0, damageFactor: 1 });
+    expect(presencePenalty(3, 2)).toEqual({ hitPenalty: 0, damageFactor: 1 });
+    const one = presencePenalty(1, 2);
+    expect(one.hitPenalty).toBeCloseTo(0.03, 6);
+    expect(one.damageFactor).toBeCloseTo(0.92, 6);
     const two = presencePenalty(0, 2);
-    expect(two.hitPenalty).toBeCloseTo(0.1, 6);
+    expect(two.hitPenalty).toBeCloseTo(0.08, 6);
     expect(two.damageFactor).toBeCloseTo(0.8, 6);
+    const three = presencePenalty(0, 3);
+    expect(three.hitPenalty).toBeCloseTo(0.15, 6);
+    expect(three.damageFactor).toBeCloseTo(0.65, 6);
     const far = presencePenalty(0, 7);
-    expect(far.hitPenalty).toBeCloseTo(0.4, 6);
-    expect(far.damageFactor).toBeCloseTo(0.3, 6);
-    expect(presencePenalty(0, 2, 0.5).hitPenalty).toBeCloseTo(0.05, 6);
+    expect(far.hitPenalty).toBeCloseTo(0.25, 6);
+    expect(far.damageFactor).toBeCloseTo(0.5, 6);
+    // resistance shrinks both parts, capped at 0.6
+    const half = presencePenalty(0, 2, 0.5);
+    expect(half.hitPenalty).toBeCloseTo(0.04, 6);
+    expect(half.damageFactor).toBeCloseTo(0.9, 6);
+    expect(presencePenalty(0, 2, 0.9).hitPenalty).toBeCloseTo(0.08 * 0.4, 6);
   });
 });
 
@@ -499,11 +510,12 @@ describe('the return through the door (power_system.md 9.8)', () => {
     const id = spawnNear(g, 'black_ridge', 11, 1.1);
     const u = units(g).player;
     if (u) u.hp = 1;
-    for (let i = 0; i < 400 && events(g, 'combat.player_returned').length === 0; i++) g.step(1);
+    // the fall, then one game hour in the corridor (combat_and_classes.md 15.1)
+    for (let i = 0; i < 2000 && events(g, 'combat.player_returned').length === 0; i++) g.step(1);
     void id;
   }
 
-  it('wakes at the nearest safe point with door fatigue and a lost share of money', () => {
+  it('reforms in the sigil hall with door fatigue and the money left in a drop bag', () => {
     const g = makeGame();
     withCtx(g, (ctx) => {
       const h = ctx.world.slices.inventory.owners;
@@ -517,11 +529,16 @@ describe('the return through the door (power_system.md 9.8)', () => {
       moneyLost: 100,
       // door rank 1: two game hours (thousand_doors.md 6.3)
       fatigueMinutes: 120,
+      overload: 0,
+      revivalTicks: TICKS_PER_GAME_MINUTE * 60,
+      fatigueFloor: 60,
     });
+    expect(ret?.data.packId).toBeDefined();
     expect(g.world.slices.inventory.owners.player?.money).toBe(900);
     expect(units(g).player?.auras.map((a) => a.id)).toContain('aur_st_revival_fatigue');
+    // the sigil hall where the first door stands (location tagged `revive`), not the wake point
     const p = ents(g).player;
-    expect(Math.hypot((p?.x ?? 0) - 18, (p?.y ?? 0) - 5)).toBeLessThan(1.5);
+    expect(Math.hypot((p?.x ?? 0) - 18, (p?.y ?? 0) - 10)).toBeLessThan(1.5);
     expect(units(g).player?.hp).toBeGreaterThan(1);
     expect(events(g, 'entity.died').some((e) => e.data.kind === 'player')).toBe(true);
   });

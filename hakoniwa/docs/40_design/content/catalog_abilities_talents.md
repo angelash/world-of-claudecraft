@@ -417,15 +417,15 @@
 
 | 新 ID | 新名 | 施加来源 | 效果 | 落地 |
 | --- | --- | --- | --- | --- |
-| `aur_lok_remnantpact` | 血契·巨像残意 | 契约魔在场时挂在主人身上，契约魔散去即解除 | 生命上限 -15%；减益，常驻，不可驱散（[生灵 11.2][cre]的血契） | 内核还没有生命上限的百分比修正与"随召唤物在场"的挂载，数据行随战斗规则扩展落地（PK-M1-11） |
+| `aur_lok_remnantpact` | 血契·巨像残意 | 契约魔在场时挂在主人身上，契约魔散去即解除 | 生命上限 -15%；减益，常驻，不可驱散（[生灵 11.2][cre]的血契） | 已导入：`mods.maxHpPct: -0.15`；魔物数据 `fiend_colossus_remnant.mechanics.ownerAura` 指向它，随从散去时内核摘掉（`src/systems/combat/summons.ts`） |
 
 - 数值的来历：生命与护甲按主工程 `gloomshade` 的承伤定位折到本作的魔物曲线（生命 ×1.2、护甲 ×1.5），伤害与契约小鬼
   `contract_imp` 同档（×0.6）；残震的量与冥寒 `sk_mon_gravechill` 同档，仇恨 ×2 让它能把一群小怪从队友身上拉走。拦门与战士的嘲讽
   `sk_war_taunt` 同形。
-- 随从规则（[战斗 6.5.8、12.3][cmb]）：每名施法者同一时刻一只契约魔；被击散即回到契约里，召唤技能冷却结束后可再召；不分经验；
-  跟随、姿态与技能使用按 `pet` 行为。
-- 习性（[生灵 11.2][cre]）：在封门遗迹附近不听命令，会往灰烬之厅走。`pet` 行为读地点的这一支随战斗规则扩展落地（PK-M1-11），
-  在那之前它照常跟随。
+- 随从规则（[战斗 6.5.8、12.3][cmb]）：每名施法者同一时刻一只契约魔（契约魔的魔物数据写 `mechanics.petGroup: fiend`，召出另一只时前一只
+  回到契约里）；被击散即回到契约里，召唤技能冷却结束后可再召；不分经验；跟随、姿态与技能使用按 `pet` 行为。
+- 习性（[生灵 11.2][cre]）：在封门遗迹附近不听命令，会往灰烬之厅走。数据 `mechanics.petQuirk.walkTo`：在封门遗迹走向落灰阶顶，
+  在遗迹深处走向灰烬室；离开这两张图即照常跟随。
 - 门：渊契之门第一幕版本（`vocation_warlock`，[门目录 2.1 第 24 行][doors]）的 `abilities` 效果授予 `sk_lok_summonremnant`；
   握住澱核即锁闭借形之门的第一幕版本（X2），由门数据的 `exclusive` 承担，本节不另写。
 
@@ -647,8 +647,8 @@
 
 数据里的状态光环：`aur_st_presence_pressure`、`aur_st_presence_paralysis`、`aur_st_revival_fatigue`、`aur_st_spring_toll`、`aur_st_enrage`
 五个由现行数据换号而来，数值暂按现行数据；`aur_st_downed_weak` 随 `content_act1_abilities_01` 导入（同伴倒地后起身时挂上）。其余
-15 个编号随施加它们的系统落地，届时导入数据行：`aur_st_presence_unease`（位阶威压）与死亡代价的重写数值随战斗规则扩展
-（PK-M1-11）；`aur_st_stagger`、`aur_st_berserk` 随首领机制库（PK-M1-12）；`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`
+15 个编号随施加它们的系统落地，届时导入数据行：`aur_st_presence_unease`（位阶威压）已随战斗规则扩展（PK-M1-11）导入，
+同包按战斗文档 3.5、15.1、15.3 重写了压境、失神、复苏门疲与泉畔之代价的数值；`aur_st_stagger`、`aur_st_berserk` 随首领机制库（PK-M1-12）；`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`
 与五个 `aur_st_injury_*` 随澱染与澱病（PK-M1-51）；`aur_st_drunk`、`aur_st_physic_poison` 随物品实例与消耗品（PK-M1-13）；
 `aur_st_default_mark` 随契约违约与活性词缀的结算；`aur_st_soul_recall` 随千门第二批（PK-M2-13）。
 

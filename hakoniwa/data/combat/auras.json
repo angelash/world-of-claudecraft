@@ -56,13 +56,29 @@
     "mods": { "damageDealt": -0.2 }
   },
   {
+    "id": "aur_st_presence_unease",
+    "name": "威压·出手迟疑",
+    "desc": "高一阶的灵压：出手之前总要犹豫一下。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 2,
+    "mods": { "interval": 0.05 },
+    "dispellable": false
+  },
+  {
     "id": "aur_st_presence_pressure",
     "name": "威压·压境",
-    "desc": "高两阶的灵压压在身上：动作迟缓，出手无力。",
+    "desc": "远高于自己的灵压压在身上：脚步沉重，出手迟缓。",
     "kind": "debuff",
+    "category": "state",
     "duration": 2,
-    "slow": 0.3,
-    "mods": { "damageDealt": -0.1 },
+    "maxStacks": 2,
+    "slow": 0.15,
+    "mods": { "interval": 0.1 },
+    "byStacks": [
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.25, "mods": { "interval": 0.15 } }
+    ],
     "dispellable": false
   },
   {
@@ -70,26 +86,30 @@
     "name": "威压·失神",
     "desc": "远高于自己的灵压：手抬不起来，呼吸变浅。",
     "kind": "debuff",
+    "category": "state",
     "duration": 3,
     "cc": "stun",
+    "drCategory": "stun_proc",
     "dispellable": false
   },
   {
     "id": "aur_st_revival_fatigue",
     "name": "复苏门疲",
-    "desc": "刚从门内重塑的身体：造成的伤害与治疗降低，受到的伤害提高。",
+    "desc": "刚从门内重塑的身体：造成的伤害与治疗降低，最大生命降低，门技更费力。",
     "kind": "debuff",
-    "duration": 600,
-    "mods": { "damageDealt": -0.25, "healingDone": -0.25, "damageTaken": 0.15 },
+    "category": "state",
+    "duration": 120,
+    "mods": { "damageDealt": -0.3, "healingDone": -0.3, "maxHpPct": -0.2, "doorSkillCost": 0.5 },
     "dispellable": false
   },
   {
     "id": "aur_st_spring_toll",
     "name": "泉畔之代价",
-    "desc": "从泉畔被拉回来的虚弱：造成的伤害降低。",
+    "desc": "从泉畔被拉回来的虚弱：造成的伤害与治疗降低，最大生命降低。",
     "kind": "debuff",
+    "category": "state",
     "duration": 120,
-    "mods": { "damageDealt": -0.2 },
+    "mods": { "damageDealt": -0.3, "healingDone": -0.3, "maxHpPct": -0.2 },
     "dispellable": false
   },
   {
@@ -332,6 +352,7 @@
     "kind": "debuff",
     "duration": 20,
     "cc": "incapacitate",
+    "drCategory": "poly",
     "breakOnDamage": true
   },
   {
@@ -581,6 +602,7 @@
     "id": "aur_st_enrage",
     "name": "软狂暴",
     "kind": "buff",
+    "category": "state",
     "duration": 0,
     "mods": { "damageDealt": 0.5, "haste": 0.25 },
     "dispellable": false
@@ -634,8 +656,18 @@
     "name": "倒地虚弱",
     "desc": "倒下又爬起来，手脚还发虚：造成的伤害降低。",
     "kind": "debuff",
+    "category": "state",
     "duration": 120,
     "mods": { "damageDealt": -0.2 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_lok_remnantpact",
+    "name": "血契·巨像残意",
+    "desc": "巨像残意在场时，契约从主人身上抽走一截生命。",
+    "kind": "debuff",
+    "duration": 0,
+    "mods": { "maxHpPct": -0.15 },
     "dispellable": false
   }
 ]

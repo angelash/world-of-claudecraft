@@ -58,7 +58,7 @@
       "y": 5,
       "w": 10,
       "h": 10,
-      "tags": ["gate_site"]
+      "tags": ["gate_site", "revive"]
     },
     {
       "id": "wake_point",

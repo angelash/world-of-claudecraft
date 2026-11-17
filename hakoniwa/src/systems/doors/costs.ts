@@ -114,17 +114,26 @@ export function overloadStacks(deaths: readonly number[], tick: number): number 
 
 /**
  * The player came back through the door (6.3): count the overload stacks, floor the
- * fatigue at 60 and add the overload blockage. The revival-fatigue aura and the other
- * death costs are the combat system's (combat_and_classes.md 15.1).
+ * fatigue at 60 (or at the floor the return names: the difficulty's factor, combat 16) and
+ * add the overload blockage. The revival-fatigue aura and the other death costs are the
+ * combat system's (combat_and_classes.md 15.1).
  */
-export function playerReturned(ctx: SystemContext): void {
+export function playerReturned(
+  ctx: SystemContext,
+  floor = RETURN_FATIGUE,
+  overload?: number,
+): void {
   const slice = ensureSlice(ctx.world, ctx.content);
   const revive = slice.revive ?? { deaths: [], stacks: 0 };
-  const stacks = overloadStacks(revive.deaths, ctx.tick);
+  // combat counts the stacks at the death (15.1 step 2); the return lands later
+  const stacks =
+    overload !== undefined
+      ? Math.min(MAX_OVERLOAD, Math.max(0, overload))
+      : overloadStacks(revive.deaths, ctx.tick);
   revive.deaths = [...revive.deaths.filter((t) => t > ctx.tick - TICKS_PER_GAME_DAY), ctx.tick];
   revive.stacks = stacks;
   slice.revive = revive;
   settleFatigue(ctx);
-  setFatigue(ctx, Math.max(slice.fatigue ?? 0, RETURN_FATIGUE));
+  setFatigue(ctx, Math.max(slice.fatigue ?? 0, floor));
   if (stacks > 0) addBlockage(ctx, OVERLOAD_BLOCKAGE * stacks);
 }

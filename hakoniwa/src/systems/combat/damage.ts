@@ -1,22 +1,28 @@
 // Damage and healing resolution: the hit table (miss, dodge, parry, block, crit; spell
-// hit and resist), armor, presence pressure, aura modifiers, absorbs, threat, rage, and
-// the hand-off to death or yielding. Formulas live in formulas.ts.
+// hit and resist), armor, presence pressure (3.5), aura modifiers, the difficulty's enemy
+// damage and player healing factors (16), absorbs, threat, rage, the hit-sound selection
+// fields every damage event carries (8.3, presentation.ts), spell pushback (3.9), the
+// party-side damage tally for credit (8.5), and the hand-off to death or yielding.
+// Formulas live in formulas.ts.
 
 import type { SystemContext } from '../../core/system';
-import { getEntity } from '../world';
 import { breakOnDamage, soakAbsorb } from './auras';
 import { killUnit, maybeYield } from './death';
 import { secs } from './defs';
+import { combatMod } from './difficulty';
+import { duelHit, settleDuels } from './duel';
 import {
   armorReduction,
   BLOCK_CHANCE,
   BLOCK_REDUCTION,
   dodgeChance,
+  MAX_PUSHBACKS,
   MOB_VS_ALLY_MAX_MISS,
   meleeCritChance,
   meleeMissChance,
   PARRY_CHANCE,
   PHYSICAL_CRIT_MULT,
+  PUSHBACK_SEC,
   presencePenalty,
   rageFromDealing,
   rageFromTaking,
@@ -24,10 +30,13 @@ import {
   spellCritChance,
   spellHitChance,
 } from './formulas';
+import { presenceResistOf } from './presence';
+import { type HitPresentation, hitPresentation } from './presentation';
+import { healthFell } from './proc_points';
 import { deriveStats } from './stats';
 import { addThreat, engage, markCombat } from './threat';
 import type { HitOutcome, School, Unit } from './types';
-import { liveUnit } from './units';
+import { isPartySide, liveUnit } from './units';
 
 export type HitKind = 'melee' | 'ranged' | 'spell' | 'periodic' | 'reflect';
 
@@ -43,6 +52,8 @@ export interface HitSpec {
   leech?: number;
   /** auto-attacks generate rage on both sides (classic white-hit rule) */
   rage?: boolean;
+  /** damage of a fired trigger: triggers nothing further (13.3) */
+  fromProc?: boolean;
 }
 
 export interface HitResult {
@@ -50,21 +61,14 @@ export interface HitResult {
   dealt: number;
 }
 
-/** Share of presence pressure shrugged off when an ally stands close (power_system.md 3.5). */
-function presenceResist(ctx: SystemContext, u: Unit): number {
-  const e = getEntity(ctx.world, u.id);
-  if (!e) return 0;
-  for (const other of Object.values(ctx.world.slices.combat.units)) {
-    if (other === u || other.side !== u.side || other.side === 'neutral') continue;
-    const oe = getEntity(ctx.world, other.id);
-    if (!oe?.alive || oe.mapId !== e.mapId) continue;
-    if (Math.hypot(oe.x - e.x, oe.y - e.y) <= 6) return 0.25;
-  }
-  return 0;
-}
-
 export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
   const { source, target } = spec;
+  const sd = deriveStats(ctx.world, ctx.content, source);
+  const td = deriveStats(ctx.world, ctx.content, target);
+  const look = {
+    ...hitPresentation(ctx.world, ctx.content, source, sd, target, td, spec.kind, spec.abilityId),
+    ...(spec.fromProc ? { fromProc: true } : {}),
+  };
   if (!target.attackable || target.ai?.state === 'evade' || target.ai?.state === 'yielded') {
     ctx.emit('combat.damage', {
       sourceId: source.id,
@@ -74,14 +78,13 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
       absorbed: 0,
       school: spec.school,
       outcome: 'immune',
+      ...look,
     });
     return { outcome: 'immune', dealt: 0 };
   }
-  const sd = deriveStats(ctx.world, ctx.content, source);
-  const td = deriveStats(ctx.world, ctx.content, target);
   const rng = ctx.rng('combat.hit');
   const levelGap = target.level - source.level;
-  const pressure = presencePenalty(source.tier, target.tier, presenceResist(ctx, source));
+  const pressure = presencePenalty(source.tier, target.tier, presenceResistOf(ctx, source, sd));
   let outcome: HitOutcome = 'hit';
   let amount = spec.amount;
   let crit = false;
@@ -122,6 +125,7 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
       absorbed: 0,
       school: spec.school,
       outcome,
+      ...look,
     });
     if (target.ai) engage(ctx, target, source);
     addThreat(ctx, target, source.id, 1);
@@ -130,6 +134,7 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
   }
 
   amount *= (1 + sd.mods.damageDealt) * (1 + td.mods.damageTaken) * pressure.damageFactor;
+  if (source.side === 'enemy') amount *= combatMod(ctx.world, 'enemy_damage');
   if (spec.school === 'physical' && spec.kind !== 'periodic' && spec.kind !== 'reflect') {
     amount *= 1 - armorReduction(td.stats.armor, source.level);
   }
@@ -148,13 +153,14 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
     abilityId: spec.abilityId,
     threat: amount * (spec.threatMult ?? 1),
     rage: spec.rage ?? false,
+    look,
   });
   if (spec.leech && dealt > 0)
     healUnit(ctx, source, source, dealt * spec.leech, {
       abilityId: spec.abilityId,
       canCrit: false,
     });
-  if (spec.kind === 'melee' && dealt > 0) reflectThorns(ctx, target, source);
+  if (spec.kind === 'melee' && dealt > 0 && !spec.fromProc) reflectThorns(ctx, target, source);
   return { outcome, dealt };
 }
 
@@ -168,10 +174,12 @@ interface ApplySpec {
   abilityId?: string;
   threat: number;
   rage: boolean;
+  look: HitPresentation & { fromProc?: boolean };
 }
 
 function applyDamage(ctx: SystemContext, a: ApplySpec): void {
   const { source, target } = a;
+  const before = target.hp;
   target.hp -= a.dealt;
   ctx.emit('combat.damage', {
     sourceId: source.id,
@@ -181,8 +189,11 @@ function applyDamage(ctx: SystemContext, a: ApplySpec): void {
     absorbed: a.absorbed,
     school: a.school,
     outcome: a.outcome,
+    ...a.look,
   });
   if (target.tapped === null && source.side === 'ally') target.tapped = source.id;
+  if (a.dealt > 0 && isPartySide(ctx.world, source))
+    target.partyDamage = (target.partyDamage ?? 0) + a.dealt;
   addThreat(ctx, target, source.id, a.threat);
   engage(ctx, target, source);
   markCombat(ctx, source);
@@ -194,12 +205,22 @@ function applyDamage(ctx: SystemContext, a: ApplySpec): void {
       target.res.rage = Math.min(100, target.res.rage + rageFromTaking(a.dealt, target.level));
     }
   }
-  if (a.dealt > 0) breakOnDamage(ctx, target);
+  if (a.dealt > 0) breakOnDamage(ctx, target, a.dealt);
   if (target.cast && a.dealt > 0 && target.side === 'ally') {
-    // classic spell pushback: 0.5 s per hit, never more than 8 s past the cast start
-    target.cast.end = Math.min(target.cast.end + secs(0.5), target.cast.start + secs(8));
+    // classic spell pushback (3.9): half a second per hit, at most twice per cast
+    const pushes = target.cast.pushes ?? 0;
+    if (pushes < MAX_PUSHBACKS) {
+      target.cast.end += secs(PUSHBACK_SEC);
+      target.cast.pushes = pushes + 1;
+    }
   }
-  if (maybeYield(ctx, target, source)) return;
+  // the fall below 30% is a trigger point (13.3 `low_hp`)
+  if (a.dealt > 0) healthFell(ctx, target, before, source.id);
+  if (duelHit(ctx, source, target)) return;
+  if (maybeYield(ctx, target, source)) {
+    settleDuels(ctx);
+    return;
+  }
   if (target.hp <= 0) killUnit(ctx, target, source);
 }
 
@@ -221,6 +242,8 @@ function reflectThorns(ctx: SystemContext, bearer: Unit, attacker: Unit): void {
 export interface HealOpts {
   abilityId?: string;
   canCrit?: boolean;
+  /** healing of a fired trigger: triggers nothing further (13.3) */
+  fromProc?: boolean;
 }
 
 /** Heal `target`; returns the effective amount. Healing draws half its amount as threat. */
@@ -235,6 +258,8 @@ export function healUnit(
   const sd = deriveStats(ctx.world, ctx.content, source);
   const td = deriveStats(ctx.world, ctx.content, target);
   let amount = raw * (1 + sd.mods.healingDone) * Math.max(0, 1 + td.mods.healingTaken);
+  if (target.id === ctx.world.slices.world.playerId)
+    amount *= combatMod(ctx.world, 'player_healing_taken');
   let crit = false;
   if (
     opts.canCrit !== false &&
@@ -254,6 +279,7 @@ export function healUnit(
     amount: effective,
     overheal: amount - effective,
     crit,
+    ...(opts.fromProc ? { fromProc: true } : {}),
   });
   if (effective > 0 && source.side !== 'neutral') {
     for (const u of Object.values(ctx.world.slices.combat.units)) {

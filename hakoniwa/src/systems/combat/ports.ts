@@ -1,18 +1,22 @@
-// Ports: the cross-system writes combat offers. Doors grant abilities, stat bonuses,
-// resource pools (R-02) and passives to the outsider; party creates, levels, orders and
-// revives companions. Every grant is keyed by a source id so it can be revoked (closing
-// a door). Callers never touch the combat slice directly.
+// Ports: the cross-system writes combat offers. Doors grant abilities (they land on the
+// outsider's skill rack while it has room, 7), stat bonuses, resource pools (R-02; the first
+// pool becomes the driven one, 4.3) and passives to the outsider; party creates, levels,
+// orders and revives companions; quests and dialogue start duels. Every grant is keyed by a
+// source id so it can be revoked (closing a door). Callers never touch the combat slice.
 
 import type { SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
 import { type Check, checkAbility, interruptCast, useAbility } from './abilities';
 import { applyAura, removeByOrigin } from './auras';
 import { abilityDef } from './defs';
+import { settleActivePool } from './pools';
+import { syncRack } from './rack';
 import type { ResourceKind, StatBlock, Unit } from './types';
 import { canAttack, clampPools, createUnit, liveUnit, type UnitSpec, unitOf } from './units';
 
 export { pickAbility } from './ai_common';
 export { reviveUnit } from './death';
+export { startDuel } from './duel';
 export { gainXp } from './rewards';
 export { canAttack, liveUnit, setLevel, unitOf } from './units';
 
@@ -24,12 +28,15 @@ export function grantAbility(ctx: SystemContext, unitId: string, abilityId: stri
   const u = unitOf(ctx.world, unitId);
   if (!u || !abilityDef(ctx.content, abilityId)) return false;
   if (!u.abilities.includes(abilityId)) u.abilities.push(abilityId);
+  syncRack(ctx.content, u);
   return true;
 }
 
 export function revokeAbility(ctx: SystemContext, unitId: string, abilityId: string): void {
   const u = unitOf(ctx.world, unitId);
-  if (u) u.abilities = u.abilities.filter((a) => a !== abilityId);
+  if (!u) return;
+  u.abilities = u.abilities.filter((a) => a !== abilityId);
+  syncRack(ctx.content, u);
 }
 
 /** Set (or with null clear) the flat stat bonus a source grants. */
@@ -59,6 +66,7 @@ export function grantPool(
   const pools = u.pools[kind] ?? {};
   pools[source] = Math.max(1, base);
   u.pools[kind] = pools;
+  settleActivePool(u);
   clampPools(ctx.world, ctx.content, u);
 }
 
@@ -71,6 +79,7 @@ export function revokePools(ctx: SystemContext, unitId: string, source: string):
     delete pools[source];
     if (Object.keys(pools).length === 0) delete u.pools[kind];
   }
+  settleActivePool(u);
   clampPools(ctx.world, ctx.content, u);
 }
 

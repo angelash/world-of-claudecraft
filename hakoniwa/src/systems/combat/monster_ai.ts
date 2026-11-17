@@ -2,11 +2,13 @@
 // their alert radius (gray targets are ignored), chase by threat, use abilities by
 // priority, flee once at low health (humanoids and burrowers), and evade back home
 // past their leash, healing to full. Wave members march on a target and never leash.
-// Allied summons follow their summoner and attack its target. Guards (combat NPCs
-// placed by other systems) engage hostiles near them and fight in place.
+// Allied summons follow their summoner and attack its target, unless their data names a
+// quirk for the map (12.3: the colossus remnant drifts toward the ash chamber). Guards
+// (combat NPCs placed by other systems) engage hostiles near them and fight in place.
+// Nobody picks a fight with a duelist from outside the duel.
 
 import type { SystemContext } from '../../core/system';
-import { entitiesNear, getEntity, haltEntity, orderMove, teleportEntity } from '../world';
+import { entitiesNear, getEntity, haltEntity, mapById, orderMove, teleportEntity } from '../world';
 import type { Entity } from '../world/types';
 import { gap, useAbility } from './abilities';
 import { pickAbility } from './ai_common';
@@ -70,6 +72,8 @@ function scan(ctx: SystemContext, u: Unit, e: Entity, radius: number): Unit | nu
   for (const near of entitiesNear(ctx.world, e.mapId, e.x, e.y, radius + 2)) {
     const other = unitOf(ctx.world, near.id);
     if (!other || !canAttack(ctx.world, u, other)) continue;
+    // a duelist is nobody else's to pick a fight with (duel.ts)
+    if (other.duel && other.duel !== u.duel) continue;
     if (!elite && u.side === 'enemy' && grayLevel(other.level) >= u.level) continue;
     const r = radius + Math.max(-radius / 2, Math.min(radius / 2, (u.level - other.level) * 0.25));
     if (Math.hypot(near.x - e.x, near.y - e.y) <= r) return other;
@@ -82,6 +86,7 @@ export function startEvade(ctx: SystemContext, u: Unit): void {
   if (!brain) return;
   brain.state = 'evade';
   brain.evadeUntil = ctx.tick + secs(10);
+  delete u.partyDamage;
   u.threat = {};
   u.target = null;
   u.autoAttack = false;
@@ -152,14 +157,36 @@ function sameSideNear(ctx: SystemContext, u: Unit, e: Entity): Unit[] {
   return out;
 }
 
+/**
+ * A pet's quirk (12.3): on the maps its data names it does not obey and walks to the named
+ * location instead (the colossus remnant drifts toward the ash chamber near the seal ruins).
+ * Returns true while the quirk holds.
+ */
+function petWanders(ctx: SystemContext, u: Unit, e: Entity): boolean {
+  const to = monsterDef(ctx.content, u.monsterId)?.mechanics?.petQuirk?.walkTo[e.mapId];
+  if (!to) return false;
+  const loc = mapById(ctx.content, e.mapId)?.locations.find((l) => l.id === to);
+  if (!loc) return false;
+  u.autoAttack = false;
+  u.target = null;
+  const x = loc.x + loc.w / 2;
+  const y = loc.y + loc.h / 2;
+  if (Math.hypot(x - e.x, y - e.y) > 1.5) walkTo(ctx, u, e, x, y, 1);
+  else if (e.move) haltEntity(ctx, e.id);
+  return true;
+}
+
 function tickPet(ctx: SystemContext, u: Unit, e: Entity): void {
   const owner = liveUnit(ctx.world, u.summonerId);
   if (!owner) {
     despawn(ctx, u.id);
     return;
   }
+  if (petWanders(ctx, u, e)) return;
   const [ou, oe] = owner;
-  const want = unitOf(ctx.world, ou.target) ?? unitOf(ctx.world, threatTarget(ctx.world, u));
+  const pick = unitOf(ctx.world, ou.target) ?? unitOf(ctx.world, threatTarget(ctx.world, u));
+  // a pet does not join its master's duel (duel.ts)
+  const want = pick?.duel && pick.duel !== u.duel ? undefined : pick;
   if (want && canAttack(ctx.world, u, want) && (ou.combatUntil > ctx.tick || want.id in u.threat)) {
     fight(ctx, u, e, want);
     return;

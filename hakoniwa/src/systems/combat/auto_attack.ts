@@ -23,7 +23,7 @@ export function tickAutoAttack(ctx: SystemContext, u: Unit): void {
   const reach = d.weapon.range > 0 ? d.weapon.range : MELEE_RANGE;
   if (gap(ctx.world, u.id, target.id) > reach) return;
   const haste = 1 + Math.max(-0.5, d.stats.haste / 100);
-  u.swingAt = ctx.tick + Math.max(4, Math.round(secs(d.weapon.speed) / haste));
+  u.swingAt = ctx.tick + Math.max(4, Math.round((secs(d.weapon.speed) * d.intervalMult) / haste));
   const roll = ctx.rng('combat.dmg').range(d.weapon.min, Math.max(d.weapon.min, d.weapon.max));
   const amount = d.weapon.flat ? roll : roll + (d.stats.ap / 14) * d.weapon.speed;
   const mon = monsterDef(ctx.content, u.monsterId);

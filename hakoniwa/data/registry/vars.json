@@ -15165,7 +15165,7 @@
       "values": null,
       "aliases": [],
       "writers": ["content", "doors", "quests"],
-      "readers": ["city", "content", "ui", "world"],
+      "readers": ["city", "combat", "content", "ui", "world"],
       "derive": null,
       "monotone": true,
       "act": null,
@@ -15177,38 +15177,7 @@
         {
           "name": "feature",
           "domain": null,
-          "keys": [
-            "door_corridor",
-            "servant",
-            "tide_sight",
-            "appraise_talent",
-            "inner_court",
-            "company",
-            "village",
-            "city",
-            "rts",
-            "slg",
-            "restraint",
-            "false_record",
-            "board",
-            "sight",
-            "beyond_door",
-            "messenger",
-            "awaken_talent",
-            "travel_gate",
-            "travel_gate_advanced",
-            "echoes",
-            "clear_flow",
-            "resonance",
-            "dominion",
-            "soul_ferry",
-            "thousand_paths",
-            "breach",
-            "ascent",
-            "true_name",
-            "last_door",
-            "continent_map"
-          ]
+          "keys": null
         }
       ]
     },

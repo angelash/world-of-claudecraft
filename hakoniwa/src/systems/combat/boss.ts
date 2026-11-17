@@ -7,6 +7,7 @@ import { getEntity } from '../world';
 import type { Entity } from '../world/types';
 import { applyAura } from './auras';
 import { monsterDef, secs } from './defs';
+import { combatMod } from './difficulty';
 import { spawnMonster } from './spawning';
 import { deriveStats } from './stats';
 import { addThreat, engage } from './threat';
@@ -69,7 +70,12 @@ export function tickBoss(ctx: SystemContext, u: Unit): void {
     }
   });
 
-  if (m.enrage && !brain.enraged && frac <= m.enrage.belowPct) {
+  // the difficulty moves the soft enrage (16): story at 0.7 of the threshold, hard at 1.15
+  if (
+    m.enrage &&
+    !brain.enraged &&
+    frac <= m.enrage.belowPct * combatMod(ctx.world, 'soft_enrage')
+  ) {
     brain.enraged = true;
     applyAura(ctx, u, m.enrage.aura, u, { permanent: true });
     say(ctx, u, e, m.enrage.say);

@@ -1,37 +1,49 @@
 // Combat system, phase 20 (architecture.md 4.6): units on entities, abilities and auras,
-// the hit table, threat, monster and guard brains, spawning and waves, death and the
-// return through the door, experience and loot. Other systems read it through
-// queries.ts and write through ports.ts; facts leave as events (types.ts).
+// the hit table, threat, crowd control (control.ts), presence (presence.ts), monster and
+// guard brains, spawning and waves, death and the return through the door with its costs
+// (death.ts, death_costs.ts), duels (duel.ts), the outsider's skill rack (rack.ts) and
+// door-granted pools (pools.ts), the difficulty (difficulty.ts), experience and loot. Other
+// systems read it through queries.ts and write through ports.ts; facts leave as events.
 
 import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type KeyText, tr } from '../../core/text';
 import { getEntity, haltEntity, playerEntity, tagValue } from '../world';
-import { interruptCast, tickCast, useAbility } from './abilities';
+import { interruptCast, interruptible, tickCast, useAbility } from './abilities';
 import { tickAuras } from './aura_tick';
 import { tickAutoAttack, tickRegen } from './auto_attack';
-import { classDef, monsterDef, REGEN_EVERY } from './defs';
+import { tickReturn } from './death';
+import { tickBags, tickFightWear } from './death_costs';
+import { abilityDef, classDef, monsterDef, REGEN_EVERY } from './defs';
+import { difficultyWritten, syncDifficulty } from './difficulty';
+import { settleDuels, startDuel } from './duel';
 import { COMBAT_ID_FIELDS } from './id_fields';
-import { onItemUsed } from './items_use';
+import { onItemProc, syncGearAuras } from './item_procs';
+import { onItemUsed, useItemGate } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
+import { switchPool } from './pools';
 import { tickPresence } from './presence';
+import { setRacked, syncRack, usesRack } from './rack';
 import { applyAwardedXp } from './rewards';
 import { restAfterSleep } from './skip';
 import { onFlag, placeFixtures, populateAll, spawnMonster, tickSpawns } from './spawning';
 import { deriveStats } from './stats';
+import { sweepOwnerAuras } from './summons';
 import { forgetAttacker } from './threat';
 import type { Unit } from './types';
 import {
   canAttack,
   clampPools,
   createUnit,
+  inCombat,
   liveUnit,
   setLevel,
   sortedUnitIds,
   unitOf,
 } from './units';
 
+export * from './difficulty';
 export * from './formulas';
 export * from './id_fields';
 export * from './ports';
@@ -92,14 +104,25 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       presence: {},
     };
     const player = playerEntity(ctx.world);
-    if (player) createUnit(ctx, player.id, { classId: 'outsider', level: 1, side: 'ally' });
+    if (player) {
+      const u = createUnit(ctx, player.id, { classId: 'outsider', level: 1, side: 'ally' });
+      if (u) syncRack(ctx.content, u);
+    }
     placeFixtures(ctx);
     populateAll(ctx);
+    syncDifficulty(ctx);
   },
 
   tick(ctx) {
     const slice = ctx.world.slices.combat;
-    if (ctx.tick % 20 === 0) tickSpawns(ctx);
+    if (slice.pendingReturn) tickReturn(ctx);
+    if (slice.duels) settleDuels(ctx);
+    if (slice.bags && ctx.tick % 5 === 0) tickBags(ctx);
+    if (ctx.tick % 20 === 0) {
+      tickSpawns(ctx);
+      sweepOwnerAuras(ctx);
+      housekeeping(ctx);
+    }
     const active = activeMaps(ctx);
     const regen = ctx.tick % REGEN_EVERY === 0;
     for (const id of sortedUnitIds(ctx.world)) {
@@ -209,6 +232,38 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       if (d.level !== undefined) setLevel(ctx, u, d.level);
       return ok();
     },
+    'combat.rack'(ctx, d, source) {
+      const a = actor(ctx, undefined, source);
+      if (!a.ok) return reject(a.code, a.reason);
+      const res = setRacked(ctx.world, ctx.content, a.u, d.abilityId, d.on);
+      return res.ok ? ok() : reject(res.code, tr(`sys.combat.reject.rack.${res.code}`));
+    },
+    'combat.switch_pool'(ctx, d, source) {
+      const a = actor(ctx, undefined, source);
+      if (!a.ok) return reject(a.code, a.reason);
+      const res = switchPool(ctx, a.u, d.resource);
+      return res.ok ? ok() : reject(res.code, tr(`sys.combat.reject.pool.${res.code}`));
+    },
+    'combat.duel'(ctx, d, source) {
+      const a = actor(ctx, undefined, source);
+      if (!a.ok) return reject(a.code, a.reason);
+      const opponent = unitOf(ctx.world, d.opponentId);
+      if (!opponent) return reject('bad_target', tr('sys.combat.reject.bad_target.absent'));
+      const res = startDuel(ctx, a.u, opponent);
+      return res.ok ? ok() : reject(res.code, tr(`sys.combat.reject.duel.${res.code}`));
+    },
+    'combat.use_item'(ctx, d, source) {
+      const a = actor(ctx, undefined, source);
+      if (!a.ok) return reject(a.code, a.reason);
+      const gate = useItemGate(ctx, a.u, d.itemId);
+      if (!gate.ok) return reject(gate.code, tr(`sys.combat.reject.item.${gate.code}`));
+      ctx.dispatch(
+        'inventory.use',
+        { ownerId: a.u.id, itemId: d.itemId, targetId: d.targetId },
+        { type: 'system', system: 'combat' },
+      );
+      return ok();
+    },
     'combat.spawn'(ctx, d) {
       if (!monsterDef(ctx.content, d.monsterId))
         return reject('no_monster', tr('sys.combat.reject.no_monster'));
@@ -249,6 +304,11 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       interruptCast(ctx, u);
     },
     'flag.changed'(ctx, ev) {
+      if (ev.data.key === 'difficulty') {
+        const p = unitOf(ctx.world, ctx.world.slices.world.playerId);
+        difficultyWritten(ctx, ev.data.value, !!p && inCombat(ctx.world, p));
+        return;
+      }
       onFlag(ctx, ev.data.key, ev.data.value);
     },
     'xp.awarded'(ctx, ev) {
@@ -258,9 +318,14 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
     'item.used'(ctx, ev) {
       onItemUsed(ctx, ev.data);
     },
+    'item.proc'(ctx, ev) {
+      onItemProc(ctx, ev.data);
+    },
     'item.equipped'(ctx, ev) {
       const u = unitOf(ctx.world, ev.data.ownerId);
-      if (u) clampPools(ctx.world, ctx.content, u);
+      if (!u) return;
+      clampPools(ctx.world, ctx.content, u);
+      syncGearAuras(ctx, u);
     },
     'time.skipped'(ctx, ev) {
       if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') {
@@ -270,7 +335,34 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
   },
 };
 
+/**
+ * Once a second: the outsider's skill rack follows its level and knowledge (7; also a save
+ * from before the rack), a fight that ended wears the party's gear (13.2), and the
+ * companions' down counts clear once the whole party is out of the fight (15.2: the second
+ * down of one fight counts across a revival).
+ */
+function housekeeping(ctx: SystemContext): void {
+  const party: Unit[] = [];
+  for (const id of sortedUnitIds(ctx.world)) {
+    const u = ctx.world.slices.combat.units[id];
+    if (!u) continue;
+    if (usesRack(ctx.content, u)) syncRack(ctx.content, u);
+    const e = getEntity(ctx.world, id);
+    if (e && (e.kind === 'player' || e.kind === 'companion')) party.push(u);
+  }
+  tickFightWear(ctx, party);
+  // set auras follow the worn sets (a piece broke, a set grew)
+  for (const u of party) syncGearAuras(ctx, u);
+  const fighting = party.some((u) => u.downed || u.combatUntil > ctx.tick);
+  if (!fighting) for (const u of party) if (u.downs) delete u.downs;
+}
+
+/**
+ * Whether a control breaks the cast in progress: stun, fear and incapacitation always; a
+ * silence unless the cast is uninterruptible (8.1: the shield-bordered cast bar).
+ */
 function castBlocked(ctx: SystemContext, u: Unit): boolean {
   const d = deriveStats(ctx.world, ctx.content, u);
-  return d.cc.stun || d.cc.fear || d.cc.incapacitate || d.cc.silence;
+  if (d.cc.stun || d.cc.fear || d.cc.incapacitate) return true;
+  return d.cc.silence && interruptible(abilityDef(ctx.content, u.cast?.abilityId ?? ''));
 }

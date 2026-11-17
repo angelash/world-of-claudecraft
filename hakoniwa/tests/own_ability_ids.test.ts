@@ -66,6 +66,14 @@ const MONSTERS = read<MonsterDef[]>('combat/monsters.json');
 /** The act 1 rows content_act1_abilities_01 imported (catalog 3.3, 4.5 and 7.3). */
 const IMPORTED_ABILITIES = ['sk_lok_summonremnant', 'sk_mon_remnantbar', 'sk_mon_remnantquake'];
 const IMPORTED_AURAS = ['aur_ember_door', 'aur_st_downed_weak'];
+/**
+ * Catalog ids later packages import with the system that applies them (catalog 4.5 and 7.7):
+ * the rank pressure of one rank and the blood pact (PK-M1-11).
+ */
+const LATER_AURAS = [
+  'aur_st_presence_unease',
+  'aur_lok_remnantpact',
+];
 
 interface Mapped {
   from: string;
@@ -108,7 +116,7 @@ describe('the catalog numbering in the data', () => {
       [...ABILITY_MAP.map((m) => m.to), ...IMPORTED_ABILITIES].sort(),
     );
     expect(AURAS.map((a) => a.id).sort()).toEqual(
-      [...AURA_MAP.map((m) => m.to), ...IMPORTED_AURAS].sort(),
+      [...AURA_MAP.map((m) => m.to), ...IMPORTED_AURAS, ...LATER_AURAS].sort(),
     );
     expect(ABILITIES.filter((a) => !a.id.startsWith('sk_'))).toEqual([]);
     expect(AURAS.filter((a) => !a.id.startsWith('aur_'))).toEqual([]);
@@ -468,7 +476,10 @@ describe('a save written before the renumbering', () => {
       'ability units.*.cast.abilityId',
       'ability units.*.abilities.*',
       'ability units.*.phaseAbilities.*',
+      'ability units.*.rack.*',
+      'ability units.*.rackOff.*',
       'monster units.*.monsterId',
+      'item bags.*.items.*.itemId',
     ]);
   });
 
@@ -571,11 +582,12 @@ describe('the act 1 imports (content_act1_abilities_01)', () => {
       dispellable: false,
     });
     // the downed weakness keeps the quantity the revive borrowed from spring_weakness
-    const spring = aura('aur_st_spring_toll');
+    // (combat 15.2: damage dealt -20%, 120 seconds); the spring toll itself took the combat
+    // doc's numbers in PK-M1-11 (15.3)
     expect(aura('aur_st_downed_weak')).toMatchObject({
       kind: 'debuff',
-      duration: spring?.duration,
-      mods: spring?.mods,
+      duration: 120,
+      mods: { damageDealt: -0.2 },
       dispellable: false,
     });
     const fiend = MONSTERS.find((m) => m.id === 'fiend_colossus_remnant');

@@ -36,8 +36,11 @@ import { Autoplayer, type AutoplayResult } from '../../src/game/autoplay';
 import { createGame, resumeGame } from '../../src/game/create';
 import { ACT_ORDER, CHEATS, SEED } from './harness';
 
-/** Ticks between saves: 46 saves on the route (measured), room above the 40 of 13.6. */
-const EVERY = 40_000;
+/**
+ * Ticks between saves: the route runs about 1.42 million ticks with the combat rules of
+ * PK-M1-11 (measured), so about 48 saves, room above the 40 of 13.6.
+ */
+const EVERY = 30_000;
 const ROUTE = 'rule_merca';
 const MB = 1024 * 1024;
 const VERSIONS = { gameVersion: 'test', contentVersion: 'c-test', renameVersion: 0, build: 'test' };

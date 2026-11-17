@@ -16,6 +16,7 @@ import mapSewers from '../../../data/combat/maps/wallenburg_sewers.json';
 import monsters from '../../../data/combat/monsters.json';
 import waves from '../../../data/combat/waves.json';
 import type { ContentMap } from '../../core/contracts';
+import { MOB_CC_CAP } from '../../systems/combat/formulas';
 import type {
   AbilityDef,
   AuraDef,
@@ -314,6 +315,23 @@ export const pack: ContentPack = {
   validate: validateCombat,
 };
 
+const BOSS_TIERS: readonly string[] = ['lair', 'dungeon', 'raid', 'surge', 'story', 'tutorial'];
+const DR_CATEGORIES: readonly string[] = [
+  'stun_ctrl',
+  'stun_open',
+  'stun_proc',
+  'root',
+  'incap',
+  'sleep',
+  'poly',
+  'fear',
+  'silence',
+  'disarm',
+];
+const DISPEL_TYPES: readonly string[] = ['magic', 'curse', 'poison', 'disease'];
+/** Longest school lockout of a monster's interrupt against the player's side (9.1). */
+const LOCKOUT_CAP = 4;
+
 export function validateCombat(content: ContentMap): string[] {
   const problems: string[] = [];
   const has = <T extends { id: string }>(rows: T[] | undefined) =>
@@ -350,6 +368,12 @@ export function validateCombat(content: ContentMap): string[] {
   for (const a of content.auras ?? []) {
     if (a.duration < 0) problems.push(`aura ${a.id}: negative duration`);
     if (a.kind !== 'buff' && a.kind !== 'debuff') problems.push(`aura ${a.id}: bad kind`);
+    if (a.drCategory && !DR_CATEGORIES.includes(a.drCategory))
+      problems.push(`aura ${a.id}: bad drCategory ${a.drCategory}`);
+    if (a.dispelType && !DISPEL_TYPES.includes(a.dispelType))
+      problems.push(`aura ${a.id}: bad dispelType ${a.dispelType}`);
+    if (a.byStacks && a.byStacks.length > (a.maxStacks ?? 1))
+      problems.push(`aura ${a.id}: byStacks longer than maxStacks`);
   }
   for (const m of content.monsters ?? []) {
     if (m.minLevel < 1 || m.maxLevel > 60 || m.minLevel > m.maxLevel) {
@@ -371,7 +395,19 @@ export function validateCombat(content: ContentMap): string[] {
       ...(mech?.phases ?? []).flatMap((p) => (p.aura ? [p.aura] : [])),
       ...(mech?.enrage ? [mech.enrage.aura] : []),
       ...(mech?.ramp ? [mech.ramp.aura] : []),
+      ...(mech?.ownerAura ? [mech.ownerAura] : []),
     ];
+    for (const w of mech?.duelWatch?.watchers ?? [])
+      if (!monsterIds.has(w)) problems.push(`monster ${m.id}: unknown duel watcher ${w}`);
+    for (const [mapId, loc] of Object.entries(mech?.petQuirk?.walkTo ?? {})) {
+      const map = mapById.get(mapId);
+      if (map && !map.locations.some((l) => l.id === loc))
+        problems.push(`monster ${m.id}: pet quirk map ${mapId} has no location ${loc}`);
+    }
+    if (m.tier && !BOSS_TIERS.includes(m.tier))
+      problems.push(`monster ${m.id}: bad tier ${m.tier}`);
+    if (m.tier && m.rank !== 'boss') problems.push(`monster ${m.id}: a tier needs rank boss`);
+    if (m.storyAs && m.tier !== 'story') problems.push(`monster ${m.id}: storyAs needs tier story`);
     for (const id of auraRefs)
       if (!auraIds.has(id)) problems.push(`monster ${m.id}: unknown aura ${id}`);
     for (const s of mech?.summon ?? []) {
@@ -387,6 +423,7 @@ export function validateCombat(content: ContentMap): string[] {
       }
     }
   }
+  problems.push(...monsterControlCaps(content));
   for (const map of content.maps ?? []) {
     for (const s of map.spawns) {
       if (s.kind === 'monster' && !monsterIds.has(s.ref)) {
@@ -425,4 +462,45 @@ export function validateCombat(content: ContentMap): string[] {
     }
   }
   return problems;
+}
+
+/**
+ * Monster controls against the player's side keep their base duration under the caps of
+ * combat_and_classes.md 9.1 (stun 3, root 6, silence 4, fear 6, incapacitate 6, disarm 6
+ * seconds): every control aura an enemy monster lays on a foe, through its abilities, its
+ * phase abilities or its on-hit list. Rank scaling may lengthen it in play; this caps data.
+ */
+export function monsterControlCaps(content: ContentMap): string[] {
+  const out: string[] = [];
+  const auras = new Map((content.auras ?? []).map((a) => [a.id, a]));
+  const abilities = new Map((content.abilities ?? []).map((a) => [a.id, a]));
+  const check = (monster: string, auraId: string, via: string) => {
+    const a = auras.get(auraId);
+    const cap = a?.cc ? MOB_CC_CAP[a.cc] : undefined;
+    if (a && cap !== undefined && a.duration > cap)
+      out.push(
+        `monster ${monster}: ${via} lays ${a.cc} ${a.id} for ${a.duration} s, over the ${cap} s cap`,
+      );
+  };
+  for (const m of content.monsters ?? []) {
+    const mech = m.mechanics;
+    // pets fight for their summoner: their controls land on enemies, not on the player's side
+    if (mech?.petGroup) continue;
+    const ids = [...(m.abilities ?? []), ...(mech?.phases ?? []).flatMap((p) => p.abilities ?? [])];
+    for (const id of [...new Set(ids)]) {
+      const def = abilities.get(id);
+      if (!def || def.target === 'self' || def.target === 'ally' || def.target === 'party')
+        continue;
+      for (const f of def.effects) {
+        if (f.type === 'aura' && f.to !== 'self') check(m.id, f.aura, `ability ${id}`);
+        // the school lockout of an interrupt (9.1: 4 seconds)
+        if (f.type === 'interrupt' && f.lockout > LOCKOUT_CAP)
+          out.push(
+            `monster ${m.id}: ability ${id} locks a school for ${f.lockout} s, over the ${LOCKOUT_CAP} s cap`,
+          );
+      }
+    }
+    for (const h of mech?.onHit ?? []) check(m.id, h.aura, 'on-hit');
+  }
+  return out;
 }

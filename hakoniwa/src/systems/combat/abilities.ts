@@ -9,11 +9,15 @@ import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { entitiesNear, getEntity, haltEntity, isWalkable, teleportEntity, walkMap } from '../world';
 import { applyAura, dispel, hasAura } from './auras';
+import { immuneToForcedMove } from './control';
 import { healUnit, resolveHit } from './damage';
 import { abilityDef, ENERGY_GCD_TICKS, GCD_TICKS, MELEE_RANGE, scaled, secs } from './defs';
 import { meleeMissChance, spellHitChance } from './formulas';
-import { spawnMonster } from './spawning';
+import { crossFeed, poolDriven } from './pools';
+import { hitPresentation } from './presentation';
+import { onRack } from './rack';
 import { type Derived, deriveStats, isDisabled } from './stats';
+import { summonFor } from './summons';
 import { addThreat, engage, markCombat, taunt } from './threat';
 import type { AbilityDef, EffectDef, ResourceKind, School, Unit } from './types';
 import { canAttack, isFriendlyPair, knownAbilities, liveUnit, unitOf } from './units';
@@ -46,6 +50,16 @@ export function reachOf(def: AbilityDef): number {
   return r <= 1.5 ? Math.max(r, MELEE_RANGE) : r;
 }
 
+/** A weapon strike: some damage effect adds a weapon swing (disarm forbids it, 9.1). */
+export function needsWeapon(def: AbilityDef): boolean {
+  return def.effects.some((f) => f.type === 'damage' && !!f.weapon);
+}
+
+/** Whether a cast of this ability can be interrupted (8.1; the cast bar border, 18). */
+export function interruptible(def: AbilityDef | undefined): boolean {
+  return !def?.uninterruptible;
+}
+
 function isOffensive(def: AbilityDef): boolean {
   return def.target === 'enemy' || def.target === 'enemy_area' || def.target === 'area';
 }
@@ -64,12 +78,16 @@ export function checkAbility(
   if (!knownAbilities(content, caster).includes(abilityId)) {
     return { ok: false, code: 'unknown', reason: tr('sys.combat.reject.unknown') };
   }
+  if (!onRack(caster, abilityId))
+    return { ok: false, code: 'not_racked', reason: tr('sys.combat.reject.not_racked') };
   const d = deriveStats(world, content, caster);
   if (isDisabled(d))
     return { ok: false, code: 'disabled', reason: tr('sys.combat.reject.disabled') };
   if (d.cc.silence && (def.school ?? 'physical') !== 'physical') {
     return { ok: false, code: 'silenced', reason: tr('sys.combat.reject.silenced') };
   }
+  if (d.cc.disarm && needsWeapon(def))
+    return { ok: false, code: 'disarmed', reason: tr('sys.combat.reject.disarmed') };
   if (caster.cast) return { ok: false, code: 'busy', reason: tr('sys.combat.reject.busy') };
   const tick = world.meta.tick;
   if (def.gcd !== false && caster.gcd > tick)
@@ -77,6 +95,13 @@ export function checkAbility(
   if ((caster.cds[abilityId] ?? 0) > tick)
     return { ok: false, code: 'cooldown', reason: tr('sys.combat.reject.cooldown') };
   const cost = abilityCost(def, d);
+  if (def.resource && cost > 0 && !poolDriven(world, caster, def.resource)) {
+    return {
+      ok: false,
+      code: 'pool_idle',
+      reason: tr('sys.combat.reject.pool_idle', { resource: resourceName(def.resource) }),
+    };
+  }
   if (def.resource && cost > 0) {
     const have = caster.res[def.resource];
     if (have === undefined) {
@@ -156,11 +181,17 @@ export function useAbility(
       abilityId,
       targetId: target.id,
       start: ctx.tick,
-      end: ctx.tick + Math.max(1, Math.round(secs(def.castTime ?? 0) / haste)),
+      end: ctx.tick + Math.max(1, Math.round((secs(def.castTime ?? 0) * d.intervalMult) / haste)),
       x: e.x,
       y: e.y,
     };
-    ctx.emit('combat.cast', { casterId: caster.id, abilityId, targetId: target.id, op: 'start' });
+    ctx.emit('combat.cast', {
+      casterId: caster.id,
+      abilityId,
+      targetId: target.id,
+      op: 'start',
+      interruptible: interruptible(def),
+    });
     return check;
   }
   execute(ctx, caster, def, target);
@@ -223,6 +254,7 @@ function spend(ctx: SystemContext, u: Unit, def: AbilityDef): void {
   if (def.resource && cost > 0) {
     u.res[def.resource] = Math.max(0, (u.res[def.resource] ?? 0) - cost);
     if (def.resource === 'mana') u.manaSpentAt = ctx.tick;
+    crossFeed(ctx.world, u, d, def.resource, cost);
   }
   if (def.cooldown) u.cds[def.id] = ctx.tick + secs(def.cooldown);
 }
@@ -265,20 +297,31 @@ function swingRoll(ctx: SystemContext, _u: Unit, d: Derived): number {
 }
 
 /** Roll whether a pure debuff lands on an enemy (spell hit, or melee miss for physical). */
-function lands(ctx: SystemContext, caster: Unit, target: Unit, school: School): boolean {
+function lands(
+  ctx: SystemContext,
+  caster: Unit,
+  target: Unit,
+  school: School,
+  def: AbilityDef,
+): boolean {
   const r = ctx.rng('combat.hit').next();
   const ok =
     school === 'physical'
       ? r >= meleeMissChance(caster.level, target.level)
       : r < spellHitChance(caster.level, target.level);
   if (!ok) {
+    const sd = deriveStats(ctx.world, ctx.content, caster);
+    const td = deriveStats(ctx.world, ctx.content, target);
+    const kind = school !== 'physical' ? 'spell' : (def.range ?? 0) > 2 ? 'ranged' : 'melee';
     ctx.emit('combat.damage', {
       sourceId: caster.id,
       targetId: target.id,
+      abilityId: def.id,
       amount: 0,
       absorbed: 0,
       school,
       outcome: school === 'physical' ? 'miss' : 'resist',
+      ...hitPresentation(ctx.world, ctx.content, caster, sd, target, td, kind, def.id),
     });
   }
   engage(ctx, target, caster);
@@ -300,7 +343,7 @@ function execute(ctx: SystemContext, caster: Unit, def: AbilityDef, target: Unit
     const enemy = canAttack(ctx.world, caster, t);
     let landed = true;
     if (enemy && !hasDamage && def.effects.some((f) => f.type === 'aura' && f.to !== 'self')) {
-      landed = lands(ctx, caster, t, school);
+      landed = lands(ctx, caster, t, school, def);
     }
     def.effects.forEach((f, i) => {
       if (!liveUnit(ctx.world, t.id) && f.type !== 'aura') return;
@@ -390,6 +433,8 @@ function runEffect(
       if (enemy && !landed) return;
       applyAura(ctx, t, f.aura, caster, {
         powerMult: f.perComboMult ? 1 + f.perComboMult * Math.max(0, combo - 1) : 1,
+        school: def.school ?? 'physical',
+        abilityDr: def.dr,
       });
       if (enemy) {
         engage(ctx, t, caster);
@@ -416,13 +461,17 @@ function runEffect(
       if (enemy && landed) taunt(ctx, t, caster);
       return;
     case 'interrupt':
-      if (enemy && t.cast) {
+      if (enemy && t.cast && interruptible(abilityDef(ctx.content, t.cast.abilityId))) {
         interruptCast(ctx, t);
-        applyAura(ctx, t, 'aur_mon_schoollock', caster, { durationTicks: secs(f.lockout) });
+        // the school lockout is part of the interrupt: bosses take it, the ladders skip it
+        applyAura(ctx, t, 'aur_mon_schoollock', caster, {
+          durationTicks: secs(f.lockout),
+          lockout: true,
+        });
       }
       return;
     case 'dispel':
-      dispel(ctx, t, f.kind, f.count ?? 1);
+      dispel(ctx, t, f.kind, f.count ?? 1, f.types);
       return;
     case 'charge':
       if (enemy) moveBeside(ctx, caster, t);
@@ -453,6 +502,8 @@ function moveBeside(ctx: SystemContext, mover: Unit, to: Unit): void {
 }
 
 function push(ctx: SystemContext, from: Unit, who: Unit, distance: number): void {
+  // great-dungeon and surge bosses shrug off forced movement (9.3)
+  if (immuneToForcedMove(ctx.content, who)) return;
   const a = getEntity(ctx.world, from.id);
   const b = getEntity(ctx.world, who.id);
   // the live map: a knockback stops at a closed switch tile area
@@ -472,47 +523,4 @@ function push(ctx: SystemContext, from: Unit, who: Unit, distance: number): void
   }
   if (x !== b.x || y !== b.y) teleportEntity(ctx, who.id, b.mapId, x, y);
   who.cast = null;
-}
-
-function summonFor(ctx: SystemContext, caster: Unit, monsterId: string, count: number): void {
-  const e = getEntity(ctx.world, caster.id);
-  if (!e) return;
-  if (caster.side === 'ally') {
-    for (const u of Object.values(ctx.world.slices.combat.units)) {
-      if (u.summonerId === caster.id && u.monsterId === monsterId) {
-        const pe = getEntity(ctx.world, u.id);
-        if (pe?.alive) return;
-      }
-    }
-  }
-  for (let i = 0; i < count; i++) {
-    const angle = (i / Math.max(1, count)) * Math.PI * 2;
-    const pet = spawnMonster(
-      ctx,
-      monsterId,
-      e.mapId,
-      e.x + Math.cos(angle),
-      e.y + Math.sin(angle),
-      {
-        level: caster.level,
-        side: caster.side,
-        summonerId: caster.id,
-      },
-    );
-    if (!pet) continue;
-    const foe = unitOf(ctx.world, caster.target);
-    if (foe && canAttack(ctx.world, pet, foe)) {
-      addThreat(ctx, pet, foe.id, 1);
-      engage(ctx, pet, foe);
-      pet.target = foe.id;
-      pet.autoAttack = true;
-    }
-    for (const [id, v] of Object.entries(caster.threat)) {
-      if (v > 0) {
-        addThreat(ctx, pet, id, v);
-        const foeUnit = unitOf(ctx.world, id);
-        if (foeUnit) engage(ctx, pet, foeUnit);
-      }
-    }
-  }
 }

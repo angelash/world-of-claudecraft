@@ -1,17 +1,22 @@
 // Read-only views for the client and the editor workbench: unit frames, the ability
-// bar with cooldowns, target info with the strength reading of power_system.md 3.6,
-// hostility, experience progress, and movement locks. Pure functions of the world.
+// bar with cooldowns and the outsider's skill rack, target info with the strength reading
+// of power_system.md 3.6, hostility, experience progress, movement locks and the drop bags.
+// The readability list (combat_and_classes.md 18) reads its kernel side here: each aura's
+// bar category, dispel class and ladder stage, and whether a cast bar can be interrupted.
+// Pure functions of the world.
 
 import type { ContentMap } from '../../core/contracts';
 import { type KeyText, type TextParam, tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
 import type { World } from '../../core/world';
 import { getEntity } from '../world';
-import { abilityCost, checkAbility, resourceName } from './abilities';
+import { abilityCost, checkAbility, interruptible, resourceName } from './abilities';
 import { abilityDef, auraDef } from './defs';
 import { tierName, xpForLevel } from './formulas';
+import { drivenPools } from './pools';
+import { rackCapacity, usesRack } from './rack';
 import { deriveStats } from './stats';
-import type { ResourceKind, Side } from './types';
+import type { AuraCategory, DispelType, DropBag, ResourceKind, Side } from './types';
 import { canAttack, isHostilePair, knownAbilities, liveUnit, unitOf } from './units';
 
 export interface UnitView {
@@ -33,8 +38,21 @@ export interface UnitView {
     kind: 'buff' | 'debuff';
     remaining: number | null;
     stacks: number;
+    /** bar category (8.2): sorting and the frame */
+    category: AuraCategory;
+    /** dispel class (9.5): the border shape; none is undispellable */
+    dispelType: DispelType | null;
+    /** the ladder step this control landed at (9.2 icon corner): 0 full, 1 half, 2 quarter */
+    drStage: number;
   }[];
-  cast: { abilityId: string; name: string; progress: number; remaining: number } | null;
+  cast: {
+    abilityId: string;
+    name: string;
+    progress: number;
+    remaining: number;
+    /** false draws the shield border of an uninterruptible cast (18) */
+    interruptible: boolean;
+  } | null;
   targetId: string | null;
   inCombat: boolean;
   attackable: boolean;
@@ -72,6 +90,9 @@ export function unitView(world: World, content: ContentMap, id: string): UnitVie
         kind: def?.kind ?? 'buff',
         remaining: a.expires === 0 ? null : Math.max(0, (a.expires - tick) / TICK_HZ),
         stacks: a.stacks,
+        category: def?.category ?? def?.kind ?? 'buff',
+        dispelType: def?.dispelType ?? null,
+        drStage: a.dr ?? 0,
       };
     }),
     cast: u.cast
@@ -80,6 +101,7 @@ export function unitView(world: World, content: ContentMap, id: string): UnitVie
           name: abilityDef(content, u.cast.abilityId)?.name ?? u.cast.abilityId,
           progress: Math.min(1, (tick - u.cast.start) / Math.max(1, u.cast.end - u.cast.start)),
           remaining: Math.max(0, (u.cast.end - tick) / TICK_HZ),
+          interruptible: interruptible(abilityDef(content, u.cast.abilityId)),
         }
       : null,
     targetId: u.target,
@@ -101,6 +123,8 @@ export interface AbilitySlot {
   range: number;
   usable: boolean;
   reason?: KeyText;
+  /** on the outsider's skill rack (always true for units without a rack) */
+  racked: boolean;
 }
 
 /** The ability bar of a unit (the player by default) with live cooldowns and usability. */
@@ -128,9 +152,28 @@ export function abilityBar(world: World, content: ContentMap, id?: string): Abil
       range: def.range ?? 0,
       usable: check.ok,
       reason: check.ok ? undefined : check.reason,
+      racked: !u.rack || u.rack.includes(aid),
     });
   }
   return out;
+}
+
+/** The outsider's skill rack (7): slots in use, capacity, and the driven pools (4.3). */
+export function rackView(
+  world: World,
+  content: ContentMap,
+  id?: string,
+): { slots: string[]; capacity: number; pools: ResourceKind[] } | null {
+  const u = unitOf(world, id ?? world.slices.world.playerId);
+  if (!u || !usesRack(content, u)) return null;
+  return { slots: [...(u.rack ?? [])], capacity: rackCapacity(u), pools: drivenPools(world, u) };
+}
+
+/** Drop bags left where the player fell (15.1), for the map markers; oldest first. */
+export function dropBags(world: World): DropBag[] {
+  return Object.values(world.slices.combat?.bags ?? {}).sort(
+    (a, b) => a.expires - b.expires || a.id.localeCompare(b.id),
+  );
 }
 
 export type StrengthReading = 'weaker' | 'similar' | 'stronger' | 'unreadable';

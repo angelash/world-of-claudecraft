@@ -84,7 +84,8 @@ describe('Y: the revival-fatigue state (6.3, combat 15.1)', () => {
     g.step(1);
     const u = g.world.slices.combat.units.player;
     if (u) u.hp = 1;
-    for (let i = 0; i < 400 && events(g, 'combat.player_returned').length === 0; i++) g.step(1);
+    // the fall, then one game hour reforming in the corridor (combat 15.1)
+    for (let i = 0; i < 2000 && events(g, 'combat.player_returned').length === 0; i++) g.step(1);
     const ret = events(g, 'combat.player_returned').at(-1);
     expect(ret?.data.fatigueMinutes).toBe(360);
     const aura = g.world.slices.combat.units.player?.auras.find(

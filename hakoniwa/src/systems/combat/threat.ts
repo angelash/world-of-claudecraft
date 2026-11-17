@@ -6,12 +6,16 @@ import type { SystemContext } from '../../core/system';
 import type { World } from '../../core/world';
 import { entitiesNear, getEntity } from '../world';
 import { COMBAT_LINGER, monsterDef, secs } from './defs';
+import { combatStarted } from './proc_points';
 import { syncLevel } from './progression';
 import type { Unit } from './types';
 import { canAttack, fillUp, liveUnit, setLevel, unitOf } from './units';
 
 export function markCombat(ctx: SystemContext, u: Unit): void {
+  const entering = u.combatUntil <= ctx.tick;
   u.combatUntil = Math.max(u.combatUntil, ctx.tick + COMBAT_LINGER);
+  // entering combat is a trigger point (13.3 `combat_start`)
+  if (entering) combatStarted(ctx, u);
 }
 
 export function addThreat(
