@@ -1,0 +1,35 @@
+[
+  {
+    "id": "cdx_bron_sleeve",
+    "tab": "people",
+    "subject": "bron",
+    "source": "seen",
+    "text": "边石镇冒险者公会的分部长。右边的袖管是空的。",
+    "act": 1
+  },
+  {
+    "id": "cdx_bron_old_mark",
+    "tab": "people",
+    "subject": "bron",
+    "source": "talk",
+    "text": "他认得你手背上的纹：二十年前从灰里爬出来的那个人，手上也有这个。",
+    "when": "a1_bron_sees_mark",
+    "act": 1
+  },
+  {
+    "id": "cdx_split_ear_name",
+    "tab": "monsters",
+    "subject": "split_ear",
+    "source": "rumor",
+    "text": "东林猎户起的名：它一只耳朵被兽夹夹裂，逃了三次夹子。",
+    "act": 1
+  },
+  {
+    "id": "cdx_split_ear_saying",
+    "tab": "monsters",
+    "subject": "split_ear",
+    "source": "mortal",
+    "text": "东林的老话：裂耳记仇，夹过它的人家，羊一只不剩。",
+    "act": 1
+  }
+]

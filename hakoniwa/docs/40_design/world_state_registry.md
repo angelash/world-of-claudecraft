@@ -105,7 +105,7 @@
 | `push_door.` | 信号 | 过场里的推门请求（第 8.8.4 节） | 过场写，doors 在过场结束时结算并清除 | `push_door.founding` |
 | `general.` | 派生 | 将领名单 `war.generals` 的布尔镜像 | 派生 | `general.ron` |
 | `front_wait.` | 族 | 第五幕战线待令 | strategy | `front_wait.north` |
-| `has.`、`read.`、`col.`、`visited.`、`anchor_lost.`、`deed.`、`title.`、`term.` | 镜像 | 物品持有、已读、收藏、到访、锚失、事迹、称号、称谓开放 | inventory、world、deeds、quests | `has.lore_h04` |
+| `has.`、`read.`、`col.`、`visited.`、`anchor_lost.`、`deed.`、`title.`、`term.`、`letter.` | 镜像 | 物品持有、已读、收藏、到访、锚失、事迹、称号、称谓开放、传书 | inventory、world、records、quests | `has.lore_h04` |
 
 ### 2.4 实体代号
 
@@ -587,6 +587,7 @@
 | `player.taint` | 无 | 整数 | 0 到 100 | 澱染日结算（镜像） | 欧拉等人的台词、澱病相关任务 |
 | `player.injury` | 无 | 枚举 | `none`、`minor`、`limb` | combat（镜像） | 台词 |
 | `player.spoke_forbidden_name` | 无 | 标记 | | goddess 尊名唤醒（玩家念出被禁之名） | 女神与台账（D-023） |
+| `player.title` | 无 | 枚举 | 佩戴中的职名的称号 ID；没有佩戴时为 none；默认 `none` | 事迹系统（records）：佩戴命令 | 称呼与对话、名牌显示 |
 
 ### 8.2 全局量
 
@@ -1039,8 +1040,11 @@
 | `visited.<地图>` | 无 | 标记 | 地图 ID | world 到访（doors 记录） | 地钥、探索经验 |
 | `visited.<地图>.<地点>` | 无 | 标记 | 地点 ID | 同上 | 同上 |
 | `anchor_lost.<遗物>` | 无 | 小数 | 遗物 ID；锚失累计天数（在夜幕下每日 +0.5，[遗物目录][relics]、[女神目录 13][gi]） | goddess 每日结算 | 寻物事件 |
-| `deed.<事迹>` | 无 | 标记 | 事迹 ID | 事迹系统 | 历钥（[千门 5.3][td]） |
-| `title.<称号>` | 无 | 标记 | 称号 ID | 事迹系统 | 称呼、认知 |
+| `deed.<事迹>` | 无 | 标记 | 事迹 ID（`data/records/deeds.json`） | 事迹系统（records） | 历钥（[千门 5.3][td]）、称号的授予条件、事迹簿界面 |
+| `title.<称号>` | 无 | 标记 | 称号 ID（`data/records/titles.json`）；得到过即为真，失去另写下一行 | 事迹系统（records） | 称呼、认知、称号的失去条件与任务条件、事迹簿界面 |
+| `title.<称号>.lost` | 无 | 标记 | 称号 ID；被取代、撤销或褪去时为真 | 事迹系统（records） | 称呼、认知、任务条件、事迹簿界面 |
+| `letter.<传书>` | 无 | 枚举 | `transit`、`delivered`、`read`、`replied` | 事迹系统（records）：寄出、送达、读信、回信 | 任务与过场、传书界面 |
+| `letter.<传书>.reply` | 无 | 枚举 | 回信选项 ID | 事迹系统（records）：回信 | 任务与过场 |
 | `term.<称谓>` | `a1_dian_term_heard`（即 `term.dian_known`） | 标记 | 称谓 ID（台账第 6 节） | 任务效果（`q` 写 `term.dian_known`：第一幕玩家第一次从夜羽口中听到"澱"） | 界面切换正式名（D-030、[界面][ux]的文本键条件） |
 
 ### 8.7 任务目录（序章到第三幕）登记的变量

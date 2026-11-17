@@ -1,0 +1,61 @@
+[
+  {
+    "id": "ltr_a1_count",
+    "act": 1,
+    "senderName": "瓦伦边境伯爵府 书记处",
+    "seal": "official",
+    "subject": "伯爵来信",
+    "deliver": { "when": "a1_bron_sees_mark AND act_week >= 11" },
+    "body": [
+      { "id": "salute", "text": "致边石镇冒险者公会分部长布伦阁下：" },
+      { "id": "report", "text": "据报，暗月之夜，贵镇遭兽潮侵袭。" },
+      {
+        "id": "credit_player",
+        "text": "赖一名登记为 F 级之冒险者力战，镇得保全。",
+        "when": "a1_tide_credit == player"
+      },
+      {
+        "id": "credit_martha",
+        "text": "有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。",
+        "when": "a1_tide_credit == martha"
+      },
+      {
+        "id": "credit_light",
+        "text": "据贵镇神父所报，此乃光之庇佑；然亦有人言，一名登记为 F 级之冒险者曾独当巨物。",
+        "when": "a1_tide_credit == light"
+      },
+      {
+        "id": "credit_collapse",
+        "text": "据报魔物自溃；然亦有人言，一名登记为 F 级之冒险者当夜在场。",
+        "when": "a1_tide_credit == self_collapse"
+      },
+      { "id": "summons", "text": "伯爵府欲见此人。请于本月内携其至瓦伦堡。" },
+      {
+        "id": "moss_arrested",
+        "text": "另，代官莫斯一事，本府已知，届时一并处置。",
+        "when": "a1_moss_fate == arrested"
+      },
+      {
+        "id": "moss_fled",
+        "text": "另，代官莫斯擅离职守，本府已发文缉拿。",
+        "when": "a1_moss_fate == fled"
+      },
+      {
+        "id": "moss_in_power",
+        "text": "另，代官莫斯呈报，防御事宜皆由代官府统筹，此节亦请分部长届时一并说明。",
+        "when": "a1_moss_fate == in_power"
+      },
+      {
+        "id": "moss_puppet",
+        "text": "另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。",
+        "when": "a1_moss_fate == puppet"
+      },
+      {
+        "id": "moss_dead",
+        "text": "另，代官莫斯殒命一事，本府已知，届时一并查明。",
+        "when": "a1_moss_fate == dead"
+      },
+      { "id": "closing", "text": "瓦伦边境伯爵府 书记处 谨启" }
+    ]
+  }
+]

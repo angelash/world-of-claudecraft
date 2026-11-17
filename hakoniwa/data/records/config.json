@@ -1,0 +1,12 @@
+{
+  "pillar": {
+    "requires": "feature.inner_court",
+    "tiers": [{ "slots": 7 }]
+  },
+  "stages": [
+    { "stage": "carvings", "fromAct": 0 },
+    { "stage": "handbook", "fromAct": 2 },
+    { "stage": "register", "fromAct": 4 },
+    { "stage": "court", "fromAct": 6 }
+  ]
+}

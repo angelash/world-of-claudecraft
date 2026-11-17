@@ -1,0 +1,88 @@
+[
+  {
+    "id": "deed_grow_registered",
+    "name": "无记载，F 级",
+    "desc": "在边石镇冒险者公会登记。水晶什么也没有显示，卡上写着手工登记的 F 级。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 5,
+    "when": "a1_guild_registered",
+    "reward": { "title": "title_guild_f_handwritten" },
+    "channels": ["cog", "collect"]
+  },
+  {
+    "id": "deed_grow_stand_before_ash",
+    "name": "在灰里站住了",
+    "desc": "初见坐在灰里的那个人时，你在他的威压下站住了。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "when": "a1_ash_met",
+    "channels": ["key", "story"]
+  },
+  {
+    "id": "deed_grow_dream_door",
+    "name": "门口的女人",
+    "desc": "兽潮次夜，你梦见一扇开着缝的门，门口站着一个女人。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "when": "a1_dream_door_woman",
+    "reward": { "pillar": true },
+    "channels": ["key", "story"]
+  },
+  {
+    "id": "deed_hunt_tide_night",
+    "name": "兽潮之夜",
+    "desc": "暗月之夜，兽潮扑向边石镇，你守到了天亮。",
+    "cls": "hunt",
+    "act": 1,
+    "fame": 25,
+    "when": "a1_beast_tide_cleared",
+    "channels": ["cog", "war"]
+  },
+  {
+    "id": "deed_mortal_window",
+    "name": "只是去关窗",
+    "desc": "兽潮过后，边石镇选定了它愿意相信的那个版本。",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 10,
+    "when": "a1_tide_credit IN (player, martha, light, self_collapse)",
+    "channels": ["cog", "story"]
+  },
+  {
+    "id": "deed_hid_orphan_mark",
+    "name": "孩子手上的纹",
+    "desc": "孤儿院一个孩子的手上，有和你手背上一样的纹。",
+    "cls": "hid",
+    "act": 1,
+    "fame": 10,
+    "hidden": true,
+    "when": "a1_orphan_mark_seen",
+    "channels": ["bond", "story"]
+  },
+  {
+    "id": "deed_bond_oola_cleared",
+    "name": "药草婆婆平反",
+    "desc": "魔女审判以平反收场，欧拉婆婆回到了她的药草铺。",
+    "cls": "bond",
+    "act": 1,
+    "fame": 25,
+    "when": "a1_oola_fate == cleared",
+    "branch": { "when": "a1_oola_fate IN (convicted, fled, executed)" },
+    "reward": { "pillar": true },
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_grow_doors_ten",
+    "name": "十扇门",
+    "desc": "千门回廊里，你已经推开了十扇门。",
+    "cls": "grow",
+    "act": 2,
+    "fame": 5,
+    "when": "doors_opened >= 10",
+    "channels": ["story", "key"]
+  }
+]

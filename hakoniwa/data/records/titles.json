@@ -1,0 +1,35 @@
+[
+  {
+    "id": "title_guild_f_handwritten",
+    "name": "F 级（手工登记）",
+    "kind": "office",
+    "family": "guild",
+    "act": 1,
+    "grantedBy": "公会：边石分部，莉娜登记、布伦签字",
+    "visibleTo": "出示卡的对象；公会网络",
+    "loss": "不撤销，只追加"
+  },
+  {
+    "id": "title_street_f_oddball",
+    "name": "F 级怪人",
+    "kind": "common",
+    "family": "street",
+    "act": 1,
+    "grantedBy": "街头：登记之后边石镇的第一个说法",
+    "visibleTo": "边石镇",
+    "loss": "被“运气好的新人”或“打退兽潮的 F 级”取代",
+    "grant": { "when": "a1_guild_registered" },
+    "lose": { "when": "title.title_street_tide_f" }
+  },
+  {
+    "id": "title_street_tide_f",
+    "name": "打退兽潮的 F 级",
+    "kind": "common",
+    "family": "street",
+    "act": 1,
+    "grantedBy": "街头：兽潮之后，F 级的版本占了上风",
+    "visibleTo": "边石镇；随伯爵来信到瓦伦堡",
+    "loss": "到了瓦伦堡，会有别的说法与它对照",
+    "grant": { "when": "deed.deed_hunt_tide_night AND a1_tide_credit == player" }
+  }
+]

@@ -172,6 +172,7 @@ const SLOT_NAMES: Record<string, string> = {
   收藏: 'collection',
   事迹: 'deed',
   称号: 'title',
+  传书: 'letter',
   称谓: 'term',
   试炼: 'trial',
   天启: 'revelation',
@@ -221,6 +222,9 @@ const SLOT_DOMAINS: Record<string, string> = {
   defense: 'defense',
   wave: 'wave',
   scenario: 'scenario',
+  deed: 'deed',
+  title: 'title',
+  letter: 'letter',
 };
 
 export const KEY_DOMAINS: Record<string, string | string[]> = {
@@ -241,6 +245,9 @@ export const KEY_DOMAINS: Record<string, string | string[]> = {
   defense: ['fact', 'just', 'need'],
   wave: 'waves#id',
   scenario: 'battle_scenarios#id',
+  deed: 'deeds#id',
+  title: 'titles#id',
+  letter: 'letters#id',
 };
 
 const GODDESSES = ['eluen', 'valda', 'merca', 'sylvie', 'moira'];
@@ -351,16 +358,17 @@ const SYSTEMS = [
   'inventory',
   'world',
   'dialogue',
+  'records',
 ];
 const SYSTEM_ALIASES: Record<string, string> = {
   court: 'scenes',
   endings: 'quests',
-  deeds: 'quests',
+  deeds: 'records',
   内核: 'core',
   内核日历: 'core',
   内核时钟: 'core',
   迷宫系统: 'world',
-  事迹系统: 'quests',
+  事迹系统: 'records',
   证据系统: 'quests',
   队伍命令处理器: 'party',
 };

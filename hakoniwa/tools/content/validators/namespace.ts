@@ -52,8 +52,14 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'fiend_', owner: 'catalog_creatures_mounts.md', tables: [] },
   { prefix: 'stock_', owner: 'catalog_creatures_mounts.md', tables: [] },
   { prefix: 'door_', owner: 'catalog_doors.md', tables: ['doors'] },
-  { prefix: 'deed_', owner: 'catalog_deeds_titles.md', tables: [] },
-  { prefix: 'title_', owner: 'catalog_deeds_titles.md', tables: [] },
+  { prefix: 'deed_', owner: 'catalog_deeds_titles.md', tables: ['deeds'] },
+  { prefix: 'title_', owner: 'catalog_deeds_titles.md', tables: ['titles'] },
+  { prefix: 'cdx_', owner: 'catalog_relics_lore.md (codex notes)', tables: ['codexEntries'] },
+  {
+    prefix: 'ltr_',
+    owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md (letters)',
+    tables: ['letters'],
+  },
   {
     prefix: 'q_',
     owner: 'catalog_quests_acts1_3.md, catalog_quests_acts4_6.md',
@@ -98,6 +104,10 @@ export const NAMESPACES: readonly Namespace[] = [
 export const STRICT_TABLES: Readonly<Record<string, readonly string[]>> = {
   quests: ['q_'],
   linePacks: ['ln_', 'bark_'],
+  deeds: ['deed_'],
+  titles: ['title_'],
+  codexEntries: ['cdx_'],
+  letters: ['ltr_'],
 };
 
 /** Entity kinds that legitimately share one id: the place codes. */

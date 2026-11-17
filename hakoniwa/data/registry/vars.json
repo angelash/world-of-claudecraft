@@ -13167,6 +13167,25 @@
       "source": "8.1"
     },
     {
+      "name": "player.title",
+      "kind": "enum",
+      "scope": "builtin",
+      "range": null,
+      "step": null,
+      "default": "none",
+      "values": null,
+      "aliases": [],
+      "writers": ["records"],
+      "readers": ["ui"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.player.title",
+      "source": "8.1"
+    },
+    {
       "name": "release_index",
       "kind": "int",
       "scope": "global",
@@ -14316,8 +14335,8 @@
       "default": false,
       "values": null,
       "aliases": [],
-      "writers": ["quests"],
-      "readers": ["content"],
+      "writers": ["records"],
+      "readers": ["content", "ui"],
       "derive": null,
       "monotone": true,
       "act": null,
@@ -14328,7 +14347,7 @@
       "slots": [
         {
           "name": "deed",
-          "domain": null,
+          "domain": "deed",
           "keys": null
         }
       ]
@@ -15358,6 +15377,58 @@
           "name": "key",
           "domain": null,
           "keys": ["k3", "k5", "k6"]
+        }
+      ]
+    },
+    {
+      "name": "letter.<letter>",
+      "kind": "enum",
+      "scope": "mirror",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": ["transit", "delivered", "read", "replied"],
+      "aliases": [],
+      "writers": ["records"],
+      "readers": ["content", "ui"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.letter.letter",
+      "source": "8.6",
+      "slots": [
+        {
+          "name": "letter",
+          "domain": "letter",
+          "keys": null
+        }
+      ]
+    },
+    {
+      "name": "letter.<letter>.reply",
+      "kind": "enum",
+      "scope": "mirror",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": null,
+      "aliases": [],
+      "writers": ["records"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.letter.letter.reply",
+      "source": "8.6",
+      "slots": [
+        {
+          "name": "letter",
+          "domain": "letter",
+          "keys": null
         }
       ]
     },
@@ -16452,8 +16523,8 @@
       "default": false,
       "values": null,
       "aliases": [],
-      "writers": ["quests"],
-      "readers": [],
+      "writers": ["records"],
+      "readers": ["content", "ui"],
       "derive": null,
       "monotone": true,
       "act": null,
@@ -16464,7 +16535,33 @@
       "slots": [
         {
           "name": "title",
-          "domain": null,
+          "domain": "title",
+          "keys": null
+        }
+      ]
+    },
+    {
+      "name": "title.<title>.lost",
+      "kind": "flag",
+      "scope": "mirror",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["records"],
+      "readers": ["content", "ui"],
+      "derive": null,
+      "monotone": true,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.title.title.lost",
+      "source": "8.6",
+      "slots": [
+        {
+          "name": "title",
+          "domain": "title",
           "keys": null
         }
       ]
@@ -16967,18 +17064,21 @@
     "act_no": ["1", "2", "3", "4", "5", "6"],
     "boss": "monsters#id",
     "crisis": ["no_light", "residue_tide", "contract_halt", "winter_famine", "record_silence"],
+    "deed": "deeds#id",
     "defense": ["fact", "just", "need"],
     "door": "doors#id",
     "evidence": "evidence#id",
     "front": ["north", "east", "south", "ring", "rear"],
     "goddess": "goddesses#id",
     "item": "items#id",
+    "letter": "letters#id",
     "map": "maps#id",
     "npc": "npcs#id|companions#id",
     "quest": "quests#id",
     "ring_node": ["R01", "R02", "R03", "R04", "R05", "R06", "R07"],
     "scenario": "battle_scenarios#id",
     "scene": "scenes#id",
+    "title": "titles#id",
     "wave": "waves#id"
   }
 }
