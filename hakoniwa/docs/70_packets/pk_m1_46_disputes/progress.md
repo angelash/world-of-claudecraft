@@ -80,10 +80,10 @@
 | `tools/content/validators/namespace.ts` | `q_` 前缀可住进 `disputes` 表：运行数据以纷争链任务的 ID 为键 | 数据门 | 已改，一行加注释 |
 | `src/content/registry_refs.ts`、`src/editor/quests/flag_index.ts` | 条件字段加 `breaks`（决策选项违背必须保持的条件），注册表规则与编辑器索引才看得见 | 内核、编辑器 | 已改，各一行加注释 |
 | `tests/quest_model.test.ts` | 三处：示例链的 `a1_owen_left` 改为 `zz_owen_left`（真实的税与匪也写它）；默认步骤事件只看示例链；"第一幕数据仍是旧时序"排除纷争链（纷争链靠 `byOther` 收尾） | PK-M1-58 | 已改 |
-| `docs/60_production/development_plan.md` 第 4.2 节 PK-M1-46、PK-M1-33 两行 | 范围栏"九条纷争"与交付不符（`README.md` 第 11 节） | 主会话 | 请求回写 |
-| `docs/40_design/content/catalog_quests_acts1_3.md` 第 5.3 节 | 链内变量补四个新标记；结局条件改读节点产物变量；`a1_old_watch` 写 `camp`；A1-D02 冲突按正典 | 内容（PK-M1-33） | 请求回写 |
-| `docs/40_design/systems/quests_and_events.md` 第 3.6 节 | 加数据层一段：运行数据在 `data/disputes/`，运行器在 `src/systems/disputes/` | 叙事 | 请求回写 |
-| `data/scenes/act1.json` 的光之鉴劫狱选项 | 只写 `a1_oola_fate = fled`，不写 `a1_oola_jailbroken`，纷争记为来路不明的出逃（`world`），不发链结算经验 | PK-M1-33 或场景方 | 请求回写 |
+| `docs/60_production/development_plan.md` 第 4.2 节 PK-M1-46、PK-M1-33 两行 | 范围栏"九条纷争"与交付不符（`README.md` 第 11 节） | 主会话 | 已落地（主会话，`bb73b7f323`） |
+| `docs/40_design/content/catalog_quests_acts1_3.md` 第 5.3 节 | 链内变量补四个新标记；结局条件改读节点产物变量；`a1_old_watch` 写 `camp`；A1-D02 冲突按正典 | 内容（PK-M1-33） | 已转 PK-M1-33（计划包行） |
+| `docs/40_design/systems/quests_and_events.md` 第 3.6 节 | 加数据层一段：运行数据在 `data/disputes/`，运行器在 `src/systems/disputes/` | 叙事 | 已落地（主会话，`bb73b7f323`） |
+| `data/scenes/act1.json` 的光之鉴劫狱选项 | 只写 `a1_oola_fate = fled`，不写 `a1_oola_jailbroken`，纷争记为来路不明的出逃（`world`），不发链结算经验 | PK-M1-33 或场景方 | 已转 PK-M1-33（计划包行） |
 
 **留给后续包的事项**
 

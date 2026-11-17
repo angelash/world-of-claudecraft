@@ -86,10 +86,10 @@
 | `src/systems/quests/types.ts`、`progress.ts`、`outcomes.ts`、`view.ts`、`index.ts`，新增 `instances.ts` | 任务实例接缝（包行要求委托作为任务实例运行） | 叙事（任务） | 已改，各几行 |
 | `tools/registry/parse.ts` | 写入者系统名单加 `guild` | 内核（PK-M0-27 的工具） | 已改，一行 |
 | `tools/content/validators/namespace.ts` | `ev_`、`cmm_` 的内容表 | 内核 | 已改 |
-| `docs/50_tech/architecture.md` 第 4.6 节 | 相位表加一行：82 guild，公会登记与晋升、委托板、动态事件 | 内核 | 请求回写 |
-| `src/content/entity_kinds.ts` | 把 `commissions`、`dynamicEvents`、`guildBoards` 登记为实体种类，让内容 ID 守卫也盯住它们 | 内核 | 请求回写 |
-| `src/content/references.ts` | 加引用行：`commissions` 的 `boards[]`、`givers[]`、`places[].mapId`、`goal.targets[]`、`goal.items[]`、`goal.to[]`、`firstIn`；`dynamicEvents` 的 `maps[]`、`hooks.post[]`、`hooks.urgent[]`、`precursor.event`、`rumor.tellers[]`；`guildBoards` 的 `mapId`、`receptionist` | 内核（本轮 PK-M1-26 在改） | 请求回写（本包的校验器已逐项检查） |
-| `docs/40_design/world_state_registry.md` 第 6.1 节 | 委托模板与动态事件的数据编号写法与任务目录统一 | 文档 | 请求回写（需用户决定第 1 条） |
+| `docs/50_tech/architecture.md` 第 4.6 节 | 相位表加一行：82 guild，公会登记与晋升、委托板、动态事件 | 内核 | 已落地（主会话，`2ab8ed1c76`） |
+| `src/content/entity_kinds.ts` | 把 `commissions`、`dynamicEvents`、`guildBoards` 登记为实体种类，让内容 ID 守卫也盯住它们 | 内核 | 已落地（主会话，`2ab8ed1c76`） |
+| `src/content/references.ts` | 加引用行：`commissions` 的 `boards[]`、`givers[]`、`places[].mapId`、`goal.targets[]`、`goal.items[]`、`goal.to[]`、`firstIn`；`dynamicEvents` 的 `maps[]`、`hooks.post[]`、`hooks.urgent[]`、`precursor.event`、`rumor.tellers[]`；`guildBoards` 的 `mapId`、`receptionist` | 内核（本轮 PK-M1-26 在改） | 已落地（主会话） |
+| `docs/40_design/world_state_registry.md` 第 6.1 节 | 委托模板与动态事件的数据编号写法与任务目录统一 | 文档 | 已落地（主会话按推荐，`bb73b7f323`） |
 
 **留给后续包的事项**
 
