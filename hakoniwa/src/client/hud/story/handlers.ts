@@ -14,6 +14,8 @@ export interface StoryHandlers {
   chooseScene(choiceId: string): void;
   /** cutscene: submit free text */
   submitScene(text: string): void;
+  /** cutscene: re-choose the opening (confirmed by the painter first) */
+  restartScene(): void;
   skip(): void;
   toggleAuto(): void;
   toggleHidden(): void;

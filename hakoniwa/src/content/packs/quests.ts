@@ -11,7 +11,7 @@ import type { ContentMap } from '../../core/contracts';
 import type { LoreDef, TermDef } from '../../systems/goddess/types';
 import type { ItemDef } from '../../systems/inventory';
 import { checkCondition } from '../../systems/quests/conditions';
-import { EFFECT_TYPES, type Effect } from '../../systems/quests/effect_types';
+import { EFFECT_TYPES, type Effect, UI_EFFECT_IDS } from '../../systems/quests/effect_types';
 import {
   type ActDef,
   QUEST_KINDS,
@@ -82,6 +82,10 @@ export function effectProblems(
         break;
       case 'key':
         out.push(...keyEffectProblems(e, at, content));
+        break;
+      case 'ui':
+        if (!(UI_EFFECT_IDS as readonly string[]).includes(e.ui))
+          out.push(`${at}: unknown interface ${e.ui}`);
         break;
       default:
         break;

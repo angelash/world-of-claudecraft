@@ -214,6 +214,11 @@ export function playScene(engine: Engine, policy?: ChoicePolicy, maxSteps = 2000
       engine.queue('scenes.input', { text: '' });
     } else if (v.waiting === 'advance') {
       engine.queue('scenes.advance', {});
+    } else if (v.waiting === 'ui' && v.ui) {
+      // an interface the scene opened (the spirit mirror): close it with no result
+      const run = engine.world.slices.scenes.current;
+      if (run)
+        engine.queue('scenes.ui_done', { runId: run.runId, revision: run.revision, ui: v.ui });
     }
     engine.step(1);
   }

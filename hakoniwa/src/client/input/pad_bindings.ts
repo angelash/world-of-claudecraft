@@ -202,6 +202,7 @@ export const DEFAULT_PAD_KEYMAP: PadKeymap = {
     recall: one(stick('right', 'up')),
     auto_advance: one(b('x')),
     hide_text: one(b('r3')),
+    reach_out: one(b('rb')),
     ...range('option_', 9, () => one(nav('option_next'))),
     option_prev: one(b('up'), stick('left', 'up')),
     option_next: one(b('down'), stick('left', 'down')),

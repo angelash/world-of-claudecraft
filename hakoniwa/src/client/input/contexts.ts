@@ -138,6 +138,10 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
     recall: two(k('PageUp')),
     auto_advance: two(k('KeyA')),
     hide_text: two(k('KeyH')),
+    // a scene choice picked by key (SceneChoice.key): the prologue fall's "reach out" sits on
+    // the interact key (ux_and_onboarding.md 17 tut_p_reach); only scenes stack this context
+    // alone, so it never shadows the field's interact
+    reach_out: two(k('KeyE')),
     ...Object.fromEntries(
       Array.from({ length: 9 }, (_, i) => [`option_${i + 1}`, two(k(`Digit${i + 1}`))]),
     ),

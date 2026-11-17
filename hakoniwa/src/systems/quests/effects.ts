@@ -54,11 +54,22 @@ export function hasCompute(fn: ComputeFn): boolean {
  * the calendar terms of the current tick (calendar_terms.ts).
  */
 export function narrativeResolver(ctx: SystemContext) {
+  return worldResolver(ctx.world);
+}
+
+/**
+ * The same resolver over a world, for queries outside a tick (the scene view): flags, the
+ * calendar terms of the world's tick and `ai_enabled`. `aiEnabled` overrides the mode.
+ */
+export function worldResolver(
+  world: { meta: { flags: Record<string, FlagValue>; tick: number }; ai: { mode: string } },
+  aiEnabled?: boolean,
+) {
   // A replay runs in mode 'replay'; treating every mode but 'off' alike keeps replays of
   // model runs on the same branches (the kernel re-applies the logged proposals).
-  return flagResolver(ctx.world.meta.flags, {
-    ...calendarTerms(ctx.tick),
-    ai_enabled: ctx.world.ai.mode !== 'off',
+  return flagResolver(world.meta.flags, {
+    ...calendarTerms(world.meta.tick),
+    ai_enabled: aiEnabled ?? world.ai.mode !== 'off',
   });
 }
 
@@ -213,6 +224,10 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       });
       return;
     }
+    case 'ui':
+      // the scene runner opens the interface and waits for it (scenes/runner.ts); a quest
+      // or an onEnd has nothing to wait in, so the effect does nothing there
+      return;
   }
 }
 

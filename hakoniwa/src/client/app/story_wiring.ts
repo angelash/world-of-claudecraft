@@ -3,7 +3,10 @@
 // views, the reading settings (text speed, auto advance), the skip hold (Esc or the pad's back
 // button), the speakers' portraits and the audio seam. The session calls `frame` every
 // animation frame (the typewriter runs on real time, outside the 20 Hz world) and `feed` with
-// the world's events. Thin glue: the rules live in src/client/hud/story/.
+// the world's events. The prologue's staging (PK-M1-54) rides along: the eavesdropping tier
+// goes to the audio (`setListenTier`), "re-choose the opening" queues `scenes.restart`, and the
+// interfaces a scene's `ui` effect opens (the spirit mirror) run in creator_wiring.ts. Thin
+// glue: the rules live in src/client/hud/story/ and src/client/hud/creator/.
 
 import { contentKey } from '../../core/content_key';
 import { t, tOr } from '../../shared_ui/i18n';
@@ -22,12 +25,15 @@ import {
   type StoryHandlers,
 } from '../hud/story';
 import { AiFlagStore } from '../hud/story/ai_flags';
+import { pickable } from '../hud/story/cutscene_model';
 import { askConfirmChoice } from '../hud/story/cutscene_player';
+import type { InputDevice } from '../input/device';
 import { readGamepad } from '../input/gamepad_poller';
 import { lookFromEntity } from '../sprites/look';
 import { portraitCanvas, type SpriteCache } from '../sprites/sprite_cache';
 import type { ClientAdapters, ConversationView } from '../view/adapters';
 import type { ClientCommand, GameView } from '../view/game_view';
+import { CreatorWiring } from './creator_wiring';
 import type { SyncSettings } from './settings_schema';
 
 /** What player_input.ts asks of the story (the advance press, Esc, the dialogue actions). */
@@ -44,6 +50,8 @@ export interface StoryInputHost {
   sceneChoicesShown(): boolean;
   /** pick a scene choice; irreversible ones are confirmed first */
   chooseScene(choiceId: string): void;
+  /** a dialogue action while the spirit mirror is open; true when the mirror took it */
+  creatorAction(action: string, device: InputDevice): boolean;
 }
 
 export interface StoryWiringDeps {
@@ -86,6 +94,12 @@ export class StoryWiring implements StoryInputHost {
   private choicesShown = false;
   /** the last frame showed nothing: an empty world skips the next ones */
   private idle = false;
+  /** the eavesdropping tier last handed to the audio */
+  private listenTier: string | null = null;
+  /** the last cutscene frame had every line of its node shown */
+  private linesRead = true;
+  /** the spirit mirror and the other `ui` interfaces (built once the HUD exists) */
+  private creator: CreatorWiring | null = null;
   private readonly onKey = (ev: KeyboardEvent) => {
     if (ev.code !== 'Escape') return;
     // an Esc that answers the confirm popup never starts a skip hold
@@ -130,6 +144,7 @@ export class StoryWiring implements StoryInputHost {
       advance: () => d.advance(),
       chooseScene: (id) => d.queue(a.scene?.choose(d.view, id)),
       submitScene: (text) => d.queue(a.scene?.input(d.view, text)),
+      restartScene: () => d.queue([{ kind: 'scenes.restart', data: {} }]),
       skip: () => {
         this.controller.skip(performance.now());
         this.frame(performance.now());
@@ -146,6 +161,7 @@ export class StoryWiring implements StoryInputHost {
   }
 
   dispose(): void {
+    this.creator?.dispose();
     window.removeEventListener('keydown', this.onKey, true);
     window.removeEventListener('keyup', this.onKey, true);
     window.removeEventListener('blur', this.onBlur);
@@ -217,6 +233,14 @@ export class StoryWiring implements StoryInputHost {
     const v = this.d.view;
     const a = this.d.adapters;
     const scene = a.scene?.scene(v) ?? null;
+    this.creator ??= new CreatorWiring({
+      view: v,
+      sprites: this.d.sprites,
+      queue: (c) => this.d.queue(c),
+      mount: (node) => hud.story.overlay.append(node),
+    });
+    // the mirror opens once the node's lines are read (a node's own ui effect speaks first)
+    this.creator.frame(scene, this.linesRead);
     const conversation = a.conversation?.conversation(v) ?? null;
     const loose = this.d.loose.current;
     // Nothing to tell and nothing left on screen: no frame to build (this runs every animation
@@ -245,11 +269,19 @@ export class StoryWiring implements StoryInputHost {
       maxSay: a.conversation?.maxSay ?? 200,
       isBlocked: (sig) => this.blocked.isBlocked(sig),
       held: this.d.held?.() ?? false,
+      flags: v.world.meta.flags,
     });
     hud.story.paint(f);
+    this.linesRead = !f.cutscene || f.cutscene.linesDone;
+    // the eavesdropping distance (prologue P5): the curtain's voices and the antechamber's L2
+    const audio = this.d.audio();
+    if (audio && f.listen !== this.listenTier) {
+      this.listenTier = f.listen;
+      audio.setListenTier(f.listen);
+    }
     this.idle = f.mode === 'none' && !f.dialogue && !f.cutscene && !f.summary && !f.backlog;
-    // what the player can pick right now: choices show once the node's lines are read
-    this.choicesShown = (f.cutscene?.choices.length ?? 0) > 0;
+    // what the player can pick right now: choices and key prompts show once the lines are read
+    this.choicesShown = pickable(f.cutscene);
     const sig = f.audio ? `${f.audio.music}|${f.audio.layers}|${f.audio.silence}` : '';
     if (sig !== this.lastAudio && f.audio) {
       this.lastAudio = sig;
@@ -292,6 +324,10 @@ export class StoryWiring implements StoryInputHost {
             : false;
     if (used) this.frame(performance.now());
     return used;
+  }
+
+  creatorAction(action: string, device: InputDevice): boolean {
+    return this.creator?.inputAction(action, device) ?? false;
   }
 
   /** The scene's choices are on screen (number keys and the pad pick only what shows). */

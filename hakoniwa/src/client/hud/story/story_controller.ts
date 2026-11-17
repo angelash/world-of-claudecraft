@@ -8,12 +8,13 @@
 // an anchor or the scene's end, then shows the summary card (choices are never skipped).
 // Pure: no DOM, the clock is passed in; the session supplies the views and the actions.
 
-import type { AnyWorldEvent } from '../../../core/contracts';
+import type { AnyWorldEvent, FlagValue } from '../../../core/contracts';
 import type { TextParam } from '../../../core/text';
 import { t } from '../../../shared_ui/i18n';
 import type { SceneView } from '../../../systems/scenes';
 import type { TextSpeed } from '../../app/settings_schema';
 import type { AssetResolver } from '../../assets/resolver';
+import type { ListenTier } from '../../audio/spatializer';
 import type { ConversationView } from '../../view/adapters';
 import { contentNames } from '../../view/content_names';
 import type { DialogueLine } from '../dialogue_queue';
@@ -77,6 +78,8 @@ export interface StoryInput {
    * 1.3): auto advance waits, so nothing moves on behind the player's back.
    */
   held?: boolean;
+  /** the world's flags (the prologue's door counter and eavesdrop level, PK-M1-54) */
+  flags?: Readonly<Record<string, FlagValue>>;
 }
 
 export interface SummaryModel {
@@ -100,6 +103,8 @@ export interface StoryFrame {
   backlog: BacklogModel | null;
   /** the audio director's cutscene input */
   audio: { music: string | null; layers: number; silence: boolean } | null;
+  /** the eavesdropping tier for the audio (prologue P5), null when nobody listens */
+  listen: ListenTier | null;
 }
 
 /** A conversation's refused free text: the reason, shown until the next say or a new talk. */
@@ -122,7 +127,13 @@ export class StoryController {
   private hidden = false;
   private backlogOpen = false;
   private letterOpen: string | null = null;
-  private skipping: { sceneId: string; title: string; summary: string; from: string } | null = null;
+  private skipping: {
+    sceneId: string;
+    title: string;
+    summary: string;
+    segment: string;
+    from: string;
+  } | null = null;
   private skipQueued = '';
   private summary: { title: string; text: string } | null = null;
   private autoFired = '';
@@ -248,13 +259,16 @@ export class StoryController {
   /** Start skipping the playing scene (ux 8.3); false when nothing can be skipped. */
   skip(now: number): boolean {
     const v = this.lastScene;
-    if (!v || this.skipping) return false;
+    // an interface the scene opened (the spirit mirror) is the player's to close, not to skip
+    if (!v || this.skipping || v.waiting === 'ui') return false;
     const atChoice = v.waiting === 'choice' || v.waiting === 'input' || v.waiting === 'court';
     if (atChoice && this.sceneReader.state(now, 'instant').allDone) return false;
+    // a multi-segment scene's card tells the segment (catalog_cutscenes.md 13.3)
     this.skipping = {
       sceneId: v.sceneId,
       title: v.title,
-      summary: v.summary,
+      summary: v.segmentSummary || v.summary,
+      segment: v.segmentSummary && v.segment ? v.segment : '',
       from: `${v.sceneId}/${v.nodeId}`,
     };
     this.skipQueued = '';
@@ -293,13 +307,19 @@ export class StoryController {
       summary: this.summaryModel(),
       backlog: null,
       audio: null,
+      listen: null,
     };
   }
 
   private endScene(): void {
     if (this.skipping) {
       // the scene ended under the skip: the card tells what was skipped
-      this.summary = summaryCard(this.skipping.sceneId, this.skipping.title, this.skipping.summary);
+      this.summary = summaryCard(
+        this.skipping.sceneId,
+        this.skipping.title,
+        this.skipping.summary,
+        this.skipping.segment,
+      );
       this.skipping = null;
     }
     if (this.sceneId) {
@@ -320,9 +340,11 @@ export class StoryController {
 
   private sceneFrame(i: StoryInput, v: SceneView): StoryFrame {
     const now = i.now;
-    if (v.sceneId !== this.sceneId) {
+    // a new run starts the stage afresh, also a restart of the same scene (re-chosen opening)
+    const run = `${v.sceneId}#${v.runId}`;
+    if (run !== this.sceneId) {
       if (this.sceneId) this.audio.release();
-      this.sceneId = v.sceneId;
+      this.sceneId = run;
       this.stage = emptyStage();
       this.stageKey = '';
     }
@@ -387,6 +409,7 @@ export class StoryController {
       skipping: !!this.skipping,
       skipHold: this.skipHold.progress(now),
       isBlocked: i.isBlocked,
+      flags: i.flags,
     });
     return {
       mode: 'cutscene',
@@ -395,6 +418,7 @@ export class StoryController {
       summary: this.summaryModel(),
       backlog: this.backlogOpen ? this.sceneBacklog() : null,
       audio: cutsceneDirectorInput(true, this.stage, now),
+      listen: model.listen,
     };
   }
 
@@ -408,9 +432,11 @@ export class StoryController {
       v.waiting === 'choice' ||
       v.waiting === 'input' ||
       v.waiting === 'court' ||
+      // an interface the scene opened (the spirit mirror) is the player's, like a choice
+      v.waiting === 'ui' ||
       (v.anchor && here !== sk.from);
     if (stopHere) {
-      this.summary = summaryCard(sk.sceneId, sk.title, sk.summary);
+      this.summary = summaryCard(sk.sceneId, sk.title, sk.summary, sk.segment);
       this.skipping = null;
       this.sceneReader.completeAll(now);
       return;
@@ -473,6 +499,7 @@ export class StoryController {
           }
         : null,
       audio: null,
+      listen: null,
     };
   }
 
@@ -494,6 +521,7 @@ export class StoryController {
       summary: this.summaryModel(),
       backlog: null,
       audio: null,
+      listen: null,
     };
   }
 }

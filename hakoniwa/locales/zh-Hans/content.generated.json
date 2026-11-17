@@ -5558,6 +5558,7 @@
   "c.scenes.prologue.nodes.n3_listen.lines.4.name": "优雅的女声",
   "c.scenes.prologue.nodes.n3_listen.lines.4.text": "名单上只有四位，孩子。",
   "c.scenes.prologue.nodes.n3_listen.lines.5.text": "隔壁的声音渐渐远去，像一群人被领着，走过一条很长的走廊。",
+  "c.scenes.prologue.nodes.n3_mirror.choices.creator.label": "（细细地照：灵镜）",
   "c.scenes.prologue.nodes.n3_mirror.choices.look_1.label": "深灰外套，黑色短发",
   "c.scenes.prologue.nodes.n3_mirror.choices.look_2.label": "米色风衣，栗色长发",
   "c.scenes.prologue.nodes.n3_mirror.choices.look_3.label": "灰色卫衣，浅金色的头发",

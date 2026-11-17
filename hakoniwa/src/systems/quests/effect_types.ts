@@ -98,6 +98,13 @@ export type EffectBody =
   /** emit one dialogue line (quests use it for short barks) */
   | { type: 'line'; speaker: string; text: string; kind?: LineKind }
   /**
+   * open an interface (catalog_cutscenes.md 4.1.2 `效果 ui`, 13.6): in a scene the run waits
+   * until the client closes it, then goes on to the node's or the choice's target; the
+   * interface's result (the spirit mirror's appearance) is written to `storeAs`. Outside a
+   * scene it does nothing.
+   */
+  | { type: 'ui'; ui: UiEffectId; storeAs?: string }
+  /**
    * a key event (catalog_quests_acts1_3.md 1.6): the quest grants one key of a door; the
    * doors system decides the door (flag door_key.<doorId>.<keyId> = keyKind, event quest.key)
    */
@@ -135,4 +142,13 @@ export const EFFECT_TYPES: readonly EffectType[] = [
   'compute',
   'line',
   'key',
+  'ui',
 ];
+
+/**
+ * Interfaces a `ui` effect may open (ux_and_onboarding.md 3.4.3, 8.5, 8.7): the spirit mirror,
+ * the credits and the memories carried over. Interface ids, not content ids.
+ */
+export const UI_EFFECT_IDS = ['ui_mode_creator', 'ui_mode_credits', 'ui_pop_deja'] as const;
+
+export type UiEffectId = (typeof UI_EFFECT_IDS)[number];

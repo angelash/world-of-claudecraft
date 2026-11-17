@@ -1,0 +1,132 @@
+/* ui_mode_creator, the spirit mirror (ux_and_onboarding.md 3.4.3) */
+
+.hk-creator {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  gap: 24px;
+  padding: 5vh 5vw;
+  background: rgba(8, 10, 16, 0.86);
+  color: #e8e2d4;
+}
+.hk-creator[hidden] {
+  display: none;
+}
+.hk-creator-mirror {
+  flex: 1 1 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.hk-creator-preview {
+  width: 288px;
+  height: 288px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% 50% 8px 8px;
+  border: 2px solid var(--hk-panel-border);
+  background: radial-gradient(rgba(220, 230, 255, 0.18), rgba(220, 230, 255, 0.02) 70%);
+}
+.hk-creator-preview canvas {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+}
+.hk-creator-turn {
+  display: flex;
+  gap: 8px;
+}
+.hk-creator-note {
+  max-width: 320px;
+  color: var(--hk-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.hk-creator-side {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.hk-creator-title {
+  color: var(--hk-gold-soft);
+  font-size: 22px;
+  font-weight: 700;
+}
+.hk-creator-tabs {
+  display: flex;
+  gap: 6px;
+}
+.hk-creator-tab.active {
+  border-color: var(--hk-gold);
+  color: var(--hk-gold-soft);
+}
+.hk-creator-rows {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hk-creator-row {
+  padding: 6px 8px;
+  border-left: 3px solid transparent;
+}
+.hk-creator-row.focused {
+  border-left-color: var(--hk-gold);
+}
+.hk-creator-row-label {
+  margin-bottom: 6px;
+  color: var(--hk-muted);
+}
+.hk-creator-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hk-creator-cell {
+  min-width: 56px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border: 1px solid var(--hk-panel-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+}
+.hk-creator-cell.swatch {
+  display: flex;
+  gap: 0;
+  min-width: 40px;
+  padding: 4px;
+}
+.hk-creator-chip {
+  flex: 1 1 0;
+  min-width: 14px;
+  min-height: 30px;
+  border-radius: 2px;
+}
+.hk-creator-cell.selected {
+  border-color: var(--hk-gold);
+  box-shadow: 0 0 0 1px var(--hk-gold);
+}
+.hk-creator-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 760px) {
+  .hk-creator {
+    flex-direction: column;
+    padding: 12px;
+  }
+  .hk-creator-preview {
+    width: 200px;
+    height: 200px;
+  }
+}

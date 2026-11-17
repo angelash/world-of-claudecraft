@@ -9,6 +9,10 @@
   "sys.scenes.reject.no_evidence": "你手里没有这件证据，或已经出示过了",
   "sys.scenes.reject.no_input": "这里不需要输入",
   "sys.scenes.reject.stale": "场景已经往前走了，这段台词作废",
+  "sys.scenes.reject.no_ui": "这里没有打开的界面",
+  "sys.scenes.reject.bad_result": "界面交回的结果不合规则，没有采用",
+  "sys.scenes.reject.no_restart": "现在不能重选开场",
+  "sys.scenes.reject.empty_turn": "这一轮还在说话：写点什么再提交",
   "sys.scenes.court.present_line": "（出示证据：{name}）{text}",
   "sys.scenes.court.shaken": "证据落在证物台上。她的防线晃了一下，还没有塌。",
   "sys.scenes.court.opened": "她沉默了很久。这件证据没有击穿什么，却打开了一扇可以坦白的门。",
@@ -19,5 +23,5 @@
   "sys.scenes.epilogue.heading_year": "【{subject}】审定后第{year}年：",
   "sys.scenes.epilogue.historian": "凡人史官",
   "sys.scenes.epilogue.ledger": "神之账本",
-  "sys.scenes.prompt.resolve": "数据 {runId, revision, lines:[{speaker, text}], choiceId?}：说出这一段的台词；有分类任务时给出 choiceId。"
+  "sys.scenes.prompt.resolve": "数据 {runId, revision, lines:[{speaker, text}], choiceId?, done?}：说出这一段的台词；有分类任务时给出 choiceId；多轮对话里这一轮说完了就给 done: true（extra 里 wrapUp 为真时要收尾并给 done）。"
 }

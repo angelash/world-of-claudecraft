@@ -5,7 +5,10 @@
 // `CutsceneAudio` sink (no-op until the audio engine, PK-M1-06, installs one), and
 // `cutsceneDirectorInput` gives the audio director its `cutscene` input. Camera, light,
 // weather, mirror and motion directives are not in the list yet (no camera director; they
-// degrade to holding the current picture, 13.5). Pure; Node-tested.
+// degrade to holding the current picture, 13.5). The prologue's staging directives (PK-M1-54)
+// leave two things standing: the eavesdropping (`listen`, `noise`, `listen_end`, P5) and the
+// door that reappears at every corner (`door`, `door_end`, P2); prologue_stage.ts reads them
+// against the world's flags. Pure; Node-tested.
 
 import type { StageDirective } from '../../../systems/scenes/types';
 
@@ -61,6 +64,10 @@ export interface StageState {
   silenceUntil: number;
   /** a shake to play once (0: none) */
   shake: number;
+  /** eavesdropping (P5): the level flag and how many noises lowered the tier since */
+  listen: { flag: string; noises: number } | null;
+  /** the recurring door (P2): its counter flag, the cap, and whether it opened */
+  door: { flag: string; cap: number; open: boolean } | null;
 }
 
 export function emptyStage(): StageState {
@@ -73,6 +80,8 @@ export function emptyStage(): StageState {
     layers: 1,
     silenceUntil: 0,
     shake: 0,
+    listen: null,
+    door: null,
   };
 }
 
@@ -149,6 +158,21 @@ export function enterNode(
         break;
       case 'shake':
         if (!calm) s.shake = Math.max(1, Math.min(3, d.strength));
+        break;
+      case 'listen':
+        s.listen = { flag: d.flag, noises: 0 };
+        break;
+      case 'noise':
+        if (s.listen) s.listen = { ...s.listen, noises: s.listen.noises + 1 };
+        break;
+      case 'listen_end':
+        s.listen = null;
+        break;
+      case 'door':
+        s.door = { flag: d.flag, cap: Math.max(1, d.cap), open: !!d.open };
+        break;
+      case 'door_end':
+        s.door = null;
         break;
       default:
         break;

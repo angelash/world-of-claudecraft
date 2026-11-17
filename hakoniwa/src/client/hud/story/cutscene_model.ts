@@ -4,17 +4,23 @@
 // act's backdrop or a dark vignette when the still is missing), the node's lines typed one
 // after another, the choices and the free input once every line is shown, the stage (busts,
 // captions, fade, the letter step), the reading toggles (auto, hidden text, backlog) and the
-// skip control. Builds on scene_model.ts (numbering, modes, hints). Pure; Node-tested.
+// skip control. Builds on scene_model.ts (numbering, modes, hints). The prologue's staging
+// (PK-M1-54, prologue_stage.ts) adds the recurring door, the eavesdropping tier (far voices
+// dimmed), key prompts for keyed choices and the "re-choose the opening" offer. Pure;
+// Node-tested.
 
 import { contentKey } from '../../../core/content_key';
+import type { FlagValue } from '../../../core/contracts';
 import type { TextParam } from '../../../core/text';
 import { t, tOr } from '../../../shared_ui/i18n';
 import type { SceneView } from '../../../systems/scenes';
 import { isModelText } from '../../adapters/social';
 import type { AssetResolver } from '../../assets/resolver';
+import type { ListenTier } from '../../audio/spatializer';
 import { type ScenePanelModel, scenePanelModel } from '../scene_model';
 import { lineSignature } from './dialogue_model';
 import type { LetterCard } from './letter_card';
+import { type DoorStage, doorStage, listenTier, muffledLine } from './prologue_stage';
 import { firstChars, type ReaderState, textLength } from './reading';
 import { litBusts, type StageState } from './stage';
 
@@ -27,6 +33,16 @@ export interface CutsceneLine {
   blocked: boolean;
   /** signature for the block list (speaker and full text) */
   sig: string;
+  /** heard through the curtain from far away: dimmed (prologue P5) */
+  muffled: boolean;
+}
+
+/** A keyed choice on screen: its key and label (the prologue's reach-out, P15). */
+export interface CutscenePrompt {
+  choiceId: string;
+  action: string;
+  /** "<key> <label>" rendered through the action's binding */
+  text: string;
 }
 
 export interface CutsceneBust {
@@ -59,6 +75,8 @@ export interface CutsceneModel {
   linesDone: boolean;
   mode: ScenePanelModel['mode'];
   choices: (ScenePanelModel['choices'][number] & { confirm: boolean })[];
+  /** keyed choices, shown as key prompts once the lines are read */
+  prompts: CutscenePrompt[];
   input: ScenePanelModel['input'];
   hint: string;
   court: string | null;
@@ -76,6 +94,12 @@ export interface CutsceneModel {
   skipHold: number;
   /** the skip control is offered (not at a choice, not already skipping) */
   canSkip: boolean;
+  /** the recurring door on the stage (prologue P2), else null */
+  door: DoorStage | null;
+  /** the eavesdropping tier (prologue P5), else null */
+  listen: ListenTier | null;
+  /** "re-choose the opening" is on offer (prologue P1 to P6) */
+  restartable: boolean;
 }
 
 export interface CutsceneInputs {
@@ -93,6 +117,13 @@ export interface CutsceneInputs {
   skipping: boolean;
   skipHold: number;
   isBlocked: (sig: string) => boolean;
+  /** the world's flags (the door counter, the eavesdrop level) */
+  flags?: Readonly<Record<string, FlagValue>>;
+}
+
+/** The text of a key prompt: its action's own template (`{key:dialogue.<action>}`), else the label. */
+export function promptText(action: string, label: string): string {
+  return tOr(`ui.mode.cutscene.prompt.${action}`, label, { label });
 }
 
 /** Lengths the reader types: the node's lines in order. */
@@ -119,16 +150,26 @@ function contentString(text: string): string {
   return t(text as TextParam);
 }
 
-/** The skip summary card (ux 8.3, catalog 13.9): the summary, else the title only. */
+/**
+ * The skip summary card (ux 8.3, catalog 13.9): the summary, else the title only. `segment`
+ * names the segment whose own summary `summary` is (13.3), read through its content key.
+ */
 export function summaryCard(
   sceneId: string,
   title: string,
   summary: string,
+  segment = '',
 ): { title: string; text: string } {
+  const field = segment ? `segments.${segment}.summary` : 'summary';
   return {
     title: tOr(contentKey('scenes', sceneId, 'title'), title),
-    text: summary ? tOr(contentKey('scenes', sceneId, 'summary'), summary) : '',
+    text: summary ? tOr(contentKey('scenes', sceneId, field), summary) : '',
   };
+}
+
+/** Something the player can pick on screen now: a numbered choice or a key prompt. */
+export function pickable(m: CutsceneModel | null): boolean {
+  return !!m && m.choices.length + m.prompts.length > 0;
 }
 
 function letterText(c: LetterCard): LetterText {
@@ -147,6 +188,8 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
   const r = i.reader;
   const lines: CutsceneLine[] = [];
   let typing = false;
+  const flags = i.flags ?? {};
+  const tier = listenTier(i.stage, flags);
   v.lines.forEach((l, n) => {
     // the letter step comes first: the node's lines wait until it closes
     if (n > r.line || i.letter) return;
@@ -168,6 +211,7 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
       generated,
       blocked,
       sig,
+      muffled: muffledLine(tier, kind, l.speakerId),
     });
   });
   const linesDone = v.lines.length === 0 || r.allDone;
@@ -200,7 +244,9 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
       ? letter.hint
       : !linesDone || base.mode === 'advance'
         ? t('ui.mode.cutscene.advance_hint')
-        : base.hint,
+        : base.mode === 'choice' && base.choices.length === 0
+          ? '' // only key prompts: the screen shows "<key> reach out" and nothing else (17)
+          : base.hint,
     court: base.court,
     queued: base.queued,
     busts: litBusts(i.stage.busts, speakerNow).map((b) => ({ ...b, name: i.nameOf(b.who) })),
@@ -213,5 +259,15 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
     skipping: i.skipping,
     skipHold: i.skipHold,
     canSkip: !i.skipping && !(ready && (base.mode === 'choice' || base.mode === 'input')),
+    prompts: ready
+      ? base.prompts.map((p) => ({
+          choiceId: p.choiceId,
+          action: p.action,
+          text: promptText(p.action, p.label),
+        }))
+      : [],
+    door: doorStage(i.stage, flags),
+    listen: tier,
+    restartable: v.restartable,
   };
 }

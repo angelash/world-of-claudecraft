@@ -13,6 +13,7 @@ import { screenIntentToWorld } from '../hd2d/view';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import type { Hud } from '../hud/hud';
 import { sceneKey, scenePanelModel } from '../hud/scene_model';
+import { promptFor } from '../hud/story/prologue_stage';
 import type { InputSurface } from '../input/actions';
 import type { InputContext } from '../input/contexts';
 import type { InputDevice } from '../input/device';
@@ -407,12 +408,14 @@ export class PlayerInput implements GameSink {
     const a = this.s.adapters;
     const sv = a.scene?.scene(this.v);
     if (sv) {
-      if (sceneMode(sv.waiting) !== 'choice' || sv.choices.length === 0) return null;
-      const key = `s/${sv.sceneId}/${sv.nodeId}/${sv.choices.map((c) => c.id).join(',')}`;
+      // hidden choices (keyed or timed) are not on the list the cursor walks
+      const listed = sv.choices.filter((c) => !c.hidden);
+      if (sceneMode(sv.waiting) !== 'choice' || listed.length === 0) return null;
+      const key = `s/${sv.sceneId}/${sv.nodeId}/${listed.map((c) => c.id).join(',')}`;
       return {
         kind: 'scene',
-        index: this.optionIndex(key, sv.choices.length),
-        count: sv.choices.length,
+        index: this.optionIndex(key, listed.length),
+        count: listed.length,
       };
     }
     const conv = a.conversation?.conversation(this.v);
@@ -455,6 +458,21 @@ export class PlayerInput implements GameSink {
     const o = conv?.options[n - 1];
     if (!o) return false;
     this.s.queue(a.conversation?.choose(this.v, o.id));
+    return true;
+  }
+
+  /**
+   * Pick the scene choice an input action names (`SceneChoice.key`): only once the node's lines
+   * are read, like the numbered choices. False when no such choice is on offer.
+   */
+  private keyedChoice(action: string): boolean {
+    const sv = this.s.adapters.scene?.scene(this.v);
+    if (!sv || sceneMode(sv.waiting) !== 'choice') return false;
+    const prompt = promptFor(scenePanelModel(sv).prompts, action);
+    if (!prompt) return false;
+    if (this.s.story && !this.s.story.sceneChoicesShown()) return true;
+    if (this.s.story) this.s.story.chooseScene(prompt.choiceId);
+    else this.s.queue(this.s.adapters.scene?.choose(this.v, prompt.choiceId));
     return true;
   }
 
@@ -586,7 +604,11 @@ export class PlayerInput implements GameSink {
   }
 
   private dialogueAction(action: string, device: InputDevice): boolean {
+    // the spirit mirror takes the dialogue actions while it is open (PK-M1-54)
+    if (this.s.story?.creatorAction(action, device)) return true;
     if (action === 'advance') return this.advance(device);
+    // a keyed scene choice (the prologue's reach-out key, PK-M1-54)
+    if (this.keyedChoice(action)) return true;
     if (action === 'option_next') return this.moveOption(1);
     if (action === 'option_prev') return this.moveOption(-1);
     // backlog, auto advance and hidden text (8.2)
@@ -814,7 +836,7 @@ function sceneMode(waiting: string): SceneMode {
     ? 'choice'
     : waiting === 'input'
       ? 'input'
-      : waiting === 'resolve'
+      : waiting === 'resolve' || waiting === 'ui'
         ? 'resolve'
         : 'advance';
 }

@@ -346,6 +346,13 @@
             ],
             "to": "n2_turn1"
           }
+        ],
+        "stage": [
+          {
+            "op": "door",
+            "flag": "p_door_attempts_refused",
+            "cap": 3
+          }
         ]
       },
       {
@@ -420,7 +427,14 @@
             "text": "你从它旁边走过。门自己开了。"
           }
         ],
-        "next": "n3_white"
+        "next": "n3_white",
+        "stage": [
+          {
+            "op": "door",
+            "flag": "p_door_attempts_refused",
+            "cap": 3
+          }
+        ]
       },
       {
         "id": "n2_push",
@@ -431,7 +445,15 @@
             "text": "你推开了门。门后没有风，也没有光。你走了进去。"
           }
         ],
-        "next": "n3_white"
+        "next": "n3_white",
+        "stage": [
+          {
+            "op": "door",
+            "flag": "p_door_attempts_refused",
+            "cap": 3,
+            "open": true
+          }
+        ]
       },
       {
         "id": "n3_white",
@@ -468,7 +490,12 @@
             "text": "房间里还有一条长椅、一面嵌在墙里的镜子，和一道垂到地上的白色帘幕。"
           }
         ],
-        "next": "n3_hub"
+        "next": "n3_hub",
+        "stage": [
+          {
+            "op": "door_end"
+          }
+        ]
       },
       {
         "id": "n3_hub",
@@ -655,6 +682,23 @@
                 "type": "appearance",
                 "base": "human",
                 "colors": ["#7a2e3b", "#3a3236", "#8d5a3b", "#151214"]
+              },
+              {
+                "type": "flag",
+                "key": "p_mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "creator",
+            "label": "（细细地照：灵镜）",
+            "effects": [
+              {
+                "type": "ui",
+                "ui": "ui_mode_creator",
+                "storeAs": "p_appearance"
               },
               {
                 "type": "flag",
@@ -929,7 +973,13 @@
             "when": "p_eavesdrop_level == 0"
           }
         ],
-        "next": "n4_s1_check"
+        "next": "n4_s1_check",
+        "stage": [
+          {
+            "op": "listen",
+            "flag": "p_eavesdrop_level"
+          }
+        ]
       },
       {
         "id": "n4_s1_check",
@@ -965,7 +1015,12 @@
             "text": "过了一会儿，声音压低了，又继续说了下去。你只能听清零星几个词。"
           }
         ],
-        "next": "n4_s2"
+        "next": "n4_s2",
+        "stage": [
+          {
+            "op": "noise"
+          }
+        ]
       },
       {
         "id": "n4_s2",
@@ -1297,7 +1352,12 @@
             "text": "第五号。名字。"
           }
         ],
-        "next": "n5_name"
+        "next": "n5_name",
+        "stage": [
+          {
+            "op": "listen_end"
+          }
+        ]
       },
       {
         "id": "n5_name",
@@ -1856,7 +1916,8 @@
             "when": "ai_enabled",
             "to": "n6_eluen_free"
           }
-        ]
+        ],
+        "segment": "interview"
       },
       {
         "id": "n6_eluen_e1",
@@ -4078,12 +4139,16 @@
                 "value": true
               }
             ],
-            "to": "n13_caught"
+            "to": "n13_caught",
+            "key": "reach_out",
+            "hidden": true
           },
           {
             "id": "still",
             "label": "（什么也不做）",
-            "to": "n13_caught"
+            "to": "n13_caught",
+            "timeout": 30,
+            "hidden": true
           }
         ]
       },
@@ -4151,6 +4216,12 @@
         "type": "act",
         "act": "act1"
       }
-    ]
+    ],
+    "restart": {
+      "scene": "prologue",
+      "clear": ["p_*"],
+      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+      "until": "interview"
+    }
   }
 ]

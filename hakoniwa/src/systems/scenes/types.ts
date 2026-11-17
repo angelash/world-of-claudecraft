@@ -34,6 +34,20 @@ export interface SceneChoice {
    * `ui_pop_confirm` first; cancelling stays on the node. The kernel ignores it.
    */
   confirm?: boolean;
+  /**
+   * A timed choice (catalog_cutscenes.md 2.2 `超时`, 13.6 `SceneChoice.timeout`): when the
+   * player picks nothing for this many seconds after the node starts waiting, the runner picks
+   * it (the prologue fall's "do nothing"). Counted in ticks at TICK_HZ, so replays agree.
+   */
+  timeout?: number;
+  /**
+   * An input action of the client's dialogue context that picks this choice (the prologue
+   * fall's `reach_out`, ux_and_onboarding.md 17 `tut_p_reach`): the panel shows a key prompt.
+   * One of SCENE_CHOICE_KEYS.
+   */
+  key?: string;
+  /** Not listed among the numbered choices (a keyed or timed choice); the kernel accepts it. */
+  hidden?: boolean;
 }
 
 /** Free text from the player (player.said); the model may answer, a written reply is the fallback. */
@@ -55,7 +69,31 @@ export interface SceneInput {
    * (prologue 4.1 "分类器"). The fallback choice is used without a model.
    */
   classify?: { node: string; choices: string[]; fallback: string };
+  /**
+   * A multi-turn exchange with a model (catalog_cutscenes.md 4.1.2 `轮次 软 6 硬 10`,
+   * prologue_antechamber.md 1): the input stays open after each reply until the answerer
+   * closes the round; from `soft` player turns on the answerer is asked to wrap up, at `hard`
+   * the runner ends it. How it ended (`closed`, `soft`, `hard`) goes to `storeAs`. Without a
+   * model the written reply closes the round at once.
+   */
+  turns?: SceneTurns;
 }
+
+export interface SceneTurns {
+  soft: number;
+  hard: number;
+  /** flag that records how the round ended: closed, soft or hard */
+  storeAs?: string;
+}
+
+/**
+ * The input actions a keyed choice may name: the client binds each in its dialogue context
+ * (keyboard and pad); tests/client_prologue_stage.test.ts pins that.
+ */
+export const SCENE_CHOICE_KEYS = ['reach_out'] as const;
+
+/** How a multi-turn round ended (registry `p_round_end.<goddess>`). */
+export type RoundEnd = 'closed' | 'soft' | 'hard';
 
 /** A line the model may improvise; the fallback lines are always written down. */
 export interface SceneImprov {
@@ -91,7 +129,23 @@ export type StageDirective =
   | { op: 'fade'; to: 'black' | 'white'; seconds: number }
   | { op: 'caption'; text: string }
   | { op: 'letter'; id: string }
-  | { op: 'shake'; strength: 1 | 2 | 3 };
+  | { op: 'shake'; strength: 1 | 2 | 3 }
+  /**
+   * Eavesdropping from here on (prologue P5, prologue_antechamber.md 3.1): the listening tier
+   * follows the level in `flag` (0 to 3) until a `listen_end`; the client hands it to the
+   * audio (far, mid, near) and dims far fragments.
+   */
+  | { op: 'listen'; flag: string }
+  /** a noise from the player: the tier drops one step for the rest (near to mid, mid to far) */
+  | { op: 'noise' }
+  | { op: 'listen_end' }
+  /**
+   * The door that reappears at every corner (prologue P2): its state follows the turn-away
+   * counter in `flag`, up to `cap`; at the cap it stands ajar with wind behind it. `open`: the
+   * door opens now (pushed, or by itself as the player passes).
+   */
+  | { op: 'door'; flag: string; cap: number; open?: boolean }
+  | { op: 'door_end' };
 
 /** How a scene is presented (ux_and_onboarding.md 8.1; theater when absent). */
 export type ScenePresentation = 'staged' | 'theater' | 'illustration';
@@ -103,6 +157,11 @@ export interface SceneNode {
   stage?: StageDirective[];
   /** an anchor node: skipping stops here (ux 8.3) */
   anchor?: boolean;
+  /**
+   * A segment marker (catalog_cutscenes.md 2.2 multi-entry scenes): entering this node starts
+   * the named segment of the scene (its summary card, the `scene.segment` event).
+   */
+  segment?: string;
   effects?: Effect[];
   /** first matching branch jumps right after effects and lines */
   branch?: { when: string; to: string }[];
@@ -135,6 +194,51 @@ export interface SceneDef {
   illustration?: string;
   /** the skip summary card (catalog_cutscenes.md 13.9; text key c.scenes.<id>.summary) */
   summary?: string;
+  /** segments of a multi-entry scene, with their own summary cards (13.3) */
+  segments?: SceneSegment[];
+  /**
+   * Combat barks of the scene's interlude table (catalog_cutscenes.md 5 "战斗插演"): short lines
+   * the runner says, without pausing the fight, when a wave or a boss event fires.
+   */
+  barks?: SceneBark[];
+  /**
+   * The "re-choose the opening" offer (catalog_cutscenes.md 4.1.1 rule 5; prologue 1): while
+   * this scene plays, the player may restart from `scene`.
+   */
+  restart?: SceneRestart;
+}
+
+export interface SceneSegment {
+  id: string;
+  /** the skip summary of this segment (13.3); the scene's summary when absent */
+  summary?: string;
+}
+
+/** Combat events a bark answers (emitted by the combat system; scenes only listens). */
+export type BarkTrigger = 'wave_spawned' | 'wave_cleared' | 'boss_phase' | 'boss_defeated';
+
+export interface SceneBark {
+  id: string;
+  on: BarkTrigger;
+  /** the wave id (wave triggers) or the boss monster id (boss triggers) */
+  ref: string;
+  /** boss_phase: the phase number reached (1 is the first); any phase when absent */
+  phase?: number;
+  when?: string;
+  lines: SceneLine[];
+  /** say it every time the event fires (default: once per world) */
+  repeat?: boolean;
+}
+
+export interface SceneRestart {
+  /** the scene that plays again from its start */
+  scene: string;
+  /** flags cleared first: exact names, or prefixes ending in `*` */
+  clear: string[];
+  /** items taken back from the player (every piece) */
+  take?: string[];
+  /** a segment of this scene: once it starts, the offer is gone */
+  until?: string;
 }
 
 /** A speaker's display data for lines (NPC names here are scene-local labels). */
@@ -236,7 +340,8 @@ export interface EpilogueEntry {
   weight?: number;
 }
 
-export type SceneWait = 'advance' | 'choice' | 'input' | 'resolve' | 'court';
+/** 'ui': an interface of a `ui` effect is open; the run goes on when the client closes it. */
+export type SceneWait = 'advance' | 'choice' | 'input' | 'resolve' | 'court' | 'ui';
 
 /** A line as shown (speaker name already resolved). */
 export interface ShownLine {
@@ -264,6 +369,27 @@ export interface SceneRun {
   /** while waiting for a model reply: the tick after which the written fallback applies */
   resolveDeadline?: number;
   startedTick: number;
+  /** a timed choice is pending: the runner picks `choice` at tick `at` */
+  timed?: { choice: string; at: number };
+  /** player turns spent on the current multi-turn input */
+  turn?: number;
+  /** the open interface of a `ui` effect and where the run goes once it closes */
+  ui?: SceneUiWait;
+  /** the segment the run is in ('' or absent before the first marker) */
+  segment?: string;
+  /** the restart offer of this run is gone (its `until` segment started) */
+  restartClosed?: boolean;
+}
+
+export interface SceneUiWait {
+  ui: string;
+  /** flag the interface's result is written to (the effect's storeAs) */
+  storeAs?: string;
+  /**
+   * after a choice: the choice's target ('' stays on the node); after a node's own effect:
+   * absent, the node's branches or next decide
+   */
+  to?: string;
 }
 
 export interface CourtState {
@@ -283,4 +409,6 @@ export interface ScenesSlice {
   court: CourtState;
   /** last epilogue assembled, for the client's credits view */
   epilogue: { subject: string; year: number; text: TextParam; layer: EpilogueLayer }[];
+  /** once-only combat barks already said (`<sceneId>/<barkId>`); absent in older saves */
+  barked?: string[];
 }

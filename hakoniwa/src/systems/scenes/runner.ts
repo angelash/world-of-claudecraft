@@ -7,14 +7,28 @@ import type { AiContextV1, AnyCommand, CommandResult } from '../../core';
 import { ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
 import { joinText, rawText, type TextParam, tr } from '../../core/text';
+import { TICK_HZ } from '../../core/time';
 import { goddessContext } from '../goddess/planning';
 import { goddessDef } from '../goddess/state';
+import { countItem, removeItem } from '../inventory';
+import type { Effect } from '../quests/effect_types';
 import { applyEffects, conditionHolds, teleportPlayer } from '../quests/effects';
 import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
 import { defaultKind, fillText, speakerName } from '../quests/speakers';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
-import type { SceneChoice, SceneDef, SceneLine, SceneNode, SceneRun, ShownLine } from './types';
+import type {
+  RoundEnd,
+  SceneChoice,
+  SceneDef,
+  SceneLine,
+  SceneNode,
+  SceneRun,
+  SceneTurns,
+  SceneUiWait,
+  ShownLine,
+} from './types';
+import { applyUiResult } from './ui_results';
 
 const SRC = { type: 'system', system: 'scenes' } as const;
 const MAX_HOPS = 400;
@@ -76,11 +90,49 @@ function visibleLines(ctx: SystemContext, lines: SceneLine[] | undefined): Scene
   return (lines ?? []).filter((l) => conditionHolds(ctx, l.when));
 }
 
-/** Choices the player may pick at this node right now. */
+/**
+ * The node's choices whose condition holds and that are not used up (`once`), with any
+ * condition test: the runner's (conditionHolds) and the view's (worldResolver) agree.
+ */
+export function openChoices(
+  node: SceneNode,
+  picked: readonly string[],
+  holds: (expr: string | undefined) => boolean,
+): SceneChoice[] {
+  return (node.choices ?? []).filter((c) => holds(c.when) && !(c.once && picked.includes(c.id)));
+}
+
+/** Choices the player may pick at this node right now (hidden ones included). */
 export function visibleChoices(ctx: SystemContext, run: SceneRun, node: SceneNode): SceneChoice[] {
-  return (node.choices ?? []).filter(
-    (c) => conditionHolds(ctx, c.when) && !(c.once && run.picked.includes(c.id)),
-  );
+  return openChoices(node, run.picked, (expr) => conditionHolds(ctx, expr));
+}
+
+/** The first `ui` effect of a list whose condition holds now (decided before the list applies). */
+function activeUi(ctx: SystemContext, effects: readonly Effect[] | undefined) {
+  for (const e of effects ?? []) {
+    if (e.type === 'ui' && conditionHolds(ctx, e.when)) return e;
+  }
+  return null;
+}
+
+/** Wait for the interface of a `ui` effect; `scenes.ui_done` goes on (cmdUiDone). */
+function waitForUi(ctx: SystemContext, run: SceneRun, scene: SceneDef, wait: SceneUiWait): void {
+  run.waiting = 'ui';
+  run.ui = wait;
+  run.timed = undefined;
+  run.revision++;
+  ctx.emit('scene.ui', { sceneId: scene.id, nodeId: run.nodeId, ui: wait.ui });
+}
+
+/**
+ * How a multi-turn round ends after the player's `turn`-th turn (prologue 1: soft 6, hard 10):
+ * at the hard cap the runner ends it; a reply that closes the round ends it as `closed` before
+ * the soft cap and `soft` from then on; otherwise the round goes on (null).
+ */
+export function roundEnd(turns: SceneTurns, turn: number, done: boolean): RoundEnd | null {
+  if (turn >= turns.hard) return 'hard';
+  if (!done) return null;
+  return turn >= turns.soft ? 'soft' : 'closed';
 }
 
 /** Request a scene: start it now, or queue it behind the running one. */
@@ -143,7 +195,11 @@ function aiContextFor(
 ): AiContextV1 {
   const def = goddessDef(ctx.content, agentId);
   const s = ctx.world.slices.goddess?.goddesses[agentId];
-  if (def && s) return goddessContext(ctx, def, s, situation, extra);
+  if (def && s) {
+    // a goddess answers a scene through scenes.resolve (her own context lists her powers)
+    const g = goddessContext(ctx, def, s, situation, extra);
+    return { ...g, commands: { ...g.commands, 'scenes.resolve': tr('sys.scenes.prompt.resolve') } };
+  }
   const name = speakerName(ctx.world.meta.flags, ctx.content, agentId);
   return {
     v: 1,
@@ -167,6 +223,8 @@ function resolveCommand(run: SceneRun, lines: SceneLine[], choiceId?: string): A
       lines: lines.map((l) => ({ speaker: l.speaker, text: l.text, name: l.name, kind: l.kind })),
       choiceId,
       written: true,
+      // the written reply is a whole answer: it closes a multi-turn round
+      done: true,
     },
     source: SRC,
   };
@@ -217,17 +275,46 @@ export function enterNode(
   run.spoken = false;
   run.presented = [];
   run.shown = [];
+  run.timed = undefined;
+  run.turn = 0;
+  run.ui = undefined;
+  if (node.segment) {
+    run.segment = node.segment;
+    if (scene.restart?.until === node.segment) run.restartClosed = true;
+    ctx.emit('scene.segment', { sceneId: scene.id, segment: node.segment });
+  }
+  const ui = activeUi(ctx, node.effects);
   applyEffects(ctx, node.effects);
   if (ctx.world.slices.scenes.current?.runId !== run.runId) return;
   const lines = visibleLines(ctx, node.lines);
   for (const l of lines) say(ctx, run, l);
+  // the interface opens after the node's lines; its branches and next decide once it closes
+  if (ui) {
+    waitForUi(ctx, run, scene, { ui: ui.ui, storeAs: ui.storeAs });
+    return;
+  }
+  settleNode(ctx, run, scene, node, hops, lines.length > 0);
+}
+
+/**
+ * After a node's effects and lines: take a matching branch, or decide what the run waits for
+ * (court, input, choice, advance), or pass on to next when nothing shows.
+ */
+function settleNode(
+  ctx: SystemContext,
+  run: SceneRun,
+  scene: SceneDef,
+  node: SceneNode,
+  hops: number,
+  shown: boolean,
+): void {
   for (const b of node.branch ?? []) {
     if (conditionHolds(ctx, b.when)) {
       enterNode(ctx, run, scene, b.to, hops + 1);
       return;
     }
   }
-  let shownSomething = lines.length > 0;
+  let shownSomething = shown;
   if (node.improv) {
     requestImprov(ctx, run, node);
     shownSomething = true;
@@ -244,8 +331,20 @@ export function enterNode(
     run.waiting = 'input';
     return;
   }
-  if (visibleChoices(ctx, run, node).length > 0) {
+  const choices = visibleChoices(ctx, run, node);
+  if (choices.length > 0) {
     run.waiting = 'choice';
+    // a timed choice: the shortest timeout among the choices on offer (13.6)
+    let timed: SceneChoice | null = null;
+    for (const c of choices) {
+      if (c.timeout !== undefined && c.timeout >= 0 && (!timed || c.timeout < (timed.timeout ?? 0)))
+        timed = c;
+    }
+    if (timed)
+      run.timed = {
+        choice: timed.id,
+        at: ctx.tick + Math.max(1, Math.round((timed.timeout ?? 0) * TICK_HZ)),
+      };
     return;
   }
   if (shownSomething) {
@@ -320,14 +419,20 @@ export function applyChoice(
   choice: SceneChoice,
 ): void {
   if (choice.once && !run.picked.includes(choice.id)) run.picked.push(choice.id);
+  run.timed = undefined;
   ctx.emit('scene.choice', {
     sceneId: scene.id,
     nodeId: node.id,
     choiceId: choice.id,
     label: choice.label,
   });
+  const ui = activeUi(ctx, choice.effects);
   applyEffects(ctx, choice.effects);
   if (ctx.world.slices.scenes.current?.runId !== run.runId) return;
+  if (ui) {
+    waitForUi(ctx, run, scene, { ui: ui.ui, storeAs: ui.storeAs, to: choice.to ?? '' });
+    return;
+  }
   moveOn(ctx, run, scene, choice.to, node);
 }
 
@@ -403,8 +508,13 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
     .join('')
     .trim()
     .slice(0, max);
+  const turns = spec.turns;
+  const midRound = !!turns && (run.turn ?? 0) > 0;
+  // within a multi-turn round only words count: an empty line does not end it
+  if (midRound && !clean) return reject('no_input', tr('sys.scenes.reject.empty_turn'));
   const value = clean || spec.empty || '';
-  if (spec.storeAs) ctx.setFlag(spec.storeAs, value);
+  // the answer kept is the opening one; later turns of the round are conversation
+  if (spec.storeAs && !midRound) ctx.setFlag(spec.storeAs, value);
   const playerMap = ctx.world.slices.world.entities[ctx.world.slices.world.playerId]?.mapId ?? '';
   if (clean) ctx.emit('player.said', { text: clean, mapId: playerMap, toId: spec.agentId });
   const reply = visibleLines(ctx, spec.reply);
@@ -413,6 +523,8 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
     run.waiting = 'resolve';
     run.revision++;
     run.resolveDeadline = ctx.tick + AI_DEADLINE + 2;
+    const turn = (run.turn ?? 0) + 1;
+    run.turn = turn;
     const choices = classifyNode
       ? visibleChoices(ctx, run, classifyNode).filter((c) => spec.classify?.choices.includes(c.id))
       : [];
@@ -427,6 +539,10 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
         playerText: clean,
         writtenReply: reply.map((l) => l.text),
         classifyInto: choices.map((c) => ({ id: c.id, label: c.label })),
+        // a multi-turn round: which turn this is, and whether to wrap up (soft cap reached)
+        ...(turns
+          ? { turn, softCap: turns.soft, hardCap: turns.hard, wrapUp: turn >= turns.soft }
+          : {}),
       }),
       allowed: ['scenes.resolve'],
       fallback: [resolveCommand(run, reply, spec.classify?.fallback)],
@@ -436,6 +552,8 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
     return ok();
   }
   for (const l of reply) say(ctx, run, l);
+  // no model answer to wait for: the written reply closes a multi-turn round at once
+  if (turns?.storeAs) ctx.setFlag(turns.storeAs, 'closed');
   if (spec.classify && classifyNode) {
     const choice = (classifyNode.choices ?? []).find((c) => c.id === spec.classify?.fallback);
     if (choice) {
@@ -453,6 +571,8 @@ export interface ResolveData {
   lines: { speaker: string; text: string; name?: string; kind?: SceneLine['kind'] }[];
   choiceId?: string;
   written?: boolean;
+  /** the answerer closes a multi-turn round with this reply (written replies always do) */
+  done?: boolean;
 }
 
 /** Model (or fallback) lines for an improv node or a free-text reply. */
@@ -484,6 +604,17 @@ export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolea
   run.spoken = true;
   if (run.waiting !== 'resolve') return ok();
   const spec = node.input;
+  if (spec?.turns) {
+    const end = roundEnd(spec.turns, run.turn ?? 1, !!d.done);
+    if (!end) {
+      // the round goes on: the input opens again for the player's next turn
+      run.waiting = 'input';
+      run.revision++;
+      run.resolveDeadline = undefined;
+      return ok();
+    }
+    if (spec.turns.storeAs) ctx.setFlag(spec.turns.storeAs, end);
+  }
   if (spec?.classify) {
     const cnode = nodeOf(scene, spec.classify.node);
     const pick =
@@ -533,7 +664,93 @@ export function resolveTimeouts(ctx: SystemContext): void {
       lines: reply.map((l) => ({ speaker: l.speaker, text: l.text, name: l.name, kind: l.kind })),
       choiceId: spec?.classify?.fallback,
       written: true,
+      done: true,
     },
     false,
   );
+}
+
+/** A timed choice ran out (13.6 `SceneChoice.timeout`): the runner picks it. Tick-based. */
+export function choiceTimeouts(ctx: SystemContext): void {
+  const cur = current(ctx);
+  const timed = cur?.run.timed;
+  if (!cur || !timed || cur.run.waiting !== 'choice' || timed.at > ctx.tick) return;
+  cur.run.timed = undefined;
+  const choice = visibleChoices(ctx, cur.run, cur.node).find((c) => c.id === timed.choice);
+  if (choice) applyChoice(ctx, cur.run, cur.scene, cur.node, choice);
+}
+
+export interface UiDoneData {
+  runId: number;
+  revision: number;
+  ui: string;
+  /** what the interface hands back (the spirit mirror's appearance); optional */
+  result?: unknown;
+}
+
+/** The client closed the interface of a `ui` effect: apply its result and go on. */
+export function cmdUiDone(ctx: SystemContext, d: UiDoneData): CommandResult {
+  const cur = current(ctx);
+  if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
+  const { run, scene, node } = cur;
+  const wait = run.ui;
+  if (run.waiting !== 'ui' || !wait || wait.ui !== d.ui)
+    return reject('no_ui', tr('sys.scenes.reject.no_ui'));
+  if (run.runId !== d.runId || run.revision !== d.revision)
+    return reject('stale', tr('sys.scenes.reject.stale'));
+  if (!applyUiResult(ctx, wait.ui, wait.storeAs, d.result))
+    return reject('bad_result', tr('sys.scenes.reject.bad_result'));
+  run.ui = undefined;
+  ctx.emit('scene.ui_closed', { sceneId: scene.id, nodeId: node.id, ui: wait.ui });
+  if (ctx.world.slices.scenes.current?.runId !== run.runId) return ok();
+  // the node's lines were read before the interface opened: go on to its destination (its
+  // branches, then its own choices or input if it has any, else next)
+  if (wait.to !== undefined) moveOn(ctx, run, scene, wait.to, node);
+  else settleNode(ctx, run, scene, node, 0, false);
+  return ok();
+}
+
+/** Whether the playing scene offers "re-choose the opening" right now. */
+export function restartOpen(content: { scenes: SceneDef[] }, run: SceneRun | null): boolean {
+  if (!run || run.restartClosed) return false;
+  const restart = sceneDef(content, run.sceneId)?.restart;
+  return !!restart && !!sceneDef(content, restart.scene);
+}
+
+/** A flag key matches a clear list: exact names, or prefixes ending in `*`. */
+export function flagMatches(key: string, patterns: readonly string[]): boolean {
+  return patterns.some((p) => (p.endsWith('*') ? key.startsWith(p.slice(0, -1)) : key === p));
+}
+
+/**
+ * Re-choose the opening (catalog_cutscenes.md 4.1.1 rule 5): drop the run, clear the listed
+ * flags (they read as never written again), take the listed items back, forget the scenes
+ * whose seen flag was cleared, and play the restart scene from its start.
+ */
+export function cmdRestart(ctx: SystemContext): CommandResult {
+  const slice = ctx.world.slices.scenes;
+  const run = slice.current;
+  if (!run) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
+  const scene = sceneDef(ctx.content, run.sceneId);
+  const restart = scene?.restart;
+  if (!scene || !restart || !restartOpen(ctx.content, run))
+    return reject('no_restart', tr('sys.scenes.reject.no_restart'));
+  const flags = ctx.world.meta.flags;
+  const cleared = Object.keys(flags)
+    .filter((k) => flagMatches(k, restart.clear))
+    .sort();
+  // A reset, not a write: the flags go back to unwritten (registry defaults), so no
+  // flag.changed fires; scene.restarted lists them for whoever keeps derived state.
+  for (const k of cleared) delete flags[k];
+  const playerId = ctx.world.slices.world.playerId;
+  for (const item of restart.take ?? []) {
+    const n = countItem(ctx.world, playerId, item);
+    if (n > 0) removeItem(ctx, playerId, item, n, 'restart');
+  }
+  slice.seen = slice.seen.filter((id) => !cleared.includes(`scene.${id}.seen`));
+  // scenes other systems queued stay queued: they play after the opening as they would have
+  slice.current = null;
+  ctx.emit('scene.restarted', { sceneId: scene.id, to: restart.scene, cleared });
+  startScene(ctx, restart.scene);
+  return ok();
 }

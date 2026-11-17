@@ -206,9 +206,9 @@ const HEAD_PARTS: ReadonlySet<string> = new Set(['head', 'hair', 'ears', 'headwe
  * (back, outfit) read the strip of the animation; rigid head parts read their direction
  * column (front row, plus the optional back row), held items their first grip. The face
  * layer is chosen by body and expression, not by the recipe. Composition needs each body
- * frame's head and hand anchors, which the import does not record yet, so the standee keeps
- * the placeholder until a compositor consumes this plan. `ready` says every named layer
- * resolved.
+ * frame's head and hand anchors, which the import does not record yet; the compositor
+ * (doll_compose.ts) takes them from the procedural mannequin and composes only when `ready`
+ * says every named layer resolved, otherwise the standee keeps the placeholder.
  */
 export function dollPlan(
   r: AssetResolver,

@@ -1,0 +1,111 @@
+/* The prologue's staging in the cutscene player (PK-M1-54): the recurring door card (P2), far
+   voices through the curtain (P5) and key prompts (P15). */
+
+.hk-cut-door {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 120px;
+  height: 200px;
+  margin-left: -60px;
+  pointer-events: none;
+  --door-light: 0;
+}
+.hk-cut-door[hidden] {
+  display: none;
+}
+.hk-cut-door-glow {
+  position: absolute;
+  inset: -40px;
+  border-radius: 50%;
+  background: radial-gradient(rgba(255, 210, 130, 0.55), rgba(255, 210, 130, 0) 70%);
+  opacity: calc(0.15 + var(--door-light) * 0.85);
+}
+.hk-cut-door-frame {
+  position: absolute;
+  inset: 0;
+  border: 6px solid #4a3424;
+  border-bottom: none;
+  background: #120d0a;
+  overflow: hidden;
+}
+.hk-cut-door-leaf {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #6b4a32, #5a3c28 60%, #4a3020);
+  transform-origin: left center;
+  transition: transform 0.8s ease-out;
+}
+.hk-cut-door.state-corner {
+  transform: scale(calc(1 + var(--door-light) * 0.25));
+}
+.hk-cut-door.state-ajar .hk-cut-door-leaf {
+  transform: perspective(400px) rotateY(-18deg);
+}
+.hk-cut-door.state-open .hk-cut-door-leaf {
+  transform: perspective(400px) rotateY(-80deg);
+}
+.hk-cut-door.state-open .hk-cut-door-frame {
+  background: #fff8e8;
+}
+.hk-cut-door-wind {
+  position: absolute;
+  inset: 0 -20px 0 auto;
+  width: 30px;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 240, 210, 0.35) 0 2px,
+    rgba(255, 240, 210, 0) 2px 8px
+  );
+}
+.hk-cut-door.wind .hk-cut-door-wind {
+  opacity: 1;
+  animation: hk-door-wind 1.6s linear infinite;
+}
+.hk-cut-door.reappear {
+  animation: hk-door-reappear 0.6s ease-out;
+}
+@keyframes hk-door-wind {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(16px);
+  }
+}
+@keyframes hk-door-reappear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-cut-door.reappear,
+  .hk-cut-door.wind .hk-cut-door-wind {
+    animation: none;
+  }
+}
+
+/* far voices through the curtain: fragments one tone fainter (cut_p_quarrel shot 3) */
+.hk-cut-line.muffled .hk-cut-text {
+  color: var(--hk-muted);
+  opacity: 0.8;
+}
+
+.hk-cut-prompts {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.hk-cut-prompts[hidden] {
+  display: none;
+}
+.hk-cut-key-prompt {
+  color: var(--hk-gold-soft);
+  background: transparent;
+  border-color: var(--hk-panel-border);
+}

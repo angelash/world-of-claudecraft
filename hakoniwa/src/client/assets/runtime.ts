@@ -2,12 +2,15 @@
 // the decoded sheet pixels. Until the bootstrap installs something (./loader.ts), and for
 // every look without approved art, frameKey and buildFrame are exactly the procedural
 // generator's spriteKey and generateFrame, so with no art the renderers draw the first-round
-// picture bit for bit. Pure apart from the one installed value, which only presentation reads.
+// picture bit for bit. A paper doll is composed from its approved parts (doll_compose.ts) only
+// when every named part is in; until then it is the same placeholder. Pure apart from the one
+// installed value, which only presentation reads.
 
 import type { AnimName, Dir } from '../sprites/anim_spec';
 import { frameEffects, generateFrame, type SpriteFrame, spriteKey } from '../sprites/generate';
 import type { SpriteLook } from '../sprites/look';
 import type { PixelMatrix } from '../sprites/pixels';
+import { composeDoll } from './doll_compose';
 import { assetSpriteFrame, framePixels } from './frames';
 import { AssetResolver, type ResolvedFrame } from './resolver';
 import { portraitSource, spriteSource } from './sprite_source';
@@ -40,14 +43,16 @@ export function installedResolver(): AssetResolver {
   return resolver;
 }
 
-interface ArtHit {
-  key: string;
-  frame: ResolvedFrame;
-  sheet: PixelMatrix;
-}
+type ArtHit =
+  | { key: string; frame: ResolvedFrame; sheet: PixelMatrix; composed?: undefined }
+  | { key: string; composed: SpriteFrame };
 
 function resolveArt(look: SpriteLook, anim: AnimName, dir: Dir, frame: number): ArtHit | null {
   const s = spriteSource(resolver, look, anim, dir, frame);
+  if (s.kind === 'procedural' && s.reason === 'doll_compositor') {
+    const doll = composeDoll(resolver, pixels, look, anim, dir, frame);
+    return doll ? { key: doll.key, composed: doll.frame } : null;
+  }
   if (s.kind !== 'sheet') return null;
   const sheet = pixels.get(s.frame.assetId);
   if (!sheet) return null;
@@ -82,9 +87,8 @@ export function frameKey(look: SpriteLook, anim: AnimName, dir: Dir, frame: numb
 /** The frame a standee shows, from art when it is approved and decoded, else procedural. */
 export function buildFrame(look: SpriteLook, anim: AnimName, dir: Dir, frame: number): SpriteFrame {
   const art = artFor(look, anim, dir, frame);
-  return art
-    ? assetSpriteFrame(art.sheet, art.frame, look, anim, frame)
-    : generateFrame(look, anim, dir, frame);
+  if (!art) return generateFrame(look, anim, dir, frame);
+  return art.composed ?? assetSpriteFrame(art.sheet, art.frame, look, anim, frame);
 }
 
 /** Portrait pixels for a look's expression, or null to crop the standee (art_pipeline.md 3.6). */

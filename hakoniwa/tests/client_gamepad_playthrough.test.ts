@@ -69,14 +69,20 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
       h,
       (sv, want) => {
         if (sv.waiting === 'advance') tap('a');
-        else if (sv.waiting === 'choice' || sv.waiting === 'court') {
+        else if ((sv.waiting === 'choice' || sv.waiting === 'court') && sv.choices[want]?.key) {
+          // a keyed choice (the prologue fall's reach-out, PK-M1-54): its button picks it
+          tap('rb');
+          choices++;
+        } else if (sv.waiting === 'choice' || sv.waiting === 'court') {
           const cursor = h.player.optionCursor();
           expect(cursor?.kind).toBe('scene');
-          // walk the option cursor with the d-pad, then pick with A
-          const n = sv.choices.length;
-          const steps = (want - (cursor?.index ?? 0) + n) % n;
+          // walk the option cursor with the d-pad, then pick with A (hidden choices are off it)
+          const listed = sv.choices.filter((c) => !c.hidden);
+          const at = listed.findIndex((c) => c.id === sv.choices[want]?.id);
+          const n = listed.length;
+          const steps = (at - (cursor?.index ?? 0) + n) % n;
           for (let i = 0; i < steps; i++) tap('down');
-          expect(h.player.optionCursor()?.index).toBe(want);
+          expect(h.player.optionCursor()?.index).toBe(at);
           tap('a');
           choices++;
         } else if (sv.waiting === 'input') {
@@ -187,7 +193,11 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
       (sv, want) => {
         if (sv.waiting === 'advance') press({ code: 'Space' });
         else if (sv.waiting === 'choice' || sv.waiting === 'court') {
-          press({ code: `Digit${want + 1}` });
+          // a keyed choice (the prologue fall's reach-out) is on E; the rest are numbered
+          const c = sv.choices[want];
+          const listed = sv.choices.filter((x) => !x.hidden);
+          if (c?.key) press({ code: 'KeyE' });
+          else press({ code: `Digit${listed.findIndex((x) => x.id === c?.id) + 1}` });
           choices++;
         } else if (sv.waiting === 'input') {
           // the scene panel's text field takes the typing and submits it on Enter

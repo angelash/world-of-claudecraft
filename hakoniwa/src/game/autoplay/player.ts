@@ -389,6 +389,14 @@ export class Autoplayer {
       this.send({ kind: 'scenes.input', data: { text: '' } });
     } else if (sv.waiting === 'advance') {
       this.send({ kind: 'scenes.advance', data: {} });
+    } else if (sv.waiting === 'ui' && sv.ui) {
+      // an interface a scene opened (the spirit mirror): close it as it is, with no result
+      const run = this.world.slices.scenes.current;
+      if (run)
+        this.send({
+          kind: 'scenes.ui_done',
+          data: { runId: run.runId, revision: run.revision, ui: sv.ui },
+        });
     }
     return 1;
   }

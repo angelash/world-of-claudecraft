@@ -5,13 +5,16 @@
 // vignette when the still is missing) with captions. Busts stand above the text, the speaker
 // lit; the letter step shows a letter on paper; a fade covers the picture; a shake moves it
 // once. The toolbar holds auto, hide text, backlog and skip. Irreversible choices ask first
-// (`ui_pop_confirm`). Writes are elided. Thin painter over cutscene_model.ts.
+// (`ui_pop_confirm`). The prologue's staging (PK-M1-54): the recurring door card (P2), far
+// voices dimmed (P5), key prompts for keyed choices (P15) and "re-choose the opening" in the
+// toolbar (P1 to P6, confirmed first). Writes are elided. Thin painter over cutscene_model.ts.
 
 import { clear, el, setClass, setText } from '../../../shared_ui/dom';
 import { t } from '../../../shared_ui/i18n';
 import { installedResolver } from '../../assets/runtime';
 import { askConfirm } from '../confirm_pop';
 import type { CutsceneModel } from './cutscene_model';
+import './prologue_stage.css';
 import { aiBadge } from './dialogue_panel';
 import type { StoryHandlers } from './handlers';
 import { resolvePortrait } from './portrait_plan';
@@ -35,6 +38,15 @@ export class CutscenePlayer {
   private readonly court = el('div', { className: 'hk-cut-court' });
   private readonly prompt = el('div', { className: 'hk-cut-prompt' });
   private readonly choices = el('div', { className: 'hk-cut-choices' });
+  private readonly prompts = el('div', { className: 'hk-cut-prompts' });
+  private readonly door = el('div', { className: 'hk-cut-door', attrs: { role: 'img' } }, [
+    el('div', { className: 'hk-cut-door-glow' }),
+    el('div', { className: 'hk-cut-door-frame' }, [el('div', { className: 'hk-cut-door-leaf' })]),
+    el('div', { className: 'hk-cut-door-wind' }),
+  ]);
+  private readonly restartBtn: HTMLButtonElement;
+  private promptSig = UNPAINTED;
+  private doorSig = UNPAINTED;
   private readonly inputRow: HTMLElement;
   private readonly input: HTMLInputElement;
   private readonly submitBtn: HTMLButtonElement;
@@ -87,6 +99,7 @@ export class CutscenePlayer {
         attrs: { type: 'button' },
         on: { click: on },
       });
+    this.restartBtn = tool(() => this.restart());
     this.autoBtn = tool(() => this.h.toggleAuto());
     this.hideBtn = tool(() => this.h.toggleHidden());
     this.backlogBtn = tool(() => this.h.toggleBacklog());
@@ -105,12 +118,14 @@ export class CutscenePlayer {
       this.court,
       this.prompt,
       this.choices,
+      this.prompts,
       this.inputRow,
       el('div', { className: 'hk-cut-foot' }, [
         this.queued,
         this.status,
         this.hint,
         el('div', { className: 'hk-cut-tools' }, [
+          this.restartBtn,
           this.autoBtn,
           this.hideBtn,
           this.backlogBtn,
@@ -122,6 +137,7 @@ export class CutscenePlayer {
       this.still,
       el('div', { className: 'hk-cut-bar top' }),
       el('div', { className: 'hk-cut-bar bottom' }),
+      this.door,
       this.busts,
       this.captions,
       this.card,
@@ -161,6 +177,8 @@ export class CutscenePlayer {
       this.letterSig = UNPAINTED;
       this.captionSig = UNPAINTED;
       this.stillSrc = UNPAINTED;
+      this.promptSig = UNPAINTED;
+      this.doorSig = UNPAINTED;
       return;
     }
     this.el.hidden = false;
@@ -178,6 +196,8 @@ export class CutscenePlayer {
     setText(this.court, m.court ?? '');
     this.court.hidden = !m.court;
     this.paintChoices(m);
+    this.paintPrompts(m);
+    this.paintDoor(m);
     this.paintInput(m);
     setText(this.queued, m.queued ?? '');
     setText(
@@ -192,6 +212,8 @@ export class CutscenePlayer {
     setText(this.skipText, t('ui.mode.cutscene.skip'));
     this.skipBtn.title = t('ui.mode.cutscene.skip_hint');
     this.skipBtn.hidden = !m.canSkip;
+    setText(this.restartBtn, t('ui.mode.cutscene.restart'));
+    this.restartBtn.hidden = !m.restartable;
     this.skipFill.style.width = `${Math.round(m.skipHold * 100)}%`;
     this.paintLetter(m);
     const fade = m.fade ?? '';
@@ -246,7 +268,10 @@ export class CutscenePlayer {
 
   private paintLines(m: CutsceneModel): void {
     const sig = m.lines
-      .map((l, i) => `${i}|${l.speaker}|${l.kind}|${l.generated ? 1 : 0}|${l.blocked ? 1 : 0}`)
+      .map(
+        (l, i) =>
+          `${i}|${l.speaker}|${l.kind}|${l.generated ? 1 : 0}|${l.blocked ? 1 : 0}|${l.muffled ? 1 : 0}`,
+      )
       .join('\n');
     let changed = sig !== this.lineSig;
     if (changed) {
@@ -257,11 +282,17 @@ export class CutscenePlayer {
         const text = el('span', { className: 'hk-cut-text' });
         this.lineEls.push(text);
         this.lines.append(
-          el('div', { className: `hk-cut-line kind-${l.kind}${l.blocked ? ' blocked' : ''}` }, [
-            l.speaker ? el('span', { className: 'hk-cut-speaker', text: l.speaker }) : null,
-            text,
-            l.generated && !l.blocked ? aiBadge(() => this.h.block(l.sig)) : null,
-          ]),
+          el(
+            'div',
+            {
+              className: `hk-cut-line kind-${l.kind}${l.blocked ? ' blocked' : ''}${l.muffled ? ' muffled' : ''}`,
+            },
+            [
+              l.speaker ? el('span', { className: 'hk-cut-speaker', text: l.speaker }) : null,
+              text,
+              l.generated && !l.blocked ? aiBadge(() => this.h.block(l.sig)) : null,
+            ],
+          ),
         );
       }
     }
@@ -295,6 +326,54 @@ export class CutscenePlayer {
         ),
       );
     }
+  }
+
+  /** Keyed choices as key prompts (P15: only "<key> reach out" shows, no list). */
+  private paintPrompts(m: CutsceneModel): void {
+    const sig = m.prompts.map((p) => `${p.choiceId}|${p.text}`).join('\n');
+    if (sig === this.promptSig) return;
+    this.promptSig = sig;
+    this.prompts.hidden = m.prompts.length === 0;
+    this.prompts.replaceChildren(
+      ...m.prompts.map((p) =>
+        el('button', {
+          className: 'hk-btn hk-cut-key-prompt',
+          text: p.text,
+          attrs: { type: 'button' },
+          on: { click: () => this.h.chooseScene(p.choiceId) },
+        }),
+      ),
+    );
+  }
+
+  /** The recurring door (P2): a card whose state, light and wind follow the counter. */
+  private paintDoor(m: CutsceneModel): void {
+    const d = m.door;
+    const sig = d ? `${d.state}|${d.corner}|${d.light}|${d.wind ? 1 : 0}` : '';
+    if (sig === this.doorSig) return;
+    this.doorSig = sig;
+    this.door.hidden = !d;
+    if (!d) return;
+    for (const s of ['closed', 'corner', 'ajar', 'open'])
+      setClass(this.door, `state-${s}`, d.state === s);
+    setClass(this.door, 'wind', d.wind);
+    this.door.style.setProperty('--door-light', String(d.light));
+    // the card plays its entrance again each time the door reappears at a corner
+    this.door.classList.remove('reappear');
+    void this.door.offsetWidth;
+    this.door.classList.add('reappear');
+    this.door.setAttribute('aria-label', t(`ui.mode.cutscene.door.${d.state}`));
+  }
+
+  /** "Re-choose the opening" (catalog 4.1.1 rule 5): it undoes the prologue so far, so ask. */
+  private restart(): void {
+    void askConfirm({
+      title: t('ui.mode.cutscene.restart_title'),
+      body: t('ui.mode.cutscene.restart_body'),
+      irreversible: true,
+    }).then((ok) => {
+      if (ok) this.h.restartScene();
+    });
   }
 
   /** Pick a choice; an irreversible one asks first (catalog 2.2 `确认`). */

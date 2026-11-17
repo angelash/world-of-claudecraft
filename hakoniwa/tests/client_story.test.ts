@@ -77,6 +77,8 @@ function ev<K extends AnyWorldEvent['kind']>(
 
 function scene(over: Partial<SceneView> = {}): SceneView {
   return {
+    runId: 1,
+    revision: 1,
     sceneId: 'cut_test',
     title: 'Test',
     nodeId: 'n1',
@@ -95,6 +97,11 @@ function scene(over: Partial<SceneView> = {}): SceneView {
     act: 'prologue',
     stage: [],
     anchor: false,
+    ui: null,
+    uiStoreAs: '',
+    segment: '',
+    segmentSummary: '',
+    restartable: false,
     ...over,
   };
 }

@@ -60,7 +60,11 @@ function playScenes(r: Run, name: string, maxSteps = 600): string[] {
     seen.push(`${sv.sceneId}/${sv.nodeId}`);
     if (m.mode === 'input') r.queue(r.a.scene?.input(r.view, name));
     else if (m.mode === 'choice') {
-      const act = sceneKey(m, { action: 'number', n: 1 });
+      // a node whose only answers are keyed (the prologue fall's reach-out) has no number 1
+      const keyed = m.choices.length === 0 ? m.prompts[0] : undefined;
+      const act = keyed
+        ? ({ type: 'choose', choiceId: keyed.choiceId } as const)
+        : sceneKey(m, { action: 'number', n: 1 });
       expect(act?.type).toBe('choose');
       if (act?.type === 'choose') r.queue(r.a.scene?.choose(r.view, act.choiceId));
     } else if (m.mode === 'advance') r.queue(r.a.scene?.advance(r.view));

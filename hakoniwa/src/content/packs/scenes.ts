@@ -13,12 +13,13 @@ import maps from '../../../data/scenes/maps.json';
 import prologue from '../../../data/scenes/prologue.json';
 import speakers from '../../../data/scenes/speakers.json';
 import type { ContentMap } from '../../core/contracts';
-import type {
-  CourtDefenseDef,
-  EpilogueEntry,
-  EvidenceDef,
-  SceneDef,
-  SpeakerDef,
+import {
+  type CourtDefenseDef,
+  type EpilogueEntry,
+  type EvidenceDef,
+  SCENE_CHOICE_KEYS,
+  type SceneDef,
+  type SpeakerDef,
 } from '../../systems/scenes/types';
 import type { WorldStart } from '../../systems/world';
 import type { MapDef } from '../../systems/world/types';
@@ -53,9 +54,34 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
       out.push(...conditionProblems(c.when, `${at} choice ${c.id}`));
       out.push(...effectProblems(c.effects, `${at} choice ${c.id}`, content));
       if (!has(c.to)) out.push(`${at}: choice ${c.id} -> unknown ${c.to}`);
+      if (c.timeout !== undefined && !(Number.isFinite(c.timeout) && c.timeout >= 0))
+        out.push(`${at}: choice ${c.id} timeout must be seconds >= 0`);
+      if (c.key !== undefined && !(SCENE_CHOICE_KEYS as readonly string[]).includes(c.key))
+        out.push(`${at}: choice ${c.id} key ${c.key} is not a keyed action`);
+      // a hidden choice is picked by its key or its timeout; with neither nobody can reach it
+      if (c.hidden && c.key === undefined && c.timeout === undefined)
+        out.push(`${at}: hidden choice ${c.id} has neither a key nor a timeout`);
+    }
+    for (const d of n.stage ?? []) {
+      if ((d.op === 'listen' || d.op === 'door') && !d.flag)
+        out.push(`${at}: stage ${d.op} names no flag`);
+      if (d.op === 'door' && !(Number.isInteger(d.cap) && d.cap >= 1))
+        out.push(`${at}: stage door cap must be a whole number >= 1`);
     }
     if (n.input) {
       if (!ids.has(n.input.to)) out.push(`${at}: input -> unknown ${n.input.to}`);
+      const tu = n.input.turns;
+      if (
+        tu &&
+        !(
+          Number.isInteger(tu.soft) &&
+          Number.isInteger(tu.hard) &&
+          tu.soft >= 1 &&
+          tu.hard >= tu.soft
+        )
+      )
+        out.push(`${at}: input turns need whole soft >= 1 and hard >= soft`);
+      if (tu && !n.input.agentId) out.push(`${at}: input turns need an answerer (agentId)`);
       const cl = n.input.classify;
       if (cl) {
         const target = scene.nodes.find((x) => x.id === cl.node);
@@ -72,6 +98,51 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
         out.push(`${at}: no defenses for ${n.court.goddess}`);
       }
     }
+  }
+  out.push(...sceneExtraProblems(scene, content));
+  return out;
+}
+
+const BARK_TRIGGERS = ['wave_spawned', 'wave_cleared', 'boss_phase', 'boss_defeated'];
+
+/** Segments, combat barks and the restart offer (catalog_cutscenes.md 13.6). */
+function sceneExtraProblems(scene: SceneDef, content: ContentMap): string[] {
+  const out: string[] = [];
+  const at = `scene ${scene.id}`;
+  const marked = new Set(scene.nodes.flatMap((n) => (n.segment ? [n.segment] : [])));
+  const segIds = new Set<string>();
+  for (const s of scene.segments ?? []) {
+    if (segIds.has(s.id)) out.push(`${at}: duplicate segment ${s.id}`);
+    segIds.add(s.id);
+    if (!marked.has(s.id)) out.push(`${at}: segment ${s.id} has no marker node`);
+  }
+  const barkIds = new Set<string>();
+  for (const b of scene.barks ?? []) {
+    const bat = `${at} bark ${b.id}`;
+    if (barkIds.has(b.id)) out.push(`${at}: duplicate bark ${b.id}`);
+    barkIds.add(b.id);
+    if (!BARK_TRIGGERS.includes(b.on)) out.push(`${bat}: unknown trigger ${String(b.on)}`);
+    const wave = b.on === 'wave_spawned' || b.on === 'wave_cleared';
+    const table = wave ? content.waves : content.monsters;
+    if (!b.ref) out.push(`${bat}: names no ${wave ? 'wave' : 'boss'}`);
+    else if (Array.isArray(table) && !table.some((r) => r.id === b.ref))
+      out.push(`${bat}: unknown ${wave ? 'wave' : 'boss'} ${b.ref}`);
+    if (!b.lines?.length) out.push(`${bat}: has no lines`);
+    if (b.phase !== undefined && b.on !== 'boss_phase')
+      out.push(`${bat}: phase only applies to boss_phase`);
+    out.push(...conditionProblems(b.when, bat));
+    for (const l of b.lines ?? []) out.push(...conditionProblems(l.when, `${bat} line`));
+  }
+  const r = scene.restart;
+  if (r) {
+    if (!content.scenes.some((s) => s.id === r.scene))
+      out.push(`${at}: restart -> unknown scene ${r.scene}`);
+    if (!r.clear?.length) out.push(`${at}: restart clears no flags`);
+    if (r.until && !marked.has(r.until))
+      out.push(`${at}: restart until unknown segment ${r.until}`);
+    for (const item of r.take ?? [])
+      if (!content.items?.some((i) => i.id === item))
+        out.push(`${at}: restart takes unknown item ${item}`);
   }
   return out;
 }

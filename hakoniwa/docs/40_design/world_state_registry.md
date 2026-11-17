@@ -775,7 +775,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `p_earth_opening` | `prologue.earth_opening` | 枚举 | `a`、`b`、`c`、`d` | 序章 N1（`s0`） | `s1`、`se`、隐藏结局的门 |
 | `p_earth_relic` | `prologue.earth_relic` | 枚举 | `relic_badge`、`relic_receipt`、`relic_mint`、`relic_key` | 序章 N1（`s0`） | `s0`、伪录之门、梅尔卡供品 |
-| `p_appearance` | `prologue.appearance` | 文本 | | 序章镜前（`s0`） | 渲染 |
+| `p_appearance` | `prologue.appearance` | 文本 | 两种写法：选项快照的 `base:colors`，灵镜 `ui_mode_creator` 的 `v1;` 开头的组合串 | 序章镜前（`s0`；场景 `ui` 效果的 `storeAs`） | 渲染、纸娃娃组装 |
 | `p_past_life_door` | `prologue.past_life_door` | 枚举 | `abacus`、`nightlight`、`whitecoat`、`wrench`、`notes`、`hearth`、`signpost`、`podium` | 序章 N10（`s0`） | 前世之门（`dr`）、`s1` |
 | `p_default_past_life` | `prologue.default_past_life` | 枚举 | `abacus`、`nightlight`、`whitecoat`、`wrench`、`hearth` | 序章开场按地球开场（`cut_p_earth`；B 开场店员取 `nightlight`、顾客取 `hearth`） | `s0` |
 | `p_door_attempts_refused` | `prologue.door_attempts_refused` | 整数 | 0 到 3 | 序章 N2（`s0`） | 第六幕雅努的回扣 |

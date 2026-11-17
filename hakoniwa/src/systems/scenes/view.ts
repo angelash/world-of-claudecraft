@@ -1,21 +1,42 @@
 // Player-facing scene query: the scene now playing, its current lines, and what the
-// player can do (choices, free text, evidence, or just continue).
+// player can do (choices, free text, evidence, or just continue). Conditions are read with
+// the narrative resolver (flags, the calendar terms of the world's tick, ai_enabled), the
+// same one the runner uses, so a choice gated on `night` or `season` shows exactly when the
+// runner would accept it.
 
 import type { ContentMap } from '../../core/contracts';
 import { type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
-import { evaluate, flagResolver } from '../quests/conditions';
+import { evaluate } from '../quests/conditions';
+import { worldResolver } from '../quests/effects';
 import { presentable } from './court';
-import { COURT_END, EVIDENCE_PREFIX, nodeOf, sceneDef } from './runner';
+import { COURT_END, EVIDENCE_PREFIX, nodeOf, openChoices, restartOpen, sceneDef } from './runner';
 import type { ScenePresentation, SceneWait, ShownLine, StageDirective } from './types';
 
+export interface SceneViewChoice {
+  id: string;
+  label: TextParam;
+  hint?: string;
+  confirm?: boolean;
+  /** not listed among the numbered choices (keyed or timed) */
+  hidden?: boolean;
+  /** the dialogue-context input action that picks it (a key prompt) */
+  key?: string;
+  /** seconds after which the runner picks it */
+  timeout?: number;
+}
+
 export interface SceneView {
+  /** the run (a restarted scene is a new run of the same scene) */
+  runId: number;
+  /** the run's revision, for commands that must match the node they answer (ui_done) */
+  revision: number;
   sceneId: string;
   title: string;
   nodeId: string;
   waiting: SceneWait;
   lines: ShownLine[];
-  choices: { id: string; label: TextParam; hint?: string; confirm?: boolean }[];
+  choices: SceneViewChoice[];
   input: { prompt: string; maxLength: number } | null;
   court: { goddess: string; presented: string[]; limit: number } | null;
   /** scenes waiting to play after this one */
@@ -32,6 +53,16 @@ export interface SceneView {
   stage: StageDirective[];
   /** the current node is an anchor (skipping stops here) */
   anchor: boolean;
+  /** the interface a `ui` effect opened (waiting 'ui'), else null */
+  ui: string | null;
+  /** the flag the open interface's result goes to ('' when none) */
+  uiStoreAs: string;
+  /** the segment the run is in ('' before any marker) */
+  segment: string;
+  /** the skip summary of the current segment, else the scene's ('' when neither) */
+  segmentSummary: string;
+  /** "re-choose the opening" is on offer now */
+  restartable: boolean;
 }
 
 export function sceneView(
@@ -44,12 +75,18 @@ export function sceneView(
   const scene = sceneDef(content, run.sceneId);
   const node = scene ? nodeOf(scene, run.nodeId) : undefined;
   if (!scene || !node) return null;
-  const resolve = flagResolver(world.meta.flags, { ai_enabled: aiEnabled });
+  const resolve = worldResolver(world, aiEnabled);
   let choices: SceneView['choices'] = [];
   if (run.waiting === 'choice') {
-    choices = (node.choices ?? [])
-      .filter((c) => evaluate(c.when, resolve) && !(c.once && run.picked.includes(c.id)))
-      .map((c) => ({ id: c.id, label: c.label, hint: c.hint, confirm: c.confirm }));
+    choices = openChoices(node, run.picked, (expr) => evaluate(expr, resolve)).map((c) => ({
+      id: c.id,
+      label: c.label,
+      hint: c.hint,
+      confirm: c.confirm,
+      ...(c.hidden ? { hidden: true } : {}),
+      ...(c.key ? { key: c.key } : {}),
+      ...(c.timeout !== undefined ? { timeout: c.timeout } : {}),
+    }));
   } else if (run.waiting === 'court' && node.court) {
     const spec = node.court;
     const full = !!spec.limit && run.presented.length >= spec.limit;
@@ -64,6 +101,8 @@ export function sceneView(
     ];
   }
   return {
+    runId: run.runId,
+    revision: run.revision,
     sceneId: scene.id,
     title: scene.title,
     nodeId: node.id,
@@ -84,6 +123,12 @@ export function sceneView(
     act: scene.act ?? '',
     stage: (node.stage ?? []).map((d) => ({ ...d })),
     anchor: !!node.anchor,
+    ui: run.waiting === 'ui' ? (run.ui?.ui ?? null) : null,
+    uiStoreAs: run.waiting === 'ui' ? (run.ui?.storeAs ?? '') : '',
+    segment: run.segment ?? '',
+    segmentSummary:
+      scene.segments?.find((s) => s.id === run.segment)?.summary ?? scene.summary ?? '',
+    restartable: restartOpen(content, run),
   };
 }
 

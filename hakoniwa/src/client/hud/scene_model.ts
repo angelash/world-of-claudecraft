@@ -1,10 +1,12 @@
 // Scene panel model: turns the scenes system's SceneView into what the full-screen panel
 // shows (title, styled lines, numbered choices, input box, court evidence state) and maps
-// keys to scene actions. Pure; Node-tested.
+// keys to scene actions. Hidden choices (keyed or timed, catalog_cutscenes.md 13.6) are not
+// numbered; a keyed one shows as a key prompt instead. Pure; Node-tested.
 
 import { listSeparator, t } from '../../shared_ui/i18n';
 import type { SceneView } from '../../systems/scenes';
 import { contentNames } from '../view/content_names';
+import { type KeyPrompt, keyPrompts } from './story/prologue_stage';
 
 export interface ScenePanelLine {
   speaker: string;
@@ -18,6 +20,8 @@ export interface ScenePanelModel {
   lines: ScenePanelLine[];
   mode: 'advance' | 'choice' | 'input' | 'resolve';
   choices: { id: string; label: string; hint?: string; number: number }[];
+  /** choices picked by an input action (the prologue's reach-out key) */
+  prompts: KeyPrompt[];
   input: { prompt: string; maxLength: number } | null;
   /** footer hint for the current mode */
   hint: string;
@@ -33,11 +37,19 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
       ? 'choice'
       : v.waiting === 'input'
         ? 'input'
-        : v.waiting === 'resolve'
+        : v.waiting === 'resolve' || v.waiting === 'ui'
           ? 'resolve'
           : 'advance';
   const choices =
-    mode === 'choice' ? v.choices.map((c, i) => ({ ...c, label: t(c.label), number: i + 1 })) : [];
+    mode === 'choice'
+      ? v.choices
+          .filter((c) => !c.hidden)
+          .map((c, i) => ({ ...c, label: t(c.label), number: i + 1 }))
+      : [];
+  const prompts =
+    mode === 'choice'
+      ? keyPrompts(v.choices.map((c) => ({ id: c.id, key: c.key, label: t(c.label) })))
+      : [];
   let court: string | null = null;
   if (v.court) {
     const parts = [t('ui.mode.cutscene.limit', { n: v.court.limit })];
@@ -50,7 +62,7 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
     court = parts.join('  ');
   }
   return {
-    key: `${v.sceneId}/${v.nodeId}/${v.waiting}/${v.lines.length}/${choices.length}`,
+    key: `${v.sceneId}/${v.nodeId}/${v.waiting}/${v.lines.length}/${choices.length}/${prompts.length}`,
     title: contentNames.sceneTitle(v.sceneId, v.title),
     lines: v.lines.map((l) => ({
       speaker: l.kind === 'narrate' ? '' : t(l.speakerName),
@@ -59,6 +71,7 @@ export function scenePanelModel(v: SceneView): ScenePanelModel {
     })),
     mode,
     choices,
+    prompts,
     input: mode === 'input' ? v.input : null,
     hint:
       mode === 'advance'
