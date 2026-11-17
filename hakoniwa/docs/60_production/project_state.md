@@ -24,7 +24,7 @@
 
 **M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-01、PK-M0-02、PK-M0-03、PK-M0-04、PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-10、PK-M0-12、PK-M0-13、PK-M0-14、PK-M0-15、PK-M0-16、PK-M0-17、PK-M0-18、PK-M0-19、PK-M0-20、PK-M0-21、PK-M0-22、PK-M0-23、PK-M0-24、PK-M0-25、PK-M0-26、PK-M0-27、PK-M0-28、PK-M0-29、PK-M0-30、PK-M0-31、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
-**推进优先级（D-096）**：序章与第一幕是第一优先。M0 剩余的包只做切片用得到的部分；M1 的代码、数据与内容包按依赖开工，不等 M0 门；顺序是 [development_plan.md](development_plan.md) 第 6.4 节的波次，波 0 的代码与设计包已完成，PK-M0-04 的序章与第一幕回写收尾中；波 1 已完成（PK-M1-07、PK-M1-14、PK-M1-16、PK-M1-45、PK-M1-48、PK-M1-58）；波 2 前段的 PK-M1-26、PK-M1-46、PK-M1-47 已完成，PK-M1-06 与 PK-M1-22 收尾中（音频设置页挂在 PK-M1-22 的设置外壳上，两包同提交）；波 2 后段进行中：PK-M1-11、PK-M1-13、PK-M1-18、PK-M1-51、PK-M1-50；PK-M1-54 等 PK-M1-22 合入后开工（两包都改场景运行器）。切片的差距清单见 [slice_gap_audit.md](slice_gap_audit.md)。
+**推进优先级（D-096）**：序章与第一幕是第一优先。M0 剩余的包只做切片用得到的部分；M1 的代码、数据与内容包按依赖开工，不等 M0 门；顺序是 [development_plan.md](development_plan.md) 第 6.4 节的波次，波 0 的代码与设计包已完成，PK-M0-04 的序章与第一幕回写收尾中；波 1 已完成（PK-M1-07、PK-M1-14、PK-M1-16、PK-M1-45、PK-M1-48、PK-M1-58）；波 2 前段已完成（PK-M1-06、PK-M1-22、PK-M1-26、PK-M1-46、PK-M1-47）；波 2 后段进行中：PK-M1-11、PK-M1-13、PK-M1-18、PK-M1-51、PK-M1-50、PK-M1-54。切片的差距清单见 [slice_gap_audit.md](slice_gap_audit.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
@@ -78,12 +78,12 @@
 | 任务、场景与结局 | 60% | `src/systems/quests/`、`scenes/`：任务与阶段、条件表达式、幕次推进、台账过滤、结局判定；序章、过场、梦境、神庭审判、11 个结局与后日谈；事迹、称号、图鉴与传书内核 `src/systems/records/`（PK-M1-48）；幕时钟与周窗、历法项（PK-M1-45）；十二种新目标、七种新任务种类、失败与过期与他人完成三种结局、路线与开门钥事件（PK-M1-58）；纷争链运行器 `src/systems/disputes/`，第一幕三条 Must 纷争无人介入走到合法结局（PK-M1-46）；公会登记、委托板与动态事件内核 `src/systems/guild/`（PK-M1-47） | 其余六条纷争的运行数据与纷争节点任务；其余委托模板与动态事件；第一幕审判出示；序章舞台机制与场景运行器增补；11 条结局路线中只验证了 2 条 | PK-M1-45 到 PK-M1-58、PK-M3-05、PK-M3-15 |
 | 玩家自配模型 | 55% | `src/ai/`：运行器（并发、预算、降级、超时、冷却、过时作废）、角色包、审计；中立调用规格 `LlmCallSpec` 与 20 个问题代码；`src/ai/providers/` 的四个纯函数适配器、模式方言改写与能力表（`data/llm/`）；开发代理 `tools/llm_proxy.ts` 的 `/api/llm`、`/api/llm/test`、`/api/llm/models`；`src/ai/llm_config/` 的设置模型、四种预设、路由与估算器；三窗口预算与 0 到 9 级；三种传输与 RE-22 替身；桌面网关进程与密钥录入窗骨架（`desktop/llm_gateway/`、`desktop/key_entry/`） | 网关适配器、记账与密钥落盘；设置页屏 A 到 J 与台账；用真密钥重录应答样例 | PK-M1-01、PK-M1-02 |
 | 内置 AI | 30% | `src/core/brain/`：曲线、效用、行为树、HTN、规则表与解释记录；`src/systems/dialogue/lines/` 的台词包、回退链、选择器与重复抑制；`ln_common`、`ln_lina`、`ln_class_clergy`（PK-M0-25） | 意图分类器与大脑检查器；NPC、女神、同伴、官员、将领、统治者、审庭的规则大脑；台词历史存档与吠叫窗口；话题图 | PK-M0-26、PK-M1-18 到 PK-M1-21 |
-| 客户端与界面 | 55% | `src/client/`：18 个窗口、HUD、键鼠输入；标题页 `boot_screen.ts`（新的旅程、读取存档两个按钮，标题直接开局）；设置存储 `SettingsStore`（同步份与本机份，经 `PlatformHost`；界面目前只用画质、视角与大模型开关）；输入层 `src/client/input/`：动作层、按情境绑定、24 格快捷栏、软锁定、四种环形菜单、焦点导航、虚拟光标、按键图示、浮动键盘（PK-M1-07） | 31 个窗口与 10 种模式的目标；启动、首次启动、活的标题、新游戏页；`ui_set_controls` 页；95 个 `tut_`；无障碍 | PK-M1-22、PK-M1-23、PK-M1-44、PK-M1-57 |
+| 客户端与界面 | 70% | `src/client/`：18 个窗口、HUD、键鼠输入；标题页 `boot_screen.ts`（新的旅程、读取存档两个按钮，标题直接开局）；设置存储 `SettingsStore`（同步份与本机份，经 `PlatformHost`；界面目前只用画质、视角与大模型开关）；输入层 `src/client/input/`：动作层、按情境绑定、24 格快捷栏、软锁定、四种环形菜单、焦点导航、虚拟光标、按键图示、浮动键盘（PK-M1-07）；队伍框、焦点框、量表、追踪、通知、提示条与确认弹窗；对话两种版式、头像与半身立绘、回看；过场播放器（三种演出、信件、跳过摘要）；回廊模式与门列表；设置外壳（键位、游戏性、画质、语言、音频、大模型页）；新游戏页（难度、铁人、引导级别）；存档列表、缩略图与读档迁移；任务日志与帮助窗（PK-M1-22） | 启动、首次启动与活的标题；95 个 `tut_` 与引导进存档；辅助功能页；其余第一幕界面编号；镜头与光照指令的执行 | PK-M1-23、PK-M1-24、PK-M1-44、PK-M1-57 |
 | HD-2D 渲染 | 65% | `src/client/hd2d/` 与 `src/client/render/`：正交斜俯视、像素地面、立体房屋与掀顶（含穹顶、圆锥帐顶、尖塔）、立牌、光照图与动态光、天气、后期链、覆盖层、16 个风格包；平面降级档；素材解析器 `src/client/assets/`（通过的 AI 位图优先，其余退回占位） | 纸娃娃组装器；别名物种换色；地面分块；4 向；远景天幕；战场进 HD-2D；自动降档与超高档开放 | PK-M1-03、PK-M1-24、PK-M2-09、PK-M3-01 |
 | 编辑器与审核工作台 | 60% | `src/editor/`：内容编辑器、地图编辑器、世界检视器、内容检查台、AI 审计台、角色检视、任务与剧情图、平衡实验室 | 批次视图、注册表视图、台词包编辑、HD-2D 内嵌预览、素材审核台接入引用条目与 HD-2D 预览、行为树与意图试句台 | PK-M0-28、PK-M0-34、PK-M1-25、PK-M2-18 |
 | 自动玩家与测试 | 35% | `src/game/autoplay/`；50 个测试文件；`tests/playthrough/` 三项（两条结局路线与回放） | 11 条结局路线；20 种子乘三种条件矩阵；节奏三条路线；基准、端到端、截图、性能回归；存档与模型路径测试 | PK-M1-05、PK-M1-08、PK-M1-10、PK-M3-05 |
 | 本地化 | 60% | 内核与系统的 `TextRef` 与 `tr`、客户端渲染器 `t` 与 `tc`、`locales/zh-Hans/` 的系统表、界面表 `ui.json` 与内容文本表 `content.generated.json`、键类型生成、伪本地化 `qps-wide`、文本检查进全量门（PK-M0-14、PK-M0-15） | 其余系统的内容名参数换成 `c.` 键；存档里的 `c.` 键随重命名表改写；其余长度类别规则 | 各系统下一次有内容改动的包 |
-| 音频 | 15% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架 | 播放引擎、五总线实装、环境层、声部池、空间化、分轨 | PK-M1-06 |
+| 音频 | 45% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架；播放引擎 `src/client/audio/`：五总线、音乐播放（分层与交叉）、环境层与点缀池、声部池与命中选择、空间化与混响区、字幕、震动；图集 22 张图的音乐、环境与混响字段；设置的音频页（PK-M1-06） | 726 条素材；分轨模块落地；发行构建的音频打包；辅助功能里的字幕页 | PK-M1-09、PK-M1-23、PK-M1-41 |
 | 工具链 | 70% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/registry/`（`npm run registry`、`registry:check`）、`tools/replay/`、`tools/content/`（目录导入七步与 V1 到 V10 校验）、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取；后续内容批次 | PK-M1-04，内容批次见开发计划第 5 节 |
 | 发行 | 30% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`、未签名的 `npm run pack:win`）；平台接口 `src/platform/` 的三种实现，客户端经它存档与读写设置；桌面主进程的设置与存档处理器 | 打包签名、Steam、崩溃与遥测（含遥测开关）、夜间流水线、网关台账 | PK-M1-01、PK-M1-09，后续见发行工程第 17 节 |
 
@@ -125,13 +125,12 @@
 | 包 | 当前进度 | 阻塞 |
 | --- | --- | --- |
 | PK-M0-07 提示词库收尾 | 生成脚本、规格文件、`promptHash` 与规格后处理已提交；技能、天赋、光环图标未做 | PK-M0-02 |
-| PK-M1-06 音频引擎 | 代码已完成，等 PK-M1-22 的设置外壳一同提交；分层音乐的 stems 拆分写在第三方正在改的 `tools/assets/core/audio/`，不随本包落地 | PK-M1-22 |
-| PK-M1-22 HUD、对话、过场与回廊 | 代理实施中（波 2） | 无 |
 | PK-M1-11 战斗规则扩展 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-13 物品实例层与耐久 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-18 内置 AI：NPC 大脑与社会 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-51 澱染暴露与澱病 | 代理实施中（波 2 后段） | 无 |
 | PK-M1-50 迷宫运行时 | 代理实施中（波 2） | 无 |
+| PK-M1-54 序章舞台机制与造像 | 代理实施中（波 3） | 无 |
 | PK-M0-05 生成工具能力与商用条款核实 | 包目录 `docs/70_packets/pk_m0_05_tools_terms/` 已立：用户核实清单与 `assets/tools.json` 的登记格式（图像 `xiaojiu`、音频 `xiaojiu_audio`）；`tools.json` 只收核实过的记录，仍为空 | U-03 |
 
 ---
