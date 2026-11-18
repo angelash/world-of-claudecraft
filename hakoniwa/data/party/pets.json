@@ -1,0 +1,27 @@
+[
+  {
+    "id": "pet_ashgrey_wolf",
+    "name": "灰毛狼",
+    "monsterId": "grey_wolf",
+    "cap": 20
+  },
+  {
+    "id": "pet_weald_spider",
+    "name": "驯网蛛",
+    "monsterId": "edge_spider",
+    "cap": 20
+  },
+  {
+    "id": "pet_cleanmane_boar",
+    "name": "净鬃野猪",
+    "monsterId": "dian_boar",
+    "cap": 20,
+    "guardsBag": true
+  },
+  {
+    "id": "pet_tunnel_grub",
+    "name": "驯穴虫",
+    "monsterId": "burrow_worm",
+    "cap": 20
+  }
+]

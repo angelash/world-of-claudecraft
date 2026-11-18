@@ -682,6 +682,7 @@
 | `a1_seg_duel_won` | 无 | 与瑟格的决斗 | 刃之门 |
 | `a1_beast_tide_started` | 无 | 兽潮开始（`q` 的 `a1_m09_tide`） | 波次 |
 | `a1_beast_tide_cleared` | 无 | 兽潮结束（`q`） | 波次 `endOnFlag`、识才之门（`dr`）、`lore` |
+| `a1_tide_with_shiya` | 无 | party 的在场记录：兽潮结算那一刻希雅在玩家 20 格内（同伴数据 `presence` 的 `storeAs`） | 希雅的招募条件（party，同伴数据 `recruit.when`） |
 | `a1_martha_strike` | 无 | 玛莎出手（`q`） | `lore` |
 | `a1_dream_door_woman` | 无 | 兽潮次夜的梦（`s1`） | 门内庭院（`dr`）、雅努（`gd`）、`lore` |
 | `a1_bron_sees_mark` | 无 | 布伦看见门纹（`s1`） | 台账 |

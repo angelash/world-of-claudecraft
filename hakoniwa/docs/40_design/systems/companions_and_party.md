@@ -431,8 +431,8 @@
 
 ### 7.6 倒地与救起
 
-- 倒地的同伴在战斗中可被战斗复活技能救起；战斗结束、15 秒内无人处于战斗时自动起身，带"倒地虚弱"（光环 ID 归技能目录；
-  现行数据借用 `spring_weakness`，实现时换成倒地虚弱：倒地不是死，不经泉畔）。
+- 倒地的同伴在战斗中可被战斗复活技能救起；战斗结束、全队 15 秒无人处于战斗时自动起身，带"倒地虚弱"`aur_st_downed_weak`
+  与一处轻伤（倒地不是死，不经泉畔）。
 - 倒地升级为重伤退场的条件见第 11 节。
 
 ### 7.7 战场层
@@ -1024,6 +1024,13 @@ Member {
 | `party.invite`、`party.dismiss` | 邀请、请离 |
 | `party.revive` | 合法复活（铁人档，或兽伴） |
 | `party.ironman_off` | 关闭铁人（单向） |
+| `party.wait` | 留在原地（迷宫入口外）或叫回 |
+| `party.formation` | 战斗外选站位预设（3.3） |
+| `party.segment` | 个人线一段完成（剧情与任务；写 `pl.<id>`，9.1） |
+| `party.wound` | 剧情写定的重伤（11.2） |
+| `party.reconcile` | 冷离之后的和解场景（8.5） |
+| `party.tame`、`party.pact`、`party.release` | 驯兽（半契）、从契、解约（[千门][tdr] 15.1、15.2） |
+| `party.ride` | 骑乘玩家持有的坐骑 |
 
 ### 17.4 内容校验
 
@@ -1066,6 +1073,19 @@ Member {
 | 后日谈 | 覆盖 | 每名主要同伴在每种结局都能选出一条模板；已死者没有存活后的条目 | M3 |
 | 无模型 | 人格 | 关闭模型时，每名主要同伴的口头禅、称呼演变与个人规则都能在规则自动玩家的一局里观察到 | 每个里程碑 |
 | 无模型 | 通关 | 关闭模型，从序章到离手，同伴相关的全部写定条件可达（D-010） | 每个里程碑 |
+
+### 17.6 第一批的落地形状（PK-M1-15）
+
+第一批实现的是 17.1 与 17.2 的一个子集，字段名与上面的完整形状有几处不同，以代码为准，后续批次在此基础上补全：
+
+| 方面 | 现行形状 |
+| --- | --- |
+| 同伴数据 | `data/party/companions.json`：`tier`、`level`（加入时的等级，取人物表）、`recruit: { mode, when }`、`ai: { aggression, caution, protect, obedience, rules }`（个人规则三种：`guard` 护短、`shield` 护某类人、`retreat` 后撤线）、`signature`、`bondFlags`、`redLines: { when, delta, hook }[]`、`leaves: { when, back: { when } }[]`（剧情离队与归队）、`presence: { when, storeAs, range }[]`（在场记录）、`armor: { when? }`（护命期：空对象为全程，有 `when` 则到它成立为止）、`servant`；`levelOffset` 已删除 |
+| 队伍数据 | `data/party/config.json`（随队位、追赶表、羁绊关、击杀与礼物的羁绊、休养日数、致命一击比例、起身秒数、泉畔日数、后撤线、大招冷却线、暴露与免疫标签、驯兽与从契的前提）；`data/party/pets.json`（可驯物种）；`data/party/mounts.json`（坐骑，同时生成同 ID 的物品）；`data/party/abilities.json`（同伴的标志技能） |
+| 名册状态 | `party`（随队）、`standby`（候命）、`waiting`（留守）、`resting`（休养）、`away`（剧情离队）、`cold`（冷离）、`spring`（泉畔）、`dead`（阵亡）；不在场的成员不在世界里，等级、经验与澱染记在成员上；镜像 `companion.<id>.state` 写 `active`、`resting`、`left`、`dead` |
+| 队伍切片 | `members`（含 `tactic`、`restUntil`、`wounds`、`springUntil`、`redLines`、`leftBy`、`waitAt`、`temp`、`pet`）、`ironman`（`on` 或 `off`）、`formation`、`mount` |
+| 兽伴与从兽 | 也是名册成员（`pet: { species, kind, monsterId }`）：半契兽不占随队位，从兽占；从兽的 ID 为 `pet_retainer_<来源魔物 ID>` |
+| 事件 | 17.3 之外另有 `party.refused`、`party.tactic`、`party.red_line`、`party.segment`、`party.ironman`、`party.rule`、`party.mount`；`party.died` 带泉畔到期的 tick |
 
 ## 18. 来源链接
 

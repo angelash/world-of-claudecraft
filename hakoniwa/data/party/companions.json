@@ -3,76 +3,248 @@
     "id": "yeyu",
     "name": "夜羽",
     "title": "从者：门之信使，称你为门把手",
+    "tier": "main",
     "classId": "warlock",
     "role": "caster",
     "level": 3,
-    "levelOffset": 1,
     "personality": ["刻薄", "守信", "健忘", "古板", "护短"],
     "appearance": {
       "base": "human",
       "colors": ["#1c1c22", "#d8d8d0", "#e0b896", "#c8a24a"],
       "scale": 0.9
     },
-    "likes": { "kinds": ["trinket"], "items": ["raven_feather", "dian_shard"] },
-    "bondFlags": [{ "flag": "door.pact", "amount": 10 }, { "flag": "yeyu_letters", "amount": 10 }],
+    "recruit": {
+      "mode": "story"
+    },
+    "ai": {
+      "aggression": 50,
+      "caution": 40,
+      "protect": 90,
+      "obedience": 70,
+      "rules": [
+        {
+          "kind": "guard",
+          "below": 0.3,
+          "ability": "sk_yeyu_ravenswarm"
+        }
+      ]
+    },
+    "signature": "sk_yeyu_ravenswarm",
+    "likes": {
+      "kinds": ["trinket"],
+      "items": ["raven_feather", "dian_shard"]
+    },
+    "bondFlags": [
+      {
+        "flag": "door.pact",
+        "amount": 10
+      },
+      {
+        "flag": "yeyu_letters",
+        "amount": 10
+      }
+    ],
+    "redLines": [
+      {
+        "when": "a1_core_choice == grasp",
+        "delta": -20,
+        "hook": "RL-yeyu"
+      },
+      {
+        "when": "a4_eluen_page",
+        "delta": -30,
+        "hook": "RL-yeyu"
+      }
+    ],
+    "armor": {},
+    "servant": true,
     "avoid": ["sk_lok_fear"]
   },
   {
     "id": "shiya",
     "name": "希雅",
     "title": "狼族猎户之女，第一个相信你的人",
+    "tier": "main",
     "classId": "hunter",
     "role": "ranged",
     "level": 5,
-    "levelOffset": 0,
     "personality": ["直率", "好奇", "护家", "倔强"],
-    "appearance": { "base": "human", "colors": ["#3f5a3a", "#8a6a4a", "#e6c8a8", "#b8bcc0"] },
-    "likes": { "kinds": ["material"], "items": ["wolf_pelt", "spring_herb"] },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3f5a3a", "#8a6a4a", "#e6c8a8", "#b8bcc0"]
+    },
+    "recruit": {
+      "mode": "invite",
+      "when": "a1_forest_accord != broken OR a1_tide_with_shiya"
+    },
+    "ai": {
+      "aggression": 70,
+      "caution": 30,
+      "protect": 70,
+      "obedience": 80,
+      "rules": [
+        {
+          "kind": "shield",
+          "tags": ["child", "remnant"]
+        }
+      ]
+    },
+    "likes": {
+      "kinds": ["material"],
+      "items": ["wolf_pelt", "spring_herb"]
+    },
     "bondFlags": [
-      { "flag": "quest.q_a1_m04_hunt", "equals": "done", "amount": 15 },
-      { "flag": "boss.dian_colossus.defeated", "amount": 10 }
-    ]
+      {
+        "flag": "quest.q_a1_m04_hunt",
+        "equals": "done",
+        "amount": 15
+      },
+      {
+        "flag": "boss.dian_colossus.defeated",
+        "amount": 10
+      }
+    ],
+    "leaves": [
+      {
+        "when": "a1_shiya_family == left AND trust.shiya < 70",
+        "back": {
+          "when": "act >= act3 OR (act == act2 AND act_week >= 5)"
+        }
+      }
+    ],
+    "presence": [
+      {
+        "when": "a1_beast_tide_cleared",
+        "storeAs": "a1_tide_with_shiya",
+        "range": 20
+      }
+    ],
+    "armor": {
+      "when": "a4_beast_king"
+    }
   },
   {
     "id": "ron",
     "name": "罗恩",
     "title": "D 级冒险者，常识担当，有统帅的潜质",
+    "tier": "main",
     "classId": "warrior",
     "role": "tank",
-    "level": 5,
-    "levelOffset": 0,
+    "level": 11,
     "personality": ["胆小", "可靠", "爱讲常识", "嘴硬"],
-    "appearance": { "base": "human", "colors": ["#6a5a44", "#7a7a80", "#e6c2a0", "#5a3a22"] },
-    "likes": { "kinds": ["consumable"], "items": ["ash_spirits", "dented_round_shield"] },
+    "appearance": {
+      "base": "human",
+      "colors": ["#6a5a44", "#7a7a80", "#e6c2a0", "#5a3a22"]
+    },
+    "recruit": {
+      "mode": "story"
+    },
+    "ai": {
+      "aggression": 30,
+      "caution": 70,
+      "protect": 80,
+      "obedience": 100,
+      "rules": [
+        {
+          "kind": "retreat",
+          "below": 0.35
+        }
+      ]
+    },
+    "likes": {
+      "kinds": ["consumable"],
+      "items": ["ash_spirits", "dented_round_shield"]
+    },
     "bondFlags": [
-      { "flag": "boss.crystal_mother.defeated", "amount": 15 },
-      { "flag": "boss.dian_colossus.defeated", "amount": 10 }
-    ]
+      {
+        "flag": "boss.crystal_mother.defeated",
+        "amount": 15
+      },
+      {
+        "flag": "boss.dian_colossus.defeated",
+        "amount": 10
+      }
+    ],
+    "armor": {
+      "when": "door.thousand_legions"
+    }
   },
   {
     "id": "nera",
     "name": "奈拉",
     "title": "狐族商人，双面的合伙人",
+    "tier": "main",
     "classId": "rogue",
     "role": "melee",
     "level": 8,
-    "levelOffset": 0,
     "personality": ["精明", "圆滑", "重利", "藏着话"],
-    "appearance": { "base": "human", "colors": ["#2e4a3a", "#c8a24a", "#f0d0b0", "#d8642a"] },
-    "likes": { "kinds": ["goods", "trinket"], "items": ["drake_scale", "ash_essence"] },
-    "bondFlags": [{ "flag": "a2_company_partner", "amount": 15 }]
+    "appearance": {
+      "base": "human",
+      "colors": ["#2e4a3a", "#c8a24a", "#f0d0b0", "#d8642a"]
+    },
+    "recruit": {
+      "mode": "invite",
+      "when": "a2_company_partner"
+    },
+    "ai": {
+      "aggression": 50,
+      "caution": 60,
+      "protect": 30,
+      "obedience": 70
+    },
+    "likes": {
+      "kinds": ["goods", "trinket"],
+      "items": ["drake_scale", "ash_essence"]
+    },
+    "bondFlags": [
+      {
+        "flag": "a2_company_partner",
+        "amount": 15
+      }
+    ]
   },
   {
     "id": "oola",
     "name": "欧拉婆婆",
     "title": "药草婆婆，希尔薇一系的老德鲁伊",
+    "tier": "main",
     "classId": "druid",
     "role": "healer",
-    "level": 10,
-    "levelOffset": 0,
+    "level": 27,
     "personality": ["慈和", "固执", "话少", "护着孩子"],
-    "appearance": { "base": "human", "colors": ["#5a4a3a", "#3a5a3a", "#e0c0a0", "#d0d0c8"] },
-    "likes": { "kinds": ["material"], "items": ["spring_herb", "leech_ichor"] },
-    "bondFlags": [{ "flag": "a1_oola_fate", "equals": "cleared", "amount": 20 }]
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a4a3a", "#3a5a3a", "#e0c0a0", "#d0d0c8"]
+    },
+    "recruit": {
+      "mode": "invite",
+      "when": "a1_oola_fate == cleared"
+    },
+    "ai": {
+      "aggression": 10,
+      "caution": 60,
+      "protect": 90,
+      "obedience": 80,
+      "rules": [
+        {
+          "kind": "shield",
+          "tags": ["child"]
+        }
+      ]
+    },
+    "likes": {
+      "kinds": ["material"],
+      "items": ["spring_herb", "leech_ichor"]
+    },
+    "bondFlags": [
+      {
+        "flag": "a1_oola_fate",
+        "equals": "cleared",
+        "amount": 20
+      }
+    ],
+    "armor": {
+      "when": "a1_oola_fate"
+    }
   }
 ]

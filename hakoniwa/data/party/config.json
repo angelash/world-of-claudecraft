@@ -1,0 +1,85 @@
+{
+  "slots": {
+    "byAct": {
+      "prologue": 3,
+      "act1": 3
+    },
+    "default": 4
+  },
+  "catchUp": [
+    {
+      "below": 8,
+      "factor": 3
+    },
+    {
+      "below": 3,
+      "factor": 2
+    }
+  ],
+  "levelCapOverPlayer": 2,
+  "awayShare": 0.5,
+  "bondGates": [
+    {
+      "stage": 2,
+      "max": 59
+    },
+    {
+      "stage": 3,
+      "max": 79
+    },
+    {
+      "stage": 4,
+      "max": 89
+    }
+  ],
+  "bondKill": {
+    "boss": 2,
+    "elite": 0.5,
+    "normal": 0.05,
+    "perDay": 3,
+    "range": 20
+  },
+  "gift": {
+    "base": 1,
+    "perQuality": 1,
+    "liked": 2,
+    "perWeek": 3
+  },
+  "coldAfter": 3,
+  "rest": {
+    "baseDays": 2,
+    "fatalDays": 1,
+    "repeatDays": 1,
+    "repeatWindowDays": 7,
+    "minDays": 1,
+    "maxDays": 4
+  },
+  "fatalShare": 0.5,
+  "getUpSec": 15,
+  "getUpHp": 0.5,
+  "spring": {
+    "days": 7,
+    "servantDays": 14,
+    "petDays": 3
+  },
+  "retreat": {
+    "base": 0.25,
+    "span": 0.15
+  },
+  "bigCooldown": 60,
+  "exposure": {
+    "named": true,
+    "immuneTags": ["door_mark"],
+    "crystalTaint": 50
+  },
+  "pets": {
+    "requires": "door.vocation_hunter",
+    "overPlayer": 2
+  },
+  "retainers": {
+    "requires": "feature.servant",
+    "slots": 2,
+    "fatigue": 20
+  },
+  "tempObjectives": ["escort", "rescue", "accompany"]
+}

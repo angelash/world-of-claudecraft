@@ -42,6 +42,23 @@ export function bodyOf(world: World, entityId: string): Sufferer {
   return b;
 }
 
+/**
+ * Take a body out of the slice while its entity is out of the world (a companion standing by
+ * at the inn or resting; the party, PK-M1-15). Its owner keeps the record and puts it back
+ * with putBody when the entity returns, so no dawn check drops it and nothing counts twice.
+ */
+export function takeBody(world: World, entityId: string): Sufferer | undefined {
+  const s = readAilments(world);
+  const b = s?.bodies[entityId];
+  if (s && b) delete s.bodies[entityId];
+  return b;
+}
+
+/** Put a kept body back for an entity in the world again (its auras return at the dawn check). */
+export function putBody(world: World, entityId: string, body: Sufferer): void {
+  ailmentsSlice(world).bodies[entityId] = body;
+}
+
 /** A healthy body nothing is tracking any more (the player's is always kept). */
 export function isIdle(b: Sufferer): boolean {
   return (

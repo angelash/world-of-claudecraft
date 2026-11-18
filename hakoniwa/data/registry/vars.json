@@ -1931,6 +1931,25 @@
       "source": "8.8.2"
     },
     {
+      "name": "a1_tide_with_shiya",
+      "kind": "flag",
+      "scope": "act_flag",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content", "party"],
+      "readers": ["party"],
+      "derive": null,
+      "monotone": true,
+      "act": 1,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a1_tide_with_shiya",
+      "source": "8.3"
+    },
+    {
       "name": "a1_toby_state",
       "kind": "enum",
       "scope": "act_exit",

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "mnt_donkey",
+    "name": "驴",
+    "desc": "边石镇驿站卖的驴，驮得动一冬的盐。它不怕灵压，是这一带唯一不躲你的牲口；澱度三的地方它会站住不走。",
+    "price": 1500,
+    "dayKm": 27.5,
+    "load": 15,
+    "stopsAtSediment": 3,
+    "fearless": true
+  }
+]

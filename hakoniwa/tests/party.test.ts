@@ -1,6 +1,6 @@
-// Party system: recruitment by flag, level scaling, following across maps, assisting,
-// healing and taunting, party orders, bonds (gifts, shared kills, story flags, threshold
-// flags), being downed and getting back up, and leaving. Runs the real engine with the
+// Party system: recruitment by flag, joining levels and shared quest experience, following
+// across maps, assisting, healing and taunting, party orders, bonds (gifts, shared kills,
+// story flags, threshold records), being downed and getting back up, and leaving. Runs the real engine with the
 // kernel systems plus combat, party and doors.
 
 import { describe, expect, it } from 'vitest';
@@ -21,7 +21,7 @@ import { system as doors } from '../src/systems/doors';
 import { addItem, system as inventory } from '../src/systems/inventory';
 import { system as modifiers } from '../src/systems/modifiers';
 import { bondOf, bondReached, isInParty, system as party, partyView } from '../src/systems/party';
-import { system as world } from '../src/systems/world';
+import { removeEntity, system as world } from '../src/systems/world';
 
 function merge(packs: ContentPack[]): ContentMap {
   const out: Record<string, unknown> = {};
@@ -103,19 +103,22 @@ describe('recruitment', () => {
     });
   });
 
-  it('scales companion levels with the player', () => {
+  it('joins at the card level and grows with shared quest experience, never past player + 2', () => {
     const g = makeGame();
     recruit(g, 'yeyu', 'ron');
     expect(units(g).companion_yeyu?.level).toBe(3);
+    // U-11: Ron joins at the level of the character table
+    expect(units(g).companion_ron?.level).toBe(11);
     withCtx(g, (ctx) =>
-      ctx.emit('xp.awarded', { entityId: 'player', amount: 60000, reason: 'test' }),
+      ctx.emit('xp.awarded', { entityId: 'player', amount: 60000, reason: 'quest' }),
     );
     g.step(1);
     const pl = units(g).player?.level ?? 0;
     expect(pl).toBeGreaterThan(10);
-    expect(units(g).companion_yeyu?.level).toBe(pl + 1);
-    expect(units(g).companion_ron?.level).toBe(pl);
-    expect(ents(g).companion_ron?.tags).toContain(`lvl:${pl}`);
+    // both trail far enough for catch-up and stop at the cap (companions_and_party.md 4.2)
+    expect(units(g).companion_yeyu?.level).toBe(pl + 2);
+    expect(units(g).companion_ron?.level).toBe(pl + 2);
+    expect(ents(g).companion_ron?.tags).toContain(`lvl:${pl + 2}`);
   });
 
   it('leaves when the recruited flag is cleared', () => {
@@ -160,6 +163,7 @@ describe('following and fighting', () => {
   it('healers heal the most wounded member', () => {
     const g = makeGame();
     isolate(g);
+    g.queue('flag.set', { key: 'a1_oola_fate', value: 'cleared' });
     recruit(g, 'oola');
     const u = units(g).player;
     if (!u) throw new Error('no player');
@@ -222,22 +226,23 @@ describe('following and fighting', () => {
     expect(lastResult(g, 'party.order')?.code).toBe('no_companion');
   });
 
-  it('a downed companion gets back up beside the player after the fight', () => {
+  it('a downed companion gets back up beside the player once the fight is over', () => {
     const g = makeGame();
     isolate(g);
+    g.queue('flag.set', { key: 'a2_company_partner', value: true });
     recruit(g, 'nera');
     const id = spawnNear(g, 'black_ridge', 11, 2);
     const nu = units(g).companion_nera;
     if (nu) nu.hp = 1;
     for (let i = 0; i < 400 && !nu?.downed; i++) g.step(1);
     expect(nu?.downed).toBe(true);
-    g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins_depths', x: 12.5, y: 17.5 });
-    g.step(20 * 25);
+    // the fight ends: the enemy is gone, and after 15 calm seconds she stands up
+    withCtx(g, (ctx) => removeEntity(ctx, id));
+    for (let i = 0; i < 20 * 40 && nu?.downed; i++) g.step(1);
     expect(nu?.downed).toBe(false);
     expect(ents(g).companion_nera?.alive).toBe(true);
-    expect(ents(g).companion_nera?.mapId).toBe('seal_ruins_depths');
     expect(nu?.auras.map((a) => a.id)).toContain('aur_st_downed_weak');
-    void id;
+    expect(g.world.slices.party.members.nera?.state).toBe('party');
   });
 });
 
@@ -252,13 +257,20 @@ describe('bonds', () => {
     });
     g.queue('party.gift', { companionId: 'yeyu', itemId: 'minor_healing_potion' });
     g.step(1);
-    expect(bondOf(g.world, 'yeyu')).toBe(start + 4);
+    // 8.4: one plus the quality; a liked kind counts double
+    expect(bondOf(g.world, 'yeyu')).toBe(start + 2);
     g.queue('party.gift', { companionId: 'yeyu', itemId: 'raven_quill_charm' });
     g.step(1);
-    expect(bondOf(g.world, 'yeyu')).toBe(start + 4 + 16);
+    expect(bondOf(g.world, 'yeyu')).toBe(start + 2 + 8);
+    g.queue('party.gift', { companionId: 'yeyu', itemId: 'raven_quill_charm' });
+    g.step(1);
+    g.queue('party.gift', { companionId: 'yeyu', itemId: 'raven_quill_charm' });
+    g.step(1);
+    // three gifts a week count; the fourth is taken but adds nothing
+    expect(bondOf(g.world, 'yeyu')).toBe(start + 2 + 8 + 8);
     // the bond is party state (door keys of type bond read it), not a world flag
-    expect(bondReached(g.world, 'yeyu', 20)).toBe(true);
-    expect(bondReached(g.world, 'yeyu', 40)).toBe(false);
+    expect(bondReached(g.world, 'yeyu', 18)).toBe(true);
+    expect(bondReached(g.world, 'yeyu', 20)).toBe(false);
     expect(Object.keys(g.world.meta.flags).some((k) => k.startsWith('bond.'))).toBe(false);
   });
 
@@ -291,6 +303,7 @@ describe('bonds', () => {
     if (du) du.hp = 1;
     g.queue('combat.attack', { on: true, targetId: id });
     for (let i = 0; i < 200 && ents(g)[id]?.alive; i++) g.step(1);
-    expect(g.world.slices.party.members.ron?.bond).toBe(before + 15.25);
+    // 8.4: a shared kill of a normal enemy is +0.05
+    expect(g.world.slices.party.members.ron?.bond).toBeCloseTo(before + 15.05, 6);
   });
 });

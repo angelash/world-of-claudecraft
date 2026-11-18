@@ -62,8 +62,14 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'ky_', owner: 'catalog_relics_lore.md', tables: ITEMS },
   { prefix: 'col_', owner: 'catalog_relics_lore.md', tables: ITEMS },
   { prefix: 'evi_', owner: 'catalog_relics_lore.md', tables: ITEMS },
-  { prefix: 'pet_', owner: 'catalog_creatures_mounts.md', tables: [] },
-  { prefix: 'mnt_', owner: 'catalog_creatures_mounts.md', tables: ITEMS },
+  // the history's in-game documents H01 to H24 (history.md 12; registry 6.1: lore_h01 to
+  // lore_h24); longer than the topics' lore_, so lore_heroes stays a topic (PK-M1-34)
+  { prefix: 'lore_h0', owner: 'history.md 12 (documents)', tables: ITEMS },
+  { prefix: 'lore_h1', owner: 'history.md 12 (documents)', tables: ITEMS },
+  { prefix: 'lore_h2', owner: 'history.md 12 (documents)', tables: ITEMS },
+  // beast companions and mounts (companions_and_party.md 2.3; PK-M1-15): a mount is also an item
+  { prefix: 'pet_', owner: 'catalog_creatures_mounts.md', tables: ['pets'] },
+  { prefix: 'mnt_', owner: 'catalog_creatures_mounts.md', tables: [...ITEMS, 'mounts'] },
   // a contract fiend's combat template is a monster template plus the pet behaviour
   // (combat_and_classes.md 6.5.8 and 12.3; catalog_abilities_talents.md 4.5)
   { prefix: 'fiend_', owner: 'catalog_creatures_mounts.md', tables: ['monsters'] },

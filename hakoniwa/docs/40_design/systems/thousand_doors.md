@@ -641,7 +641,7 @@ KeyView = 只读视图 { flag(k), itemCount(id), trust(id), npcState(id), deed(i
 | --- | --- | --- | --- | --- | --- |
 | 1 | `door_corridor` | 初门·醒 | 客户端窗口注册表 `src/client/windows/window_registry.ts`（回廊窗口，`requiresAll` 为 `feature.door_corridor`）；千门查询 `corridorOpen`、`corridorLayout`（第一段随它长出）；HUD 的门镜部件 | 回廊界面与门镜第一次可用；序章门提示的两道门缝在这一刻出现；之前任何界面都不显示回廊入口 | 窗口与查询已接；门镜部件新接 |
 | 2 | `tide_sight` | 观澜之门 | 战斗查询 `src/systems/combat/queries.ts` 的 `strengthReading`、`targetInfo` | 目标框显示等级区间；精度与"？"阈值按 4.7 节随门阶变化 | 已接；精度分档新接 |
-| 3 | `servant` | 契约之门 | 同伴系统新模块 `src/systems/party/retainers.ts`；战斗的力竭结算（`yieldAtPct`） | 力竭目标旁出现"伸手"交互；命令 `doors.pact` 缔结从契（3.7）：目标净化为从兽或人形从者，进入名册，占从者位 | 新接 |
+| 3 | `servant` | 契约之门 | 同伴系统新模块 `src/systems/party/retainers.ts`；战斗的力竭结算（`yieldAtPct`） | 力竭目标旁出现"伸手"交互（查询 `pactCandidates`）；命令 `party.pact` 缔结从契（3.7）：目标净化为从兽或人形从者，进入名册，占从者位 | 新接 |
 | 4 | `appraise_talent` | 识才之门 | 认知鉴定 `src/systems/cognition/appraise.ts` | 鉴定 NPC 时读出底页潜质 | 已接 |
 | 5 | `inner_court` | 门内庭院 | 城建庭院 `src/systems/city/court.ts`；窗口注册表；千门系统的复苏 | 庭院可进入；死亡复苏点移到庭院（6.3）；庭翼的扩建之门开始可能显影 | 已接；复苏点新接 |
 | 6 | `restraint` | 收放之门 | 战斗的威压发出侧（`combat.presence_felt` 的来源）；认知的显露度；坐骑的惊退判定 | 两种姿态。收（默认）：战斗中不外泄灵压，旁观者见到的表观位阶按历练等级降一阶计，显露度不增长。放：技能 `release_presence` 对 12 码内敌人施加威压（按位阶差，[力量 3.5][pow]）。坐骑不被灵压惊退 | 新接 |

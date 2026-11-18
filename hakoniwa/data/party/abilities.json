@@ -1,0 +1,13 @@
+[
+  {
+    "id": "sk_yeyu_ravenswarm",
+    "name": "鸦群",
+    "desc": "夜羽召来一群乌鸦扑向一名敌人的脸，令它短暂失明；受到伤害即醒。",
+    "target": "enemy",
+    "range": 10,
+    "cooldown": 30,
+    "school": "shadow",
+    "effects": [{ "type": "aura", "aura": "aur_mon_blinded" }],
+    "ai": "cc"
+  }
+]

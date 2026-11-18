@@ -1,85 +1,100 @@
-// Party system, phase 25: companions and the servant. Spawns a companion next to the
-// player when companion.<id>.recruited turns true, scales its level with the player,
-// drives its rule AI (ai.ts), keeps it beside the player across maps, and tracks bonds.
+// Party system, phase 25 (companions_and_party.md): companions, the servant, retainers and
+// the beast companion. A thin coordinator: the roster (roster.ts) spawns a companion beside
+// the player when companion.<id>.recruited turns true and keeps the rest of the roster out
+// of the world; the brain (ai.ts) runs the six-layer behaviour tree under the stance and
+// the tactical orders (commands.ts); experience (growth.ts), bonds (bond.ts), the story's
+// red lines, departures and personal lines (story.ts), going down and grave injury
+// (wounds.ts), the ironman switch (ironman.ts), beasts and retainers (pets.ts), temporary
+// companions (temps.ts), sediment exposure (exposure.ts) and mounts (mounts.ts) are their
+// own modules.
 
-import { ok, reject } from '../../core';
+import type { ContentMap } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
-import { tr } from '../../core/text';
-import { addUnit, setLevel, unitOf } from '../combat';
-import { countItem, itemDef, removeItem } from '../inventory';
-import { getEntity, playerEntity, removeEntity, spawnEntity, teleportEntity } from '../world';
-import { tickMember } from './ai';
-import { addBond, applyBondFlags, giftValue, killValue } from './bond';
-import type { CompanionDef, Member, PartyOrder } from './types';
+import { unitOf } from '../combat';
+import { referencedVars } from '../quests/conditions';
+import { getEntity, teleportEntity } from '../world';
+import { type Profile, tickMember } from './ai';
+import { addKillBond, applyBondFlags } from './bond';
+import { commands } from './commands';
+import { companionDef, partyConfig } from './config';
+import { enrolBodies, onCrystalDue } from './exposure';
+import { onCompanionKillXp, onPlayerXp } from './growth';
+import { ironmanWritten } from './ironman';
+import { mountItemChanged } from './mounts';
+import { onBag, syncPets } from './pets';
+import { bodyFor, bringIn, fieldMembers, join, leave, sortedMembers, stateOf } from './roster';
+import { checkPresence, seenRedLines, settleStory } from './story';
+import { onQuestStage, onTalked, releaseTemp, settleTemps } from './temps';
+import type { Member } from './types';
+import {
+  noteHit,
+  onDefeat,
+  onDown,
+  partyFighting,
+  slotNear,
+  snapHealth,
+  tickClocks,
+} from './wounds';
 
 export * from './bond';
+export { DEFAULT_PARTY_CONFIG, partyConfig, slotsFor } from './config';
+export { catchUpFactor, levelCap } from './growth';
+export { ironmanOn } from './ironman';
+export { activeMount, mountStops, rideDayKm } from './mounts';
+export { bagKeeper, pactCandidates, petLevel } from './pets';
+export { recruitable, slotsUsed } from './roster';
 export type * from './types';
 export * from './view';
 
-const ORDERS: PartyOrder[] = ['follow', 'assist', 'passive', 'stay'];
 const RECRUIT = /^companion\.([a-z0-9_]+)\.recruited$/;
 
-function companionDef(ctx: SystemContext, id: string): CompanionDef | undefined {
-  return (ctx.content.companions ?? []).find((c) => c.id === id);
+/** Variables the red lines, departures, returns and presence records read (per content set). */
+const storyVars = new WeakMap<ContentMap, { story: Set<string>; presence: Set<string> }>();
+function storyKeys(content: ContentMap): { story: Set<string>; presence: Set<string> } {
+  let s = storyVars.get(content);
+  if (!s) {
+    const story = new Set<string>();
+    const presence = new Set<string>();
+    for (const def of content.companions ?? []) {
+      for (const r of def.redLines ?? []) for (const v of referencedVars(r.when)) story.add(v);
+      for (const l of def.leaves ?? []) {
+        for (const v of referencedVars(l.when)) story.add(v);
+        if (l.back) for (const v of referencedVars(l.back.when)) story.add(v);
+      }
+      for (const p of def.presence ?? []) for (const v of referencedVars(p.when)) presence.add(v);
+    }
+    s = { story, presence };
+    storyVars.set(content, s);
+  }
+  return s;
 }
 
-function targetLevel(ctx: SystemContext, def: CompanionDef): number {
-  const p = unitOf(ctx.world, ctx.world.slices.world.playerId);
-  return Math.max(def.level, (p?.level ?? 1) + def.levelOffset);
+function profileOf(ctx: SystemContext, m: Member): Profile | undefined {
+  if (m.pet) return { id: m.id, role: 'melee' };
+  return companionDef(ctx.content, m.id);
 }
 
-/** Spawn the companion beside the player and give it a combat unit. */
-export function join(ctx: SystemContext, id: string): Member | undefined {
-  const slice = ctx.world.slices.party;
-  if (slice.members[id]) return slice.members[id];
-  const def = companionDef(ctx, id);
-  const p = playerEntity(ctx.world);
-  if (!def || !p) return undefined;
-  const e = spawnEntity(ctx, {
-    id: `companion_${id}`,
-    kind: 'companion',
-    name: def.name,
-    mapId: p.mapId,
-    x: p.x - 1,
-    y: p.y + 1,
-    faction: 'player',
-    appearance: def.appearance,
-    speed: p.speed,
-    tags: ['companion', 'friendly', `class:${def.classId}`, `faction:player`],
-    ref: id,
-  });
-  addUnit(ctx, e.id, { classId: def.classId, level: targetLevel(ctx, def), side: 'ally' });
-  const m: Member = {
-    id,
-    entityId: e.id,
-    order: 'assist',
-    bond: 0,
-    reached: [],
-    told: [],
-    joinedTick: ctx.tick,
-    downedTick: 0,
-    pathAt: 0,
-  };
-  slice.members[id] = m;
-  ctx.emit('party.joined', { companionId: id, entityId: e.id });
+function recruited(ctx: SystemContext, id: string): void {
+  const have = ctx.world.slices.party.members[id];
+  if (have?.temp) releaseTemp(ctx, have);
+  const m = join(ctx, id);
+  const def = companionDef(ctx.content, id);
+  if (!m || !def) return;
+  seenRedLines(ctx, def, m);
   applyBondFlags(ctx, def, m);
-  return m;
 }
 
-export function leave(ctx: SystemContext, id: string): void {
-  const slice = ctx.world.slices.party;
-  const m = slice.members[id];
-  if (!m) return;
-  delete slice.members[id];
-  removeEntity(ctx, m.entityId);
-  ctx.emit('party.left', { companionId: id });
-}
-
-function members(ctx: SystemContext): Member[] {
-  const slice = ctx.world.slices.party;
-  return Object.keys(slice.members)
-    .sort()
-    .map((k) => slice.members[k] as Member);
+/** The player moved to another map: the party comes along (waiting and guarding stay). */
+function followPlayer(ctx: SystemContext): void {
+  const p = getEntity(ctx.world, ctx.world.slices.world.playerId);
+  if (!p) return;
+  if (partyFighting(ctx)) onDefeat(ctx);
+  fieldMembers(ctx.world).forEach((m, i) => {
+    if (m.temp || stateOf(m) === 'waiting' || m.pet?.guarding) return;
+    if (unitOf(ctx.world, m.entityId)?.downed) return;
+    const s = slotNear(p, i + 1);
+    teleportEntity(ctx, m.entityId, p.mapId, s.x, s.y);
+  });
 }
 
 export const system: GameSystem = {
@@ -89,94 +104,122 @@ export const system: GameSystem = {
   init(ctx) {
     ctx.world.slices.party = { members: {} };
     for (const def of ctx.content.companions ?? []) {
-      if (ctx.flag(`companion.${def.id}.recruited`)) join(ctx, def.id);
+      if (ctx.flag(`companion.${def.id}.recruited`)) recruited(ctx, def.id);
     }
   },
 
   tick(ctx) {
-    const list = members(ctx);
+    // members whose old body was still being removed when they came back (roster.ts)
+    for (const m of sortedMembers(ctx.world)) {
+      if (!m.pendingIn) continue;
+      const body = bodyFor(ctx, m);
+      if (body) bringIn(ctx, m, body);
+    }
+    snapHealth(ctx);
+    const list = fieldMembers(ctx.world);
     list.forEach((m, i) => {
       if ((ctx.tick + i) % 5 !== 0) return;
-      const def = companionDef(ctx, m.id);
-      if (def) tickMember(ctx, def, m, i + 1, list);
+      const prof = profileOf(ctx, m);
+      if (prof) tickMember(ctx, prof, m, i + 1, list);
     });
+    if (ctx.tick % 20 === 0) {
+      tickClocks(ctx);
+      settleTemps(ctx);
+    }
   },
 
-  commands: {
-    'party.order'(ctx, d) {
-      if (!ORDERS.includes(d.order)) return reject('bad_order', tr('sys.party.reject.bad_order'));
-      const list = d.companionId ? [ctx.world.slices.party.members[d.companionId]] : members(ctx);
-      if (list.length === 0 || !list[0])
-        return reject('no_companion', tr('sys.party.reject.no_companion'));
-      for (const m of list) {
-        if (!m) continue;
-        m.order = d.order;
-        ctx.emit('party.order', { companionId: m.id, order: d.order });
-      }
-      return ok();
-    },
-    'party.gift'(ctx, d) {
-      const m = ctx.world.slices.party.members[d.companionId];
-      const def = companionDef(ctx, d.companionId);
-      if (!m || !def) return reject('no_companion', tr('sys.party.reject.no_companion'));
-      const item = itemDef(ctx.content, d.itemId);
-      const pid = ctx.world.slices.world.playerId;
-      if (!item) return reject('no_item', tr('sys.party.reject.no_item'));
-      if (item.kind === 'key' || item.kind === 'evidence')
-        return reject('not_giftable', tr('sys.party.reject.not_giftable'));
-      if (countItem(ctx.world, pid, d.itemId) <= 0)
-        return reject('missing', tr('sys.party.reject.missing'));
-      removeItem(ctx, pid, d.itemId, 1, `gift:${d.companionId}`);
-      addBond(ctx, m, giftValue(def, item), `gift:${d.itemId}`);
-      return ok();
-    },
-  },
+  commands,
 
   on: {
     'flag.changed'(ctx, ev) {
-      const hit = RECRUIT.exec(ev.data.key);
+      const key = ev.data.key;
+      const hit = RECRUIT.exec(key);
       if (hit) {
         const id = hit[1] as string;
-        if (ev.data.value) join(ctx, id);
-        else leave(ctx, id);
+        if (ev.data.value) recruited(ctx, id);
+        else if (!ctx.world.slices.party.members[id]?.temp) leave(ctx, id);
         return;
       }
-      for (const m of members(ctx)) {
-        const def = companionDef(ctx, m.id);
-        if (def?.bondFlags?.some((b) => b.flag === ev.data.key)) applyBondFlags(ctx, def, m);
+      if (key === 'ironman') {
+        ironmanWritten(ctx, ev.data.value);
+        return;
       }
+      if (key === 'door_rank') syncPets(ctx);
+      const keys = storyKeys(ctx.content);
+      if (keys.presence.has(key)) checkPresence(ctx);
+      for (const m of sortedMembers(ctx.world)) {
+        if (m.temp || m.pet) continue;
+        const def = companionDef(ctx.content, m.id);
+        if (def?.bondFlags?.some((b) => b.flag === key)) applyBondFlags(ctx, def, m);
+      }
+      if (keys.story.has(key)) settleStory(ctx);
+    },
+    'world.day'(ctx) {
+      // conditions on the calendar terms (day, season) are not flags: check once a day
+      settleStory(ctx);
+    },
+    'world.hour'(ctx) {
+      enrolBodies(ctx);
     },
     'player.level_up'(ctx) {
-      for (const m of members(ctx)) {
-        const def = companionDef(ctx, m.id);
-        const u = unitOf(ctx.world, m.entityId);
-        if (!def || !u) continue;
-        const want = targetLevel(ctx, def);
-        if (u.level < want) setLevel(ctx, u, want);
-      }
+      syncPets(ctx);
     },
     'world.map_changed'(ctx, ev) {
-      if (ev.data.id !== ctx.world.slices.world.playerId) return;
-      const p = getEntity(ctx.world, ev.data.id);
-      if (!p) return;
-      members(ctx).forEach((m, i) => {
-        teleportEntity(ctx, m.entityId, p.mapId, p.x - 1 - (i % 2), p.y + 1 + Math.floor(i / 2));
-      });
+      if (ev.data.id === ctx.world.slices.world.playerId) followPlayer(ctx);
     },
     'entity.died'(ctx, ev) {
-      for (const m of members(ctx)) {
-        if (m.entityId === ev.data.id) m.downedTick = ctx.tick;
+      if (ev.data.id === ctx.world.slices.world.playerId) {
+        onDefeat(ctx);
+        return;
       }
+      for (const m of fieldMembers(ctx.world))
+        if (m.entityId === ev.data.id && !m.temp) onDown(ctx, m);
+    },
+    'combat.damage'(ctx, ev) {
+      if (ev.data.amount <= 0) return;
+      for (const m of fieldMembers(ctx.world))
+        if (m.entityId === ev.data.targetId) noteHit(ctx, m, ev.data.amount);
     },
     'combat.kill'(ctx, ev) {
       if (ev.data.killerSide !== 'ally' || ev.data.side === 'ally') return;
-      const p = playerEntity(ctx.world);
-      for (const m of members(ctx)) {
+      const range = partyConfig(ctx.content).bondKill.range;
+      const p = getEntity(ctx.world, ctx.world.slices.world.playerId);
+      for (const m of fieldMembers(ctx.world)) {
+        if (m.temp || m.pet) continue;
         const e = getEntity(ctx.world, m.entityId);
         if (!e?.alive || !p || e.mapId !== ev.data.mapId) continue;
-        if (Math.hypot(e.x - p.x, e.y - p.y) > 20) continue;
-        addBond(ctx, m, killValue(ev.data.rank), 'shared_kill');
+        if (Math.hypot(e.x - p.x, e.y - p.y) > range) continue;
+        addKillBond(ctx, m, ev.data.rank);
       }
+    },
+    'combat.xp'(ctx, ev) {
+      const d = ev.data;
+      if (d.entityId === ctx.world.slices.world.playerId) {
+        onPlayerXp(ctx, d.amount, d.reason);
+        return;
+      }
+      if (typeof d.reason !== 'string' || !d.reason.startsWith('kill:')) return;
+      for (const m of fieldMembers(ctx.world))
+        if (m.entityId === d.entityId) onCompanionKillXp(ctx, m, d.amount, d.level);
+    },
+    'combat.level_up'(ctx, ev) {
+      for (const m of fieldMembers(ctx.world))
+        if (m.entityId === ev.data.entityId && m.pet?.kind === 'half') syncPets(ctx);
+    },
+    'combat.bag'(ctx, ev) {
+      onBag(ctx, ev.data.bagId, ev.data.op);
+    },
+    'ailments.crystal_due'(ctx, ev) {
+      onCrystalDue(ctx, ev.data.entityId);
+    },
+    'quest.stage'(ctx, ev) {
+      onQuestStage(ctx, ev.data.questId, ev.data.stage);
+    },
+    'player.talked'(ctx, ev) {
+      if (ev.data.npcRef) onTalked(ctx, ev.data.npcRef);
+    },
+    'inventory.changed'(ctx, ev) {
+      if (ev.data.delta < 0) mountItemChanged(ctx, ev.data.ownerId, ev.data.itemId);
     },
   },
 };
