@@ -28,6 +28,8 @@ export interface QualitySettings {
   tiltShift: boolean;
   grain: boolean;
   maxPixelRatio: number;
+  /** far sky layers drawn (art_pipeline.md 2.13): far mountains, then clouds, then the mid band */
+  skyLayers: number;
 }
 
 export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
@@ -42,6 +44,7 @@ export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
     tiltShift: true,
     grain: true,
     maxPixelRatio: 2,
+    skyLayers: 3,
   },
   high: {
     tier: 'high',
@@ -51,6 +54,7 @@ export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
     tiltShift: true,
     grain: true,
     maxPixelRatio: 2,
+    skyLayers: 3,
   },
   mid: {
     tier: 'mid',
@@ -60,6 +64,7 @@ export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
     tiltShift: false,
     grain: true,
     maxPixelRatio: 1.5,
+    skyLayers: 2,
   },
   low: {
     tier: 'low',
@@ -69,6 +74,7 @@ export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
     tiltShift: false,
     grain: false,
     maxPixelRatio: 1,
+    skyLayers: 1,
   },
   flat: {
     tier: 'flat',
@@ -78,6 +84,7 @@ export const QUALITY_TIERS: Readonly<Record<QualityTier, QualitySettings>> = {
     tiltShift: false,
     grain: false,
     maxPixelRatio: 2,
+    skyLayers: 0,
   },
 };
 

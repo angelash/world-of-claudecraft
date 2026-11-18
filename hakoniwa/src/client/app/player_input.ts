@@ -11,6 +11,8 @@ import { enemiesNear, unitOf } from '../../systems/combat';
 import type { PartyOrder } from '../../systems/party';
 import { screenIntentToWorld } from '../hd2d/view';
 import type { DialogueQueue } from '../hud/dialogue_queue';
+import { gateAction, gateExits } from '../hud/exit_choice_model';
+import { askExitChoice } from '../hud/exit_choice_pop';
 import type { Hud } from '../hud/hud';
 import { sceneKey, scenePanelModel } from '../hud/scene_model';
 import { promptFor } from '../hud/story/prologue_stage';
@@ -21,7 +23,7 @@ import type { GameSink, TextTarget } from '../input/input_hub';
 import { defaultInputSettings, type InputSettings } from '../input/input_settings';
 import { type Intent, isZero } from '../input/keymap';
 import type { RingId } from '../input/pad_bindings';
-import { nearestExit, nextTarget } from '../input/picking';
+import { nextTarget } from '../input/picking';
 import { RING_TIME_SCALE, type RingSector } from '../input/radial';
 import {
   cycleTarget,
@@ -31,7 +33,7 @@ import {
   type SoftCandidate,
 } from '../input/soft_target';
 import type { ClientAdapters } from '../view/adapters';
-import type { ClientCommand, GameView } from '../view/game_view';
+import { type ClientCommand, flagOn, type GameView } from '../view/game_view';
 import type { WindowManager } from '../windows/window_manager';
 import { type WindowId, windowTitle } from '../windows/window_registry';
 import type { FixedStepClock } from './clock';
@@ -379,9 +381,19 @@ export class PlayerInput implements GameSink {
     const p = v.player();
     const map = v.currentMap();
     if (p && map) {
-      const exit = nearestExit(map, p);
-      if (exit) {
-        this.s.queue([{ kind: 'world.use_exit', data: { entityId: p.id, exitId: exit.id } }]);
+      // a gate with several ways out asks where to go (exit_choice_model.ts)
+      const ways = gateExits(map, p, (k) => flagOn(v.flag(k)));
+      const act = gateAction(ways);
+      if (act.kind === 'leave') {
+        this.s.queue([{ kind: 'world.use_exit', data: { entityId: p.id, exitId: act.exitId } }]);
+        return;
+      }
+      if (act.kind === 'ask') {
+        void askExitChoice(ways).then((exitId) => {
+          const me = this.v.player();
+          if (exitId && me)
+            this.s.queue([{ kind: 'world.use_exit', data: { entityId: me.id, exitId } }]);
+        });
         return;
       }
     }

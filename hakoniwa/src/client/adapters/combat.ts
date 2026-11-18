@@ -1,23 +1,29 @@
 // Combat-side adapters: unit frames (combat unit views, strength readings, appraisal and
 // felt pressure), the hotbar from the ability bar, Tab targeting, movement locks,
-// animation cues and floating combat text. Pure functions of GameView plus the combat,
-// npc and cognition queries.
+// animation cues, floating combat text, and the combat marks of the world picture (threat,
+// boss, enemy cast bars and the ground warnings of area casts). Pure functions of GameView
+// plus the combat, npc and cognition queries.
 
 import type { AnyWorldEvent } from '../../core/contracts';
 import { hasText, t, tOr } from '../../shared_ui/i18n';
 import { appraisalLog, lastAppraisal, pressureSense } from '../../systems/cognition';
+import type { AbilityDef, MonsterDef } from '../../systems/combat';
 import {
   abilityBar,
   canMove,
   enemiesNear,
+  interruptibleNow,
   isHostile,
   strengthReading,
   targetInfo,
+  telegraphsOn,
   unitOf,
   unitView,
   xpProgress,
 } from '../../systems/combat';
 import { npcIdOfEntity, npcView } from '../../systems/npc';
+import type { Entity } from '../../systems/world/types';
+import type { EntityMarks, GroundWarning } from '../render/combat_marks';
 import type {
   AnimCue,
   AppraiseAdapter,
@@ -29,6 +35,7 @@ import type {
   HotbarSlotView,
   UnitFrameAdapter,
   UnitFrameData,
+  WorldMarks,
 } from '../view/adapters';
 import { contentNames } from '../view/content_names';
 import type { GameView } from '../view/game_view';
@@ -208,6 +215,111 @@ export function animationCuesFor(ev: AnyWorldEvent): AnimCue[] {
   }
 }
 
+const rowIndexes = new WeakMap<object, Map<string, unknown>>();
+
+/** A content row by id, indexed once per table. */
+function rowById<T extends { id: string }>(
+  rows: readonly T[] | undefined,
+  id: string,
+): T | undefined {
+  if (!rows) return undefined;
+  let m = rowIndexes.get(rows) as Map<string, T> | undefined;
+  if (!m) {
+    m = new Map(rows.map((r) => [r.id, r]));
+    rowIndexes.set(rows, m as Map<string, unknown>);
+  }
+  return m.get(id);
+}
+
+/** The kernel's default area radius of an ability without one (abilities.ts `pick`). */
+function areaRadius(def: AbilityDef): number {
+  return def.radius ?? (def.target === 'area' ? 3 : 2);
+}
+
+/**
+ * The combat marks of the living units on a map, as the player sees them: an enemy whose
+ * target is the player is a threat (4.1), a boss in a fight gets the boss mark, a cast shows
+ * its progress (a channel drains) and whether it can be interrupted now (the kernel's
+ * `interruptibleNow`: shields and interrupt windows count, 4.2). Ground warnings (4.6) are
+ * the kernel's own warnings (`telegraphsOn`: the locked cells, or the circle of a warning
+ * that follows a unit or a mark) and, for an area cast the kernel does not warn, the circle it
+ * will hit: around the caster for `area`, around its target for `enemy_area`, with the
+ * radius the kernel uses.
+ */
+export function worldMarks(
+  view: GameView,
+  mapId: string,
+  onMap: readonly Readonly<Entity>[] = view.entitiesOnMap(mapId),
+): WorldMarks {
+  const w = view.world as never;
+  const content = view.content as { abilities?: AbilityDef[]; monsters?: MonsterDef[] };
+  const playerId = view.playerId();
+  const tick = view.tick;
+  const marks = new Map<string, EntityMarks>();
+  const warnings: GroundWarning[] = [];
+  const at = (id: string | null | undefined) => {
+    const e = id ? view.entity(id) : undefined;
+    return e && e.mapId === mapId ? e : undefined;
+  };
+  for (const e of onMap) {
+    if (!e.alive || e.hidden) continue;
+    const u = unitOf(w, e.id);
+    if (!u || u.downed) continue;
+    const hostile = e.id !== playerId && isHostile(w, playerId, e.id);
+    const fighting = u.combatUntil > tick;
+    const c = u.cast;
+    const def = c ? rowById(content.abilities, c.abilityId) : undefined;
+    let progress = 0;
+    if (c) {
+      const k = Math.max(0, Math.min(1, (tick - c.start) / Math.max(1, c.end - c.start)));
+      // a channel's bar empties as it runs (4.2); a cast fills
+      progress = c.channel ? 1 - k : k;
+    }
+    const cast = c
+      ? { progress, interruptible: interruptibleNow(w, view.content as never, u) }
+      : null;
+    const threat = hostile && u.target === playerId;
+    const rank = u.monsterId ? rowById(content.monsters, u.monsterId)?.rank : undefined;
+    const boss = hostile && rank === 'boss' && fighting;
+    if (cast || threat || boss) marks.set(e.id, { threat, boss, cast });
+    const area = def && (def.target === 'area' || def.target === 'enemy_area');
+    if (c && def && area && !def.telegraph) {
+      const centre = def.target === 'area' ? e : at(c.targetId);
+      if (centre)
+        warnings.push({
+          id: `cast:${e.id}`,
+          shape: { kind: 'circle', x: centre.x, y: centre.y, radius: areaRadius(def) },
+          progress: c.channel ? 1 - progress : progress,
+          hostile,
+        });
+    }
+  }
+  for (const t of telegraphsOn(w, mapId)) {
+    const span = Math.max(1, t.settle - t.start);
+    const hostile = t.casterId !== playerId && isHostile(w, playerId, t.casterId);
+    const followId = t.mark?.targetId ?? t.follow;
+    const radius = t.mark?.radius ?? t.radius;
+    const follower = followId && radius ? at(followId) : undefined;
+    let pulse = 0;
+    if (t.pulse) {
+      // the edge flashes over the last quarter second before each pulse
+      const left = t.pulse.next - tick;
+      pulse = left >= 0 && left <= 5 ? 1 - left / 5 : 0;
+    }
+    warnings.push({
+      id: `tg:${t.id}`,
+      shape:
+        follower && radius
+          ? { kind: 'circle', x: follower.x, y: follower.y, radius }
+          : { kind: 'cells', cells: t.cells },
+      progress: t.pulse ? 1 : Math.max(0, Math.min(1, (tick - t.start) / span)),
+      hostile: t.casterId === playerId ? false : hostile || !unitOf(w, t.casterId),
+      pulse,
+    });
+  }
+  return { marks, warnings };
+}
+
 export function createCombatAdapter(): CombatAdapter {
   let tabCursor: string | null = null;
   return {
@@ -241,6 +353,7 @@ export function createCombatAdapter(): CombatAdapter {
     animationCues: (_view, ev) => animationCuesFor(ev),
     floatingText: floatingFor,
     isHostile: (view, id) => isHostile(view.world as never, view.playerId(), id),
+    worldMarks,
   };
 }
 

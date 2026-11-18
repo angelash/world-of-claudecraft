@@ -1272,7 +1272,7 @@
     "borderstone": {
       "pack": "4563b726",
       "layout": "a1674448",
-      "roofs": "9f3a1d57"
+      "roofs": "becf7759"
     },
     "forest_edge": {
       "pack": "6df6113a",
@@ -1292,12 +1292,12 @@
     "inner_court": {
       "pack": "241d406b",
       "layout": "2a74391c",
-      "roofs": "0a8621e4"
+      "roofs": "8d676252"
     },
     "wallenburg": {
       "pack": "e9a93c8f",
       "layout": "96f5b2eb",
-      "roofs": "92777608"
+      "roofs": "46492e88"
     },
     "wallenburg_sewers": {
       "pack": "e03d9400",
@@ -1305,5 +1305,5 @@
       "roofs": "811c9dc5"
     }
   },
-  "quality": "f86cda34"
+  "quality": "b99f8748"
 }

@@ -9,6 +9,7 @@
 import { isTypingTarget } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
 import { confirmOpen } from '../hud/confirm_pop';
+import { exitChoiceOpen } from '../hud/exit_choice_pop';
 import { FloatingKeyboard } from '../hud/floating_keyboard';
 import { type HotbarLayout, hotbarLayout } from '../hud/hotbar_model';
 import { RadialMenu } from '../hud/radial_menu';
@@ -153,9 +154,9 @@ export class InputLayer implements UiSink {
   /** Every animation frame: poll the pad, keep the pad's focus and option cursor shown. */
   frame(nowMs: number): void {
     const snap = readGamepad();
-    if (confirmOpen()) {
-      // the confirm popup reads the pad itself (6.4); nothing it pressed reaches the game,
-      // even a button still held when it closes
+    if (confirmOpen() || exitChoiceOpen()) {
+      // the confirm popup (and the gate's destination chooser) read the pad themselves (6.4);
+      // nothing they pressed reaches the game, even a button still held when one closes
       this.hub.consumeHeld(snap, nowMs);
       return;
     }

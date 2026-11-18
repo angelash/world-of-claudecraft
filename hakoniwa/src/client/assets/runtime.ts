@@ -91,6 +91,15 @@ export function buildFrame(look: SpriteLook, anim: AnimName, dir: Dir, frame: nu
   return art.composed ?? assetSpriteFrame(art.sheet, art.frame, look, anim, frame);
 }
 
+/**
+ * The decoded pixels of an approved single-image asset (a far-sky layer strip), or null to
+ * keep the placeholder (art_pipeline.md 2.13, 6.4).
+ */
+export function bitmapPixels(assetId: string): PixelMatrix | null {
+  if (resolver.size === 0 || !resolver.has(assetId)) return null;
+  return pixels.get(assetId) ?? null;
+}
+
 /** Portrait pixels for a look's expression, or null to crop the standee (art_pipeline.md 3.6). */
 export function portraitPixels(look: SpriteLook, expression = 'neutral'): PixelMatrix | null {
   if (resolver.size === 0) return null;

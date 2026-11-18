@@ -115,3 +115,18 @@ export function sunSkyAt(
     snow: weather === 'snow' ? 1 : 0,
   };
 }
+
+/** Two lights blended at t (a cutscene weather change fading over a second). */
+export function blendSunSky(a: SunSky, b: SunSky, t: number): SunSky {
+  const k = Math.max(0, Math.min(1, t));
+  const n = (x: number, y: number) => x + (y - x) * k;
+  return {
+    ...blendState(a, b, k),
+    sunDir: b.sunDir,
+    daylight: n(a.daylight, b.daylight),
+    lampLevel: b.lampLevel,
+    wet: n(a.wet, b.wet),
+    haze: n(a.haze, b.haze),
+    snow: n(a.snow, b.snow),
+  };
+}

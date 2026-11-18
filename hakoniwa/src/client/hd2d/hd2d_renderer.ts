@@ -1,13 +1,18 @@
 // The HD-2D renderer (art_pipeline.md 2): a three.js scene seen through an orthographic
-// oblique camera, with the map's static scene (ground, buildings, free walls, standees),
-// the entity layer, sun and sky from the style pack, the static light map and dynamic
-// lights, the post chain, and a 2D overlay canvas on top for names, bubbles, floating
-// text, hints and weather particles. All rules live in the pure hd2d modules; this class
-// only drives three.js and the overlay, and only for the layers the frame scheduler marks
-// dirty (release_engineering.md 6.3).
+// oblique camera, with the far sky and the out-of-bounds ground behind everything (2.13),
+// the map's static scene (ground, buildings, free walls, standees), the entity layer, sun
+// and sky from the style pack, the static light map and dynamic lights, the post chain,
+// and a 2D overlay canvas on top for weather, the combat marks, names, bubbles, floating
+// text and hints. All rules live in the pure hd2d and render modules; this class only
+// drives three.js and the overlay, and only for the layers the frame scheduler marks dirty
+// (release_engineering.md 6.3). A switch tile that opens or closes rebuilds the static
+// scene from the live map and dissolves the old one into the new (switch_fade.ts).
 
 import * as THREE from 'three';
+import type { SkyPack } from '../../systems/world/atlas';
+import { bitmapPixels } from '../assets/runtime';
 import { ctx2d, ensureSize, matrixToCanvas } from '../render/canvas_util';
+import { gradeHaze } from '../render/fairness';
 import { ALL_LAYERS, type FrameLayers } from '../render/frame_scheduler';
 import { lampLit } from '../render/lighting';
 import type { MapContext } from '../render/map_context';
@@ -15,14 +20,31 @@ import { type MarkerKind, markerMatrix } from '../render/markers';
 import { paintOverlays } from '../render/overlay_painter';
 import type { HitBox, WorldRenderer } from '../render/renderer';
 import type { Scene, SceneEntity, SceneLight } from '../render/scene';
-import { sunSkyAt } from './daylight';
+import { MOOD_GRADES } from '../render/stage_direct';
+import { mix } from '../sprites/palette';
+import type { PixelMatrix } from '../sprites/pixels';
+import { blendSunSky, type SunSky, sunSkyAt } from './daylight';
 import { EntityLayer } from './entities';
 import { LIGHTMAP_PX, lightsKey, paintLightmap } from './lightmap';
 import { createSharedUniforms, type SharedUniforms } from './materials';
 import { PostChain } from './post';
 import { type QualitySettings, tierPixelRatio } from './quality';
 import { buildStaticScene, type StaticScene } from './scene_builder';
-import { MAX_DYNAMIC_LIGHTS } from './shaders';
+import { MAX_DYNAMIC_LIGHTS, MAX_SWITCH_RECTS } from './shaders';
+import {
+  cachedSkyLayer,
+  celestial,
+  horizonFraction,
+  layerOffset,
+  SKY_BAND_H,
+  SKY_BAND_W,
+  type SkyLayerSpec,
+  skyColors,
+  skyLayers,
+  skyPixelScale,
+  skyVisibility,
+} from './sky';
+import { SkyLayer } from './sky_layer';
 import { standeeHitBox } from './standee';
 import {
   pixelsPerUnit,
@@ -45,6 +67,13 @@ function linear(hex: number): THREE.Color {
   return new THREE.Color().setHex(hex);
 }
 
+/** A sky layer strip: the approved art when it is in, else the cached placeholder (6.4). */
+function skyStrip(pack: SkyPack, spec: SkyLayerSpec): PixelMatrix {
+  const art = bitmapPixels(spec.assetId);
+  if (art && art.w === SKY_BAND_W && art.h === SKY_BAND_H) return art;
+  return cachedSkyLayer(pack, spec.kind);
+}
+
 export class Hd2dRenderer implements WorldRenderer {
   readonly kind = 'hd2d' as const;
   readonly canvas: HTMLCanvasElement;
@@ -61,10 +90,13 @@ export class Hd2dRenderer implements WorldRenderer {
   private readonly hemi = new THREE.HemisphereLight(0xcfe2ff, 0x8a7a5a, 1.2);
   private readonly shared: SharedUniforms;
   private readonly entities: EntityLayer;
+  private readonly sky: SkyLayer;
   private readonly post: PostChain;
   private quality: QualitySettings;
   private ctx: MapContext | null = null;
   private stat: StaticScene | null = null;
+  /** the static scene before a switch change, dissolving out while the new one comes in */
+  private outgoing: StaticScene | null = null;
   private lightmap: THREE.DataTexture | null = null;
   private lightKey = '';
   private boxes: HitBox[] = [];
@@ -76,6 +108,7 @@ export class Hd2dRenderer implements WorldRenderer {
   private readonly raycaster = new THREE.Raycaster();
   private openness = new Map<string, number>();
   private sunDistance = 120;
+  private readonly buffer = new THREE.Vector2();
 
   constructor(quality: QualitySettings) {
     this.quality = quality;
@@ -89,7 +122,8 @@ export class Hd2dRenderer implements WorldRenderer {
       this.overlay = ctx2d(this.canvas);
       this.shared = createSharedUniforms();
       this.entities = new EntityLayer(this.shared);
-      this.scene.add(this.sun, this.sun.target, this.hemi, this.entities.group);
+      this.sky = new SkyLayer();
+      this.scene.add(this.sun, this.sun.target, this.hemi, this.entities.group, this.sky.mesh);
       this.sun.shadow.bias = -0.0006;
       this.sun.shadow.normalBias = 0.03;
       this.post = new PostChain(this.gl, this.scene, this.camera);
@@ -142,18 +176,39 @@ export class Hd2dRenderer implements WorldRenderer {
     for (const c of this.stat?.casters ?? []) c.castShadow = shadows;
     this.entities.setShadows(shadows);
     this.post.setQuality(q);
+    this.applySky();
+  }
+
+  /** The kept far-sky layers of the map's pack at this tier (art_pipeline.md 2.11, 2.13). */
+  private applySky(): void {
+    const pack = this.ctx?.sky ?? null;
+    const layers = pack ? skyLayers(pack, this.quality.skyLayers) : [];
+    this.sky.setLayers(pack, layers, (spec) => skyStrip(pack ?? 'lothar_plain', spec));
   }
 
   setMap(ctx: MapContext): void {
-    if (this.ctx?.map.id === ctx.map.id && this.stat) return;
+    if (this.ctx?.key === ctx.key && this.stat) return;
+    const sameMap = this.ctx?.map.id === ctx.map.id && !!this.stat;
+    this.disposeOutgoing();
     if (this.stat) {
-      this.scene.remove(this.stat.group);
-      this.stat.dispose();
+      if (sameMap) {
+        // a switch change: the old scene stays to dissolve out over the changed tiles
+        this.outgoing = this.stat;
+        for (const c of this.allCasters(this.outgoing)) c.castShadow = false;
+      } else {
+        this.scene.remove(this.stat.group);
+        this.stat.dispose();
+      }
     }
     this.ctx = ctx;
-    const { map, pack } = ctx;
+    const { map } = ctx;
     this.stat = buildStaticScene(ctx, this.shared, this.waterHi);
     this.scene.add(this.stat.group);
+    this.applySky();
+    if (sameMap && this.lightmap) {
+      this.applyQuality();
+      return;
+    }
     this.shared.uMapSize.value.set(map.width, map.height);
     this.lightmap?.dispose();
     const w = map.width * LIGHTMAP_PX;
@@ -164,7 +219,8 @@ export class Hd2dRenderer implements WorldRenderer {
     this.lightmap.needsUpdate = true;
     this.shared.uLightmap.value = this.lightmap;
     this.lightKey = '';
-    this.scene.background = linear(pack.outside);
+    // the sky pass paints every pixel the map leaves (2.13), so there is no background clear
+    this.scene.background = null;
     const cx = map.width / 2;
     const cz = map.height / 2;
     const r = Math.hypot(map.width, map.height) * 0.6 + 4;
@@ -180,6 +236,19 @@ export class Hd2dRenderer implements WorldRenderer {
     sc.updateProjectionMatrix();
     this.sun.target.position.set(cx, 0, cz);
     this.applyQuality();
+  }
+
+  private allCasters(s: StaticScene): THREE.Object3D[] {
+    return [...s.casters, ...s.buildings.flatMap((b) => b.casters)];
+  }
+
+  private disposeOutgoing(): void {
+    if (!this.outgoing) return;
+    this.scene.remove(this.outgoing.group);
+    this.outgoing.dispose();
+    this.outgoing = null;
+    if (this.stat?.role) this.stat.role.uSwMode.value = 0;
+    this.shared.uSwCount.value = 0;
   }
 
   hitBoxes(): readonly HitBox[] {
@@ -205,10 +274,10 @@ export class Hd2dRenderer implements WorldRenderer {
   }
 
   /**
-   * Draw the layers the frame scheduler marked dirty. The world pass (camera, sun and sky,
-   * lights, buildings, figures, post chain) and the overlay pass (weather, names, markers,
-   * bubbles, floating text) are independent: a skipped pass keeps its last picture on its
-   * own canvas. Hit boxes are rebuilt on every drawn frame.
+   * Draw the layers the frame scheduler marked dirty. The world pass (camera, sky, sun and
+   * light, buildings, figures, post chain) and the overlay pass (weather, combat marks,
+   * names, markers, bubbles, floating text) are independent: a skipped pass keeps its last
+   * picture on its own canvas. Hit boxes are rebuilt on every drawn frame.
    */
   render(scene: Scene, layers: Readonly<FrameLayers> = ALL_LAYERS): void {
     const ctx = this.ctx;
@@ -227,6 +296,7 @@ export class Hd2dRenderer implements WorldRenderer {
       const o = this.overlay;
       o.setTransform(1, 0, 0, 1, 0, 0);
       o.clearRect(0, 0, this.deviceW, this.deviceH);
+      // weather first, then everything a player acts on above it (fairness.ts)
       paintWeatherOverlay(o, scene, view, this.deviceW, this.deviceH, this.reducedMotion);
       paintOverlays(o, scene, {
         dpr: this.dpr,
@@ -234,6 +304,7 @@ export class Hd2dRenderer implements WorldRenderer {
         project,
         frameOf: (e) => this.entities.frameOf(e),
         marker: (k) => this.marker(k),
+        viewport: vp,
       });
     }
     const boxes: HitBox[] = [];
@@ -245,6 +316,15 @@ export class Hd2dRenderer implements WorldRenderer {
       boxes.push({ id: e.id, ...box, sortY: e.x * b.toCamera[0] + e.y * b.toCamera[2] });
     }
     this.boxes = boxes;
+  }
+
+  /** Sun and sky of the scene, blended from the weather a cutscene is fading away from. */
+  private sunSky(scene: Scene, ctx: MapContext): SunSky {
+    const indoor = !!ctx.map.indoor;
+    const now = sunSkyAt(scene.calendar, scene.weather, indoor, ctx.pack);
+    const fade = scene.weatherFade;
+    if (!fade || fade.t >= 1) return now;
+    return blendSunSky(sunSkyAt(scene.calendar, fade.from, indoor, ctx.pack), now, fade.t);
   }
 
   private renderWorld(
@@ -281,7 +361,7 @@ export class Hd2dRenderer implements WorldRenderer {
     this.shared.uTime.value = scene.timeMs / 1000;
 
     // Sun and sky.
-    const sky = sunSkyAt(scene.calendar, scene.weather, !!map.indoor, pack);
+    const sky = this.sunSky(scene, ctx);
     this.sun.color.setHex(sky.sun);
     this.sun.intensity = sky.sunIntensity;
     const sd = this.sunDistance;
@@ -301,6 +381,8 @@ export class Hd2dRenderer implements WorldRenderer {
     amb.b = Math.max(amb.b, NIGHT_FLOOR[2]);
     this.shared.uAmbient.value.copy(amb);
     this.shared.uLightK.value = 0.55 + 0.45 * (1 - sky.daylight);
+    const hazeColor = scene.weather === 'ashfall' ? 0x8a6a5a : 0xb8c0cc;
+    this.updateSky(scene, ctx, view, b, sky, hazeColor);
 
     // Light map (static lights) and dynamic lights.
     const key = lightsKey(scene.staticLights);
@@ -324,18 +406,23 @@ export class Hd2dRenderer implements WorldRenderer {
     });
     this.shared.uDynCount.value = dyn.length;
 
+    // Switch tiles fading open or shut: the old scene dissolves out, the new one in.
+    this.updateSwitchFade(scene);
+
     // Buildings: dissolve, window glow, and no shadow from a shell that is cut open.
     const openness = new Map<string, number>();
     for (const it of scene.items)
       if (it.type === 'roof') openness.set(it.roof.locationId, it.openness);
     this.openness = openness;
     const shadows = this.quality.shadowMap > 0;
-    for (const bm of this.stat?.buildings ?? []) {
-      const open = openness.get(bm.locationId) ?? 0;
-      bm.dissolve.uOpen.value = open;
-      for (const m of bm.casters) m.castShadow = shadows && open < 0.5;
-      bm.walls.emissiveIntensity = lampLit(bm.lampId, sky.lampLevel) ? 1.25 : 0;
-      bm.roof.emissiveIntensity = map.indoor ? 0 : ROOF_NIGHT_GLOW * (1 - sky.daylight);
+    for (const s of this.outgoing ? [this.stat, this.outgoing] : [this.stat]) {
+      for (const bm of s?.buildings ?? []) {
+        const open = openness.get(bm.locationId) ?? 0;
+        bm.dissolve.uOpen.value = open;
+        for (const m of bm.casters) m.castShadow = s === this.stat && shadows && open < 0.5;
+        bm.walls.emissiveIntensity = lampLit(bm.lampId, sky.lampLevel) ? 1.25 : 0;
+        bm.roof.emissiveIntensity = map.indoor ? 0 : ROOF_NIGHT_GLOW * (1 - sky.daylight);
+      }
     }
 
     // Entities.
@@ -344,6 +431,7 @@ export class Hd2dRenderer implements WorldRenderer {
     // Grade.
     let vigColor = 0x000000;
     let vigStrength = 0;
+    let tint = sky.tint;
     if (scene.sediment > 0) {
       vigColor = 0x3a1450;
       vigStrength = 0.15 + scene.sediment * 0.4;
@@ -351,12 +439,22 @@ export class Hd2dRenderer implements WorldRenderer {
       vigColor = 0xffecbe;
       vigStrength = 0.22;
     }
+    if (scene.mood) {
+      const g = MOOD_GRADES[scene.mood.kind];
+      const k = scene.mood.k;
+      // the sediment haze stays readable under a mood: the mood only adds to it
+      if (scene.sediment <= 0) {
+        vigColor = mix(vigColor, g.vignette, k);
+        vigStrength = vigStrength + (g.strength - vigStrength) * k;
+      }
+      tint = mix(tint, mix(tint, g.tint, 0.6), k);
+    }
     this.post.apply({
-      tint: sky.tint,
+      tint,
       shade: sky.shade,
       film: pack.film,
-      haze: sky.haze * 0.22,
-      hazeColor: scene.weather === 'ashfall' ? 0x8a6a5a : 0xb8c0cc,
+      haze: gradeHaze(sky.haze),
+      hazeColor,
       vigColor,
       vigStrength,
       flash: 0,
@@ -365,6 +463,74 @@ export class Hd2dRenderer implements WorldRenderer {
       snow: sky.snow,
     });
     this.post.render();
+  }
+
+  private updateSwitchFade(scene: Scene): void {
+    const sf = scene.switchFade;
+    if (!this.outgoing || !this.stat?.role || !this.outgoing.role || !sf) {
+      this.disposeOutgoing();
+      return;
+    }
+    const rects = sf.rects.slice(0, MAX_SWITCH_RECTS);
+    rects.forEach((r, i) => {
+      this.shared.uSwRect.value[i]?.set(r.x, r.y, r.w, r.h);
+    });
+    this.shared.uSwCount.value = rects.length;
+    this.shared.uSwT.value = sf.t;
+    this.outgoing.role.uSwMode.value = 1;
+    this.stat.role.uSwMode.value = 2;
+  }
+
+  /** The far sky and the out-of-bounds fog for this frame (sky.ts). */
+  private updateSky(
+    scene: Scene,
+    ctx: MapContext,
+    view: ViewRequest,
+    b: ViewBasis,
+    sky: SunSky,
+    hazeColor: number,
+  ): void {
+    this.gl.getDrawingBufferSize(this.buffer);
+    const bufW = Math.max(1, this.buffer.x);
+    const bufH = Math.max(1, this.buffer.y);
+    const pr = tierPixelRatio(this.quality, this.dpr);
+    const scale = skyPixelScale(bufH, (view.step * pr) / this.dpr);
+    const colors = skyColors(sky, sky.daylight, sky.haze, hazeColor);
+    const along = view.focusX * b.right[0] + view.focusY * b.right[2];
+    const away = (view.focusX * b.away[0] + view.focusY * b.away[2]) * b.sinP;
+    const hours = scene.calendar.dayIndex * 24 + scene.calendar.minuteOfDay / 60;
+    const horizon = horizonFraction(view.pitch) * bufH;
+    const offsets = this.sky.layerSpecs.map((spec) =>
+      layerOffset(spec, view.yaw, along, hours, bufW / scale),
+    );
+    const c = ctx.sky ? celestial(sky.sunDir, view.yaw, sky.daylight) : null;
+    const ppu = (pixelsPerUnit(view.step) * pr) / this.dpr;
+    this.sky.update({
+      bufW,
+      bufH,
+      scale,
+      horizon,
+      visibility: ctx.sky ? skyVisibility(view.pitch) : 0,
+      zenith: colors.zenith,
+      horizonColor: colors.horizon,
+      outside: ctx.pack.outside,
+      fogColor: mix(ctx.pack.outside, hazeColor, 0.55),
+      fog: 0.28 + 0.2 * sky.haze,
+      fogOffset: [(along * ppu) / scale, (-away * ppu) / scale],
+      // wrapped so the fog noise keeps its precision in long games
+      hours: hours % 240,
+      stars: colors.stars,
+      sun: c
+        ? {
+            x: bufW / 2 + c.x * SKY_BAND_W * scale,
+            y: horizon - c.alt * SKY_BAND_H * 0.8 * scale,
+            moon: c.moon,
+          }
+        : null,
+      sunColor: c?.moon ? 0xe8ecf8 : mix(sky.sun, 0xffffff, 0.4),
+      layerTint: colors.layerTint,
+      offsets,
+    });
   }
 
   private marker(kind: MarkerKind): HTMLCanvasElement {
@@ -377,12 +543,14 @@ export class Hd2dRenderer implements WorldRenderer {
   }
 
   dispose(): void {
+    this.disposeOutgoing();
     if (this.stat) {
       this.scene.remove(this.stat.group);
       this.stat.dispose();
       this.stat = null;
     }
     this.entities.dispose();
+    this.sky.dispose();
     this.lightmap?.dispose();
     this.post.dispose();
     this.gl.dispose();

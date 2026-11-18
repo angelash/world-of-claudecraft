@@ -1,11 +1,18 @@
 // GLSL pieces of the HD-2D scene (art_pipeline.md 2.3 to 2.9), injected into three.js
 // materials: pixel anti-aliased sampling (texels snap to their centres with a one screen
-// pixel blend at texel edges), artificial light from the static light map plus up to
-// MAX_DYNAMIC_LIGHTS point lights with stepped falloff, the ordered-dither dissolve and
-// cutaway of opened buildings, animated pixel water, and the standee vertex stage with
-// upright depth. Strings only; materials.ts wires them.
+// pixel blend at texel edges) for the colour map and the window-light (emissive) map,
+// artificial light from the static light map plus up to MAX_DYNAMIC_LIGHTS point lights in
+// the one light model of lightmap.ts (linear colour, the LIGHT_STEPS falloff with its
+// dither, measured on the LIGHTMAP_PX grid), the ordered-dither dissolve and cutaway of
+// opened buildings, the dissolve of switch tiles that open or close (switch_fade.ts),
+// animated pixel water, and the standee vertex stage with upright depth. Strings only;
+// materials.ts wires them.
+
+import { LIGHT_STEPS, LIGHTMAP_PX, LIGHTMAP_SCALE } from './lightmap';
 
 export const MAX_DYNAMIC_LIGHTS = 8;
+
+const glslFloat = (n: number) => (Number.isInteger(n) ? `${n}.0` : `${n}`);
 
 /** Declarations shared by every lit HD-2D material (fragment side). */
 export const LIGHT_DECL = /* glsl */ `
@@ -18,6 +25,7 @@ uniform float uLightK;
 varying vec3 vHkWorld;
 
 const float HK_BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+const float HK_STEPS[4] = float[4](${LIGHT_STEPS.map(glslFloat).join(', ')});
 float hkBayer(vec2 p) {
   int x = int(mod(p.x, 4.0));
   int y = int(mod(p.y, 4.0));
@@ -25,16 +33,19 @@ float hkBayer(vec2 p) {
 }
 
 vec3 hkArtificial(vec3 p) {
+  vec2 q = floor(p.xz * ${glslFloat(LIGHTMAP_PX)});
+  vec2 c = (q + 0.5) / ${glslFloat(LIGHTMAP_PX)};
   vec2 uv = clamp(p.xz / uMapSize, 0.0, 1.0);
-  vec3 lm = texture2D(uLightmap, uv).rgb * 2.0;
-  vec3 l = lm * lm;
+  vec3 l = texture2D(uLightmap, uv).rgb * ${glslFloat(LIGHTMAP_SCALE)};
+  float dither = hkBayer(q) / 16.0 - 0.5;
   for (int i = 0; i < ${MAX_DYNAMIC_LIGHTS}; i++) {
     if (i >= uDynCount) break;
     vec4 d = uDyn[i];
-    float f = clamp(1.0 - length(p.xz - d.xy) / d.z, 0.0, 1.0);
-    vec2 q = floor(p.xz * 4.0);
-    f = floor(f * 3.0 + hkBayer(q) / 16.0) / 3.0;
-    l += uDynColor[i] * f * d.w;
+    float dist = length(c - d.xy);
+    if (d.z <= 0.0 || dist >= d.z) continue;
+    float t = (1.0 - dist / d.z) * 3.0 + dither;
+    int s = int(clamp(floor(t + 0.5), 0.0, 3.0));
+    l += uDynColor[i] * HK_STEPS[s] * d.w;
   }
   return l * uLightK;
 }
@@ -51,6 +62,53 @@ export const PIXEL_MAP_FRAGMENT = /* glsl */ `
   vec4 sampledDiffuseColor = texture2D(map, hkT / hkTs);
   diffuseColor *= sampledDiffuseColor;
 #endif
+`;
+
+/** Replacement for three's emissivemap_fragment: window light with the same pixel sampling. */
+export const PIXEL_EMISSIVE_FRAGMENT = /* glsl */ `
+#ifdef USE_EMISSIVEMAP
+  vec2 hkEs = vec2(textureSize(emissiveMap, 0));
+  vec2 hkE = vEmissiveMapUv * hkEs;
+  vec2 hkESeam = floor(hkE + 0.5);
+  vec2 hkEFw = max(fwidth(hkE), vec2(1e-4));
+  hkE = hkESeam + clamp((hkE - hkESeam) / hkEFw, -0.5, 0.5);
+  vec4 emissiveColor = texture2D(emissiveMap, hkE / hkEs);
+  totalEmissiveRadiance *= emissiveColor.rgb;
+#endif
+`;
+
+/** Changed switch rectangles a dissolve can cover at once (switch_fade.ts). */
+export const MAX_SWITCH_RECTS = 8;
+
+/**
+ * Switch tiles that open or close (switch_fade.ts): while a change fades, the outgoing scene
+ * shows only inside the changed rectangles and dissolves out there by the ordered dither,
+ * and the incoming scene dissolves in over the same cells, so every cell shows exactly one
+ * of them. Mode 0 is a scene at rest, 1 the outgoing one, 2 the incoming one.
+ */
+export const SWITCH_DECL = /* glsl */ `
+uniform vec4 uSwRect[${MAX_SWITCH_RECTS}];
+uniform int uSwCount;
+uniform float uSwT;
+uniform float uSwMode;
+bool hkSwitchHidden(vec2 p, vec2 cell) {
+  if (uSwMode < 0.5) return false;
+  bool inside = false;
+  for (int i = 0; i < ${MAX_SWITCH_RECTS}; i++) {
+    if (i >= uSwCount) break;
+    // a hair wider than the rectangle: wall faces on its east and south edges belong to it
+    vec4 r = uSwRect[i] + vec4(-0.02, -0.02, 0.04, 0.04);
+    if (p.x >= r.x && p.y >= r.y && p.x <= r.x + r.z && p.y <= r.y + r.w) inside = true;
+  }
+  bool shown = hkBayer(cell) >= uSwT * 16.0;
+  if (uSwMode < 1.5) return !inside || !shown;
+  return inside && shown;
+}
+`;
+
+/** Lit surfaces dissolve by their own world position, on the sprite pixel grid. */
+export const SWITCH_FRAGMENT = /* glsl */ `
+  if (hkSwitchHidden(vHkWorld.xz, floor(vHkWorld.xz * 16.0) + vec2(floor(vHkWorld.y * 16.0)))) discard;
 `;
 
 /** World position varying, appended after three's project_vertex. */
@@ -147,6 +205,9 @@ varying vec2 vUv;
 varying vec3 vFoot;
 varying float vHeight;
 ${LIGHT_DECL.replace('varying vec3 vHkWorld;', '')}
+#ifdef HK_SWITCH
+${SWITCH_DECL}
+#endif
 void main() {
   vec2 ts = vec2(textureSize(map, 0));
   vec2 t = vUv * ts;
@@ -155,11 +216,33 @@ void main() {
   t = seam + clamp((t - seam) / fw, -0.5, 0.5);
   vec4 c = texture2D(map, t / ts);
   if (c.a < 0.5) discard;
+  #ifdef HK_SWITCH
+    if (hkSwitchHidden(vFoot.xz, floor(t))) discard;
+  #endif
   vec3 light = uAmbient + hkArtificial(vec3(vFoot.x, vHeight, vFoot.z));
   vec3 col = c.rgb * light;
   col = mix(col, vec3(1.0), uFlash);
   gl_FragColor = vec4(col, uOpacity);
   #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`;
+
+/**
+ * The silhouette of the player or a party member behind a wall, a tree or a roof
+ * (art_pipeline.md 2.4, every tier): drawn only where something nearer already covers the
+ * standee (depth test "greater"), as a checker of sprite pixels in one flat colour.
+ */
+export const SILHOUETTE_FRAGMENT = /* glsl */ `
+uniform sampler2D map;
+uniform vec3 uColor;
+varying vec2 vUv;
+void main() {
+  vec2 ts = vec2(textureSize(map, 0));
+  vec2 t = floor(vUv * ts);
+  if (texture2D(map, (t + 0.5) / ts).a < 0.5) discard;
+  if (mod(t.x + t.y, 2.0) < 1.0) discard;
+  gl_FragColor = vec4(uColor, 1.0);
   #include <colorspace_fragment>
 }
 `;

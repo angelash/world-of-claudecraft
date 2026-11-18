@@ -226,6 +226,11 @@ export class StoryWiring implements StoryInputHost {
     this.padSpent = true;
   }
 
+  /** The stage of the scene now playing, for the world picture (null outside scenes). */
+  stage(): ReturnType<StoryController['stageNow']> {
+    return this.controller.stageNow();
+  }
+
   /** Build and paint one story frame. */
   frame(now: number): StoryFrame | null {
     const hud = this.d.hud();

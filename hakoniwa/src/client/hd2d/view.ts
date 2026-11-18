@@ -10,6 +10,12 @@ import { TILE_PX } from '../render/camera';
 export const DEFAULT_PITCH = 36;
 export const PITCH_MIN = 30;
 export const PITCH_MAX = 82;
+/**
+ * What the lens itself allows: a cutscene's low and top shots (catalog_cutscenes.md 2.3, 22
+ * and 85 degrees) go past the player's own range.
+ */
+export const LENS_PITCH_MIN = 20;
+export const LENS_PITCH_MAX = 86;
 /** Device pixels per ground pixel. */
 export const ZOOM_STEPS: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 10, 12];
 /** Keyboard rotation step in degrees (Z and X keys). */
@@ -129,7 +135,7 @@ export function zoomBy(p: ViewPrefs, delta: number): ViewPrefs {
 }
 
 export function viewBasis(pitchDeg: number, yawDeg: number): ViewBasis {
-  const p = clampPitch(pitchDeg) * RAD;
+  const p = Math.max(LENS_PITCH_MIN, Math.min(LENS_PITCH_MAX, pitchDeg)) * RAD;
   const y = wrapYaw(yawDeg) * RAD;
   const sinP = Math.sin(p);
   const cosP = Math.cos(p);
@@ -203,10 +209,20 @@ export function screenIntentToWorld(
 
 /**
  * A kernel facing (radians, atan2 with +y south) as seen on screen under a camera yaw,
- * for choosing the sprite direction (art_pipeline.md 3.5).
+ * for choosing the sprite direction (art_pipeline.md 3.5). With the pitch the ground
+ * direction is projected as the oblique camera shows it (the away axis shortens by the
+ * sine of the pitch), so a figure walking down-right at a shallow angle on screen faces
+ * right; without it the screen is taken as seen from straight above.
  */
-export function screenFacing(facing: number, yawDeg: number): number {
-  return facing + wrapYaw(yawDeg) * RAD;
+export function screenFacing(facing: number, yawDeg: number, pitchDeg?: number): number {
+  const y = wrapYaw(yawDeg) * RAD;
+  if (pitchDeg === undefined) return facing + y;
+  const sinP = Math.sin(Math.max(LENS_PITCH_MIN, Math.min(LENS_PITCH_MAX, pitchDeg)) * RAD);
+  const dx = Math.cos(facing);
+  const dz = Math.sin(facing);
+  const right = dx * Math.cos(y) - dz * Math.sin(y);
+  const down = sinP * (dx * Math.sin(y) + dz * Math.cos(y));
+  return Math.atan2(down, right);
 }
 
 /**

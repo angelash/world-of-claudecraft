@@ -453,17 +453,22 @@ export function roofMesh(rect: Rect, wallH: number, shape: RoofShape, ridge: 'x'
         OUT(dir),
       );
     }
+    // The hip ends take the slopes' texel density (art_pipeline.md 1.3: 16 pixels a metre):
+    // their eave spans the gable width, not the ridge length, so u covers only that share
+    // of the texture around its middle, and v runs the end slope's own slant length.
+    const eaveSpan = (bLen + 2 * oh) / (aEnd - aStart);
     for (const end of [-1, 1]) {
       const ea = end < 0 ? aStart : aEnd;
       const ra = end < 0 ? rA0 : rA1;
       const out: V3 = ridge === 'x' ? [end, 1, 0] : [0, 1, end];
+      const slant = Math.hypot(Math.abs(ra - ea), ridgeY - eaveY);
       addPolygon(
         slopes,
         [P(ea, eaveY, b0 - oh), P(ea, eaveY, b0 + bLen + oh), P(ra, ridgeY, bm)],
         [
-          [0, 1],
-          [1, 1],
-          [0.5, 0],
+          [0.5 - eaveSpan / 2, 1],
+          [0.5 + eaveSpan / 2, 1],
+          [0.5, Math.max(0, 1 - slant / slopeLen)],
         ],
         out,
       );

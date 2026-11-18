@@ -238,6 +238,14 @@ export class StoryController {
     return !!this.summary;
   }
 
+  /**
+   * The stage standing in the scene now playing (camera, light, weather, mirror and motion
+   * directives for the world picture, PK-M1-24), or null outside scenes.
+   */
+  stageNow(): StageState | null {
+    return this.sceneId ? this.stage : null;
+  }
+
   toggleAuto(): boolean {
     if (!this.lastScene && !this.lastTalkView) return false;
     this.auto.toggle();

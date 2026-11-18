@@ -147,7 +147,94 @@ export type StageDirective =
    * door opens now (pushed, or by itself as the player passes).
    */
   | { op: 'door'; flag: string; cap: number; open?: boolean }
-  | { op: 'door_end' };
+  | { op: 'door_end' }
+  /**
+   * `@镜` (catalog_cutscenes.md 2.3, 13.5): angle, shot size and movement over `seconds`,
+   * framed on `focus` (`player`, an entity id or content ref, a location id, or "x,y" in
+   * tiles); a pan travels to `to`; `yaw` turns a side shot (at most 20 degrees). Holds until
+   * the next camera directive, `camera_end` or the end of the scene, which hand the camera
+   * back to the player. The client executes it; the kernel ignores it.
+   */
+  | {
+      op: 'camera';
+      angle?: StageCameraAngle;
+      size?: StageShotSize;
+      move?: StageCameraMove;
+      focus?: string;
+      to?: string;
+      seconds?: number;
+      yaw?: number;
+    }
+  | { op: 'camera_end' }
+  /** `@光` (2.3): a time-of-day preset or a colour mood over one second; `world` hands it back */
+  | { op: 'light'; preset: StageLightPreset }
+  /** `@天气` (2.3): the weather on screen over one second (the world's stays); `world` hands it back */
+  | { op: 'weather'; preset: StageWeatherPreset }
+  /** `@庭镜` (13.5): an atlas map shown in the court mirror, at most 20 seconds */
+  | { op: 'mirror'; map: string; seconds?: number }
+  | { op: 'mirror_end' }
+  /**
+   * `@动作` (2.3): a standee motion of a figure (`who` as `focus`); `action` is one of
+   * STAGE_MOTIONS or an `art_chr_<id>_<pose>` frame (the standing frame until that art exists)
+   */
+  | { op: 'motion'; who: string; action: string };
+
+/** Camera angles of `@镜` (catalog_cutscenes.md 2.3): standard, low, high, top, side. */
+export const STAGE_CAMERA_ANGLES = ['standard', 'low', 'high', 'top', 'side'] as const;
+export type StageCameraAngle = (typeof STAGE_CAMERA_ANGLES)[number];
+/** Shot sizes (2.3): far, full, mid, near, close (60, 30, 16, 8 tiles, close twice near). */
+export const STAGE_SHOT_SIZES = ['far', 'full', 'mid', 'near', 'close'] as const;
+export type StageShotSize = (typeof STAGE_SHOT_SIZES)[number];
+/** Camera movement (2.3): hold, push, pull, pan, track, rise, fall (shake is `shake`). */
+export const STAGE_CAMERA_MOVES = ['hold', 'push', 'pull', 'pan', 'track', 'rise', 'fall'] as const;
+export type StageCameraMove = (typeof STAGE_CAMERA_MOVES)[number];
+/** `@光` presets (2.3): five times of day, four colour moods, and `world`. */
+export const STAGE_LIGHT_PRESETS = [
+  'dawn',
+  'noon',
+  'dusk',
+  'night',
+  'midnight',
+  'divine',
+  'door',
+  'sediment',
+  'dream',
+  'world',
+] as const;
+export type StageLightPreset = (typeof STAGE_LIGHT_PRESETS)[number];
+/** `@天气` presets (2.3; ashstorm is the ash waste's grey storm), and `world`. */
+export const STAGE_WEATHER_PRESETS = [
+  'clear',
+  'cloudy',
+  'rain',
+  'storm',
+  'snow',
+  'fog',
+  'ashfall',
+  'ashstorm',
+  'world',
+] as const;
+export type StageWeatherPreset = (typeof STAGE_WEATHER_PRESETS)[number];
+/** `@动作` motions (2.3) the standee plays without special art. */
+export const STAGE_MOTIONS = [
+  'walk',
+  'run',
+  'stop',
+  'turn',
+  'nod',
+  'shake_head',
+  'sit',
+  'stand',
+  'kneel',
+  'fall',
+  'raise_hand',
+  'draw',
+  'cast',
+  'look_up',
+  'approach',
+  'retreat',
+] as const;
+export type StageMotion = (typeof STAGE_MOTIONS)[number];
 
 /** How a scene is presented (ux_and_onboarding.md 8.1; theater when absent). */
 export type ScenePresentation = 'staged' | 'theater' | 'illustration';

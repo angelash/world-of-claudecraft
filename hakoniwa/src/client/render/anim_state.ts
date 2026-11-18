@@ -2,8 +2,9 @@
 // (art_pipeline.md 3.4): the base loop comes from motion (walk while moving, idle
 // otherwise), death plays once and holds when an entity stops being alive, and one-shot
 // cues (attack, hit) are pushed by event mappers. The facing is kept in map axes and
-// turned by the camera yaw only when a direction is shown (art_pipeline.md 3.5), so idle
-// figures re-face correctly when the camera turns. Nothing here feeds back into the world.
+// turned by the camera yaw (and projected by its pitch) only when a direction is shown
+// (art_pipeline.md 3.5: four display directions, the left one the mirror of the right), so
+// idle figures re-face correctly when the camera turns. Nothing here feeds back into the world.
 
 import { screenFacing } from '../hd2d/view';
 import {
@@ -25,6 +26,8 @@ export interface AnimInput {
   travelled: number;
   /** camera yaw in degrees (0 for the flat renderer) */
   yawDeg?: number;
+  /** camera pitch in degrees: the facing is projected as the oblique camera shows it */
+  pitchDeg?: number;
 }
 
 export interface AnimSample {
@@ -66,8 +69,8 @@ export class AnimTracker {
     return s;
   }
 
-  private dirOf(s: State, yawDeg: number): Dir {
-    return s.facing === null ? 'down' : dirFromFacing(screenFacing(s.facing, yawDeg));
+  private dirOf(s: State, yawDeg: number, pitchDeg?: number): Dir {
+    return s.facing === null ? 'down' : dirFromFacing(screenFacing(s.facing, yawDeg, pitchDeg));
   }
 
   /** Queue a one-shot animation (attack or hit) starting now. */
@@ -80,7 +83,7 @@ export class AnimTracker {
   sample(input: AnimInput, nowMs: number): AnimSample {
     const s = this.state(input.id, input.facing);
     if (input.moving) s.facing = input.facing;
-    const dir = this.dirOf(s, input.yawDeg ?? 0);
+    const dir = this.dirOf(s, input.yawDeg ?? 0, input.pitchDeg);
     if (!input.alive) {
       if (s.deathStart === null) s.deathStart = nowMs;
       return { anim: 'death', dir, frame: frameAt('death', nowMs - s.deathStart) };

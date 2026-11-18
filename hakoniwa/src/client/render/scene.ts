@@ -12,10 +12,12 @@ import type { ViewRequest } from '../hd2d/view';
 import type { SpriteLook } from '../sprites/look';
 import type { AnimSample } from './anim_state';
 import type { Bubble } from './bubbles';
+import { type EntityMarks, type GroundWarning, NO_MARKS } from './combat_marks';
 import type { FloatingDraw } from './floating_text';
 import { LIGHT_COLORS, type LightingParams, lampLit, lightingAt } from './lighting';
 import type { MarkerKind } from './markers';
 import { type RoofSpec, underRoof } from './roofs';
+import type { SwitchFadeState } from './switch_fade';
 
 export type Relation = 'self' | 'hostile' | 'friendly' | 'neutral';
 
@@ -48,6 +50,8 @@ export interface SceneEntity {
   hovered: boolean;
   marker: MarkerKind | null;
   glyph?: string;
+  /** combat readability marks (threat, boss, cast; combat_marks.ts) */
+  marks: EntityMarks;
 }
 
 /** A static standee: tree, rock, decor or shop sign (from the map's scene layout). */
@@ -102,7 +106,24 @@ export interface Scene {
   exitHint: { x: number; y: number; text: string } | null;
   floats: FloatingDraw[];
   placement: PlacementOverlay | null;
+  /** ground warnings of area casts in progress (art_pipeline.md 4.6) */
+  warnings: GroundWarning[];
+  /**
+   * A weather change still fading in (a cutscene's weather directive, 1 second): the weather
+   * it comes from and how far it is (0 all old, 1 all new); null when settled.
+   */
+  weatherFade: { from: Weather; t: number } | null;
+  /**
+   * a stage light mood (catalog_cutscenes.md 2.3: divine, door, sediment, dream light, and
+   * the ash storm's dark) and how far it has faded in
+   */
+  mood: { kind: LightMood; k: number } | null;
+  /** switch tiles fading open or shut (switch_fade.ts), null at rest */
+  switchFade: SwitchFadeState | null;
 }
+
+/** Colour moods of the stage light and weather directives (catalog_cutscenes.md 2.3). */
+export type LightMood = 'divine' | 'door' | 'sediment' | 'dream' | 'ashstorm';
 
 /** Building placement preview: footprint tiles, the blocked ones, and the entrance. */
 export interface PlacementOverlay {
@@ -120,6 +141,7 @@ export interface SceneEntityInput {
   look: SpriteLook;
   anim: AnimSample;
   marker: MarkerKind | null;
+  marks?: EntityMarks;
 }
 
 export interface SceneInput {
@@ -142,6 +164,15 @@ export interface SceneInput {
   exitHint?: { x: number; y: number; text: string } | null;
   floats?: FloatingDraw[];
   placement?: PlacementOverlay | null;
+  warnings?: GroundWarning[];
+  /**
+   * the sediment haze to draw (0..1) when the session fades it (sediment_fade.ts); else the
+   * level where the camera looks
+   */
+  sediment?: number;
+  weatherFade?: { from: Weather; t: number } | null;
+  mood?: { kind: LightMood; k: number } | null;
+  switchFade?: SwitchFadeState | null;
 }
 
 /** Maps of the divine realm (atlas region) get the radiance ambience. */
@@ -189,6 +220,7 @@ export function buildScene(input: SceneInput): Scene {
     const covered = input.roofs.some(
       (r) => underRoof(r, ei.x, ei.y) && input.roofOpenness(r.locationId) < 0.5,
     );
+    const marks = ei.marks ?? NO_MARKS;
     items.push({
       type: 'entity',
       id: e.id,
@@ -200,11 +232,14 @@ export function buildScene(input: SceneInput): Scene {
       relation,
       kind: e.kind,
       name: e.name,
-      showName: !covered && shouldShowName(e, relation, selected, hovered),
+      // an enemy attacking the player always shows its (red) name, behind walls too (4.1)
+      showName: !covered && (marks.threat || shouldShowName(e, relation, selected, hovered)),
       selected,
       hovered,
       marker: covered ? null : ei.marker,
       glyph: ei.look.glyph,
+      // under a closed roof the cast bar hides with the name (2.6)
+      marks: covered && marks.cast ? { ...marks, cast: null } : marks,
     });
     if (ei.look.archetype === 'goddess' || ei.look.archetype === 'spirit') {
       dynamicLights.push({
@@ -270,12 +305,16 @@ export function buildScene(input: SceneInput): Scene {
     staticLights,
     dynamicLights,
     weather: map.indoor ? 'clear' : input.weather,
-    sediment: sedimentLevel(map, input.view.focusX, input.view.focusY),
+    sediment: input.sediment ?? sedimentLevel(map, input.view.focusX, input.view.focusY),
     divine: divineLevel(map),
     bubbles: input.bubbles,
     moveTarget: input.moveTarget ?? null,
     exitHint: input.exitHint ?? null,
     floats: input.floats ?? [],
     placement: input.placement ?? null,
+    warnings: input.warnings ?? [],
+    weatherFade: map.indoor ? null : (input.weatherFade ?? null),
+    mood: input.mood ?? null,
+    switchFade: input.switchFade ?? null,
   };
 }

@@ -26,6 +26,8 @@ import type {
   TreatyType,
 } from '../../systems/strategy';
 import type { BattleView, Formation } from '../../systems/warfare';
+import type { Entity } from '../../systems/world/types';
+import type { EntityMarks, GroundWarning } from '../render/combat_marks';
 import type { MarkerKind } from '../render/markers';
 import type { ClientCommand, GameView } from './game_view';
 
@@ -133,6 +135,16 @@ export interface CombatAdapter {
   animationCues(view: GameView, event: AnyWorldEvent): AnimCue[];
   floatingText(view: GameView, event: AnyWorldEvent): FloatingTextView[];
   isHostile(view: GameView, entityId: string): boolean;
+  /**
+   * Combat marks of the units on a map for the world picture (art_pipeline.md 4.1, 4.2, 4.6):
+   * per entity the threat, boss and cast marks, and the ground warnings of area casts.
+   */
+  worldMarks?(view: GameView, mapId: string, onMap?: readonly Readonly<Entity>[]): WorldMarks;
+}
+
+export interface WorldMarks {
+  marks: Map<string, EntityMarks>;
+  warnings: GroundWarning[];
 }
 
 // ---------------------------------------------------------------------------

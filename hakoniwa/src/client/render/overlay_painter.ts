@@ -1,11 +1,26 @@
-// Screen-resolution overlay for the world (art_pipeline.md 2.10 and 7.2): names, overhead
-// markers, object glyphs, speech bubbles, floating combat text, the placement label and
-// the exit hint. Text is drawn by the interface layer, never baked into sprites. Both
-// renderers supply a projector from scene points to device pixels, so labels sit on the
-// same feet as the standees in the HD-2D scene and on the sprites in the flat fallback.
+// Screen-resolution overlay for the world (art_pipeline.md 2.10, 4.1, 4.2, 4.6 and 7.2): ground
+// warnings, names (red for an enemy attacking the player), overhead markers, enemy cast bars
+// (a shield border when uninterruptible), object glyphs, speech bubbles, floating combat
+// text, the placement label, the exit hint, and the arrows at the screen edge for threats
+// out of view. Text is drawn by the interface layer, never baked into sprites. Both renderers
+// supply a projector from scene points to device pixels, so labels sit on the same feet as
+// the standees in the HD-2D scene and on the sprites in the flat fallback. Both draw the
+// weather first and this overlay after it, at every quality tier (fairness.ts): nothing a
+// player acts on sits under the fog or the rain.
 
 import type { SpriteFrame } from '../sprites/generate';
 import { layoutBoxes, wrapText } from './bubbles';
+import {
+  castBarBox,
+  cellOutline,
+  edgeArrows,
+  type GroundWarning,
+  showsCastBar,
+  THREAT_NAME_COLOR,
+  WARNING_COLORS,
+  wantsEdgeArrow,
+  warningPolygons,
+} from './combat_marks';
 import { FLOAT_COLORS } from './floating_text';
 import { type MarkerKind, markerBob } from './markers';
 import type { Scene, SceneEntity } from './scene';
@@ -18,6 +33,8 @@ export interface OverlayFrame {
   project(x: number, h: number, y: number): { x: number; y: number };
   frameOf(e: SceneEntity): SpriteFrame;
   marker(kind: MarkerKind): HTMLCanvasElement;
+  /** device pixels of the canvas, for the edge arrows */
+  viewport: { w: number; h: number };
 }
 
 const NAME_COLOR: Record<string, string> = {
@@ -36,6 +53,8 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
   c.lineJoin = 'round';
+
+  for (const w of scene.warnings) paintWarning(c, w, f, dpr);
 
   for (const it of scene.items) {
     if (it.type !== 'entity') continue;
@@ -57,7 +76,7 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
       c.font = `${size}px ${FONT}`;
       c.lineWidth = Math.max(2, Math.round(3 * dpr));
       c.strokeStyle = 'rgba(16,12,24,0.85)';
-      c.fillStyle = NAME_COLOR[it.relation] ?? '#ffffff';
+      c.fillStyle = it.marks.threat ? THREAT_NAME_COLOR : (NAME_COLOR[it.relation] ?? '#ffffff');
       c.strokeText(it.name, head.x, head.y);
       c.fillText(it.name, head.x, head.y);
       top = head.y - size - 2 * dpr;
@@ -71,6 +90,12 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
       c.imageSmoothingEnabled = false;
       c.drawImage(m, Math.round(head.x - mw / 2), Math.round(top - mh - 2 * dpr + bob), mw, mh);
       top -= mh + 2 * dpr;
+    }
+    const cast = it.marks.cast;
+    if (cast && showsCastBar(it)) {
+      const bar = castBarBox({ x: head.x, y: top }, dpr);
+      paintCastBar(c, bar, cast.progress, cast.interruptible, dpr);
+      top = bar.y - 2 * dpr;
     }
     heads.set(it.id, { x: head.x, y: top });
   }
@@ -204,4 +229,138 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
     c.textAlign = 'center';
     c.fillText(scene.exitHint.text, p.x, p.y);
   }
+
+  // Threats out of view: arrows at the screen edge (4.1), bosses bigger with the crest, and
+  // the pad's soft-lock candidate.
+  const threats: { id: string; x: number; y: number; boss: boolean }[] = [];
+  for (const it of scene.items) {
+    if (it.type !== 'entity' || !wantsEdgeArrow(it)) continue;
+    const p = f.project(it.x, 0, it.y);
+    threats.push({ id: it.id, x: p.x, y: p.y, boss: it.marks.boss });
+  }
+  for (const a of edgeArrows(threats, f.viewport, dpr))
+    paintEdgeArrow(c, a.x, a.y, a.angle, a.size, a.boss, dpr);
+}
+
+/** A ground warning: the full outline, a faint fill, and the inner fill growing with the cast. */
+function paintWarning(
+  c: CanvasRenderingContext2D,
+  w: GroundWarning,
+  f: OverlayFrame,
+  dpr: number,
+): void {
+  const col = w.hostile ? WARNING_COLORS.hostile : WARNING_COLORS.friendly;
+  const trace = (poly: readonly { x: number; y: number }[]) => {
+    c.beginPath();
+    poly.forEach((p, i) => {
+      const s = f.project(p.x, 0, p.y);
+      if (i === 0) c.moveTo(Math.round(s.x), Math.round(s.y));
+      else c.lineTo(Math.round(s.x), Math.round(s.y));
+    });
+    c.closePath();
+  };
+  c.save();
+  const full = warningPolygons(w.shape, 1);
+  c.fillStyle = col.fill;
+  for (const poly of full) {
+    trace(poly);
+    c.fill('evenodd');
+  }
+  c.fillStyle = col.core;
+  for (const poly of warningPolygons(w.shape, w.progress)) {
+    trace(poly);
+    c.fill('evenodd');
+  }
+  // a pulse zone flashes its edge as each pulse comes (4.6)
+  const flash = Math.max(0, Math.min(1, w.pulse ?? 0));
+  c.lineWidth = Math.max(2, Math.round((2 + flash * 2) * dpr));
+  c.strokeStyle = flash > 0 ? '#ffe0b0' : col.edge;
+  if (w.shape.kind === 'cells') {
+    // the outline of the locked cells, not of each cell
+    c.beginPath();
+    for (const [x0, y0, x1, y1] of cellOutline(w.shape.cells)) {
+      const a = f.project(x0, 0, y0);
+      const b = f.project(x1, 0, y1);
+      c.moveTo(Math.round(a.x), Math.round(a.y));
+      c.lineTo(Math.round(b.x), Math.round(b.y));
+    }
+    c.stroke();
+  } else
+    for (const poly of full) {
+      trace(poly);
+      c.stroke();
+    }
+  c.restore();
+}
+
+/** The enemy cast bar; an uninterruptible cast gets the shield border (4.2). */
+function paintCastBar(
+  c: CanvasRenderingContext2D,
+  bar: { x: number; y: number; w: number; h: number; border: number },
+  progress: number,
+  interruptible: boolean,
+  dpr: number,
+): void {
+  const b = bar.border;
+  c.fillStyle = 'rgba(16,12,24,0.85)';
+  c.fillRect(bar.x - b, bar.y - b, bar.w + b * 2, bar.h + b * 2);
+  c.fillStyle = interruptible ? '#f2c94c' : '#b8c0d0';
+  c.fillRect(bar.x, bar.y, Math.round(bar.w * Math.max(0, Math.min(1, progress))), bar.h);
+  if (!interruptible) {
+    // the shield: a light frame and a small crest at the left end
+    c.strokeStyle = '#e8eef8';
+    c.lineWidth = Math.max(1, Math.round(dpr));
+    c.strokeRect(bar.x - b - 0.5, bar.y - b - 0.5, bar.w + b * 2 + 1, bar.h + b * 2 + 1);
+    const sx = bar.x - b - Math.round(5 * dpr);
+    const sy = bar.y + bar.h / 2;
+    const r = Math.round(4 * dpr);
+    c.fillStyle = '#e8eef8';
+    c.beginPath();
+    c.moveTo(sx - r, sy - r);
+    c.lineTo(sx + r, sy - r);
+    c.lineTo(sx + r, sy);
+    c.lineTo(sx, sy + r);
+    c.lineTo(sx - r, sy);
+    c.closePath();
+    c.fill();
+  }
+}
+
+/** An arrow at the screen edge pointing out at a threat; a boss's carries a crest. */
+function paintEdgeArrow(
+  c: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  angle: number,
+  size: number,
+  boss: boolean,
+  dpr: number,
+): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.beginPath();
+  c.moveTo(size / 2, 0);
+  c.lineTo(-size / 2, size / 2.4);
+  c.lineTo(-size / 4, 0);
+  c.lineTo(-size / 2, -size / 2.4);
+  c.closePath();
+  c.fillStyle = boss ? '#ff3a2a' : '#ff6a4a';
+  c.strokeStyle = 'rgba(16,12,24,0.9)';
+  c.lineWidth = Math.max(1, Math.round(1.5 * dpr));
+  c.fill();
+  c.stroke();
+  if (boss) {
+    c.rotate(-angle);
+    c.fillStyle = '#ffe08a';
+    const r = Math.round(4 * dpr);
+    c.beginPath();
+    c.moveTo(0, -r);
+    c.lineTo(r, 0);
+    c.lineTo(0, r);
+    c.lineTo(-r, 0);
+    c.closePath();
+    c.fill();
+  }
+  c.restore();
 }

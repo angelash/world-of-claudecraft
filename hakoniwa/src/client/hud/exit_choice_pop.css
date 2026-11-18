@@ -1,0 +1,14 @@
+/* The destination chooser of a gate with several ways out (exit_choice_pop.ts). */
+.hk-exit-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.hk-exit-choice-list .hk-btn {
+  text-align: left;
+}
+.hk-exit-choice-list .hk-btn.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

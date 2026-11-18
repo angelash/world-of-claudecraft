@@ -25,6 +25,8 @@ import {
 } from '../hd2d/view';
 import { cancelConfirm, confirmOpen, setConfirmPrefs } from '../hud/confirm_pop';
 import { DialogueQueue } from '../hud/dialogue_queue';
+import { gateExits, gatePrompt } from '../hud/exit_choice_model';
+import { cancelExitChoice, exitChoiceOpen } from '../hud/exit_choice_pop';
 import { gaugeInput, gaugesModel } from '../hud/gauges_model';
 import { Hud } from '../hud/hud';
 import {
@@ -41,7 +43,7 @@ import {
 } from '../hud/save_slots';
 import { buildTracker, TRACK_MAX, TRACK_MAX_SHORT, TrackerState } from '../hud/tracker_model';
 import { InputLayer } from '../input/input_layer';
-import { exitOpen, nearestExit, pickEntity } from '../input/picking';
+import { pickEntity } from '../input/picking';
 import { AnimTracker } from '../render/anim_state';
 import { BubbleBoard } from '../render/bubbles';
 import { MAX_ZOOM as FLAT_MAX_ZOOM } from '../render/camera';
@@ -49,7 +51,7 @@ import { FloatingBoard } from '../render/floating_text';
 import { DecorClock, FrameScheduler } from '../render/frame_scheduler';
 import { frameSignals } from '../render/frame_signals';
 import { InterpBuffer } from '../render/interp';
-import { buildMapContext, type MapContext } from '../render/map_context';
+import type { MapContext } from '../render/map_context';
 import { topMarker } from '../render/markers';
 import type { WorldRenderer } from '../render/renderer';
 import { RoofFader, roofsToOpen } from '../render/roofs';
@@ -80,6 +82,7 @@ import { PlayerInput, type PlayerInputHost } from './player_input';
 import type { LocalSettings, StoredView } from './settings_schema';
 import { StoryWiring } from './story_wiring';
 import { ThumbnailCapture } from './thumbnail';
+import { WorldPresenter } from './world_presenter';
 
 export interface SessionHooks {
   /** after every simulation tick */
@@ -162,6 +165,8 @@ export class GameSession implements PlayerInputHost {
   private readonly router: EventRouter;
   /** party, focus, notifications, hint bar and rumble (PK-M1-22) */
   private readonly extras: HudExtras;
+  /** live map, sediment fade, combat marks and the scene's stage (PK-M1-24) */
+  private readonly world: WorldPresenter;
   private readonly unsubscribe: () => void;
   private mapCtx: MapContext | null = null;
   private viewPrefs: ViewPrefs | null = null;
@@ -210,7 +215,8 @@ export class GameSession implements PlayerInputHost {
       closeConversation: () => this.actions.closeConversation(),
       storage: pageStorage(window),
       // built before the windows: read them only when a frame asks
-      held: () => this.clock.paused || !!this.windows?.holdsWorld || confirmOpen(),
+      held: () =>
+        this.clock.paused || !!this.windows?.holdsWorld || confirmOpen() || exitChoiceOpen(),
     });
     const a = opts.adapters;
 
@@ -233,6 +239,7 @@ export class GameSession implements PlayerInputHost {
       onSelect: (id) => this.select(id),
       onOpenWindow: (id) => this.windows.show(id as WindowId),
     });
+    this.world = new WorldPresenter(opts.root, this.view, a);
     this.extras = new HudExtras({
       view: this.view,
       adapters: a,
@@ -371,6 +378,7 @@ export class GameSession implements PlayerInputHost {
     this.disposed = true;
     // a question asked by this run (delete a save, an irreversible choice) ends with it
     cancelConfirm();
+    cancelExitChoice();
     cancelAnimationFrame(this.raf);
     clearTimeout(this.prefsTimer);
     if (this.viewPrefs) this.storeView();
@@ -379,6 +387,7 @@ export class GameSession implements PlayerInputHost {
     document.removeEventListener('webglcontextrestored', this.onContextRestored, true);
     this.unsubscribe();
     this.story.dispose();
+    this.world.dispose();
     this.stopAudio();
     this.input.dispose();
     this.windows.dispose();
@@ -583,7 +592,7 @@ export class GameSession implements PlayerInputHost {
     this.input.frame(now);
     // An interface mode (the corridor, 9.1), settings, saves, the menu, help and a confirm popup
     // hold the world still (ux_and_onboarding.md 1.3).
-    const scale = this.windows.holdsWorld || confirmOpen() ? 0 : this.timeScale;
+    const scale = this.windows.holdsWorld || confirmOpen() || exitChoiceOpen() ? 0 : this.timeScale;
     const { steps, alpha } = this.clock.advance(dt * scale);
     const ranSteps = framesToRun(steps, !!this.engine.clockStep());
     for (let i = 0; i < ranSteps; i++) {
@@ -594,11 +603,12 @@ export class GameSession implements PlayerInputHost {
     if (ranSteps > 0) this.actions.afterSteps();
     if (this.engine.logFull) this.autosaveAtSafePoint();
     this.alpha = alpha;
+    // the story types on real time, outside the 20 Hz world; it enters a node's stage before
+    // the world picture reads it, so a directive shows on the frame its node starts
+    this.story.frame(now);
     this.present(now, dt);
     this.audioFrame(now);
     this.windows.frame(now);
-    // the story types on real time, outside the 20 Hz world
-    this.story.frame(now);
     // One mode at a time (1.3): a scene that starts while the corridor is open (a door's own
     // cutscene) takes over; the corridor would otherwise hold the world, and the scene, still.
     const mode = this.windows.modeOpen;
@@ -638,28 +648,62 @@ export class GameSession implements PlayerInputHost {
   private present(now: number, dt: number): void {
     const player = this.view.player();
     if (player && this.mapCtx?.map.id !== player.mapId) this.enterMap();
+    this.followSwitches(now);
     const ctx = this.mapCtx;
     if (!player || !ctx) return;
     const map = ctx.map;
+    const prefs = this.prefs();
+    const yaw = this.viewYaw();
+    const onMap = this.view.entitiesOnMap(map.id);
+    // the scene's stage: camera, light, weather, mirror and motions (catalog_cutscenes.md 13.5)
+    const stage = this.world.readStage({
+      stage: this.story.stage(),
+      presentation: this.adapters.scene?.scene(this.view)?.presentation ?? null,
+      now,
+      view: this.view,
+      map,
+      entities: onMap,
+      playerId: player.id,
+      calendar: this.view.calendar(),
+      weather: this.view.weather(),
+      deviceH: this.renderer.deviceH,
+    });
+    this.world.readMarks(map.id, onMap);
     const entities: SceneEntityInput[] = [];
     const ids = new Set<string>();
-    let playerPos = { x: player.x, y: player.y };
+    const playerPos = this.interp.sample(player.id, this.alpha) ?? { x: player.x, y: player.y };
     const overhead = this.adapters.overhead;
-    for (const e of this.view.entitiesOnMap(map.id)) {
-      const pos = this.interp.sample(e.id, this.alpha) ?? { x: e.x, y: e.y };
-      if (e.id === player.id) playerPos = pos;
+    // a staged shot frames the scene; otherwise the player's own view follows the player
+    const view = stage.view ?? {
+      focusX: playerPos.x,
+      focusY: playerPos.y,
+      step: stepAt(prefs.stepIndex),
+      pitch: prefs.pitch,
+      yaw,
+    };
+    // the flat renderer never turns: its figures face the map as it is
+    const hd = this.renderer.kind === 'hd2d';
+    const faceYaw = hd ? view.yaw : 0;
+    const facePitch = hd ? view.pitch : undefined;
+    for (const e of onMap) {
+      const pos =
+        e.id === player.id
+          ? playerPos
+          : (this.interp.sample(e.id, this.alpha) ?? { x: e.x, y: e.y });
       ids.add(e.id);
-      const anim = this.anim.sample(
+      const sampled = this.anim.sample(
         {
           id: e.id,
           alive: e.alive,
           facing: e.facing,
-          yawDeg: this.viewYaw(),
+          yawDeg: faceYaw,
+          pitchDeg: facePitch,
           moving: this.interp.moving(e.id),
           travelled: this.interp.travelled(e.id),
         },
         now,
       );
+      const anim = this.world.animOf(e, sampled, pos, playerPos, faceYaw, facePitch, now);
       const markers = overhead?.markers(this.view, e.id) ?? [];
       entities.push({
         entity: e,
@@ -668,19 +712,11 @@ export class GameSession implements PlayerInputHost {
         look: this.lookOf(e),
         anim,
         marker: topMarker(markers),
+        marks: this.world.marksOf(e.id),
       });
     }
     this.anim.retain(ids);
     if (this.selection && !ids.has(this.selection)) this.select(null);
-
-    const prefs = this.prefs();
-    const view = {
-      focusX: playerPos.x,
-      focusY: playerPos.y,
-      step: stepAt(prefs.stepIndex),
-      pitch: prefs.pitch,
-      yaw: this.viewYaw(),
-    };
 
     // Open the roof over the player, over the selected figure, and every roof while placing
     // a building, so nothing the player acts on hides under a roof (art_pipeline.md 5.6).
@@ -693,17 +729,17 @@ export class GameSession implements PlayerInputHost {
     this.roofs.update(dt, roofsToOpen(ctx.roofs, playerPos, extraOpen), ctx.roofs);
 
     const inScene = this.inScene();
-    // Paused, or a scene panel over the world: idle animation, weather and water hold still.
-    const quiet = this.clock.paused || inScene;
+    // Paused, or a scene panel over the world: idle animation, weather and water hold still;
+    // a staged scene (a shot, a light, a weather or a motion on stage) keeps the world moving.
+    const held = this.windows.holdsWorld || confirmOpen() || exitChoiceOpen();
+    const quiet = this.clock.paused || held || (inScene && !stage.staged);
     let exitHint: { x: number; y: number; text: string } | null = null;
-    const exit = nearestExit(map, playerPos);
-    if (exit) {
-      const open = exitOpen(exit, (k) => flagOn(this.view.flag(k)));
-      exitHint = {
-        x: exit.x + 0.5,
-        y: exit.y + 0.5,
-        text: t(open ? 'ui.hud.prompt.exit' : 'ui.hud.prompt.exit_locked', { label: exit.label }),
-      };
+    // a gate with several ways out says how many (exit_choice_model.ts)
+    const ways = gateExits(map, playerPos, (k) => flagOn(this.view.flag(k)));
+    const prompt = gatePrompt(ways);
+    const exit = ways.length ? map.exits.find((e) => e.id === ways[0]?.id) : undefined;
+    if (exit && prompt) {
+      exitHint = { x: exit.x + 0.5, y: exit.y + 0.5, text: t(prompt.key, prompt.params) };
     } else {
       const near = this.adapters.interact?.nearestTalkable(this.view);
       const ne = near ? this.view.entity(near) : undefined;
@@ -715,8 +751,13 @@ export class GameSession implements PlayerInputHost {
       view,
       timeMs: this.decor.advance(now, quiet),
       playerId: player.id,
-      calendar: this.view.calendar(),
-      weather: this.view.weather(),
+      calendar: stage.calendar,
+      weather: stage.weather,
+      weatherFade: stage.weatherFade,
+      mood: stage.mood,
+      sediment: this.world.sedimentAt(map, { x: view.focusX, y: view.focusY }, now),
+      warnings: this.world.groundWarnings(),
+      switchFade: this.world.switchFade(now),
       entities,
       standees: ctx.layout.standees,
       staticLights: ctx.layout.lights,
@@ -752,11 +793,22 @@ export class GameSession implements PlayerInputHost {
       this.shots.frameDrawn(this.opts.root);
   }
 
+  /** A switch tile on the player's map opened or closed: draw the live map, fading the change. */
+  private followSwitches(now: number): void {
+    const content = this.view.currentMap();
+    if (!this.mapCtx || !content || content.id !== this.mapCtx.map.id) return;
+    const next = this.world.switchChange(content, now);
+    if (!next) return;
+    this.mapCtx = next;
+    this.renderer.setMap(next);
+    this.frames.invalidate('map');
+  }
+
   private enterMap(): void {
     const map = this.view.currentMap();
     if (!map) return;
     if (this.mapCtx?.map.id === map.id) return;
-    this.mapCtx = buildMapContext(map);
+    this.mapCtx = this.world.contextFor(map, performance.now());
     this.renderer.setMap(this.mapCtx);
     this.frames.invalidate('map');
     this.interp.clear();
@@ -803,7 +855,9 @@ export class GameSession implements PlayerInputHost {
       t('ui.hud.target.none'),
     );
     this.hud.clock.update(v.calendar(), v.weather(), this.clock.speed, this.clock.paused);
-    const map = v.currentMap();
+    // the minimap shows the live map: switch tiles as the flags leave them (PK-M1-16)
+    const content = v.currentMap();
+    const map = content && this.mapCtx?.map.id === content.id ? this.mapCtx.map : content;
     this.hud.minimap.update(
       map,
       map ? v.entitiesOnMap(map.id) : [],

@@ -1,8 +1,9 @@
 // Frame signals for the frame scheduler (release_engineering.md 6.3): one built Scene
 // reduced to a change signature (a number per part: camera, figure positions, animation
 // poses and frames, marker bob, roofs, lights, world state, selection and placement,
-// overlay content) and its time-driven activity (effects in flight, screen weather, water
-// in view, film grain, motes). Only figures in view count, with a margin wide enough for
+// overlay content: combat marks and ground warnings included) and its time-driven activity
+// (effects in flight, screen weather, water in view, film grain, motes; a stage weather,
+// mood or switch-tile fade changes the signature on every frame while it runs). Only figures in view count, with a margin wide enough for
 // tall sprites, labels, bubbles and their long evening shadows, so a crowd walking off
 // screen does not keep the frame dirty. The hash folds 32-bit words with an FNV step, which is one-to-one in the running
 // value, so changing any one number always changes its part (strings fold their length
@@ -12,6 +13,7 @@ import { tileAt } from '../../systems/world/grid';
 import type { MapDef, Weather } from '../../systems/world/types';
 import { pixelsPerUnit, viewBasis } from '../hd2d/view';
 import { clampZoom, followCamera, TILE_PX } from './camera';
+import { showsCastBar, wantsEdgeArrow } from './combat_marks';
 import type { FrameActivity, FrameSignature } from './frame_scheduler';
 import { markerBob } from './markers';
 import type { Scene } from './scene';
@@ -231,7 +233,15 @@ export function frameSignals(scene: Scene, opts: SignalOptions): FrameSignals {
     if (it.selected || it.hovered) ui = str(flag(flag(ui, it.selected), it.hovered), it.id);
     const sx = ft.ax * it.x + ft.bx * it.y + ft.cx;
     const sy = ft.ay * it.x + ft.by * it.y + ft.cy;
-    if (sx < minX || sx > maxX || sy < minY || sy > maxY) continue;
+    const outside = sx < minX || sx > maxX || sy < minY || sy > maxY;
+    // off screen, a threat counts by the direction of its edge arrow (whole degrees)
+    if (outside && wantsEdgeArrow(it)) {
+      const deg = Math.round(
+        (Math.atan2(sy - opts.deviceH / 2, sx - opts.deviceW / 2) * 180) / Math.PI,
+      );
+      overlay = word(flag(str(overlay, it.id), it.marks.boss), deg + 1000);
+    }
+    if (outside) continue;
     inView++;
     motion = num(num(str(motion, it.id), it.x), it.y);
     pose = str(str(pose, it.anim.anim), it.anim.dir);
@@ -241,6 +251,11 @@ export function frameSignals(scene: Scene, opts: SignalOptions): FrameSignals {
     if (it.showName) overlay = str(overlay, it.name);
     overlay = str(str(overlay, it.marker ?? ''), it.glyph ?? '');
     if (it.marker) markers = true;
+    // only a bar someone sees redraws the overlay (combat_marks.ts showsCastBar)
+    const cast = showsCastBar(it) ? it.marks.cast : null;
+    overlay = flag(overlay, !!cast);
+    if (cast) overlay = num(flag(overlay, cast.interruptible), cast.progress);
+    tick = flag(tick, it.marks.threat);
     if (it.look.archetype === 'goddess' || it.look.archetype === 'spirit') glow = true;
   }
   tick = word(tick, inView);
@@ -284,6 +299,33 @@ export function frameSignals(scene: Scene, opts: SignalOptions): FrameSignals {
   overlay = flag(overlay, !!hint);
   if (hint) overlay = str(num(num(overlay, hint.x), hint.y), hint.text);
   overlay = word(overlay, scene.floats.length);
+  overlay = word(overlay, scene.warnings.length);
+  for (const w of scene.warnings) {
+    const sh = w.shape;
+    overlay = num(num(flag(str(overlay, w.id), w.hostile), w.progress), w.pulse ?? 0);
+    overlay = str(overlay, sh.kind);
+    if (sh.kind === 'cells') {
+      overlay = word(overlay, sh.cells.length);
+      for (const c of sh.cells) overlay = word(overlay, c);
+      continue;
+    }
+    overlay = num(num(overlay, sh.x), sh.y);
+    if (sh.kind === 'line') overlay = num(num(num(overlay, sh.length), sh.width), sh.dir);
+    else overlay = num(overlay, sh.radius);
+    if (sh.kind === 'cone') overlay = num(num(overlay, sh.dir), sh.arc);
+    if (sh.kind === 'ring') overlay = num(overlay, sh.inner);
+  }
+  const wf = scene.weatherFade;
+  tick = flag(tick, !!wf);
+  if (wf) {
+    tick = num(str(tick, wf.from), wf.t);
+    overlay = num(overlay, wf.t);
+  }
+  tick = flag(tick, !!scene.mood);
+  if (scene.mood) tick = num(str(tick, scene.mood.kind), scene.mood.k);
+  const sf = scene.switchFade;
+  roof = flag(roof, !!sf);
+  if (sf) roof = num(word(roof, sf.rects.length), sf.t);
 
   return {
     signature: {

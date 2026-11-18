@@ -3,14 +3,26 @@
 // a fade, the letter step, the music playing and a written silence) and the calls the player
 // makes when a node is entered. The player never touches the audio engine: it calls a thin
 // `CutsceneAudio` sink (no-op until the audio engine, PK-M1-06, installs one), and
-// `cutsceneDirectorInput` gives the audio director its `cutscene` input. Camera, light,
-// weather, mirror and motion directives are not in the list yet (no camera director; they
-// degrade to holding the current picture, 13.5). The prologue's staging directives (PK-M1-54)
+// `cutsceneDirectorInput` gives the audio director its `cutscene` input. The camera, light,
+// weather, court-mirror and motion directives are recorded with the time they were entered;
+// the world picture executes them (src/client/render/stage_direct.ts, PK-M1-24), and a
+// directive the picture cannot carry out keeps the current picture (13.5). The prologue's
+// staging directives (PK-M1-54)
 // leave two things standing: the eavesdropping (`listen`, `noise`, `listen_end`, P5) and the
 // door that reappears at every corner (`door`, `door_end`, P2); prologue_stage.ts reads them
 // against the world's flags. Pure; Node-tested.
 
-import type { StageDirective } from '../../../systems/scenes/types';
+import type {
+  StageDirective,
+  StageLightPreset,
+  StageWeatherPreset,
+} from '../../../systems/scenes/types';
+
+/** The court mirror shows at most this long (catalog_cutscenes.md 13.5). */
+export const MIRROR_MAX_S = 20;
+
+/** A camera directive and the real time it was entered. */
+export type StageCamera = Extract<StageDirective, { op: 'camera' }> & { start: number };
 
 /** A written silence presses music and ambience to this level (13.5). */
 export const SILENCE_DB = -24;
@@ -68,6 +80,16 @@ export interface StageState {
   listen: { flag: string; noises: number } | null;
   /** the recurring door (P2): its counter flag, the cap, and whether it opened */
   door: { flag: string; cap: number; open: boolean } | null;
+  /** the shot the camera holds (null: the player's own view) */
+  camera: StageCamera | null;
+  /** the light preset on screen (`world` fades back to the world's light) */
+  light: { preset: StageLightPreset; start: number } | null;
+  /** the weather on screen (`world` fades back to the world's weather) */
+  weather: { preset: StageWeatherPreset; start: number } | null;
+  /** the court mirror: the map it shows and until when */
+  mirror: { map: string; start: number; until: number } | null;
+  /** figures doing a staged motion, one each */
+  motions: { who: string; action: string; start: number }[];
 }
 
 export function emptyStage(): StageState {
@@ -82,6 +104,11 @@ export function emptyStage(): StageState {
     shake: 0,
     listen: null,
     door: null,
+    camera: null,
+    light: null,
+    weather: null,
+    mirror: null,
+    motions: [],
   };
 }
 
@@ -103,6 +130,8 @@ export function enterNode(
   const s: StageState = {
     ...prev,
     busts: [...prev.busts],
+    motions: [...prev.motions],
+    mirror: prev.mirror && prev.mirror.until > now ? prev.mirror : null,
     captions: [],
     letter: null,
     shake: 0,
@@ -173,6 +202,32 @@ export function enterNode(
         break;
       case 'door_end':
         s.door = null;
+        break;
+      case 'camera':
+        s.camera = { ...d, start: now };
+        break;
+      case 'camera_end':
+        s.camera = null;
+        break;
+      case 'light':
+        s.light = { preset: d.preset, start: now };
+        break;
+      case 'weather':
+        s.weather = { preset: d.preset, start: now };
+        break;
+      case 'mirror': {
+        const secs = Math.max(0, Math.min(MIRROR_MAX_S, d.seconds ?? MIRROR_MAX_S));
+        s.mirror = { map: d.map, start: now, until: now + secs * 1000 };
+        break;
+      }
+      case 'mirror_end':
+        s.mirror = null;
+        break;
+      case 'motion':
+        s.motions = [
+          ...s.motions.filter((m) => m.who !== d.who),
+          { who: d.who, action: d.action, start: now },
+        ];
         break;
       default:
         break;

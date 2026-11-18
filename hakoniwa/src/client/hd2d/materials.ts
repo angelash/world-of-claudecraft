@@ -1,9 +1,10 @@
 // Materials of the HD-2D scene (art_pipeline.md 2.3 to 2.7): pixel textures from the
 // procedural painters, Lambert shading for the ground and building shells (sun, sky and
-// shadow maps from three.js) with the light map, dynamic lights, water and dissolve
-// injected through onBeforeCompile, and a shader material for standees with upright
-// depth and a matching shadow-depth material. Shared uniform objects let one update per
-// frame reach every material.
+// shadow maps from three.js) with pixel sampling of the colour and window-light maps, the
+// light map, dynamic lights, water, the roof dissolve and the switch-tile dissolve injected
+// through onBeforeCompile, a shader material for standees with upright depth and a
+// matching shadow-depth material, and the silhouette material of figures behind cover.
+// Shared uniform objects let one update per frame reach every material.
 
 import * as THREE from 'three';
 import type { PixelMatrix } from '../sprites/pixels';
@@ -12,10 +13,15 @@ import {
   DISSOLVE_FRAGMENT,
   LIGHT_DECL,
   MAX_DYNAMIC_LIGHTS,
+  MAX_SWITCH_RECTS,
+  PIXEL_EMISSIVE_FRAGMENT,
   PIXEL_MAP_FRAGMENT,
+  SILHOUETTE_FRAGMENT,
   STANDEE_DEPTH_FRAGMENT,
   STANDEE_FRAGMENT,
   STANDEE_VERTEX,
+  SWITCH_DECL,
+  SWITCH_FRAGMENT,
   WATER_DECL,
   WATER_FRAGMENT,
   WORLD_POS_VERTEX,
@@ -37,6 +43,16 @@ export interface SharedUniforms {
   uToCam3: U<THREE.Vector3>;
   uToCam: U<THREE.Vector2>;
   uAmbient: U<THREE.Color>;
+  /** changed switch rectangles (x, z, w, h) while a switch change fades */
+  uSwRect: U<THREE.Vector4[]>;
+  uSwCount: U<number>;
+  /** 0..1 progress of the switch fade */
+  uSwT: U<number>;
+}
+
+/** The switch-fade role of one static scene: 0 at rest, 1 outgoing, 2 incoming. */
+export interface SwitchRole {
+  uSwMode: U<number>;
 }
 
 export function createSharedUniforms(): SharedUniforms {
@@ -55,6 +71,9 @@ export function createSharedUniforms(): SharedUniforms {
     uToCam3: { value: new THREE.Vector3(0, 0.6, 0.8) },
     uToCam: { value: new THREE.Vector2(0, 1) },
     uAmbient: { value: new THREE.Color(1, 1, 1) },
+    uSwRect: { value: Array.from({ length: MAX_SWITCH_RECTS }, () => new THREE.Vector4()) },
+    uSwCount: { value: 0 },
+    uSwT: { value: 0 },
   };
 }
 
@@ -105,6 +124,17 @@ interface LitOptions {
   roof?: boolean;
   alphaTest?: number;
   color?: THREE.Color;
+  /** the map has switch tiles: the surface takes part in their dissolve */
+  switchRole?: SwitchRole;
+}
+
+function switchUniforms(shared: SharedUniforms, role: SwitchRole) {
+  return {
+    uSwRect: shared.uSwRect,
+    uSwCount: shared.uSwCount,
+    uSwT: shared.uSwT,
+    uSwMode: role.uSwMode,
+  };
 }
 
 /** Lambert material with pixel sampling, artificial light and optional water or dissolve. */
@@ -123,6 +153,7 @@ export function litMaterial(shared: SharedUniforms, o: LitOptions): THREE.MeshLa
   if (o.water) defines.HK_WATER = '';
   if (o.dissolve) defines.HK_DISSOLVE = '';
   if (o.roof) defines.HK_ROOF = '';
+  if (o.switchRole) defines.HK_SWITCH = '';
   mat.defines = defines;
   mat.customProgramCacheKey = () => `hk:${Object.keys(defines).sort().join(',')}`;
   mat.onBeforeCompile = (shader) => {
@@ -141,17 +172,20 @@ export function litMaterial(shared: SharedUniforms, o: LitOptions): THREE.MeshLa
       shader.uniforms.uWaterHi = { value: o.water.hi };
     }
     if (o.dissolve) Object.assign(shader.uniforms, o.dissolve);
+    if (o.switchRole) Object.assign(shader.uniforms, switchUniforms(shared, o.switchRole));
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vHkWorld;')
       .replace('#include <project_vertex>', `#include <project_vertex>\n${WORLD_POS_VERTEX}`);
     let frag = shader.fragmentShader.replace(
       '#include <common>',
-      `#include <common>\n${LIGHT_DECL}\n${o.water ? WATER_DECL : ''}\n${o.dissolve ? DISSOLVE_DECL : ''}`,
+      `#include <common>\n${LIGHT_DECL}\n${o.water ? WATER_DECL : ''}\n${o.dissolve ? DISSOLVE_DECL : ''}\n${o.switchRole ? SWITCH_DECL : ''}`,
     );
     frag = frag.replace(
       '#include <map_fragment>',
-      `${PIXEL_MAP_FRAGMENT}\n${o.water ? WATER_FRAGMENT : ''}\n${o.dissolve ? DISSOLVE_FRAGMENT : ''}`,
+      `${PIXEL_MAP_FRAGMENT}\n${o.water ? WATER_FRAGMENT : ''}\n${o.dissolve ? DISSOLVE_FRAGMENT : ''}\n${o.switchRole ? SWITCH_FRAGMENT : ''}`,
     );
+    // the window light of night walls takes the same pixel sampling as the colour map
+    frag = frag.replace('#include <emissivemap_fragment>', PIXEL_EMISSIVE_FRAGMENT);
     frag = frag.replace(
       '#include <opaque_fragment>',
       'outgoingLight += diffuseColor.rgb * hkArtificial(vHkWorld);\n#include <opaque_fragment>',
@@ -161,9 +195,14 @@ export function litMaterial(shared: SharedUniforms, o: LitOptions): THREE.MeshLa
   return mat;
 }
 
-/** Standee material (one per texture); `instanced` for InstancedMesh batches. */
-export function standeeMaterial(shared: SharedUniforms, map: THREE.Texture): THREE.ShaderMaterial {
+/** Standee material (one per texture); static standees of a switch map join the switch dissolve. */
+export function standeeMaterial(
+  shared: SharedUniforms,
+  map: THREE.Texture,
+  switchRole?: SwitchRole,
+): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
+    defines: switchRole ? { HK_SWITCH: '' } : {},
     // Standee quads face the camera; the shadow pass must draw both sides or a sun in
     // front of the camera would see their backs and drop the shadow.
     shadowSide: THREE.DoubleSide,
@@ -181,9 +220,38 @@ export function standeeMaterial(shared: SharedUniforms, map: THREE.Texture): THR
       uDynColor: shared.uDynColor,
       uDynCount: shared.uDynCount,
       uLightK: shared.uLightK,
+      ...(switchRole ? switchUniforms(shared, switchRole) : {}),
     },
     vertexShader: STANDEE_VERTEX,
     fragmentShader: STANDEE_FRAGMENT,
+  });
+}
+
+/**
+ * Silhouette of a figure behind cover (art_pipeline.md 2.4): the standee billboard drawn
+ * only where something nearer covers it, after everything else, in one flat colour.
+ */
+export function silhouetteMaterial(
+  shared: SharedUniforms,
+  map: THREE.Texture,
+  color: number,
+): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: map },
+      uColor: { value: new THREE.Color().setHex(color) },
+      uRight: shared.uRight,
+      uUp: shared.uUp,
+      uToCam3: shared.uToCam3,
+    },
+    vertexShader: STANDEE_VERTEX,
+    fragmentShader: SILHOUETTE_FRAGMENT,
+    depthFunc: THREE.GreaterDepth,
+    depthWrite: false,
+    // pulled a hair toward the camera, so the figure's own pixels never count as cover
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -4,
   });
 }
 

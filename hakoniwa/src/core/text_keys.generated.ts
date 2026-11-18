@@ -1839,6 +1839,7 @@ export type TextKey =
   | 'ui.hud.player.pending_combat'
   | 'ui.hud.prompt.exit'
   | 'ui.hud.prompt.exit_locked'
+  | 'ui.hud.prompt.exit_many'
   | 'ui.hud.prompt.talk'
   | 'ui.hud.target.appraisal'
   | 'ui.hud.target.candidate'
@@ -2032,6 +2033,11 @@ export type TextKey =
   | 'ui.pop.confirm.how_hold'
   | 'ui.pop.confirm.how_twice'
   | 'ui.pop.confirm.ok'
+  | 'ui.pop.exit_choice.body'
+  | 'ui.pop.exit_choice.locked'
+  | 'ui.pop.exit_choice.option'
+  | 'ui.pop.exit_choice.stay'
+  | 'ui.pop.exit_choice.title'
   | 'ui.pop.osk.count'
   | 'ui.pop.osk.han_page'
   | 'ui.pop.osk.hint'
@@ -3013,5 +3019,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (3009). */
-export const TEXT_KEY_COUNT = 3009;
+/** Number of keys in TextKey (3015). */
+export const TEXT_KEY_COUNT = 3015;

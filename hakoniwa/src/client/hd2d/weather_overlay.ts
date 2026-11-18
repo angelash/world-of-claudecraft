@@ -3,10 +3,14 @@
 // rising motes of sediment and of the divine court. Particles come from the shared pure
 // weather module, laid out in sprite pixels and scaled by the zoom step, anchored to the
 // camera focus so they drift with the world. With reduced motion there are fewer
-// particles and lightning never flashes the whole screen.
+// particles and lightning never flashes the whole screen. The fog and the particles stay
+// under the opacity caps of the fairness list (fairness.ts), and a cutscene's weather
+// change cross-fades the old weather out and the new one in over a second.
 
+import type { Weather } from '../../systems/world/types';
 import { TILE_PX } from '../render/camera';
 import { matrixToCanvas } from '../render/canvas_util';
+import { FOG_ALPHA_CAP, flashAlpha, particleAlpha } from '../render/fairness';
 import type { Scene } from '../render/scene';
 import { fogNoise, lightningFlash, moteParticles, weatherParticles } from '../render/weather_fx';
 import { type ViewRequest, viewBasis } from './view';
@@ -20,6 +24,54 @@ const COLORS: Record<string, string> = {
 };
 
 let fogTile: HTMLCanvasElement | null = null;
+
+interface ParticleView {
+  w: number;
+  h: number;
+  camX: number;
+  camY: number;
+}
+
+function paintWeather(
+  c: CanvasRenderingContext2D,
+  weather: Weather,
+  k: number,
+  scene: Scene,
+  pv: ParticleView,
+  z: number,
+  deviceW: number,
+  deviceH: number,
+  reducedMotion: boolean,
+): void {
+  if (k <= 0) return;
+  if (weather === 'fog') {
+    if (!fogTile) fogTile = matrixToCanvas(fogNoise());
+    const fw = deviceW * 1.6;
+    const fh = deviceH * 1.4;
+    const off = ((scene.timeMs / 90 + pv.camX * 0.5 * z) % fw) - fw;
+    // Light enough that selection rings and placement tiles under it stay readable.
+    c.globalAlpha = FOG_ALPHA_CAP * k;
+    c.imageSmoothingEnabled = true;
+    c.drawImage(fogTile, off, -deviceH * 0.2, fw, fh);
+    c.drawImage(fogTile, off + fw, -deviceH * 0.2, fw, fh);
+    c.globalAlpha = 1;
+  }
+  const parts = weatherParticles(weather, scene.timeMs, pv, reducedMotion ? 0.4 : 1);
+  for (const p of parts) {
+    c.globalAlpha = particleAlpha(p.alpha) * k;
+    c.fillStyle = COLORS[p.kind] ?? '#ffffff';
+    if (p.kind === 'rain') {
+      for (let i = 0; i < p.size; i++)
+        c.fillRect(Math.round(p.x - i * 0.25) * z, Math.round(p.y - i) * z, z, z);
+    } else if (p.kind === 'splash') {
+      c.fillRect((Math.round(p.x) - 1) * z, Math.round(p.y) * z, z, z);
+      c.fillRect((Math.round(p.x) + 1) * z, Math.round(p.y) * z, z, z);
+    } else {
+      c.fillRect(Math.round(p.x) * z, Math.round(p.y) * z, p.size * z, p.size * z);
+    }
+  }
+  c.globalAlpha = 1;
+}
 
 export function paintWeatherOverlay(
   c: CanvasRenderingContext2D,
@@ -42,33 +94,10 @@ export function paintWeatherOverlay(
     camX: Math.round(along * TILE_PX),
     camY: Math.round(-away * TILE_PX),
   };
-  if (scene.weather === 'fog') {
-    if (!fogTile) fogTile = matrixToCanvas(fogNoise());
-    const fw = deviceW * 1.6;
-    const fh = deviceH * 1.4;
-    const off = ((scene.timeMs / 90 + pv.camX * 0.5 * z) % fw) - fw;
-    // Light enough that selection rings and placement tiles under it stay readable.
-    c.globalAlpha = 0.35;
-    c.imageSmoothingEnabled = true;
-    c.drawImage(fogTile, off, -deviceH * 0.2, fw, fh);
-    c.drawImage(fogTile, off + fw, -deviceH * 0.2, fw, fh);
-    c.globalAlpha = 1;
-  }
-  const parts = weatherParticles(scene.weather, scene.timeMs, pv, reducedMotion ? 0.4 : 1);
-  for (const p of parts) {
-    c.globalAlpha = p.alpha;
-    c.fillStyle = COLORS[p.kind] ?? '#ffffff';
-    if (p.kind === 'rain') {
-      for (let i = 0; i < p.size; i++)
-        c.fillRect(Math.round(p.x - i * 0.25) * z, Math.round(p.y - i) * z, z, z);
-    } else if (p.kind === 'splash') {
-      c.fillRect((Math.round(p.x) - 1) * z, Math.round(p.y) * z, z, z);
-      c.fillRect((Math.round(p.x) + 1) * z, Math.round(p.y) * z, z, z);
-    } else {
-      c.fillRect(Math.round(p.x) * z, Math.round(p.y) * z, p.size * z, p.size * z);
-    }
-  }
-  c.globalAlpha = 1;
+  const fade = scene.weatherFade;
+  if (fade && fade.t < 1)
+    paintWeather(c, fade.from, 1 - fade.t, scene, pv, z, deviceW, deviceH, reducedMotion);
+  paintWeather(c, scene.weather, fade ? fade.t : 1, scene, pv, z, deviceW, deviceH, reducedMotion);
   if (scene.sediment > 0) {
     c.fillStyle = '#9a5ac8';
     for (const p of moteParticles(scene.timeMs, pv, scene.sediment, 3)) {
@@ -89,7 +118,7 @@ export function paintWeatherOverlay(
   if (scene.weather === 'storm' && !reducedMotion) {
     const flash = lightningFlash(scene.timeMs);
     if (flash > 0) {
-      c.globalAlpha = flash * 0.85;
+      c.globalAlpha = flashAlpha(flash);
       c.fillStyle = '#e8f0ff';
       c.fillRect(0, 0, deviceW, deviceH);
       c.globalAlpha = 1;

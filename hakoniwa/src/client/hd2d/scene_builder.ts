@@ -1,8 +1,10 @@
 // Static HD-2D scene of one map (art_pipeline.md 2.2, 2.5 and 2.6): the baked ground
 // plane with animated water, every building shell with its roof, gables, chimney and door
 // leaves (one dissolve state per building), the free-standing walls, and the instanced
-// standees (trees, rocks, decor, shop signs). Built once per map from the MapContext;
-// disposed as a whole on map change.
+// standees (trees, rocks, decor, shop signs). Built once per map from the MapContext, and
+// again from the live map when a switch tile opens or closes; on a map with switches every
+// surface takes part in the switch dissolve (switch_fade.ts) through the scene's role.
+// Disposed as a whole on map change.
 
 import * as THREE from 'three';
 import type { DecorKind, SignKind } from '../../systems/world/look';
@@ -20,6 +22,7 @@ import {
   litMaterial,
   pixelTexture,
   type SharedUniforms,
+  type SwitchRole,
   standeeDepthMaterial,
   standeeMaterial,
 } from './materials';
@@ -47,6 +50,8 @@ export interface StaticScene {
   buildings: BuildingMeshes[];
   /** meshes outside any building that cast sun shadows (toggled with the quality tier) */
   casters: THREE.Object3D[];
+  /** the scene's part in a switch dissolve; null on maps without switches */
+  role: SwitchRole | null;
   dispose(): void;
 }
 
@@ -77,6 +82,8 @@ export function buildStaticScene(
   waterHi: THREE.Color,
 ): StaticScene {
   const { map, pack, layout } = ctx;
+  const role: SwitchRole | null = map.switches?.length ? { uSwMode: { value: 0 } } : null;
+  const switchRole = role ?? undefined;
   const group = new THREE.Group();
   const disposables: { dispose(): void }[] = [];
   const casters: THREE.Object3D[] = [];
@@ -92,7 +99,9 @@ export function buildStaticScene(
   mask.magFilter = THREE.NearestFilter;
   mask.minFilter = THREE.NearestFilter;
   mask.needsUpdate = true;
-  const groundMat = track(litMaterial(shared, { map: groundTex, water: { mask, hi: waterHi } }));
+  const groundMat = track(
+    litMaterial(shared, { map: groundTex, water: { mask, hi: waterHi }, switchRole }),
+  );
   const groundGeo = track(toGeometry(groundQuad(0, 0, map.width, map.height, 0)));
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.receiveShadow = true;
@@ -116,7 +125,13 @@ export function buildStaticScene(
       CUTAWAY_NEAR,
     );
     const wallMat = track(
-      litMaterial(shared, { map: colorTex, emissiveMap: emisTex, dissolve, alphaTest: 0.5 }),
+      litMaterial(shared, {
+        map: colorTex,
+        emissiveMap: emisTex,
+        dissolve,
+        alphaTest: 0.5,
+        switchRole,
+      }),
     );
     const caps = [...b.walls, ...b.doors.map((d) => ({ x: d.x, y: d.y }))];
     const walls = new THREE.Mesh(
@@ -134,7 +149,7 @@ export function buildStaticScene(
       pixelTexture(paintRoof(b.look.roofing, b.look.roofColors, rm.wPx, rm.lPx, seed)),
     );
     const roofMat = track(
-      litMaterial(shared, { map: roofTex, emissiveMap: roofTex, dissolve, roof: true }),
+      litMaterial(shared, { map: roofTex, emissiveMap: roofTex, dissolve, roof: true, switchRole }),
     );
     roofMat.side = THREE.DoubleSide;
     const roof = new THREE.Mesh(track(toGeometry(rm.slopes)), roofMat);
@@ -148,7 +163,9 @@ export function buildStaticScene(
     tileTex.wrapS = THREE.RepeatWrapping;
     tileTex.wrapT = THREE.RepeatWrapping;
     if (rm.gables.positions.length) {
-      const gableMat = track(litMaterial(shared, { map: tileTex, dissolve, roof: true }));
+      const gableMat = track(
+        litMaterial(shared, { map: tileTex, dissolve, roof: true, switchRole }),
+      );
       const gables = new THREE.Mesh(track(toGeometry(rm.gables)), gableMat);
       gables.castShadow = true;
       gables.receiveShadow = true;
@@ -163,7 +180,9 @@ export function buildStaticScene(
       );
       chimTex.wrapS = THREE.RepeatWrapping;
       chimTex.wrapT = THREE.RepeatWrapping;
-      const chimMat = track(litMaterial(shared, { map: chimTex, dissolve, roof: true }));
+      const chimMat = track(
+        litMaterial(shared, { map: chimTex, dissolve, roof: true, switchRole }),
+      );
       const top = rm.ridgeY + 0.6;
       const [cx, , cz] = rm.chimneyAt;
       const box = track(toGeometry(boxMesh(cx - 0.3, cx + 0.3, H - 0.2, top, cz - 0.3, cz + 0.3)));
@@ -173,7 +192,7 @@ export function buildStaticScene(
       group.add(chim);
     }
     const doorTex = track(pixelTexture(paintDoor(b.look.doorColor)));
-    const doorMat = track(litMaterial(shared, { map: doorTex, dissolve, roof: true }));
+    const doorMat = track(litMaterial(shared, { map: doorTex, dissolve, roof: true, switchRole }));
     for (const d of b.doors) {
       if (d.interior) continue;
       const inset = 0.06;
@@ -217,7 +236,7 @@ export function buildStaticScene(
       3,
     );
     const tex = track(pixelTexture(atlas.color));
-    const mat = track(litMaterial(shared, { map: tex, alphaTest: 0.5 }));
+    const mat = track(litMaterial(shared, { map: tex, alphaTest: 0.5, switchRole }));
     const mesh = new THREE.Mesh(
       track(toGeometry(wallMesh(layout.free.faces, layout.free.tiles, H, atlas.heightPx))),
       mat,
@@ -250,7 +269,7 @@ export function buildStaticScene(
     const tex = track(pixelTexture(sprite.matrix));
     const quad = standeeQuad(sprite.matrix.w, sprite.matrix.h, sprite.anchorX, sprite.anchorY);
     const geo = track(toGeometry(standeeMesh(quad)));
-    const mat = track(standeeMaterial(shared, tex));
+    const mat = track(standeeMaterial(shared, tex, switchRole));
     const inst = new THREE.InstancedMesh(geo, mat, list.length);
     inst.customDepthMaterial = track(standeeDepthMaterial(shared, tex));
     const m4 = new THREE.Matrix4();
@@ -270,6 +289,7 @@ export function buildStaticScene(
     group,
     buildings,
     casters,
+    role,
     dispose() {
       for (const d of disposables) d.dispose();
       for (const i of instanced) i.dispose();
