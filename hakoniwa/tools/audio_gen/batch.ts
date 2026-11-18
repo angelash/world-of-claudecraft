@@ -332,23 +332,47 @@ function bodySeconds(cut: LoopSourceResult): number {
   return Math.round((cut.choice.cut.length / RATE) * 100) / 100;
 }
 
+/**
+ * The prompt for a loop take: the level has to hold from the first second to the last, or no
+ * window inside the take loops (a take that swells or fades cannot meet the import's seam check,
+ * whatever the seam).
+ */
+export function loopPrompt(job: Job, seconds: number): string {
+  return `${job.subject}. ${job.style}. Continuous steady texture with no distinct start or end and no sudden events; the same loudness from the first second to the last, no fade in, no fade out, no build-up, no swell, no ending, no music, no voice. Length: ${seconds} seconds`;
+}
+
 async function effectLoopJob(job: Job): Promise<Candidate[]> {
-  const prompt = `${job.subject}. ${job.style}. Continuous steady texture with no distinct start or end and no sudden events, no music, no voice. Length: 14 seconds`;
-  const seed = seedOf(job.id, 1);
-  const run = await runGraph(
-    stableAudioGraph({
-      prompt,
-      negative: '',
-      seconds: 14,
-      batch: 3,
-      seed,
-      outputPrefix: `hakoniwa_audio_batch/${job.id}`,
-    }),
-    join(WORK, job.id),
-  );
-  return run.files.map((file, i) => {
-    const bed = loadTake(file, job.plan.channels);
-    const cut = bedSource(bed, job.plan, EFFECT_LOOP_BODY_SEC, EFFECT_LOOP_GRID);
+  const prompt = loopPrompt(job, 14);
+  // A take that drifts in level cannot loop anywhere: try other seeds before keeping the best.
+  let seed = 0;
+  let run: JobResult | null = null;
+  let cuts: LoopSourceResult[] = [];
+  for (const attempt of [0, 1, 2]) {
+    seed = seedOf(job.id, 1 + attempt * 7);
+    run = await runGraph(
+      stableAudioGraph({
+        prompt,
+        negative: '',
+        seconds: 14,
+        batch: 3,
+        seed,
+        outputPrefix: `hakoniwa_audio_batch/${job.id}`,
+      }),
+      join(WORK, job.id, `a${attempt}`),
+    );
+    const tries = run.files.map((file) =>
+      bedSource(
+        loadTake(file, job.plan.channels),
+        job.plan,
+        EFFECT_LOOP_BODY_SEC,
+        EFFECT_LOOP_GRID,
+      ),
+    );
+    if (tries.some((c) => c.choice.passes) || cuts.length === 0) cuts = tries;
+    if (tries.some((c) => c.choice.passes)) break;
+  }
+  if (!run) throw new Error('no take');
+  return cuts.map((cut, i) => {
     const p = poolPath(job.id, `loop_${String(i + 1).padStart(2, '0')}.wav`);
     const reading = writeLoopSource(
       cut.source,
