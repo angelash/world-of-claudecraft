@@ -77,6 +77,12 @@ export type Objective = (
   optional?: boolean;
   /** the solution path this objective stands for: written to quest.<id>.path when met */
   path?: string;
+  /**
+   * World writes of meeting this objective, applied once when it is met (an optional
+   * preparation that writes its own flag, a clue that adds to an evidence count): the
+   * stage's own effects still wait for the stage.
+   */
+  effects?: Effect[];
 };
 
 /** One clue of an investigate objective: a world fact (quests_and_events.md 5, 调查). */

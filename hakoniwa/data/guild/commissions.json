@@ -151,5 +151,39 @@
     "days": [5, 5],
     "goal": { "type": "kill", "targets": ["wandering_bones"], "count": [6, 6], "onMap": true },
     "merit": 3
+  },
+  {
+    "id": "cmm_a1_boar_westfield",
+    "rank": "e",
+    "kind": "subjugate",
+    "title": "西田的野猪",
+    "desc": "西田的庄稼被野猪拱了一片又一片。农户请人去赶，最好赶尽。",
+    "labels": ["在西田一带讨伐澱野猪"],
+    "claims": ["委托人称：夜里来的，个头比牛犊还大"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 5,
+    "distance": "town",
+    "givers": ["simon"],
+    "places": [{ "mapId": "forest_edge", "location": "logging_site" }],
+    "days": [5, 5],
+    "goal": { "type": "kill", "targets": ["dian_boar"], "count": [4, 4] },
+    "modifiers": [{ "target": "production", "key": "borderstone", "factor": 1.05, "days": 7 }]
+  },
+  {
+    "id": "cmm_a1_spider_valley",
+    "rank": "e",
+    "kind": "clear",
+    "title": "蛛谷的网",
+    "desc": "林缘的蛛谷又结满了网，伐木工不敢进去。清掉那里的织网蛛。",
+    "labels": ["清理蛛谷的林缘织网蛛"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 5,
+    "distance": "half_day",
+    "givers": ["gaspar"],
+    "places": [{ "mapId": "forest_edge", "location": "spider_vale" }],
+    "days": [5, 5],
+    "goal": { "type": "kill", "targets": ["edge_spider"], "count": [6, 6], "onMap": true }
   }
 ]

@@ -914,8 +914,13 @@
 
 ### 5.3 纷争链
 
-通则（[第一幕 4][a1]、[任务与事件 3.6][qe]）：每条链按周推进，玩家不介入时内核在每周开始推进一格；NPC 在格内的言行由 AI 或内置 AI 提议，结果格由内核按条件结算。
-节点的"介入"挂接已有条目时不重复给经验；只在没有条目覆盖的节点另立节点任务。链结算经验只在玩家的介入决定了非默认结局时一次性发放。
+通则（[第一幕 4][a1]、[任务与事件 3.6][qe]）：每条链由纷争运行器推进（`src/systems/disputes`，数据 `data/disputes/act1.json`），链任务（`data/disputes/act1_chains.json`，`kind: dispute`）在任务日志里呈现它，链任务的周默认步（`defaults`）写玩家不介入时的事实。运行器有四样东西：
+- 格：按周进入，各带升级度（0 到 3）；条件格在条件成立时进入。
+- 决策点：当事 NPC 在指定周（或某个决策点之后若干小时）选一项；`when` 不成立或 `unless` 成立时跳过；无模型时按效用项（`stance`、`relation`、`safety`、`values`）兜底，NPC 在格内的言行由 AI 或内置 AI 提议。
+- 结算：到结算周，或结算条件先成立；幕在结算前结束时强制结算。
+- 结局：按下表顺序取第一个条件成立的非叠加结局，叠加结局另外全部生效，都不成立时取默认结局；"未写时"表示只在该变量还没有被节点写过时写入。
+
+节点的"介入"挂接已有条目时不重复给经验；只在没有条目覆盖的节点另立节点任务，节点任务写入下表"产出与写入"列的事实，运行器据此决策与结算。链结算经验只在结局由玩家促成（`by == player`）且属于链任务列出的结局时一次性发放；其余结局使链任务以"他人完成"收尾。
 证据都是内核里真实存在的物件或真实发生过的事件（目击、账本、物证），NPC 不能凭空生成证据。
 
 **第一幕新登记的链内变量**：`a1_moss_evidence`（0 到 7，证据件数：火漆印目击、刀上暗记、矿灰、运货单、第二本账誊本、托马的后门目击、澱晶车）；
@@ -927,10 +932,13 @@
 | 字段 | 内容 |
 | - | - |
 | 推进 | 周，第 1 到 10 周 |
-| 当事 | `moss`、`seg_oneeye`、`viro`、`vick`、`owen`、`barto`、`simon` 与西田农户 |
+| 当事 | `moss`、`seg_oneeye`（没有人设卡，运行器的当事不列他）、`viro`、`vick`、`owen`、`barto`、`simon` 与西田农户 |
 | 不介入时 | 第 10 周兽潮之夜莫斯带钱箱与灰晶车从南门出逃，`a1_moss_fate = fled`；`a1_dian_trade = continued`；`a1_oneeye_fate = active` |
 | 链结算经验 | 600（13 级）：结局为揭发、傀儡、收编、歼灭或反咬之一，且由玩家的节点行动促成 |
 | 无模型 | 莫斯的决策点按"自保风险最小"兜底（受贿概率按玩家出价与他的风险分）；瑟格按"强者为尊、团规不杀平民"兜底；薇罗按"出价最高者"兜底 |
+| 运行器格 | `levy` 第 1 周；`robberies` 第 3 周；`protest` 第 7 周；`last_cart` 第 9 周；条件格 `leverage`（`a1_moss_exposed` 或 `a1_moss_fate IN (puppet, arrested, dead)`） |
+| 决策点 | `viro_raid`（薇罗，第 8 周，12 小时；独眼团已被处理或薇罗已离团时跳过）：`raid_farm`、`lie_low`；`moss_cart`（莫斯，第 8 周起，`act_week >= 9 OR a1_tide_night` 时开，6 小时；他的下场已定且不是 `in_power` 时跳过）：`flee_south`、`stay_put` |
+| 结算 | 第 11 周，或 `a1_beast_tide_cleared` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目或本节点任务） | 产出与写入 |
 | - | - | - | - | - |
@@ -943,25 +951,33 @@
 | `A1-D01.g` 对质莫斯 | `a1_moss_evidence >= 1` | 第 7 周莫斯借抗税把欧拉案与"通匪的无记载者"挂钩（A1-M08） | `q_a1_d01g_confront_moss`（700）：揭发、要挟或受贿 | `a1_moss_fate`；`a1_tax_rate`；`a1_permit_revoked`（揭发或要挟时一并收回越界许可） |
 | `A1-D01.h` 拦截南逃 | 第 10 周兽潮之夜 | 莫斯第 9 周把最后一批灰晶藏在驿站马厩 | `A1-M12` 的可选阶段 `intercept` | 截下灰晶车与钱箱；`a1_moss_evidence` +1；`a1_bs_prosperity` 不扣 10 |
 
-| 结局（可叠加） | 条件（台账语法） | 写入 |
-| - | - | - |
-| 揭发 | `a1_moss_evidence >= 3 AND quest.q_a1_d01g_confront_moss.path == expose` | `a1_moss_fate = arrested`（待伯爵处置）；置 `a1_moss_exposed`；`a1_tax_rate = tenth`；`a1_dian_trade = stopped`；`town_trust.*` +15 |
-| 傀儡 | `quest.q_a1_d01g_confront_moss.path == blackmail` | `a1_moss_fate = puppet`；`a1_tax_rate = tenth`；灰晶生意停（`stopped`）或由玩家接手（`player_controls`：`seal_unrest` 每周 +2，第二幕审判庭顺着货线查到玩家） |
-| 收编 | `quest.q_a1_d01f_old_watch.path == duel_won_offer` | `a1_oneeye_fate = absorbed`；`a1_old_watch = absorbed_camp`；兽潮之夜守南门与西田；薇罗未处理时带少数人叛逃（`a1_viro_status = fled_wallenburg`） |
-| 歼灭 | `quest.q_a1_d01f_old_watch.path == destroyed` | `a1_oneeye_fate = destroyed`；`a1_old_watch = cleared`；`a1_moss_evidence < 1` 时 `a1_moss_fate = in_power`（他把一切推给死人） |
-| 反咬 | `quest.q_a1_d01f_old_watch.path == turned` | 瑟格夜袭代官宅邸，莫斯求玩家保护，可再转揭发或傀儡；玩家坐视时 `a1_moss_fate = dead` |
-| 任其继续 | 无介入，或 `quest.q_a1_d01g_confront_moss.path == bribed` | `a1_moss_fate = in_power`；兽潮后他宣称"代官府组织了防御" |
-| 南逃 | `a1_moss_fate == in_power AND NOT a1_moss_intercepted` | `a1_moss_fate = fled`；他带走第二本账与灰晶，第二幕出现在瓦伦堡（A2-S11） |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 揭发 `exposed` | 玩家 | `a1_moss_exposed AND a1_moss_evidence >= 3`（`q_a1_d01g_confront_moss` 的 `expose` 写 `a1_moss_exposed`） | `a1_moss_fate = arrested`；`a1_tax_rate = tenth`；`a1_dian_trade = stopped`；`a1_permit_revoked`；`rep.bs_commons` +30 |
+| 傀儡 `puppet` | 玩家 | `a1_moss_fate == puppet`（`q_a1_d01g_confront_moss` 的 `blackmail`） | `a1_tax_rate = tenth`；`a1_permit_revoked`；`a1_dian_trade` 未写时为 `stopped`（玩家接手写 `player_controls`：第一幕时钟每周 `seal_unrest` +2，第二幕审判庭顺着货线查到玩家） |
+| 死亡 `dead` | 玩家 | `a1_moss_fate == dead`（`q_a1_d01f_old_watch` 的 `turned`：瑟格夜袭代官宅邸，玩家坐视） | `a1_dian_trade` 未写时为 `stopped` |
+| 收押 `arrested` | 玩家 | `a1_moss_fate == arrested`（证据不足三件，但莫斯已被收押） | `a1_tax_rate = tenth`；`a1_dian_trade` 未写时为 `stopped` |
+| 截车 `intercepted` | 玩家 | `a1_moss_intercepted`（`A1-M12` 的可选目标 `intercept`） | `a1_moss_fate = in_power`；`a1_dian_trade` 未写时为 `continued` |
+| 留镇 `stayed` | 世界 | 决策点 `moss_cart` 选 `stay_put` | `a1_moss_fate = in_power`（兽潮后他宣称"代官府组织了防御"）；`a1_dian_trade` 未写时为 `continued` |
+| 南逃 `fled` | 世界（默认） | 以上都不成立（收下贿赂 `bribed` 不改结局，仍按 `moss_cart` 落到留镇或南逃） | `a1_moss_fate` 未写或为 `in_power` 时写 `fled`（带走第二本账与灰晶，第二幕在瓦伦堡出现，A2-S11）；`a1_dian_trade` 未写时为 `continued` |
+| 叠加：收编 `band_absorbed` | 玩家 | `a1_oneeye_fate == absorbed`（`q_a1_d01f_old_watch` 的 `duel_won_offer`） | `a1_old_watch = camp`；`a1_viro_status` 未写或为 `in_band` 时写 `fled_wallenburg`（薇罗带少数人叛逃）；兽潮之夜守南门与西田 |
+| 叠加：歼灭 `band_destroyed` | 玩家 | `a1_oneeye_fate == destroyed` | `a1_old_watch = cleared`；`a1_viro_status` 同上 |
+| 叠加：溃散 `band_scattered` | 世界 | `a1_oneeye_fate == scattered`（单挑赢了但不收编） | `a1_old_watch` 未写或为 `bandits` 时写 `cleared`；`a1_viro_status` 同上 |
+| 叠加：照旧 `band_active` | 世界 | `NOT a1_oneeye_fate OR a1_oneeye_fate == active` | 未写时写默认：`a1_oneeye_fate = active`、`a1_old_watch = bandits`、`a1_viro_status = in_band` |
 
 #### A1-D02 魔女审判（`q_a1_d02_witch_trial`）
 
 | 字段 | 内容 |
 | - | - |
-| 推进 | 周，第 0（坠落之夜）到 10 周；第 6 周卡西安公开指控即置 `a1_witch_trial_started` |
-| 当事 | `cassian`、`oola`、`bertha` 与虔诚妇女会、`isa`、`greta`、`moss`、`toma`、`noi`、`tess` |
-| 不介入时 | 第 8 周审判成立，`a1_oola_fate = convicted`，第 10 周押送定在暗月夜次日 |
+| 推进 | 周，第 1 到 10 周（坠落之夜起的夜访由链任务第 1 周的默认步写入）；第 6 周卡西安公开指控即置 `a1_witch_trial_started` |
+| 当事 | `cassian`、`oola`、`bertha` 与虔诚妇女会、`isa`、`greta`、`moss`、`toma`、`noi`、`tess`、`boro`（冲台） |
+| 不介入时 | 第 8 周审判成立，`a1_oola_fate = convicted`，第 10 周押送定在暗月夜次日；兽潮之夜无人去救时她被潮夜拖出拘留室（`fled`，负伤） |
 | 链结算经验 | 550（12 级）：结局为平反、隐匿或冲突，且由玩家的证据、劫狱或辩论促成 |
 | 无模型 | 卡西安按"先归于光，归不了光就怀疑别的东西"兜底，`npc.cassian.doubt` 每增加一级，他在审判中采信证据的门槛降一件；贝莎按"恐惧需要一个对象"兜底；伊莎作证的门槛 `trust.isa >= 60` 或亲眼看见孩子有危险 |
+| 运行器格 | `vigil` 第 1 周；`rumor` 第 2 周；`accusation` 第 6 周；`custody` 第 7 周；条件格 `convicted`（`a1_oola_fate == convicted`）、`decided`（`a1_oola_fate IN (cleared, fled)`） |
+| 决策点 | `isa_testify`（伊莎，第 6 周，24 小时；已答应作证或欧拉的下场已定时跳过）：`testify`（写 `a1_isa_will_testify`）、`keep_silent`；`cassian_verdict`（卡西安，第 8 周，6 小时，见 A1-M09 的"审判已经开过"）：`convict`、`clear`；`boro_storm`（博罗，`cassian_verdict` 之后 2 小时，`a1_oola_fate == convicted AND a1_forest_accord == broken AND NOT npc.boro.dead`）：`storm`（写 `a1_trial_brawl`、`a1_oola_fate = fled`）、`stand_down` |
+| 无人到场的审判 | `cassian_verdict` 只在主线没有占着审判时开：`quest.q_a1_m09_trial != active OR NOT quest.q_a1_m09_trial.stage IN (prepare, verdict)`；两边谁先开庭谁写 `a1_oola_fate`，每一项写入都带 `NOT a1_oola_fate` 守卫，后到的一边不再改写。`clear` 的条件是平反计数 `>= 2`，或 `npc.cassian.doubt >= 1` 且计数 `>= 1`，或 `npc.cassian.doubt >= 2`（物证项也计 `a1_spring_source_found`，证词项也计伊莎、托马答应作证） |
+| 结算 | 第 11 周，或 `a1_beast_tide_cleared`；兽潮之夜无人去救拘留室里的欧拉时，潮夜（PK-M1-52 的 `data/tide/nights.json`）把她拖出来，写 `a1_oola_fate = fled` 与 `a1_oola_wounded`，结局随之为"欧拉逃走" |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目或本节点任务） | 产出与写入 |
 | - | - | - | - | - |
@@ -974,13 +990,15 @@
 | `A1-D02.g` 公开辩论 | 审判当场 | 无 | `A1-M09`（讲台前世或 `trust.cassian >= 60`） | 平反计数 +1 |
 | `A1-D02.h` 贿赂莫斯 | 第 7 周起 | 无 | `A1-M09` 的 `bribed` 路线（金钱 3 银起，按莫斯的风险分） | 欧拉以"证据不足"获释，`a1_oola_fate = cleared`，另置 `a1_oola_bribed`；`npc.cassian.doubt` 不变；莫斯握有把柄 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 审判成立 | 默认；平反计数 `< 2` 且无劫狱、无冲突 | `a1_oola_fate = convicted`；`church_suspicion` +15；孩子失去夜里的照看 |
-| 平反 | `COUNT(a1_trial_evidence, a1_trial_testimony, a1_lamp_exposed, a1_trial_debate) >= 2`（[第一幕 4.2][a1]：物证、证词、拆穿光之鉴、公开辩论四项至少两项，多名证人只计一项；`cut_a1_trial` 当庭写入） | `a1_oola_fate = cleared`；`npc.cassian.doubt` +2；卡西安的周报改写为"泉水之疫" |
-| 冲突 | 判定有罪时（平反计数 `< 2`）：`a1_forest_accord == broken AND NOT npc.deaths HAS boro AND quest.q_a1_m09_trial == active` | 东坡与妇女会、卫队在广场冲突；礼拜堂受损；欧拉趁乱逃入林中，`a1_oola_fate = fled`；伤亡由内核结算 |
-| 隐匿 | `quest.q_a1_m09_trial.path == jailbreak` | `a1_oola_fate = fled`；`church_suspicion` +25；`a1_children_location` 写藏匿处（林中、旧哨村） |
-| 门纹暴露（附加） | `quest.q_a1_s19_door_in_you.path == betrayed`，审判中苔丝说漏嘴（`cut_a1_trial` 的 `exposed`），或兽潮之夜门纹在人前发光（A1-M12） | `a1_children_exposed = true`；第二幕门徒会与教会都会来找这两个孩子 |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 贿赂 `bribed` | 玩家 | `a1_oola_bribed AND a1_oola_fate == cleared` | `a1_cassian_report` 未写时为 `unresolved`；莫斯握有把柄 |
+| 平反 `cleared` | 玩家 | `a1_oola_fate == cleared`（A1-M09 的 `verdict` 或 `cassian_verdict` 的 `clear`；[第一幕 4.2][a1]：物证、证词、拆穿光之鉴、公开辩论四项至少两项） | `a1_cassian_report = cleared`（周报改写为"泉水之疫"）；`npc.cassian.doubt` +2 由判决当场写入 |
+| 隐匿 `hidden` | 玩家 | `a1_oola_jailbroken`（A1-M09 的劫狱；写 `a1_oola_fate = fled` 时一并置 `a1_oola_jailbroken`，定罪后到押送前劫狱同样写入） | `a1_cassian_report` 未写时为 `fled`；`church_suspicion` +25 由劫狱写入 |
+| 冲突 `brawl` | 世界 | `a1_trial_brawl AND a1_oola_fate == fled`（决策点 `boro_storm` 选 `storm`） | `a1_cassian_report` 未写时为 `fled`；礼拜堂受损，伤亡由内核结算 |
+| 欧拉逃走 `fled` | 世界 | `a1_oola_fate == fled`（潮夜把她拖出拘留室等） | `a1_cassian_report` 未写时为 `fled` |
+| 审判成立 `convicted` | 世界（默认） | 以上都不成立 | 未写时：`a1_oola_fate = convicted`、`church_suspicion` +15、`a1_cassian_report = convicted`；孩子失去夜里的照看 |
+| 门纹暴露（场景附加，不经运行器） | 场景 | `quest.q_a1_s19_door_in_you.path == betrayed`，审判中苔丝说漏嘴（`cut_a1_trial` 的 `exposed`），或兽潮之夜门纹在人前发光（A1-M12） | `a1_children_exposed = true`；第二幕门徒会与教会都会来找这两个孩子 |
 
 #### A1-D03 盐与药（`q_a1_d03_salt_and_potions`）
 
@@ -991,6 +1009,9 @@
 | 不介入时 | `npc.nera.stance = neutral`；兽潮夜三倍价卖药，给孤儿院赊账 |
 | 链结算经验 | 300（11 级）：结局为合作或打压 |
 | 无模型 | 奈拉按"契约成立就绝不违约、两头下注"兜底；硬币出示后按 `p_coin_terms` 修正态度（+10 到 +20） |
+| 运行器格 | `hoard` 第 2 周；`price_up` 第 4 周；`price_doubled` 第 5 周；`exclusive` 第 6 周；`levy` 第 8 周；`hold_or_release` 第 9 周 |
+| 决策点 | `nera_levy`（奈拉，第 8 周，24 小时；`npc.nera.stance` 已定时跳过）：`stall`（拖延莫斯的征收）、`comply` |
+| 结算 | 第 10 周，或 `quest.q_a1_s08_salt_price == done`，或 `a1_tide_omen` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1003,12 +1024,12 @@
 | `A1-D03.g` 站莫斯一边 | 第 8 周 | 莫斯要求以官价征收药水"给卫队"，奈拉拖延 | `A1-S08` 的 `side_moss` | `npc.nera.stance = hostile` |
 | `A1-D03.h` 收分成 | 第 7 周起 | 第 9 周奈拉决定持货待价还是放货 | `A1-S08` 的 `take_cut` | `npc.nera.stance = bought` |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 合作 | `(quest.q_a1_s08_salt_price.path == negotiate OR quest.q_a1_s09_coin == done) AND trade_count.nera >= 1` | `npc.nera.stance = partner`；兽潮前平价放药 |
-| 打压 | `quest.q_a1_s08_salt_price.path IN (expose, side_moss)` | `npc.nera.stance = hostile` |
-| 被收买 | `quest.q_a1_s08_salt_price.path == take_cut` | `npc.nera.stance = bought`；平民信任下降 |
-| 中立 | 默认 | `npc.nera.stance = neutral` |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 打压 `hostile` | 玩家 | `quest.q_a1_s08_salt_price.path IN (expose, side_moss)` | `npc.nera.stance = hostile` |
+| 被收买 `bought` | 玩家 | `quest.q_a1_s08_salt_price.path == take_cut` | `npc.nera.stance = bought`；平民信任下降 |
+| 合作 `partner` | 玩家 | `quest.q_a1_s08_salt_price.path == negotiate OR (quest.q_a1_s09_coin == done AND quest.q_gl_merca_01 == done)`（成交过一笔由梅尔卡的请托代表，交易计数 `trade_count.nera` 落地后改回计数） | `npc.nera.stance = partner`；兽潮前平价放药 |
+| 中立 `neutral` | 世界（默认） | 以上都不成立 | `npc.nera.stance` 未写时为 `neutral`；兽潮夜三倍价卖药，给孤儿院赊账 |
 
 #### A1-D04 林地之争（`q_a1_d04_forest_dispute`）
 
@@ -1019,6 +1040,9 @@
 | 不介入时 | 第 8 周伐区的捕兽夹夹伤阿柯，博罗要血债血偿，`a1_forest_accord = broken`；兽潮夜伐木工依宵禁令拒开东栅 |
 | 链结算经验 | 400（12 级）：结局为和解或部分和解 |
 | 无模型 | 葛恩按"讲规矩，能被林约说服"兜底；加斯帕的偏见只被"亲眼所见"改变（A1-M05 带他看证据、A1-S07 救他的工人）；博罗被扳手腕赢过后无条件尊重对方 |
+| 运行器格 | `encroach` 第 1 周；`shed_burned` 第 4 周；`curfew` 第 5 周；`exodus_talk` 第 7 周；`blood_debt` 第 8 周；条件格 `truce`（`a1_nick_bridge` 或林约证据加狼巢已清） |
+| 决策点 | `gorn_council`（葛恩，第 7 周，48 小时；东坡已被驱逐、已有决定或林约证据加狼巢已清时跳过）：`stay`、`leave`（写 `a1_gorn_decision`）；`boro_revenge`（博罗，第 8 周，72 小时；被驱逐、东迁、尼克做成中间人、林约证据或狼巢已清任一成立时跳过）：`blood_debt`（写 `a1_forest_accord = broken`）、`hold_back` |
+| 结算 | 第 11 周，或 `a1_tide_night`，或 `a1_beast_tide_cleared` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目或本节点任务） | 产出与写入 |
 | - | - | - | - | - |
@@ -1031,12 +1055,14 @@
 | `A1-D04.g` 收回许可 | 证据在手 | 第 4 周伐木工烧了一处猎棚 | `A1-D01.g` 的揭发或要挟 | `a1_permit_revoked` |
 | `A1-D04.h` 驱逐 | 任意 | 无 | `A1-S05` 的 `expel`（站加斯帕一边） | 东坡东迁 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 和解 | `quest.q_a1_s04_pact_oak == done AND a1_wolf_den == cleared AND (quest.q_a1_s07_hurt_logger == done OR quest.q_a1_d04e_nick_bridge == done)` | `a1_forest_accord = restored`：双方各出一人在约树上刻新痕；伐区退回约树以南；兽潮中东坡与伐木工共守东栅 |
-| 部分和解 | `COUNT(quest.q_a1_s04_pact_oak == done, a1_wolf_den == cleared) == 1` 且未破裂 | `a1_forest_accord = partial`：休战，无新约 |
-| 驱逐 | `quest.q_a1_s05_burned_shed.path == expel OR (act_week >= 7 AND a1_gorn_decision == leave)` | `a1_shiya_family = left`；`trust.shiya >= 70` 时希雅留下跟随玩家，否则随家离开（第二幕第 5 周在鹿角林回归） |
-| 冲突升级 | 第 8 周血债未被阻止（默认） | `a1_forest_accord = broken`；博罗或一名伐木工死亡（内核判定）；兽潮东栅失守风险最高 |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 驱逐 `expulsion` | 玩家 | `a1_eastslope_expelled`（`A1-S05` 的 `expel`） | `a1_shiya_family = left`；`a1_gorn_decision = leave`；`a1_forest_accord` 未写时为 `broken`；`trust.shiya >= 70` 时希雅留下跟随玩家（第二幕第 5 周在鹿角林回归） |
+| 和解 `restored` | 玩家 | `a1_forest_pact_proof AND a1_wolf_den == cleared AND (a1_logger_saved OR a1_nick_bridge) AND a1_forest_accord != broken AND a1_gorn_decision != leave` | `a1_forest_accord = restored`；`a1_shiya_family = in_town`；双方在约树上刻新痕，伐区退回约树以南，兽潮中共守东栅 |
+| 部分和解 `partial` | 玩家 | 未破裂、未东迁，且林约证据、狼巢已清、尼克做成中间人、`a1_boro_calmed` 至少一项 | `a1_forest_accord = partial`；`a1_shiya_family = in_town`：休战，无新约 |
+| 休战 `truce` | 世界 | 未破裂、未东迁，且决策点 `boro_revenge` 选 `hold_back` | `a1_forest_accord = partial`；`a1_shiya_family = in_town` |
+| 东迁 `exodus` | 世界 | `a1_gorn_decision == leave` | `a1_shiya_family = left`；`a1_forest_accord` 未写时为 `broken` |
+| 冲突升级 `broken` | 世界（默认） | 以上都不成立（第 8 周血债未被阻止） | `a1_forest_accord` 未写时为 `broken`；博罗或一名伐木工死亡由内核判定；兽潮东栅失守风险最高 |
 
 #### A1-D05 酒馆的眼睛（`q_a1_d05_tavern_eyes`）
 
@@ -1047,6 +1073,8 @@
 | 不介入时 | 考察照常进行；分数由玩家的日常行为自然累积 |
 | 链结算经验 | 250（14 级）：兽潮后玛莎出手且 `npc.martha.assessment >= 5`，醉月亭的私谈发生 |
 | 无模型 | 六次测试都是内核判定的情境，玩家不知道自己在被测；私谈只有一句写定台词与一杯不收钱的酒 |
+| 运行器格 | `watching` 第 1 周（升级度 0，整条链只有这一格） |
+| 结算 | 第 11 周，或 `a1_beast_tide_cleared` |
 
 | 节点 | 窗口 | 情境 | 介入（挂接条目） | 计分 |
 | - | - | - | - | - |
@@ -1057,11 +1085,11 @@
 | `A1-D05.e` 弱者 | 第 7 到 8 周 | 审判期间玩家怎么对待欧拉与孩子 | `A1-M09`、`A1-S19` | 保护 +2；利用 -2 |
 | `A1-D05.f` 风 | 第 9 周 | "北边的风变了。今晚把门窗关好。" | `A1-M11` | 据此做了兽潮准备 +1 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 出手且私谈 | `a1_martha_strike AND npc.martha.assessment >= 5` | 天亮后她倒一杯不收钱的酒："别让我再把那把刀拿出来。"；隐性盟友（第三幕守备顾问的起点） |
-| 出手但不相认 | `a1_martha_strike AND npc.martha.assessment < 5` | 她照常擦杯子，对玩家保持警惕 |
-| 一直旁观 | `NOT a1_martha_strike`（第二波打向的一面缺口为 0） | `npc.martha.revealed = false`；黎明时最弱面的地上有一道整整齐齐的刀痕 |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 出手且私谈 `confided` | 玩家 | `a1_martha_strike AND npc.martha.assessment >= 5` | `a1_martha_drink`：天亮后她倒一杯不收钱的酒："别让我再把那把刀拿出来。"；隐性盟友（第三幕守备顾问的起点） |
+| 出手但不相认 `unacknowledged` | 世界 | `a1_martha_strike` | 她照常擦杯子，对玩家保持警惕 |
+| 一直旁观 `watched` | 世界（默认） | `NOT a1_martha_strike`（第二波扑向的最弱面缺口为 0） | `npc.martha.revealed` 保持假；黎明时最弱面的地上有一道整整齐齐的刀痕 |
 
 #### A1-D06 布伦的旧伤（`q_a1_d06_bron_old_wound`）
 
@@ -1072,6 +1100,8 @@
 | 不介入时 | `npc.bron.story_level` 停在玩家走到的那一格；第 11 周看见门纹后按 `trust.bron` 决定 `npc.bron.secret_kept` |
 | 链结算经验 | 250（14 级）：`npc.bron.story_level == 3` |
 | 无模型 | 布伦清醒时什么都不说，醉了说一半（`A1-S18` 的多次夜饮）；侯克只回答"问对了"的问题（话题 `topic.secret_hock_box`，问"二十年前探索队的报告还在吗"） |
+| 运行器格 | `silent` 第 1 周；条件格 `badge`、`half_told`、`told`（`npc.bron.story_level` 到 1、2、3） |
+| 结算 | 第 12 周 |
 
 | 节点 | 窗口 | 情境 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1082,11 +1112,11 @@
 | `A1-D06.e` 审判的见证人 | 第 8 周 | 公会要出一位见证人 | `A1-M09` | 他替玩家说话或沉默（`trust.bron >= 60` 时说话，平反计数不加，但卡西安的门槛降一件） |
 | `A1-D06.f` 门纹 | 第 11 周 | 看见玩家手背的门纹 | `A1-M13` 的 `bron` | `npc.bron.secret_kept` |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 守密 | `trust.bron >= 40` 于 `a1_bron_sees_mark` 时 | `npc.bron.secret_kept = true`；递来旧手套 `brun_glove` |
-| 上报 | `trust.bron < 40` | `npc.bron.secret_kept = false`；当晚写信给公会大区，第二幕赛琳的开始周提前一周 |
-| 报告到手（附加） | `has.lb_report_978_copy` | 第二幕的证物"二十年前的报告"可在问话或光之审中出示 |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 讲完 `full_story` | 玩家 | `npc.bron.story_level >= 3` | 侯克交出报告抄本（报告到手的附加效果等 `has.<物品>` 条件落地后挂上） |
+| 守密 `kept` | 世界 | `npc.bron.secret_kept`（`trust.bron >= 40` 于 `a1_bron_sees_mark` 时由 `cut_a1_mark` 写入） | 递来旧手套 `brun_glove` |
+| 上报 `reported` | 世界（默认） | 以上都不成立 | `a1_bron_sees_mark AND NOT npc.bron.secret_kept` 时写 `npc.bron.secret_kept = false`；当晚写信给公会大区，第二幕赛琳的开始周提前一周 |
 
 #### A1-D07 面包房的婚约（`q_a1_d07_bakery_betrothal`）
 
@@ -1097,6 +1127,8 @@
 | 不介入时 | 第 8 周成婚（与审判同一周）：维克继续替莫斯做事，莉莎不幸 |
 | 链结算经验 | 200（10 级）：毁约或私奔成功 |
 | 无模型 | 佩德按"怕官、爱家"兜底，只被账本（免税许诺是空的）或遗嘱把柄说服；莉莎只向信任的人求助一次（`trust.lisa >= 50`） |
+| 运行器格 | `engaged` 第 4 周；`plea` 第 5 周；`elope_night` 第 7 周；`wedding` 第 8 周 |
+| 结算 | 第 9 周，或 `A1-S10` 走到 `ledger`、`pressure`、`elope`，或 `A1-S11` 走到 `read_public` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1105,11 +1137,11 @@
 | `A1-D07.c` 驿站搭车 | 第 6 到 7 周 | 第 7 周夜里私奔，被南门的杰德拦下 | `A1-S10` 的 `elope`（找 `ulf_lange` 安排驿车） | 二人去瓦伦堡 |
 | `A1-D07.d` 逼维克退婚 | 第 5 周起 | 无 | `A1-S10` 的 `pressure`（拿遗嘱把柄） | `a1_vick_informant` 可能为真 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 成婚 | 默认 | `a1_lisa_nick = married_vick` |
-| 毁约 | `quest.q_a1_s10_lisa_bundle.path IN (ledger, pressure) OR quest.q_a1_s11_otto_will.path == read_public` | `a1_lisa_nick = broken`；维克丢了面子，可能转为证人交出账本誊本（`a1_vick_informant`） |
-| 私奔 | `quest.q_a1_s10_lisa_bundle.path == elope` | `a1_lisa_nick = eloped`；第二幕可在瓦伦堡客串；林地之争失去尼克这个桥梁（`A1-D04.e` 关闭） |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 私奔 `eloped` | 玩家 | `quest.q_a1_s10_lisa_bundle.path == elope` | `a1_lisa_nick = eloped`；第二幕可在瓦伦堡客串；林地之争失去尼克这个桥梁（`A1-D04.e` 关闭） |
+| 毁约 `broken` | 玩家 | `quest.q_a1_s10_lisa_bundle.path IN (ledger, pressure) OR quest.q_a1_s11_otto_will.path == read_public` | `a1_lisa_nick = broken`；走 `pressure` 时 `a1_vick_informant`（维克转为证人交出账本誊本） |
+| 成婚 `married` | 世界（默认） | 以上都不成立 | `a1_lisa_nick` 未写时为 `married`：维克继续替莫斯做事 |
 
 #### A1-D08 奥托磨坊的遗产（`q_a1_d08_otto_mill`）
 
@@ -1120,6 +1152,9 @@
 | 不介入时 | 维克保住磨坊，第 7 周抵押给商会；孤儿院仍喝北泉，第 9 周第三个孩子发病的风险升到最高 |
 | 链结算经验 | 200（10 级）：孤儿院得磨坊 |
 | 无模型 | 侯克只回答问对的问题（话题 `topic.secret_hock_box`："奥托有没有在公会立过遗嘱？"）；奈拉契约至上，得知被骗即主动作废抵押 |
+| 运行器格 | `will` 第 3 周；`hunger` 第 5 周；`mortgage` 第 7 周；`sick_risk` 第 9 周 |
+| 决策点 | `vick_mortgage`（维克，第 7 周，24 小时；遗嘱已公开宣读或已告诉奈拉时跳过）：`mortgage`、`keep` |
+| 结算 | 第 10 周，或 `quest.q_a1_s11_otto_will == done` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1127,11 +1162,11 @@
 | `A1-D08.b` 布伦宣读 | 拿到原件后 | 第 5 周孤儿院断粮边缘 | `A1-S11` 的 `read_public`（公会见证的文书与代官印同具效力，登记日期在先者为准） | `a1_mill_owner = orphanage` |
 | `A1-D08.c` 告诉奈拉 | 第 7 周后 | 第 7 周维克把磨坊抵押给商会 | `A1-S11` 的 `tell_nera` | 奈拉作废抵押，转站玩家一边 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 孤儿院得磨坊 | `quest.q_a1_s11_otto_will.path IN (read_public, tell_nera)` | `a1_mill_owner = orphanage`；孤儿院改喝磨坊井水，从此不受 `a1_town_dian` 影响；`trust.greta` +25 |
-| 维克保住磨坊 | 默认 | `a1_mill_owner = vick` |
-| 商会持有 | 磨坊已抵押且未告诉奈拉 | `a1_mill_owner = company`（奈拉可谈：转给孤儿院或转租） |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 孤儿院得磨坊 `orphanage` | 玩家 | `quest.q_a1_s11_otto_will.path IN (read_public, tell_nera)` | `a1_mill_owner = orphanage`；孤儿院改喝磨坊井水，从此不受 `a1_town_dian` 影响；`trust.greta` +25 由 `A1-S11` 写入 |
+| 商会持有 `company` | 世界 | 决策点 `vick_mortgage` 选 `mortgage` | `a1_mill_owner = company`（奈拉可谈：转给孤儿院或转租） |
+| 维克保住磨坊 `vick` | 世界（默认） | 以上都不成立 | `a1_mill_owner` 未写时为 `vick` |
 
 #### A1-D09 集市失窃案（`q_a1_d09_market_theft`）
 
@@ -1142,6 +1177,9 @@
 | 不介入时 | 第 6 周阿柯被关一夜，第 8 周卫队搜查东坡，`a1_ako_framed = true` |
 | 链结算经验 | 200（10 级）：杰德被揭发 |
 | 无模型 | 杰德被抓立刻求饶并供出骰子屋；阿柯被冤枉会逃跑；阿柯的目击只在被问到时说（话题 `topic.secret_ako_witness`） |
+| 运行器格 | `thefts` 第 4 周；`accused` 第 5 周；条件格 `framed`（第 6 周起，`a1_ako_framed`）、`search`（第 8 周起，`a1_ako_framed`） |
+| 决策点 | `ako_flee`（阿柯，第 6 周，24 小时，`a1_ako_framed` 时开；`a1_jed_exposed` 时跳过）：`flee`、`stay` |
+| 结算 | 第 9 周，或 `a1_jed_exposed` |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1150,11 +1188,11 @@
 | `A1-D09.c` 设局 | 第 5 周起 | 第 6 周阿柯被关 | `A1-S12` 的 `bait`（一只假银扣） | 当场抓住杰德 |
 | `A1-D09.d` 夜羽的收藏 | 第 7 周起 | 集市又开始丢闪亮的小东西 | `A1-S13` | 物归原主 |
 
-| 结局 | 条件（台账语法） | 写入 |
-| - | - | - |
-| 杰德被揭发 | `quest.q_a1_s12_copper_bell.path IN (asked_ako, bait)` | `a1_jed_exposed = exposed`；卫队少一人；他供出骰子屋，成为独眼团线索 |
-| 阿柯被冤 | 默认 | `a1_ako_framed = true`；东坡怨气加深，`A1-D04` 的和解条件多一项（需另行安抚葛恩：`trust.gorn >= 55`） |
-| 物归原主（附加） | `quest.q_a1_s13_yeyu_hoard == done` | 传闻"那个怪人养了只会偷东西的乌鸦精"，镇民一半当笑话，贝莎当真 |
+| 结局（运行器 id） | 由 | 条件（台账语法） | 写入 |
+| - | - | - | - |
+| 杰德被揭发 `exposed` | 玩家 | `a1_jed_exposed AND quest.q_a1_s12_copper_bell.path IN (asked_ako, bait)` | 卫队少一人；他供出骰子屋，成为独眼团线索 |
+| 阿柯被冤 `framed` | 世界（默认） | 以上都不成立（链任务第 6 周的默认步写 `a1_ako_framed`） | `a1_jed_exposed` 不成立时写 `a1_ako_framed`；东坡怨气加深，`A1-D04` 的和解条件多一项（需另行安抚葛恩：`trust.gorn >= 55`） |
+| 叠加：物归原主 `returned` | 玩家 | `quest.q_a1_s13_yeyu_hoard == done` | 传闻"那个怪人养了只会偷东西的乌鸦精"，镇民一半当笑话，贝莎当真 |
 
 ### 5.4 支线与纷争节点
 

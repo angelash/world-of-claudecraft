@@ -26,6 +26,8 @@ export interface QuestView {
   status: QuestStatus;
   /** the solution path taken (quest.<id>.path) */
   path?: string;
+  /** the tick it closed: done (finished or turned in), failed, expired or done by someone else */
+  endTick?: number;
   desc: string;
   stageDesc: string;
   giver?: string;
@@ -55,6 +57,7 @@ export function questView(
   const def = content.quests.find((d) => d.id === id) ?? world.slices.quests.instances?.[id];
   if (!q || !def) return null;
   const stage = def.stages[q.stage];
+  const endTick = q.status === 'done' ? q.doneTick : q.endedTick;
   return {
     id,
     title: def.title,
@@ -63,6 +66,7 @@ export function questView(
     kind: def.kind,
     status: q.status,
     path: q.path,
+    ...(endTick !== undefined ? { endTick } : {}),
     desc: def.desc,
     stageDesc: q.status === 'active' ? (stage?.desc ?? '') : '',
     giver: def.giver,

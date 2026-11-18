@@ -38,6 +38,18 @@ export const KIND_TAB: Readonly<Record<QuestKind, QuestTab>> = {
 /** Ended entries listed at most (the newest first). */
 export const ENDED_SHOWN = 30;
 
+/**
+ * The ended tab's entries, newest first by the time each one closed (done, failed, expired
+ * or done by someone else); entries with no recorded time sort last, newer log entries first.
+ */
+export function endedNewestFirst(entries: readonly QuestView[]): QuestView[] {
+  return entries
+    .map((q, i) => ({ q, i }))
+    .sort((a, b) => (b.q.endTick ?? -1) - (a.q.endTick ?? -1) || b.i - a.i)
+    .slice(0, ENDED_SHOWN)
+    .map((x) => x.q);
+}
+
 export interface QuestObjectiveRow {
   text: string;
   done: boolean;
@@ -153,10 +165,7 @@ export function questLogModel(log: QuestLogView, i: QuestLogInput): QuestLogMode
   const ended = [...log.ended, ...log.done];
   const count = (tab: QuestTab) =>
     tab === 'ended' ? ended.length : open.filter((q) => tabOf(q) === tab).length;
-  const list =
-    i.tab === 'ended'
-      ? ended.slice(-ENDED_SHOWN).reverse()
-      : open.filter((q) => tabOf(q) === i.tab);
+  const list = i.tab === 'ended' ? endedNewestFirst(ended) : open.filter((q) => tabOf(q) === i.tab);
   const nothing = open.length === 0 && ended.length === 0;
   return {
     header:

@@ -136,6 +136,25 @@
       "source": "8.7"
     },
     {
+      "name": "a1_beast_season",
+      "kind": "bool",
+      "scope": "act_exit",
+      "range": null,
+      "step": null,
+      "default": false,
+      "values": null,
+      "aliases": [],
+      "writers": ["content"],
+      "readers": [],
+      "derive": null,
+      "monotone": false,
+      "act": 1,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.a1_beast_season",
+      "source": "8.7"
+    },
+    {
       "name": "a1_beast_tide_cleared",
       "kind": "flag",
       "scope": "act_flag",

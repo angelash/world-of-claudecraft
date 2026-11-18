@@ -317,17 +317,77 @@
     "trigger": "act == act1",
     "stages": [
       {
+        "id": "wake",
+        "desc": "在神纹大厅里站起来，看清那第六个门形的纹。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "seal_ruins",
+            "location": "sigil_hall",
+            "label": "站到神纹大厅的第六个神纹下"
+          }
+        ]
+      },
+      {
+        "id": "corridor",
+        "desc": "回廊里有东西在动。打赢这里的第一场战斗。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_dreg",
+            "count": 2,
+            "label": "击退回廊里的灰渣",
+            "mapId": "seal_ruins"
+          },
+          {
+            "type": "kill",
+            "ref": "dian_rat",
+            "count": 1,
+            "label": "击退回廊里的灰鼠",
+            "mapId": "seal_ruins"
+          }
+        ]
+      },
+      {
         "id": "descend",
-        "desc": "穿过回廊，走下落灰阶，抵达灰烬室。",
+        "desc": "走下落灰阶。灰积到膝盖，脚步没有声音。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "seal_ruins_depths",
+            "location": "stair_foot",
+            "label": "走下落灰阶"
+          }
+        ]
+      },
+      {
+        "id": "ash_chamber",
+        "desc": "灰烬室里坐着一个人。",
         "objectives": [
           {
             "type": "reach",
             "mapId": "seal_ruins_depths",
             "location": "ash_chamber",
-            "label": "走下落灰阶，抵达灰烬室"
+            "label": "抵达灰烬室"
           }
         ],
         "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_ash_met",
+            "value": true
+          },
+          {
+            "type": "add",
+            "key": "seal_unrest",
+            "amount": 5,
+            "max": 100
+          },
+          {
+            "type": "xp",
+            "amount": 60,
+            "reason": "quest"
+          },
           {
             "type": "scene",
             "scene": "a1_ash_glimpse"
@@ -335,24 +395,7 @@
         ]
       }
     ],
-    "rewards": [
-      {
-        "type": "flag",
-        "key": "a1_ash_met",
-        "value": true
-      },
-      {
-        "type": "add",
-        "key": "seal_unrest",
-        "amount": 5,
-        "max": 100
-      },
-      {
-        "type": "xp",
-        "amount": 60,
-        "reason": "quest"
-      }
-    ]
+    "rewards": []
   },
   {
     "id": "q_a1_m02_raven",
@@ -365,7 +408,7 @@
     "stages": [
       {
         "id": "raven",
-        "desc": "攀上巢井，击败守护巨鸦。",
+        "desc": "攀上巢井半腰的石台，击败守护巨鸦。它唤来的鸦群也要打散。",
         "objectives": [
           {
             "type": "kill",
@@ -373,55 +416,85 @@
             "count": 1,
             "label": "击败守护巨鸦",
             "orWhen": "boss.guardian_raven.defeated OR boss.guardian_raven.yielded"
+          },
+          {
+            "type": "kill",
+            "ref": "raven_flock",
+            "count": 2,
+            "label": "打散巨鸦唤来的鸦群",
+            "optional": true,
+            "orWhen": "boss.guardian_raven.defeated OR boss.guardian_raven.yielded"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 230,
+            "reason": "quest"
+          }
+        ]
+      },
+      {
+        "id": "reach",
+        "desc": "巨鸦力竭，倒在巢上。它不会死。",
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a1_yeyu_bound",
+            "label": "伸出手，或者拒绝"
+          }
+        ],
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a1_yeyu_bound"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_yeyu_bound",
+            "value": true
+          },
+          {
+            "type": "companion",
+            "id": "yeyu"
+          },
+          {
+            "type": "flag",
+            "key": "trust.yeyu",
+            "value": 40
+          },
+          {
+            "type": "add",
+            "key": "seal_unrest",
+            "amount": 10,
+            "max": 100
+          },
+          {
+            "type": "item",
+            "item": "old_guild_badge"
+          },
+          {
+            "type": "item",
+            "item": "raven_black_feather"
+          }
+        ]
+      },
+      {
+        "id": "exit",
+        "desc": "从井口爬出去。回头看，正门被落石堵着。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "seal_ruins",
+            "location": "outer_ring",
+            "label": "从巢井爬出到遗迹外环"
           }
         ]
       }
     ],
-    "rewards": [
-      {
-        "type": "flag",
-        "key": "a1_yeyu_bound",
-        "value": true
-      },
-      {
-        "type": "companion",
-        "id": "yeyu"
-      },
-      {
-        "type": "flag",
-        "key": "term.dian_known",
-        "value": true
-      },
-      {
-        "type": "item",
-        "item": "old_guild_badge"
-      },
-      {
-        "type": "item",
-        "item": "raven_black_feather"
-      },
-      {
-        "type": "add",
-        "key": "seal_unrest",
-        "amount": 10,
-        "max": 100
-      },
-      {
-        "type": "add",
-        "key": "seal_looseness",
-        "amount": 1,
-        "max": 100
-      },
-      {
-        "type": "xp",
-        "amount": 230,
-        "reason": "quest"
-      },
-      {
-        "type": "scene",
-        "scene": "a1_yeyu_bound"
-      }
-    ]
+    "rewards": []
   },
   {
     "id": "q_a1_m03_town",
@@ -440,7 +513,7 @@
     ],
     "stages": [
       {
-        "id": "town",
+        "id": "reach_town",
         "desc": "离开封门遗迹，抵达边石镇。",
         "objectives": [
           {
@@ -448,16 +521,17 @@
             "mapId": "borderstone",
             "label": "抵达边石镇"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 90,
+            "reason": "quest"
+          }
         ]
       }
     ],
-    "rewards": [
-      {
-        "type": "xp",
-        "amount": 90,
-        "reason": "quest"
-      }
-    ]
+    "rewards": []
   },
   {
     "id": "q_a1_m03_register",
@@ -465,39 +539,53 @@
     "kind": "main",
     "order": 4,
     "title": "无记载",
-    "desc": "要在这里活下去，先得有一张公会卡。冒险者公会的分部长叫老布伦。",
+    "desc": "要在这里活下去，先得有一张公会卡。公会的接待员叫莉娜。",
     "trigger": "quest.q_a1_m03_town == done",
     "stages": [
       {
         "id": "register",
-        "desc": "去冒险者公会，找分部长老布伦登记。",
+        "desc": "去冒险者公会，找接待员莉娜登记。巢里那根黑羽，公会也许肯收。",
         "objectives": [
           {
             "type": "talk",
-            "npc": "bron",
-            "label": "与老布伦交谈，登记为冒险者"
+            "npc": "lina",
+            "label": "与莉娜交谈，登记为冒险者"
+          },
+          {
+            "type": "deliver",
+            "item": "raven_black_feather",
+            "npc": "lina",
+            "label": "把巨鸦的黑羽交给公会领赏",
+            "optional": true,
+            "path": "bounty"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_guild_registered",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "guild_card"
+          },
+          {
+            "type": "xp",
+            "amount": 210,
+            "reason": "quest"
+          },
+          {
+            "type": "scene",
+            "scene": "a1_guild_register"
           }
         ]
       }
     ],
     "rewards": [
       {
-        "type": "flag",
-        "key": "a1_guild_registered",
-        "value": true
-      },
-      {
-        "type": "item",
-        "item": "guild_card"
-      },
-      {
-        "type": "xp",
-        "amount": 210,
-        "reason": "quest"
-      },
-      {
-        "type": "scene",
-        "scene": "a1_guild_register"
+        "type": "money",
+        "amount": 100
       }
     ]
   },
@@ -506,25 +594,94 @@
     "act": "act1",
     "kind": "main",
     "order": 5,
-    "title": "第一次狩猎",
+    "title": "F 级的规矩",
     "giver": "bron",
     "turnIn": "bron",
-    "desc": "布伦把一张 F 级委托拍在柜台上：林缘的魔物多起来了，去清一清，活着回来。",
+    "desc": "布伦把三张 F 级委托拍在柜台上：地窖的老鼠、药草小屋的草药、一封要送去礼拜堂的信。按规矩，一件一件来。",
     "trigger": "quest.q_a1_m03_register == done",
+    "weekWindow": {
+      "from": 1,
+      "to": 2
+    },
+    "byOther": {
+      "when": "act_week >= 3"
+    },
+    "onStart": [
+      {
+        "type": "item",
+        "item": "guild_letter"
+      }
+    ],
     "stages": [
       {
-        "id": "hunt",
-        "desc": "在林缘讨伐五只魔物。",
+        "id": "cellar",
+        "desc": "委托一：醉月亭地窖的老鼠。",
         "objectives": [
           {
             "type": "kill",
-            "kind": "monster",
-            "mapId": "forest_edge",
-            "count": 5,
-            "label": "在林缘讨伐魔物"
+            "ref": "dian_rat",
+            "count": 4,
+            "label": "清理灰鼠"
           }
         ],
         "onComplete": [
+          {
+            "type": "add",
+            "key": "trust.martha",
+            "amount": 5,
+            "max": 100
+          }
+        ]
+      },
+      {
+        "id": "herb",
+        "desc": "委托二：替欧拉婆婆的药草小屋送去草药。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "herb",
+            "count": 5,
+            "npc": "oola",
+            "label": "把五份草药交给欧拉婆婆"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "add",
+            "key": "trust.oola",
+            "amount": 5,
+            "max": 100
+          },
+          {
+            "type": "xp",
+            "amount": 320,
+            "reason": "quest"
+          }
+        ]
+      },
+      {
+        "id": "letter",
+        "desc": "委托三：把公会的信送到小礼拜堂。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "guild_letter",
+            "npc": "cassian",
+            "label": "把公会的信交给卡西安神父"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "add",
+            "key": "trust.cassian",
+            "amount": 5,
+            "max": 100
+          },
+          {
+            "type": "flag",
+            "key": "a1_cassian_appraise",
+            "value": true
+          },
           {
             "type": "xp",
             "amount": 320,
@@ -540,18 +697,19 @@
         "value": true
       },
       {
-        "type": "money",
-        "amount": 300
+        "type": "add",
+        "key": "trust.nera",
+        "amount": 5,
+        "max": 100
       },
       {
-        "type": "xp",
-        "amount": 320,
-        "reason": "quest"
+        "type": "money",
+        "amount": 270
       },
       {
         "type": "line",
         "speaker": "bron",
-        "text": "……五只？一个人？行吧。算你运气好。"
+        "text": "……三件都办了？行吧。F 级的规矩，你算是懂了。"
       }
     ]
   },
@@ -564,21 +722,46 @@
     "giver": "shiya",
     "turnIn": "shiya",
     "desc": "兽人猎户希雅在追查伐区北部的灰色的狼。她不太信任外人，但她更不信任伐木工。",
-    "trigger": "quest.q_a1_m03_register == done",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 2",
     "stages": [
       {
-        "id": "wolves",
-        "desc": "和希雅一起清剿灰色的狼。",
+        "id": "track",
+        "desc": "在伐区北部找到狼的踪迹。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "hunter_trail",
+            "label": "跟着希雅找到狼的足迹",
+            "path": "hunted_with_shiya"
+          }
+        ]
+      },
+      {
+        "id": "den",
+        "desc": "清剿狼穴：灰狼与澱狼。",
         "objectives": [
           {
             "type": "kill",
-            "refs": ["grey_wolf", "dian_wolf"],
-            "mapId": "forest_edge",
-            "count": 3,
-            "label": "清剿灰色的狼"
+            "refs": ["grey_wolf"],
+            "count": 6,
+            "label": "清剿灰狼",
+            "mapId": "forest_edge"
+          },
+          {
+            "type": "kill",
+            "refs": ["dian_wolf"],
+            "count": 2,
+            "label": "清剿澱狼",
+            "mapId": "forest_edge"
           }
         ],
         "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_wolf_den",
+            "value": "cleared"
+          },
           {
             "type": "xp",
             "amount": 540,
@@ -597,13 +780,21 @@
             "label": "击败裂耳",
             "orWhen": "boss.split_ear.defeated"
           }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 900,
+            "reason": "quest"
+          }
         ]
       }
     ],
     "rewards": [
       {
         "type": "companion",
-        "id": "shiya"
+        "id": "shiya",
+        "when": "a1_forest_accord != broken"
       },
       {
         "type": "add",
@@ -612,9 +803,8 @@
         "max": 100
       },
       {
-        "type": "xp",
-        "amount": 900,
-        "reason": "quest"
+        "type": "money",
+        "amount": 450
       },
       {
         "type": "line",
@@ -632,23 +822,107 @@
     "giver": "ron",
     "turnIn": "ron",
     "desc": "矿工罗恩接了委托板上没人要的活：清理旧矿上层的掘穴虫。塌方后面好像有风。",
-    "trigger": "quest.q_a1_m03_register == done",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 4",
     "stages": [
       {
-        "id": "mine",
-        "desc": "清理旧矿的掘穴虫，打通塌方。",
+        "id": "upper",
+        "desc": "清理锈岭矿上层坑道的掘穴虫。",
         "objectives": [
           {
             "type": "kill",
-            "kind": "monster",
-            "count": 4,
-            "label": "清理掘穴虫"
+            "ref": "burrow_worm",
+            "count": 6,
+            "label": "清理掘穴虫",
+            "mapId": "rustridge_mine"
+          }
+        ]
+      },
+      {
+        "id": "breach",
+        "desc": "塌方口后面有风。趁夜把它打通。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "rustridge_mine",
+            "location": "collapse_mouth",
+            "label": "找到塌方口的承重点，把它打通",
+            "path": "dug"
           }
         ],
         "onComplete": [
           {
+            "type": "flag",
+            "key": "a1_mine_cleared",
+            "value": true
+          },
+          {
+            "type": "add",
+            "key": "seal_unrest",
+            "amount": 10,
+            "max": 100
+          },
+          {
             "type": "xp",
             "amount": 810,
+            "reason": "quest"
+          }
+        ]
+      },
+      {
+        "id": "camp",
+        "desc": "下层晶脉里藏着一处走私营地。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "oneeye_bandit",
+            "count": 4,
+            "label": "拿下走私营地",
+            "mapId": "dg_old_mine"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "item",
+            "item": "smuggling_manifest"
+          },
+          {
+            "type": "item",
+            "item": "dian_shard",
+            "count": 3
+          },
+          {
+            "type": "add",
+            "key": "a1_moss_evidence",
+            "amount": 1,
+            "max": 7
+          },
+          {
+            "type": "add",
+            "key": "a1_dian_evidence",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "id": "mother",
+        "desc": "晶脉尽头，晶背之母醒了。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "crystal_mother",
+            "count": 1,
+            "label": "击败晶背之母",
+            "orWhen": "boss.crystal_mother.defeated"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "item",
+            "item": "crystal_carapace"
+          },
+          {
+            "type": "xp",
+            "amount": 1350,
             "reason": "quest"
           }
         ]
@@ -666,19 +940,8 @@
         "max": 100
       },
       {
-        "type": "item",
-        "item": "smuggling_manifest"
-      },
-      {
-        "type": "add",
-        "key": "seal_unrest",
-        "amount": 10,
-        "max": 100
-      },
-      {
-        "type": "xp",
-        "amount": 1350,
-        "reason": "quest"
+        "type": "money",
+        "amount": 840
       },
       {
         "type": "line",
@@ -690,47 +953,168 @@
   {
     "id": "q_a1_m07_spring",
     "act": "act1",
-    "kind": "side",
+    "kind": "main",
     "order": 8,
     "title": "北泉之灰",
     "giver": "oola",
-    "turnIn": "oola",
     "desc": "欧拉婆婆说，病倒的孩子都喝过北泉的水。她想知道水里有什么。",
-    "trigger": "quest.q_a1_m03_register == done",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 3 AND (trust.oola >= 50 OR p_past_life_door == whitecoat OR act_week >= 6)",
+    "expiry": {
+      "week": 12
+    },
     "stages": [
       {
         "id": "spring",
-        "desc": "去北泉打一瓶水回来。",
+        "desc": "去北泉看看。病房里的灯，也去看一眼。",
         "objectives": [
           {
             "type": "reach",
             "mapId": "borderstone",
             "location": "north_spring",
-            "label": "去北泉"
+            "label": "去北泉打一瓶水"
+          },
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "orphanage",
+            "label": "去孤儿院的病房看一眼",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_grey_lamp_seen",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "vein",
+        "desc": "灰是从地下来的。顺着水脉回到封门遗迹。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "seal_ruins_depths",
+            "label": "顺着水脉回到封门遗迹深处"
+          }
+        ],
+        "onEnter": [
+          {
+            "type": "flag",
+            "key": "a1_ruins_gate_cleared",
+            "value": true
+          },
+          {
+            "type": "line",
+            "speaker": "narrator",
+            "text": "遗迹门厅的落石被人从里面推开了一道缝，刚好容一个人侧身进去。"
+          }
+        ]
+      },
+      {
+        "id": "culvert",
+        "desc": "暗渠里有东西守着那股灰。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_spirit",
+            "count": 1,
+            "label": "击败暗渠里的澱灵",
+            "mapId": "seal_ruins_depths"
+          }
+        ],
+        "onEnter": [
+          {
+            "type": "line",
+            "speaker": "yeyu",
+            "text": "那扇门，是不该被打开的。可我等了好久好久。",
+            "when": "act_week >= 8 AND NOT term.dian_known"
+          },
+          {
+            "type": "flag",
+            "key": "term.dian_known",
+            "value": true,
+            "when": "act_week >= 8 AND NOT term.dian_known"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "item",
+            "item": "north_spring_water"
+          },
+          {
+            "type": "flag",
+            "key": "a1_spring_source_found",
+            "value": true
+          },
+          {
+            "type": "xp",
+            "amount": 810,
+            "reason": "quest"
+          }
+        ]
+      },
+      {
+        "id": "seal",
+        "desc": "要不要用遗迹的落石把暗渠口堵上？堵上了，镇里的灰会少很多。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "seal",
+                "label": "用落石堵住暗渠口",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_culvert_sealed",
+                    "value": true
+                  },
+                  {
+                    "type": "add",
+                    "key": "a1_town_dian",
+                    "amount": -20,
+                    "min": 0
+                  },
+                  {
+                    "type": "add",
+                    "key": "seal_unrest",
+                    "amount": -5,
+                    "min": 0
+                  }
+                ],
+                "path": "sealed"
+              },
+              {
+                "id": "board_spring",
+                "label": "回镇上，用木板与石头封住北泉",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_north_spring_boarded",
+                    "value": true
+                  }
+                ],
+                "path": "boarded"
+              },
+              {
+                "id": "leave",
+                "label": "先不动它",
+                "path": "left"
+              }
+            ],
+            "label": "决定怎么处置暗渠"
           }
         ]
       }
     ],
     "rewards": [
       {
-        "type": "item",
-        "item": "north_spring_water"
-      },
-      {
-        "type": "flag",
-        "key": "a1_spring_source_found",
-        "value": true
-      },
-      {
         "type": "add",
         "key": "trust.oola",
-        "amount": 20,
+        "amount": 10,
         "max": 100
-      },
-      {
-        "type": "xp",
-        "amount": 810,
-        "reason": "quest"
       },
       {
         "type": "line",
@@ -748,16 +1132,44 @@
     "giver": "nera",
     "turnIn": "nera",
     "desc": "商人奈拉盯着你的硬币看了很久：这种成色，她只在一个地方见过。",
-    "trigger": "quest.q_a1_m03_register == done",
+    "trigger": "quest.q_a1_m03_register == done AND quest.q_p_m04_out_of_spec == done",
     "stages": [
       {
-        "id": "offer",
-        "desc": "用梅尔卡的硬币向交易之司供奉一次。",
+        "id": "show",
+        "desc": "在商会分号把硬币拿给奈拉看。",
         "objectives": [
           {
-            "type": "flag",
-            "when": "merca_offerings >= 1",
-            "label": "在神龛或市场用硬币供奉一次"
+            "type": "talk",
+            "npc": "nera",
+            "label": "把硬币拿给奈拉看"
+          }
+        ]
+      },
+      {
+        "id": "answer",
+        "desc": "奈拉问你，这枚硬币是哪里来的。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "nera",
+            "options": [
+              {
+                "id": "truth",
+                "label": "说实话：女神给的",
+                "path": "truth"
+              },
+              {
+                "id": "story",
+                "label": "编一个故事",
+                "path": "story"
+              },
+              {
+                "id": "silent",
+                "label": "不说",
+                "path": "silent"
+              }
+            ],
+            "label": "回答奈拉的问题"
           }
         ]
       }
@@ -770,14 +1182,16 @@
         "max": 100
       },
       {
-        "type": "flag",
-        "key": "a1_coin_story",
-        "value": true
+        "type": "add",
+        "key": "trust.nera",
+        "amount": 10,
+        "max": 100,
+        "when": "p_coin_terms"
       },
       {
         "type": "flag",
-        "key": "npc.nera.stance",
-        "value": "partner"
+        "key": "a1_coin_story",
+        "value": true
       },
       {
         "type": "interest",
@@ -788,6 +1202,11 @@
         "type": "xp",
         "amount": 180,
         "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "nera",
+        "text": "客人真会开玩笑。"
       }
     ]
   },
@@ -797,41 +1216,85 @@
     "kind": "main",
     "order": 10,
     "title": "光之鉴",
-    "desc": "第二个孩子倒下了。卡西安神父指控药草婆婆欧拉以巫术害人，三日后受光之鉴。",
-    "trigger": "quest.q_a1_m04_hunt == done AND quest.q_a1_m05_grey_wolf == done AND quest.q_a1_m06_mine == done",
-    "onStart": [
-      {
-        "type": "flag",
-        "key": "a1_witch_trial_started",
-        "value": true
-      },
-      {
-        "type": "add",
-        "key": "church_suspicion",
-        "amount": 5,
-        "max": 100
-      },
-      {
-        "type": "line",
-        "speaker": "narrator",
-        "text": "广场上贴出了告示：药草婆婆欧拉，以巫术害人，三日后于礼拜堂前受光之鉴。"
-      }
-    ],
+    "desc": "第二个孩子倒下了。卡西安神父指控药草婆婆欧拉以巫术害人；代官府的告示也贴到了你的头上。",
+    "trigger": "act_week >= 7 AND a1_witch_trial_started",
     "stages": [
       {
-        "id": "visit",
-        "desc": "去见欧拉婆婆，或者去礼拜堂找卡西安神父。",
-        "complete": "any",
+        "id": "notice",
+        "desc": "广场上贴出了代官府的告示，上面写的是你。",
         "objectives": [
           {
-            "type": "talk",
-            "npc": "oola",
-            "label": "与欧拉婆婆交谈"
-          },
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "plaza",
+            "label": "去广场看告示"
+          }
+        ]
+      },
+      {
+        "id": "answer",
+        "desc": "告示限三日内到代官府应询。",
+        "objectives": [
           {
-            "type": "talk",
-            "npc": "cassian",
-            "label": "与卡西安神父交谈"
+            "type": "choice",
+            "options": [
+              {
+                "id": "appeared",
+                "label": "去代官府应询",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_summons_answer",
+                    "value": "appeared"
+                  },
+                  {
+                    "type": "add",
+                    "key": "church_suspicion",
+                    "amount": 5,
+                    "max": 100
+                  }
+                ],
+                "path": "appeared"
+              },
+              {
+                "id": "refused",
+                "label": "不去",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_summons_answer",
+                    "value": "refused"
+                  },
+                  {
+                    "type": "add",
+                    "key": "rep.bs_chapel",
+                    "amount": -20,
+                    "min": -100,
+                    "max": 100
+                  },
+                  {
+                    "type": "add",
+                    "key": "church_suspicion",
+                    "amount": 10,
+                    "max": 100
+                  }
+                ],
+                "path": "refused"
+              },
+              {
+                "id": "investigated",
+                "label": "反过来查莫斯",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_summons_answer",
+                    "value": "investigated"
+                  }
+                ],
+                "path": "investigated"
+              }
+            ],
+            "label": "回应代官府的传讯"
           }
         ],
         "onComplete": [
@@ -843,14 +1306,26 @@
         ]
       },
       {
-        "id": "trial",
-        "desc": "光之鉴开始了。",
-        "onEnter": [
+        "id": "prepare",
+        "desc": "第 8 周，礼拜堂前要点光之鉴。审判之前，能找的证据都去找。",
+        "objectives": [
           {
-            "type": "scene",
-            "scene": "a1_oola_trial"
+            "type": "flag",
+            "when": "act_week >= 8 OR a1_oola_fate",
+            "label": "等到审判那一天"
           }
         ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1320,
+            "reason": "quest"
+          }
+        ]
+      },
+      {
+        "id": "verdict",
+        "desc": "光之鉴开始了。",
         "objectives": [
           {
             "type": "flag",
@@ -858,7 +1333,26 @@
             "label": "在光之鉴上作出你的选择"
           }
         ],
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a1_oola_trial",
+            "when": "NOT a1_oola_fate AND NOT dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
+          },
+          {
+            "type": "line",
+            "speaker": "narrator",
+            "text": "审判已经开过了。你赶到广场时，光之鉴的灯早就灭了，人群正在散去。",
+            "when": "dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
+          }
+        ],
         "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_oola_jailbroken",
+            "value": true,
+            "when": "a1_oola_fate == fled AND NOT a1_trial_brawl AND NOT dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
+          },
           {
             "type": "xp",
             "amount": 1320,
@@ -866,7 +1360,7 @@
           },
           {
             "type": "xp",
-            "amount": 1320,
+            "amount": 2200,
             "reason": "quest"
           }
         ]
@@ -874,93 +1368,290 @@
     ],
     "rewards": [
       {
-        "type": "xp",
-        "amount": 2200,
-        "reason": "quest"
+        "type": "add",
+        "key": "trust.oola",
+        "amount": 20,
+        "max": 100,
+        "when": "a1_oola_fate == cleared AND NOT a1_oola_bribed"
+      },
+      {
+        "type": "add",
+        "key": "trust.isa",
+        "amount": 10,
+        "max": 100,
+        "when": "a1_oola_fate == cleared AND NOT a1_oola_bribed"
+      },
+      {
+        "type": "add",
+        "key": "trust.greta",
+        "amount": 10,
+        "max": 100,
+        "when": "a1_oola_fate == cleared AND NOT a1_oola_bribed"
       }
     ]
+  },
+  {
+    "id": "q_a1_m10_talent_sight",
+    "act": "act1",
+    "kind": "main",
+    "order": 11,
+    "title": "识才",
+    "desc": "千门回廊里，一扇新的门显出了轮廓。门上画着一只睁开的眼睛。",
+    "trigger": "quest.q_a1_m06_mine == done",
+    "stages": [
+      {
+        "id": "open",
+        "desc": "集齐识才之门的钥，把它打开。",
+        "objectives": [
+          {
+            "type": "door",
+            "doorId": "talent_sight",
+            "label": "打开识才之门",
+            "orWhen": "door.talent_sight"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 550,
+            "reason": "quest"
+          }
+        ]
+      }
+    ],
+    "rewards": []
   },
   {
     "id": "q_a1_m12_tide",
     "act": "act1",
     "kind": "main",
-    "order": 11,
+    "order": 12,
     "title": "兽潮之夜",
-    "desc": "封门遗迹的灰涌了出来。暗月之夜，兽潮会扑向小镇。",
-    "trigger": "quest.q_a1_m09_trial == done",
+    "desc": "北边的风变了。封门遗迹的灰要涌出来了，暗月之夜，兽潮会扑向小镇。",
+    "trigger": "a1_tide_omen OR a1_tide_night",
     "onStart": [
-      {
-        "type": "flag",
-        "key": "seal_unrest",
-        "value": 100
-      },
       {
         "type": "line",
         "speaker": "martha",
-        "text": "暗月要来了。今晚，别喝酒。"
+        "text": "北边的风变了。今晚把门窗关好。"
       }
     ],
     "stages": [
       {
-        "id": "eve",
-        "desc": "暗月之前：去醉月亭找玛莎，问清兽潮的事，或者等到天黑。",
-        "complete": "any",
+        "id": "prep",
+        "desc": "暗月之前：能准备的都准备好。修东栅、请奈拉放药、让东坡的人进栅、安顿孩子和欧拉、请巴托守北门。",
         "objectives": [
           {
-            "type": "talk",
-            "npc": "martha",
-            "label": "与玛莎交谈"
+            "type": "flag",
+            "when": "a1_tide_night",
+            "label": "暗月之夜到来"
           },
           {
-            "type": "wait",
-            "hours": 6,
-            "label": "等到天黑"
+            "type": "deliver",
+            "item": "wood",
+            "count": 40,
+            "npc": "gaspar",
+            "label": "给东栅送去四十份木料",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.east_fence",
+                "value": true
+              },
+              {
+                "type": "add",
+                "key": "a1_defense",
+                "amount": 15,
+                "max": 120
+              }
+            ]
+          },
+          {
+            "type": "persuade",
+            "npc": "nera",
+            "when": "npc.nera.stance == partner OR trust.nera >= 55",
+            "label": "请奈拉平价放药",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.nera_stock",
+                "value": true
+              }
+            ]
+          },
+          {
+            "type": "persuade",
+            "npc": "gorn",
+            "when": "a1_forest_accord IN (restored, partial) OR (trust.gorn >= 60 AND trust.gaspar >= 50)",
+            "label": "劝葛恩带东坡的人进栅",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.eastslope_in",
+                "value": true
+              }
+            ]
+          },
+          {
+            "type": "talk",
+            "npc": "greta",
+            "label": "请格蕾塔把孩子们挪到磨坊或礼拜堂",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.children_safe",
+                "value": true
+              }
+            ]
+          },
+          {
+            "type": "persuade",
+            "npc": "cassian",
+            "when": "a1_oola_fate == cleared OR npc.cassian.doubt >= 1",
+            "label": "请欧拉守在礼拜堂与东栅之间",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.oola_placed",
+                "value": true
+              }
+            ]
+          },
+          {
+            "type": "persuade",
+            "npc": "barto",
+            "when": "quest.q_a1_s21_captain_home == done OR a1_moss_exposed OR a1_oneeye_fate == absorbed",
+            "label": "请巴托死守北门",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_tide_prep.barto_seg",
+                "value": true
+              }
+            ]
           }
         ],
         "onComplete": [
           {
             "type": "xp",
             "amount": 1530,
-            "reason": "quest"
+            "reason": "quest",
+            "when": "a1_tide_prep.east_fence OR a1_tide_prep.nera_stock OR a1_tide_prep.eastslope_in OR a1_tide_prep.children_safe OR a1_tide_prep.oola_placed OR a1_tide_prep.barto_seg"
           },
           {
             "type": "xp",
             "amount": 1530,
             "reason": "quest"
           }
-        ]
-      },
-      {
-        "id": "vanguard",
-        "desc": "兽潮的前锋扑向东栅。守住小镇。",
+        ],
         "onEnter": [
           {
-            "type": "wave",
-            "wave": "tide_first"
-          },
-          {
-            "type": "wave",
-            "wave": "tide_second"
+            "type": "line",
+            "speaker": "yeyu",
+            "text": "那扇门，是不该被打开的。可我等了好久好久。",
+            "when": "NOT term.dian_known"
           },
           {
             "type": "flag",
-            "key": "a1_beast_tide_started",
-            "value": true
+            "key": "term.dian_known",
+            "value": true,
+            "when": "NOT term.dian_known"
+          }
+        ]
+      },
+      {
+        "id": "dusk",
+        "desc": "黄昏。托马敲响了警钟，卡西安打开礼拜堂，布伦打开公会的石屋。",
+        "objectives": [
+          {
+            "type": "wait",
+            "hours": 1,
+            "label": "站到防线上"
+          }
+        ]
+      },
+      {
+        "id": "wave1",
+        "desc": "第一波：林缘方向的兽群扑向东栅。",
+        "objectives": [
+          {
+            "type": "kill",
+            "count": 6,
+            "label": "击退兽群",
+            "kind": "monster",
+            "mapId": "borderstone",
+            "orWhen": "combat.wave.tide_first.state == cleared OR a1_tide_stage >= 2"
+          },
+          {
+            "type": "flag",
+            "when": "a1_tide_stage >= 2 OR NOT a1_beast_tide_started",
+            "label": "守到入夜的兽群退去"
+          }
+        ],
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "tide_first",
+            "when": "NOT a1_beast_tide_started"
           },
           {
             "type": "line",
             "speaker": "narrator",
             "text": "东边的栅栏外，灰色的影子一排排亮起了眼睛。"
           }
-        ],
+        ]
+      },
+      {
+        "id": "wave2",
+        "desc": "第二拍：荒原方向的亡灵涌向北门。",
         "objectives": [
           {
             "type": "kill",
+            "count": 6,
+            "label": "守住北门",
             "kind": "monster",
             "mapId": "borderstone",
-            "count": 6,
-            "label": "击退兽潮前锋",
-            "orWhen": "(combat.wave.tide_first.state == cleared AND combat.wave.tide_second.state == cleared)"
+            "orWhen": "combat.wave.tide_second.state == cleared OR a1_tide_stage >= 3"
+          },
+          {
+            "type": "flag",
+            "when": "a1_tide_stage >= 3 OR NOT a1_beast_tide_started",
+            "label": "守到午夜"
+          },
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "south_gate",
+            "label": "在南门截下莫斯的灰晶车",
+            "optional": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_moss_intercepted",
+                "value": true,
+                "when": "dispute.q_a1_d01_tax_and_bandits.choice.moss_cart == flee_south"
+              },
+              {
+                "type": "add",
+                "key": "a1_moss_evidence",
+                "amount": 1,
+                "max": 7,
+                "when": "dispute.q_a1_d01_tax_and_bandits.choice.moss_cart == flee_south"
+              }
+            ]
+          }
+        ],
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "tide_second",
+            "when": "NOT a1_beast_tide_started"
           }
         ],
         "onComplete": [
@@ -974,21 +1665,6 @@
       {
         "id": "colossus",
         "desc": "灰气聚成的巨像从荒原那边走来。击败澱巨像。",
-        "onEnter": [
-          {
-            "type": "wave",
-            "wave": "tide_colossus"
-          },
-          {
-            "type": "wave",
-            "wave": "tide_flood"
-          },
-          {
-            "type": "line",
-            "speaker": "yeyu",
-            "text": "那个……是澱聚成的。打它的心。"
-          }
-        ],
         "objectives": [
           {
             "type": "kill",
@@ -997,37 +1673,113 @@
             "label": "击败澱巨像",
             "orWhen": "boss.dian_colossus.defeated OR boss.dian_colossus.yielded OR combat.wave.tide_colossus.state == cleared"
           }
+        ],
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "tide_colossus",
+            "when": "NOT a1_beast_tide_started"
+          },
+          {
+            "type": "line",
+            "speaker": "yeyu",
+            "text": "那个……是澱聚成的。打它的心。"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 2850,
+            "reason": "quest"
+          },
+          {
+            "type": "flag",
+            "key": "seal_unrest",
+            "value": 30
+          },
+          {
+            "type": "add",
+            "key": "seal_unrest",
+            "amount": 10,
+            "max": 100,
+            "when": "a1_dian_trade == player_controls"
+          },
+          {
+            "type": "flag",
+            "key": "a1_beast_tide_cleared",
+            "value": true,
+            "when": "NOT a1_beast_tide_started"
+          }
+        ]
+      },
+      {
+        "id": "core",
+        "desc": "巨像的核滚到脚边，还在跳。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "shatter",
+                "label": "击碎澱核",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "colossus_core"
+                  }
+                ],
+                "path": "shatter"
+              },
+              {
+                "id": "grasp",
+                "label": "伸手握住它",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "dian_core",
+                    "count": 1,
+                    "when": "NOT door.vocation_druid"
+                  },
+                  {
+                    "type": "add",
+                    "key": "seal_unrest",
+                    "amount": 15,
+                    "max": 100
+                  },
+                  {
+                    "type": "add",
+                    "key": "trust.yeyu",
+                    "amount": -20,
+                    "min": 0
+                  }
+                ],
+                "path": "grasp"
+              }
+            ],
+            "label": "击碎澱核，或者伸手握住"
+          }
+        ]
+      },
+      {
+        "id": "dawn",
+        "desc": "撑到天亮。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "a1_beast_tide_cleared",
+            "label": "撑到天亮"
+          }
         ]
       }
     ],
     "rewards": [
       {
-        "type": "flag",
-        "key": "a1_beast_tide_cleared",
-        "value": true
-      },
-      {
-        "type": "flag",
-        "key": "a1_martha_strike",
-        "value": true
-      },
-      {
-        "type": "flag",
-        "key": "seal_unrest",
-        "value": 0
+        "type": "money",
+        "amount": 660
       },
       {
         "type": "item",
-        "item": "colossus_core"
-      },
-      {
-        "type": "money",
-        "amount": 2000
-      },
-      {
-        "type": "xp",
-        "amount": 2850,
-        "reason": "quest"
+        "item": "bounty_voucher"
       },
       {
         "type": "scene",
@@ -1039,7 +1791,7 @@
     "id": "q_a1_m13_dream",
     "act": "act1",
     "kind": "main",
-    "order": 12,
+    "order": 13,
     "title": "门口的女人",
     "desc": "兽潮的次夜，你在醉月亭的客房里睡下了。",
     "trigger": "quest.q_a1_m12_tide == done",
@@ -1058,46 +1810,72 @@
       {
         "id": "dream",
         "desc": "梦。",
-        "onEnter": [
-          {
-            "type": "scene",
-            "scene": "a1_dream"
-          }
-        ],
         "objectives": [
           {
             "type": "scene",
             "scene": "a1_dream",
             "label": "梦见门口的女人"
           }
+        ],
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a1_dream"
+          }
+        ]
+      },
+      {
+        "id": "mark",
+        "desc": "醒来时，手背上多了一道纹。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "a1_dream_door_woman",
+            "label": "看清手背上的纹"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "xp",
+            "amount": 1950,
+            "reason": "quest"
+          }
         ]
       }
     ],
-    "rewards": [
-      {
-        "type": "xp",
-        "amount": 1950,
-        "reason": "quest"
-      }
-    ]
+    "rewards": []
   },
   {
     "id": "q_a1_m13_letter",
     "act": "act1",
     "kind": "main",
-    "order": 13,
+    "order": 14,
     "title": "伯爵来信",
     "desc": "去公会交兽潮的讨伐凭证。布伦亲自坐在柜台后面。",
     "trigger": "quest.q_a1_m13_dream == done",
     "stages": [
       {
-        "id": "guild",
-        "desc": "去公会找老布伦。",
+        "id": "bron",
+        "desc": "去公会找老布伦，把讨伐凭证交给他。",
         "objectives": [
           {
             "type": "talk",
             "npc": "bron",
             "label": "与老布伦交谈"
+          },
+          {
+            "type": "deliver",
+            "item": "bounty_voucher",
+            "npc": "bron",
+            "label": "交上兽潮的讨伐凭证",
+            "optional": true
+          },
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "edgestone_stone",
+            "label": "清晨路过广场的边石",
+            "optional": true
           }
         ]
       }
@@ -1111,6 +1889,2671 @@
       {
         "type": "scene",
         "scene": "a1_count_letter"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s01_owen_wagon",
+    "act": "act1",
+    "kind": "side",
+    "order": 101,
+    "title": "欧文的货车",
+    "giver": "owen",
+    "desc": "行商欧文的货车要走南路，车上是二十袋盐。南路最近不太平，他想找个能打的人跟车。",
+    "trigger": "act_week >= 4 AND quest.q_a1_m03_register == done",
+    "weekWindow": {
+      "from": 4,
+      "to": 6
+    },
+    "expiry": {
+      "week": 6
+    },
+    "stages": [
+      {
+        "id": "escort",
+        "desc": "护送欧文的货车出王道门。",
+        "objectives": [
+          {
+            "type": "escort",
+            "npc": "owen",
+            "mapId": "borderstone",
+            "location": "south_gate",
+            "label": "护送欧文的货车到王道门",
+            "path": "direct"
+          }
+        ]
+      },
+      {
+        "id": "ambush",
+        "desc": "南路林段里有人埋伏。团规不杀平民，他们只要货。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "oneeye_bandit",
+            "count": 5,
+            "label": "击退南路的劫匪"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "a1_owen_escorted",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a1_lair_located",
+            "value": true
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.owen",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 125
+      },
+      {
+        "type": "xp",
+        "amount": 625,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s02_blade_mark",
+    "act": "act1",
+    "kind": "side",
+    "order": 102,
+    "title": "刀上的暗记",
+    "giver": "barga",
+    "turnIn": "barga",
+    "desc": "匪徒的刀上有一道暗记，像是铁匠铺打的。巴尔加看了一眼，脸色就变了。",
+    "trigger": "a1_blade_mark_seen AND act_week >= 4",
+    "stages": [
+      {
+        "id": "show",
+        "desc": "把带暗记的匪刀拿给巴尔加看。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "marked_bandit_blade",
+            "npc": "barga",
+            "label": "把带暗记的匪刀交给巴尔加"
+          }
+        ]
+      },
+      {
+        "id": "persuade",
+        "desc": "巴尔加怕的是代官的执照。替他挡一挡，他才肯说夜里的订单。",
+        "objectives": [
+          {
+            "type": "persuade",
+            "npc": "barga",
+            "when": "a1_moss_evidence >= 2 OR trust.bron >= 40 OR a1_coin_story",
+            "label": "让巴尔加说出夜里的订单"
+          }
+        ]
+      },
+      {
+        "id": "forge",
+        "desc": "巴尔加说，有晶背之母的甲壳，他能打一把好剑。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "crystal_carapace",
+            "npc": "barga",
+            "label": "把晶背之母的甲壳交给巴尔加"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.barga",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      },
+      {
+        "type": "key",
+        "doorId": "vocation_warrior",
+        "keyKind": "item",
+        "keyId": "barga_crystalback_sword"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s03_dice_house",
+    "act": "act1",
+    "kind": "side",
+    "order": 103,
+    "title": "骰子屋",
+    "giver": "ako",
+    "desc": "阿柯说他见过杰德半夜进骰子屋。骰子屋的后屋，薇罗和代官府的人有来往。",
+    "trigger": "act_week >= 5",
+    "expiry": {
+      "week": 8
+    },
+    "stages": [
+      {
+        "id": "find",
+        "desc": "去骰子屋看看。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "dice_house",
+            "label": "去骰子屋"
+          }
+        ]
+      },
+      {
+        "id": "in",
+        "desc": "进后屋的办法有三种。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "dice",
+                "label": "赢一局骰子",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "viro_moss_pact"
+                  }
+                ],
+                "path": "dice"
+              },
+              {
+                "id": "search",
+                "label": "夜里溜进后屋搜",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "viro_moss_pact"
+                  }
+                ],
+                "path": "search"
+              },
+              {
+                "id": "confront",
+                "label": "逼杰德自首",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "viro_moss_pact"
+                  }
+                ],
+                "path": "confront"
+              }
+            ],
+            "label": "想办法进骰子屋的后屋"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_viro_pact_known",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a1_jed_debt_known",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.ako",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 100
+      },
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s04_pact_oak",
+    "act": "act1",
+    "kind": "side",
+    "order": 104,
+    "title": "约树的刻痕",
+    "giver": "gorn",
+    "turnIn": "gorn",
+    "desc": "葛恩说，林子里有一棵约树，树上刻着东坡与镇上的林约。伐木工不认，说那是兽人自己刻的。",
+    "trigger": "act_week >= 4",
+    "stages": [
+      {
+        "id": "oak",
+        "desc": "去林缘找那棵约树。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "pact_oak",
+            "label": "找到约树上的林约刻痕"
+          }
+        ]
+      },
+      {
+        "id": "hock",
+        "desc": "公会的档案室里也许留着林约的抄本。问侯克，要问对问题。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "hock",
+            "label": "问侯克：百年前有没有人在公会立过林地的约",
+            "effects": [
+              {
+                "type": "item",
+                "item": "forest_pact_copy"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "show",
+        "desc": "把抄本拿给葛恩看。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "forest_pact_copy",
+            "npc": "gorn",
+            "label": "把东林之约的抄本交给葛恩",
+            "consume": false
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_forest_pact_proof",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.gorn",
+        "amount": 15,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 90
+      },
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      },
+      {
+        "type": "key",
+        "doorId": "vocation_hunter",
+        "keyKind": "place",
+        "keyId": "pact_oak"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s05_burned_shed",
+    "act": "act1",
+    "kind": "side",
+    "order": 105,
+    "title": "烧掉的猎棚",
+    "giver": "shiya",
+    "desc": "东坡的一处猎棚被烧了。灰里有斧痕，还有火油的味道。",
+    "trigger": "act_week >= 4 AND NOT a1_permit_revoked",
+    "stages": [
+      {
+        "id": "ash",
+        "desc": "去伐区看看灰烬里留下了什么。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "logging_site",
+            "label": "在伐区的灰烬里找线索"
+          }
+        ]
+      },
+      {
+        "id": "culprit",
+        "desc": "放火的是两个伐木工。去伐木场找加斯帕。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "gaspar",
+            "label": "去伐木场找加斯帕"
+          }
+        ]
+      },
+      {
+        "id": "resolve",
+        "desc": "这件事怎么了结？",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "shiya",
+            "options": [
+              {
+                "id": "revenge",
+                "label": "以牙还牙",
+                "path": "revenge"
+              },
+              {
+                "id": "report",
+                "label": "把放火的人交给加斯帕",
+                "effects": [
+                  {
+                    "type": "add",
+                    "key": "trust.gaspar",
+                    "amount": 5,
+                    "max": 100
+                  }
+                ],
+                "path": "report"
+              },
+              {
+                "id": "reconcile",
+                "label": "让两边当面和解",
+                "path": "reconcile"
+              },
+              {
+                "id": "expel",
+                "label": "站在加斯帕一边，让兽人搬走",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_eastslope_expelled",
+                    "value": true
+                  }
+                ],
+                "path": "expel"
+              }
+            ],
+            "label": "决定怎么了结猎棚的事"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.shiya",
+        "amount": 15,
+        "max": 100,
+        "when": "quest.q_a1_s05_burned_shed.path != expel"
+      },
+      {
+        "type": "add",
+        "key": "trust.shiya",
+        "amount": -30,
+        "min": 0,
+        "when": "quest.q_a1_s05_burned_shed.path == expel"
+      },
+      {
+        "type": "money",
+        "amount": 90
+      },
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s06_arm_wrestle",
+    "act": "act1",
+    "kind": "side",
+    "order": 106,
+    "title": "扳手腕",
+    "giver": "boro",
+    "desc": "东坡的博罗谁也不服。他把胳膊往木桌上一放：赢了他，他就听你说话。",
+    "trigger": "act_week >= 3",
+    "stages": [
+      {
+        "id": "challenge",
+        "desc": "和博罗扳一次手腕。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "boro",
+            "options": [
+              {
+                "id": "win",
+                "label": "赢他",
+                "effects": [
+                  {
+                    "type": "add",
+                    "key": "trust.boro",
+                    "amount": 25,
+                    "max": 100
+                  }
+                ],
+                "path": "won"
+              },
+              {
+                "id": "yield",
+                "label": "故意输给他",
+                "effects": [
+                  {
+                    "type": "add",
+                    "key": "trust.boro",
+                    "amount": 10,
+                    "max": 100
+                  }
+                ],
+                "path": "yielded"
+              }
+            ],
+            "label": "和博罗扳手腕"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_boro_calmed",
+        "value": true
+      },
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "shiya",
+        "text": "他没用诈。我一直看着。"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s07_hurt_logger",
+    "act": "act1",
+    "kind": "side",
+    "order": 107,
+    "title": "受伤的伐木工",
+    "giver": "gaspar",
+    "desc": "一个伐木工在伐区北边被灰毛狼咬了，还没回来。加斯帕说一定是兽人引来的狼。",
+    "trigger": "act_week >= 2",
+    "weekWindow": {
+      "from": 2,
+      "to": 2
+    },
+    "byOther": {
+      "when": "act_week >= 3"
+    },
+    "stages": [
+      {
+        "id": "find",
+        "desc": "去伐区北边找那个伐木工。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "logging_site",
+            "label": "找到受伤的伐木工"
+          }
+        ]
+      },
+      {
+        "id": "fight",
+        "desc": "狼还守在附近。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "grey_wolf",
+            "count": 3,
+            "label": "赶走守在附近的灰狼",
+            "mapId": "forest_edge"
+          }
+        ]
+      },
+      {
+        "id": "return",
+        "desc": "把他背回伐木场。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "gaspar",
+            "label": "把伐木工送回伐木场"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_logger_saved",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.gaspar",
+        "amount": 15,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 45
+      },
+      {
+        "type": "xp",
+        "amount": 225,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s08_salt_price",
+    "act": "act1",
+    "kind": "side",
+    "order": 108,
+    "title": "盐价",
+    "giver": "simon",
+    "desc": "盐价一涨再涨，西蒙家腌不起冬天的肉了。商会分号的奈拉说是路上不太平。",
+    "trigger": "act_week >= 5",
+    "expiry": {
+      "week": 9
+    },
+    "stages": [
+      {
+        "id": "approach",
+        "desc": "去商会分号，找奈拉谈盐价。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "nera",
+            "options": [
+              {
+                "id": "negotiate",
+                "label": "拿魔物材料或地球的手艺跟她换平价",
+                "path": "negotiate"
+              },
+              {
+                "id": "expose",
+                "label": "把囤货的事说出去",
+                "path": "expose"
+              },
+              {
+                "id": "owen",
+                "label": "等欧文的货车回来打破独家",
+                "path": "owen"
+              },
+              {
+                "id": "side_moss",
+                "label": "站到代官那边，逼她交药",
+                "path": "side_moss"
+              },
+              {
+                "id": "take_cut",
+                "label": "收她一份分成，什么都不说",
+                "path": "take_cut"
+              }
+            ],
+            "label": "决定怎么对付盐价"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "rep.bs_commons",
+        "amount": 20,
+        "min": -100,
+        "max": 100,
+        "when": "quest.q_a1_s08_salt_price.path IN (negotiate, expose, owen)"
+      },
+      {
+        "type": "add",
+        "key": "rep.bs_commons",
+        "amount": -20,
+        "min": -100,
+        "max": 100,
+        "when": "quest.q_a1_s08_salt_price.path == take_cut"
+      },
+      {
+        "type": "money",
+        "amount": 100
+      },
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s10_lisa_bundle",
+    "act": "act1",
+    "kind": "side",
+    "order": 110,
+    "title": "莉莎的包袱",
+    "giver": "lisa",
+    "desc": "面包房的莉莎被许给了书记官维克。她只开口求了一次人。",
+    "trigger": "act_week >= 5 AND trust.lisa >= 50",
+    "expiry": {
+      "week": 8
+    },
+    "stages": [
+      {
+        "id": "way",
+        "desc": "婚礼在第 8 周。怎么帮她？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "ledger",
+                "label": "把账本拿给佩德看，免税许诺是空的",
+                "path": "ledger"
+              },
+              {
+                "id": "elope",
+                "label": "找驿站安排一辆夜里的驿车",
+                "path": "elope"
+              },
+              {
+                "id": "pressure",
+                "label": "拿遗嘱的把柄逼维克退婚",
+                "path": "pressure"
+              },
+              {
+                "id": "leave",
+                "label": "这是别人的家事",
+                "path": "leave"
+              }
+            ],
+            "label": "决定怎么帮莉莎"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.lisa",
+        "amount": 20,
+        "max": 100,
+        "when": "quest.q_a1_s10_lisa_bundle.path != leave"
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s11_otto_will",
+    "act": "act1",
+    "kind": "side",
+    "order": 111,
+    "title": "奥托的遗嘱",
+    "giver": "greta",
+    "desc": "老磨坊主奥托说过，磨坊要留给孤儿院。可维克拿着一份盖了代官印的遗嘱接手了磨坊。",
+    "trigger": "act_week >= 3",
+    "expiry": {
+      "week": 9
+    },
+    "stages": [
+      {
+        "id": "hock",
+        "desc": "公会也替人见证遗嘱。问侯克，要问对问题。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "hock",
+            "label": "问侯克：奥托有没有在公会立过遗嘱",
+            "effects": [
+              {
+                "type": "item",
+                "item": "otto_will"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "publish",
+        "desc": "原件在手。怎么让它作数？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "read_public",
+                "label": "请布伦在广场当众宣读",
+                "path": "read_public"
+              },
+              {
+                "id": "tell_nera",
+                "label": "告诉奈拉：她收的抵押是假的",
+                "path": "tell_nera"
+              }
+            ],
+            "label": "让奥托的遗嘱作数"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.greta",
+        "amount": 25,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s12_copper_bell",
+    "act": "act1",
+    "kind": "side",
+    "order": 112,
+    "title": "谁拿了铜铃",
+    "giver": "popo",
+    "desc": "集市上接连丢东西：铜铃、银扣、钱袋。有人说看见东坡的阿柯在摊子边转悠。",
+    "trigger": "act_week >= 4",
+    "byOther": {
+      "when": "act_week >= 9 AND NOT a1_jed_exposed"
+    },
+    "stages": [
+      {
+        "id": "clues",
+        "desc": "查清楚是谁拿的。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "asked_ako",
+                "label": "问阿柯他看见了什么",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_jed_exposed",
+                    "value": true
+                  }
+                ],
+                "path": "asked_ako"
+              },
+              {
+                "id": "bait",
+                "label": "设局：放一只假银扣",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_jed_exposed",
+                    "value": true
+                  },
+                  {
+                    "type": "item",
+                    "item": "silver_buckle"
+                  }
+                ],
+                "path": "bait"
+              },
+              {
+                "id": "dice",
+                "label": "去骰子屋查杰德的赌债",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_jed_debt_known",
+                    "value": true
+                  }
+                ],
+                "path": "dice"
+              }
+            ],
+            "label": "查清楚失窃的事"
+          }
+        ]
+      },
+      {
+        "id": "catch",
+        "desc": "把这件事交给卫队。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "barto",
+            "label": "去哨所找巴托"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.ako",
+        "amount": 15,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 100
+      },
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s13_yeyu_hoard",
+    "act": "act1",
+    "kind": "companion",
+    "order": 113,
+    "title": "夜羽的收藏",
+    "desc": "醉月亭客房的窗台上，多了一小堆闪亮的东西：铜铃、纽扣、一把锈钥匙。",
+    "trigger": "act_week >= 7 AND a1_yeyu_bound",
+    "stages": [
+      {
+        "id": "notice",
+        "desc": "回客房看看窗台。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "drunk_moon",
+            "label": "回醉月亭的客房"
+          }
+        ]
+      },
+      {
+        "id": "return",
+        "desc": "这些东西怎么办？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "sneak_back",
+                "label": "夜里偷偷放回去",
+                "effects": [
+                  {
+                    "type": "money",
+                    "amount": 90
+                  }
+                ],
+                "path": "sneak_back"
+              },
+              {
+                "id": "apologize",
+                "label": "带夜羽挨家道歉",
+                "effects": [
+                  {
+                    "type": "money",
+                    "amount": 90
+                  },
+                  {
+                    "type": "add",
+                    "key": "trust.yeyu",
+                    "amount": 10,
+                    "max": 100
+                  }
+                ],
+                "path": "apologize"
+              },
+              {
+                "id": "ignore",
+                "label": "装作不知道",
+                "path": "ignore"
+              }
+            ],
+            "label": "处理夜羽的收藏"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "npc.yeyu.memory_shards",
+        "amount": 1,
+        "max": 7
+      },
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s14_grave_lights",
+    "act": "act1",
+    "kind": "side",
+    "order": 114,
+    "title": "米洛坟上的鬼火",
+    "giver": "ed",
+    "desc": "守墓人埃德说，米洛的坟上夜里冒鬼火。他不敢靠近。",
+    "trigger": "act_week >= 3",
+    "stages": [
+      {
+        "id": "night",
+        "desc": "夜里去墓地看看。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "graveyard",
+            "label": "夜里去墓地"
+          }
+        ]
+      },
+      {
+        "id": "purify",
+        "desc": "那团灰色的火该怎么办？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "salt",
+                "label": "按老规矩撒盐",
+                "path": "salt",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_graveyard_purified",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "id": "yeyu",
+                "label": "让夜羽靠近看看",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_graveyard_purified",
+                    "value": true
+                  },
+                  {
+                    "type": "flag",
+                    "key": "term.dian_known",
+                    "value": true,
+                    "when": "NOT term.dian_known"
+                  }
+                ],
+                "path": "yeyu"
+              },
+              {
+                "id": "door",
+                "label": "用借形之门的力量净化它",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_graveyard_purified",
+                    "value": true,
+                    "when": "door.vocation_druid"
+                  }
+                ],
+                "path": "door"
+              }
+            ],
+            "label": "处置坟上的鬼火"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 80
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s15_bell_tower",
+    "act": "act1",
+    "kind": "side",
+    "order": 115,
+    "title": "钟楼上的人",
+    "giver": "toma",
+    "desc": "敲钟人托马装聋，可他在钟楼上什么都看得见：谁夜里进出孤儿院，谁深夜还在代官府门口打转。",
+    "trigger": "act_week >= 5",
+    "stages": [
+      {
+        "id": "approach",
+        "desc": "托马不轻易开口。给他带一瓶酒，或者陪他敲一次钟。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "ale",
+            "npc": "toma",
+            "label": "给托马带一瓶醉月亭的酒",
+            "path": "bottle"
+          },
+          {
+            "type": "accompany",
+            "npc": "toma",
+            "minutes": 60,
+            "label": "陪托马敲一次钟",
+            "path": "bell"
+          }
+        ],
+        "complete": "any"
+      },
+      {
+        "id": "testimony",
+        "desc": "听托马说他看见了什么。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "toma",
+            "label": "听托马说钟楼上看见的事"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_toma_will_testify",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "a1_moss_evidence",
+        "amount": 1,
+        "max": 7
+      },
+      {
+        "type": "add",
+        "key": "trust.toma",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s16_c_rank_face",
+    "act": "act1",
+    "kind": "side",
+    "order": 116,
+    "title": "C 级的面子",
+    "giver": "dris",
+    "desc": "C 级冒险者德里斯在公会后院的木桩旁等你：一个 F 级，凭什么让人议论。",
+    "trigger": "act_week >= 3",
+    "stages": [
+      {
+        "id": "duel",
+        "desc": "木桩旁的比试，点到为止。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "dris",
+            "options": [
+              {
+                "id": "won",
+                "label": "赢下来",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_dris_face",
+                    "value": "won"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_dris_duel_won",
+                    "value": true
+                  }
+                ],
+                "path": "won"
+              },
+              {
+                "id": "yielded",
+                "label": "让他赢",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_dris_face",
+                    "value": "yielded"
+                  }
+                ],
+                "path": "yielded"
+              },
+              {
+                "id": "refused",
+                "label": "不比",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_dris_face",
+                    "value": "refused"
+                  }
+                ],
+                "path": "refused"
+              }
+            ],
+            "label": "和德里斯比试"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "key",
+        "doorId": "vocation_warrior",
+        "keyKind": "deed",
+        "keyId": "dris_bout",
+        "when": "quest.q_a1_s16_c_rank_face.path != refused"
+      },
+      {
+        "type": "line",
+        "speaker": "bron",
+        "text": "这木桩用了三十年，早就朽了。",
+        "when": "a1_dris_duel_won"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s17_moon_cellar",
+    "act": "act1",
+    "kind": "dungeon",
+    "order": 117,
+    "title": "醉月亭的地窖",
+    "giver": "martha",
+    "desc": "醉月亭的地窖深处闹鼠，酒桶廊里有一窝记账鼠。玛莎站在楼梯口，看你下去。",
+    "trigger": "quest.q_a1_m03_register == done",
+    "weekWindow": {
+      "from": 1,
+      "to": 4
+    },
+    "byOther": {
+      "when": "act_week >= 5"
+    },
+    "stages": [
+      {
+        "id": "stairs",
+        "desc": "下到地窖。玛莎在楼梯口看着。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "moon_cellar_landing",
+            "label": "下到醉月亭的地窖"
+          }
+        ]
+      },
+      {
+        "id": "barrels",
+        "desc": "酒桶廊里的鼠群。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_rat",
+            "count": 6,
+            "label": "清理酒桶廊的鼠群"
+          }
+        ]
+      },
+      {
+        "id": "choice",
+        "desc": "鼠巢清空了。这地窖怎么处置？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "nurture",
+                "label": "留着鼠巢",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "dg.dg_moon_cellar.choice",
+                    "value": "nurture"
+                  }
+                ],
+                "path": "nurture"
+              },
+              {
+                "id": "destroy",
+                "label": "毁掉鼠巢",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "dg.dg_moon_cellar.choice",
+                    "value": "destroy"
+                  }
+                ],
+                "path": "destroy"
+              },
+              {
+                "id": "purify",
+                "label": "把地窖净一遍",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "dg.dg_moon_cellar.choice",
+                    "value": "purify"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_bell_tab_seen",
+                    "value": true
+                  }
+                ],
+                "path": "purify"
+              }
+            ],
+            "label": "处置地窖的鼠巢"
+          }
+        ]
+      },
+      {
+        "id": "box",
+        "desc": "角落里有一只长木匣。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "look",
+                "label": "只看不碰",
+                "effects": [
+                  {
+                    "type": "add",
+                    "key": "npc.martha.assessment",
+                    "amount": 1,
+                    "min": -5,
+                    "max": 10
+                  }
+                ],
+                "path": "untouched"
+              },
+              {
+                "id": "pry",
+                "label": "撬开看看",
+                "effects": [
+                  {
+                    "type": "add",
+                    "key": "npc.martha.assessment",
+                    "amount": -2,
+                    "min": -5,
+                    "max": 10
+                  }
+                ],
+                "path": "pried"
+              }
+            ],
+            "label": "处置长木匣"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 50
+      },
+      {
+        "type": "xp",
+        "amount": 250,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "martha",
+        "text": "旧货。"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s18_bron_drinks",
+    "act": "act1",
+    "kind": "side",
+    "order": 118,
+    "title": "布伦的酒",
+    "giver": "bron",
+    "desc": "老布伦每晚都在醉月亭喝到打烊。清醒的时候他什么都不说。",
+    "trigger": "quest.q_a1_m03_register == done",
+    "stages": [
+      {
+        "id": "drink",
+        "desc": "陪布伦喝到打烊。",
+        "objectives": [
+          {
+            "type": "accompany",
+            "npc": "bron",
+            "minutes": 60,
+            "label": "陪布伦喝一晚",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_bron_drunk_tale",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "story",
+        "desc": "那地方，不是给活人去的。等他清醒的时候再问。",
+        "objectives": [
+          {
+            "type": "persuade",
+            "npc": "bron",
+            "when": "act_week >= 5 AND trust.bron >= 40",
+            "label": "在布伦清醒的时候问起灰里的骸骨",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "npc.bron.story_level",
+                "value": 2,
+                "when": "NOT npc.bron.story_level OR npc.bron.story_level < 2"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 550,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s19_door_in_you",
+    "act": "act1",
+    "kind": "side",
+    "order": 119,
+    "title": "你身上有一扇门",
+    "giver": "noi",
+    "desc": "孤儿院的诺伊盯着你看了很久，说了一句话：你身上有一扇门。",
+    "trigger": "act_week >= 3",
+    "stages": [
+      {
+        "id": "meet",
+        "desc": "诺伊只说了那一句话。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "noi",
+            "label": "听诺伊说话",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_noi_spoke",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "trust",
+        "desc": "多去看看他：带点心，陪他站在北泉边，陪苔丝唱完童谣。",
+        "objectives": [
+          {
+            "type": "accompany",
+            "npc": "noi",
+            "minutes": 90,
+            "label": "多陪陪诺伊"
+          }
+        ]
+      },
+      {
+        "id": "mark",
+        "desc": "诺伊撩起后颈的头发。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "orphanage",
+            "label": "去孤儿院见诺伊",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_orphan_mark_seen",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "secret",
+        "desc": "那道纹，和你手背上的一样。",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "kept",
+                "label": "替他守住这个秘密",
+                "path": "kept"
+              },
+              {
+                "id": "betrayed",
+                "label": "告诉卡西安神父",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_children_exposed",
+                    "value": true
+                  }
+                ],
+                "path": "betrayed"
+              }
+            ],
+            "label": "决定怎么处置诺伊的秘密"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.oola",
+        "amount": 20,
+        "max": 100,
+        "when": "quest.q_a1_s19_door_in_you.path == kept"
+      },
+      {
+        "type": "add",
+        "key": "trust.noi",
+        "amount": 20,
+        "max": 100,
+        "when": "quest.q_a1_s19_door_in_you.path == kept"
+      },
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s20_nun_testimony",
+    "act": "act1",
+    "kind": "side",
+    "order": 120,
+    "title": "修女的证词",
+    "giver": "isa",
+    "desc": "修女伊莎夜里见过欧拉婆婆进孤儿院，她知道欧拉是在救人。可她不敢违抗神父。",
+    "trigger": "act_week >= 6",
+    "expiry": {
+      "when": "a1_oola_fate"
+    },
+    "stages": [
+      {
+        "id": "trust",
+        "desc": "让伊莎相信，孩子们的危险是真的。",
+        "objectives": [
+          {
+            "type": "persuade",
+            "npc": "isa",
+            "when": "trust.isa >= 60 OR a1_spring_source_found",
+            "label": "请伊莎在审判上作证",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_isa_will_testify",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.isa",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 550,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s21_captain_home",
+    "act": "act1",
+    "kind": "side",
+    "order": 121,
+    "title": "卫队长的家",
+    "giver": "barto",
+    "desc": "卫队长巴托的妻女住在北区。兽潮要来了，他想把家人挪到结实的地方，可代官府不准卫队私用人手。",
+    "trigger": "act_week >= 8",
+    "stages": [
+      {
+        "id": "move",
+        "desc": "请玛莎收留巴托的家人。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "martha",
+            "label": "请玛莎在醉月亭收留巴托的家人"
+          }
+        ]
+      },
+      {
+        "id": "shield",
+        "desc": "替巴托顶住代官府的压力。",
+        "objectives": [
+          {
+            "type": "persuade",
+            "npc": "barto",
+            "when": "a1_moss_evidence >= 1 OR trust.bron >= 40",
+            "label": "告诉巴托，代官府的事有你顶着"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_barto_family_safe",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.barto",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      },
+      {
+        "type": "key",
+        "doorId": "vocation_warrior",
+        "keyKind": "bond",
+        "keyId": "barto",
+        "when": "trust.barto >= 40"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s22_broken_door_slope",
+    "act": "act1",
+    "kind": "explore",
+    "order": 122,
+    "title": "碎门坡",
+    "desc": "荒原外缘有一面坡，坡上全是碎石门框。拾荒者都绕着走。",
+    "trigger": "act_week >= 6",
+    "stages": [
+      {
+        "id": "slope",
+        "desc": "白天走一遍碎门坡。坡上还立着一块门形的拱石。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "ash_waste",
+            "location": "broken_gate_slope",
+            "label": "走到碎门坡的门形拱石下"
+          }
+        ]
+      },
+      {
+        "id": "night",
+        "desc": "夜里，拱石下面有东西在动。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "waste_wraith",
+            "count": 3,
+            "label": "击退夜里的荒原怨灵",
+            "mapId": "ash_waste",
+            "effects": [
+              {
+                "type": "item",
+                "item": "expedition_badge"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "seal_unrest",
+        "amount": 3,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 750,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s23_deer_spring",
+    "act": "act1",
+    "kind": "side",
+    "order": 123,
+    "title": "鹿泉",
+    "giver": "oola",
+    "desc": "欧拉婆婆画了一张图：林缘深处有一眼泉，泉边长着净泉草。",
+    "trigger": "act_week >= 4",
+    "onStart": [
+      {
+        "type": "item",
+        "item": "oola_sketch_map"
+      }
+    ],
+    "stages": [
+      {
+        "id": "follow",
+        "desc": "照着欧拉画的图找到鹿泉。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "deer_spring",
+            "label": "找到鹿泉"
+          }
+        ]
+      },
+      {
+        "id": "spring",
+        "desc": "采三株净泉草。",
+        "objectives": [
+          {
+            "type": "collect",
+            "item": "spring_herb",
+            "count": 3,
+            "label": "采三株净泉草"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.oola",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s31_bring_them_home",
+    "act": "act1",
+    "kind": "side",
+    "order": 131,
+    "title": "带他们回家",
+    "desc": "巢里那块公会旧铜牌上的名字被磨掉了。公会应该认得它。",
+    "trigger": "quest.q_a1_m02_raven == done",
+    "stages": [
+      {
+        "id": "badge1",
+        "desc": "把旧铜牌交给公会的布伦。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "old_guild_badge",
+            "npc": "bron",
+            "label": "把公会旧铜牌交给布伦",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_badge_returned",
+                "value": true,
+                "when": "act_week <= 1"
+              },
+              {
+                "type": "add",
+                "key": "badges_returned",
+                "amount": 1
+              },
+              {
+                "type": "add",
+                "key": "trust.bron",
+                "amount": 15,
+                "max": 100
+              },
+              {
+                "type": "flag",
+                "key": "npc.bron.story_level",
+                "value": 1,
+                "when": "NOT npc.bron.story_level OR npc.bron.story_level < 1"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 100,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "bron",
+        "text": "……放这儿吧。"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s32_craft_mining",
+    "act": "act1",
+    "kind": "craft",
+    "order": 132,
+    "title": "掘脉的第一镐",
+    "giver": "barga",
+    "desc": "巴尔加说，打铁的人要先认得矿。他让你去锈岭的铁脉挖二十份铁矿回来。",
+    "trigger": "trust.barga >= 40",
+    "stages": [
+      {
+        "id": "mine",
+        "desc": "在锈岭铁脉挖矿。",
+        "objectives": [
+          {
+            "type": "gather",
+            "item": "iron_ore",
+            "count": 20,
+            "node": "node_lotha_rustridge_iron",
+            "label": "在锈岭铁脉挖二十份铁矿"
+          }
+        ]
+      },
+      {
+        "id": "deliver",
+        "desc": "拿给巴尔加看成色。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "iron_ore",
+            "count": 20,
+            "npc": "barga",
+            "label": "把铁矿交给巴尔加"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 40
+      },
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s33_craft_logging",
+    "act": "act1",
+    "kind": "craft",
+    "order": 133,
+    "title": "约内的木头",
+    "giver": "gaspar",
+    "desc": "加斯帕肯教你伐木，条件是只在约树以南下斧子。",
+    "trigger": "trust.gaspar >= 40 OR trust.nick >= 50",
+    "stages": [
+      {
+        "id": "log",
+        "desc": "在约树以南的铁杉林伐木。",
+        "objectives": [
+          {
+            "type": "gather",
+            "item": "wood",
+            "count": 20,
+            "node": "node_lotha_ironhemlock",
+            "label": "在铁杉林伐二十份木头"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 40
+      },
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s38_craft_weapon",
+    "act": "act1",
+    "kind": "craft",
+    "order": 138,
+    "title": "炉边的学徒",
+    "giver": "barga",
+    "desc": "巴尔加终于肯收徒了。先带十份木炭来，再替他拉一夜风箱。",
+    "trigger": "trust.barga >= 50",
+    "stages": [
+      {
+        "id": "teach",
+        "desc": "带十份木炭去铁匠铺拜师。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "charcoal",
+            "count": 10,
+            "npc": "barga",
+            "label": "把木炭交给巴尔加"
+          }
+        ]
+      },
+      {
+        "id": "bellows",
+        "desc": "替巴尔加拉一夜风箱。",
+        "objectives": [
+          {
+            "type": "wait",
+            "hours": 8,
+            "label": "拉一夜风箱"
+          }
+        ]
+      },
+      {
+        "id": "blade",
+        "desc": "自己炼出两块铁锭。",
+        "objectives": [
+          {
+            "type": "craft",
+            "recipe": "rcp_smelt_iron",
+            "count": 2,
+            "label": "炼出两块铁锭"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 80
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s39_garden_granary",
+    "act": "act1",
+    "kind": "side",
+    "order": 139,
+    "title": "庭院的第一座仓",
+    "desc": "门内庭院里空荡荡的。要存东西，先得有一座仓。",
+    "trigger": "door.inner_garden",
+    "stages": [
+      {
+        "id": "wood",
+        "desc": "运两百份木料进庭院，搭起第一座仓。",
+        "objectives": [
+          {
+            "type": "collect",
+            "item": "wood",
+            "count": 200,
+            "label": "备齐两百份木料",
+            "consume": true
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d01a_robbery_inquiry",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d01_tax_and_bandits",
+    "node": "a",
+    "order": 201,
+    "title": "劫案的三条线索",
+    "giver": "owen",
+    "desc": "欧文的商队在南路被劫了。他说劫匪的补给箱上有代官府的火漆印，可没人信他。",
+    "trigger": "act_week >= 3 AND quest.q_a1_m03_register == done",
+    "stages": [
+      {
+        "id": "inquiry",
+        "desc": "劫案留下了三条线索。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "owen",
+            "label": "问欧文补给箱上的火漆印",
+            "effects": [
+              {
+                "type": "add",
+                "key": "a1_moss_evidence",
+                "amount": 1,
+                "max": 7
+              },
+              {
+                "type": "item",
+                "item": "magistrate_seal_fragment"
+              }
+            ]
+          },
+          {
+            "type": "kill",
+            "ref": "oneeye_bandit",
+            "count": 1,
+            "label": "从劫匪手里夺一把刀，看看刀上的暗记",
+            "effects": [
+              {
+                "type": "add",
+                "key": "a1_moss_evidence",
+                "amount": 1,
+                "max": 7
+              },
+              {
+                "type": "flag",
+                "key": "a1_blade_mark_seen",
+                "value": true
+              },
+              {
+                "type": "item",
+                "item": "marked_bandit_blade"
+              }
+            ]
+          },
+          {
+            "type": "talk",
+            "npc": "marg",
+            "label": "听洗衣妇玛格说代官衣角上的矿灰",
+            "effects": [
+              {
+                "type": "add",
+                "key": "a1_moss_evidence",
+                "amount": 1,
+                "max": 7
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 100
+      },
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d01e_vick_ledger",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d01_tax_and_bandits",
+    "node": "e",
+    "order": 202,
+    "title": "第二本账",
+    "desc": "书记官维克在家里誊着另一本账，那是他留给自己的后路。",
+    "trigger": "act_week >= 5 AND (quest.q_a1_s10_lisa_bundle == active OR quest.q_a1_s11_otto_will == active)",
+    "expiry": {
+      "week": 9
+    },
+    "stages": [
+      {
+        "id": "lever",
+        "desc": "让维克交出第二本账的誊本。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "vick",
+            "options": [
+              {
+                "id": "coerce",
+                "label": "拿伪造遗嘱的事逼他",
+                "path": "coerce"
+              },
+              {
+                "id": "buy",
+                "label": "花五银买下誊本",
+                "effects": [
+                  {
+                    "type": "money",
+                    "amount": -500
+                  }
+                ],
+                "path": "buy"
+              },
+              {
+                "id": "protect",
+                "label": "答应揭发时保他",
+                "path": "protect"
+              }
+            ],
+            "label": "让维克交出第二本账"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_vick_informant",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "a1_moss_evidence",
+        "amount": 1,
+        "max": 7
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d01f_old_watch",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d01_tax_and_bandits",
+    "node": "f",
+    "order": 203,
+    "title": "旧哨村的独眼",
+    "desc": "活捉的劫匪供出了独眼团的据点：旧哨村的哨塔。首领瑟格只服强者。",
+    "trigger": "act_week >= 6 AND a1_lair_located",
+    "stages": [
+      {
+        "id": "approach",
+        "desc": "沿旧巡逻道去旧哨村。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "old_outpost",
+            "location": "ruined_tower",
+            "label": "摸到旧哨村的哨塔下"
+          }
+        ]
+      },
+      {
+        "id": "way",
+        "desc": "怎么了结独眼团？",
+        "objectives": [
+          {
+            "type": "choice",
+            "options": [
+              {
+                "id": "duel_won_offer",
+                "label": "单挑瑟格，赢了给他一条出路",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_seg_duel_won",
+                    "value": true
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_oneeye_fate",
+                    "value": "absorbed"
+                  }
+                ],
+                "path": "duel_won_offer"
+              },
+              {
+                "id": "duel_won_no_offer",
+                "label": "单挑瑟格，赢了让他们散伙",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_seg_duel_won",
+                    "value": true
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_oneeye_fate",
+                    "value": "scattered"
+                  }
+                ],
+                "path": "duel_won_no_offer"
+              },
+              {
+                "id": "destroyed",
+                "label": "攻破营地",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_oneeye_fate",
+                    "value": "destroyed"
+                  }
+                ],
+                "path": "destroyed"
+              },
+              {
+                "id": "turned",
+                "label": "把薇罗与莫斯的密约摊给瑟格看",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_seg_turned",
+                    "value": true
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_moss_fate",
+                    "value": "dead",
+                    "when": "a1_viro_pact_known"
+                  }
+                ],
+                "path": "turned"
+              }
+            ],
+            "label": "了结独眼团"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 200
+      },
+      {
+        "type": "xp",
+        "amount": 1000,
+        "reason": "quest"
+      }
+    ],
+    "expiry": {
+      "when": "dispute.q_a1_d01_tax_and_bandits.ending"
+    }
+  },
+  {
+    "id": "q_a1_d01g_confront_moss",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d01_tax_and_bandits",
+    "node": "g",
+    "order": 204,
+    "title": "对质代官",
+    "desc": "证据攒起来了。代官莫斯在宅邸里等着，他先算风险，再挑措辞。",
+    "trigger": "a1_moss_evidence >= 1 AND quest.q_a1_m03_register == done",
+    "expiry": {
+      "week": 10,
+      "when": "a1_moss_fate == fled OR dispute.q_a1_d01_tax_and_bandits.ending"
+    },
+    "stages": [
+      {
+        "id": "confront",
+        "desc": "去代官宅邸对质。",
+        "objectives": [
+          {
+            "type": "persuade",
+            "npc": "moss",
+            "when": "a1_moss_evidence >= 3",
+            "label": "当众揭发莫斯（证据三件以上，巴托与布伦到场作见证）",
+            "path": "expose",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_moss_exposed",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "a1_permit_revoked",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "a1_tax_rate",
+                "value": "tenth"
+              }
+            ]
+          },
+          {
+            "type": "choice",
+            "npc": "moss",
+            "options": [
+              {
+                "id": "blackmail",
+                "label": "拿证据要挟他",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_moss_fate",
+                    "value": "puppet"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_tax_rate",
+                    "value": "tenth"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_permit_revoked",
+                    "value": true
+                  }
+                ],
+                "path": "blackmail"
+              },
+              {
+                "id": "take_over",
+                "label": "拿证据要挟他，再把灰晶生意接到自己手里",
+                "effects": [
+                  {
+                    "type": "flag",
+                    "key": "a1_moss_fate",
+                    "value": "puppet"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_tax_rate",
+                    "value": "tenth"
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_permit_revoked",
+                    "value": true
+                  },
+                  {
+                    "type": "flag",
+                    "key": "a1_dian_trade",
+                    "value": "player_controls"
+                  }
+                ],
+                "path": "blackmail"
+              },
+              {
+                "id": "bribed",
+                "label": "收下三银，什么都没发生",
+                "effects": [
+                  {
+                    "type": "money",
+                    "amount": 300
+                  }
+                ],
+                "path": "bribed"
+              }
+            ],
+            "label": "要挟莫斯，或者收下他的钱"
+          }
+        ],
+        "complete": "any"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 140
+      },
+      {
+        "type": "xp",
+        "amount": 700,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d02e_save_toby",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d02_witch_trial",
+    "node": "e",
+    "order": 205,
+    "title": "救托比",
+    "giver": "bertha",
+    "desc": "贝莎跪在礼拜堂的台阶上，怀里抱着托比：光啊，你收走了我的丈夫，别再收走他。",
+    "trigger": "act_week >= 6",
+    "expiry": {
+      "week": 8
+    },
+    "stages": [
+      {
+        "id": "cure",
+        "desc": "欧拉的药能缓病程，但水源不断，药也白吃。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "medicine",
+            "npc": "oola",
+            "label": "请欧拉婆婆配药"
+          },
+          {
+            "type": "flag",
+            "when": "a1_culvert_sealed OR a1_north_spring_boarded OR a1_mill_owner == orphanage OR door.vocation_druid",
+            "label": "断掉病童喝的那口水"
+          }
+        ]
+      },
+      {
+        "id": "watch",
+        "desc": "在病房守一夜。",
+        "objectives": [
+          {
+            "type": "wait",
+            "hours": 8,
+            "label": "守着托比过一夜"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_toby_state",
+        "value": "recovered"
+      },
+      {
+        "type": "add",
+        "key": "trust.bertha",
+        "amount": 30,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 700,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d04e_nick_bridge",
+    "act": "act1",
+    "kind": "node",
+    "chain": "q_a1_d04_forest_dispute",
+    "node": "e",
+    "order": 206,
+    "title": "尼克的一句话",
+    "giver": "nick",
+    "desc": "伐木工尼克话不多，可东坡和伐木场的人都还肯听他一句。",
+    "trigger": "act_week >= 5 AND trust.nick >= 50 AND a1_lisa_nick != eloped",
+    "expiry": {
+      "when": "a1_lisa_nick == eloped OR dispute.q_a1_d04_forest_dispute.ending OR a1_gorn_decision == leave OR a1_eastslope_expelled"
+    },
+    "stages": [
+      {
+        "id": "meet",
+        "desc": "约树下，加斯帕与葛恩各来一人。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "forest_edge",
+            "location": "pact_oak",
+            "label": "陪尼克去约树下"
+          }
+        ]
+      },
+      {
+        "id": "truce",
+        "desc": "尼克说完那句话，两边各让一步。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "nick",
+            "options": [
+              {
+                "id": "pause",
+                "label": "先停伐一周",
+                "path": "pause"
+              },
+              {
+                "id": "traps",
+                "label": "先拆伐区的捕兽夹",
+                "path": "traps"
+              }
+            ],
+            "label": "定下让步的第一步"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_nick_bridge",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a1_gorn_decision",
+        "value": "stay"
+      },
+      {
+        "type": "money",
+        "amount": 90
+      },
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_gl_merca_01",
+    "act": "act1",
+    "kind": "goddess",
+    "order": 50,
+    "title": "交易之司的请托：北路商队",
+    "desc": "商会分号挂出委托：盐与药要送到锈岭的矿工棚，驮队需要人护送。委托人写的是梅尔卡托商会联合边石分号。",
+    "trigger": "request.merca.safe_caravan",
+    "stages": [
+      {
+        "id": "escort",
+        "desc": "跟着驮队走北路，清掉路上的拦路的人。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "oneeye_bandit",
+            "count": 3,
+            "label": "清理北路上拦路的劫匪"
+          }
+        ]
+      },
+      {
+        "id": "deliver",
+        "desc": "把货送到矿工棚。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone_north",
+            "location": "mine_camp",
+            "label": "把货送到锈岭的矿工棚"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "relation",
+        "goddess": "merca",
+        "amount": 25
+      },
+      {
+        "type": "money",
+        "amount": 70
+      },
+      {
+        "type": "xp",
+        "amount": 360,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_gl_eluen_01",
+    "act": "act1",
+    "kind": "goddess",
+    "order": 51,
+    "title": "礼拜堂的委托：清扫灰气",
+    "turnIn": "cassian",
+    "desc": "小礼拜堂挂出例行委托：清扫墓地与北区下水沟的灰气魔物。",
+    "trigger": "request.eluen.purge_dregs",
+    "stages": [
+      {
+        "id": "sweep",
+        "desc": "清扫灰气魔物。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_dreg",
+            "count": 5,
+            "label": "清扫灰渣"
+          },
+          {
+            "type": "kill",
+            "ref": "dian_rat",
+            "count": 3,
+            "label": "清扫灰鼠"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "church_suspicion",
+        "amount": -3,
+        "min": 0
+      },
+      {
+        "type": "add",
+        "key": "trust.cassian",
+        "amount": 5,
+        "max": 100
+      },
+      {
+        "type": "money",
+        "amount": 55
+      },
+      {
+        "type": "xp",
+        "amount": 280,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "cassian",
+        "text": "光会清洁它们。"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_g03_first_ledger",
+    "act": "act1",
+    "kind": "goddess",
+    "order": 52,
+    "title": "神龛的第一笔账",
+    "desc": "商会分号的院角有一座小神龛。那枚硬币在神龛前会微微发烫。",
+    "trigger": "quest.q_p_m04_out_of_spec == done AND quest.q_a1_m03_register == done",
+    "stages": [
+      {
+        "id": "offer",
+        "desc": "在神龛前用硬币祈祷，再供上一份东西。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "merca_offerings >= 1",
+            "label": "在神龛前供奉一次"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 150,
+        "reason": "quest"
       }
     ]
   },
@@ -2130,85 +5573,6 @@
       {
         "type": "xp",
         "amount": 52500,
-        "reason": "quest"
-      }
-    ]
-  },
-  {
-    "id": "q_gl_merca_01",
-    "act": "act1",
-    "kind": "side",
-    "order": 50,
-    "title": "交易之司的请托：北路商队",
-    "desc": "商会贴出委托：北路的商队需要人护送，酬金丰厚。据说委托是神龛里的那位授意的。",
-    "trigger": "request.merca.safe_caravan",
-    "stages": [
-      {
-        "id": "escort",
-        "desc": "清理商路上的魔物。",
-        "objectives": [
-          {
-            "type": "kill",
-            "kind": "monster",
-            "count": 3,
-            "label": "清理商路上的魔物"
-          }
-        ]
-      }
-    ],
-    "rewards": [
-      {
-        "type": "relation",
-        "goddess": "merca",
-        "amount": 5
-      },
-      {
-        "type": "money",
-        "amount": 500
-      },
-      {
-        "type": "xp",
-        "amount": 360,
-        "reason": "quest"
-      }
-    ]
-  },
-  {
-    "id": "q_gl_eluen_01",
-    "act": "act1",
-    "kind": "side",
-    "order": 51,
-    "title": "礼拜堂的委托：清扫灰气",
-    "desc": "礼拜堂发布委托：清扫镇外的灰气魔物。",
-    "trigger": "request.eluen.purge_dregs",
-    "stages": [
-      {
-        "id": "purge",
-        "desc": "讨伐灰气魔物。",
-        "objectives": [
-          {
-            "type": "kill",
-            "kind": "monster",
-            "count": 3,
-            "label": "讨伐灰气魔物"
-          }
-        ]
-      }
-    ],
-    "rewards": [
-      {
-        "type": "add",
-        "key": "church_suspicion",
-        "amount": -3,
-        "min": 0
-      },
-      {
-        "type": "money",
-        "amount": 300
-      },
-      {
-        "type": "xp",
-        "amount": 280,
         "reason": "quest"
       }
     ]

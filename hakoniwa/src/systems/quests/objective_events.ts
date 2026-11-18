@@ -46,9 +46,13 @@ export function isPlayerSide(ctx: SystemContext, id: string | undefined): boolea
   return !!e && (e.kind === 'companion' || e.tags.includes('companion'));
 }
 
-/** The player talked to `npc` (a person's content id). */
-export function talkObjectives(ctx: SystemContext, npc: string): void {
+/**
+ * The player talked to `npc` (a person's content id); `optionalOnly` visits only the optional
+ * objectives (an optional hand-in counts before the talk closes its stage).
+ */
+export function talkObjectives(ctx: SystemContext, npc: string, optionalOnly = false): void {
   eachOpen(ctx, (def, q, o, i) => {
+    if (optionalOnly && !o.optional) return false;
     const r = onTalk(ctx, q, o, i, npc);
     if (r === 'met') markMet(ctx, def, q, i);
     return r !== 'none';

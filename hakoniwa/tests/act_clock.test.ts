@@ -246,8 +246,10 @@ describe('the act 1 timeline (act1_borderstone.md 1.2, 7.3)', () => {
     expect(n.map((e) => [e.data.rule, e.data.week, e.data.forced])).toEqual([['tide', 10, true]]);
     expect(n[0]?.tick).toBe(duskTick(68));
     expect(flags(l.g).a1_tide_night).toBe(true);
-    // the clamp lifts seal_unrest to 100; after the tide night the weekly drift stops
-    expect(flags(l.g).seal_unrest).toBe(100);
+    // the clamp lifts seal_unrest to 100; the tide quest (A1-M12, catalog: reset to 30 after
+    // the tide) runs its fallback waves in this harness and resets it; the weekly drift stops
+    expect(flags(l.g).a1_beast_tide_cleared).toBe(true);
+    expect(flags(l.g).seal_unrest).toBe(30);
     expect(flags(l.g).act_week).toBe(12);
   });
 

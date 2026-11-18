@@ -311,11 +311,13 @@ describe('the autoplayer readies itself for wave bosses ahead (src/game/autoplay
     return upcomingWaveBosses(content, progress, Object.keys(quests));
   };
 
-  it('sees the tide colossus from the trial that unlocks the tide, and from its early stages', () => {
-    expect(at({ q_a1_m09_trial: { status: 'active', stage: 0 } })).toEqual(['dian_colossus']);
+  it('sees the tide colossus from the early tide stages (the omen week), not from the trial', () => {
+    // the tide quest opens on the omens or the tide night (PK-M1-33), not on the trial
+    expect(at({ q_a1_m09_trial: { status: 'active', stage: 0 } })).toEqual([]);
     expect(at({ q_a1_m12_tide: { status: 'active', stage: 0 } })).toEqual(['dian_colossus']);
+    expect(at({ q_a1_m12_tide: { status: 'active', stage: 3 } })).toEqual(['dian_colossus']);
     // once the colossus stage is entered, its wave is in the world: readyFor sees it there
-    expect(at({ q_a1_m12_tide: { status: 'active', stage: 2 } })).toEqual([]);
+    expect(at({ q_a1_m12_tide: { status: 'active', stage: 4 } })).toEqual([]);
     // a boss placed on a map (the raven) or a kill without a named target is no wave boss
     expect(at({ q_a1_m02_raven: { status: 'active', stage: 0 } })).toEqual([]);
     expect(at({ q_a1_m04_hunt: { status: 'active', stage: 0 } })).toEqual([]);

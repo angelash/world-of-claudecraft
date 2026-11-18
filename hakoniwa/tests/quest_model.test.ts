@@ -950,12 +950,30 @@ describe('the existing quest data', () => {
       expect(probs, want).toEqual(expect.arrayContaining([expect.stringContaining(want)]));
   });
 
-  it('leaves the current act 1 data on its old timing (no window, expiry or by_other yet)', () => {
+  it('puts the act 1 main line on the act clock (PK-M1-33: windows, the tide night)', () => {
     const content = buildContent();
-    // the dispute chains (PK-M1-46) close through the runner's settlement (byOther)
-    const act1 = content.quests.filter((q) => q.act === 'act1' && q.kind !== 'dispute');
-    expect(act1.length).toBeGreaterThan(0);
-    expect(act1.filter((q) => q.weekWindow || q.expiry || q.byOther).map((q) => q.id)).toEqual([]);
+    const q = (id: string) => content.quests.find((x) => x.id === id);
+    // A1-M04 is offered in weeks 1 to 2 and passes to someone else after week 2
+    expect(q('q_a1_m04_hunt')?.weekWindow).toEqual({ from: 1, to: 2 });
+    expect(q('q_a1_m04_hunt')?.byOther?.when).toBe('act_week >= 3');
+    expect(q('q_a1_m05_grey_wolf')?.trigger).toContain('act_week >= 2');
+    expect(q('q_a1_m06_mine')?.trigger).toContain('act_week >= 4');
+    expect(q('q_a1_m09_trial')?.trigger).toBe('act_week >= 7 AND a1_witch_trial_started');
+    // the tide comes from the act clock's night rule, never from a quest
+    expect(q('q_a1_m12_tide')?.trigger).toContain('a1_tide_night');
+    const writes = (list: readonly { type: string; key?: string; value?: unknown }[] = []) =>
+      list.filter((e) => e.type === 'flag' && e.key === 'seal_unrest').map((e) => e.value);
+    for (const def of content.quests.filter((x) => x.act === 'act1')) {
+      const all = [
+        ...writes(def.onStart),
+        ...writes(def.rewards),
+        ...def.stages.flatMap((s) => [...writes(s.onEnter), ...writes(s.onComplete)]),
+      ];
+      expect(
+        all.filter((v) => v === 100 || v === 0),
+        def.id,
+      ).toEqual([]);
+    }
   });
 });
 

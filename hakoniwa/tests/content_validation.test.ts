@@ -478,9 +478,10 @@ describe('V6 numeric bands', () => {
         ],
       }),
     ).toBe(75);
-    // the rescaled act 1 main line of progression 18.1 (q_a1_m07_spring is data side)
+    // the act 1 main line of progression 18.1, re-imported by PK-M1-33 (catalog 5.1: 22,550,
+    // the 13 main quests' 22 settlement points)
     const act1 = rows(real, 'quests').filter((q) => q.act === 'act1' && q.kind === 'main');
-    expect(act1.reduce((s, q) => s + questXp(q), 0)).toBe(21190);
+    expect(act1.reduce((s, q) => s + questXp(q), 0)).toBe(22550);
   });
 });
 

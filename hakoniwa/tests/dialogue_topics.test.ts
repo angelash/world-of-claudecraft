@@ -85,14 +85,14 @@ describe('topic data (data/dialogue/topics/)', () => {
     ]);
     // the prologue's own questions end with the prologue; the judgment carries on (catalog 3.3)
     expect(prologue.filter((t) => t.until === 'prologue').length).toBe(8);
-    // act 1: 235 registered in catalog 3.3, less the nine prologue questions, less the three
-    // whose quests are not in the data yet (event_drunk_bandits, secret_toma_watch,
-    // secret_noi_mark), plus self_merca_coin which starts in the prologue
+    // act 1: 235 registered in catalog 3.3, less the nine prologue questions, plus
+    // self_merca_coin which starts in the prologue (the three that waited on their quests,
+    // event_drunk_bandits, secret_toma_watch and secret_noi_mark, came with PK-M1-33)
     expect(FULL.topics.filter((t) => t.act === 'act1' && !t.id.startsWith('gen_')).length).toBe(
-      222,
+      225,
     );
     for (const id of ['event_drunk_bandits', 'secret_toma_watch', 'secret_noi_mark'])
-      expect(ids).not.toContain(id);
+      expect(ids).toContain(id);
   });
 
   it('rejects broken topic records', () => {

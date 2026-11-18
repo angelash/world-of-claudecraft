@@ -13,7 +13,26 @@ import { conditionVars, type FlagRef, isDynamic, isPattern, keyMatches } from '.
 export const BUILTIN_VARS: Record<string, FlagValue[]> = {
   ai_enabled: [true, false],
   day: [0, 1, 7, 30, 100, 1000],
+  // the act clock writes act_week through its constant (systems/quests/act_clock.ts
+  // ACT_WEEK_FLAG), which the source scan cannot read; its values are the weeks the
+  // content's conditions tell apart (actWeekValues)
+  act_week: [0],
 };
+
+/**
+ * The act weeks that tell the content's act_week conditions apart: week 0 (before the
+ * clock) and each week a condition compares act_week with, with its neighbours. Every
+ * week of a long act would multiply the combinations past the cap for nothing.
+ */
+export function actWeekValues(input: Pick<GraphInput, 'quests' | 'acts'>): FlagValue[] {
+  const out = new Set<number>([0]);
+  const text = JSON.stringify([input.quests, input.acts]);
+  for (const m of text.matchAll(/act_week\s*(?:>=|<=|==|!=|>|<)\s*(\d+)/g)) {
+    const n = Number(m[1]);
+    for (const w of [n - 1, n, n + 1]) if (w >= 0) out.add(w);
+  }
+  return [...out].sort((x, y) => x - y);
+}
 
 const ANY = Symbol('any');
 type Val = FlagValue | typeof ANY;
@@ -191,6 +210,7 @@ function objectiveExprs(q: QuestDef, stage: number): { required: boolean; exprs:
 
 export function buildQuestGraph(input: GraphInput): QuestGraph {
   const maxCombos = input.maxCombos ?? 20000;
+  const builtins: Record<string, FlagValue[]> = { ...BUILTIN_VARS, act_week: actWeekValues(input) };
   const quests = input.quests.map((q) => questInfo(q, input.index));
   const byId = new Map(input.quests.map((q) => [q.id, q]));
   const writes = input.index.filter((r) => r.kind === 'write');
@@ -266,7 +286,7 @@ export function buildQuestGraph(input: GraphInput): QuestGraph {
   };
   const candidates = (name: string): Set<Val> => {
     const out = new Set<Val>(values.get(name) ?? []);
-    for (const b of BUILTIN_VARS[name] ?? []) out.add(b);
+    for (const b of builtins[name] ?? []) out.add(b);
     if (!name.startsWith('quest.') && patternWriters.some((w) => keyMatches(w.key, name))) {
       out.add(ANY);
     }

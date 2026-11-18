@@ -1106,6 +1106,7 @@
 | `a1_three_toes_fate` | `three_toes.fate` | 枚举 | `purified`、`slain` | 三趾（第一幕到第二幕） | 兽伴、希雅 |
 | `a1_wolf_den` | `forest.wolf_den` | 枚举 | `cleared` | 狼穴清剿（林地之争节点 f） | 林地之争结局 |
 | `a1_tide_omen` | 无 | 标记 | | 兽潮前兆事件 `ev_a1_tide_omens` | A1-M11 前置、`cut_a1_yeyu_memory` |
+| `a1_beast_season` | 无 | 布尔 | 魔物季期间为真 | 动态事件 `ev_a1_beast_season`（落地时置真，期满置假） | 铁杉林深处（地图简报 A7）魔物季的刷新组与猎径出口 |
 | `a1_spring_source_found` | `a1_seep_channel_found`、`a1_north_spring_found` | 标记 | | A1-M07 找到渗泉源头（`q` 的 `q_a1_m07_spring`） | 魔女审判的物证（`cut_a1_trial`）；借形之门的门钥（`dr`）；`s1` |
 | `a1_moss_intercepted` | 无 | 标记 | | 南门截下莫斯的澱晶车 | `a1_moss_fate` 不写 `fled` |
 | `a1_blade_mark_seen` | 无 | 标记 | | 匪徒刀上的暗记 | A1-S02 |

@@ -48,6 +48,15 @@ const D01 = 'q_a1_d01_tax_and_bandits';
 const D02 = 'q_a1_d02_witch_trial';
 const D04 = 'q_a1_d04_forest_dispute';
 const MUST = [D01, D02, D04];
+/** The six other act-1 disputes (PK-M1-33). */
+const OTHERS = [
+  'q_a1_d03_salt_and_potions',
+  'q_a1_d05_tavern_eyes',
+  'q_a1_d06_bron_old_wound',
+  'q_a1_d07_bakery_betrothal',
+  'q_a1_d08_otto_mill',
+  'q_a1_d09_market_theft',
+];
 const SCRIPT: CommandSource = { type: 'script', script: 'test' };
 const NPC_BRAIN: CommandSource = { type: 'system', system: 'npc' };
 
@@ -683,7 +692,7 @@ describe('the content checks', () => {
     const content = buildContent();
     expect(disputesPack.validate?.(content) ?? []).toEqual([]);
     expect(validateContent(content).filter((p) => /dispute|q_a1_d0/.test(p))).toEqual([]);
-    expect(content.disputes.map((d) => d.id)).toEqual(MUST);
+    expect(content.disputes.map((d) => d.id)).toEqual([...MUST, ...OTHERS]);
   });
 
   it('catch a dispute that could wait forever or that names things that are not there', () => {
@@ -873,9 +882,13 @@ describe('acceptance: 20 seeds with no player', () => {
     g.onEvents((evs) => l.events.push(...evs));
     const t0 = performance.now();
     toWeek(l, 11, 2);
+    // the tide night (PK-M1-52, act1_borderstone.md) drags a convicted Oola out of custody
+    // when no one comes for her: her fate turns fled before the trial settles
+    expect(flags(g).a1_oola_wounded).toBe(true);
+    const ending = (id: string) => (id === D02 ? 'fled' : DEFAULT_ENDINGS[id]);
     for (const id of MUST) {
       expectSettledLegally(l, id);
-      expect(state(g, id), id).toMatchObject({ ending: DEFAULT_ENDINGS[id], by: 'world' });
+      expect(state(g, id), id).toMatchObject({ ending: ending(id), by: 'world' });
     }
     console.log(
       `[disputes] real game to week 11: ${Math.round(performance.now() - t0)} ms, endings ${MUST.map((id) => state(g, id)?.ending).join(', ')}`,
@@ -1039,9 +1052,11 @@ describe('acceptance: the player changes the endings', () => {
 
   it('witch trial: while the main-line trial quest runs, the verdict waits for its scene', () => {
     const l = withPlayer(8, (x) => {
-      // A1-M09 started before the trial week (the quest writes quest.<id> = active)
+      // A1-M09 reached its trial stages before the trial week (the quest writes quest.<id> =
+      // active and its stage; the unattended trial waits only for prepare and verdict)
       toWeek(x, 7);
       set(x, 'quest.q_a1_m09_trial', 'active');
+      set(x, 'quest.q_a1_m09_trial.stage', 'prepare');
       toWeek(x, 9, 3);
       expect(openDecisions(x.g.world).map((o) => o.point)).not.toContain('cassian_verdict');
       // the trial scene convicts in front of the player at week 9
@@ -1206,10 +1221,11 @@ describe('the act clock and the chains together', () => {
       a1_ako_framed: true,
       a1_witch_trial_started: true,
     });
-    expect(ofKind(l.events, 'dispute.decision_opened').map((e) => e.data.pointId)).toEqual([
-      'isa_testify',
-      'gorn_council',
-    ]);
+    expect(
+      ofKind(l.events, 'dispute.decision_opened')
+        .filter((e) => MUST.includes(e.data.disputeId))
+        .map((e) => e.data.pointId),
+    ).toEqual(['isa_testify', 'gorn_council']);
     expect(state(l.g, D02)?.chosen.isa_testify).toBe('keep_silent');
     // a time skip of two days steps hour by hour: Gorn's council resolves inside it
     runTo(l, l.g.tick + 2 * TICKS_PER_GAME_DAY);

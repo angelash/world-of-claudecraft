@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Engine, ok, tr } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
-import type { GameSystem } from '../src/core/system';
-import { TICKS_PER_GAME_DAY } from '../src/core/time';
-import { countItem } from '../src/systems/inventory';
+import type { GameSystem, SystemContext } from '../src/core/system';
+import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../src/core/time';
+import { addItem, countItem } from '../src/systems/inventory';
 import {
   act5Outcome,
   checkCondition,
@@ -28,6 +28,12 @@ import {
 
 const ev = (expr: string, flags: Record<string, string | number | boolean>) =>
   evaluate(expr, flagResolver(flags));
+
+/** Run a function with a system context for one tick (gives items, as a player's trade would). */
+function withCtx(g: Engine, fn: (ctx: SystemContext) => void): void {
+  const probe: GameSystem = { id: 'zz_probe', order: 999, tick: (ctx) => fn(ctx) };
+  Engine.resume(g.world, g.content, [...g.systems, probe]).step(1);
+}
 
 describe('conditions (reveal-ledger syntax)', () => {
   it('evaluates logic, comparisons, sets, counts and acts', () => {
@@ -70,6 +76,8 @@ describe('acts and the main line', () => {
 
   it('offers giver quests in the dialogue menu and accepts through option_chosen', () => {
     const g = narrativeGame();
+    // A1-M04 is offered in act weeks 1 to 2 of act 1 (catalog 5.2)
+    g.queue('flag.set', { key: 'act', value: 'act1' });
     g.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g.step(2);
     g.queue('stub.talk', { npc: 'bron' });
@@ -103,6 +111,7 @@ describe('acts and the main line', () => {
       },
     };
     const g2 = Engine.create(1, narrativeContent(), [...NARRATIVE_SYSTEMS, probe], {});
+    g2.queue('flag.set', { key: 'act', value: 'act1' });
     g2.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g2.step(2);
     g2.queue('stub.feat', { tier: 0 });
@@ -112,16 +121,35 @@ describe('acts and the main line', () => {
 
   it('counts only kills by the player side, on the right map, then turns in for rewards', () => {
     const g = narrativeGame();
+    g.queue('flag.set', { key: 'act', value: 'act1' });
     g.queue('flag.set', { key: 'quest.q_a1_m03_register', value: 'done' });
     g.step(2);
     g.queue('quests.accept', { questId: 'q_a1_m04_hunt' });
     g.step(1);
-    g.queue('stub.kill', { kind: 'monster', mapId: 'seal_ruins' });
+    // the letter of the third errand comes with the quest
+    expect(countItem(g.world, 'player', 'guild_letter')).toBe(1);
+    // errand one, the cellar: only rats count
+    g.queue('stub.kill', { ref: 'grey_wolf', kind: 'monster', mapId: 'forest_edge' });
     g.step(1);
     expect(g.world.slices.quests.quests.q_a1_m04_hunt?.counts[0]).toBe(0);
-    for (let i = 0; i < 5; i++) g.queue('stub.kill', { kind: 'monster', mapId: 'forest_edge' });
+    for (let i = 0; i < 4; i++)
+      g.queue('stub.kill', { ref: 'dian_rat', kind: 'monster', mapId: 'seal_ruins' });
     g.step(1);
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.stage).toBe(1);
+    // errand two: talking to Oola without the herbs hands nothing over
+    g.queue('stub.talk', { npc: 'oola' });
+    g.step(2);
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.stage).toBe(1);
+    withCtx(g, (ctx) => addItem(ctx, 'player', 'herb', 5));
+    g.queue('stub.talk', { npc: 'oola' });
+    g.step(2);
+    expect(g.world.slices.quests.quests.q_a1_m04_hunt?.stage).toBe(2);
+    expect(countItem(g.world, 'player', 'herb')).toBe(0);
+    // errand three: the letter to the chapel
+    g.queue('stub.talk', { npc: 'cassian' });
+    g.step(2);
     expect(g.world.slices.quests.quests.q_a1_m04_hunt?.status).toBe('ready');
+    expect(g.world.meta.flags.a1_cassian_appraise).toBe(true);
     g.queue('quests.accept', { questId: 'q_a1_m04_hunt' });
     g.step(1);
     const again = [...g.world.recent]
@@ -133,8 +161,8 @@ describe('acts and the main line', () => {
     g.queue('quests.turn_in', { questId: 'q_a1_m04_hunt' });
     g.step(1);
     expect(g.world.meta.flags['quest.q_a1_m04_hunt']).toBe('done');
-    expect(g.world.slices.inventory.owners.player?.money).toBe(300);
-    // progression 18.1: 640 paid at two settlement points, the hunt (stage) and the turn-in
+    expect(g.world.slices.inventory.owners.player?.money).toBe(270);
+    // progression 18.1: 640 paid at the second and the third errand
     const xp = g.world.recent.flatMap((e) => (e.kind === 'xp.awarded' ? [e.data.amount] : []));
     expect(xp).toEqual([320, 320]);
   });
@@ -146,30 +174,81 @@ describe('acts and the main line', () => {
     expect(g.world.slices.quests.quests.q_a1_m02_raven?.status).toBe('active');
     g.queue('flag.set', { key: 'boss.guardian_raven.yielded', value: true });
     g.step(2);
-    expect(g.world.meta.flags['quest.q_a1_m02_raven']).toBe('done');
+    // the reaching out is the binding scene; the companion joins when it ends
+    expect(g.world.meta.flags['quest.q_a1_m02_raven.stage']).toBe('reach');
+    playScene(g);
+    g.step(2);
     expect(g.world.meta.flags['companion.yeyu.recruited']).toBe(true);
+    expect(g.world.meta.flags['trust.yeyu']).toBe(40);
     expect(countItem(g.world, 'player', 'old_guild_badge')).toBe(1);
+    // the act-1 import drops the seal write and the early word for the sediment (audit 3)
+    expect(g.world.meta.flags['term.dian_known']).toBeUndefined();
+    const ring = g.content.maps
+      .find((m) => m.id === 'seal_ruins')
+      ?.locations.find((l) => l.id === 'outer_ring');
+    g.queue('world.teleport', {
+      entityId: 'player',
+      mapId: 'seal_ruins',
+      x: (ring?.x ?? 0) + 2,
+      y: (ring?.y ?? 0) + 2,
+    });
+    g.step(12);
+    expect(g.world.meta.flags['quest.q_a1_m02_raven']).toBe('done');
   });
 
-  it('sets waves for the beast tide and retries a lost battle', () => {
-    const g = narrativeGame({ stub: false });
-    g.queue('flag.set', { key: 'quest.q_a1_m09_trial', value: 'done' });
-    g.step(2);
-    g.queue('flag.set', { key: 'a1_beast_tide_started', value: false });
-    const q = g.world.slices.quests.quests.q_a1_m12_tide;
-    expect(q?.status).toBe('active');
-    g.step(6 * 1200 + 20);
+  it('runs the beast tide from the tide night, with the waves only when no tide system runs it', () => {
+    const run = (tideSystem: boolean) => {
+      const g = narrativeGame({ stub: false });
+      if (tideSystem) g.queue('flag.set', { key: 'a1_beast_tide_started', value: true });
+      g.queue('flag.set', { key: 'a1_tide_night', value: true });
+      g.step(2);
+      const q = () => g.world.slices.quests.quests.q_a1_m12_tide;
+      expect(q()?.status).toBe('active');
+      // the quest never forces the unrest: the act clock's night rule does that
+      expect(g.world.meta.flags.seal_unrest).not.toBe(100);
+      g.step(TICKS_PER_GAME_HOUR + 20);
+      return { g, q };
+    };
+    const { g, q } = run(false);
     expect(g.world.meta.flags['combat.wave.tide_first']).toBe('go');
-    expect(g.world.meta.flags['combat.wave.tide_second']).toBe('go');
     g.queue('flag.set', { key: 'combat.wave.tide_first.state', value: 'cleared' });
+    g.step(12);
+    expect(g.world.meta.flags['combat.wave.tide_second']).toBe('go');
     g.queue('flag.set', { key: 'combat.wave.tide_second.state', value: 'cleared' });
-    g.step(2);
+    g.step(12);
     expect(g.world.meta.flags['combat.wave.tide_colossus']).toBe('go');
-    expect(g.world.meta.flags['combat.wave.tide_flood']).toBe('go');
+    // the second surge is a witnessed beat, not a wave (audit 3)
+    expect(g.world.meta.flags['combat.wave.tide_flood']).toBeUndefined();
     g.queue('flag.set', { key: 'boss.dian_colossus.defeated', value: true });
-    g.step(2);
+    g.step(12);
     expect(g.world.meta.flags.a1_beast_tide_cleared).toBe(true);
-    // a battle objective: a loss costs the continent and re-arms war.pending
+    // after the tide the unrest restarts at 30, then the core choice may add to it
+    expect(g.world.meta.flags.seal_unrest).toBe(30);
+    expect(g.world.meta.flags.a1_martha_strike).toBeUndefined();
+    g.queue('quests.choose', { questId: 'q_a1_m12_tide', optionId: 'shatter' });
+    g.step(12);
+    expect(q()?.status).toBe('done');
+    expect(countItem(g.world, 'player', 'colossus_core')).toBe(1);
+    expect(g.world.slices.inventory.owners.player?.money).toBe(660);
+    // with the tide system running the night (it wrote the start at dusk), the quest neither
+    // calls the waves nor ends the night: it waits for the system's clear flag
+    const t = run(true);
+    expect(t.g.world.meta.flags['combat.wave.tide_first']).toBeUndefined();
+    t.g.queue('flag.set', { key: 'a1_tide_stage', value: 3 });
+    t.g.step(12);
+    expect(t.g.world.meta.flags['combat.wave.tide_colossus']).toBeUndefined();
+    t.g.queue('flag.set', { key: 'boss.dian_colossus.defeated', value: true });
+    t.g.step(12);
+    expect(t.g.world.meta.flags.a1_beast_tide_cleared).toBeUndefined();
+    t.g.queue('quests.choose', { questId: 'q_a1_m12_tide', optionId: 'shatter' });
+    t.g.step(12);
+    expect(t.q()?.status).toBe('active');
+    t.g.queue('flag.set', { key: 'a1_beast_tide_cleared', value: true });
+    t.g.step(12);
+    expect(t.q()?.status).toBe('done');
+  });
+
+  it('a battle objective: a loss costs the continent and re-arms war.pending', () => {
     const g2 = Engine.create(1, narrativeContent(), [...NARRATIVE_SYSTEMS, otherTeamsStub], {});
     g2.queue('flag.set', { key: 'quest.q_a2_m03_company', value: 'done' });
     g2.queue('flag.set', { key: 'quest.q_a2_m03_village', value: 'done' });
@@ -210,6 +289,7 @@ describe('acts and the main line', () => {
     const g = narrativeGame({ stub: false });
     g.queue('flag.set', { key: 'request.merca.safe_caravan', value: '护送北路商队' });
     g.step(2);
+    // the request posts it at once (the trading branch only carries the notice, catalog 5.5)
     expect(g.world.slices.quests.quests.q_gl_merca_01?.status).toBe('active');
   });
 

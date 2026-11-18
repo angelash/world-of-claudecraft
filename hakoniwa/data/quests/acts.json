@@ -8,7 +8,6 @@
     "introScene": "act1_intro",
     "onEnter": [
       { "type": "flag", "key": "a1_wake_ruins", "value": true },
-      { "type": "flag", "key": "seal_looseness", "value": 5 },
       { "type": "flag", "key": "continent", "value": 70 }
     ],
     "clock": {
@@ -26,6 +25,13 @@
           "amount": 9,
           "max": 100,
           "when": "NOT a1_tide_night AND NOT a1_beast_tide_cleared"
+        },
+        {
+          "type": "add",
+          "key": "seal_unrest",
+          "amount": 2,
+          "max": 100,
+          "when": "a1_dian_trade == player_controls AND NOT a1_beast_tide_cleared"
         }
       ],
       "nights": [

@@ -4,9 +4,9 @@
 // place, a world fact), never a model's say-so.
 //
 // Event contracts (declared here, emitted by their owners):
-//   gather.done, craft.done   the gathering and crafting system (PK-M1-49; nothing emits them
-//                             yet, the objectives are tested with synthetic events);
-//   duel.ended                combat's non-lethal duel (no emitter yet);
+//   gather.done, craft.done   the crafting kernel (src/systems/crafting/gather.ts and
+//                             craft.ts emit them as gathering and crafting finish);
+//   duel.ended                combat's non-lethal duel (src/systems/combat/duel.ts);
 //   stealth.detected          whoever sees the player sneaking (the NPC system's watchers,
 //                             src/systems/npc/brain/quest_orders.ts);
 //   economy.traded            the economy system (exists).

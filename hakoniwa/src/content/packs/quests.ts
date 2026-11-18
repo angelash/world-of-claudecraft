@@ -275,6 +275,9 @@ export const pack: ContentPack = {
         problems.push(...effectProblems(st.onComplete, `${at} stage ${st.id} onComplete`, content));
         for (const o of st.objectives) {
           problems.push(...conditionProblems(o.orWhen, `${at} stage ${st.id} orWhen`));
+          problems.push(
+            ...effectProblems(o.effects, `${at} stage ${st.id} objective effects`, content),
+          );
           if (o.type === 'flag')
             problems.push(...conditionProblems(o.when, `${at} stage ${st.id} flag`));
           if (

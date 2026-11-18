@@ -528,5 +528,115 @@
     "desc": "第六幕神庭审理可以出示的证据：曙光圣柱违约证据。",
     "stack": 1,
     "tags": ["evidence"]
+  },
+  {
+    "id": "guild_letter",
+    "name": "公会信件",
+    "kind": "key",
+    "quality": 1,
+    "value": 0,
+    "desc": "盖着公会火漆的信。收信人的名字写在背面。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "bounty_voucher",
+    "name": "讨伐凭证",
+    "kind": "key",
+    "quality": 1,
+    "value": 0,
+    "desc": "公会开出的讨伐凭证，交回柜台换赏金。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "marked_bandit_blade",
+    "name": "带暗记的匪刀",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "劫匪的刀。刀根上刻着一道细细的暗记，像是哪家铁匠铺的记号。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "forest_pact_copy",
+    "name": "东林之约的抄本",
+    "kind": "lore",
+    "quality": 2,
+    "value": 0,
+    "desc": "公会档案室里留下的林约抄本，字迹和约树上的刻痕对得上。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "otto_will",
+    "name": "奥托的遗嘱",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "老磨坊主奥托在公会立下的遗嘱原件，登记的日期比代官那一份早。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "popo_hoard_list",
+    "name": "囤货清单",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "波波随手记下的一张单子：商会分号的库房里囤着多少盐和药。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "viro_moss_pact",
+    "name": "薇罗与莫斯的密约",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "骰子屋后屋找到的几页纸，写着谁在南路分哪份钱。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "magistrate_seal_fragment",
+    "name": "代官印的火漆残片",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "一小块火漆，压着代官府的印纹。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "stolen_copper_bell",
+    "name": "失窃的铜铃",
+    "kind": "key",
+    "quality": 1,
+    "value": 0,
+    "desc": "集市上丢的那只铜铃，铃舌上缠着一根红绳。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "silver_buckle",
+    "name": "银扣",
+    "kind": "key",
+    "quality": 1,
+    "value": 0,
+    "desc": "一只银扣，背面刻着失主的名字缩写。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "oola_sketch_map",
+    "name": "欧拉画的鹿泉图",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "欧拉婆婆用炭条画的一张图：林缘深处有一眼泉，泉边画着一株草。",
+    "stack": 1,
+    "tags": []
   }
 ]

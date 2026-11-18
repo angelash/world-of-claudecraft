@@ -35,6 +35,7 @@ import {
   setPath,
   startQuest,
 } from './progress';
+import { topicUnlockedQuests } from './topic_unlocks';
 import type { ActDef, QuestDef } from './types';
 
 export * from './act_clock';
@@ -52,6 +53,7 @@ export * from './objectives';
 export * from './outcomes';
 export * from './progress';
 export * from './speakers';
+export * from './topic_unlocks';
 export * from './types';
 export * from './view';
 
@@ -133,6 +135,7 @@ function choose(
     ctx.setFlag(`quest.${questId}.choice`, optionId);
     if (opt.path) setPath(ctx, def, q, opt.path);
     applyEffects(ctx, opt.effects);
+    applyEffects(ctx, o.effects);
     ctx.emit('quest.progress', { questId, objective: i, done: true });
     checkStage(ctx, def, q);
     return ok(opt.label);
@@ -214,6 +217,11 @@ export const system: GameSystem = {
         return true;
       });
     },
+    'dialogue.topic'(ctx, e) {
+      // a quest topic answered by its giver leads into the quest (topic_unlocks.ts)
+      if (e.data.outcome !== 'answer') return;
+      for (const id of topicUnlockedQuests(ctx, e.data.npcRef, e.data.topicId)) accept(ctx, id);
+    },
     'dialogue.persuaded'(ctx, e) {
       // a persuasion in a conversation (PK-M1-19): the persuade objectives on this person
       // whose threshold holds are met; a failed attempt meets nothing
@@ -221,6 +229,8 @@ export const system: GameSystem = {
     },
     'player.talked'(ctx, e) {
       const npc = e.data.npcRef ?? e.data.npcId;
+      // an optional hand-in to the person counts before the talk itself closes its stage
+      talkObjectives(ctx, npc, true);
       bump(ctx, (o) => o.type === 'talk' && (o.npc === npc || o.npc === e.data.npcId));
       talkObjectives(ctx, npc);
       const options: { id: string; label: TextParam; hint?: TextParam }[] = [];

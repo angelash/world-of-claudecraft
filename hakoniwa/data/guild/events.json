@@ -8,7 +8,7 @@
     "acts": [1],
     "maps": ["borderstone", "forest_edge"],
     "severity": "moderate",
-    "when": "seal_unrest >= 91",
+    "when": "seal_unrest >= 91 OR act_week >= 10",
     "once": true,
     "effects": [{ "type": "flag", "key": "a1_tide_omen", "value": true }]
   },
@@ -65,7 +65,9 @@
         "visibility": "public"
       }
     ],
-    "hooks": { "board": { "bonus": 2, "kinds": ["subjugate", "clear", "hunt"] } }
+    "hooks": { "board": { "bonus": 2, "kinds": ["subjugate", "clear", "hunt"] } },
+    "effects": [{ "type": "flag", "key": "a1_beast_season", "value": true }],
+    "end": [{ "type": "flag", "key": "a1_beast_season", "value": false }]
   },
   {
     "id": "ev_a1_moira_coincidence",
@@ -77,7 +79,33 @@
     "maps": [],
     "severity": "minor",
     "when": "ev.ev_a1_moira_coincidence.count < 1 OR (goddess.moira.interest >= 2 AND ev.ev_a1_moira_coincidence.count < 2)",
-    "director": { "move": "coincidence", "power": 2, "cooldownHours": 72 }
+    "director": { "move": "coincidence", "power": 2, "cooldownHours": 72 },
+    "effects": [
+      {
+        "type": "line",
+        "speaker": "narrator",
+        "text": "一阵风把侯克摊开的档案吹得哗哗翻，停在了一页：东林之约。",
+        "when": "NOT a1_forest_pact_proof AND NOT dispute.q_a1_d04_forest_dispute.ending"
+      },
+      {
+        "type": "line",
+        "speaker": "narrator",
+        "text": "醉月亭的一个酒客碰巧说起二十年前那支探索队，说到一半就被人拉走了。",
+        "when": "a1_forest_pact_proof AND (NOT npc.bron.story_level OR npc.bron.story_level < 2)"
+      },
+      {
+        "type": "line",
+        "speaker": "narrator",
+        "text": "骰子屋的赌桌上，一枚骰子滚到你脚边。翻过来，底面沾着矿灰。",
+        "when": "a1_forest_pact_proof AND npc.bron.story_level >= 2 AND NOT a1_viro_pact_known"
+      },
+      {
+        "type": "line",
+        "speaker": "narrator",
+        "text": "夜羽从集市拿回来的亮东西里，有一枚代官府的火漆印残片。",
+        "when": "a1_forest_pact_proof AND npc.bron.story_level >= 2 AND a1_viro_pact_known AND NOT a1_moss_exposed"
+      }
+    ]
   },
   {
     "id": "ev_a1_market_day",
@@ -120,5 +148,423 @@
     "once": true,
     "comedy": "misattribute",
     "rumor": { "topic": "kill", "place": "狼穴", "details": ["捡了别人的漏"], "tellers": ["dris"] }
+  },
+  {
+    "id": "ev_a1_dark_moon",
+    "category": "sky",
+    "source": "world",
+    "title": "暗月夜",
+    "narration": "月亮细得像一道划痕。今夜荒原那边的骨头会多走几步。",
+    "acts": [1, 2, 3],
+    "maps": ["ash_waste"],
+    "severity": "minor",
+    "when": "dark_moon",
+    "cooldownDays": 6,
+    "modifiers": [
+      { "target": "monster", "key": "ash_waste", "factor": 1.5, "days": 1, "visibility": "hidden" },
+      {
+        "target": "monster",
+        "key": "borderstone_north",
+        "factor": 1.5,
+        "days": 1,
+        "visibility": "hidden"
+      }
+    ]
+  },
+  {
+    "id": "ev_a1_south_road_robbery",
+    "category": "caravan",
+    "source": "npc",
+    "title": "南路劫案",
+    "narration": "驿站传来消息：南路林段又有商队被劫，护卫重伤，货被搬空。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "act_week >= 3 AND NOT a1_owen_escorted",
+    "once": true
+  },
+  {
+    "id": "ev_a1_owen_leaves",
+    "category": "caravan",
+    "source": "npc",
+    "title": "欧文收摊",
+    "narration": "盐巷集市上，欧文的摊位空了。他说过，第六周还没人跟车，他就走。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week >= 7 AND NOT a1_owen_escorted",
+    "once": true
+  },
+  {
+    "id": "ev_a1_greyroad_smugglers",
+    "category": "caravan",
+    "source": "economy",
+    "title": "灰路上的走私队",
+    "narration": "一队背着灰晶的人从晶沟方向过来，在折桥驿歇了一夜又走了。",
+    "acts": [1, 2],
+    "maps": ["brokenspan_post"],
+    "severity": "minor",
+    "when": "(NOT a1_dian_trade OR a1_dian_trade == continued) AND NOT dg.dg_old_mine.collapsed",
+    "cooldownDays": 7
+  },
+  {
+    "id": "ev_a1_grey_year",
+    "category": "weather",
+    "source": "world",
+    "title": "灰年",
+    "narration": "北风里带着灰。玛格说，晾出去的衣裳收回来都是灰的。",
+    "acts": [1, 2],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "seal_unrest >= 70",
+    "once": true,
+    "days": 91,
+    "modifiers": [
+      {
+        "target": "production",
+        "key": "borderstone",
+        "factor": 0.9,
+        "days": 91,
+        "visibility": "public"
+      }
+    ]
+  },
+  {
+    "id": "ev_a1_sickness_lin",
+    "category": "plague",
+    "source": "world",
+    "title": "第三个孩子",
+    "narration": "孤儿院的灯更灰了。九岁的琳开始咳嗽。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "act_week == 9 AND a1_town_dian >= 60 AND a1_mill_owner != orphanage",
+    "once": true
+  },
+  {
+    "id": "ev_a1_tess_song",
+    "category": "rumor",
+    "source": "npc",
+    "title": "孤儿院的童谣",
+    "narration": "集市上，苔丝在唱：门开了，门开了，妈妈在门后。贝莎的脸一下子白了。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week == 5",
+    "once": true,
+    "effects": [{ "type": "add", "key": "church_suspicion", "amount": 3, "max": 100 }]
+  },
+  {
+    "id": "ev_a1_prayer_grey_lamp",
+    "category": "divine",
+    "source": "goddess",
+    "title": "病房的灯",
+    "narration": "卡西安神父为病童祷告过后，孩子好了半天。到了夜里，病房的灯又灰了一些。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week >= 3 AND act_week <= 9 AND NOT a1_oola_fate",
+    "chance": 0.15,
+    "cooldownDays": 7,
+    "modifiers": [
+      { "target": "sediment", "key": "borderstone", "add": 1, "days": 7, "visibility": "hidden" }
+    ]
+  },
+  {
+    "id": "ev_a1_merca_coin_response",
+    "category": "divine",
+    "source": "goddess",
+    "title": "发烫的硬币",
+    "narration": "口袋里的硬币微微发烫，像有人在远处数了一下你的账。",
+    "acts": [1, 2, 3],
+    "maps": [],
+    "severity": "minor",
+    "when": "goddess.merca.invoked",
+    "cooldownDays": 7
+  },
+  {
+    "id": "ev_a1_sylvie_deer",
+    "category": "divine",
+    "source": "goddess",
+    "title": "林缘的鹿",
+    "narration": "林缘的鸟忽然都不叫了。一只鹿站在树影里，回头看了你一眼。",
+    "acts": [1],
+    "maps": ["forest_edge"],
+    "severity": "minor",
+    "when": "goddess.sylvie.impression >= 2 AND act_week >= 4",
+    "once": true
+  },
+  {
+    "id": "ev_a1_janu_glimmer",
+    "category": "divine",
+    "source": "goddess",
+    "title": "边石的半个纹",
+    "narration": "清晨路过广场，边石背面那半个纹路在晨光里亮了一下。",
+    "acts": [1, 2],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_dream_door_woman",
+    "once": true
+  },
+  {
+    "id": "ev_a1_eastslope_curfew",
+    "category": "settlement",
+    "source": "npc",
+    "title": "东坡宵禁",
+    "narration": "代官府贴出告示：东坡的兽人日落后不得入栅。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "act_week >= 5 AND NOT a1_boro_calmed AND NOT a1_permit_revoked AND NOT a1_forest_accord IN (restored, partial)",
+    "once": true,
+    "days": 14
+  },
+  {
+    "id": "ev_a1_eastslope_search",
+    "category": "search",
+    "source": "npc",
+    "title": "搜查东坡",
+    "narration": "卫队在哨所集合，往东坡去了。说是搜失窃的东西。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "severe",
+    "when": "act_week >= 8 AND NOT a1_jed_exposed",
+    "once": true,
+    "precursor": { "event": "ev_a1_eastslope_curfew" },
+    "effects": [
+      { "type": "flag", "key": "a1_ako_framed", "value": true, "when": "NOT a1_jed_exposed" }
+    ]
+  },
+  {
+    "id": "ev_a1_tax_protest",
+    "category": "settlement",
+    "source": "npc",
+    "title": "抗税",
+    "narration": "西蒙和几户西田的农人连着几天聚在广场上，巴托带着卫队来了。",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "moderate",
+    "when": "act_week >= 7 AND a1_tax_rate == sixth",
+    "once": true
+  },
+  {
+    "id": "ev_a1_rumor_vulture_feather",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "秃鹫毛",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "quest.q_a1_m03_register.path == bounty",
+    "once": true,
+    "comedy": "misattribute",
+    "rumor": {
+      "topic": "boss_kill",
+      "place": "公会",
+      "details": ["那根黑羽是秃鹫毛"],
+      "tellers": ["dris"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_rotten_post",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "朽木",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_dris_duel_won",
+    "once": true,
+    "comedy": "refute",
+    "rumor": {
+      "topic": "duel",
+      "place": "公会后院",
+      "details": ["那根木桩早就朽了"],
+      "tellers": ["lina"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_dwarf_mechanism",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "矮人机关",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_mine_cleared",
+    "once": true,
+    "comedy": "refute",
+    "rumor": {
+      "topic": "feat",
+      "place": "旧矿",
+      "details": ["塌方的石头是空心的", "矮人的机关"],
+      "tellers": ["ron"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_empty_cart",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "空车",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_owen_escorted",
+    "once": true,
+    "comedy": "misattribute",
+    "rumor": { "topic": "feat", "place": "南路", "details": ["那辆车是空的"], "tellers": ["simon"] }
+  },
+  {
+    "id": "ev_a1_rumor_drunk_bandits",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "醉匪",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_lair_located",
+    "once": true,
+    "comedy": "refute",
+    "rumor": { "topic": "rescue", "place": "南路", "details": ["劫匪喝醉了"], "tellers": ["barto"] }
+  },
+  {
+    "id": "ev_a1_rumor_i_am_crow",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "我是乌鸦",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_yeyu_bound AND quest.q_a1_m03_town == done",
+    "once": true,
+    "comedy": "misattribute",
+    "rumor": {
+      "topic": "feat",
+      "place": "醉月亭",
+      "details": ["那个姑娘自称是乌鸦"],
+      "tellers": ["dora"]
+    },
+    "effects": [{ "type": "add", "key": "church_suspicion", "amount": 2, "max": 100 }]
+  },
+  {
+    "id": "ev_a1_rumor_iron_wrist",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "扳手腕",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "quest.q_a1_s06_arm_wrestle.path == won",
+    "once": true,
+    "comedy": "refute",
+    "rumor": { "topic": "duel", "place": "东坡", "details": ["铁打的手腕"], "tellers": ["gaspar"] }
+  },
+  {
+    "id": "ev_a1_rumor_wager",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "押注",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week >= 5 AND a1_guild_registered",
+    "once": true,
+    "comedy": "crystal",
+    "rumor": {
+      "topic": "appraise",
+      "place": "醉月亭",
+      "details": ["有人拿那张公会卡打赌"],
+      "tellers": ["dora"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_eyes_tricked",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "眼花",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week >= 6 AND companion.ron.recruited",
+    "once": true,
+    "comedy": "refute",
+    "rumor": {
+      "topic": "feat",
+      "place": "林缘",
+      "details": ["那支箭是擦过去的"],
+      "tellers": ["ron"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_undying",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "不死的人",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "quest.q_a1_s22_broken_door_slope == done",
+    "once": true,
+    "comedy": "misattribute",
+    "rumor": {
+      "topic": "feat",
+      "place": "荒原外缘",
+      "details": ["他是被鬼放回来的"],
+      "tellers": ["ed"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_light_or_else",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "光与别的东西",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_cassian_appraise",
+    "once": true,
+    "comedy": "light",
+    "rumor": {
+      "topic": "appraise",
+      "place": "小礼拜堂",
+      "details": ["神父说那不是光"],
+      "tellers": ["bertha"]
+    },
+    "effects": [{ "type": "add", "key": "church_suspicion", "amount": 5, "max": 100 }]
+  },
+  {
+    "id": "ev_a1_rumor_new_crystal",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "新的水晶也坏了",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "act_week >= 6 AND a1_guild_registered",
+    "once": true,
+    "comedy": "crystal",
+    "rumor": {
+      "topic": "appraise",
+      "place": "公会",
+      "details": ["新换的水晶也不亮"],
+      "tellers": ["lina"]
+    }
+  },
+  {
+    "id": "ev_a1_rumor_closing_window",
+    "category": "rumor",
+    "source": "cognition",
+    "title": "关窗",
+    "acts": [1],
+    "maps": ["borderstone"],
+    "severity": "minor",
+    "when": "a1_beast_tide_cleared AND a1_tide_credit",
+    "once": true,
+    "rumor": {
+      "topic": "boss_kill",
+      "place": "北区",
+      "details": ["兽潮那晚有人去关了一扇窗"],
+      "tellers": ["toma"]
+    }
   }
 ]

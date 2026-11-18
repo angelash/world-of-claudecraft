@@ -118,6 +118,8 @@ describe('commission formulas (catalog 2.3, 2.4)', () => {
     cmm_a1_dian_wolf_north: [575, 315],
     cmm_a1_bandit_writ: [575, 250],
     cmm_a1_waste_bones: [865, 380],
+    cmm_a1_boar_westfield: [200, 170],
+    cmm_a1_spider_valley: [215, 170],
   };
 
   it('reproduces the pay and experience of catalog 5.6 for every template in data', () => {
@@ -662,7 +664,8 @@ describe('a commission from the board to the pay', () => {
 
   it('A1-M04 holds the first cellar, herb and letter commissions and counts them once', () => {
     const t = registered();
-    for (let w = 0; w < 2; w++) nextWeek(t);
+    // A1-M04's window is weeks 1 to 2 (after it, someone else takes the errands, PK-M1-33)
+    nextWeek(t);
     const held = ['cmm_a1_cellar_rats', 'cmm_a1_herb_gather', 'cmm_a1_town_letter'];
     expect(Object.values(gs(t.g).postings).some((p) => held.includes(p.template))).toBe(false);
     // the quest stands ready at Bron's (its own objectives are the quests system's tests)

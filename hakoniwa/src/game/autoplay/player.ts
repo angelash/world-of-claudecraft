@@ -43,6 +43,7 @@ import { gearUpgrade } from './goods';
 import { insideLocation, locationPoint, nextLeg } from './nav';
 import { modelObjectivePlan } from './objective_plan';
 import { upcomingWaveBosses } from './prepare';
+import { gatedObjective } from './quest_gates';
 import { ReachMemory } from './reach';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
@@ -809,10 +810,11 @@ export class Autoplayer {
         return this.talk(o.npc, undefined, why);
       }
       case 'kill': {
-        if (o.ref && this.holds(o.orWhen)) return -20;
+        if (o.ref && o.orWhen && this.holds(o.orWhen)) return -20;
         const named = o.ref ?? (o.refs?.length === 1 ? o.refs[0] : undefined);
-        // not ready: level first, unless no prey is left anywhere (the fight is the way on)
-        if (named && !this.readyFor(named) && this.huntingGround())
+        // not ready for a ranked fight: level first, unless no prey is left anywhere (the fight
+        // is the way on); a plain monster a quest names is hunted like any other prey
+        if (named && this.ranked(named) && !this.readyFor(named) && this.huntingGround())
           return this.grind(`${why} (not ready)`);
         if (named && !this.fitFor(3) && attackers(this.world).length === 0) {
           return this.rest(`${why}: rest to full before the fight`);
@@ -850,7 +852,9 @@ export class Autoplayer {
       case 'level':
         return this.grind(why);
     }
-    // the objective kinds of the quest model (objective_plan.ts)
+    // the objective kinds of the quest model (objective_plan.ts); gated ones first (quest_gates.ts)
+    const gated = gatedObjective(this, o, why);
+    if (gated !== undefined) return gated;
     const plan = modelObjectivePlan(o);
     if (plan?.kind === 'talk' && plan.option) {
       const key = `${plan.npc}:${plan.option}`;

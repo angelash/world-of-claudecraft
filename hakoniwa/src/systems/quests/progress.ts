@@ -83,7 +83,8 @@ export function enterStage(ctx: SystemContext, def: QuestDef, q: QuestProgress, 
   startStageObjectives(ctx, stage);
   // A scene objective whose scene was already seen counts at once.
   stage.objectives.forEach((o, i) => {
-    if (o.type === 'scene' && ctx.world.slices.quests.scenesSeen.includes(o.scene)) q.met[i] = true;
+    if (o.type === 'scene' && ctx.world.slices.quests.scenesSeen.includes(o.scene))
+      markMet(ctx, def, q, i);
   });
   checkStage(ctx, def, q);
 }
@@ -121,8 +122,14 @@ export function markMet(ctx: SystemContext, def: QuestDef, q: QuestProgress, i: 
   if (q.met[i]) return;
   q.met[i] = true;
   ctx.emit('quest.progress', { questId: def.id, objective: i, done: true });
-  const path = currentStage(def, q)?.objectives[i]?.path;
-  if (path) setPath(ctx, def, q, path);
+  metEffects(ctx, def, q, i);
+}
+
+/** An objective was just met: its solution path and its own world writes (effects). */
+export function metEffects(ctx: SystemContext, def: QuestDef, q: QuestProgress, i: number): void {
+  const o = currentStage(def, q)?.objectives[i];
+  if (o?.path) setPath(ctx, def, q, o.path);
+  if (o?.effects) applyEffects(ctx, o.effects);
 }
 
 /** Write the solution path taken (quest.<id>.path). */
@@ -255,7 +262,7 @@ export function bump(ctx: SystemContext, match: (o: Objective) => boolean, amoun
       ctx.emit('quest.progress', { questId: def.id, objective: i, done });
       if (done) {
         q.met[i] = true;
-        if (o.path) setPath(ctx, def, q, o.path);
+        metEffects(ctx, def, q, i);
       }
       changed = true;
     });

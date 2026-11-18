@@ -85,13 +85,18 @@ describe('triggers and omens', () => {
     const o = omen as AnyWorldEvent;
     expect(dayOf(l[0] as AnyWorldEvent) - dayOf(o)).toBeGreaterThanOrEqual(3);
     expect(flags(t.g)['ev.ev_a1_beast_season']).toBe('active');
+    expect(flags(t.g).a1_beast_season).toBe(true);
     const salt = t.g.world.slices.modifiers.active.find(
       (m) => m.source === 'ev_a1_beast_season' && m.key === 'salt',
     );
     expect(salt).toMatchObject({ target: 'price', factor: 1.2, visibility: 'public' });
     hours(t, 24 * 36);
     expect(flags(t.g)['ev.ev_a1_beast_season']).toBe('ended');
-    expect(gs(t.g).events.active).toHaveLength(0);
+    expect(gs(t.g).events.active.filter((a) => a.template === 'ev_a1_beast_season')).toHaveLength(
+      0,
+    );
+    // the monster-season flag of the map A7 runs with the season (PK-M1-33)
+    expect(flags(t.g).a1_beast_season).toBe(false);
   });
 
   it("adds the event's extra postings of its kinds at the refill while it runs", () => {

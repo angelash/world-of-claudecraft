@@ -343,7 +343,7 @@
         "label": "光之鉴的裁决",
         "actor": "cassian",
         "week": 8,
-        "when": "quest.q_a1_m09_trial != active",
+        "when": "quest.q_a1_m09_trial != active OR NOT quest.q_a1_m09_trial.stage IN (prepare, verdict)",
         "hours": 6,
         "unless": "a1_oola_fate",
         "options": [
@@ -351,9 +351,25 @@
             "id": "convict",
             "label": "灯焰发灰，判定有罪，押送瓦伦堡教区",
             "effects": [
-              { "type": "add", "key": "church_suspicion", "amount": 15, "max": 100 },
-              { "type": "flag", "key": "a1_oola_fate", "value": "convicted" },
-              { "type": "flag", "key": "a1_cassian_report", "value": "convicted" }
+              {
+                "type": "add",
+                "key": "church_suspicion",
+                "amount": 15,
+                "max": 100,
+                "when": "NOT a1_oola_fate"
+              },
+              {
+                "type": "flag",
+                "key": "a1_cassian_report",
+                "value": "convicted",
+                "when": "NOT a1_oola_fate"
+              },
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "convicted",
+                "when": "NOT a1_oola_fate"
+              }
             ],
             "terms": {
               "stance": 0.8,
@@ -367,9 +383,25 @@
             "label": "收回指控，在周报里改写为泉水之疫",
             "when": "COUNT(a1_trial_evidence OR a1_spring_source_found, a1_trial_testimony OR a1_isa_will_testify OR a1_toma_will_testify, a1_lamp_exposed, a1_trial_debate) >= 2 OR (npc.cassian.doubt >= 1 AND COUNT(a1_trial_evidence OR a1_spring_source_found, a1_trial_testimony OR a1_isa_will_testify OR a1_toma_will_testify, a1_lamp_exposed, a1_trial_debate) >= 1) OR npc.cassian.doubt >= 2",
             "effects": [
-              { "type": "flag", "key": "a1_oola_fate", "value": "cleared" },
-              { "type": "add", "key": "npc.cassian.doubt", "amount": 2, "max": 3 },
-              { "type": "flag", "key": "a1_cassian_report", "value": "cleared" }
+              {
+                "type": "add",
+                "key": "npc.cassian.doubt",
+                "amount": 2,
+                "max": 3,
+                "when": "NOT a1_oola_fate"
+              },
+              {
+                "type": "flag",
+                "key": "a1_cassian_report",
+                "value": "cleared",
+                "when": "NOT a1_oola_fate"
+              },
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "cleared",
+                "when": "NOT a1_oola_fate"
+              }
             ],
             "terms": {
               "stance": 0.8,
@@ -699,6 +731,597 @@
             "when": "NOT a1_shiya_family"
           }
         ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d03_salt_and_potions",
+    "act": "act1",
+    "code": "A1-D03",
+    "parties": ["nera", "popo", "moss", "greta", "barga"],
+    "span": {
+      "from": 2,
+      "to": 10
+    },
+    "stages": [
+      {
+        "id": "hoard",
+        "label": "奈拉加倍收盐",
+        "escalation": 1,
+        "week": 2
+      },
+      {
+        "id": "price_up",
+        "label": "盐价涨了三成，药水缺货",
+        "escalation": 1,
+        "week": 4
+      },
+      {
+        "id": "price_doubled",
+        "label": "盐价翻倍，格蕾塔赊面粉被拒",
+        "escalation": 2,
+        "week": 5
+      },
+      {
+        "id": "exclusive",
+        "label": "商会独家，镇民在店门口抱怨",
+        "escalation": 2,
+        "week": 6
+      },
+      {
+        "id": "levy",
+        "label": "莫斯要求以官价征收药水给卫队",
+        "escalation": 3,
+        "week": 8
+      },
+      {
+        "id": "hold_or_release",
+        "label": "奈拉在想：持货待价，还是放货",
+        "escalation": 2,
+        "week": 9
+      }
+    ],
+    "decisions": [
+      {
+        "id": "nera_levy",
+        "label": "代官府的药水征收",
+        "actor": "nera",
+        "week": 8,
+        "hours": 24,
+        "unless": "npc.nera.stance",
+        "options": [
+          {
+            "id": "stall",
+            "label": "拖着不交，两头下注",
+            "terms": {
+              "stance": 0.8,
+              "relation": 0.5,
+              "safety": {
+                "base": 0.6,
+                "add": [
+                  {
+                    "when": "a1_moss_exposed",
+                    "value": 0.3
+                  }
+                ]
+              },
+              "values": 0.6
+            }
+          },
+          {
+            "id": "comply",
+            "label": "照官价交药，换代官府的照顾",
+            "terms": {
+              "stance": 0.3,
+              "relation": 0.3,
+              "safety": {
+                "base": 0.5,
+                "add": [
+                  {
+                    "when": "a1_moss_exposed",
+                    "value": -0.4
+                  }
+                ]
+              },
+              "values": 0.2
+            }
+          }
+        ]
+      }
+    ],
+    "settle": {
+      "week": 10,
+      "when": "quest.q_a1_s08_salt_price == done OR a1_tide_omen"
+    },
+    "outcomes": [
+      {
+        "id": "hostile",
+        "label": "打压：奈拉被当众揭了底，转而记恨",
+        "by": "player",
+        "when": "quest.q_a1_s08_salt_price.path IN (expose, side_moss)",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.nera.stance",
+            "value": "hostile"
+          }
+        ]
+      },
+      {
+        "id": "bought",
+        "label": "被收买：奈拉给了一份分成，镇上什么都没变",
+        "by": "player",
+        "when": "quest.q_a1_s08_salt_price.path == take_cut",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.nera.stance",
+            "value": "bought"
+          }
+        ]
+      },
+      {
+        "id": "partner",
+        "label": "合作：奈拉站到玩家一边，兽潮前平价放药",
+        "by": "player",
+        "when": "quest.q_a1_s08_salt_price.path == negotiate OR (quest.q_a1_s09_coin == done AND quest.q_gl_merca_01 == done)",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.nera.stance",
+            "value": "partner"
+          }
+        ]
+      },
+      {
+        "id": "neutral",
+        "label": "中立：兽潮夜三倍价卖药，给孤儿院赊账",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.nera.stance",
+            "value": "neutral",
+            "when": "NOT npc.nera.stance"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d05_tavern_eyes",
+    "act": "act1",
+    "code": "A1-D05",
+    "parties": ["martha", "dora"],
+    "span": {
+      "from": 1,
+      "to": 10
+    },
+    "stages": [
+      {
+        "id": "watching",
+        "label": "玛莎擦着杯子，什么都看在眼里",
+        "escalation": 0,
+        "week": 1
+      }
+    ],
+    "decisions": [],
+    "settle": {
+      "week": 11,
+      "when": "a1_beast_tide_cleared"
+    },
+    "outcomes": [
+      {
+        "id": "confided",
+        "label": "出手且私谈：天亮后她倒了一杯不收钱的酒",
+        "by": "player",
+        "when": "a1_martha_strike AND npc.martha.assessment >= 5",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_martha_drink",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "unacknowledged",
+        "label": "出手但不相认：她照常擦杯子",
+        "by": "world",
+        "when": "a1_martha_strike"
+      },
+      {
+        "id": "watched",
+        "label": "一直旁观：黎明时地上有一道整齐的刀痕",
+        "by": "world",
+        "default": true
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d06_bron_old_wound",
+    "act": "act1",
+    "code": "A1-D06",
+    "parties": ["bron", "hock"],
+    "span": {
+      "from": 1,
+      "to": 11
+    },
+    "stages": [
+      {
+        "id": "silent",
+        "label": "布伦清醒时什么都不说",
+        "escalation": 0,
+        "week": 1
+      },
+      {
+        "id": "badge",
+        "label": "旧铜牌回到了公会",
+        "escalation": 0,
+        "week": 1,
+        "when": "npc.bron.story_level >= 1"
+      },
+      {
+        "id": "half_told",
+        "label": "醉话说了一半",
+        "escalation": 1,
+        "week": 1,
+        "when": "npc.bron.story_level >= 2"
+      },
+      {
+        "id": "told",
+        "label": "他把二十年前的事讲完了",
+        "escalation": 0,
+        "week": 1,
+        "when": "npc.bron.story_level >= 3"
+      }
+    ],
+    "decisions": [],
+    "settle": {
+      "week": 12
+    },
+    "outcomes": [
+      {
+        "id": "full_story",
+        "label": "讲完了：探索队、灰里爬出的人、被烧掉的报告",
+        "by": "player",
+        "when": "npc.bron.story_level >= 3"
+      },
+      {
+        "id": "kept",
+        "label": "守密：他递来了那只旧手套",
+        "by": "world",
+        "when": "npc.bron.secret_kept"
+      },
+      {
+        "id": "reported",
+        "label": "上报：当晚他给公会大区写了信",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.bron.secret_kept",
+            "value": false,
+            "when": "a1_bron_sees_mark AND NOT npc.bron.secret_kept"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d07_bakery_betrothal",
+    "act": "act1",
+    "code": "A1-D07",
+    "parties": ["ped", "lisa", "vick", "nick"],
+    "span": {
+      "from": 4,
+      "to": 8
+    },
+    "stages": [
+      {
+        "id": "engaged",
+        "label": "广场上宣布了订婚",
+        "escalation": 1,
+        "week": 4
+      },
+      {
+        "id": "plea",
+        "label": "莉莎求了一次人",
+        "escalation": 1,
+        "week": 5
+      },
+      {
+        "id": "elope_night",
+        "label": "夜里的南门",
+        "escalation": 2,
+        "week": 7
+      },
+      {
+        "id": "wedding",
+        "label": "婚礼定在审判那一周",
+        "escalation": 2,
+        "week": 8
+      }
+    ],
+    "decisions": [],
+    "settle": {
+      "week": 9,
+      "when": "quest.q_a1_s10_lisa_bundle.path IN (ledger, pressure, elope) OR quest.q_a1_s11_otto_will.path == read_public"
+    },
+    "outcomes": [
+      {
+        "id": "eloped",
+        "label": "私奔：二人坐夜里的驿车去了瓦伦堡",
+        "by": "player",
+        "when": "quest.q_a1_s10_lisa_bundle.path == elope",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_lisa_nick",
+            "value": "eloped"
+          }
+        ]
+      },
+      {
+        "id": "broken",
+        "label": "毁约：佩德收回了许诺，维克丢了面子",
+        "by": "player",
+        "when": "quest.q_a1_s10_lisa_bundle.path IN (ledger, pressure) OR quest.q_a1_s11_otto_will.path == read_public",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_lisa_nick",
+            "value": "broken"
+          },
+          {
+            "type": "flag",
+            "key": "a1_vick_informant",
+            "value": true,
+            "when": "quest.q_a1_s10_lisa_bundle.path == pressure"
+          }
+        ]
+      },
+      {
+        "id": "married",
+        "label": "成婚：维克继续替莫斯做事，莉莎不幸",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_lisa_nick",
+            "value": "married",
+            "when": "NOT a1_lisa_nick"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d08_otto_mill",
+    "act": "act1",
+    "code": "A1-D08",
+    "parties": ["greta", "vick", "hock", "moss", "nera"],
+    "span": {
+      "from": 3,
+      "to": 9
+    },
+    "stages": [
+      {
+        "id": "will",
+        "label": "维克拿着代官盖章的遗嘱接手磨坊",
+        "escalation": 1,
+        "week": 3
+      },
+      {
+        "id": "hunger",
+        "label": "孤儿院到了断粮的边上",
+        "escalation": 2,
+        "week": 5
+      },
+      {
+        "id": "mortgage",
+        "label": "磨坊被抵押给了商会",
+        "escalation": 2,
+        "week": 7
+      },
+      {
+        "id": "sick_risk",
+        "label": "孤儿院还在喝北泉的水",
+        "escalation": 2,
+        "week": 9
+      }
+    ],
+    "decisions": [
+      {
+        "id": "vick_mortgage",
+        "label": "磨坊的抵押",
+        "actor": "vick",
+        "week": 7,
+        "hours": 24,
+        "unless": "quest.q_a1_s11_otto_will.path IN (read_public, tell_nera)",
+        "options": [
+          {
+            "id": "mortgage",
+            "label": "把磨坊抵押给商会，先换现钱",
+            "terms": {
+              "stance": 0.7,
+              "relation": 0.4,
+              "safety": 0.7,
+              "values": 0.3
+            }
+          },
+          {
+            "id": "keep",
+            "label": "自己留着磨坊",
+            "terms": {
+              "stance": 0.4,
+              "relation": 0.4,
+              "safety": {
+                "base": 0.5,
+                "add": [
+                  {
+                    "when": "a1_moss_exposed",
+                    "value": 0.3
+                  }
+                ]
+              },
+              "values": 0.3
+            }
+          }
+        ]
+      }
+    ],
+    "settle": {
+      "week": 10,
+      "when": "quest.q_a1_s11_otto_will == done"
+    },
+    "outcomes": [
+      {
+        "id": "orphanage",
+        "label": "孤儿院得磨坊：改喝磨坊的井水",
+        "by": "player",
+        "when": "quest.q_a1_s11_otto_will.path IN (read_public, tell_nera)",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_mill_owner",
+            "value": "orphanage"
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "label": "商会持有：磨坊抵押了出去",
+        "by": "world",
+        "when": "dispute.q_a1_d08_otto_mill.choice.vick_mortgage == mortgage",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_mill_owner",
+            "value": "company"
+          }
+        ]
+      },
+      {
+        "id": "vick",
+        "label": "维克保住了磨坊",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_mill_owner",
+            "value": "vick",
+            "when": "NOT a1_mill_owner"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d09_market_theft",
+    "act": "act1",
+    "code": "A1-D09",
+    "parties": ["jed", "ako", "viro"],
+    "span": {
+      "from": 4,
+      "to": 8
+    },
+    "stages": [
+      {
+        "id": "thefts",
+        "label": "铜铃、银扣、钱袋接连失窃",
+        "escalation": 1,
+        "week": 4
+      },
+      {
+        "id": "accused",
+        "label": "杰德说他看见了阿柯",
+        "escalation": 1,
+        "week": 5
+      },
+      {
+        "id": "framed",
+        "label": "阿柯被关了一夜",
+        "escalation": 2,
+        "week": 6,
+        "when": "a1_ako_framed"
+      },
+      {
+        "id": "search",
+        "label": "卫队去东坡搜查",
+        "escalation": 3,
+        "week": 8,
+        "when": "a1_ako_framed"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "ako_flee",
+        "label": "被冤枉的阿柯",
+        "actor": "ako",
+        "week": 6,
+        "when": "a1_ako_framed",
+        "unless": "a1_jed_exposed",
+        "hours": 24,
+        "options": [
+          {
+            "id": "flee",
+            "label": "跑进林子里躲起来",
+            "terms": {
+              "stance": 0.6,
+              "relation": 0.3,
+              "safety": 0.8,
+              "values": 0.4
+            }
+          },
+          {
+            "id": "stay",
+            "label": "留在东坡，等人还他清白",
+            "terms": {
+              "stance": 0.4,
+              "relation": 0.6,
+              "safety": 0.3,
+              "values": 0.5
+            }
+          }
+        ]
+      }
+    ],
+    "settle": {
+      "week": 9,
+      "when": "a1_jed_exposed"
+    },
+    "outcomes": [
+      {
+        "id": "exposed",
+        "label": "杰德被揭发：他供出了骰子屋",
+        "by": "player",
+        "when": "a1_jed_exposed AND quest.q_a1_s12_copper_bell.path IN (asked_ako, bait)"
+      },
+      {
+        "id": "framed",
+        "label": "阿柯被冤：东坡的怨气更深了",
+        "by": "world",
+        "default": true,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_ako_framed",
+            "value": true,
+            "when": "NOT a1_jed_exposed"
+          }
+        ]
+      },
+      {
+        "id": "returned",
+        "label": "物归原主：那个怪人养了只会偷东西的乌鸦精",
+        "by": "player",
+        "stack": true,
+        "when": "quest.q_a1_s13_yeyu_hoard == done"
       }
     ]
   }

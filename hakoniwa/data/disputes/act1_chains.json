@@ -146,13 +146,260 @@
       { "id": "grey_wolf_seen", "week": 3, "effects": [] },
       { "id": "shed_burned", "week": 4, "unless": "a1_permit_revoked", "effects": [] },
       { "id": "arm_broken", "week": 5, "unless": "a1_boro_calmed", "effects": [] },
+      { "id": "den_spill", "week": 9, "unless": "a1_wolf_den == cleared", "effects": [] }
+    ]
+  },
+  {
+    "id": "q_a1_d03_salt_and_potions",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 23,
+    "title": "盐与药",
+    "desc": "商会分号的奈拉加倍收盐，药水也说缺货。镇上的人只看见价钱一天天往上走。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d03_salt_and_potions.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d03_salt_and_potions.by == player AND dispute.q_a1_d03_salt_and_potions.ending IN (partner, hostile)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d03_salt_and_potions.ending AND NOT (dispute.q_a1_d03_salt_and_potions.by == player AND dispute.q_a1_d03_salt_and_potions.ending IN (partner, hostile))"
+    },
+    "rewards": [{ "type": "xp", "amount": 300, "reason": "quest" }],
+    "defaults": [
+      { "id": "hoard", "week": 2, "effects": [] },
+      { "id": "price_up", "week": 4, "effects": [] },
+      { "id": "price_doubled", "week": 5, "effects": [] },
+      { "id": "exclusive", "week": 6, "effects": [] },
+      { "id": "probe", "week": 7, "effects": [] },
+      { "id": "levy", "week": 8, "effects": [] },
+      { "id": "hold_or_release", "week": 9, "effects": [] }
+    ]
+  },
+  {
+    "id": "q_a1_d05_tavern_eyes",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 24,
+    "title": "酒馆的眼睛",
+    "desc": "醉月亭的老板娘玛莎什么都看在眼里，可她从不说出来。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d05_tavern_eyes.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d05_tavern_eyes.by == player AND dispute.q_a1_d05_tavern_eyes.ending IN (confided)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d05_tavern_eyes.ending AND NOT (dispute.q_a1_d05_tavern_eyes.by == player AND dispute.q_a1_d05_tavern_eyes.ending IN (confided))"
+    },
+    "rewards": [{ "type": "xp", "amount": 250, "reason": "quest" }],
+    "defaults": [
+      {
+        "id": "weak",
+        "week": 8,
+        "effects": [
+          {
+            "type": "add",
+            "key": "npc.martha.assessment",
+            "amount": 2,
+            "min": -5,
+            "max": 10,
+            "when": "a1_oola_fate == cleared OR quest.q_a1_s19_door_in_you.path == kept"
+          },
+          {
+            "type": "add",
+            "key": "npc.martha.assessment",
+            "amount": -2,
+            "min": -5,
+            "max": 10,
+            "when": "quest.q_a1_s19_door_in_you.path == betrayed"
+          }
+        ]
+      },
+      {
+        "id": "wind",
+        "week": 10,
+        "effects": [
+          {
+            "type": "add",
+            "key": "npc.martha.assessment",
+            "amount": 1,
+            "min": -5,
+            "max": 10,
+            "when": "a1_tide_prep.east_fence OR a1_tide_prep.nera_stock OR a1_tide_prep.eastslope_in OR a1_tide_prep.children_safe OR a1_tide_prep.oola_placed OR a1_tide_prep.barto_seg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d06_bron_old_wound",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 25,
+    "title": "布伦的旧伤",
+    "desc": "老布伦少了一条胳膊。二十年前那支探索队的事，他清醒的时候一个字都不说。",
+    "trigger": "quest.q_a1_m03_register == done AND NOT dispute.q_a1_d06_bron_old_wound.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d06_bron_old_wound.by == player AND dispute.q_a1_d06_bron_old_wound.ending IN (full_story)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d06_bron_old_wound.ending AND NOT (dispute.q_a1_d06_bron_old_wound.by == player AND dispute.q_a1_d06_bron_old_wound.ending IN (full_story))"
+    },
+    "rewards": [{ "type": "xp", "amount": 250, "reason": "quest" }],
+    "defaults": [
+      {
+        "id": "full_telling",
+        "week": 7,
+        "effects": [
+          {
+            "type": "flag",
+            "key": "npc.bron.story_level",
+            "value": 3,
+            "when": "npc.bron.story_level >= 2 AND trust.bron >= 70"
+          }
+        ]
+      },
+      {
+        "id": "witness",
+        "week": 8,
+        "effects": [
+          {
+            "type": "add",
+            "key": "npc.cassian.doubt",
+            "amount": 1,
+            "max": 3,
+            "when": "trust.bron >= 60 AND NOT a1_oola_fate"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "q_a1_d07_bakery_betrothal",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 26,
+    "title": "面包房的婚约",
+    "desc": "面包房的佩德把女儿莉莎许给了书记官维克。代官许诺过免税。",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 4 AND NOT dispute.q_a1_d07_bakery_betrothal.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d07_bakery_betrothal.by == player AND dispute.q_a1_d07_bakery_betrothal.ending IN (broken, eloped)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d07_bakery_betrothal.ending AND NOT (dispute.q_a1_d07_bakery_betrothal.by == player AND dispute.q_a1_d07_bakery_betrothal.ending IN (broken, eloped))"
+    },
+    "rewards": [{ "type": "xp", "amount": 200, "reason": "quest" }],
+    "defaults": [
+      { "id": "engaged", "week": 4, "effects": [] },
+      { "id": "plea", "week": 5, "effects": [] },
+      { "id": "elope_night", "week": 7, "effects": [] },
+      { "id": "wedding", "week": 8, "effects": [] }
+    ]
+  },
+  {
+    "id": "q_a1_d08_otto_mill",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 27,
+    "title": "奥托磨坊的遗产",
+    "desc": "老磨坊主奥托死了。维克拿着一份盖了代官印的遗嘱接手了磨坊，孤儿院眼看要断粮。",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 3 AND NOT dispute.q_a1_d08_otto_mill.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d08_otto_mill.by == player AND dispute.q_a1_d08_otto_mill.ending IN (orphanage)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d08_otto_mill.ending AND NOT (dispute.q_a1_d08_otto_mill.by == player AND dispute.q_a1_d08_otto_mill.ending IN (orphanage))"
+    },
+    "rewards": [{ "type": "xp", "amount": 200, "reason": "quest" }],
+    "defaults": [
+      { "id": "will", "week": 3, "effects": [] },
+      { "id": "hunger", "week": 5, "effects": [] },
+      { "id": "mortgage", "week": 7, "effects": [] },
+      { "id": "sick_risk", "week": 9, "effects": [] }
+    ]
+  },
+  {
+    "id": "q_a1_d09_market_theft",
+    "act": "act1",
+    "kind": "dispute",
+    "order": 28,
+    "title": "集市失窃案",
+    "desc": "集市接连丢东西。卫队盯上了东坡的阿柯。",
+    "trigger": "quest.q_a1_m03_register == done AND act_week >= 4 AND NOT dispute.q_a1_d09_market_theft.ending",
+    "stages": [
+      {
+        "id": "unfold",
+        "desc": "没人插手，这件事也会自己走到头。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dispute.q_a1_d09_market_theft.by == player AND dispute.q_a1_d09_market_theft.ending IN (exposed)",
+            "label": "插手这件事，让它换一个收场"
+          }
+        ]
+      }
+    ],
+    "byOther": {
+      "when": "dispute.q_a1_d09_market_theft.ending AND NOT (dispute.q_a1_d09_market_theft.by == player AND dispute.q_a1_d09_market_theft.ending IN (exposed))"
+    },
+    "rewards": [{ "type": "xp", "amount": 200, "reason": "quest" }],
+    "defaults": [
+      { "id": "thefts", "week": 4, "effects": [] },
+      { "id": "jed_accuses", "week": 5, "effects": [] },
       {
         "id": "ako_framed",
         "week": 6,
         "unless": "a1_jed_exposed",
         "effects": [{ "type": "flag", "key": "a1_ako_framed", "value": true }]
       },
-      { "id": "den_spill", "week": 9, "unless": "a1_wolf_den == cleared", "effects": [] }
+      { "id": "eastslope_search", "week": 8, "unless": "a1_jed_exposed", "effects": [] }
     ]
   }
 ]
