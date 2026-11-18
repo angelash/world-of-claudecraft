@@ -1379,6 +1379,11 @@
     "radius": 3.5,
     "cooldown": 12,
     "effects": [{ "type": "damage", "amount": { "base": 15, "perLevel": 4 } }],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 2, "at": "each_member" },
+      "lead": 1.5,
+      "tier": "heavy"
+    },
     "ai": "aoe",
     "say": "头顶在响……"
   },
@@ -1430,6 +1435,12 @@
     "school": "shadow",
     "cooldown": 10,
     "effects": [{ "type": "damage", "amount": { "base": 10, "perLevel": 3 } }],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 4, "at": "self" },
+      "lead": 1.5,
+      "tier": "heavy",
+      "firstHalf": true
+    },
     "ai": "aoe"
   },
   {
@@ -1443,6 +1454,11 @@
       { "type": "damage", "amount": { "base": 5, "perLevel": 2 } },
       { "type": "knockback", "distance": 3 }
     ],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 3, "at": "self" },
+      "lead": 1.2,
+      "tier": "normal"
+    },
     "ai": "aoe"
   },
   {
@@ -1470,6 +1486,12 @@
       { "type": "damage", "amount": { "base": 10, "perLevel": 3 } },
       { "type": "aura", "aura": "aur_mon_stompstun" }
     ],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 3, "at": "self" },
+      "lead": 1.2,
+      "tier": "normal"
+    },
+    "dr": "stun_proc",
     "ai": "aoe"
   },
   {
@@ -1481,6 +1503,18 @@
     "school": "shadow",
     "cooldown": 18,
     "effects": [{ "type": "aura", "aura": "aur_mon_ashtideslow" }],
+    "telegraph": {
+      "shape": {
+        "kind": "pulse",
+        "radius": 4,
+        "every": 1,
+        "duration": 8,
+        "firstDelay": 1.2,
+        "at": "self"
+      },
+      "lead": 1.2,
+      "tier": "normal"
+    },
     "ai": "aoe"
   },
   {
@@ -1502,6 +1536,12 @@
     "castTime": 3.5,
     "cooldown": 25,
     "effects": [{ "type": "damage", "amount": { "base": 30, "perLevel": 6 } }],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 6, "at": "target" },
+      "lead": 2,
+      "tier": "lethal",
+      "fromAbove": true
+    },
     "ai": "aoe",
     "priority": 5
   },
@@ -1677,5 +1717,42 @@
     "cooldown": 10,
     "effects": [{ "type": "damage", "amount": { "base": 8, "perLevel": 2.5 }, "threat": 2 }],
     "ai": "aoe"
+  },
+  {
+    "id": "sk_mon_cavein",
+    "name": "二次塌方",
+    "desc": "矿顶整片塌下来，砸向每一个人站的地方。",
+    "target": "area",
+    "radius": 6,
+    "cooldown": 30,
+    "effects": [{ "type": "damage", "amount": { "base": 30, "perLevel": 8 } }],
+    "telegraph": {
+      "shape": { "kind": "circle", "radius": 2.5, "at": "each_member" },
+      "lead": 2,
+      "tier": "lethal"
+    },
+    "ai": "never"
+  },
+  {
+    "id": "sk_mon_doordrain",
+    "name": "汲门",
+    "desc": "它把手按向身上带着门纹的人，一口一口地汲取门的气息，越久越凶。",
+    "target": "enemy",
+    "range": 3,
+    "school": "shadow",
+    "castTime": 6,
+    "cooldown": 12,
+    "channel": { "ticks": 6, "ramp": 0.5 },
+    "effects": [{ "type": "damage", "school": "shadow", "amount": { "base": 5, "perLevel": 2 } }],
+    "ai": "never"
+  },
+  {
+    "id": "sk_mon_desperateheal",
+    "name": "绝境自愈",
+    "desc": "快撑不住时缩起身子回一口气，读条可被打断。",
+    "target": "self",
+    "castTime": 2,
+    "effects": [{ "type": "heal_pct", "pct": 0.2 }],
+    "ai": "never"
   }
 ]

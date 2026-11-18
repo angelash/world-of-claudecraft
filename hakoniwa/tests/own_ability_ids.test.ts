@@ -82,6 +82,25 @@ const LATER_AURAS = [
   'aur_st_injury_maimed_leg',
   'aur_st_injury_backlash',
   'aur_st_injury_relapse',
+  // the boss mechanics library (PK-M1-12, catalog 7.4)
+  'aur_st_stagger',
+  'aur_st_berserk',
+  // drunkenness (catalog 7.5; the crafting system keeps the layers)
+  'aur_st_drunk',
+];
+
+/**
+ * The boss mechanics library's own rows (PK-M1-12; combat_and_classes.md 10.8, 11): the
+ * second cave-in, the door drain and the desperate heal, and the template auras of the
+ * registry affixes (smoulder, corrode, pack frenzy, rumour, thorns).
+ */
+const LIBRARY_ABILITIES = ['sk_mon_cavein', 'sk_mon_doordrain', 'sk_mon_desperateheal'];
+const LIBRARY_AURAS = [
+  'aur_mon_smolder',
+  'aur_mon_corrode',
+  'aur_mon_packfrenzy',
+  'aur_mon_rumor',
+  'aur_mon_thorns',
 ];
 
 interface Mapped {
@@ -122,10 +141,10 @@ describe('the catalog numbering in the data', () => {
 
   it('holds exactly the catalog ids plus the act 1 imports, all prefixed', () => {
     expect(ABILITIES.map((a) => a.id).sort()).toEqual(
-      [...ABILITY_MAP.map((m) => m.to), ...IMPORTED_ABILITIES].sort(),
+      [...ABILITY_MAP.map((m) => m.to), ...IMPORTED_ABILITIES, ...LIBRARY_ABILITIES].sort(),
     );
     expect(AURAS.map((a) => a.id).sort()).toEqual(
-      [...AURA_MAP.map((m) => m.to), ...IMPORTED_AURAS, ...LATER_AURAS].sort(),
+      [...AURA_MAP.map((m) => m.to), ...IMPORTED_AURAS, ...LATER_AURAS, ...LIBRARY_AURAS].sort(),
     );
     expect(ABILITIES.filter((a) => !a.id.startsWith('sk_'))).toEqual([]);
     expect(AURAS.filter((a) => !a.id.startsWith('aur_'))).toEqual([]);
@@ -489,6 +508,14 @@ describe('a save written before the renumbering', () => {
       'ability units.*.rackOff.*',
       'monster units.*.monsterId',
       'item bags.*.items.*.itemId',
+      'ability units.*.firstHalf.*',
+      'ability units.*.boss.queued.*',
+      'monster units.*.boss.pending.*.monster',
+      'monster units.*.rise',
+      'item units.*.stolen.items.*.itemId',
+      'ability telegraphs.*.abilityId',
+      'aura telegraphs.*.aura',
+      'monster terrain.*.monsterId',
     ]);
   });
 

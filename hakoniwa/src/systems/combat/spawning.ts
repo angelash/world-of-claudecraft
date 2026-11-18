@@ -3,10 +3,13 @@
 // game minutes, registered monster modifiers (count by map id, strength by
 // `<mapId>:power`), scripted waves (flag combat.wave.<id> = 'go'), summons, corpses,
 // purification (pacifiedBy) and scripted removal (removeOnFlag), and the fixed
-// presences combat places itself (the gatekeeper Ash).
+// presences combat places itself (the gatekeeper Ash). A monster's data tags its entity
+// (11 `tags`), may hold its spawn to the night or a weather (a held spawn retries every game
+// hour), carries its registry auras from birth (affixes/life.ts), and a boss places its
+// arena objects (boss/terrain.ts). A corpse marked to rise comes back as its new kind.
 
 import type { SystemContext } from '../../core/system';
-import { TICKS_PER_GAME_MINUTE } from '../../core/time';
+import { TICKS_PER_GAME_HOUR, TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { applyModifiers } from '../modifiers';
 import {
   flagListMet,
@@ -21,7 +24,9 @@ import {
   walkMap,
 } from '../world';
 import type { MapDef, SpawnDef } from '../world/types';
+import { onSpawned, spawnAllowed } from './affixes';
 import { applyAura } from './auras';
+import { clearTerrain, placeTerrain } from './boss';
 import { DEFAULT_SPEED, fixtures, monsterDef, waveDef } from './defs';
 import { forgetAttacker } from './threat';
 import type { MonsterBrain, Side, Unit } from './types';
@@ -75,6 +80,7 @@ export function spawnMonster(
   if (def.rank && def.rank !== 'normal') tags.push(def.rank);
   if (def.rank === 'rare') tags.push('elite');
   if (def.race) tags.push(`race:${def.race}`);
+  for (const t of def.tags ?? []) if (!tags.includes(t)) tags.push(t);
   if (opts.summonerId) tags.push('summon');
   if (side === 'ally') tags.push('friendly');
   const e = spawnEntity(ctx, {
@@ -106,6 +112,8 @@ export function spawnMonster(
   if (opts.spawnKey) u.spawnKey = opts.spawnKey;
   if (opts.waveId) u.waveId = opts.waveId;
   for (const aura of def.mechanics?.passives ?? []) applyAura(ctx, u, aura, u, { permanent: true });
+  onSpawned(ctx, u, def);
+  if (!opts.summonerId && (def.mechanics?.terrain?.length ?? 0) > 0) placeTerrain(ctx, u);
   return u;
 }
 
@@ -157,6 +165,13 @@ function populate(ctx: SystemContext, map: MapDef, spawn: SpawnDef): void {
     0,
     Math.round(applyModifiers(ctx.world, 'monster', map.id, spawn.count ?? 1)),
   );
+  const def = monsterDef(ctx.content, spawn.ref);
+  if (def && !spawnAllowed(ctx, def)) {
+    // held to the night or a weather: try again in a game hour
+    while (state.alive.length + state.respawn.length < want)
+      state.respawn.push(ctx.tick + TICKS_PER_GAME_HOUR);
+    return;
+  }
   while (state.alive.length + state.respawn.length < want) {
     const u = placeOne(ctx, map, spawn, key);
     if (!u) break;
@@ -247,6 +262,8 @@ export function despawn(ctx: SystemContext, id: string): void {
   delete slice.units[id];
   delete slice.corpses[id];
   removeEntity(ctx, id);
+  // a boss that leaves takes its arena objects along
+  if (slice.terrain) clearTerrain(ctx, id);
 }
 
 /** Corpses, respawns, yielded departures, and wave completion. Runs once a second. */
@@ -256,7 +273,11 @@ export function tickSpawns(ctx: SystemContext): void {
     if ((slice.corpses[id] ?? 0) > ctx.tick) continue;
     const u = slice.units[id];
     const key = u?.spawnKey;
+    const rise = u?.rise;
+    const at = getEntity(ctx.world, id);
     despawn(ctx, id);
+    // a corpse on dense sediment gets up as its risen kind (11 `corpseRise`)
+    if (rise && at) spawnMonster(ctx, rise, at.mapId, at.x, at.y);
     const point = key ? spawnPointFor(ctx, key) : undefined;
     const st = key ? slice.spawns[key] : undefined;
     if (point && st && point.spawn.respawnMinutes !== undefined) {
@@ -271,6 +292,11 @@ export function tickSpawns(ctx: SystemContext): void {
     st.respawn = st.respawn.filter((t) => t > ctx.tick);
     const point = spawnPointFor(ctx, key);
     if (!point || !flagsMet(ctx, point.spawn.requiresFlags)) continue;
+    const def = monsterDef(ctx.content, point.spawn.ref);
+    if (def && !spawnAllowed(ctx, def)) {
+      for (let i = 0; i < due.length; i++) st.respawn.push(ctx.tick + TICKS_PER_GAME_HOUR);
+      continue;
+    }
     for (let i = 0; i < due.length; i++) {
       const u = placeOne(ctx, point.map, point.spawn, key);
       if (u) st.alive.push(u.id);

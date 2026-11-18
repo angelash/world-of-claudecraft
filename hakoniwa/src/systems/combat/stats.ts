@@ -2,7 +2,9 @@
 // equipment (inventory `equippedDefs`), door bonuses and auras. Computed on demand;
 // units are few and the inputs are small, so nothing is cached between ticks. Auras of one
 // group count only their strongest member (8.2); an aura with `byStacks` takes the entry of
-// its stack count. Enemy-side health carries the difficulty's factor (16).
+// its stack count. Enemy-side health carries the difficulty's factor (16). A maimed arm
+// cannot wield a two-handed weapon (9.4: it strikes bare-handed, weapon skills refused); a
+// frenzied monster swings faster the less health it has left (11 `frenzyOnHit`).
 
 import type { ContentMap } from '../../core/contracts';
 import type { World } from '../../core/world';
@@ -47,6 +49,8 @@ export interface Derived {
   weapon: Weapon;
   /** the main-hand weapon item in use (none while disarmed or empty-handed) */
   mainHand: ItemDef | undefined;
+  /** a two-handed weapon is worn but the arm cannot hold it (a maimed arm, 9.4) */
+  twoHandLocked: boolean;
   /** the chest piece worn */
   chest: ItemDef | undefined;
   mods: Required<AuraMods>;
@@ -105,6 +109,9 @@ function emptyMods(): Required<AuraMods> {
     doorSkillCost: 0,
     ccDurationDone: 0,
     ccDurationTaken: 0,
+    hpRegen: 0,
+    manaRegen: 0,
+    doorSkillCooldown: 0,
   };
 }
 
@@ -186,10 +193,12 @@ export function deriveStats(world: World, content: ContentMap, u: Unit): Derived
   for (const b of Object.values(u.bonuses)) addStats(stats, b);
 
   let slow = 0;
+  let noTwoHand = false;
   const auras = u.auras.length > 0 ? countedAuras(content, u.auras) : u.auras;
   for (const a of auras) {
     const def = auraDef(content, a.id);
     if (!def) continue;
+    if (def.noTwoHand) noTwoHand = true;
     if (def.stats) addStats(stats, def.stats, a.stacks);
     if (def.statsPerLevel) addStats(stats, def.statsPerLevel, a.stacks * a.lvl);
     const e = auraEffect(def, a.stacks, a.scale ?? 1);
@@ -208,10 +217,13 @@ export function deriveStats(world: World, content: ContentMap, u: Unit): Derived
   let hasShield = false;
   let mainHand: ItemDef | undefined;
   let chest: ItemDef | undefined;
+  let twoHandLocked = false;
   if (u.classId) {
     for (const item of equippedDefs(world, content, u.id)) {
       if (item.stats) addStats(stats, item.stats);
-      if (item.slot === 'main_hand' && item.weapon && !cc.disarm) {
+      const twoHand = item.tags?.includes('two_hand') ?? false;
+      if (item.slot === 'main_hand' && item.weapon && noTwoHand && twoHand) twoHandLocked = true;
+      if (item.slot === 'main_hand' && item.weapon && !cc.disarm && !(noTwoHand && twoHand)) {
         mainHand = item;
         weapon = {
           min: item.weapon.min,
@@ -265,6 +277,12 @@ export function deriveStats(world: World, content: ContentMap, u: Unit): Derived
   stats.ap += attackPower(cls?.apFrom ?? 'str_agi', stats.str, stats.agi);
   stats.sp += spellPowerFromInt(stats.int);
   stats.haste += mods.haste * 100;
+  const frenzy = mon?.mechanics?.frenzyOnHit;
+  if (frenzy && maxHp > 0) {
+    // the less health left, the faster it swings: amount per missing tenth, up to max
+    const missing = Math.max(0, Math.min(1, 1 - u.hp / maxHp));
+    stats.haste += Math.min(frenzy.max, frenzy.amount * missing * 10) * 100;
+  }
 
   if (cls?.resource === 'mana') {
     maxRes.mana = Math.round(
@@ -292,6 +310,7 @@ export function deriveStats(world: World, content: ContentMap, u: Unit): Derived
     maxRes,
     weapon,
     mainHand,
+    twoHandLocked,
     chest,
     mods,
     cc,

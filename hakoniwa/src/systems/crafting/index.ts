@@ -29,7 +29,6 @@ import {
   validateCraftingSlice,
 } from './slice';
 import type { CraftingConfig, GatherNodeDef, RecipeDef, StationDef } from './types';
-import './use_gate';
 
 export * from './craft';
 export * from './drink';

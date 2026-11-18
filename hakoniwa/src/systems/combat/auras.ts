@@ -51,6 +51,15 @@ export interface ApplyOpts {
   lockout?: boolean;
   /** no `resisted` event when the control part is refused (a field refreshed every second) */
   silent?: boolean;
+  /**
+   * A state, not a control (10.4: a boss's stagger from terrain or a broken shield): it lands
+   * through every immunity and outside the ladders, like a lockout.
+   */
+  state?: boolean;
+  /** the periodic amount per tick, the absorb and the thorns, as given (registry affixes, 11) */
+  power?: number;
+  absorb?: number;
+  thorns?: number;
 }
 
 /** Whether an aura does anything besides its slow (a slow-immune target keeps the rest). */
@@ -93,7 +102,7 @@ export function applyAura(
   // a control goes through immunity and the ladders, also one a unit lays on itself
   let ccOff = false;
   let drLanded = 0;
-  if (kind && !opts.lockout && (src !== target || def.kind === 'debuff')) {
+  if (kind && !opts.lockout && !opts.state && (src !== target || def.kind === 'debuff')) {
     const sd0 = deriveStats(ctx.world, ctx.content, src);
     const td0 = deriveStats(ctx.world, ctx.content, target);
     const verdict = resolveControl(ctx.world, ctx.content, def, target, src, {
@@ -141,8 +150,19 @@ export function applyAura(
       scaled(def.pulse.damage, lvl, powerStat) * (1 + sd.mods.damageDealt) * mult,
     );
   }
-  const absorb = def.absorb ? Math.round(scaled(def.absorb, lvl, sd.stats.sp) * mult) : undefined;
-  const thorns = def.thorns ? Math.max(1, scaled(def.thorns, lvl, 0) * mult) : undefined;
+  if (opts.power !== undefined && power !== undefined) power = Math.max(1, opts.power);
+  const absorb =
+    opts.absorb !== undefined
+      ? Math.max(1, Math.round(opts.absorb))
+      : def.absorb
+        ? Math.round(scaled(def.absorb, lvl, sd.stats.sp) * mult)
+        : undefined;
+  const thorns =
+    opts.thorns !== undefined
+      ? Math.max(1, opts.thorns)
+      : def.thorns
+        ? Math.max(1, scaled(def.thorns, lvl, 0) * mult)
+        : undefined;
   const every = def.periodic?.every ?? def.pulse?.every;
   const perSource = !!def.perSource && !!def.periodic;
   const existing = target.auras.find(

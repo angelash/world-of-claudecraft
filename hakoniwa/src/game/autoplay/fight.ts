@@ -7,6 +7,7 @@
 import type { ContentMap } from '../../core/contracts';
 import type { World } from '../../core/world';
 import { abilityBar, isHostile, unitView } from '../../systems/combat';
+import { checkAbility } from '../../systems/combat/abilities';
 import type { AbilityDef, Unit } from '../../systems/combat/types';
 import { getEntity, playerEntity } from '../../systems/world';
 import type { Entity } from '../../systems/world/types';
@@ -126,6 +127,25 @@ export function playerMana(world: World, content: ContentMap): number {
   return mana && mana.max > 0 ? mana.cur / mana.max : 1;
 }
 
+/** The companion on the player's map with the least health left, if any is hurt. */
+export function companionInNeed(
+  world: World,
+  content: ContentMap,
+): { id: string; frac: number } | null {
+  const p = playerEntity(world);
+  let best: { id: string; frac: number } | null = null;
+  for (const m of Object.values(world.slices.party?.members ?? {})) {
+    if (!m.entityId || !alive(world, m.entityId)) continue;
+    const e = getEntity(world, m.entityId);
+    if (!e || !p || e.mapId !== p.mapId) continue;
+    const v = unitView(world, content, m.entityId);
+    if (!v || v.maxHp <= 0) continue;
+    const frac = v.hp / v.maxHp;
+    if (frac < 1 && (!best || frac < best.frac - 1e-9)) best = { id: m.entityId, frac };
+  }
+  return best;
+}
+
 /** The player's health as a fraction (1 when unknown). */
 export function playerHealth(world: World, content: ContentMap): number {
   const v = unitView(world, content, world.slices.world.playerId);
@@ -182,6 +202,37 @@ export function chooseAbility(
     }
     if (use === 'defensive' && hp < 0.5 && enemiesClose > 0) return { abilityId: d.id };
   }
+  // 1a. the target's cast bar shows an interruptible cast (a boss healing itself): stop it
+  const tCast = targetId ? unitView(world, content, targetId)?.cast : undefined;
+  if (tCast?.interruptible && targetId) {
+    const kicks = slots
+      .map((s) => content.abilities.find((a) => a.id === s.id))
+      .filter((d): d is AbilityDef => !!d && (d.ai ?? 'filler') === 'interrupt')
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.id.localeCompare(b.id));
+    for (const d of kicks) {
+      if (d.target !== 'enemy' || dist > reach(d)) continue;
+      return { abilityId: d.id, targetId };
+    }
+  }
+  // 1b. a companion in trouble: the player's ally heals keep the party standing
+  const ward = companionInNeed(world, content);
+  if (ward) {
+    for (const d of defs) {
+      const use = d.ai ?? 'filler';
+      if (d.target !== 'ally') continue;
+      const te2 = getEntity(world, ward.id);
+      if (!te2 || gapBetween(pe, te2) > (d.range ?? 0)) continue;
+      // the bar reads usability against the player; the ward may refuse it (a shield's lockout)
+      if (!checkAbility(world, content, me, d.id, ward.id).ok) continue;
+      if ((use === 'heal' || use === 'emergency' || use === 'shield') && ward.frac < 0.45) {
+        if (use === 'shield' && hasAura(unitsOf(world)[ward.id], auraOf(d))) continue;
+        return { abilityId: d.id, targetId: ward.id };
+      }
+      if (use === 'hot' && ward.frac < 0.7 && !hasAura(unitsOf(world)[ward.id], auraOf(d))) {
+        return { abilityId: d.id, targetId: ward.id };
+      }
+    }
+  }
   // 2. buffs that are missing
   for (const d of defs) {
     if ((d.ai ?? 'filler') !== 'buff') continue;
@@ -203,6 +254,35 @@ export function chooseAbility(
     if (use === 'finisher' && me.combo < 3 && tFrac > 0.2) continue;
     if (use === 'aoe' && enemiesClose < 2) continue;
     return { abilityId: d.id, targetId: d.target === 'enemy' ? targetId : undefined };
+  }
+  return null;
+}
+
+/**
+ * The player's own heal for this moment, or null: the highest-priority usable heal, shield
+ * or heal-over-time on the ability bar that targets the player (an over-time or a shield
+ * only when its aura is not already up). Read off the bar, as the player would.
+ */
+export function selfHeal(
+  world: World,
+  content: ContentMap,
+  opts: { shield?: boolean } = {},
+): { abilityId: string; targetId?: string } | null {
+  const pid = world.slices.world.playerId;
+  const me = unitsOf(world)[pid];
+  if (!me || me.cast) return null;
+  const defs = abilityBar(world, content)
+    .filter((s) => s.usable)
+    .map((s) => content.abilities.find((a) => a.id === s.id))
+    .filter((d): d is AbilityDef => !!d)
+    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.id.localeCompare(b.id));
+  for (const d of defs) {
+    const use = d.ai ?? 'filler';
+    if (d.target !== 'self' && d.target !== 'party' && d.target !== 'ally') continue;
+    if (use !== 'heal' && use !== 'emergency' && use !== 'hot' && use !== 'shield') continue;
+    if (use === 'shield' && opts.shield === false) continue;
+    if ((use === 'hot' || use === 'shield') && hasAura(me, auraOf(d))) continue;
+    return { abilityId: d.id, targetId: d.target === 'ally' ? pid : undefined };
   }
   return null;
 }
@@ -240,6 +320,41 @@ export function pullCost(world: World, targetId: string): number {
     cost += 1.3 ** Math.max(-4, Math.min(6, u.level - me.level));
   }
   return cost;
+}
+
+/**
+ * Whether the companions walking with the player are all back on their feet and fit for a
+ * named fight: none down (a downed companion gets back up once the party has been calm a
+ * while, party 7.6) and each at least at `minHealth` of its health. Companions away from the
+ * player's map (resting, waiting at a gate) do not count. True with no companions.
+ */
+export function companionsReady(world: World, content: ContentMap, minHealth = 0.8): boolean {
+  const p = playerEntity(world);
+  if (!p) return true;
+  for (const m of Object.values(world.slices.party?.members ?? {})) {
+    // only those walking with the party count (a roster may also hold standby or resting ones)
+    if (((m as { state?: string }).state ?? 'party') !== 'party') continue;
+    // one in the party with no body in the world is not standing with it
+    const u = m.entityId ? unitsOf(world)[m.entityId] : undefined;
+    const e = m.entityId ? getEntity(world, m.entityId) : undefined;
+    if (!u || !e) return false;
+    if (e.mapId !== p.mapId) continue;
+    if (u.downed || !e.alive || e.hidden) return false;
+    // just back on its feet (party 7.6) or otherwise weakened for a while: not fit yet
+    if (weakened(content, u)) return false;
+    const v = unitView(world, content, m.entityId);
+    if (v && v.maxHp > 0 && v.hp / v.maxHp < minHealth) return false;
+  }
+  return true;
+}
+
+/** A timed state debuff on the unit that lowers what it deals (a getting-up weakness). */
+function weakened(content: ContentMap, u: Unit): boolean {
+  return u.auras.some((a) => {
+    if (a.expires === 0) return false;
+    const def = content.auras.find((d) => d.id === a.id);
+    return def?.kind === 'debuff' && def.category === 'state' && (def.mods?.damageDealt ?? 0) < 0;
+  });
 }
 
 /** What the party can take on at once, in pullCost units. */

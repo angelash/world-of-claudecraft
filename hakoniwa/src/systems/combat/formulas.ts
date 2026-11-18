@@ -355,6 +355,8 @@ export function fearBreakChance(damage: number, maxHp: number, scale = 0.1): num
 /** Classic spell pushback (3.9): half a second per hit, at most twice per cast. */
 export const PUSHBACK_SEC = 0.5;
 export const MAX_PUSHBACKS = 2;
+/** A hit on a channel takes this share of what is left of it (3.9). */
+export const CHANNEL_PUSHBACK = 0.25;
 
 // ---------------------------------------------------------------------------
 // Standard amount, the skill rack, party size (combat_and_classes.md 3.1, 7, 5.5)
@@ -431,3 +433,55 @@ export const DROP_BAG_DAYS = 3;
 export const RETURN_FATIGUE_FLOOR = 60;
 /** Share of a monster's health the player's side must deal for the credit (8.5). */
 export const CREDIT_SHARE = 0.1;
+
+// ---------------------------------------------------------------------------
+// Boss kill-time targets (combat_and_classes.md 17.3, 17.4) and the hard enrage (10.5)
+
+/** Health multiple of each boss layer over a normal monster (5.5; tutorial as an elite). */
+export const LAYER_HP: Readonly<Record<string, number>> = {
+  tutorial: 2.3,
+  lair: 8,
+  dungeon: 15,
+  raid: 30,
+  surge: 40,
+};
+
+/** Full party of each layer for the kill-time target (17.4: 1, 2.5, 4.5, 8, 8). */
+export const LAYER_PARTY: Readonly<Record<string, number>> = {
+  tutorial: 1,
+  lair: 2.5,
+  dungeon: 4.5,
+  raid: 8,
+  surge: 8,
+};
+
+/** Effective output of a party of 1 to 10 in standard outputs (17.3). */
+const EFFECTIVE: readonly number[] = [0, 1, 1.65, 2.65, 2.9, 3.9, 4.9, 5.9, 6.55, 6.8, 7.8];
+
+/** A party's effective output (17.3), interpolated for fractional sizes. */
+export function effectiveOutput(size: number): number {
+  const n = Math.max(1, Math.min(10, size));
+  const lo = Math.floor(n);
+  const hi = Math.min(10, lo + 1);
+  const a = EFFECTIVE[lo] ?? 1;
+  const b = EFFECTIVE[hi] ?? a;
+  return a + (b - a) * (n - lo);
+}
+
+/**
+ * The target kill time of a boss (17.4): layer health x party factor x the standard kill
+ * time (8 + L / 10) / the effective output of the party that fights it. The rat king (a
+ * dungeon lord, level 18, two of a full 4.5) gives 46.5 seconds.
+ */
+export function bossTargetKillTime(level: number, layer: string, actual?: number): number {
+  const hp = LAYER_HP[layer] ?? LAYER_HP.lair ?? 8;
+  const full = LAYER_PARTY[layer] ?? 2.5;
+  const n = actual ?? full;
+  const factor = Math.min(1, n / full) ** 0.8;
+  return (hp * factor * (8 + level / 10)) / effectiveOutput(n);
+}
+
+/** The hard enrage's default time (10.5): 2.5 target kill times, rounded to 5 seconds. */
+export function berserkSeconds(level: number, layer: string, actual?: number): number {
+  return Math.round((2.5 * bossTargetKillTime(level, layer, actual)) / 5) * 5;
+}

@@ -34,6 +34,7 @@ import type { ItemDef } from '../../systems/inventory';
 import type { WorldStart } from '../../systems/world';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack, FieldSchema } from '../pack';
+import { bossMechanicProblems } from './combat_boss_checks';
 import { ITEM_FIELDS } from './inventory';
 
 const maps = [
@@ -428,6 +429,15 @@ export function validateCombat(content: ContentMap): string[] {
     for (const s of mech?.summon ?? []) {
       if (!monsterIds.has(s.monster)) problems.push(`monster ${m.id}: unknown summon ${s.monster}`);
     }
+    // the arena locations a boss's objects stand at, on each map it spawns on (10.6)
+    for (const t of mech?.terrain ?? []) {
+      if (!t.at) continue;
+      for (const map of content.maps ?? []) {
+        if (!map.spawns.some((s) => s.kind === 'monster' && s.ref === m.id)) continue;
+        if (!map.locations.some((l) => l.id === t.at))
+          problems.push(`monster ${m.id}: object ${t.object} at ${t.at} missing on map ${map.id}`);
+      }
+    }
     if (mech?.partySync && typeof mech.partySync.offset !== 'number') {
       problems.push(`monster ${m.id}: partySync.offset must be a number`);
     }
@@ -439,6 +449,7 @@ export function validateCombat(content: ContentMap): string[] {
     }
   }
   problems.push(...monsterControlCaps(content));
+  problems.push(...bossMechanicProblems(content));
   for (const map of content.maps ?? []) {
     for (const s of map.spawns) {
       if (s.kind === 'monster' && !monsterIds.has(s.ref)) {

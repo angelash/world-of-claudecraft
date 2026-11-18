@@ -468,6 +468,13 @@
           "count": 2,
           "say": "（矿顶又塌下来一片。）"
         }
+      ],
+      "phases": [
+        {
+          "belowPct": 0.5,
+          "name": "二次塌方",
+          "onEnter": [{ "do": "cast", "ability": "sk_mon_cavein" }]
+        }
       ]
     },
     "loot": [
@@ -617,7 +624,36 @@
       },
       "yieldAtPct": 0.02,
       "yieldSay": "（它摔在巢上。黑色的灰从羽毛上一片片剥落，底下露出银色的羽根。）",
-      "removeOnFlag": "companion.yeyu.recruited"
+      "removeOnFlag": "companion.yeyu.recruited",
+      "terrain": [
+        {
+          "object": "stone_west",
+          "name": "松动的悬石",
+          "role": "breakable",
+          "offset": [-3, -3],
+          "hp": 0.05,
+          "radius": 4,
+          "effect": { "stagger": 3, "interrupt": true }
+        },
+        {
+          "object": "stone_east",
+          "name": "松动的悬石",
+          "role": "breakable",
+          "offset": [3, -3],
+          "hp": 0.05,
+          "radius": 4,
+          "effect": { "stagger": 3, "interrupt": true }
+        },
+        {
+          "object": "stone_south",
+          "name": "松动的悬石",
+          "role": "breakable",
+          "offset": [0, 4],
+          "hp": 0.05,
+          "radius": 4,
+          "effect": { "stagger": 3, "interrupt": true }
+        }
+      ]
     },
     "loot": [
       {
@@ -660,7 +696,7 @@
         {
           "belowPct": 0.7,
           "name": "裂解",
-          "abilities": ["sk_mon_dianfist", "sk_mon_ashshell", "sk_mon_ashrain", "sk_mon_stomp"]
+          "abilities": ["sk_mon_dianfist", "sk_mon_ashrain", "sk_mon_stomp"]
         },
         {
           "belowPct": 0.35,
@@ -684,6 +720,17 @@
         "belowPct": 0.35,
         "aura": "aur_st_enrage"
       },
+      "shields": [
+        {
+          "id": "ash_shell",
+          "trigger": { "phase": 1 },
+          "kind": "absorb",
+          "amount": { "base": 60, "perLevel": 20 },
+          "breakBy": "damage"
+        }
+      ],
+      "targeting": "doorSeek",
+      "doorSeek": { "range": 20, "fallbackTag": "door_mark", "channel": "sk_mon_doordrain" },
       "presence": 4,
       "partySync": {
         "offset": 0

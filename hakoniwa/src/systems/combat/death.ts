@@ -19,48 +19,57 @@
 
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_MINUTE } from '../../core/time';
-import { getEntity, haltEntity, mapById, respawnMap, setLife, teleportEntity } from '../world';
+import { getEntity, mapById, respawnMap, setLife, teleportEntity } from '../world';
 import type { Entity, LocationDef, MapDef } from '../world/types';
+import { onDied } from './affixes';
 import { applyAura, removeAurasWhere } from './auras';
+import { addsOf, bossDown, markResolved, runActions, terrainBroken } from './boss';
 import { deathWear, dropBag, witnessesOf } from './death_costs';
 import { CORPSE_TICKS, monsterDef, secs } from './defs';
 import { combatMod } from './difficulty';
 import { doorFatigueMinutes, RETURN_FATIGUE_FLOOR, revivalMinutes } from './formulas';
+import { injureRevived } from './injuries';
 import { award } from './rewards';
+import { standDown } from './stand_down';
 import { deriveStats } from './stats';
 import { forgetAttacker } from './threat';
 import type { PendingReturn, Unit } from './types';
-import { fillUp, refreshTags } from './units';
+import { fillUp } from './units';
 
 /** The revival-fatigue state of a return through the door (15.1). */
 export const REVIVAL_FATIGUE = 'aur_st_revival_fatigue';
 /** The tag of the location the player reforms at while the inner court is closed. */
 export const REVIVE_TAG = 'revive';
 
+/**
+ * The health line a monster yields at (10.7): its `yieldAtPct`, or a `yield` resolution's
+ * line in its `resolve` list.
+ */
+function yieldLine(mechanics: ReturnType<typeof monsterDef>): number | undefined {
+  const m = mechanics?.mechanics;
+  if (m?.yieldAtPct !== undefined) return m.yieldAtPct;
+  for (const r of m?.resolve ?? [])
+    if (r.way === 'yield' && typeof r.when === 'object' && 'belowPct' in r.when)
+      return r.when.belowPct;
+  return undefined;
+}
+
 /** Yield instead of dying when the monster's yield threshold is crossed. */
 export function maybeYield(ctx: SystemContext, u: Unit, source: Unit | null): boolean {
   const mon = monsterDef(ctx.content, u.monsterId);
-  const at = mon?.mechanics?.yieldAtPct;
+  const at = yieldLine(mon);
   if (at === undefined || !u.ai || u.ai.state === 'yielded') return false;
   const max = deriveStats(ctx.world, ctx.content, u).maxHp;
   if (u.hp > max * at) return false;
   u.hp = Math.max(1, Math.round(max * at));
-  u.ai.state = 'yielded';
-  u.ai.despawnAt =
+  standDown(
+    ctx,
+    u,
     mon?.mechanics?.despawnAfterYield !== undefined
       ? ctx.tick + secs(mon.mechanics.despawnAfterYield)
-      : 0;
-  u.side = 'neutral';
-  u.threat = {};
-  u.target = null;
-  u.autoAttack = false;
-  u.cast = null;
-  u.forced = undefined;
-  forgetAttacker(ctx.world, u.id);
-  removeAurasWhere(ctx, u, (a) => a.expires !== 0);
+      : 0,
+  );
   const e = getEntity(ctx.world, u.id);
-  haltEntity(ctx, u.id);
-  refreshTags(ctx, u);
   if (mon?.mechanics?.yieldSay && e) {
     ctx.emit('dialogue.line', {
       speakerId: u.id,
@@ -69,14 +78,39 @@ export function maybeYield(ctx: SystemContext, u: Unit, source: Unit | null): bo
       kind: 'say',
     });
   }
-  if (mon) ctx.setFlag(`boss.${mon.id}.yielded`, true);
-  award(ctx, u, source, true);
+  // the adds lay down with their master (10.7)
+  for (const add of addsOf(ctx, u)) standDown(ctx, add);
+  if (mon?.mechanics) markResolved(ctx, u, 'yield');
+  else if (mon) ctx.setFlag(`boss.${mon.id}.yielded`, true);
+  const way = mon?.mechanics?.resolve?.find((r) => r.way === 'yield');
+  if ((way?.outcome?.reward ?? 'full') !== 'none') award(ctx, u, source, true);
+  for (const [k, v] of Object.entries(way?.outcome?.flags ?? {}).sort()) ctx.setFlag(k, v);
   return true;
+}
+
+/**
+ * Yield at once, whatever the health (12.2: a person with a yield line facing a presence two
+ * ranks up gives up before the fight). Returns false when it has no yield line.
+ */
+export function yieldNow(ctx: SystemContext, u: Unit, source: Unit | null): boolean {
+  const mon = monsterDef(ctx.content, u.monsterId);
+  if (yieldLine(mon) === undefined || !u.ai || u.ai.state === 'yielded') return false;
+  const max = deriveStats(ctx.world, ctx.content, u).maxHp;
+  const keep = u.hp;
+  u.hp = 0;
+  const done = maybeYield(ctx, u, source);
+  u.hp = done ? Math.min(max, keep) : keep;
+  return done;
 }
 
 export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void {
   const e = getEntity(ctx.world, u.id);
   if (!e?.alive || u.downed) return;
+  if (u.terrain) {
+    // an arena object or a boss part falls (10.6): no death, no kill
+    terrainBroken(ctx, u, killer, (boss, actions, path) => runActions(ctx, boss, actions, path));
+    return;
+  }
   u.hp = 0;
   const died = {
     id: u.id,
@@ -107,6 +141,8 @@ export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void
     tier: u.tier,
     side: u.side,
     mapId: e.mapId,
+    ...(mon?.mechanics?.componentTags ? { components: [...mon.mechanics.componentTags] } : {}),
+    ...(mon && (mon.mechanics?.nameInherit ?? mon.rank === 'rare') ? { nameInherit: true } : {}),
   });
   u.cast = null;
   u.autoAttack = false;
@@ -122,6 +158,8 @@ export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void
   }
   setLife(ctx, e.id, false);
   if (mon) {
+    bossDown(ctx, u);
+    onDied(ctx, u, e);
     award(ctx, u, killer, false);
     ctx.world.slices.combat.corpses[u.id] = ctx.tick + CORPSE_TICKS;
   }
@@ -131,8 +169,11 @@ export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void
 export function reviveUnit(ctx: SystemContext, u: Unit, hpPct: number): void {
   const e = getEntity(ctx.world, u.id);
   if (!e) return;
+  const wasDown = !!u.downed;
   setLife(ctx, e.id, true);
   u.downed = false;
+  // a companion brought back up after going down carries a light wound (10.1)
+  injureRevived(ctx, u, wasDown);
   fillUp(ctx.world, ctx.content, u);
   const max = deriveStats(ctx.world, ctx.content, u).maxHp;
   u.hp = Math.max(1, Math.round(max * Math.max(0.01, Math.min(1, hpPct))));

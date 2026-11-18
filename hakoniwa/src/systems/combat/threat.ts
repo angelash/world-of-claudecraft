@@ -121,6 +121,11 @@ export function forgetAttacker(world: World, id: string): void {
 
 /** Taunt: jump to the top of the table and force the target for three seconds. */
 export function taunt(ctx: SystemContext, holder: Unit, taunter: Unit): void {
+  // some shrug off a taunt (11 `ignoreTaunt`): it is just another foe on the table
+  if (monsterDef(ctx.content, holder.monsterId)?.mechanics?.ignoreTaunt) {
+    engage(ctx, holder, taunter);
+    return;
+  }
   let top = 0;
   for (const v of Object.values(holder.threat)) top = Math.max(top, v);
   holder.threat[taunter.id] = Math.max(holder.threat[taunter.id] ?? 0, top * 1.1 + 1);

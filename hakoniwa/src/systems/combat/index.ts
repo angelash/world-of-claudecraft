@@ -2,20 +2,27 @@
 // the hit table, threat, crowd control (control.ts), presence (presence.ts), monster and
 // guard brains, spawning and waves, death and the return through the door with its costs
 // (death.ts, death_costs.ts), duels (duel.ts), the outsider's skill rack (rack.ts) and
-// door-granted pools (pools.ts), the difficulty (difficulty.ts), experience and loot. Other
-// systems read it through queries.ts and write through ports.ts; facts leave as events.
+// door-granted pools (pools.ts), the difficulty (difficulty.ts), experience and loot; the
+// boss mechanics library (boss/), ground warnings (telegraph.ts), the monster mechanic field
+// registry (affixes/), injury sources (injuries.ts) and the drop bags' dungeon port
+// (bag_port.ts). Other systems read it through queries.ts and write through ports.ts; facts
+// leave as events.
 
 import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { type KeyText, tr } from '../../core/text';
 import { getEntity, haltEntity, playerEntity, tagValue } from '../world';
-import { interruptCast, interruptible, tickCast, useAbility } from './abilities';
+import { interruptCast, tickCast, useAbility } from './abilities';
+import { renewBlight } from './affixes';
 import { tickAuras } from './aura_tick';
 import { tickAutoAttack, tickRegen } from './auto_attack';
+import './bag_port';
+import './use_gate_port';
+import { interruptibleNow, runActions, startInteract, tickHazards, tickInteract } from './boss';
 import { tickReturn } from './death';
 import { tickBags, tickFightWear } from './death_costs';
-import { abilityDef, classDef, monsterDef, REGEN_EVERY } from './defs';
+import { classDef, monsterDef, REGEN_EVERY } from './defs';
 import { difficultyWritten, syncDifficulty } from './difficulty';
 import { settleDuels, startDuel } from './duel';
 import { COMBAT_ID_FIELDS } from './id_fields';
@@ -30,6 +37,7 @@ import { restAfterSleep } from './skip';
 import { onFlag, placeFixtures, populateAll, spawnMonster, tickSpawns } from './spawning';
 import { deriveStats } from './stats';
 import { sweepOwnerAuras } from './summons';
+import { tickTelegraphs } from './telegraph';
 import { forgetAttacker } from './threat';
 import type { Unit } from './types';
 import {
@@ -43,11 +51,16 @@ import {
   unitOf,
 } from './units';
 
+export { movementTraits } from './affixes';
+export { arenaSealed, berserkAt, interruptibleNow } from './boss';
 export * from './difficulty';
 export * from './formulas';
 export * from './id_fields';
+export { TEMPER_BACKLASH_CHANCE, temperBacklash } from './injuries';
+export type * from './mech_types';
 export * from './ports';
 export * from './queries';
+export { telegraphsOn } from './telegraph';
 export type * from './types';
 
 type Actor = { ok: true; u: Unit } | { ok: false; code: string; reason: KeyText };
@@ -122,7 +135,9 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       tickSpawns(ctx);
       sweepOwnerAuras(ctx);
       housekeeping(ctx);
+      tickHazards(ctx);
     }
+    tickTelegraphs(ctx);
     const active = activeMaps(ctx);
     const regen = ctx.tick % REGEN_EVERY === 0;
     for (const id of sortedUnitIds(ctx.world)) {
@@ -150,6 +165,8 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       }
       tickAuras(ctx, u);
       if (!liveUnit(ctx.world, id)) continue;
+      if (u.interact)
+        tickInteract(ctx, u, (boss, actions, path) => runActions(ctx, boss, actions, path));
       if (u.cast) {
         if (castBlocked(ctx, u)) interruptCast(ctx, u);
         else tickCast(ctx, u);
@@ -252,6 +269,12 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       const res = startDuel(ctx, a.u, opponent);
       return res.ok ? ok() : reject(res.code, tr(`sys.combat.reject.duel.${res.code}`));
     },
+    'combat.interact'(ctx, d, source) {
+      const a = actor(ctx, undefined, source);
+      if (!a.ok) return reject(a.code, a.reason);
+      const code = startInteract(ctx, a.u, d.objectId);
+      return code === null ? ok() : reject(code, tr(`sys.combat.reject.interact.${code}`));
+    },
     'combat.use_item'(ctx, d, source) {
       const a = actor(ctx, undefined, source);
       if (!a.ok) return reject(a.code, a.reason);
@@ -327,6 +350,10 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       clampPools(ctx.world, ctx.content, u);
       syncGearAuras(ctx, u);
     },
+    'world.hour'(ctx) {
+      // the crop blighters' production modifiers run an hour at a time (11 `cropBlight`)
+      renewBlight(ctx);
+    },
     'time.skipped'(ctx, ev) {
       if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') {
         restAfterSleep(ctx, ev.data.entityId);
@@ -364,5 +391,5 @@ function housekeeping(ctx: SystemContext): void {
 function castBlocked(ctx: SystemContext, u: Unit): boolean {
   const d = deriveStats(ctx.world, ctx.content, u);
   if (d.cc.stun || d.cc.fear || d.cc.incapacitate) return true;
-  return d.cc.silence && interruptible(abilityDef(ctx.content, u.cast?.abilityId ?? ''));
+  return d.cc.silence && interruptibleNow(ctx.world, ctx.content, u);
 }

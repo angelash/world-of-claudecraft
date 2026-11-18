@@ -142,14 +142,25 @@ export function knownAbilities(content: ContentMap, u: Unit): string[] {
   return [...new Set(out)];
 }
 
+/** An arena object (neutral) is struck by the foes of the boss it belongs to (10.6). */
+function terrainFoe(world: World, a: Unit, b: Unit): boolean {
+  if (!b.attackable || a.side === 'neutral' || a.terrain) return false;
+  const rec = b.terrain ? world.slices.combat.terrain?.[b.terrain] : undefined;
+  const boss = rec ? world.slices.combat.units[rec.bossId] : undefined;
+  if (!boss || boss.side === 'neutral' || boss.side === a.side) return false;
+  return !!liveUnit(world, b.id);
+}
+
 export function isHostilePair(a: Unit, b: Unit): boolean {
   return a.side !== b.side && a.side !== 'neutral' && b.side !== 'neutral';
 }
 
-/** Can `a` attack `b` right now? */
+/** Can `a` attack `b` right now? (A boss in an untargetable phase cannot be, 10.2.) */
 export function canAttack(world: World, a: Unit, b: Unit): boolean {
+  if (b.terrain) return terrainFoe(world, a, b);
   if (!b.attackable || a.id === b.id || !isHostilePair(a, b)) return false;
   if (b.ai?.state === 'evade' || b.ai?.state === 'yielded') return false;
+  if ((b.boss?.untargetableUntil ?? 0) > world.meta.tick) return false;
   return !!liveUnit(world, b.id);
 }
 

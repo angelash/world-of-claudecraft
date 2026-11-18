@@ -299,7 +299,7 @@
     "quality": 1,
     "value": 60,
     "desc": "醉月亭最烈的酒。喝下去力气大了，脑子慢了。",
-    "use": { "effect": "aura", "ability": "aur_item_ashspirits", "group": "cd_drink" }
+    "use": { "effect": "aura", "ability": "aur_item_ashspirits", "group": "cd_drink", "drunk": 2 }
   },
   {
     "id": "stoneskin_draught",

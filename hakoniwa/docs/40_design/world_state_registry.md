@@ -1025,6 +1025,7 @@
 | `companion.<人>.injured_until` | 无 | 整数 | 游戏日 | party | 归队 |
 | `boss.<首领>.defeated` | 无 | 标记 | 首领 ID | combat 奖励结算 | `q` 的 `orWhen`、`dr`、`pc`、地图出口（`data/combat/maps/*.json`、`atlas_routes.json`） |
 | `boss.<首领>.yielded` | 无 | 标记 | 首领 ID | combat 败退 | `q` 的 `orWhen` |
+| `boss.<首领>.resolved` | 无 | 枚举 | 首领 ID；值：`yield`、`purify`、`pacify`、`talk`、`item`、`interact`、`survive`、`escape`、`flag`（非战斗解法的种类，[战斗 10.7](systems/combat_and_classes.md)） | combat 非战斗解法（`src/systems/combat/boss/resolve.ts`；认输同时写 `yielded`） | `q` 的 `orWhen`、场景 |
 | `combat.wave.<波次>.state` | 无 | 枚举 | `active`、`cleared` | combat 波次 | `q` 的 `orWhen` |
 | `war.<剧本>.result` | 无 | 枚举 | `won`、`lost`、`draw` | warfare | 任务 |
 | `war.first_battle_won` | 无 | 标记 | | warfare：骨原夜袭（`bat_a3_bonefield`）里罗恩举旗守住阵线的那一刻，战败也成立 | 千军之门（`dr`） |

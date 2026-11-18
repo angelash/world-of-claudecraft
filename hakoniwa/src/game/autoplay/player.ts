@@ -25,6 +25,7 @@ import { clockExtras, clockWait, waitsOnClock, windowOpenIn } from './clock';
 import { DomainPlanner } from './domains';
 import {
   attackers,
+  companionsReady,
   engagedCost,
   fightCommands,
   friendlyIds,
@@ -35,12 +36,14 @@ import {
   playerHealth,
   playerMana,
   pullCost,
+  selfHeal,
   unitLevel,
 } from './fight';
 import { gearUpgrade } from './goods';
 import { insideLocation, locationPoint, nextLeg } from './nav';
 import { modelObjectivePlan } from './objective_plan';
 import { upcomingWaveBosses } from './prepare';
+import { ReachMemory } from './reach';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
 
@@ -90,6 +93,8 @@ export interface Intent {
 type Cmd = { [K in CommandKind]: { kind: K; data: CommandMap[K] } }[CommandKind];
 
 const THINK = 4;
+/** A heal tried instead of running is not tried again for this long (ticks). */
+const HEAL_RETRY = 200;
 const IDLE_STEP = 60;
 const TALK_RANGE = 2.2;
 
@@ -120,6 +125,13 @@ export class Autoplayer {
   private readonly rejectedAt: Record<string, number> = {};
   /** deaths suffered while fighting a named monster */
   readonly lossesTo: Record<string, number> = {};
+  /** targets the player could not walk to, left alone for a while (reach.ts) */
+  readonly reach = new ReachMemory();
+  /** the target the last walk order was for (null for any other walk) */
+  private walkFor: string | null = null;
+  private chasing: string | null = null;
+  /** the last heal tried instead of running (one per losing spell) */
+  private healTriedAt = -1_000_000;
 
   constructor(
     readonly engine: Engine,
@@ -145,6 +157,14 @@ export class Autoplayer {
           const key = `${e.data.kind}:${e.data.code ?? ''}`;
           this.rejected[key] = (this.rejected[key] ?? 0) + 1;
           this.rejectedAt[e.data.kind] = e.tick;
+          // a dead player's walk is refused too: only a live player's refusal is about the path
+          if (
+            e.data.kind === 'world.move_to' &&
+            e.data.code === 'unreachable' &&
+            this.walkFor &&
+            this.player()?.alive
+          )
+            this.reach.mark(this.walkFor, e.tick);
         } else if (e.kind === 'entity.died' && e.data.id === engine.world.slices.world.playerId) {
           this.deaths++;
           const killerId = e.data.killerId;
@@ -294,10 +314,24 @@ export class Autoplayer {
       const hp = playerHealth(this.world, this.content);
       const weight = engagedCost(this.world, this.content);
       if (this.fleeing || (hp < 0.5 && weight > 0.4 && this.losingRace(foes))) {
+        // heal first while a heal is at hand; run only when none is (or close to the end)
+        if (!this.fleeing && hp > 0.2 && this.healing()) return THINK;
+        // one heal per losing spell: a heal that did not turn the race is not tried again soon
+        const tried = this.engine.tick - this.healTriedAt < HEAL_RETRY;
+        const heal =
+          !this.fleeing && hp > 0.2 && !tried ? selfHeal(this.world, this.content) : null;
+        if (heal) {
+          this.healTriedAt = this.engine.tick;
+          this.intent = { what: 'heal before running' };
+          this.send({ kind: 'combat.cast', data: heal });
+          return THINK;
+        }
         const fled = this.flee();
         if (fled !== null) return fled;
       }
-      return this.fight(this.weakest(foes), 'defend');
+      // one the player could not walk to and that is not at hand is left alone (reach.ts)
+      const near = foes.filter((id) => this.reach.ok(id, this.engine.tick) || this.atHand(id));
+      if (near.length > 0) return this.fight(this.weakest(near), 'defend');
     }
     this.fleeing = false;
     // conversation leftovers
@@ -325,13 +359,15 @@ export class Autoplayer {
     }
     // monsters about to notice us: take them one at a time on our terms
     const strength = partyStrength(this.world);
-    const close = huntable(this.world, (e) => e.kind === 'monster', 3).filter((id) => {
-      const e = this.world.slices.world.entities[id];
-      const pull = pullCost(this.world, id);
-      return (
-        !!e && Math.hypot(e.x - p.x, e.y - p.y) <= 5.5 && pull <= strength && this.fitFor(pull)
-      );
-    });
+    const close = this.reachable(huntable(this.world, (e) => e.kind === 'monster', 3)).filter(
+      (id) => {
+        const e = this.world.slices.world.entities[id];
+        const pull = pullCost(this.world, id);
+        return (
+          !!e && Math.hypot(e.x - p.x, e.y - p.y) <= 5.5 && pull <= strength && this.fitFor(pull)
+        );
+      },
+    );
     if (close.length > 0) return this.fight(close[0] as string, 'clear the way');
     const doors = this.openDoors();
     if (doors !== null) return doors;
@@ -466,6 +502,7 @@ export class Autoplayer {
     if (same && !p.move && tick - (g?.tick ?? 0) < 8) return;
     this.send({ kind: 'world.move_to', data: { entityId: p.id, x, y } });
     this.moveGoal = { mapId: p.mapId, x, y, tick };
+    this.walkFor = p.alive ? this.chasing : null;
   }
 
   // -------------------------------------------------------------------------
@@ -481,8 +518,10 @@ export class Autoplayer {
     const conv = currentConversation(this.world);
     if (conv) this.send({ kind: 'dialogue.close', data: {} });
     const gap = gapBetween(p, t);
+    this.chasing = targetId;
     if (gap > 0.9) this.walkTo(t.mapId, t.x, t.y, 0.5);
     else if (p.move) this.stopMoving();
+    this.chasing = null;
     for (const c of fightCommands(this.world, this.content, targetId)) {
       this.send(c as Cmd);
     }
@@ -562,7 +601,10 @@ export class Autoplayer {
     const level = xpProgress(this.world).level;
     const gapAllowed = refs ? Number.POSITIVE_INFINITY : 3;
     const strength = partyStrength(this.world);
-    const all = huntable(this.world, match, gapAllowed);
+    const listed = huntable(this.world, match, gapAllowed);
+    // a named target the player cannot reach yet is still the target (an arena may open)
+    const near = this.reachable(listed);
+    const all = refs && near.length === 0 ? listed : near;
     const cheapest = all.reduce((m, id) => Math.min(m, pullCost(this.world, id)), Infinity);
     const limit = Math.max(strength, cheapest + 0.05);
     const found = all.filter((id) => !!refs || pullCost(this.world, id) <= limit);
@@ -775,6 +817,14 @@ export class Autoplayer {
         if (named && !this.fitFor(3) && attackers(this.world).length === 0) {
           return this.rest(`${why}: rest to full before the fight`);
         }
+        // a named fight is the party's: never re-pull alone while a companion is down or hurt
+        if (
+          named &&
+          this.ranked(named) &&
+          attackers(this.world).length === 0 &&
+          !companionsReady(this.world, this.content)
+        )
+          return this.rest(`${why}: wait for the party before the fight`);
         return this.hunt(o, why);
       }
       case 'choice': {
@@ -847,6 +897,21 @@ export class Autoplayer {
       }
     }
     this.stopMoving();
+    // heal up with spells rather than wait for it (keeps half the mana for the fight)
+    if (
+      playerHealth(this.world, this.content) < 0.9 &&
+      playerMana(this.world, this.content) >= 0.5
+    ) {
+      const heal = selfHeal(this.world, this.content, { shield: false });
+      if (heal) {
+        this.intent = { what: `${why} (heal up)` };
+        // companions on assist follow the player's target while it casts: drop it first
+        const me = this.world.slices.combat.units[this.world.slices.world.playerId];
+        if (me?.target) this.send({ kind: 'combat.target', data: { targetId: null } });
+        this.send({ kind: 'combat.cast', data: heal });
+        return THINK;
+      }
+    }
     return 40;
   }
 
@@ -875,6 +940,31 @@ export class Autoplayer {
       }
     }
     return best;
+  }
+
+  /** A monster of rank (elite, rare or boss): a fight for the whole party. */
+  private ranked(ref: string): boolean {
+    const rank = this.content.monsters.find((m) => m.id === ref)?.rank;
+    return !!rank && rank !== 'normal';
+  }
+
+  /** Whether the player is casting one of its own heals (running would throw it away). */
+  private healing(): boolean {
+    const c = this.world.slices.combat.units[this.world.slices.world.playerId]?.cast;
+    const use = c ? this.content.abilities.find((a) => a.id === c.abilityId)?.ai : undefined;
+    return use === 'heal' || use === 'emergency' || use === 'hot' || use === 'shield';
+  }
+
+  /** A unit within two tiles of the player (edge to edge). */
+  private atHand(id: string): boolean {
+    const p = this.player();
+    const e = this.world.slices.world.entities[id];
+    return !!p && !!e && gapBetween(p, e) <= 2;
+  }
+
+  /** Of these targets, the ones the player has not just failed to walk to (reach.ts). */
+  private reachable(ids: string[]): string[] {
+    return this.reach.reachable(ids, this.engine.tick);
   }
 
   /** Level the player wants before taking on this monster (bosses need a margin). */
@@ -928,6 +1018,8 @@ export class Autoplayer {
       const e = this.world.slices.world.entities[u.id];
       if (!e || e.kind !== 'monster' || !e.alive || u.side !== 'enemy' || !fit(u.level)) continue;
       if (!u.attackable || u.ai?.state === 'yielded') continue;
+      // prey the player could not walk to is no hunting ground (reach.ts)
+      if (!this.reach.ok(u.id, this.engine.tick)) continue;
       const c = pullCost(this.world, u.id);
       const cur = pulls.get(e.mapId);
       if (!cur) pulls.set(e.mapId, { cost: c, n: 1 });
@@ -963,9 +1055,9 @@ export class Autoplayer {
     const fit = (lvl: number) => lvl <= me + best.reach && lvl >= me - 5;
     const limit = Math.max(strength, best.cost + 0.05);
     if (best.id === p.mapId) {
-      const here = huntable(this.world, (e, u) => e.kind === 'monster' && fit(u.level)).filter(
-        (id) => pullCost(this.world, id) <= limit,
-      );
+      const here = this.reachable(
+        huntable(this.world, (e, u) => e.kind === 'monster' && fit(u.level)),
+      ).filter((id) => pullCost(this.world, id) <= limit);
       const target = here[0];
       if (!target) {
         this.intent = { what: `${why}: waiting for prey Lv${me}` };

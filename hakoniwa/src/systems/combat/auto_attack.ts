@@ -1,7 +1,11 @@
-// Auto-attack (white swings and auto shots) and the 2-second regeneration tick.
+// Auto-attack (white swings and auto shots) and the 2-second regeneration tick. A monster's
+// swing that lands rolls its on-hit list and its registry affixes (affixes/on_hit.ts);
+// health and mana regeneration take their aura modifiers (the taint spot, the tempering
+// backlash, combat 9.4).
 
 import type { SystemContext } from '../../core/system';
 import { gap } from './abilities';
+import { onHitAffixes } from './affixes';
 import { applyAura } from './auras';
 import { resolveHit } from './damage';
 import { FIVE_SECOND_RULE, MELEE_RANGE, monsterDef, secs } from './defs';
@@ -36,6 +40,7 @@ export function tickAutoAttack(ctx: SystemContext, u: Unit): void {
       if (rng.next() < h.chance) applyAura(ctx, target, h.aura, u);
     }
   }
+  if (r.dealt > 0 && mon?.mechanics && liveUnit(ctx.world, target.id)) onHitAffixes(ctx, u, target);
 }
 
 export function tickRegen(ctx: SystemContext, u: Unit): void {
@@ -43,13 +48,12 @@ export function tickRegen(ctx: SystemContext, u: Unit): void {
   const d = deriveStats(ctx.world, ctx.content, u);
   const fighting = u.combatUntil > ctx.tick;
   if (!fighting && u.hp < d.maxHp) {
-    u.hp = Math.min(d.maxHp, u.hp + hpRegenPerTick(d.stats.sta, d.maxHp));
+    const hp = hpRegenPerTick(d.stats.sta, d.maxHp) * Math.max(0, 1 + d.mods.hpRegen);
+    u.hp = Math.min(d.maxHp, u.hp + hp);
   }
   if (u.res.mana !== undefined && ctx.tick - u.manaSpentAt >= FIVE_SECOND_RULE) {
-    u.res.mana = Math.min(
-      d.maxRes.mana ?? 0,
-      u.res.mana + manaRegenPerTick(u.classId, d.stats.spi),
-    );
+    const mana = manaRegenPerTick(u.classId, d.stats.spi) * Math.max(0, 1 + d.mods.manaRegen);
+    u.res.mana = Math.min(d.maxRes.mana ?? 0, u.res.mana + mana);
   }
   if (u.res.energy !== undefined) {
     u.res.energy = Math.min(d.maxRes.energy ?? 100, u.res.energy + ENERGY_PER_TICK);

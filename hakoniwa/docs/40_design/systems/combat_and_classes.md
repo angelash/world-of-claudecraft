@@ -1946,6 +1946,36 @@ export interface CombatEventsExt {
 | 命令 | `combat.rack`、`combat.switch_pool`、`combat.duel` | 技架、换脉、单挑 |
 | 物品 | 读 `ItemDef.weaponClass`、`armorClass`（19.3）；没有时看 `tags` 里的类名，再退到职能的 `weaponClass` | 物品数据的这两个字段随物品批次补齐 |
 
+### 19.7 实现补充（PK-M1-12）
+
+首领机制库与注册表字段在 19.1、19.2 的形状之外另加了这些字段与事件，名字同样是契约：
+
+| 位置 | 字段或事件 | 含义 |
+| --- | --- | --- |
+| `TelegraphShape` | 圆另有 `count`（一次施放的圆数，至多 3） | 二次塌方一类的多圆 |
+| `AbilityDef` | `channel: { ticks, ramp? }`、`injure: { kind, chance? }` | 引导分 `ticks` 跳结算，后一跳比第一跳多 `ramp` 倍；命中玩家方时给伤病（经澱病系统的命令 `ailments.injure`） |
+| `BossAction` | 另加 `{ do: 'stagger', seconds }` | 机关与部位直接给失衡 |
+| `ShieldPhaseDef` | `seconds`（`timer` 型的秒数）；`trigger.phase` 指"已进入的阶段数"（1 为数据里的第一个阶段） | 计时护盾；按阶段挂盾 |
+| `TerrainUse` | `at`（地图地点）或 `offset`（相对首领出生点）、`size`、`hp`（首领最大生命的份额）、`radius`、`name`、`appearance`、危险区的 `every`、`aura`、`damage` | 机关读地图地点；地图还没给地点时按偏移放置 |
+| `ResolveDef.when` | 另加 `{ atSec }`（`survive`）与 `{ interacted }`（`interact`，已用的机关数） | 撑过与互动两种解法 |
+| `MonsterMechanics` | `doorSeek.channel`（追到门纹持有者 3 格内时引导的技能）；`breakableParts: [{ id, hp, phase?, onBreak? }]`；`crystalEat.items`、`nightOnly.aura`、`pilfer.chance` | 汲门；可碎部位；吃晶的物品清单；白天减弱的光环 |
+| `MonsterDef` | `tags` | 出生时写到实体标签（`flying` 免定身） |
+| `AuraDef` | `miscast`、`noTwoHand`；`AuraMods` 另加 `hpRegen`、`manaRegen`、`doorSkillCooldown` | 澱热的灵素失控；断肢失手；澱斑与淬体反冲的恢复；断肢的门技冷却（门授技能读取） |
+| 运行时 | 单位的 `boss`（战斗计时、增援、护盾、队列、解法、封场、计时词缀）、`firstHalf`、`interact`、`terrain`、`ambush`、`stolen`、`rise`、`despawnWithBoss`；切片的 `telegraphs`、`terrain` | 首领重置时 `boss` 整个清掉；`firstHalf` 不随重置清除 |
+| 事件 | `combat.telegraph`、`combat.telegraph_ended`、`combat.channel`、`combat.boss_shield`、`combat.boss_resolved`、`combat.adds`、`combat.terrain`、`combat.arena`、`combat.door_seek`、`combat.purified`；`combat.cast` 加 `reason: 'miscast'` 与 `channel`；`combat.kill` 加 `components`、`nameInherit`；`combat.bag` 加 `swallowed` | 预警、引导、护盾、解法、增援、机关、封场、追门、净化 |
+| 命令 | `combat.interact` | 机关互动（1 秒，受击或走开即断） |
+| 旗标 | `boss.<首领>.resolved`（[注册表 8.6](../world_state_registry.md)） | 非战斗解法的种类；认输同时写 `yielded` |
+| 查询 | `telegraphsOn`、`arenaSealed`、`interruptibleNow`、`berserkAt`、`movementTraits`；`unitView` 加 `shield`、`untargetable`、`staggered` 与读条的 `channel` | 界面、世界与千门读取 |
+| 端口 | `temperBacklash`（淬体破关的反冲）；迷宫遗落物端口由战斗注册（`bag_port.ts`） | 伤病来源；遗落包在站着的迷宫里留到被吞 |
+
+读法补充：
+
+- **致命档的伤害口径**：设计伤害按首领最高等级、魔物攻强 3L 算；"同级标准档非坦克成员最大生命"取非坦克职能裸装生命加标准档预算三分之一折成耐力的平均值（`standardMemberHp`）。
+- **软狂暴的计时**：难度把血线乘 `soft_enrage`，计时按镜像（故事 ×1.3、困难 ×0.85、传说 ×0.7）。
+- **地面预警的读条**：带预警的技能读条长度等于提前量（取读条与提前量的较大者，乘难度系数），急速不缩短；读条中的首领被推开或传送，预警照样落在锁定的格上；读条被打断则预警取消。
+- **同屏上限**：运行时同一施法者的非脉冲区域满 3 个时新的预警等待（`warn_cap`），`onEnter` 的施放进队列，每秒重试；内容校验检查单次施放与每个阶段技能表的区域数。
+- **看到的灵压**：警戒半径仍按等级差每级 ±0.25 格缩放（第 11 节 `aggroRadius`）。
+
 ## 20. 验收测试
 
 测试放在 `tests/combat_*.test.ts`（规则与内核）与内容校验（数据面）；端到端与平衡用规则自动玩家。里程碑一栏按开发计划：M1 序章与第一幕，M2 第二、三幕，M3 第四到第六幕与终章。
@@ -2032,7 +2062,7 @@ export interface CombatEventsExt {
 | 捷径 | 现状 | 目标方案 | 包 |
 | --- | --- | --- | --- |
 | 实体直写 | 已达成：`entity_ops.ts` 已移除（`tests/architecture.test.ts` 断言该文件不存在）；世界系统拥有的实体字段只经 `src/systems/world/ports.ts` 的端口写入：`setLife`（生死）、`setTag` 与 `setTagValue`（`lvl:`、`tier:` 与敌对标签）、`haltEntity`（控制停步）、`setMoveSpeed`（光环减速）；移动指令与传送走世界系统导出的 `orderMove`、`teleportEntity` | 本文新增的写入（遗落包、净化换种 `purifyTo`、地形机关、观战者转阵营）一律走同一组端口，需要的新端口加在 `ports.ts`，不在战斗模块里直写实体 | PK-M0-12（已完成）；新端口随 PK-M1-11、PK-M1-12 |
-| 首领四机制 | `src/systems/combat/boss.ts` 的 `tickBoss` 解释阶段（血线）、召唤（血线，首领周围 1.5 格）、狂暴（血线，永久光环）、淬炼叠层；`resetBoss` 在回家时清这四项 | 第 10 节的机制库：每种机制一个小模块（阶段、预警、增援、狂暴、点名、护盾、地形、解法），放在 `src/systems/combat/boss/` 下由 `tickBoss` 协调；现有数据原样可用（10.2 末段） | PK-M1-12 |
+| 首领四机制 | 已达成：`src/systems/combat/boss/` 是机制库，每种机制一个模块（`phases.ts`、`adds.ts`、`enrage.ts`、`marks.ts`、`shields.ts`、`terrain.ts`、`resolve.ts`、`arena.ts`、`interrupt.ts`、`door_seek.ts`、`actions.ts`），`index.ts` 的 `tickBoss` 协调、`resetBoss` 在回家时清空全部战斗状态；地面预警在 `telegraph.ts`；第一轮数据原样可用 | 第 10 节的机制库 | PK-M1-12（已完成） |
 | 技能等级 | `data/combat/classes.json` 每职能 9 到 10 项技能，学会等级至多 20 到 40 级；`AbilityDef` 没有技阶；战士与圣骑士的 `armorType` 为 `mail`；技能与光环用无前缀的旧编号 | 每职能约 26 项技能铺满 1 到 60 级，技阶按 6.2，60 级外缘技；战士与圣骑士穿板甲（6.1）；全部用 `sk_`、`aur_` 自有编号 | 第一幕所需：PK-M0-02、PK-M1-26；全量：PK-M2-36 |
 | 流派与铭纹 | 没有流派记录、真意、奥义与铭纹；`ClassDef` 无 `specs` | 6.3、6.4：三流派加七道铭纹，奥义阶按 8.4；同伴的铭纹三选一按[同伴][cmp] | 第一幕同伴所需按技能目录的第一幕部分（PK-M0-02）；全量 PK-M2-36 |
 
@@ -2045,12 +2075,12 @@ export interface CombatEventsExt {
 | 死亡代价 | 已达成：`death.ts` 按 15.1 的结算顺序；遗落包、目击与两种耐久的调用在 `death_costs.ts`；复苏在回廊中等 1 个游戏时辰加每层过载半个时辰，落在门内庭院或神纹大厅；`aur_st_revival_fatigue` 按 15.1 的数值 | 15.1：千门 6.3 的五项代价、复苏时长与结算顺序；复苏门疲状态按门阶算 | 15.1 | PK-M1-11（已完成） |
 | 记功 | 已达成：`creditedToParty`（`rewards.ts`）：玩家、同伴与其召唤物造成至少十分之一的伤害或打出最后一击 | 玩家方造成至少 10% 的伤害即归玩家方；只由同伴单独击杀的照记，NPC 势力单独击杀的不记（[成长 3.3][prg]） | 8.5 | PK-M1-11（已完成） |
 | 同伴经验 | `killXpShare` 已按"玩家不摊薄、同伴另算"实现；同伴的追赶倍数与等级上限没有 | 同伴系统按[同伴 4.2][cmp]乘追赶倍数并截上限 | 8.5 | PK-M1-15 |
-| 魔物字段 | `flee` 只给普通层次的人形与掘穴者；`social` 不写即不呼救；灰色规则读玩家等级 | 第 11 节的口径扩展与缺省值；12.2 的看到的灵压 | 11、12.2 | PK-M1-12 |
-| 地面预警 | 没有预警事件与形状，范围技能即时结算 | 10.3 的五种形状、提前量与 `combat.telegraph` 事件 | 10.3、18 | PK-M1-12 |
+| 魔物字段 | 已达成：第 11 节首需为"一"的字段由 `src/systems/combat/affixes/`（命中、计时、出生与死亡、世界规则、净化）与机制库读取，清单是 `FIRST_ACT_FIELDS`，内容校验拒收注册表以外的键；`flee` 扩到全部普通魔物（人形呼 3 格内闲置同类，野兽不呼）；`social` 缺省 3 格；看到的灵压在 `perceive.ts`（玩家的等级不被读取，有页者照旧用灰色规则）。穿墙与入水只给出查询 `movementTraits`，寻路由世界系统读取 | 第 11 节的口径扩展与缺省值；12.2 的看到的灵压 | 11、12.2 | PK-M1-12（已完成；寻路读取见 19.7） |
+| 地面预警 | 已达成：`telegraph.ts` 与纯几何的 `telegraph_shapes.ts`；带 `telegraph` 的技能先发 `combat.telegraph`（格集合、提前量、档位、开始与结算刻），到时对格内敌方结算，不掷骰；内容校验按档检查提前量与设计伤害、每次施放与每个阶段至多 3 个区域 | 10.3 的五种形状、提前量与 `combat.telegraph` 事件 | 10.3、18 | PK-M1-12（已完成） |
 | 命中事件 | 已达成：`presentation.ts` 给每个 `combat.damage`（含未命中、免疫）写 8.3 的五个字段 | 8.3 的表现字段 | 8.3 | PK-M1-11（已完成） |
 | 物品 | 已达成：库存系统的实例层（`instances`、`worn`、`stacks`，`items` 仍是件数总账）、耐久、`procs`、套组与澱纹；战斗结算 `item.proc`、报两个触发点、挂套组光环、在死亡与战斗结束时调耐久端口 | 第 13 节 | 13 | PK-M1-13（实例层）、PK-M1-11（战斗侧） |
 | 消耗品 | `items_use.ts` 有 `heal`、`mana`、`aura`、`cleanse`、`return` 五种；没有冷却组 | 第 14 节的冷却组与新效果 | 14 | PK-M1-13、PK-M1-31 |
-| 受击推迟 | 已达成读条一半：每次 0.5 秒，至多 2 次；引导（`channel`）尚无内核，随首领机制库与引导技能落地 | 3.9：每次 0.5 秒，至多推迟 2 次；引导受击损失 25% 剩余时间 | 3.9 | PK-M1-11（读条）；引导随 PK-M1-12 |
+| 受击推迟 | 已达成：读条每次 0.5 秒，至多 2 次；引导（技能的 `channel`）每次受击失去剩余时间的 25%（`CHANNEL_PUSHBACK`） | 3.9：每次 0.5 秒，至多推迟 2 次；引导受击损失 25% 剩余时间 | 3.9 | PK-M1-11（读条）、PK-M1-12（引导） |
 | 难度 | 已达成：`difficulty.ts` 把第 16 节每一项登记为修正项（目标 `combat`）；战斗、死亡代价与软狂暴读合计值；预警提前量与同伴的三项由 PK-M1-12、PK-M1-15 读 | 第 16 节的修正项 | 16 | PK-M1-11（已完成） |
 
 ## 22. 来源链接

@@ -2,11 +2,16 @@
 // hit and resist), armor, presence pressure (3.5), aura modifiers, the difficulty's enemy
 // damage and player healing factors (16), absorbs, threat, rage, the hit-sound selection
 // fields every damage event carries (8.3, presentation.ts), spell pushback (3.9), the
-// party-side damage tally for credit (8.5), and the hand-off to death or yielding.
-// Formulas live in formulas.ts.
+// party-side damage tally for credit (8.5), and the hand-off to death or yielding. A ground
+// warning's hit skips the whole roll (10.3 `noRoll`); a boss's shields soak or turn away a
+// hit before any absorb aura (10.4); a channel loses a quarter of what is left of it per
+// hit (3.9); a hit breaks the use of an arena object (10.6); an ambusher's first blow is
+// stronger (11). Formulas live in formulas.ts.
 
 import type { SystemContext } from '../../core/system';
+import { ambushMult } from './affixes';
 import { breakOnDamage, soakAbsorb } from './auras';
+import { breakInteract, shieldImmune, soakShield } from './boss';
 import { killUnit, maybeYield } from './death';
 import { secs } from './defs';
 import { combatMod } from './difficulty';
@@ -15,6 +20,7 @@ import {
   armorReduction,
   BLOCK_CHANCE,
   BLOCK_REDUCTION,
+  CHANNEL_PUSHBACK,
   dodgeChance,
   MAX_PUSHBACKS,
   MOB_VS_ALLY_MAX_MISS,
@@ -54,6 +60,8 @@ export interface HitSpec {
   rage?: boolean;
   /** damage of a fired trigger: triggers nothing further (13.3) */
   fromProc?: boolean;
+  /** a ground warning's hit: no miss, dodge, parry, block, resist or crit (10.3) */
+  noRoll?: boolean;
 }
 
 export interface HitResult {
@@ -69,7 +77,12 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
     ...hitPresentation(ctx.world, ctx.content, source, sd, target, td, spec.kind, spec.abilityId),
     ...(spec.fromProc ? { fromProc: true } : {}),
   };
-  if (!target.attackable || target.ai?.state === 'evade' || target.ai?.state === 'yielded') {
+  if (
+    !target.attackable ||
+    target.ai?.state === 'evade' ||
+    target.ai?.state === 'yielded' ||
+    shieldImmune(ctx, target)
+  ) {
     ctx.emit('combat.damage', {
       sourceId: source.id,
       targetId: target.id,
@@ -88,8 +101,11 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
   let outcome: HitOutcome = 'hit';
   let amount = spec.amount;
   let crit = false;
+  if (spec.kind === 'melee' || spec.kind === 'ranged') amount *= ambushMult(source);
 
-  if (spec.kind === 'melee' || spec.kind === 'ranged') {
+  if (spec.noRoll) {
+    // the area decided: the hit lands as it is
+  } else if (spec.kind === 'melee' || spec.kind === 'ranged') {
     let miss = meleeMissChance(source.level, target.level);
     if (source.side === 'enemy' && target.side === 'ally')
       miss = Math.min(miss, MOB_VS_ALLY_MAX_MISS);
@@ -141,7 +157,8 @@ export function resolveHit(ctx: SystemContext, spec: HitSpec): HitResult {
   if (outcome === 'block') amount *= 1 - BLOCK_REDUCTION;
   if (crit) outcome = 'crit';
   amount = Math.max(1, Math.round(amount));
-  const absorbed = soakAbsorb(ctx, target, amount);
+  const shield = soakShield(ctx, target, amount, source);
+  const absorbed = shield + soakAbsorb(ctx, target, amount - shield);
   const dealt = amount - absorbed;
   applyDamage(ctx, {
     source,
@@ -206,7 +223,12 @@ function applyDamage(ctx: SystemContext, a: ApplySpec): void {
     }
   }
   if (a.dealt > 0) breakOnDamage(ctx, target, a.dealt);
-  if (target.cast && a.dealt > 0 && target.side === 'ally') {
+  if (a.dealt > 0) breakInteract(target);
+  if (target.cast?.channel && a.dealt > 0 && target.side === 'ally') {
+    // a channel hit loses a quarter of what is left of it (3.9)
+    const left = Math.max(0, target.cast.end - ctx.tick);
+    target.cast.end -= Math.floor(left * CHANNEL_PUSHBACK);
+  } else if (target.cast && a.dealt > 0 && target.side === 'ally') {
     // classic spell pushback (3.9): half a second per hit, at most twice per cast
     const pushes = target.cast.pushes ?? 0;
     if (pushes < MAX_PUSHBACKS) {

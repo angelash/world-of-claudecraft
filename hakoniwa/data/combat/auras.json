@@ -673,22 +673,23 @@
   {
     "id": "aur_st_sed_spot",
     "name": "澱斑",
-    "desc": "指尖起了灰斑，人发乏：最大生命降低。离开澱重的地方，慢慢会退。",
+    "desc": "指尖起了灰斑，人发乏：最大生命降低，生命恢复变慢。离开澱重的地方，慢慢会退。",
     "kind": "debuff",
     "category": "state",
     "duration": 0,
-    "mods": { "maxHpPct": -0.05 },
+    "mods": { "maxHpPct": -0.05, "hpRegen": -0.1 },
     "dispellable": false
   },
   {
     "id": "aur_st_sed_fever",
     "name": "澱热",
-    "desc": "高热不退，眼前发花：最大生命降低，命中降低。",
+    "desc": "高热不退，眼前发花：最大生命降低，命中降低；施法时灵素会失控，那一下的灵力白白散掉。",
     "kind": "debuff",
     "category": "state",
     "duration": 0,
     "stats": { "hit": -5 },
     "mods": { "maxHpPct": -0.15 },
+    "miscast": 0.1,
     "dispellable": false
   },
   {
@@ -714,31 +715,32 @@
   {
     "id": "aur_st_injury_maimed_arm",
     "name": "断肢·失手",
-    "desc": "一只手使不上劲：造成的伤害降低。",
+    "desc": "一只手使不上劲：造成的伤害降低，握不住双手兵器；编外者门里缺了一块，门技冷却变长。",
     "kind": "debuff",
     "category": "state",
     "duration": 0,
-    "mods": { "damageDealt": -0.2 },
+    "mods": { "damageDealt": -0.2, "doorSkillCooldown": 0.2 },
+    "noTwoHand": true,
     "dispellable": false
   },
   {
     "id": "aur_st_injury_maimed_leg",
     "name": "断肢·失腿",
-    "desc": "一条腿撑不住：移动变慢。",
+    "desc": "一条腿撑不住：移动变慢；编外者门里缺了一块，门技冷却变长。",
     "kind": "debuff",
     "category": "state",
     "duration": 0,
-    "mods": { "speed": -0.3 },
+    "mods": { "speed": -0.3, "doorSkillCooldown": 0.2 },
     "dispellable": false
   },
   {
     "id": "aur_st_injury_backlash",
     "name": "淬体反冲",
-    "desc": "冲关的高热还压在身上：受到的伤害提高。",
+    "desc": "冲关的高热还压在身上：受到的伤害提高，灵力恢复减半。",
     "kind": "debuff",
     "category": "state",
     "duration": 0,
-    "mods": { "damageTaken": 0.1 },
+    "mods": { "damageTaken": 0.1, "manaRegen": -0.5 },
     "dispellable": false
   },
   {
@@ -749,6 +751,97 @@
     "category": "state",
     "duration": 0,
     "stats": { "hit": -5 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_stagger",
+    "name": "失衡",
+    "desc": "被砸中或护盾碎裂，一时稳不住身子：不能移动、施放与攻击，读条被打断。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 6,
+    "cc": "stun",
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_berserk",
+    "name": "硬狂暴",
+    "desc": "拖得太久，它彻底发了狂：造成的伤害与攻击速度大增。",
+    "kind": "buff",
+    "category": "state",
+    "duration": 0,
+    "mods": { "damageDealt": 5, "haste": 1.5 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_mon_smolder",
+    "name": "灼烧",
+    "desc": "伤口里埋着火星，一阵阵地灼痛。",
+    "kind": "debuff",
+    "duration": 9,
+    "periodic": { "every": 3, "damage": { "base": 2, "perLevel": 1 }, "school": "fire" },
+    "dispelType": "magic"
+  },
+  {
+    "id": "aur_mon_corrode",
+    "name": "腐蚀",
+    "desc": "甲胄被蚀出了洞：护甲降低。",
+    "kind": "debuff",
+    "duration": 15,
+    "mods": { "armorPct": -0.1 },
+    "group": "corrode",
+    "dispellable": false
+  },
+  {
+    "id": "aur_mon_packfrenzy",
+    "name": "群怒",
+    "desc": "同伴倒下，它红了眼：造成的伤害提高。",
+    "kind": "buff",
+    "duration": 30,
+    "maxStacks": 5,
+    "mods": { "damageDealt": 0.1 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_mon_rumor",
+    "name": "传闻之威",
+    "desc": "传得越凶，它就越像传闻里的样子：生命与伤害提高。",
+    "kind": "buff",
+    "duration": 0,
+    "mods": { "damageDealt": 0.06, "maxHpPct": 0.06 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_mon_thorns",
+    "name": "反伤",
+    "desc": "身上带刺，近身攻击者会被扎伤。",
+    "kind": "buff",
+    "duration": 0,
+    "thorns": { "base": 1 },
+    "dispellable": false
+  },
+  {
+    "id": "aur_st_drunk",
+    "name": "醉意",
+    "desc": "酒劲上头：每层精神降低，抗压提高（至多 0.15）；五层以上脚下发飘，移动变慢、出手迟缓。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 0,
+    "maxStacks": 10,
+    "stats": { "spi": -2 },
+    "presenceResist": { "perStack": 0.03, "max": 0.15 },
+    "byStacks": [
+      {},
+      {},
+      {},
+      {},
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.15, "mods": { "interval": 0.1 } },
+      { "slow": 0.15, "mods": { "interval": 0.1 } }
+    ],
     "dispellable": false
   }
 ]

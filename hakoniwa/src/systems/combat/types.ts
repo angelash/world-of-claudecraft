@@ -6,6 +6,23 @@
 import type { TextParam } from '../../core/text';
 import type { Parcel } from '../inventory';
 import type { Appearance } from '../world/types';
+import type {
+  AddWave,
+  BossFight,
+  BossPhaseExt,
+  BossTargeting,
+  ChannelDef,
+  InjureDef,
+  InteractState,
+  MarkDef,
+  MonsterRegistryFields,
+  ResolveDef,
+  ShieldPhaseDef,
+  TelegraphDef,
+  TelegraphState,
+  TerrainState,
+  TerrainUse,
+} from './mech_types';
 
 export type ResourceKind = 'mana' | 'rage' | 'energy';
 export type School = 'physical' | 'holy' | 'fire' | 'frost' | 'nature' | 'shadow' | 'arcane';
@@ -184,7 +201,9 @@ export type EffectDef =
   | { type: 'charge' }
   | { type: 'knockback'; distance: number }
   | { type: 'summon'; monster: string; count: number }
-  | { type: 'threat'; amount: Scaling };
+  | { type: 'threat'; amount: Scaling }
+  /** purify a low-sediment beast back to its kind (11 `purifyTo`; settled as `purify`, 10.7) */
+  | { type: 'purify' };
 
 export interface AbilityRequires {
   targetHpBelow?: number;
@@ -227,6 +246,12 @@ export interface AbilityDef {
   heavy?: boolean;
   /** diminishing-returns category of the control it applies (9.2); default by the aura */
   dr?: DrCategory;
+  /** a ground warning: the effects wait for the lead and land on the locked cells (10.3) */
+  telegraph?: TelegraphDef;
+  /** a channel: the cast time pulses its effects `ticks` times (3.9, 10.4) */
+  channel?: ChannelDef;
+  /** the hit gives an injury (a boss skill, progression_and_pacing.md 10.1) */
+  injure?: InjureDef;
 }
 
 export interface AuraPeriodic {
@@ -254,6 +279,12 @@ export interface AuraMods {
   ccDurationDone?: number;
   /** duration of the control this unit suffers, as a fraction (9.3) */
   ccDurationTaken?: number;
+  /** health regeneration as a fraction (the taint spot -10%, combat 9.4) */
+  hpRegen?: number;
+  /** mana regeneration as a fraction (tempering backlash -50%, 9.4) */
+  manaRegen?: number;
+  /** door-skill cooldowns as a fraction (a maimed player +20%, progression 10.2) */
+  doorSkillCooldown?: number;
 }
 
 export interface AuraDef {
@@ -300,6 +331,10 @@ export interface AuraDef {
    * stacks`, for an aura whose levels are not multiples of one step (presence 3.5).
    */
   byStacks?: { slow?: number; mods?: AuraMods }[];
+  /** chance each spell of a mana caster miscasts: interrupted, its mana lost (sediment fever 9.4) */
+  miscast?: number;
+  /** two-handed weapons cannot be used (a maimed arm, 9.4) */
+  noTwoHand?: boolean;
 }
 
 export interface ClassBase {
@@ -343,8 +378,9 @@ export interface LootEntry {
   max?: number;
 }
 
-export interface BossPhase {
-  belowPct: number;
+export interface BossPhase extends BossPhaseExt {
+  /** enter below this health fraction (a phase names this, `atSec`, or both) */
+  belowPct?: number;
   name: string;
   say?: string;
   /** replaces the ability list from this phase on */
@@ -353,10 +389,28 @@ export interface BossPhase {
   aura?: string;
 }
 
-export interface MonsterMechanics {
-  /** flee once below this hp fraction (humanoid, burrower; never elite, rare or boss) */
+export interface MonsterMechanics extends MonsterRegistryFields {
+  /** flee once below this hp fraction (beasts too; never elite, rare or boss; 11) */
   flee?: number;
-  enrage?: { belowPct: number; aura: string; say?: string };
+  /** soft enrage by health line or fight time (10.5) */
+  enrage?: { belowPct?: number; atSec?: number; aura: string; say?: string };
+  /** the hard enrage of dungeon lords and above (10.5) */
+  berserk?: { atSec?: number; aura?: string };
+  /** reinforcements (10.5; `summon` is their first-round alias) */
+  adds?: AddWave[];
+  marks?: MarkDef[];
+  interruptWindows?: { ability: string; from?: number; to?: number; whileFlag?: string }[];
+  shields?: ShieldPhaseDef[];
+  terrain?: TerrainUse[];
+  resolve?: ResolveDef[];
+  /** the arena seals at the pull (10.1) */
+  arena?: { seal: boolean };
+  targeting?: BossTargeting;
+  /**
+   * Chase the biggest door in range (10.8): the player within `range`, else the nearest
+   * holder of `fallbackTag`, else threat. Near a holder it channels `channel`.
+   */
+  doorSeek?: { range: number; fallbackTag: string; channel?: string };
   summon?: { atPct: number; monster: string; count: number; say?: string }[];
   phases?: BossPhase[];
   /** stop fighting at this hp fraction instead of dying (Sasha retreats, the raven falls) */
@@ -447,6 +501,8 @@ export interface MonsterDef {
   material?: HitMaterial;
   /** voice family (8.3); read by the audio tables only */
   voice?: string;
+  /** entity tags at spawn (11: reptile, eroded, flying, door_mark, swarm) */
+  tags?: string[];
   appearance: Appearance;
 }
 
@@ -525,6 +581,10 @@ export interface CastState {
   y: number;
   /** pushbacks taken so far (at most two, 3.9) */
   pushes?: number;
+  /** a channel: ticks between pulses, the next pulse and the pulses done */
+  channel?: { every: number; next: number; n: number };
+  /** the cast winds up a ground warning (10.3) */
+  warned?: boolean;
 }
 
 export type BrainState = 'idle' | 'chase' | 'flee' | 'evade' | 'yielded';
@@ -621,6 +681,22 @@ export interface Unit {
   fighting?: boolean;
   /** the tick of the last pulse cross-feed (4.3: at most once per tick) */
   fedAt?: number;
+  /** a boss in a fight: phases by time, adds, shields, the arena (boss/) */
+  boss?: BossFight;
+  /** telegraphed abilities whose first settlement already happened (10.3 `firstHalf`) */
+  firstHalf?: string[];
+  /** using an arena object (10.6) */
+  interact?: InteractState;
+  /** an arena object or a boss part: its terrain record id (10.6; breakableParts) */
+  terrain?: string;
+  /** an ambusher still hidden: its first strike's multiplier (11 `ambushEmerge`) */
+  ambush?: number;
+  /** an add that goes when its boss falls (10.5 `despawnWithBoss`) */
+  despawnWithBoss?: boolean;
+  /** what a thief carries until it dies, and whose it was (11 `pilfer`, `crystalEat`) */
+  stolen?: { ownerId: string; money: number; items: Parcel[] };
+  /** this body rises as that monster when its corpse goes (11 `corpseRise`) */
+  rise?: string;
 }
 
 export interface SpawnState {
@@ -650,6 +726,10 @@ export interface CombatSlice {
   auraSeq?: number;
   /** the difficulty whose modifier items are registered (difficulty.ts) */
   difficulty?: Difficulty;
+  /** live ground warnings (10.3) */
+  telegraphs?: Record<string, TelegraphState>;
+  /** arena objects and boss parts (10.6) */
+  terrain?: Record<string, TerrainState>;
 }
 
 /** What the player left behind where they fell (15.1; thousand_doors.md 6.3). */
@@ -762,6 +842,10 @@ declare module '../../core/contracts' {
       op: 'start' | 'finish' | 'interrupted';
       /** readability (18): false draws the shield border of an uninterruptible cast */
       interruptible?: boolean;
+      /** an interruption by the sediment fever's miscast (9.4) */
+      reason?: 'miscast';
+      /** the cast is a channel (3.9; the cast bar empties) */
+      channel?: boolean;
     };
     'combat.kill': {
       killerId?: string;
@@ -775,6 +859,10 @@ declare module '../../core/contracts' {
       tier: number;
       side: Side;
       mapId: string;
+      /** harvest tags of the body (11 `componentTags`) */
+      components?: string[];
+      /** an unwitnessed kill passes the name on (11 `nameInherit`; cognition decides) */
+      nameInherit?: boolean;
     };
     'combat.loot': {
       ownerId: string;
@@ -818,7 +906,7 @@ declare module '../../core/contracts' {
     'combat.bag': {
       bagId: string;
       ownerId: string;
-      op: 'dropped' | 'reclaimed' | 'expired';
+      op: 'dropped' | 'reclaimed' | 'expired' | 'swallowed';
       mapId: string;
       items: { itemId: string; count: number }[];
       money: number;

@@ -8,19 +8,52 @@ import type { SystemContext } from '../../core/system';
 import { type KeyText, tr } from '../../core/text';
 import type { World } from '../../core/world';
 import { entitiesNear, getEntity, haltEntity, isWalkable, teleportEntity, walkMap } from '../world';
+import { purifyHit } from './affixes/purify';
+import { DESPERATE_HEAL, desperatePct } from './affixes/timed';
 import { applyAura, dispel, hasAura } from './auras';
+import { abilityHitShield, interruptibleNow, markOf, shieldImmune, startMarks } from './boss';
 import { immuneToForcedMove } from './control';
 import { healUnit, resolveHit } from './damage';
-import { abilityDef, ENERGY_GCD_TICKS, GCD_TICKS, MELEE_RANGE, scaled, secs } from './defs';
+import {
+  abilityDef,
+  auraDef,
+  ENERGY_GCD_TICKS,
+  GCD_TICKS,
+  MELEE_RANGE,
+  scaled,
+  secs,
+} from './defs';
 import { meleeMissChance, spellHitChance } from './formulas';
+import { injureOnHit } from './injuries';
 import { crossFeed, poolDriven } from './pools';
 import { hitPresentation } from './presentation';
 import { onRack } from './rack';
 import { type Derived, deriveStats, isDisabled } from './stats';
 import { summonFor } from './summons';
+import { cancelWarnings, leadTicks, settleCast, warnAbility } from './telegraph';
 import { addThreat, engage, markCombat, taunt } from './threat';
 import type { AbilityDef, EffectDef, ResourceKind, School, Unit } from './types';
 import { canAttack, isFriendlyPair, knownAbilities, liveUnit, unitOf } from './units';
+
+/** Options of an ability use: a scripted boss cast skips the list, the bar and the clocks. */
+export interface UseOpts {
+  force?: boolean;
+}
+
+/** Options of effects landing without their own targeting (a warning settling, 10.3). */
+export interface EffectOpts {
+  /** no hit roll: the area decided who is struck */
+  noRoll?: boolean;
+  /** damage and healing multiplier (a shared stack mark, a first half) */
+  mult?: number;
+}
+
+/** The chance a unit's spells miscast (sediment fever, combat 9.4): the strongest aura's. */
+export function miscastChance(content: ContentMap, u: Unit): number {
+  let best = 0;
+  for (const a of u.auras) best = Math.max(best, auraDef(content, a.id)?.miscast ?? 0);
+  return best;
+}
 
 export type Check =
   | { ok: true; def: AbilityDef; target: Unit; cost: number }
@@ -70,15 +103,16 @@ export function checkAbility(
   caster: Unit,
   abilityId: string,
   targetId?: string | null,
+  opts: UseOpts = {},
 ): Check {
   const def = abilityDef(content, abilityId);
   if (!def) return { ok: false, code: 'no_ability', reason: tr('sys.combat.reject.no_ability') };
   if (!liveUnit(world, caster.id))
     return { ok: false, code: 'dead', reason: tr('sys.combat.reject.dead') };
-  if (!knownAbilities(content, caster).includes(abilityId)) {
+  if (!opts.force && !knownAbilities(content, caster).includes(abilityId)) {
     return { ok: false, code: 'unknown', reason: tr('sys.combat.reject.unknown') };
   }
-  if (!onRack(caster, abilityId))
+  if (!opts.force && !onRack(caster, abilityId))
     return { ok: false, code: 'not_racked', reason: tr('sys.combat.reject.not_racked') };
   const d = deriveStats(world, content, caster);
   if (isDisabled(d))
@@ -88,11 +122,13 @@ export function checkAbility(
   }
   if (d.cc.disarm && needsWeapon(def))
     return { ok: false, code: 'disarmed', reason: tr('sys.combat.reject.disarmed') };
+  if (d.twoHandLocked && needsWeapon(def))
+    return { ok: false, code: 'maimed', reason: tr('sys.combat.reject.maimed') };
   if (caster.cast) return { ok: false, code: 'busy', reason: tr('sys.combat.reject.busy') };
   const tick = world.meta.tick;
-  if (def.gcd !== false && caster.gcd > tick)
+  if (!opts.force && def.gcd !== false && caster.gcd > tick)
     return { ok: false, code: 'gcd', reason: tr('sys.combat.reject.gcd') };
-  if ((caster.cds[abilityId] ?? 0) > tick)
+  if (!opts.force && (caster.cds[abilityId] ?? 0) > tick)
     return { ok: false, code: 'cooldown', reason: tr('sys.combat.reject.cooldown') };
   const cost = abilityCost(def, d);
   if (def.resource && cost > 0 && !poolDriven(world, caster, def.resource)) {
@@ -164,33 +200,72 @@ export function useAbility(
   caster: Unit,
   abilityId: string,
   targetId?: string | null,
+  opts: UseOpts = {},
 ): Check {
-  const check = checkAbility(ctx.world, ctx.content, caster, abilityId, targetId);
+  const check = checkAbility(ctx.world, ctx.content, caster, abilityId, targetId, opts);
   if (!check.ok) return check;
   const { def, target } = check;
+  const e = getEntity(ctx.world, caster.id);
+  // a ground warning (10.3): the area locks now and the effects wait for the lead
+  const tg = def.telegraph;
+  const mark = markOf(ctx, caster, def.id);
+  let warned = false;
+  if (mark) {
+    if (startMarks(ctx, caster, def, mark) === 0) return capFull();
+  } else if (tg) {
+    if (!warnAbility(ctx, caster, def, aimOf(ctx, caster, target, targetId))) return capFull();
+    warned = tg.shape.kind !== 'pulse';
+  }
   if (def.gcd !== false) {
     caster.gcd = ctx.tick + (def.resource === 'energy' ? ENERGY_GCD_TICKS : GCD_TICKS);
   }
   if (isOffensive(def) && target !== caster) caster.target = target.id;
-  const e = getEntity(ctx.world, caster.id);
-  if ((def.castTime ?? 0) > 0 && e) {
-    const d = deriveStats(ctx.world, ctx.content, caster);
-    const haste = 1 + Math.max(-0.5, d.stats.haste / 100);
-    if (caster.side !== 'ally' || e.kind !== 'player') haltEntity(ctx, e.id);
+  if (mark || (tg && !warned)) {
+    // marks and pulse zones are laid at once; their hits come from the warnings
+    spend(ctx, caster, def);
+    if (isOffensive(def)) markCombat(ctx, caster);
+    ctx.emit('combat.cast', { casterId: caster.id, abilityId, targetId: target.id, op: 'finish' });
+    return check;
+  }
+  if (warned && e) {
+    // the warned cast lasts the whole lead: no haste shortens a warning
+    haltEntity(ctx, e.id);
     caster.cast = {
       abilityId,
       targetId: target.id,
       start: ctx.tick,
-      end: ctx.tick + Math.max(1, Math.round((secs(def.castTime ?? 0) * d.intervalMult) / haste)),
+      end: ctx.tick + leadTicks(ctx, def),
       x: e.x,
       y: e.y,
+      warned: true,
     };
     ctx.emit('combat.cast', {
       casterId: caster.id,
       abilityId,
       targetId: target.id,
       op: 'start',
-      interruptible: interruptible(def),
+      interruptible: interruptibleNow(ctx.world, ctx.content, caster),
+    });
+    return check;
+  }
+  if ((def.castTime ?? 0) > 0 && e) {
+    const d = deriveStats(ctx.world, ctx.content, caster);
+    const haste = 1 + Math.max(-0.5, d.stats.haste / 100);
+    if (caster.side !== 'ally' || e.kind !== 'player') haltEntity(ctx, e.id);
+    const end =
+      ctx.tick + Math.max(1, Math.round((secs(def.castTime ?? 0) * d.intervalMult) / haste));
+    caster.cast = { abilityId, targetId: target.id, start: ctx.tick, end, x: e.x, y: e.y };
+    if (def.channel) {
+      const every = Math.max(1, Math.floor((end - ctx.tick) / Math.max(1, def.channel.ticks)));
+      caster.cast.channel = { every, next: ctx.tick + every, n: 0 };
+    }
+    ctx.emit('combat.cast', {
+      casterId: caster.id,
+      abilityId,
+      targetId: target.id,
+      op: 'start',
+      interruptible: interruptibleNow(ctx.world, ctx.content, caster),
+      ...(def.channel ? { channel: true } : {}),
     });
     return check;
   }
@@ -198,15 +273,98 @@ export function useAbility(
   return check;
 }
 
+/** Outcomes of a hit that did not land (a shield may still have soaked one that did). */
+const MISSED: ReadonlySet<string> = new Set(['miss', 'dodge', 'parry', 'resist', 'immune']);
+
+/**
+ * Where a warning aims (10.3 `at: target`, cone and line facing): the checked target, or for
+ * an area ability the caster's chosen or current foe; none when it has no foe.
+ */
+function aimOf(
+  ctx: SystemContext,
+  caster: Unit,
+  target: Unit,
+  targetId: string | null | undefined,
+): Unit | null {
+  if (target !== caster) return target;
+  const foe = unitOf(ctx.world, targetId ?? caster.target);
+  return foe && liveUnit(ctx.world, foe.id) && canAttack(ctx.world, caster, foe) ? foe : null;
+}
+
+function capFull(): Check {
+  return { ok: false, code: 'warn_cap', reason: tr('sys.combat.reject.warn_cap') };
+}
+
+/**
+ * Channel an ability on any entity (the door drain on a door-marked child, 10.8): the
+ * holder needs no combat unit; its pulses land only on a unit, the events go out regardless.
+ */
+export function startChannelOn(
+  ctx: SystemContext,
+  caster: Unit,
+  abilityId: string,
+  entityId: string,
+): boolean {
+  const def = abilityDef(ctx.content, abilityId);
+  const e = getEntity(ctx.world, caster.id);
+  if (!def?.channel || !e || caster.cast || !liveUnit(ctx.world, caster.id)) return false;
+  if (isDisabled(deriveStats(ctx.world, ctx.content, caster))) return false;
+  if ((caster.cds[abilityId] ?? 0) > ctx.tick) return false;
+  const end = ctx.tick + Math.max(1, secs(def.castTime ?? 1));
+  const every = Math.max(1, Math.floor((end - ctx.tick) / Math.max(1, def.channel.ticks)));
+  haltEntity(ctx, e.id);
+  caster.cast = {
+    abilityId,
+    targetId: entityId,
+    start: ctx.tick,
+    end,
+    x: e.x,
+    y: e.y,
+    channel: { every, next: ctx.tick + every, n: 0 },
+  };
+  ctx.emit('combat.cast', {
+    casterId: caster.id,
+    abilityId,
+    targetId: entityId,
+    op: 'start',
+    interruptible: interruptibleNow(ctx.world, ctx.content, caster),
+    channel: true,
+  });
+  return true;
+}
+
 export function interruptCast(ctx: SystemContext, u: Unit): void {
   if (!u.cast) return;
+  const c = u.cast;
+  u.cast = null;
   ctx.emit('combat.cast', {
     casterId: u.id,
-    abilityId: u.cast.abilityId,
-    targetId: u.cast.targetId ?? undefined,
+    abilityId: c.abilityId,
+    targetId: c.targetId ?? undefined,
     op: 'interrupted',
   });
-  u.cast = null;
+  if (c.warned) cancelWarnings(ctx, u.id);
+  // an interrupted monster cast or channel goes on cooldown, it does not start over (10.4)
+  const def = abilityDef(ctx.content, c.abilityId);
+  if ((c.channel || u.monsterId) && def?.cooldown) u.cds[def.id] = ctx.tick + secs(def.cooldown);
+}
+
+/** One pulse of a channel: the effects on the target unit (if any), stronger by the ramp. */
+function channelPulse(ctx: SystemContext, u: Unit, def: AbilityDef): void {
+  const c = u.cast;
+  if (!c?.channel) return;
+  c.channel.n++;
+  c.channel.next += c.channel.every;
+  const t = unitOf(ctx.world, c.targetId);
+  ctx.emit('combat.channel', {
+    casterId: u.id,
+    abilityId: def.id,
+    ...(c.targetId ? { targetId: c.targetId } : {}),
+    n: c.channel.n,
+  });
+  if (!t || !liveUnit(ctx.world, t.id)) return;
+  const mult = 1 + (def.channel?.ramp ?? 0) * (c.channel.n - 1);
+  effectsOn(ctx, u, def, t, { mult });
 }
 
 /** Advance a cast bar: movement cancels it, completion re-validates and fires. */
@@ -218,14 +376,39 @@ export function tickCast(ctx: SystemContext, u: Unit): void {
     u.cast = null;
     return;
   }
-  if (Math.hypot(e.x - cast.x, e.y - cast.y) > 0.15) {
+  // a warned cast's area is locked: the caster may be moved and the warning still lands
+  if (!cast.warned && Math.hypot(e.x - cast.x, e.y - cast.y) > 0.15) {
     interruptCast(ctx, u);
     return;
   }
-  if (ctx.tick < cast.end) return;
   const def = abilityDef(ctx.content, cast.abilityId);
+  if (cast.channel && def && ctx.tick >= cast.channel.next && ctx.tick < cast.end)
+    channelPulse(ctx, u, def);
+  if (ctx.tick < cast.end) return;
+  if (!def) {
+    u.cast = null;
+    return;
+  }
+  if (cast.warned) {
+    // the warning lands on its locked cells, whoever stands there now (10.3)
+    u.cast = null;
+    finishWarned(ctx, u, def, cast.targetId);
+    return;
+  }
+  if (cast.channel) {
+    // the last pulse lands with the end of the channel
+    if (cast.channel.n < (def.channel?.ticks ?? 0)) channelPulse(ctx, u, def);
+    u.cast = null;
+    spend(ctx, u, def);
+    ctx.emit('combat.cast', {
+      casterId: u.id,
+      abilityId: def.id,
+      ...(cast.targetId ? { targetId: cast.targetId } : {}),
+      op: 'finish',
+    });
+    return;
+  }
   u.cast = null;
-  if (!def) return;
   let target: Unit | undefined = unitOf(ctx.world, cast.targetId);
   const live = target ? liveUnit(ctx.world, target.id) : undefined;
   if (!target || !live) {
@@ -248,7 +431,7 @@ export function tickCast(ctx: SystemContext, u: Unit): void {
   execute(ctx, u, def, target);
 }
 
-function spend(ctx: SystemContext, u: Unit, def: AbilityDef): void {
+function spend(ctx: SystemContext, u: Unit, def: AbilityDef, cooldown = true): void {
   const d = deriveStats(ctx.world, ctx.content, u);
   const cost = abilityCost(def, d);
   if (def.resource && cost > 0) {
@@ -256,7 +439,63 @@ function spend(ctx: SystemContext, u: Unit, def: AbilityDef): void {
     if (def.resource === 'mana') u.manaSpentAt = ctx.tick;
     crossFeed(ctx.world, u, d, def.resource, cost);
   }
-  if (def.cooldown) u.cds[def.id] = ctx.tick + secs(def.cooldown);
+  if (!cooldown || !def.cooldown) return;
+  // a door-granted skill takes the door-skill cooldown modifier (a maimed player, 10.2)
+  const door = u.abilities.includes(def.id) ? Math.max(0, 1 + d.mods.doorSkillCooldown) : 1;
+  u.cds[def.id] = ctx.tick + secs(def.cooldown * door);
+}
+
+/** A warned cast finished: its warnings settle, its self effects land once. */
+function finishWarned(ctx: SystemContext, u: Unit, def: AbilityDef, targetId: string | null): void {
+  spend(ctx, u, def);
+  for (const f of def.effects)
+    if (f.type === 'aura' && f.to === 'self') applyAura(ctx, u, f.aura, u);
+  settleCast(ctx, u, def.id);
+  if (isOffensive(def)) markCombat(ctx, u);
+  ctx.emit('combat.cast', {
+    casterId: u.id,
+    abilityId: def.id,
+    ...(targetId ? { targetId } : {}),
+    op: 'finish',
+  });
+}
+
+/**
+ * The sediment fever (combat 9.4): a mana spell miscasts with the aura's chance, rolled on
+ * `combat.proc` only while such an aura is on: the cast is interrupted and its mana lost.
+ */
+function miscasts(ctx: SystemContext, u: Unit, def: AbilityDef): boolean {
+  if (def.resource !== 'mana' || (def.school ?? 'physical') === 'physical') return false;
+  const chance = miscastChance(ctx.content, u);
+  if (chance <= 0 || (chance < 1 && ctx.rng('combat.proc').next() >= chance)) return false;
+  spend(ctx, u, def, false);
+  ctx.emit('combat.cast', {
+    casterId: u.id,
+    abilityId: def.id,
+    op: 'interrupted',
+    reason: 'miscast',
+  });
+  return true;
+}
+
+/**
+ * Effects landing on one target outside the ability's own targeting (a warning settling, a
+ * channel pulse): every effect but the self auras, the hit roll skipped on request.
+ */
+export function effectsOn(
+  ctx: SystemContext,
+  caster: Unit,
+  def: AbilityDef,
+  t: Unit,
+  opts: EffectOpts = {},
+): void {
+  const d = deriveStats(ctx.world, ctx.content, caster);
+  const enemy = canAttack(ctx.world, caster, t);
+  for (const f of def.effects) {
+    if (f.type === 'aura' && f.to === 'self') continue;
+    if (!liveUnit(ctx.world, t.id) && f.type !== 'aura') continue;
+    runEffect(ctx, caster, def, f, t, d, caster.combo, enemy, true, opts);
+  }
 }
 
 function targetsFor(ctx: SystemContext, caster: Unit, def: AbilityDef, target: Unit): Unit[] {
@@ -330,6 +569,7 @@ function lands(
 }
 
 function execute(ctx: SystemContext, caster: Unit, def: AbilityDef, target: Unit): void {
+  if (miscasts(ctx, caster, def)) return;
   spend(ctx, caster, def);
   const d = deriveStats(ctx.world, ctx.content, caster);
   const combo = caster.combo;
@@ -387,6 +627,7 @@ function runEffect(
   combo: number,
   enemy: boolean,
   landed: boolean,
+  opts: EffectOpts = {},
 ): 'missed' | undefined {
   switch (f.type) {
     case 'damage': {
@@ -397,6 +638,7 @@ function runEffect(
       let amount = scaled(f.amount, caster.level, power);
       if (f.weapon) amount += swingRoll(ctx, caster, d) * f.weapon;
       if (f.perCombo) amount += scaled(f.perCombo, caster.level, 0) * combo;
+      amount *= opts.mult ?? 1;
       const ranged = (def.range ?? 0) > 2;
       const kind = school === 'physical' ? (ranged ? 'ranged' : 'melee') : 'spell';
       const r = resolveHit(ctx, {
@@ -408,7 +650,12 @@ function runEffect(
         abilityId: def.id,
         threatMult: f.threat,
         leech: f.leech,
+        noRoll: opts.noRoll,
       });
+      if (r.dealt > 0 || !MISSED.has(r.outcome) || shieldImmune(ctx, t)) {
+        abilityHitShield(ctx, t, def.id, caster);
+        injureOnHit(ctx, caster, def, t);
+      }
       if (
         r.outcome === 'miss' ||
         r.outcome === 'dodge' ||
@@ -426,7 +673,9 @@ function runEffect(
     case 'heal_pct': {
       if (enemy) return;
       const max = deriveStats(ctx.world, ctx.content, t).maxHp;
-      healUnit(ctx, caster, t, max * f.pct, { abilityId: def.id, canCrit: false });
+      // the desperate heal restores the share its caster's data names (11 `desperateHeal`)
+      const pct = def.id === DESPERATE_HEAL ? desperatePct(ctx, caster, f.pct) : f.pct;
+      healUnit(ctx, caster, t, max * pct, { abilityId: def.id, canCrit: false });
       return;
     }
     case 'aura':
@@ -461,7 +710,7 @@ function runEffect(
       if (enemy && landed) taunt(ctx, t, caster);
       return;
     case 'interrupt':
-      if (enemy && t.cast && interruptible(abilityDef(ctx.content, t.cast.abilityId))) {
+      if (enemy && t.cast && interruptibleNow(ctx.world, ctx.content, t)) {
         interruptCast(ctx, t);
         // the school lockout is part of the interrupt: bosses take it, the ladders skip it
         applyAura(ctx, t, 'aur_mon_schoollock', caster, {
@@ -484,6 +733,9 @@ function runEffect(
       return;
     case 'threat':
       if (enemy) addThreat(ctx, t, caster.id, scaled(f.amount, caster.level, 0));
+      return;
+    case 'purify':
+      if (enemy) purifyHit(ctx, caster, t);
       return;
   }
 }

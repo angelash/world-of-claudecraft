@@ -568,6 +568,11 @@
 | 瑟格"独眼" `seg_oneeye` | 12 | 巢主（2.5，3；单挑时 1） | 单阶段，无大技能，只有 `sk_mon_cleave` | 30% 以下 `aur_mon_bloodrage`（软狂暴，血怒量级） |
 | 澱巨像 `dian_colossus` | 14 | 迷宫之主，剧情首领（4.5，3） | 行进 100% 到 70%：`sk_mon_dianfist`、`sk_mon_stomp`、`sk_mon_ashtide`；裂解 70% 到 35%：加 `sk_mon_ashshell`、`sk_mon_ashrain`；崩解 35% 到 0：同裂解去掉护盾阶段 | 常驻以外，裂解起自我施加 `aur_mon_ashshell`（吸收盾，夜羽的技能可击碎，呼应[战斗 10.4][cmb]"夜羽的鸦群扑面击碎灰壳"）；35% 以下软狂暴 `aur_st_enrage`（第 7.4 节）；灰潮附 `aur_mon_ashtideslow` |
 
+首领机制库（PK-M1-12）另有三条魔物技能：`sk_mon_cavein`（二次塌方：晶背之母 50% 阶段的进入动作，每名成员脚下一个致命档圆，提前 2 秒）、
+`sk_mon_doordrain`（汲门：澱巨像追到门纹持有者 3 格内时的引导，可打断，越久越重）、`sk_mon_desperateheal`（绝境自愈：注册表字段 `desperateHeal` 的读条，可打断）；
+注册表字段的模板光环 `aur_mon_smolder`（灼烧）、`aur_mon_corrode`（腐蚀）、`aur_mon_packfrenzy`（群怒）、`aur_mon_rumor`（传闻之威）、`aur_mon_thorns`（反伤）
+同包导入，字段写明的时长、伤害与幅度在施加时覆盖模板。
+
 守护巨鸦的 `yieldAtPct` 0.02（力竭而不死）与澱巨像倒下后的澱核抉择场景都不改变技能与光环编号，只是战斗结算的出口，按
 [战斗 10.7][cmb]非战斗解法接口处理，不在本文范围。
 
@@ -648,7 +653,7 @@
 数据里的状态光环：`aur_st_presence_pressure`、`aur_st_presence_paralysis`、`aur_st_revival_fatigue`、`aur_st_spring_toll`、`aur_st_enrage`
 五个由现行数据换号而来，数值暂按现行数据；`aur_st_downed_weak` 随 `content_act1_abilities_01` 导入（同伴倒地后起身时挂上）。其余
 15 个编号随施加它们的系统落地，届时导入数据行：`aur_st_presence_unease`（位阶威压）已随战斗规则扩展（PK-M1-11）导入，
-同包按战斗文档 3.5、15.1、15.3 重写了压境、失神、复苏门疲与泉畔之代价的数值；`aur_st_stagger`、`aur_st_berserk` 随首领机制库（PK-M1-12）；`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`
+同包按战斗文档 3.5、15.1、15.3 重写了压境、失神、复苏门疲与泉畔之代价的数值；`aur_st_stagger`、`aur_st_berserk` 已随首领机制库（PK-M1-12）导入；`aur_st_sed_spot`、`aur_st_sed_fever`、`aur_st_sed_crystal`
 与五个 `aur_st_injury_*` 随澱染与澱病（PK-M1-51）；`aur_st_drunk`、`aur_st_physic_poison` 随物品实例与消耗品（PK-M1-13）；
 `aur_st_default_mark` 随契约违约与活性词缀的结算；`aur_st_soul_recall` 随千门第二批（PK-M2-13）。
 

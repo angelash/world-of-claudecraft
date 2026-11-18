@@ -32,5 +32,5 @@
     { "tag": "needle", "professions": ["tailoring", "leatherworking"] }
   ],
   "toolWear": 1,
-  "drunk": { "max": 10, "decayPerHour": 1, "soberMinutes": 10 }
+  "drunk": { "max": 10, "decayPerHour": 1, "soberMinutes": 10, "aura": "aur_st_drunk" }
 }

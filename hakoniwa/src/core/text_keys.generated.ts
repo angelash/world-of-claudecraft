@@ -402,6 +402,7 @@ export type TextKey =
   | 'sys.combat.feat.yielded'
   | 'sys.combat.info.spawned'
   | 'sys.combat.level_range'
+  | 'sys.combat.modifier.crop_blight'
   | 'sys.combat.reject.bad_target.absent'
   | 'sys.combat.reject.bad_target.enemy'
   | 'sys.combat.reject.bad_target.unselectable'
@@ -415,11 +416,16 @@ export type TextKey =
   | 'sys.combat.reject.duel.in_combat'
   | 'sys.combat.reject.duel.out_of_range'
   | 'sys.combat.reject.gcd'
+  | 'sys.combat.reject.interact.busy'
+  | 'sys.combat.reject.interact.not_usable'
+  | 'sys.combat.reject.interact.out_of_range'
+  | 'sys.combat.reject.interact.used'
   | 'sys.combat.reject.item.dead'
   | 'sys.combat.reject.item.disabled'
   | 'sys.combat.reject.item.gcd'
   | 'sys.combat.reject.item.in_combat'
   | 'sys.combat.reject.item.not_usable'
+  | 'sys.combat.reject.maimed'
   | 'sys.combat.reject.no_ability'
   | 'sys.combat.reject.no_class'
   | 'sys.combat.reject.no_combo'
@@ -448,6 +454,7 @@ export type TextKey =
   | 'sys.combat.reject.silenced'
   | 'sys.combat.reject.too_close'
   | 'sys.combat.reject.unknown'
+  | 'sys.combat.reject.warn_cap'
   | 'sys.combat.resource.energy'
   | 'sys.combat.resource.mana'
   | 'sys.combat.resource.rage'
@@ -2968,5 +2975,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (2964). */
-export const TEXT_KEY_COUNT = 2964;
+/** Number of keys in TextKey (2971). */
+export const TEXT_KEY_COUNT = 2971;

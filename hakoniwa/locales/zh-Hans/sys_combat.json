@@ -69,5 +69,12 @@
   "sys.combat.info.spawned": "生成了 {n} 只",
   "sys.combat.level_range": "Lv {lo} 到 {hi}",
   "sys.combat.feat.yielded": "{name}败退",
-  "sys.combat.feat.downed": "{name}被击倒"
+  "sys.combat.feat.downed": "{name}被击倒",
+  "sys.combat.reject.maimed": "这只手握不住双手兵器",
+  "sys.combat.reject.warn_cap": "地上的预警已经够多了",
+  "sys.combat.reject.interact.not_usable": "这东西用不了",
+  "sys.combat.reject.interact.used": "已经用过了",
+  "sys.combat.reject.interact.out_of_range": "离得太远",
+  "sys.combat.reject.interact.busy": "正在施法",
+  "sys.combat.modifier.crop_blight": "魔物：田里的庄稼被祸害了"
 }

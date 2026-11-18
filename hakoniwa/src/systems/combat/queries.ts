@@ -10,13 +10,14 @@ import { type KeyText, type TextParam, tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
 import type { World } from '../../core/world';
 import { getEntity } from '../world';
-import { abilityCost, checkAbility, interruptible, resourceName } from './abilities';
-import { abilityDef, auraDef } from './defs';
+import { abilityCost, checkAbility, resourceName } from './abilities';
+import { interruptibleNow, STAGGER } from './boss';
+import { abilityDef, auraDef, monsterDef } from './defs';
 import { tierName, xpForLevel } from './formulas';
 import { drivenPools } from './pools';
 import { rackCapacity, usesRack } from './rack';
 import { deriveStats } from './stats';
-import type { AuraCategory, DispelType, DropBag, ResourceKind, Side } from './types';
+import type { AuraCategory, DispelType, DropBag, ResourceKind, Side, Unit } from './types';
 import { canAttack, isHostilePair, knownAbilities, liveUnit, unitOf } from './units';
 
 export interface UnitView {
@@ -50,12 +51,20 @@ export interface UnitView {
     name: string;
     progress: number;
     remaining: number;
-    /** false draws the shield border of an uninterruptible cast (18) */
+    /** false draws the shield border: uninterruptible, a shield up, or outside its window (10.4) */
     interruptible: boolean;
+    /** a channel: the bar empties instead of filling (3.9) */
+    channel: boolean;
   } | null;
   targetId: string | null;
   inCombat: boolean;
   attackable: boolean;
+  /** a boss's shields up (10.4): the absorb left above the health bar, or an immune shield */
+  shield: { kind: 'absorb' | 'immune'; left: number } | null;
+  /** an untargetable phase in progress (10.2) */
+  untargetable: boolean;
+  /** the boss's stagger (10.4, `aur_st_stagger`) */
+  staggered: boolean;
 }
 
 export function unitView(world: World, content: ContentMap, id: string): UnitView | null {
@@ -101,13 +110,34 @@ export function unitView(world: World, content: ContentMap, id: string): UnitVie
           name: abilityDef(content, u.cast.abilityId)?.name ?? u.cast.abilityId,
           progress: Math.min(1, (tick - u.cast.start) / Math.max(1, u.cast.end - u.cast.start)),
           remaining: Math.max(0, (u.cast.end - tick) / TICK_HZ),
-          interruptible: interruptible(abilityDef(content, u.cast.abilityId)),
+          interruptible: interruptibleNow(world, content, u),
+          channel: !!u.cast.channel,
         }
       : null,
     targetId: u.target,
     inCombat: u.combatUntil > tick,
     attackable: u.attackable,
+    shield: shieldView(content, u),
+    untargetable: (u.boss?.untargetableUntil ?? 0) > tick,
+    staggered: u.auras.some((a) => a.id === STAGGER),
   };
+}
+
+/** The shields a boss holds up, for its frame (10.4, 18). */
+function shieldView(content: ContentMap, u: Unit): UnitView['shield'] {
+  const up = u.boss?.shields;
+  if (!up) return null;
+  const defs = monsterDef(content, u.monsterId)?.mechanics?.shields ?? [];
+  let left = 0;
+  let immune = false;
+  for (const d of defs) {
+    const st = up[d.id];
+    if (!st?.up) continue;
+    if (d.kind === 'immune') immune = true;
+    else left += st.left ?? 0;
+  }
+  if (immune) return { kind: 'immune', left: 0 };
+  return left > 0 ? { kind: 'absorb', left } : null;
 }
 
 export interface AbilitySlot {

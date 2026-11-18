@@ -485,6 +485,20 @@
       "priority": 2
     },
     {
+      "id": "telegraph_warn",
+      "event": "combat.telegraph",
+      "select": {
+        "pattern": "sfx_sch_{school}_aoe",
+        "vars": { "school": "school" },
+        "fallback": "sfx_sch_shadow_aoe"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 1,
+      "boost": [{ "when": { "involvesPlayer": true }, "priority": 0 }],
+      "note": "A ground warning appeared (combat_and_classes.md 10.3, 18): every lethal and heavy warning sounds, the school picks the sound."
+    },
+    {
       "id": "heal",
       "event": "combat.heal",
       "select": {

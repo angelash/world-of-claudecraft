@@ -14207,6 +14207,42 @@
       ]
     },
     {
+      "name": "boss.<boss>.resolved",
+      "kind": "enum",
+      "scope": "mirror",
+      "range": null,
+      "step": null,
+      "default": null,
+      "values": [
+        "yield",
+        "purify",
+        "pacify",
+        "talk",
+        "item",
+        "interact",
+        "survive",
+        "escape",
+        "flag"
+      ],
+      "aliases": [],
+      "writers": ["combat"],
+      "readers": ["content"],
+      "derive": null,
+      "monotone": false,
+      "act": null,
+      "visibility": "hidden",
+      "ai": "ledger",
+      "label": "var.boss.boss.resolved",
+      "source": "8.6",
+      "slots": [
+        {
+          "name": "boss",
+          "domain": "boss",
+          "keys": null
+        }
+      ]
+    },
+    {
       "name": "boss.<boss>.yielded",
       "kind": "flag",
       "scope": "mirror",

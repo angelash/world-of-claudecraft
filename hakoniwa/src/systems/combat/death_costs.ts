@@ -9,6 +9,7 @@
 
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY } from '../../core/time';
+import { swallowTick } from '../dungeons/left_items';
 import {
   addMoney,
   applyCombatWear,
@@ -139,14 +140,31 @@ export function witnessesOf(ctx: SystemContext, at: Entity): string[] {
   return out.sort();
 }
 
-/** Drop bags crumble after three game days; the player walking up to one reclaims it. */
+/** When a bag was left (its expiry less the bag's days). */
+export function bagSince(bag: DropBag): number {
+  return bag.expires - DROP_BAG_DAYS * TICKS_PER_GAME_DAY;
+}
+
+/**
+ * Drop bags crumble after three game days, except in a standing dungeon, which keeps what
+ * fell inside until it swallows it (catalog_dungeons_bosses.md 1.1: seven game days, through
+ * the left-item port, bag_port.ts); the player walking up to one reclaims it.
+ */
 export function tickBags(ctx: SystemContext): void {
   const slice = ctx.world.slices.combat;
   if (!slice.bags) return;
   for (const id of Object.keys(slice.bags).sort()) {
     const bag = slice.bags[id];
     if (!bag) continue;
-    if (bag.expires <= ctx.tick) {
+    const kept =
+      swallowTick(ctx.world, ctx.content, {
+        id: bag.id,
+        mapId: bag.mapId,
+        x: bag.x,
+        y: bag.y,
+        since: bagSince(bag),
+      }) !== null;
+    if (bag.expires <= ctx.tick && !kept) {
       dropOut(ctx, bag, 'expired');
       continue;
     }
@@ -159,7 +177,12 @@ export function tickBags(ctx: SystemContext): void {
   }
 }
 
-function dropOut(ctx: SystemContext, bag: DropBag, op: 'reclaimed' | 'expired'): void {
+/** A bag leaves the world: reclaimed, crumbled, or swallowed by a dungeon. */
+export function dropOut(
+  ctx: SystemContext,
+  bag: DropBag,
+  op: 'reclaimed' | 'expired' | 'swallowed',
+): void {
   const slice = ctx.world.slices.combat;
   const rest = { ...(slice.bags ?? {}) };
   delete rest[bag.id];

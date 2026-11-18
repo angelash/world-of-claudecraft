@@ -82,6 +82,9 @@ export function immuneTo(
   const cc = controlKind(def);
   if (!cc) return false;
   const mon = monsterDef(content, u.monsterId);
+  // the data's exceptions (11 `ccImmune`, `slowImmune`)
+  if (mon?.mechanics?.ccImmune && cc !== 'slow') return true;
+  if (mon?.mechanics?.slowImmune && cc === 'slow') return true;
   const layer = bossLayer(content, u);
   if (layer) {
     if (cc !== 'slow') return true;
