@@ -31,6 +31,24 @@ export interface AceSettings {
   outputPrefix: string;
 }
 
+/**
+ * Above this length the ACE-Step VAE decodes in tiles. On the 8 GB card a whole 330-second
+ * take overflowed into shared memory and decoded for over three hours before ComfyUI's own
+ * out-of-memory fallback tiled it in about a minute; every take up to 180 seconds decoded
+ * whole in seconds, so shorter music keeps the untiled decode.
+ */
+export const ACE_TILED_DECODE_ABOVE_SECONDS = 180;
+/** Tiles of 1,024 latent frames (about 41 s at 25 Hz) with a 128-frame (about 5 s) overlap. */
+const ACE_DECODE_TILE = { tile_size: 1024, overlap: 128 } as const;
+
+/** The VAE decode node for an ACE-Step take of the given length. */
+export function aceDecodeNode(seconds: number): Graph[string] {
+  const inputs = { samples: ['sampler', 0], vae: ['vae', 0] };
+  return seconds > ACE_TILED_DECODE_ABOVE_SECONDS
+    ? { class_type: 'VAEDecodeAudioTiled', inputs: { ...inputs, ...ACE_DECODE_TILE } }
+    : { class_type: 'VAEDecodeAudio', inputs };
+}
+
 function aceBase(s: AceSettings, generateCodes: boolean): Graph {
   return {
     unet: {
@@ -69,7 +87,7 @@ function aceBase(s: AceSettings, generateCodes: boolean): Graph {
       },
     },
     negative: { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['text', 0] } },
-    decode: { class_type: 'VAEDecodeAudio', inputs: { samples: ['sampler', 0], vae: ['vae', 0] } },
+    decode: aceDecodeNode(s.seconds),
     save: {
       class_type: 'SaveAudio',
       inputs: { audio: ['decode', 0], filename_prefix: s.outputPrefix },
@@ -223,6 +241,18 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
 }
 
+/** Drop a prompt from ComfyUI's pending queue and interrupt it if it is the running one. */
+export async function cancelPrompt(promptId: string, fetchFn: typeof fetch = fetch): Promise<void> {
+  const post = (path: string, body: unknown) =>
+    fetchFn(`${COMFY_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  await post('/queue', { delete: [promptId] });
+  await post('/interrupt', { prompt_id: promptId });
+}
+
 /** Queue a graph, wait for it, download its audio outputs into destDir. */
 export async function runGraph(
   graph: Graph,
@@ -252,7 +282,10 @@ export async function runGraph(
     if (entry?.status?.completed || entry?.status?.status_str === 'error') break;
   }
   if (!entry?.status?.completed && entry?.status?.status_str !== 'error') {
-    throw new Error(`Timed out waiting for ${promptId}`);
+    // Take the abandoned job out of ComfyUI, or every later job queues behind it and
+    // times out in turn (seen once: one stuck decode failed the next six entries).
+    await cancelPrompt(promptId);
+    throw new Error(`Timed out waiting for ${promptId}; the job was cancelled in ComfyUI`);
   }
   if (!entry) throw new Error(`No history for ${promptId}`);
   if (entry.status?.status_str === 'error') {

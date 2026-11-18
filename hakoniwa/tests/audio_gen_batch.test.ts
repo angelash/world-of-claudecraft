@@ -1,10 +1,17 @@
 // The full audio batch (tools/audio_gen/batch.ts): every audio entry of the prompt library
 // becomes one job with a route, the ACE-Step parameters parsed from the entry's sentence
 // are valid choices, the motif seeds hold the motif table note for note inside the seed
-// template's length, and the shared take helpers trim, pair and scale as documented.
+// template's length, the shared take helpers trim, pair and scale as documented, and the
+// ComfyUI client decodes long music in tiles and cancels a job it gives up on.
 
 import { describe, expect, it } from 'vitest';
 import { allJobs, takeCount, variationSeconds } from '../tools/audio_gen/batch';
+import {
+  ACE_TILED_DECODE_ABOVE_SECONDS,
+  aceCoverGraph,
+  aceText2MusicGraph,
+  cancelPrompt,
+} from '../tools/audio_gen/comfy';
 import {
   generationSeconds,
   keyscaleOf,
@@ -147,5 +154,42 @@ describe('take helpers', () => {
     const st = pairToStereo(mono([1, 2, 3]), mono([4, 5]));
     expect([...st.samples]).toEqual([1, 4, 2, 5]);
     expect(st.channels).toBe(2);
+  });
+});
+
+describe('ComfyUI client', () => {
+  const ace = (seconds: number) => ({
+    caption: 'test',
+    seconds,
+    bpm: 90,
+    keyscale: 'D major',
+    timesignature: '4' as const,
+    seed: 1,
+    outputPrefix: 'test/x',
+  });
+
+  it('decodes music longer than the threshold in tiles and shorter music whole', () => {
+    const long = ACE_TILED_DECODE_ABOVE_SECONDS + 1;
+    for (const graph of [aceText2MusicGraph(ace(long)), aceCoverGraph(ace(long), 'in.wav', 1)]) {
+      expect(graph.decode?.class_type).toBe('VAEDecodeAudioTiled');
+      expect(graph.decode?.inputs).toMatchObject({ tile_size: 1024, overlap: 128 });
+      expect(graph.save?.inputs.audio).toEqual(['decode', 0]);
+    }
+    const short = aceText2MusicGraph(ace(ACE_TILED_DECODE_ABOVE_SECONDS));
+    expect(short.decode?.class_type).toBe('VAEDecodeAudio');
+    expect(short.decode?.inputs).not.toHaveProperty('tile_size');
+  });
+
+  it('cancels a prompt by dropping it from the queue and interrupting it', async () => {
+    const calls: Array<{ url: string; body: unknown }> = [];
+    const fake = (async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+      return new Response(null, { status: 200 });
+    }) as typeof fetch;
+    await cancelPrompt('abc', fake);
+    expect(calls.map((c) => [c.url.replace(/^.*?(\/\w+)$/, '$1'), c.body])).toEqual([
+      ['/queue', { delete: ['abc'] }],
+      ['/interrupt', { prompt_id: 'abc' }],
+    ]);
   });
 });

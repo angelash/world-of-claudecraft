@@ -34,6 +34,7 @@ import { loadLibrary, today } from '../assets/lib';
 import type { Candidate, CandidateSet } from '../assets/review/model';
 import {
   aceCoverGraph,
+  aceDecodeNode,
   aceText2MusicGraph,
   type JobResult,
   MODELS,
@@ -447,6 +448,7 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
           sampler: 'euler',
           shift: 3,
           lmCodes: true,
+          decode: aceDecodeNode(seconds).class_type,
         },
         metrics: { ...jobFields(run), lufs: reading.integrated, truePeak: reading.truePeak },
         files: [{ role: 'main', label: `ace${k}`, path: p.rel }],
