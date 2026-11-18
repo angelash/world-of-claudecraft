@@ -104,7 +104,13 @@ export const NAMESPACES: readonly Namespace[] = [
   { prefix: 'bat_', owner: 'catalog_warfare_strategy.md', tables: ['battle_scenarios'] },
   { prefix: 'cty_', owner: 'catalog_warfare_strategy.md', tables: ['slg_provinces'] },
   { prefix: 'nev_', owner: 'catalog_warfare_strategy.md', tables: [] },
-  { prefix: 'div_', owner: 'catalog_goddess_interventions.md', tables: ['divineActions'] },
+  // the catalog's div_ namespace: actions, the director's menu (div_dir_), schemes
+  // (div_plan_), reaction rows (div_react_) and written acts (div_beat_) (PK-M1-20)
+  {
+    prefix: 'div_',
+    owner: 'catalog_goddess_interventions.md',
+    tables: ['divineActions', 'directorMenu', 'goddessSchemes', 'goddessReactions', 'divineBeats'],
+  },
   { prefix: 'trl_', owner: 'catalog_goddess_interventions.md', tables: [] },
   { prefix: 'ln_', owner: 'catalog_dialogue_lines.md', tables: ['linePacks'] },
   { prefix: 'bark_', owner: 'catalog_dialogue_lines.md', tables: ['linePacks'] },

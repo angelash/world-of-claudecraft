@@ -1,0 +1,18 @@
+{
+  "id": "ln_moira",
+  "speaker": "moira",
+  "slots": {
+    "react.quote": ["「每一页都有人读，只是读的人未必是写的人。」"]
+  },
+  "acts": {
+    "act3": {
+      "react.honorific": ["我的主人说：你念对了她的名字。有趣。"]
+    },
+    "act4": {
+      "react.honorific": ["有人翻到了我这一页。有趣。你想写下什么，还是想读到什么？"]
+    },
+    "act5": {
+      "react.honorific": ["记录在案。说吧，这一行留给你。"]
+    }
+  }
+}

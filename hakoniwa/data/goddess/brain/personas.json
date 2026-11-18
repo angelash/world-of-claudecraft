@@ -1,0 +1,250 @@
+[
+  {
+    "id": "eluen",
+    "kpi": {
+      "faith_share": 0.35,
+      "church_cover": 0.25,
+      "hero_glory": 0.2,
+      "heresy_purged": 0.2
+    },
+    "traits": {
+      "order": 0.95,
+      "war": 0.4,
+      "greed": 0.3,
+      "mercy": 0.3,
+      "curiosity": 0.2,
+      "caution": 0.7,
+      "stealth": 0.6,
+      "face": 0.95,
+      "suspicion": 0.7,
+      "denial": 0.6
+    },
+    "interest": [null, 0, 0.4, 0.8, 0.9, 1],
+    "weights": {
+      "oracle": 8,
+      "div_all_gaze": 7,
+      "miracle": 6,
+      "request": 6,
+      "div_eluen_bless": 5,
+      "div_eluen_great_miracle": 2
+    },
+    "multipliers": {
+      "public": 1.3,
+      "covert": 0.8
+    },
+    "acts": {
+      "act1": {
+        "menu": ["oracle", "div_all_gaze", "miracle", "div_eluen_bless", "request"],
+        "budget": 900,
+        "reserve": 3000,
+        "schemes": ["div_plan_eluen_tend_flock"]
+      }
+    }
+  },
+  {
+    "id": "valda",
+    "kpi": {
+      "war_intensity": 0.35,
+      "tier_rise": 0.25,
+      "demon_land": 0.2,
+      "sasha_record": 0.2
+    },
+    "traits": {
+      "order": 0.2,
+      "war": 0.95,
+      "greed": 0.3,
+      "mercy": 0.2,
+      "curiosity": 0.6,
+      "caution": 0.1,
+      "stealth": 0,
+      "face": 0.5,
+      "suspicion": 0.3,
+      "denial": 0
+    },
+    "interest": [null, 0, 0, 0.6, 0.8, 0.9],
+    "weights": {
+      "monster_tide": 6,
+      "request": 3,
+      "oracle": 6
+    },
+    "multipliers": {
+      "public": 1.4,
+      "covert": 0.5
+    },
+    "acts": {}
+  },
+  {
+    "id": "merca",
+    "kpi": {
+      "circulation": 0.35,
+      "alliance_wealth": 0.25,
+      "credit": 0.2,
+      "offerings": 0.2
+    },
+    "traits": {
+      "order": 0.5,
+      "war": 0.2,
+      "greed": 0.95,
+      "mercy": 0.3,
+      "curiosity": 0.6,
+      "caution": 0.6,
+      "stealth": 0.5,
+      "face": 0.3,
+      "suspicion": 0.6,
+      "denial": 0.3
+    },
+    "interest": [null, 0.4, 0.5, 0.6, 0.8, 0.7],
+    "weights": {
+      "div_all_manifest": 8,
+      "price": 7,
+      "blessing": 6,
+      "div_merca_loan": 6,
+      "request": 5,
+      "div_merca_route": 4,
+      "div_merca_discovery": 3
+    },
+    "multipliers": {
+      "economic": 1.4,
+      "free": 0.5
+    },
+    "acts": {
+      "act1": {
+        "menu": [
+          "price",
+          "blessing",
+          "request",
+          "div_merca_discovery",
+          "div_merca_loan",
+          "div_all_gaze"
+        ],
+        "budget": 400,
+        "reserve": 6000,
+        "schemes": ["div_plan_merca_first_customer", "div_plan_merca_salt_season"]
+      }
+    }
+  },
+  {
+    "id": "sylvie",
+    "kpi": {
+      "peace": 0.35,
+      "spring_clarity": 0.3,
+      "forest": 0.2,
+      "diversity": 0.15
+    },
+    "traits": {
+      "order": 0.4,
+      "war": 0.1,
+      "greed": 0.1,
+      "mercy": 0.9,
+      "curiosity": 0.3,
+      "caution": 0.8,
+      "stealth": 0.9,
+      "face": 0.2,
+      "suspicion": 0.95,
+      "denial": 0
+    },
+    "interest": [null, 0.1, 0.2, 0.3, 0.6, 0.7],
+    "weights": {
+      "omen": 8,
+      "dream": 7,
+      "div_sylvie_beast_guide": 5,
+      "request": 4,
+      "weather": 3,
+      "calamity": 0.2
+    },
+    "multipliers": {
+      "protective": 1.5,
+      "violent": 0.5
+    },
+    "acts": {
+      "act1": {
+        "menu": ["omen", "dream", "div_sylvie_beast_guide", "weather", "request", "div_all_gaze"],
+        "budget": 120,
+        "reserve": 5500,
+        "schemes": ["div_plan_sylvie_watch_child"]
+      }
+    }
+  },
+  {
+    "id": "moira",
+    "kpi": {
+      "history": 0.45,
+      "mysteries": 0.3,
+      "record": 0.25
+    },
+    "traits": {
+      "order": 0.6,
+      "war": 0.1,
+      "greed": 0.4,
+      "mercy": 0.3,
+      "curiosity": 1,
+      "caution": 0.5,
+      "stealth": 0.7,
+      "face": 0.4,
+      "suspicion": 0.5,
+      "denial": 0.1
+    },
+    "interest": [null, 0.5, 0.6, 0.7, 0.9, 1],
+    "weights": {
+      "div_moira_prophecy": 6,
+      "request": 5
+    },
+    "multipliers": {
+      "curious": 1.3,
+      "violent": 0.5
+    },
+    "acts": {
+      "act1": {
+        "menu": ["div_moira_prophecy", "request", "div_all_gaze"],
+        "budget": 80,
+        "reserve": 2800,
+        "schemes": ["div_plan_moira_first_outline"]
+      }
+    }
+  },
+  {
+    "id": "janu",
+    "kpi": {
+      "looseness": 0.4,
+      "remnants": 0.35,
+      "doors_open": 0.25
+    },
+    "traits": {
+      "order": 0.3,
+      "war": 0,
+      "greed": 0.1,
+      "mercy": 0.8,
+      "curiosity": 0.6,
+      "caution": 0.7,
+      "stealth": 0.9,
+      "face": 0.1,
+      "suspicion": 0.4,
+      "denial": 0
+    },
+    "interest": [null, 1, 1, 1, 1, 1],
+    "weights": {
+      "dream": 10,
+      "div_janu_resonance": 6
+    },
+    "multipliers": {
+      "protective": 1.5
+    },
+    "dawn": false,
+    "night": {
+      "action": "dream",
+      "doorsPerDream": {
+        "act1": 3,
+        "act2": 3,
+        "act3": 2
+      }
+    },
+    "acts": {
+      "act1": {
+        "menu": ["dream"],
+        "budget": 0,
+        "reserve": 0,
+        "schemes": ["div_plan_janu_catch"]
+      }
+    }
+  }
+]

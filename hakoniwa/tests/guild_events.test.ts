@@ -416,9 +416,12 @@ describe('the rumor, comedy and director engines', () => {
     const items = directorItems(BASE.dynamicEvents);
     const moira = items.find((i) => i.id === 'ev_a1_moira_coincidence');
     expect(moira?.kind).toBe('coincidence');
-    // the director's quiet hours open a coincidence: with only our item on the menu it is ours
+    // the director lands it as Moira's written coincidence (DB-A1-02, act weeks 3 to 10; the
+    // act opens no other coincidence, act1_borderstone.md 7.5): once, inside that window
     const t = guildGame({ content: { ...BASE, directorMenu: items } as ContentMap });
     hours(t, 24 * 4);
+    expect(landed(t, 'ev_a1_moira_coincidence')).toEqual([]);
+    hours(t, 24 * 70);
     expect(landed(t, 'ev_a1_moira_coincidence').map((e) => e.data.via)).toEqual(['director']);
     expect(flags(t.g)['ev.ev_a1_moira_coincidence.count']).toBe(1);
     // once an act, twice when Moira's interest is 2 or more
@@ -436,8 +439,10 @@ describe('the rumor, comedy and director engines', () => {
     expect(flags(t.g)['ev.ev_a1_moira_coincidence.count']).toBe(2);
     expect(holds()).toBe(false);
     // a move of an ordinary menu item is not an event
-    emit(t, 'director.move', { move: 'respite', itemId: 'safe_camp', tension: 90 });
-    expect(landed(t)).toHaveLength(2);
+    const before = landed(t).length;
+    emit(t, 'director.move', { move: 'respite', itemId: 'div_dir_safe_camp', tension: 90 });
+    expect(landed(t)).toHaveLength(before);
+    expect(landed(t, 'ev_a1_moira_coincidence')).toHaveLength(2);
   });
 });
 

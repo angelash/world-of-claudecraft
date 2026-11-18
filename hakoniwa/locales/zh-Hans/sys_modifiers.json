@@ -1,3 +1,4 @@
 {
+  "sys.modifiers.reject.bad_target": "没有这种修正项通道",
   "sys.modifiers.reject.expired": "修正项的期限已过"
 }

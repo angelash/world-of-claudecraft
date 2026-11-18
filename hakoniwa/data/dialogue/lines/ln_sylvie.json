@@ -1,0 +1,13 @@
+{
+  "id": "ln_sylvie",
+  "speaker": "sylvie",
+  "slots": {},
+  "acts": {
+    "act4": {
+      "react.honorific": ["……风停了一下。我在听。慢慢说。"]
+    },
+    "act5": {
+      "react.honorific": ["……灵泉很浑。说吧，我听得见。"]
+    }
+  }
+}

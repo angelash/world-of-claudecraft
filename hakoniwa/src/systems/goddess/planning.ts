@@ -1,25 +1,23 @@
 // The daily planning round (goddess_gm.md 6.1, 13): one goddess.plan AI request per
-// goddess per game day, carrying only what she can see, and a deterministic fallback
-// chosen by utility (personality weight + small jitter - cost and sediment). Also the
-// prompt builder shared by wake-ups (honorific, revelation) and the leak tests.
+// goddess per game day, carrying only what she can see, and a deterministic fallback from
+// the goddess brain (./brain: schemes, then the dawn planner of builtin_ai.md 8.3, up to
+// three acts). Also the prompt builder shared by wake-ups (honorific, revelation) and the
+// leak tests.
 
 import type { AiContextV1, AnyCommand } from '../../core';
 import type { SystemContext } from '../../core/system';
 import { joinText, type KeyText, type TextParam, tr } from '../../core/text';
+import { calendarAt, tickAtDay } from '../../core/time';
+import { actClockState } from '../quests/act_clock';
 import { actIndex, evaluate, flagResolver } from '../quests/conditions';
 import { knowledgeFor } from '../quests/lore';
-import { entitiesOnMap, mapById } from '../world';
-import {
-  actionCost,
-  actionDef,
-  currentAct,
-  displayName,
-  type GoddessActCommand,
-  reach,
-  strongestMap,
-  toolsActive,
-  validateAct,
-} from './actions';
+import { mapById } from '../world';
+import { currentAct, displayName, reach, toolsActive } from './actions';
+import { forcedSchemes, openBeatActs } from './beats';
+import { onMenu, personaOf } from './brain/persona';
+import { planDay } from './brain/planner';
+import { stepSchemes } from './brain/schemes';
+import { brainOf } from './brain/state';
 import { goddessDef } from './state';
 import type { DivineActionDef, GoddessDef, GoddessState } from './types';
 import { relationBandLabel } from './view';
@@ -39,17 +37,15 @@ function gazeBand(g: number): KeyText {
 function commandHelp(def: GoddessDef, actions: DivineActionDef[]): Record<string, TextParam> {
   const menu = joinText(
     'semicolon',
-    actions
-      .filter((a) => def.menu.includes(a.id))
-      .map((a) =>
-        tr('sys.goddess.prompt.menu_item', {
-          id: a.id,
-          label: a.label,
-          power: a.power,
-          cooldown: a.cooldownHours,
-          params: a.params,
-        }),
-      ),
+    actions.map((a) =>
+      tr('sys.goddess.prompt.menu_item', {
+        id: a.id,
+        label: a.label,
+        power: a.power,
+        cooldown: a.cooldownHours,
+        params: a.params,
+      }),
+    ),
   );
   return {
     'goddess.act': tr('sys.goddess.prompt.command.act', { goddess: def.id, menu }),
@@ -99,7 +95,12 @@ export function goddessContext(
     knowledge,
     memory,
     goals,
-    commands: commandHelp(def, ctx.content.divineActions),
+    commands: commandHelp(
+      def,
+      ctx.content.divineActions.filter((a) =>
+        onMenu(def, personaOf(ctx.content, def.id), act, a.id),
+      ),
+    ),
     speakAs: displayName(ctx, def),
     voice: [
       ...def.voice,
@@ -136,76 +137,34 @@ export function planSituation(ctx: SystemContext, _def: GoddessDef, s: GoddessSt
   return joinText('none', parts);
 }
 
-function pickText(ctx: SystemContext, a: DivineActionDef, goddess: string): string | undefined {
-  const lines = a.lines?.[goddess];
-  if (!lines || lines.length === 0) return undefined;
-  return ctx.rng('goddess.plan').pick(lines);
-}
-
-/** Candidate commands for the no-model planner, scored; the best positive one wins. */
-export function fallbackPlan(
-  ctx: SystemContext,
-  def: GoddessDef,
-  s: GoddessState,
-): GoddessActCommand | null {
-  const rng = ctx.rng('goddess.plan');
-  const mapId =
-    def.reach === 'player'
-      ? (ctx.world.slices.world.entities[ctx.world.slices.world.playerId]?.mapId ?? '')
-      : strongestMap(s, ctx.content);
-  let best: { cmd: GoddessActCommand; u: number } | null = null;
-  for (const id of def.menu) {
-    const a = actionDef(ctx.content, id);
-    if (!a) continue;
-    const params: GoddessActCommand['params'] = { mapId };
-    if (a.id === 'oracle' || a.id === 'dream' || a.id === 'omen') {
-      const text = pickText(ctx, a, def.id);
-      if (!text) continue;
-      params.text = text;
-      if (a.id === 'oracle') {
-        const target = entitiesOnMap(ctx.world, mapId)
-          .filter((e) => e.alive && !e.hidden && e.tags.some((t) => def.faithTags.includes(t)))
-          .sort((x, y) => x.id.localeCompare(y.id))[0];
-        if (target) params.targetId = target.id;
-      }
-    } else if (a.id === 'request') {
-      const raw = pickText(ctx, a, def.id);
-      if (!raw) continue;
-      const [key, text] = raw.split('|');
-      params.key = key;
-      params.text = text ?? key;
-    } else if (a.id === 'price') {
-      params.factor = rng.chance(0.5) ? 1.15 : 0.9;
-      params.goods = '*';
-    }
-    const cmd: GoddessActCommand = {
-      goddessId: def.id,
-      action: a.id,
-      revision: s.revision,
-      params,
-    };
-    if (validateAct(ctx, cmd, SRC)) continue;
-    const cost = actionCost(a, false);
-    const u =
-      (def.weights[a.id] ?? 0) +
-      rng.range(0, 1) -
-      (cost / Math.max(1, s.power)) * 20 -
-      a.sedimentRate * 10;
-    if (!best || u > best.u) best = { cmd, u };
-  }
-  return best && best.u >= 4 ? best.cmd : null;
-}
-
-/** File today's planning request for every active goddess. */
+/**
+ * File today's planning request for every goddess who plans at dawn (builtin_ai 8.3):
+ * her schemes step first (abort, replan, adopt), then the brain plans up to three acts,
+ * which are the request's fallback; a model may propose others from the same menu.
+ */
 export function dailyPlans(ctx: SystemContext): void {
   const idx = actIndex(currentAct(ctx));
   if (Number.isNaN(idx) || idx < 1 || idx > 5) return;
+  const act = currentAct(ctx);
   for (const def of [...ctx.content.goddesses].sort((a, b) => a.id.localeCompare(b.id))) {
     const s = ctx.world.slices.goddess.goddesses[def.id];
     if (!s || !toolsActive(ctx, def, s)) continue;
     if (def.appearsWhen && !evaluate(def.appearsWhen, flagResolver(ctx.world.meta.flags))) continue;
-    const cmd = fallbackPlan(ctx, def, s);
-    const fallback: AnyCommand[] = cmd ? [{ kind: 'goddess.act', data: cmd, source: SRC }] : [];
+    const persona = personaOf(ctx.content, def.id);
+    const brain = brainOf(ctx.world.slices.goddess, def.id);
+    // the act's budget runs from the act's start (the act clock), not her first dawn
+    const clock = actClockState(ctx.world);
+    brain.actStart[act] ??= clock && clock.act === act ? clock.startTick : ctx.tick;
+    stepSchemes(ctx, def, s, persona, forcedSchemes(ctx, def.id));
+    if (persona?.dawn === false) continue;
+    const planned = planDay(ctx, def, s, openBeatActs(ctx, def.id));
+    const hours = dayHours(ctx, def.id, planned.length);
+    const fallback: AnyCommand[] = planned.map((x, i) => ({
+      kind: 'goddess.act',
+      // a dream belongs to this night; the other acts spread over the day's hours
+      data: x.cmd.action === 'dream' ? x.cmd : { ...x.cmd, at: hours[i] },
+      source: SRC,
+    }));
     ctx.ai.request({
       agentId: def.id,
       role: 'goddess.plan',
@@ -218,6 +177,24 @@ export function dailyPlans(ctx: SystemContext): void {
       priority: 1,
     });
   }
+}
+
+/** First daytime hour of the day's acts, and the hours between them. */
+export const PLAN_FIRST_HOUR = 7;
+export const PLAN_HOUR_STEP = 4;
+
+/**
+ * The ticks of the day's planned acts: from PLAN_FIRST_HOUR, PLAN_HOUR_STEP hours apart, each
+ * moved up to two hours by her own stream (goddess.brain.<id>), so her acts happen through
+ * the day rather than all at the dawn round.
+ */
+export function dayHours(ctx: SystemContext, goddess: string, n: number): number[] {
+  const rng = ctx.rng(`goddess.brain.${goddess}`);
+  const day = calendarAt(ctx.tick).dayIndex;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++)
+    out.push(tickAtDay(day, PLAN_FIRST_HOUR + i * PLAN_HOUR_STEP + rng.int(0, 2), 0));
+  return out;
 }
 
 /** Faith share helper used by the view. */

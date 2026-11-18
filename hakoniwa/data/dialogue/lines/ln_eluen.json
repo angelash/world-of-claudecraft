@@ -1,0 +1,24 @@
+{
+  "id": "ln_eluen",
+  "speaker": "eluen",
+  "slots": {},
+  "acts": {
+    "act1": {
+      "react.honorific": ["光听见了，孩子。说吧，简洁一些，并且合乎规格。"]
+    },
+    "act3": {
+      "react.honorific": [
+        {
+          "zh": "你不该在这里。你本来就不该在任何地方。",
+          "when": "a3_eluen_speaks"
+        }
+      ]
+    },
+    "act4": {
+      "react.honorific": ["孩子，你终于肯叫光的名字了。说吧。"]
+    },
+    "act5": {
+      "react.honorific": ["光在听。光一直在听。……说吧。"]
+    }
+  }
+}

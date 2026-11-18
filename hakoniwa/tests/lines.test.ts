@@ -343,9 +343,19 @@ describe('ln_common migration (catalog_dialogue_lines 4.14)', () => {
     // Lina's crystal lines are hers alone: nobody else falls back to them
     expect(resolveSlot(CONTENT, 'ron', 'react.identity_pageless')).toBeNull();
     expect(resolveSlot(CONTENT, 'lina', 'react.identity_pageless')?.packId).toBe('ln_lina');
-    for (const pack of CONTENT.linePacks)
-      for (const slot of Object.keys(pack.slots)) expect(slotProblem(slot), slot).toBeNull();
-    expect(linePackFindings(CONTENT.linePacks).filter((f) => f.level === 'error')).toEqual([]);
+    // a goddess's own pack may register her reaction kinds (lines validator, builtin_ai 7.5)
+    const goddesses = new Set((CONTENT.goddesses ?? []).map((g) => g.id as string));
+    for (const pack of CONTENT.linePacks) {
+      const own = new Set(
+        pack.speaker && goddesses.has(pack.speaker)
+          ? Object.keys(pack.slots).flatMap((s) => (s.startsWith('react.') ? [s.slice(6)] : []))
+          : [],
+      );
+      for (const slot of Object.keys(pack.slots)) expect(slotProblem(slot, own), slot).toBeNull();
+    }
+    expect(
+      linePackFindings(CONTENT.linePacks, { goddesses }).filter((f) => f.level === 'error'),
+    ).toEqual([]);
   });
 
   it('the content check catches an edit that changes what an old key says', () => {

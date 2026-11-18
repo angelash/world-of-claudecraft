@@ -1,0 +1,314 @@
+{
+  "_doc": "The goddesses' reaction table (builtin_ai.md 8.7; catalog_goddess_interventions.md 6), the rows the M1 kernel can raise. For one event every goddess who perceives it reads her own rows first and the shared rows (goddess *) second, and fires the highest priority row that holds; a shared row beats her own only with a higher priority. `when` is a world condition (reveal-ledger syntax); `cond` joins predicates of src/systems/goddess/brain/reactions.ts with AND (a leading ! negates; `tier.<id>` names a tier of offerings.json); `then` lists the effects in order. `once: day` is the catalog's once a day per goddess.",
+  "rows": [
+    {
+      "id": "div_react_all_01",
+      "goddess": "*",
+      "event": "player.honorific",
+      "cond": "wakes_left",
+      "priority": 9,
+      "then": [
+        {
+          "action": "wake"
+        },
+        {
+          "action": "gaze",
+          "params": {
+            "amount": "15"
+          }
+        },
+        {
+          "action": "notice"
+        }
+      ]
+    },
+    {
+      "id": "div_react_all_02",
+      "goddess": "*",
+      "event": "player.honorific",
+      "cond": "!wakes_left",
+      "priority": 8,
+      "once": "day",
+      "then": [
+        {
+          "action": "silent"
+        },
+        {
+          "action": "gaze",
+          "params": {
+            "amount": "5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_all_03",
+      "goddess": "*",
+      "event": "feat.witnessed",
+      "cond": "believer_saw AND notable",
+      "priority": 5,
+      "once": "day",
+      "then": [
+        {
+          "action": "sample",
+          "params": {
+            "scale": "1"
+          }
+        },
+        {
+          "action": "notice"
+        }
+      ]
+    },
+    {
+      "id": "div_react_all_10",
+      "goddess": "*",
+      "event": "revelation.landed",
+      "priority": 9,
+      "then": [
+        {
+          "action": "interpret"
+        }
+      ]
+    },
+    {
+      "id": "div_react_eluen_01",
+      "goddess": "eluen",
+      "event": "feat.witnessed",
+      "when": "act == 1",
+      "cond": "believer_saw",
+      "priority": 6,
+      "once": "day",
+      "then": [
+        {
+          "action": "sample",
+          "params": {
+            "scale": "0.25"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_eluen_16",
+      "goddess": "eluen",
+      "event": "seal.stage_up",
+      "priority": 7,
+      "then": [
+        {
+          "action": "gaze_map",
+          "params": {
+            "map": "seal_ruins",
+            "days": "7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_valda_01",
+      "goddess": "valda",
+      "event": "player.honorific",
+      "when": "act <= 2",
+      "priority": 9,
+      "once": "day",
+      "then": [
+        {
+          "action": "silent"
+        },
+        {
+          "action": "gaze",
+          "params": {
+            "amount": "5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_merca_01",
+      "goddess": "merca",
+      "event": "player.coin_used",
+      "priority": 6,
+      "then": [
+        {
+          "action": "sample",
+          "params": {
+            "scale": "0.8"
+          }
+        },
+        {
+          "action": "notice"
+        }
+      ]
+    },
+    {
+      "id": "div_react_merca_02",
+      "goddess": "merca",
+      "event": "player.offering",
+      "cond": "tier.novelty",
+      "priority": 6,
+      "then": [
+        {
+          "action": "relation",
+          "params": {
+            "amount": "3",
+            "first": "6"
+          }
+        },
+        {
+          "action": "say",
+          "params": {
+            "slot": "react.offering_thanks"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_merca_03",
+      "goddess": "merca",
+      "event": "player.offering",
+      "cond": "tier.money",
+      "priority": 3,
+      "then": [
+        {
+          "action": "say",
+          "params": {
+            "slot": "react.offering_money"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_merca_05",
+      "goddess": "merca",
+      "event": "debt.overdue",
+      "priority": 7,
+      "cooldownTicks": 201600,
+      "then": [
+        {
+          "action": "say",
+          "params": {
+            "slot": "react.ledger_reminder"
+          }
+        },
+        {
+          "action": "relation",
+          "params": {
+            "amount": "-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_merca_06",
+      "goddess": "merca",
+      "event": "debt.paid",
+      "priority": 5,
+      "then": [
+        {
+          "action": "relation",
+          "params": {
+            "amount": "5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_sylvie_01",
+      "goddess": "sylvie",
+      "event": "player.honorific",
+      "when": "act <= 3",
+      "priority": 9,
+      "once": "day",
+      "then": [
+        {
+          "action": "silent"
+        },
+        {
+          "action": "gaze",
+          "params": {
+            "amount": "10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_sylvie_15",
+      "goddess": "sylvie",
+      "event": "player.dream_seen",
+      "priority": 5,
+      "then": [
+        {
+          "action": "memo",
+          "params": {
+            "note": "dream_of_another"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_moira_01",
+      "goddess": "moira",
+      "event": "player.honorific",
+      "when": "act <= 3",
+      "priority": 9,
+      "once": "day",
+      "then": [
+        {
+          "action": "silent"
+        },
+        {
+          "action": "say",
+          "params": {
+            "slot": "react.quote",
+            "narrate": "true"
+          }
+        },
+        {
+          "action": "gaze",
+          "params": {
+            "amount": "10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_janu_01",
+      "goddess": "janu",
+      "event": "player.opened_door",
+      "priority": 4,
+      "then": [
+        {
+          "action": "door_count"
+        }
+      ]
+    },
+    {
+      "id": "div_react_janu_03",
+      "goddess": "janu",
+      "event": "seal.stage_up",
+      "priority": 7,
+      "then": [
+        {
+          "action": "memo",
+          "params": {
+            "note": "stage_unlocked"
+          }
+        }
+      ]
+    },
+    {
+      "id": "div_react_janu_06",
+      "goddess": "janu",
+      "event": "forbidden_name.player",
+      "when": "seal_stage >= 2",
+      "priority": 7,
+      "then": [
+        {
+          "action": "memo",
+          "params": {
+            "note": "who_do_you_call"
+          }
+        }
+      ]
+    }
+  ]
+}

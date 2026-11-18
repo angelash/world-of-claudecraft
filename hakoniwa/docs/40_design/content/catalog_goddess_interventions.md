@@ -95,7 +95,7 @@
 - **注册名**：`<通道>.<动作 ID>`，例：`price_supply.div_merca_price`。同一动作的多个修正项共用叠加组 `<动作 ID>`（同源刷新，不叠层；`registerModifier` 的 `stackGroup`）。
 - **可见性**：女神来源的修正项只有显性与半显性（[经济文档][eco]第 7.4 节）。显性映射到内核 `visibility: 'public'`；半显性映射到 `'hidden'`，界面显示"来源未查明"，查明后改写为"<女神名>·<动作名>"。
 - **说明文本**：`note` 写文本键 `div.mod.<动作 ID>`，参数为作用域与幅度。
-- **通道与现有内核目标**：内核 `ModifierTarget` 目前有九个目标。下表是设计通道到内核目标的映射与扩展时点；扩展的实施包见第 19 节。
+- **通道与现有内核目标**：内核 `ModifierTarget` 的目标以 `src/systems/modifiers/index.ts` 的 `MODIFIER_TARGETS` 为准。下表是设计通道到内核目标的映射与扩展时点；扩展的实施包见第 19 节。
 
 | 设计通道（[经济][eco] 7.2） | 现有内核目标 | 本文用到的动作 | 扩展时点 |
 | --- | --- | --- | --- |
@@ -108,7 +108,7 @@
 | `dian_rate` | `sediment` | 圣柱降光、魔王催化、森林吸澱、天启 | 已有 |
 | `move_cost` | `travel` | 兽群迁徙、季节与天气 | 已有 |
 | 个人增益 | `xp`（键 `player`） | 附物加护（历练） | 已有；只给附物加护，战斗中的增减益另走光环 |
-| `route_state`、`weather`、`health`、`hazard_rate`、`door_resonance`、`resource_tag`、`loan_terms` | 无 | 商路事件、季节与天气、大神迹、天灾、门纹共鸣、特产发现、借贷担保 | M1（第一、二幕要用） |
+| `route_state`、`weather`、`health`、`hazard_rate`、`door_resonance`、`resource_tag`、`loan_terms` | 同名七个目标；定性的值（天气种类、商路开关、生产标签、抵押）写在修正项的 `tag` | 商路事件、季节与天气、大神迹、天灾、门纹共鸣、特产发现、借贷担保 | 已有（M1） |
 | `trade_restriction`、`relation_shift`、`ruler_intent_bias`、`casus_belli`、`volunteer_pool`、`army_damage`、`army_defense`、`supply_capacity`、`legitimacy_shock`、`intel_reveal`、`terrain_shift`、`spoilage`、`building_condition`、`security`、`cohesion` | 无 | 异端之国诏、圣战号召、战争挑唆、圣化、神降、兽群迁徙、预言、情报、森林、天灾、抵押回收 | M2（第三幕起要用） |
 
 ### 1.5 回声魔物（审校台账 6.6 第 1 条）

@@ -1,32 +1,35 @@
-// Wake-ups outside the daily round (goddess_gm.md 6.2 to 6.4, 9): the honorific
-// (speaking a goddess's title and full name wakes her and sharply raises her sight),
-// witnessed feats (believers who see the player raise the gaze), Maker revelations
-// (rule change first, then the steles, then every goddess reads it), and offerings to
-// Merca through her coin (10.2).
+// Wake-ups outside the daily round (goddess_gm.md 6.2 to 6.4, 9; builtin_ai.md 8.7;
+// catalog_goddess_interventions.md 6 and 10): the honorific (speaking a goddess's title and
+// full name reaches her), witnessed feats (believers who see the player raise the gaze), the
+// Maker's revelations (rule change first, then the steles, then every goddess reads it). Each
+// of them is an event of the reaction table (./brain/reactions.ts): the table decides what
+// she does (her answer or her wordless sign, gaze, notices, a wake-up round with a model),
+// in both modes. This module holds the hooks the table calls and the per-day wake budget.
 
 import type { AnyCommand } from '../../core';
-import { contentText } from '../../core/content_key';
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
-import { type KeyText, type TextParam, tr } from '../../core/text';
+import { type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY } from '../../core/time';
-import { countItem, itemDef, removeItem } from '../inventory';
 import { type ModifierTarget, registerModifier } from '../modifiers';
 import { evaluate, flagResolver } from '../quests/conditions';
-import { sanitizeText } from '../quests/lore';
-import { believersNear, displayName, toolsActive } from './actions';
+import { believersNear } from './actions';
+import { type ReactEvent, type ReactFacts, type ReactHooks, react } from './brain/reactions';
+import { brainOf } from './brain/state';
 // Player-input vocabulary (the punctuation an invocation may carry), not display text;
 // it belongs in data/ with the content pipeline (follow-up).
 import INPUT_LEXICON from './input_lexicon.json';
 import { goddessContext } from './planning';
-import { goddessByRole } from './roster';
-import { addSight, adjustRelation, goddessDef, recordIntervention } from './state';
+import { addSight, goddessDef } from './state';
 import type { GoddessDef, RevelationDef } from './types';
 
 const SRC = { type: 'system', system: 'goddess' } as const;
 
 /** Wake-ups per goddess per game day (goddess_gm.md 6.4). */
 export const WAKES_PER_DAY = 4;
+
+/** Sample weight of an honorific: "此人在此" (catalog 10.1: a sample of weight 1.0). */
+export const HONORIFIC_SAMPLE = 1;
 
 const INVOCATION_STRIP = new RegExp(INPUT_LEXICON.invocationStrip, 'g');
 
@@ -50,17 +53,35 @@ export function honorificsIn(
     .map((d) => d.id);
 }
 
-function spend(ctx: SystemContext, goddess: string): boolean {
+function rollDay(ctx: SystemContext, goddess: string) {
   const s = ctx.world.slices.goddess.goddesses[goddess];
-  if (!s) return false;
+  if (!s) return undefined;
   const day = calendarAt(ctx.tick).dayIndex;
   if (s.wakeDay !== day) {
     s.wakeDay = day;
     s.wakes = 0;
   }
-  if (s.wakes >= WAKES_PER_DAY) return false;
+  return s;
+}
+
+/**
+ * Whether the player may still wake her today (catalog 10.1 and 6.2 row 01): she has wake-ups
+ * left (four a day) and this invoker has not woken her yet today; otherwise her row 02 answers
+ * with her wordless sign.
+ */
+export function wakesLeft(ctx: SystemContext, goddess: string): boolean {
+  const s = rollDay(ctx, goddess);
+  const day = calendarAt(ctx.tick).dayIndex;
+  return (
+    !!s && s.wakes < WAKES_PER_DAY && brainOf(ctx.world.slices.goddess, goddess).wokenDay !== day
+  );
+}
+
+function spendWake(ctx: SystemContext, goddess: string): void {
+  const s = rollDay(ctx, goddess);
+  if (!s) return;
   s.wakes++;
-  return true;
+  brainOf(ctx.world.slices.goddess, goddess).wokenDay = calendarAt(ctx.tick).dayIndex;
 }
 
 /** Ask a goddess to speak with a model, with a written line as the fallback. */
@@ -69,7 +90,7 @@ export function requestSpeech(
   def: GoddessDef,
   purpose: string,
   situation: TextParam,
-  fallbackText: string,
+  fallbackText: TextParam,
   extra?: Record<string, unknown>,
 ): void {
   const s = ctx.world.slices.goddess.goddesses[def.id];
@@ -94,37 +115,77 @@ export function requestSpeech(
   });
 }
 
-/** player.said: honorifics wake the named goddess (once per day per goddess budget). */
+/** The hooks of the reaction table (its effects that reach a model or the wake budget). */
+export const REACT_HOOKS: ReactHooks = {
+  wake(ctx, def, line, facts) {
+    const said = (facts.said ?? '').slice(0, 200);
+    ctx.emit('goddess.woken', { goddessId: def.id, reason: 'honorific' });
+    requestSpeech(ctx, def, 'honorific', tr('sys.goddess.prompt.honorific', { text: said }), line, {
+      playerText: said,
+    });
+  },
+  interpret(ctx, def, facts) {
+    const rev = facts.revelation;
+    if (!rev) return;
+    const content = ctx.content.revelations.find((r) => r.id === rev.id);
+    requestSpeech(
+      ctx,
+      def,
+      'revelation_reading',
+      tr('sys.goddess.prompt.revelation_reading', { text: rev.text, literal: rev.literal }),
+      content?.responses[def.id] ?? def.replies.revelation,
+      { revelation: rev.id },
+    );
+  },
+  wakesLeft,
+  spendWake,
+};
+
+/** Raise one reaction event for the goddesses who perceive it. */
+export function reactTo(
+  ctx: SystemContext,
+  event: ReactEvent,
+  goddesses: readonly string[],
+  facts: ReactFacts,
+): Record<string, string> {
+  return react(ctx, event, goddesses, facts, REACT_HOOKS);
+}
+
+/** Every goddess, in id order (for events everyone perceives). */
+function everyGoddess(ctx: SystemContext): string[] {
+  return [...ctx.content.goddesses].map((g) => g.id).sort();
+}
+
+/** player.said: an honorific reaches the named goddess; a hidden name is the forbidden word. */
 export function onPlayerSaid(ctx: SystemContext, said: TextParam): void {
   // only the player's own words can name a goddess; chosen lines are text keys
   if (typeof said !== 'string') return;
   const text = said;
-  const ids = honorificsIn(text, ctx.content.goddesses, ctx.world.meta.flags);
-  for (const id of ids) {
-    const def = goddessDef(ctx.content, id) as GoddessDef;
+  const mapId = ctx.world.slices.world.entities[ctx.world.slices.world.playerId]?.mapId ?? '';
+  for (const id of honorificsIn(text, ctx.content.goddesses, ctx.world.meta.flags)) {
     const s = ctx.world.slices.goddess.goddesses[id];
-    if (!s || s.departed || !spend(ctx, id)) continue;
-    addSight(ctx, ctx.content, id, 3);
+    if (!s || s.departed) continue;
+    // "此人在此": she now knows where the speaker stands (catalog 10.1)
+    addSight(ctx, ctx.content, id, HONORIFIC_SAMPLE);
     ctx.setFlag(`goddess.${id}.invoked`, ctx.tick);
-    ctx.emit('goddess.woken', { goddessId: id, reason: 'honorific' });
-    requestSpeech(
-      ctx,
-      def,
-      'honorific',
-      tr('sys.goddess.prompt.honorific', { text: text.slice(0, 200) }),
-      def.replies.honorific,
-      { playerText: text.slice(0, 200) },
-    );
+    reactTo(ctx, 'player.honorific', [id], { said: text, mapId });
   }
   // A goddess whose true name is still hidden (GoddessDef.hiddenName until revealWhen holds,
   // the same rule as displayName): the player saying that name is the forbidden word.
   for (const def of ctx.content.goddesses) {
     if (!def.hiddenName || !def.revealWhen || ctx.flag(def.revealWhen)) continue;
-    if (text.includes(def.name)) ctx.setFlag('player.spoke_forbidden_name', true);
+    if (!text.includes(def.name)) continue;
+    ctx.setFlag('player.spoke_forbidden_name', true);
+    reactTo(ctx, 'forbidden_name.player', [def.id], { said: text, mapId });
   }
 }
 
-/** feat.performed by the player: believers who witness it raise their goddess's sight. */
+/**
+ * feat.performed by the player: believers who witness it bring a sample to their goddess
+ * (her gaze focus on the map counts half again, catalog 1.3); her reaction row decides how
+ * much it weighs (Eluen in act 1 files it as believers' exaggeration); with no row firing,
+ * the plain sample stands.
+ */
 export function onFeat(
   ctx: SystemContext,
   tier: number,
@@ -138,8 +199,15 @@ export function onFeat(
     if (!s || s.departed) continue;
     const seen = believersNear(ctx, def, mapId, x, y, 12);
     const ambient = (s.faith[mapId] ?? 0) * 0.2;
-    const w = (seen + ambient) * weight;
-    if (w > 0) addSight(ctx, ctx.content, def.id, w);
+    const focus = brainOf(ctx.world.slices.goddess, def.id).gaze;
+    const sharp = focus && focus.mapId === mapId && focus.until > ctx.tick ? 1.5 : 1;
+    const w = (seen + ambient) * weight * sharp;
+    if (w <= 0) continue;
+    const fired =
+      seen > 0
+        ? reactTo(ctx, 'feat.witnessed', [def.id], { believers: seen, weight: w, tier, mapId })
+        : {};
+    if (!fired[def.id]) addSight(ctx, ctx.content, def.id, w);
   }
 }
 
@@ -171,19 +239,11 @@ export function issueRevelation(ctx: SystemContext, rev: RevelationDef): void {
     kind: 'narrate',
   });
   ctx.emit('goddess.revelation', { id: rev.id, text: rev.text, literal: rev.literal });
-  for (const def of [...ctx.content.goddesses].sort((a, b) => a.id.localeCompare(b.id))) {
-    if (!def.courtSeat) continue;
-    const s = slice.goddesses[def.id];
-    if (!s || s.departed) continue;
-    requestSpeech(
-      ctx,
-      def,
-      'revelation_reading',
-      tr('sys.goddess.prompt.revelation_reading', { text: rev.text, literal: rev.literal }),
-      rev.responses[def.id] ?? def.replies.revelation,
-      { revelation: rev.id },
-    );
-  }
+  // the court's goddesses read it (div_react_all_10)
+  const readers = everyGoddess(ctx).filter((id) => !!goddessDef(ctx.content, id)?.courtSeat);
+  reactTo(ctx, 'revelation.landed', readers, {
+    revelation: { id: rev.id, text: rev.text, literal: rev.literal },
+  });
 }
 
 /** An ad-hoc operator revelation (maker.revelation without a content id). */
@@ -209,108 +269,11 @@ export function adHocRevelation(
   return rev;
 }
 
-/**
- * The item tags an offering weighs (catalog_relics_lore.md: the `earth` mark of things
- * from Earth): a closed vocabulary of tag words, not the region of the same name.
- */
-type OfferingTag = 'earth' | 'luxury';
-/** Goods from Earth count triple and move Merca three times as much. */
-const EARTH_GOODS: OfferingTag = 'earth';
-
-/** Merca's exchange rate by coin terms (prologue 4.9). */
-export function offeringRate(terms: FlagValue | undefined, offeringsSoFar: number): number {
-  if (terms === 'interest_free') return 1;
-  if (terms === 'three_percent') return 0.8;
-  return offeringsSoFar === 0 ? 1 : 0.7;
+/** A door opened and the seal moved: every goddess perceives it through her own rows. */
+export function onDoorOpened(ctx: SystemContext): void {
+  reactTo(ctx, 'player.opened_door', everyGoddess(ctx), {});
 }
 
-/**
- * Validate and run an offering to the goddess with the 'offering' role (Merca) through her
- * token coin; returns an error or null.
- */
-export function makeOffering(
-  ctx: SystemContext,
-  d: { itemId: string; want: 'blessing' | 'intel' },
-): { code: string; reason: KeyText } | null {
-  const playerId = ctx.world.slices.world.playerId;
-  const merca = goddessByRole(ctx.content, 'offering');
-  const s = merca ? ctx.world.slices.goddess.goddesses[merca.id] : undefined;
-  if (!merca || !s)
-    return { code: 'no_goddess', reason: tr('sys.goddess.reject.no_goddess.offering') };
-  if (!toolsActive(ctx, merca, s))
-    return { code: 'inactive', reason: tr('sys.goddess.reject.inactive.offering') };
-  const coin = merca.token ?? '';
-  if (countItem(ctx.world, playerId, coin) <= 0)
-    return {
-      code: 'no_coin',
-      reason: tr('sys.goddess.reject.no_coin', { goddess: contentText('goddesses', merca) }),
-    };
-  if (d.itemId === coin) return { code: 'coin', reason: tr('sys.goddess.reject.coin') };
-  const item = itemDef(ctx.content, d.itemId);
-  if (!item) return { code: 'no_item', reason: tr('sys.goddess.reject.no_item') };
-  if (countItem(ctx.world, playerId, d.itemId) <= 0)
-    return { code: 'missing', reason: tr('sys.goddess.reject.missing') };
-  const done = Number(ctx.flag('merca_offerings') ?? 0);
-  const earth = (item.tags ?? []).includes(EARTH_GOODS);
-  const points = Math.round(
-    Math.max(10, item.value) * (earth ? 3 : 1) * offeringRate(ctx.flag('p_coin_terms'), done),
-  );
-  removeItem(ctx, playerId, d.itemId, 1, 'offering');
-  ctx.setFlag('merca_offerings', done + 1);
-  adjustRelation(ctx, merca.id, earth ? 6 : 2);
-  // written content lines pass the reveal-ledger rewrite; the default lines are keys whose
-  // source text holds no locked term
-  const speak = (text: TextParam) =>
-    ctx.emit('dialogue.line', {
-      speakerId: merca.id,
-      speakerName: displayName(ctx, merca),
-      text: typeof text === 'string' ? sanitizeText(text, ctx.world, ctx.content) : text,
-      listenerId: playerId,
-      kind: 'divine',
-    });
-  speak(merca.replies.offering ?? tr('sys.goddess.line.offering_thanks'));
-  if (d.want === 'blessing') {
-    const daysN = Math.max(1, Math.min(7, Math.round(points / 50)));
-    registerModifier(ctx, {
-      target: 'xp',
-      key: 'player',
-      factor: 1.1,
-      untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
-      source: merca.id,
-      visibility: 'public',
-      note: tr('sys.goddess.modifier.coin_blessing', { goddess: contentText('goddesses', merca) }),
-    });
-    registerModifier(ctx, {
-      target: 'price',
-      key: 'player',
-      factor: 0.9,
-      untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
-      source: merca.id,
-      visibility: 'public',
-      note: tr('sys.goddess.modifier.coin_blessing', { goddess: contentText('goddesses', merca) }),
-    });
-  } else {
-    const resolve = flagResolver(ctx.world.meta.flags);
-    const intel = (ctx.content.mercaIntel ?? []).find(
-      (i) => !ctx.flag(`intel.${merca.id}.${i.id}`) && evaluate(i.when, resolve),
-    );
-    if (intel) {
-      ctx.setFlag(`intel.${merca.id}.${intel.id}`, true);
-      speak(intel.text);
-    } else speak(tr('sys.goddess.line.no_intel'));
-  }
-  recordIntervention(ctx, {
-    goddess: merca.id,
-    action: 'offering',
-    mapId: ctx.world.slices.world.entities[playerId]?.mapId ?? '',
-    power: 1,
-    sediment: 0.01,
-    public: false,
-    breach: false,
-    note:
-      d.want === 'blessing'
-        ? tr('sys.goddess.note.offering_blessing', { goddess: contentText('goddesses', merca) })
-        : tr('sys.goddess.note.offering_intel', { goddess: contentText('goddesses', merca) }),
-  });
-  return null;
+export function onSealStage(ctx: SystemContext): void {
+  reactTo(ctx, 'seal.stage_up', everyGoddess(ctx), {});
 }

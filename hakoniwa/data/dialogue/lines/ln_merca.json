@@ -1,0 +1,39 @@
+{
+  "id": "ln_merca",
+  "speaker": "merca",
+  "slots": {
+    "react.coin_first": ["叮。亲爱的客人，可算等到你了。坐，点心分你一半。"],
+    "react.offering_thanks": [
+      "账记上了！亲爱的客人，这东西在这边可是独一份，回礼我已经替你包好了，下次还来啊。"
+    ],
+    "react.offering_money": ["钱我自己有，客人。"],
+    "react.ledger_reminder": ["客人，账本翻到你这一页了。"],
+    "greet.neutral.coin": ["叮。亲爱的客人，今天做点什么生意？"]
+  },
+  "acts": {
+    "act1": {
+      "react.honorific": ["叮，听见啦！亲爱的客人，开门做生意：你想买点什么，还是想卖点什么？"]
+    },
+    "act2": {
+      "react.honorific": ["亲爱的客人，又来照顾生意了？今天的价钱，比昨天好一点点。"]
+    },
+    "act3": {
+      "react.honorific": ["客人，喊这么全，是要谈大买卖？金冠先生刚才也来过。"]
+    },
+    "act4": {
+      "react.honorific": [
+        {
+          "zh": "客人，喊全名的买卖，可都是大买卖。",
+          "when": "NOT a4_key_theft_exposed"
+        },
+        {
+          "zh": "……是你啊。客人，先别挂。",
+          "when": "a4_key_theft_exposed"
+        }
+      ]
+    },
+    "act5": {
+      "react.honorific": ["现在是卖方市场，客人。你要买，还是要卖？"]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ln_valda",
+  "speaker": "valda",
+  "slots": {},
+  "acts": {
+    "act3": {
+      "react.honorific": ["哈！谁在喊我的全名？报上来：是要打一架，还是要我来见证？"]
+    },
+    "act4": {
+      "react.honorific": ["喊我全名，是想好了要跟我联手？"]
+    },
+    "act5": {
+      "react.honorific": ["我在。打完这一仗再说话，嘴会累。"]
+    }
+  }
+}

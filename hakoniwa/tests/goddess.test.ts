@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { contentRef, Engine, ok } from '../src/core';
+import type { ContentMap } from '../src/core/contracts';
 import type { GameSystem, SystemContext } from '../src/core/system';
 import { tr } from '../src/core/text';
 import { tickAtDay } from '../src/core/time';
@@ -15,13 +16,24 @@ import {
 import { addItem, countItem } from '../src/systems/inventory';
 import { activeModifiers } from '../src/systems/modifiers';
 import { scanForLeaks } from '../src/systems/quests';
-import { spawnEntity } from '../src/systems/world';
+import { mapById, spawnEntity } from '../src/systems/world';
 import {
   NARRATIVE_SYSTEMS,
   narrativeContent,
   narrativeGame,
   playThrough,
 } from './narrative_harness';
+
+/**
+ * The middle of a named place, read from the map data (never a literal: the maps move, see
+ * PK-M1-35 and data/world/map_shifts.json). A map without that place gives its first one.
+ */
+function at(content: ContentMap, mapId: string, loc: string): { x: number; y: number } {
+  const map = mapById(content, mapId);
+  const l = map?.locations.find((x) => x.id === loc) ?? map?.locations[0];
+  if (!l) throw new Error(`no places on ${mapId}`);
+  return { x: l.x + Math.floor(l.w / 2), y: l.y + Math.floor(l.h / 2) };
+}
 
 declare module '../src/core/contracts' {
   interface CommandMap {
@@ -120,6 +132,18 @@ describe('goddess arbiter', () => {
         }),
       ),
     ).toBe('bad_flag');
+    // an oracle needs a believer of hers there to receive it (catalog 2.1, the gate G)
+    expect(
+      code(
+        act(g, {
+          goddessId: 'eluen',
+          action: 'oracle',
+          params: { mapId: 'borderstone', text: '守好秩序。' },
+        }),
+      ),
+    ).toBe('gate');
+    g.queue('probe.believer', { tags: ['priest', 'faction:church'], mapId: 'borderstone' });
+    g.step(1);
     expect(
       code(
         act(g, {
@@ -185,7 +209,11 @@ describe('goddess arbiter', () => {
     expect(
       code(act(g, { goddessId: 'merca', action: 'price', params: { factor: 3, goods: 'salt' } })),
     ).toBe('ok');
-    expect(activeModifiers(g.world, 'price', 'salt')[0]?.factor).toBe(1.4);
+    // on her strongest map's market: the market's salt (catalog 2.4 market:goods keys)
+    const salt = g.world.slices.modifiers.active.filter(
+      (m) => m.target === 'price' && m.source === 'merca' && m.key.endsWith(':salt'),
+    );
+    expect(salt.map((m) => m.factor)).toEqual([1.4]);
     // a task request becomes a flag the quests read
     expect(
       code(
@@ -202,7 +230,13 @@ describe('goddess arbiter', () => {
 
   it('lets each goddess breach once per act and spends the hostility budget', () => {
     const g = game('off', 'act3');
-    g.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 25, y: 23 });
+    g.queue('world.teleport', {
+      entityId: 'player',
+      mapId: 'borderstone',
+      ...at(g.content, 'borderstone', 'plaza'),
+    });
+    // a miracle needs a believer of hers there (catalog 5.0 G)
+    g.queue('probe.believer', { tags: ['priest', 'faction:church'], mapId: 'borderstone' });
     g.step(1);
     expect(
       code(
@@ -238,9 +272,11 @@ describe('goddess arbiter', () => {
         }),
       ),
     ).toBe('not_breachable');
-    // hostility against the player's map: two per act
+    // hostility against the player's map: two per act (the density log is cleared so only
+    // the hostility budget speaks here; the density limit has its own case)
     for (let i = 0; i < 2; i++) {
       resetCooldowns(g, 'valda');
+      g.world.slices.goddess.density = [];
       expect(
         code(
           act(g, { goddessId: 'valda', action: 'monster_tide', params: { mapId: 'borderstone' } }),
@@ -248,6 +284,7 @@ describe('goddess arbiter', () => {
       ).toBe('ok');
     }
     resetCooldowns(g, 'valda');
+    g.world.slices.goddess.density = [];
     expect(
       code(
         act(g, { goddessId: 'valda', action: 'monster_tide', params: { mapId: 'borderstone' } }),
@@ -337,7 +374,11 @@ describe('planning, sight and wake-ups', () => {
     };
     const g2 = Engine.create(5, narrativeContent(), [...NARRATIVE_SYSTEMS, probe, feats], {});
     g2.queue('flag.set', { key: 'act', value: 'act1' });
-    g2.queue('world.teleport', { entityId: 'player', mapId: 'borderstone', x: 25, y: 23 });
+    g2.queue('world.teleport', {
+      entityId: 'player',
+      mapId: 'borderstone',
+      ...at(g2.content, 'borderstone', 'plaza'),
+    });
     g2.step(2);
     g2.queue('probe.believer', { tags: ['priest', 'faction:church'], mapId: 'borderstone' });
     g2.step(60);
@@ -373,6 +414,8 @@ describe('offerings, revelations and views', () => {
     expect(g.world.meta.flags.merca_offerings).toBe(1);
     expect(activeModifiers(g.world, 'xp', 'player').some((m) => m.source === 'merca')).toBe(true);
     expect(g.world.slices.goddess.goddesses.merca?.relation).toBe(6);
+    // one return gift a day (cd_offering): the second offering waits for the next day
+    g.step(tickAtDay(1, 1, 0) - g.tick);
     g.queue('probe.give', { item: 'raven_black_feather' });
     g.queue('goddess.offer', { itemId: 'raven_black_feather', want: 'intel' });
     g.step(1);

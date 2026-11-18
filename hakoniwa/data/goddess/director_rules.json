@@ -1,0 +1,96 @@
+{
+  "_doc": "The narrative director's rule table (builtin_ai.md 13.2; goddess_gm.md 8), read with firstMatch every game hour, highest priority first. `cond` joins predicates of src/systems/director/rules.ts with AND (a leading ! negates); `then` names the move. Rows follow 13.2 in order: a must delivery that is due, the player busy, a written coincidence, the respite, the coincidence (within the act's free coincidences, director_acts.json), an open delivery, the dynamic events, and the comedy throttle.",
+  "rows": [
+    {
+      "id": "dir_must_delivery",
+      "cond": "due_delivery",
+      "priority": 80,
+      "then": [
+        {
+          "action": "deliver",
+          "params": {
+            "must": "true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dir_player_busy",
+      "cond": "player_busy",
+      "priority": 70,
+      "then": [
+        {
+          "action": "hold"
+        }
+      ]
+    },
+    {
+      "id": "dir_written_coincidence",
+      "cond": "beat_due",
+      "priority": 60,
+      "then": [
+        {
+          "action": "beat"
+        }
+      ]
+    },
+    {
+      "id": "dir_respite",
+      "cond": "high_long AND respite_cool",
+      "priority": 50,
+      "then": [
+        {
+          "action": "open",
+          "params": {
+            "move": "respite"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dir_coincidence",
+      "cond": "low_long AND coincidence_cool AND coincidence_free",
+      "priority": 40,
+      "then": [
+        {
+          "action": "open",
+          "params": {
+            "move": "coincidence"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dir_delivery",
+      "cond": "open_delivery AND reveal_gap",
+      "priority": 30,
+      "then": [
+        {
+          "action": "deliver"
+        }
+      ]
+    },
+    {
+      "id": "dir_dynamic_events",
+      "cond": "events_eligible",
+      "priority": 20,
+      "cooldownTicks": 28800,
+      "then": [
+        {
+          "action": "event"
+        }
+      ]
+    },
+    {
+      "id": "dir_comedy_background",
+      "cond": "comedy_repeat",
+      "priority": 10,
+      "once": "day",
+      "then": [
+        {
+          "action": "background"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+[
+  {
+    "act": "act1",
+    "freeCoincidences": 0,
+    "note": "act1_borderstone.md 7.5: in act 1 Moira arranges one coincidence (two when her prologue interest is 2 or more), the written DB-A1-02; the meter opens no other; bands: goddess_gm.md 8.2 by the beats of acts.json",
+    "bands": {
+      "landing": {
+        "low": 30,
+        "high": 50
+      },
+      "dark": {
+        "low": 50,
+        "high": 75
+      },
+      "climax": {
+        "low": 75,
+        "high": 95
+      },
+      "pullback": {
+        "low": 40,
+        "high": 60
+      }
+    }
+  }
+]

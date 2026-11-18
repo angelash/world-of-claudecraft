@@ -1,0 +1,208 @@
+[
+  {
+    "id": "div_plan_eluen_tend_flock",
+    "goddess": "eluen",
+    "title": "照看羊群",
+    "replanDays": 7,
+    "value": {
+      "faith_share": 0.7,
+      "church_cover": 0.5
+    },
+    "tags": ["religious"],
+    "bind": {
+      "flock": "believers_top"
+    },
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "action": "div_all_gaze",
+            "map": "$flock",
+            "etaHours": 24,
+            "params": {
+              "days": 7
+            }
+          },
+          {
+            "action": "oracle",
+            "map": "$flock",
+            "etaHours": 72
+          },
+          {
+            "action": "div_eluen_bless",
+            "map": "$flock",
+            "etaHours": 720
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "div_plan_merca_first_customer",
+    "goddess": "merca",
+    "title": "第一位客人",
+    "when": "p_coin_terms",
+    "unless": "merca_ledger <= -12",
+    "value": {
+      "offerings": 0.9,
+      "credit": 0.6,
+      "circulation": 0.3
+    },
+    "tags": ["economic"],
+    "bind": {},
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "on": "coin_used",
+            "etaHours": 336,
+            "condition": "merca_offerings >= 1"
+          },
+          {
+            "on": "intel",
+            "etaHours": 336
+          },
+          {
+            "on": "offering",
+            "etaHours": 336
+          },
+          {
+            "action": "blessing",
+            "map": "player_map",
+            "etaHours": 168
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "div_plan_merca_salt_season",
+    "goddess": "merca",
+    "title": "魔物季的盐与药",
+    "when": "act == 1 AND act_week >= 3",
+    "value": {
+      "circulation": 0.7,
+      "alliance_wealth": 0.5
+    },
+    "tags": ["economic"],
+    "bind": {
+      "town": {
+        "map": "borderstone"
+      }
+    },
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "action": "price",
+            "map": "$town",
+            "etaHours": 168,
+            "params": {
+              "goods": "salt,medicine",
+              "factor": 1.2,
+              "days": 14
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "div_plan_sylvie_watch_child",
+    "goddess": "sylvie",
+    "title": "远观",
+    "value": {
+      "peace": 0.8,
+      "spring_clarity": 0.3
+    },
+    "tags": ["protective"],
+    "bind": {
+      "watcher": {
+        "person": "oola"
+      },
+      "wood": "faith_top"
+    },
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "action": "dream",
+            "map": "$watcher",
+            "target": "$watcher",
+            "etaHours": 168
+          },
+          {
+            "action": "omen",
+            "map": "$wood",
+            "etaHours": 336
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "div_plan_moira_first_outline",
+    "goddess": "moira",
+    "title": "描第一笔",
+    "when": "act == 1",
+    "value": {
+      "history": 0.7,
+      "mysteries": 0.4
+    },
+    "tags": ["curious"],
+    "bind": {
+      "town": {
+        "map": "borderstone"
+      },
+      "scribes": "believers_top"
+    },
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "action": "div_all_gaze",
+            "map": "$town",
+            "etaHours": 24,
+            "params": {
+              "days": 7
+            }
+          },
+          {
+            "action": "div_moira_prophecy",
+            "map": "$scribes",
+            "etaHours": 336
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "div_plan_janu_catch",
+    "goddess": "janu",
+    "title": "接住",
+    "when": "a1_beast_tide_cleared",
+    "value": {
+      "doors_open": 0.9,
+      "looseness": 0.5
+    },
+    "tags": ["protective"],
+    "bind": {},
+    "methods": [
+      {
+        "cost": 1,
+        "steps": [
+          {
+            "on": "dream_door",
+            "etaHours": 168,
+            "condition": "a1_dream_door_woman"
+          }
+        ]
+      }
+    ]
+  }
+]

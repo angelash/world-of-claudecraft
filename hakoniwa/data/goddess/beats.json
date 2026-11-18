@@ -1,0 +1,190 @@
+[
+  {
+    "id": "div_beat_a0_anchors",
+    "code": "DB-A0-01",
+    "goddess": "*",
+    "act": "prologue",
+    "must": true,
+    "open": {
+      "flag": "p_interview_done"
+    },
+    "kind": "observe"
+  },
+  {
+    "id": "div_beat_a0_appraise_discard",
+    "code": "DB-A0-02",
+    "goddess": "eluen",
+    "act": "prologue",
+    "must": true,
+    "open": {
+      "flag": "p_discarded"
+    },
+    "kind": "observe"
+  },
+  {
+    "id": "div_beat_a0_coin",
+    "code": "DB-A0-03",
+    "goddess": "merca",
+    "act": "prologue",
+    "must": true,
+    "open": {
+      "flag": "p_coin_terms"
+    },
+    "kind": "observe",
+    "record": {
+      "action": "blessing",
+      "power": 1
+    }
+  },
+  {
+    "id": "div_beat_a0_caught",
+    "code": "DB-A0-04",
+    "goddess": "janu",
+    "act": "prologue",
+    "must": true,
+    "open": {
+      "flag": "p_caught"
+    },
+    "kind": "observe",
+    "record": {
+      "action": "dream",
+      "power": 0
+    }
+  },
+  {
+    "id": "div_beat_a1_coin_first",
+    "code": "DB-A1-01",
+    "goddess": "merca",
+    "act": "act1",
+    "must": true,
+    "open": {
+      "event": "coin_used"
+    },
+    "kind": "manifest",
+    "slot": "react.coin_first",
+    "narration": "硬币叮的一声。茶摊对面，多了一个吃点心的小个子女人。",
+    "action": "div_all_manifest"
+  },
+  {
+    "id": "div_beat_a1_moira_coincidence",
+    "code": "DB-A1-02",
+    "goddess": "moira",
+    "act": "act1",
+    "must": false,
+    "open": {
+      "weeks": [3, 10]
+    },
+    "kind": "coincidence",
+    "item": "ev_a1_moira_coincidence",
+    "times": 1,
+    "moreTimes": {
+      "when": "goddess.moira.interest >= 2",
+      "times": 2
+    }
+  },
+  {
+    "id": "div_beat_a1_ola_watch",
+    "code": "DB-A1-03",
+    "goddess": "sylvie",
+    "act": "act1",
+    "must": false,
+    "open": {
+      "weeks": [2, 6]
+    },
+    "kind": "act",
+    "action": "dream",
+    "target": "oola",
+    "lines": ["……有人在看着林子。"]
+  },
+  {
+    "id": "div_beat_a1_tide_omens",
+    "code": "DB-A1-04",
+    "goddess": "sylvie",
+    "act": "act1",
+    "must": true,
+    "open": {
+      "night": "tide",
+      "daysBefore": 7
+    },
+    "unless": "a1_tide_night OR a1_beast_tide_cleared",
+    "kind": "act",
+    "action": "omen",
+    "steps": [
+      {
+        "map": "forest_edge",
+        "line": "林子一下子空了。鹿和野兔成群往南跑，连狼的叫声都听不见了。"
+      },
+      {
+        "map": "borderstone",
+        "line": "北泉的水一夜之间浑成了灰色。"
+      },
+      {
+        "map": "borderstone",
+        "line": "遗迹那边的鸦群整夜盘旋，叫声一阵紧过一阵。"
+      }
+    ]
+  },
+  {
+    "id": "div_beat_a1_dream_door",
+    "code": "DB-A1-05",
+    "goddess": "janu",
+    "act": "act1",
+    "must": true,
+    "open": {
+      "flag": "a1_dream_door_woman"
+    },
+    "kind": "observe",
+    "record": {
+      "action": "dream",
+      "power": 1
+    },
+    "schemeEvent": "dream_door",
+    "dreamInPlayer": true
+  },
+  {
+    "id": "div_beat_a1_eluen_rumor",
+    "code": "DB-A1-06",
+    "goddess": "eluen",
+    "act": "act1",
+    "must": true,
+    "open": {
+      "flag": "a1_cassian_appraise"
+    },
+    "kind": "archive",
+    "sample": 0.5
+  },
+  {
+    "id": "div_beat_a1_deer_spring",
+    "code": "DB-A1-07",
+    "goddess": "sylvie",
+    "act": "act1",
+    "must": false,
+    "open": {
+      "weeks": [4, 12]
+    },
+    "when": "goddess.sylvie.impression >= 2",
+    "kind": "act",
+    "action": "div_sylvie_beast_guide",
+    "map": "forest_edge",
+    "needsPlayer": true
+  },
+  {
+    "id": "div_beat_a1_salt_season",
+    "code": "DB-A1-08",
+    "goddess": "merca",
+    "act": "act1",
+    "must": false,
+    "open": {
+      "dispute": "q_a1_d03_salt_and_potions",
+      "escalation": 2
+    },
+    "kind": "act",
+    "action": "price",
+    "map": "borderstone",
+    "params": {
+      "goods": "salt,medicine",
+      "factor": 1.2,
+      "days": 14
+    }
+  }
+]

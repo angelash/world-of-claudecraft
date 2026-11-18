@@ -2,6 +2,11 @@
 // harvests, monster pressure, faith, morale, weather or sediment is a registered,
 // time-limited, attributable modifier. Consuming systems query the combined value
 // instead of having their numbers edited behind their back. Phase 5 (before all).
+// The channels are the closed set of economy_and_trade.md 7.2 as far as the kernel has
+// them (catalog_goddess_interventions.md 1.4): the M1 channels route_state, weather,
+// health, hazard_rate, door_resonance, resource_tag and loan_terms joined the first nine;
+// a qualitative channel (the weather kind, a route's state, a new production tag, a loan's
+// collateral) carries its word in `tag` next to the numbers.
 
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
@@ -19,7 +24,54 @@ export type ModifierTarget =
   | 'xp'
   | 'travel'
   /** combat items: the difficulty's modifiers and the like (combat/difficulty.ts) */
-  | 'combat';
+  | 'combat'
+  /** a trade route's risk (factor) and passage (tag open or closed); key: route or map id */
+  | 'route_state'
+  /** a forced weather's record (tag: the weather kind, add: its strength 1 to 3); key: map id */
+  | 'weather'
+  /** a settlement's health (add, points); key: map or settlement id */
+  | 'health'
+  /** the disaster rate of a district (factor); key: map id */
+  | 'hazard_rate'
+  /** door-mark resonance of the remnants (add: cohesion and awakening steps); key: map id */
+  | 'door_resonance'
+  /** a new production tag of a district (tag: the resource tag); key: map id */
+  | 'resource_tag'
+  /** loan terms (add: interest points, tag: the collateral); key: the borrower */
+  | 'loan_terms';
+
+/** Every channel, in the order of the union (validators, the Maker, the operator's tools). */
+export const MODIFIER_TARGETS: readonly ModifierTarget[] = [
+  'price',
+  'harvest',
+  'production',
+  'monster',
+  'faith',
+  'morale',
+  'sediment',
+  'xp',
+  'travel',
+  'combat',
+  'route_state',
+  'weather',
+  'health',
+  'hazard_rate',
+  'door_resonance',
+  'resource_tag',
+  'loan_terms',
+];
+
+/** Channels whose value is a word (`tag`) as well as, or instead of, a number. */
+export const TAGGED_TARGETS: readonly ModifierTarget[] = [
+  'route_state',
+  'weather',
+  'resource_tag',
+  'loan_terms',
+];
+
+export function isModifierTarget(v: unknown): v is ModifierTarget {
+  return typeof v === 'string' && (MODIFIER_TARGETS as readonly string[]).includes(v);
+}
 
 export interface ModifierSpec {
   target: ModifierTarget;
@@ -29,6 +81,8 @@ export interface ModifierSpec {
   factor?: number;
   /** additive offset applied after factors */
   add?: number;
+  /** the word of a qualitative channel (TAGGED_TARGETS): weather kind, route state, resource tag */
+  tag?: string;
   /** absolute expiry tick */
   untilTick: number;
   /** who caused it: goddess id, 'maker', 'director', a quest id, ... */
@@ -59,6 +113,7 @@ export interface ModifierHistoryEntry {
   source: string;
   factor?: number;
   add?: number;
+  tag?: string;
   untilTick: number;
 }
 
@@ -73,7 +128,10 @@ export const MODIFIER_HISTORY_KEEP = 500;
 
 /**
  * Channel totals are clamped after combining (economy_and_trade 7.3 "通道总上限"): prices
- * 0.5 to 2.0, production and harvest 0.3 to 1.5, morale plus or minus 30.
+ * 0.5 to 2.0, production and harvest 0.3 to 1.5, morale plus or minus 30. The M1 channels
+ * (catalog_goddess_interventions.md 1.4 and 2): a route's risk 0.2 to 2, health plus or
+ * minus 40 (a great miracle gives 30, a plague takes 20), the disaster rate 0.5 to 3, door
+ * resonance 0 to 3 steps, loan interest plus or minus 5 points.
  */
 export const CHANNEL_BOUNDS: Partial<
   Record<ModifierTarget, { factor?: [number, number]; add?: [number, number] }>
@@ -82,6 +140,11 @@ export const CHANNEL_BOUNDS: Partial<
   harvest: { factor: [0.3, 1.5] },
   production: { factor: [0.3, 1.5] },
   morale: { add: [-30, 30] },
+  route_state: { factor: [0.2, 2] },
+  health: { add: [-40, 40] },
+  hazard_rate: { factor: [0.5, 3] },
+  door_resonance: { add: [0, 3] },
+  loan_terms: { add: [-5, 5] },
 };
 
 declare module '../../core/contracts' {
@@ -114,6 +177,7 @@ export function registerModifier(ctx: SystemContext, spec: ModifierSpec): Modifi
     // Same source, same group: refresh the duration and take the new magnitude.
     same.factor = spec.factor;
     same.add = spec.add;
+    same.tag = spec.tag;
     same.note = spec.note;
     same.visibility = spec.visibility;
     same.untilTick = Math.max(same.untilTick, spec.untilTick);
@@ -144,6 +208,7 @@ function pushHistory(
     source: m.source,
     factor: m.factor,
     add: m.add,
+    ...(m.tag !== undefined ? { tag: m.tag } : {}),
     untilTick: m.untilTick,
   });
   if (history.length > MODIFIER_HISTORY_KEEP)
@@ -222,6 +287,18 @@ export function applyModifiers(
   return modifierBreakdown(world, target, key, base).total;
 }
 
+/**
+ * The words a qualitative channel holds for a key now (route state, weather kind, resource
+ * tags), in the stable order of activeModifiers; where one word counts, the last one wins.
+ */
+export function activeTags(
+  world: { slices: { modifiers: ModifiersSlice } },
+  target: ModifierTarget,
+  key: string,
+): string[] {
+  return activeModifiers(world, target, key).flatMap((m) => (m.tag === undefined ? [] : [m.tag]));
+}
+
 /** Drop the modifiers whose time ran out (every tick, and every hour-coarse skip step). */
 function expireModifiers(ctx: SystemContext): void {
   const slice = ctx.world.slices.modifiers;
@@ -245,6 +322,8 @@ export const system: GameSystem = {
   tick: expireModifiers,
   commands: {
     'modifier.register'(ctx, d) {
+      if (!isModifierTarget(d.target))
+        return reject('bad_target', tr('sys.modifiers.reject.bad_target'));
       if (d.untilTick <= ctx.tick) return reject('expired', tr('sys.modifiers.reject.expired'));
       registerModifier(ctx, d);
       return ok();

@@ -1,0 +1,75 @@
+{
+  "_doc": "Offering points and return gifts (catalog_goddess_interventions.md 9): an offering is worth points by its tier, Merca's first tier decays with novelty, the coin terms of the prologue set her exchange rate, the ledger may run into debt up to the credit her valuation gave, a negative ledger draws interest every 30 days, and each goddess sends at most one return gift per game day. Item tiers come from item tags (a tag in `tiers[].tags`), or an item listed in `items`.",
+  "goddess": "merca",
+  "tiers": [
+    {
+      "id": "novelty",
+      "tags": ["earth"],
+      "points": 6,
+      "novelty": true
+    },
+    {
+      "id": "company",
+      "tags": ["company"],
+      "points": 3
+    },
+    {
+      "id": "luxury",
+      "tags": ["luxury"],
+      "perGold": 1,
+      "max": 4
+    },
+    {
+      "id": "money",
+      "tags": ["currency", "crystal"],
+      "perGold": 0.5
+    },
+    {
+      "id": "staple",
+      "tags": ["staple"],
+      "perGold": 0.25
+    }
+  ],
+  "items": {
+    "magic_crystal": {
+      "tier": "money"
+    }
+  },
+  "novelty": {
+    "first": 2,
+    "plain": 1,
+    "plainUntil": 3,
+    "decay": 0.8,
+    "floor": 0.25
+  },
+  "credit": {
+    "high": 12,
+    "mid": 6,
+    "low": 0
+  },
+  "rates": {
+    "interest_free": 1,
+    "three_percent": 0.8,
+    "first_free": 0.7
+  },
+  "interest": {
+    "days": 30,
+    "rate": {
+      "interest_free": 0,
+      "three_percent": 0.03,
+      "first_free": 0.1
+    }
+  },
+  "gifts": [
+    {
+      "want": "blessing",
+      "points": 6,
+      "action": "blessing",
+      "days": 3
+    },
+    {
+      "want": "intel",
+      "points": 5
+    }
+  ]
+}

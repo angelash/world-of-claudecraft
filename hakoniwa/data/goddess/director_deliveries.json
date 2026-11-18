@@ -1,0 +1,17 @@
+[
+  {
+    "id": "dlv_a1_martha_strike",
+    "lore": "S02-C02",
+    "must": true,
+    "dueDays": 7,
+    "item": "div_dir_rumor_arrives",
+    "narration": "酒馆里有人压低了声音：兽潮那晚，玛莎只挥了一刀，第二波就断了。第二天她照常擦杯子。"
+  },
+  {
+    "id": "dlv_a1_nameless_god",
+    "lore": "M02-C02",
+    "must": false,
+    "item": "div_dir_rumor_arrives",
+    "narration": "井边一个老人嘟囔着：遗迹里那个门形的纹，老一辈叫它无名之神。别在神父面前提。"
+  }
+]

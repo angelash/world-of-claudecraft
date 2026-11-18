@@ -4,7 +4,10 @@
 // Which goddesses exist, who sits at the court and who plays which part all come from
 // data/goddess/goddesses.json (release_engineering.md 13.2); code never names one.
 
+import type { HtnPlanState } from '../../core/brain/htn';
+import type { RuleMemory } from '../../core/brain/rules';
 import type { TextParam } from '../../core/text';
+import type { LineHistory } from '../dialogue/lines/history';
 import type { ModifierTarget } from '../modifiers';
 import type { DefenseLine } from '../scenes/types';
 
@@ -146,6 +149,58 @@ export interface MakerDef {
   room: string;
 }
 
+/**
+ * Action tags of the persona affinity table (builtin_ai.md 8.3): the persona's traits meet
+ * an action through them, and the catalog's persona multipliers (catalog 5.0) name them.
+ */
+export const ACTION_TAGS = [
+  'religious',
+  'violent',
+  'economic',
+  'protective',
+  'curious',
+  'hostile',
+  'public',
+  'covert',
+  /** given for nothing in return (catalog 5.0: Merca's 无偿 ×0.5) */
+  'free',
+] as const;
+export type ActionTag = (typeof ACTION_TAGS)[number];
+
+/**
+ * The executor of an action without a legacy branch (catalog 2): `gaze` turns her sight on a
+ * map (not an intervention, no ledger entry); `manifest` is a speaking image near the player
+ * (her token, a shrine); `narrate` is a visible phenomenon on a map with its registered
+ * modifiers.
+ */
+export const ACTION_EXECS = ['gaze', 'manifest', 'narrate'] as const;
+export type ActionExec = (typeof ACTION_EXECS)[number];
+
+/**
+ * How the planner scales an action's KPI estimate on a candidate map (builtin_ai 8.3, the
+ * estimate table): her faith share there, the believers present, a real danger, a market,
+ * the player's presence, or 1.
+ */
+export const KPI_SCALES = ['one', 'faith', 'believers', 'danger', 'market', 'player'] as const;
+export type KpiScale = (typeof KPI_SCALES)[number];
+
+/**
+ * A gate an action needs on a map (the G of catalog 5.0): a believer to receive it, a real
+ * danger near her believers to warn of (catalog 2.5: no omen without one), a danger near
+ * the player (a guide for one in peril), a market, the player standing there, her token in
+ * the player's hands.
+ */
+export const ACTION_NEEDS = ['believer', 'danger', 'peril', 'market', 'player', 'token'] as const;
+export type ActionNeed = (typeof ACTION_NEEDS)[number];
+
+/**
+ * Whether the player can perceive an action (alive metric 8, builtin_ai 14.2): `map` when it
+ * lands on the map the player stands on, `player` when it is aimed at the player wherever
+ * they are, `never` for her quiet work.
+ */
+export const ACTION_SEEN = ['map', 'player', 'never'] as const;
+export type ActionSeen = (typeof ACTION_SEEN)[number];
+
 /** One entry of the divine action menu (goddess_gm.md 5). */
 export interface DivineActionDef {
   id: string;
@@ -179,6 +234,24 @@ export interface DivineActionDef {
    * Request lines are written as `key|text`.
    */
   lines?: Record<string, string[]>;
+  /** affinity tags (builtin_ai 8.3); `public` and `covert` also set the visibility cost */
+  tags?: ActionTag[];
+  /** expected KPI contribution per KPI key of the persona tables, before the map's scale */
+  kpi?: Record<string, number>;
+  /** what scales the KPI estimate on a map (default faith) */
+  scale?: KpiScale;
+  /** how much the action concerns the player, 0 to 1 (the interest term of 8.3) */
+  playerRel?: number;
+  /** gates on the target map (G of catalog 5.0): all must hold */
+  needs?: ActionNeed[];
+  /** the executor of a data-driven action (legacy ids keep their own branch) */
+  exec?: ActionExec;
+  /** who can perceive it (default: `map` for public actions, `never` for hidden ones) */
+  seen?: ActionSeen;
+  /** narrate and manifest: the goddess line slot spoken (her pack ln_<goddess>) */
+  slot?: string;
+  /** narrate: the modifiers' word (TAGGED_TARGETS), unless the command names one */
+  tag?: string;
 }
 
 /** A Maker revelation (goddess_gm.md 9). */
@@ -238,6 +311,10 @@ export interface MiracleEntry {
   breach: boolean;
   /** what happened, as text (a TextRef from the arbiter, or written text from a port) */
   note: TextParam;
+  /** the player could perceive it (alive metric 8) */
+  seen?: boolean;
+  /** who chose it */
+  origin?: InterventionOrigin;
 }
 
 export interface Breach {
@@ -284,6 +361,97 @@ export interface GoddessState {
   departed: boolean;
 }
 
+/** A scheme in progress (builtin_ai 8.4): the HTN plan state plus its retries. */
+export interface SchemeRun extends HtnPlanState {
+  /** the scheme id (div_plan_*) */
+  scheme: string;
+  /** replans spent after a refused or stalled step (at most two, then it is aborted) */
+  retries: number;
+}
+
+/**
+ * The goddess brain's own state (builtin_ai.md 8 and 18): the schemes in progress, the
+ * reaction table's firing memory, her line history, the notices of the last day, the act's
+ * spending, and her sight focus. Created lazily (saves before PK-M1-20 have none).
+ */
+export interface GoddessBrainState {
+  /** schemes in progress (at most two, builtin_ai 8.4) */
+  plans: SchemeRun[];
+  /** schemes that ended, newest last (bounded) */
+  ended: { scheme: string; tick: number; how: 'done' | 'aborted' }[];
+  /** reaction rows' firing memory (cooldowns, once scopes, the coverage report) */
+  react: RuleMemory;
+  /** her lines said to the player (repetition suppression, builtin_ai 7.7) */
+  lines: LineHistory;
+  /** notices to answer in the next plan (the +2 response term) */
+  notices: { kind: string; tick: number; mapId: string }[];
+  /** power spent per act on her own choices (plan and schemes), for the act budget */
+  spent: Record<string, number>;
+  /** tick each act's spending began (the budget's elapsed share) */
+  actStart: Record<string, number>;
+  /** her sight focus: the map she gazes at and until when (div_all_gaze) */
+  gaze?: { mapId: string; until: number };
+  /** Janu's night round: doors opened since her last dream (catalog 2.7) */
+  doorsSinceDream?: number;
+  /** day index the player last woke her by name (once a day per invoker, catalog 6.2) */
+  wokenDay?: number;
+  /** today's planned acts waiting for their hour (the dawn plan spread over the day) */
+  agenda?: { at: number; cmd: import('./actions').GoddessActCommand }[];
+}
+
+/** A scripted divine act's state (catalog 4: DivineBeat). */
+export interface BeatState {
+  state: 'open' | 'done' | 'missed';
+  /** tick the window opened */
+  opened: number;
+  /** tick it landed (done) or closed (missed) */
+  at?: number;
+  /** how it landed: her own choice, the executor's written fallback, or observed */
+  by?: 'plan' | 'fallback' | 'observed';
+  /** times it landed (a beat that may land twice, DB-A1-02) */
+  times?: number;
+  /** the window it opened with (a night beat keeps the night it saw) */
+  from?: number;
+  to?: number;
+}
+
+/** Where an intervention came from (alive metric 8 counts the built-in planner's own). */
+export type InterventionOrigin =
+  | 'plan'
+  | 'scheme'
+  | 'beat'
+  | 'react'
+  | 'offering'
+  | 'director'
+  | 'command';
+
+/** The offering account's day state (catalog 9.1 and 9.3). */
+export interface OfferingAccount {
+  /** day index the gifts below belong to */
+  day: number;
+  /** goddesses whose return gift already went out that day (cd_offering) */
+  gifted: string[];
+  /** tick interest last ran on a negative ledger */
+  interestAt: number;
+  /** the ledger with its fraction (merca_ledger mirrors it in whole points) */
+  exact?: number;
+  /** the debt is past the credit (her overdue reaction ran; paid when it clears) */
+  overdue?: boolean;
+}
+
+/** Extra sediment a dungeon's disposition laid on a region (dungeons catalog 1.2). */
+export interface RegionScar {
+  mapId: string;
+  /** the lift it laid on (the fall back each season is three tenths of it) */
+  lift?: number;
+  /** remaining extra sediment */
+  amount: number;
+  /** tick it starts to fade (a season after the collapse) */
+  fadeFrom: number;
+  /** season index it last faded in */
+  fadedSeason: number;
+}
+
 export interface GoddessSlice {
   goddesses: Record<string, GoddessState>;
   ledger: MiracleEntry[];
@@ -293,4 +461,18 @@ export interface GoddessSlice {
   revelations: { id: string; tick: number; text: string; literal: string }[];
   /** hostility budget per goddess per act (D-027) */
   hostilityBudget: number;
+  /** the brains (builtin_ai 8); absent in saves before PK-M1-20 */
+  brains?: Record<string, GoddessBrainState>;
+  /** scripted divine acts by id (catalog 4) */
+  beats?: Record<string, BeatState>;
+  /** the offering account's day state (catalog 9) */
+  offerings?: OfferingAccount;
+  /** sediment the dungeons' dispositions laid on regions (dungeons catalog 1.2) */
+  scars?: RegionScar[];
+  /** each region's grade when the running week began, and that week's index */
+  weekGrade?: { week: number; grades: Record<string, number> };
+  /** power spent per map over the last seven days (catalog 1.3 density), oldest first */
+  density?: { tick: number; mapId: string; power: number; playerMap: boolean }[];
+  /** seasonal marks of the region steps (nurture.<map> to the season it last ran) */
+  seasonMarks?: Record<string, number>;
 }

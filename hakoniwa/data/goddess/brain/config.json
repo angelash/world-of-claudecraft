@@ -1,0 +1,55 @@
+{
+  "_doc": "The goddess brain's constants (builtin_ai.md 8.2 to 8.4; catalog_goddess_interventions.md 1.3, 5.0). `affinity` is the tag-to-trait table A of builtin_ai 8.3 (goddess_affinity); `weightScale` is the share of the catalog's W x G x M that enters the 8.3 score (1: the catalog formula as written); `actDays` are the act lengths of progression 13.6 that the act budget and the end reserve run on.",
+  "affinity": {
+    "religious": {
+      "order": 1
+    },
+    "violent": {
+      "war": 1,
+      "mercy": -1
+    },
+    "economic": {
+      "greed": 1
+    },
+    "protective": {
+      "mercy": 1,
+      "war": -0.5
+    },
+    "curious": {
+      "curiosity": 1
+    },
+    "hostile": {
+      "war": 0.5,
+      "mercy": -1
+    },
+    "public": {
+      "face": 0.5,
+      "stealth": -0.5
+    },
+    "covert": {
+      "stealth": 1,
+      "face": -0.5
+    }
+  },
+  "weightScale": 1,
+  "defaultWeight": 2,
+  "baseline": 4,
+  "maxPerDay": 3,
+  "maxSchemes": 2,
+  "adoptAt": 6,
+  "schemeRetries": 2,
+  "candidateMaps": 8,
+  "actDays": {
+    "act1": 84,
+    "act2": 98,
+    "act3": 168,
+    "act4": 217,
+    "act5": 231
+  },
+  "density": {
+    "region": 1200,
+    "playerRegion": 600,
+    "days": 7
+  },
+  "noticeHours": 24
+}

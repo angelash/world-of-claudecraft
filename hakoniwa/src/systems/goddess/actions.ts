@@ -2,7 +2,11 @@
 // proposed divine action (menu, act, power, cooldown, reach, covenant, hostility
 // budget, forbidden names) and executes it as registered modifiers, forced weather,
 // dialogue lines and flags. Every executed action enters the miracle ledger with its
-// sediment (E34). The model proposes, this file decides.
+// sediment (E34). The model proposes, this file decides. The arbiter also holds the
+// density limit of catalog_goddess_interventions.md 1.3 (power per map over seven days,
+// tighter on the player's map), runs the data-driven executors of the catalog's new actions
+// (gaze, manifest, narrate), and marks each ledger entry with who chose it and whether the
+// player could perceive it (alive metric 8, builtin_ai.md 14.2).
 
 import { type CommandResult, type CommandSource, type FlagValue, ok, reject } from '../../core';
 import { contentText } from '../../core/content_key';
@@ -10,14 +14,25 @@ import type { SystemContext } from '../../core/system';
 import { type KeyText, type TextRef, tr } from '../../core/text';
 import { calendarAt, isNight, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { countItem } from '../inventory';
-import { registerModifier } from '../modifiers';
+import { registerModifier, TAGGED_TARGETS } from '../modifiers';
 import { currentActId } from '../quests/act_order';
 import { actIndex, evaluate, flagResolver } from '../quests/conditions';
 import { sanitizeText } from '../quests/lore';
 import type { ActDef } from '../quests/types';
 import { entitiesOnMap, forceWeather, mapById, playerEntity, type Weather } from '../world';
+import { gateHolds, marketOn } from './brain/gates';
+import { goddessLine } from './brain/lines';
+import { brainConfig, onMenu, personaOf } from './brain/persona';
+import { brainOf } from './brain/state';
 import { goddessDef, playerMap, recordId, recordIntervention } from './state';
-import type { DivineActionDef, GoddessDef, GoddessState } from './types';
+import type {
+  ActionSeen,
+  DivineActionDef,
+  GoddessDef,
+  GoddessSlice,
+  GoddessState,
+  InterventionOrigin,
+} from './types';
 
 export interface GoddessActParams {
   /** scope map (defaults to the player's map for a goddess bound to the player, her strongest map otherwise) */
@@ -31,7 +46,7 @@ export interface GoddessActParams {
   /** oracle side flag: only keys under oracle.<goddess>. are accepted */
   flag?: string;
   value?: FlagValue;
-  /** price action: goods id or '*' */
+  /** price action: goods id, a comma list of goods ids, or '*' for the whole market */
   goods?: string;
   /** price action: factor 0.6..1.4 */
   factor?: number;
@@ -40,6 +55,8 @@ export interface GoddessActParams {
   weather?: Weather;
   /** blessing: the token item the player holds */
   item?: string;
+  /** a qualitative channel's word (route state, resource tag, collateral) */
+  tag?: string;
 }
 
 export interface GoddessActCommand {
@@ -49,6 +66,87 @@ export interface GoddessActCommand {
   params?: GoddessActParams;
   /** explicit covenant breach channel (D-026): double cost, once per act, leaves a trace */
   breach?: boolean;
+  /** who chose it (the brain marks its own picks; absent: a command from outside) */
+  origin?: InterventionOrigin;
+  /**
+   * The tick the day's plan puts it at (builtin_ai 8.3: the dawn round plans the day; the
+   * acts happen through it). A later tick keeps it on her agenda until then; it is
+   * validated again when it runs.
+   */
+  at?: number;
+  /** the scheme whose step it is (origin scheme): a refusal when it runs stalls that one */
+  scheme?: string;
+}
+
+/** Interventions kept for the density limit (seven days by default). */
+function densityLog(slice: GoddessSlice) {
+  slice.density ??= [];
+  return slice.density;
+}
+
+/**
+ * Power spent on a map over the density window, and on the player's map (catalog 1.3): the
+ * sums the next action would add to. Written acts and revelations do not count.
+ */
+export function densityOn(
+  ctx: SystemContext,
+  mapId: string,
+): { map: number; playerMap: number; days: number } {
+  const cfg = brainConfig(ctx.content).density;
+  const since = ctx.tick - cfg.days * TICKS_PER_GAME_DAY;
+  let map = 0;
+  let pm = 0;
+  for (const e of densityLog(ctx.world.slices.goddess)) {
+    if (e.tick < since) continue;
+    if (e.mapId === mapId) map += e.power;
+    if (e.playerMap) pm += e.power;
+  }
+  return { map, playerMap: pm, days: cfg.days };
+}
+
+/** Note power spent on a map for the density limit (the director's fate threads too). */
+export function recordDensity(
+  ctx: SystemContext,
+  mapId: string,
+  power: number,
+  onPlayer: boolean,
+): void {
+  const log = densityLog(ctx.world.slices.goddess);
+  const since = ctx.tick - brainConfig(ctx.content).density.days * TICKS_PER_GAME_DAY;
+  while (log.length > 0 && (log[0] as { tick: number }).tick < since) log.shift();
+  if (power > 0) log.push({ tick: ctx.tick, mapId, power, playerMap: onPlayer });
+}
+
+/**
+ * Whether a command is a written act the executor runs (catalog 4): only a command of the
+ * kernel itself (or a fallback it filed) may say so; a model or a player cannot.
+ */
+export function isWritten(d: GoddessActCommand, source: CommandSource): boolean {
+  return d.origin === 'beat' && trusted(source);
+}
+
+/** Sources whose `origin` and `at` the arbiter believes (the kernel and its fallbacks). */
+export function trusted(source: CommandSource): boolean {
+  return source.type === 'system' || source.type === 'fallback';
+}
+
+/** Who can perceive an action (its data, or the visibility default). */
+export function seenOf(a: DivineActionDef): ActionSeen {
+  return a.seen ?? (a.visibility === 'public' ? 'map' : 'never');
+}
+
+/** Whether this executed action reached the player's senses (alive metric 8). */
+function perceived(
+  a: DivineActionDef,
+  mapId: string,
+  onPlayerMap: boolean,
+  targetIsPlayer: boolean,
+): boolean {
+  const seen = seenOf(a);
+  if (a.id === 'dream') return targetIsPlayer;
+  if (seen === 'player') return true;
+  if (seen === 'map') return onPlayerMap && mapId !== '';
+  return false;
 }
 
 const WEATHERS: readonly Weather[] = ['clear', 'cloudy', 'rain', 'storm', 'fog', 'snow', 'ashfall'];
@@ -92,7 +190,7 @@ function mayAct(ctx: SystemContext, def: GoddessDef): boolean {
 }
 
 /** Default scope map: the player's map for a goddess bound to the player, else her strongest. */
-function defaultMap(ctx: SystemContext, def: GoddessDef, s: GoddessState): string {
+export function defaultMap(ctx: SystemContext, def: GoddessDef, s: GoddessState): string {
   return def.reach === 'player' ? playerMap(ctx.world) : strongestMap(s, ctx.content);
 }
 
@@ -133,7 +231,7 @@ export function validateAct(
   if (!def || !s) return { code: 'no_goddess', reason: tr('sys.goddess.reject.no_goddess.act') };
   if (!toolsActive(ctx, def, s))
     return { code: 'inactive', reason: tr('sys.goddess.reject.inactive.act') };
-  if (!def.menu.includes(d.action))
+  if (!onMenu(def, personaOf(ctx.content, def.id), currentAct(ctx), d.action))
     return { code: 'not_on_menu', reason: tr('sys.goddess.reject.not_on_menu') };
   const a = actionDef(ctx.content, d.action);
   if (!a) return { code: 'no_action', reason: tr('sys.goddess.reject.no_action') };
@@ -149,9 +247,19 @@ export function validateAct(
   const mapId = p.mapId ?? defaultMap(ctx, def, s);
   if (!mapById(ctx.content, mapId))
     return { code: 'no_map', reason: tr('sys.goddess.reject.no_map') };
-  if (def.reach !== 'player' && d.action !== 'request' && reach(s, mapId) < 0.05) {
+  // her reach: a commission, her gaze and what goes through her token need no faith there
+  const viaToken = a.needs?.includes('token') ?? false;
+  if (
+    def.reach !== 'player' &&
+    d.action !== 'request' &&
+    a.exec !== 'gaze' &&
+    !viaToken &&
+    reach(s, mapId) < 0.05
+  ) {
     return { code: 'out_of_reach', reason: tr('sys.goddess.reject.out_of_reach') };
   }
+  // a written act (catalog 4) is the executor's: it waits for no cooldown, gate or density
+  const written = isWritten(d, source);
   const breach = !!d.breach;
   if (breach) {
     if (!a.breachable)
@@ -160,10 +268,10 @@ export function validateAct(
       return { code: 'breach_used', reason: tr('sys.goddess.reject.breach_used') };
     }
   }
-  const cost = actionCost(a, breach);
+  const cost = priceCost(a, breach, p, marketOn(ctx.content, mapId));
   if (s.power < cost)
     return { code: 'no_power', reason: tr('sys.goddess.reject.no_power', { cost }) };
-  if ((s.cooldowns[a.id] ?? 0) > ctx.tick)
+  if (!written && (s.cooldowns[a.id] ?? 0) > ctx.tick)
     return { code: 'cooldown', reason: tr('sys.goddess.reject.cooldown') };
   if (a.hostile && mapId === playerMap(ctx.world)) {
     const used = s.hostility[currentAct(ctx)] ?? 0;
@@ -174,7 +282,14 @@ export function validateAct(
   if (a.id === 'dream' && !isNight(calendarAt(ctx.tick))) {
     return { code: 'not_night', reason: tr('sys.goddess.reject.not_night') };
   }
-  if (a.id === 'blessing') {
+  // only a goddess bound to the player dreams into the player's sleep (catalog 2.1)
+  if (a.id === 'dream' && def.reach !== 'player' && !p.targetId) {
+    return { code: 'dream_target', reason: tr('sys.goddess.reject.dream_target') };
+  }
+  if (p.targetId && !ctx.world.slices.world.entities[p.targetId]) {
+    return { code: 'no_target', reason: tr('sys.goddess.reject.no_target') };
+  }
+  if (a.exec === 'manifest' || a.id === 'blessing') {
     const token = p.item ?? def.token;
     if (!token || countItem(ctx.world, ctx.world.slices.world.playerId, token) <= 0) {
       return { code: 'no_token', reason: tr('sys.goddess.reject.no_token') };
@@ -186,12 +301,25 @@ export function validateAct(
   if (a.id === 'request' && !(p.key && /^[a-z0-9_]{1,32}$/.test(p.key))) {
     return { code: 'bad_key', reason: tr('sys.goddess.reject.bad_key') };
   }
+  if (cost > 0 && !written) {
+    const dens = densityOn(ctx, mapId);
+    const lim = brainConfig(ctx.content).density;
+    const onPlayer = mapId === playerMap(ctx.world);
+    if (dens.map + cost > lim.region || (onPlayer && dens.playerMap + cost > lim.playerRegion)) {
+      return { code: 'density', reason: tr('sys.goddess.reject.density') };
+    }
+  }
   if (p.flag && !p.flag.startsWith(`oracle.${d.goddessId}.`)) {
     return {
       code: 'bad_flag',
       reason: tr('sys.goddess.reject.bad_flag', { goddess: d.goddessId }),
     };
   }
+  // the gates of the action on this map (catalog 5.0 G; catalog 2.5: an omen needs a danger)
+  if (!written)
+    for (const need of a.needs ?? [])
+      if (!gateHolds(ctx, def, need, mapId))
+        return { code: 'gate', reason: tr(`sys.goddess.reject.gate.${need}`) };
   return null;
 }
 
@@ -224,25 +352,50 @@ export function executeAct(
   const p = d.params ?? {};
   const mapId = p.mapId ?? defaultMap(ctx, def, s);
   const breach = !!d.breach;
-  const cost = actionCost(a, breach);
   const playerId = ctx.world.slices.world.playerId;
+  const market = marketOn(ctx.content, mapId);
+  const cost = priceCost(a, breach, p, market);
   let note: TextRef | string = a.label;
   let isPublic = a.visibility === 'public';
+  let toPlayer = false;
+  let inLedger = true;
+  const onPlayerMap = mapId === playerMap(ctx.world);
 
-  const addMods = (dur: number) => {
+  // the word of a qualitative channel: the kernel may name any; a model keeps to the action's
+  // own word, or a plain id when the action has none
+  const tagWord = trusted(source)
+    ? (p.tag ?? a.tag)
+    : (a.tag ?? (p.tag && /^[a-z][a-z0-9_]{0,23}$/.test(p.tag) ? p.tag : undefined));
+  // a duration the command names (days) applies to every modifier; otherwise each keeps the
+  // hours its data gives
+  const addMods = (dur: number, weatherWord?: string, noteOverride?: TextRef) => {
     for (const m of a.modifiers ?? []) {
+      const ticks =
+        p.days !== undefined ? dur : Math.max(1, Math.round(m.hours * TICKS_PER_GAME_HOUR));
+      const word =
+        m.target === 'weather'
+          ? weatherWord
+          : TAGGED_TARGETS.includes(m.target)
+            ? tagWord
+            : undefined;
+      // a weather record needs the weather it records
+      if (m.target === 'weather' && !word) continue;
       registerModifier(ctx, {
         target: m.target,
         key: m.key === 'region' ? mapId : m.key,
         factor: m.factor,
         add: m.add,
-        untilTick: ctx.tick + Math.max(1, Math.round(dur)),
+        ...(word !== undefined ? { tag: word } : {}),
+        untilTick: ctx.tick + Math.max(1, Math.round(ticks)),
         source: def.id,
         visibility: isPublic ? 'public' : 'hidden',
-        note: tr('sys.goddess.modifier.action', {
-          goddess: contentText('goddesses', def),
-          action: contentText('divineActions', a, '', 'label'),
-        }),
+        stackGroup: a.id,
+        note:
+          noteOverride ??
+          tr('sys.goddess.modifier.action', {
+            goddess: contentText('goddesses', def),
+            action: contentText('divineActions', a, '', 'label'),
+          }),
       });
     }
   };
@@ -250,7 +403,10 @@ export function executeAct(
   switch (a.id) {
     case 'oracle': {
       const target = p.targetId ? ctx.world.slices.world.entities[p.targetId] : undefined;
-      line(ctx, def, p.text as string, target?.id);
+      // the player hears the words where they are spoken (on the player's map), or to them
+      const here = playerMap(ctx.world);
+      if (target ? target.id === playerId || target.mapId === here : onPlayerMap)
+        line(ctx, def, p.text as string, target?.id);
       if (p.flag) ctx.setFlag(p.flag, p.value ?? true);
       note = target
         ? tr('sys.goddess.note.oracle_to', { who: target.name })
@@ -258,37 +414,48 @@ export function executeAct(
       break;
     }
     case 'dream': {
-      line(ctx, def, p.text as string, playerId);
+      const listener = p.targetId ?? playerId;
+      toPlayer = listener === playerId;
+      // a dream is heard only by its sleeper: the player reads only their own
+      if (toPlayer) line(ctx, def, p.text as string, listener);
       note = tr('sys.goddess.note.dream');
       isPublic = false;
       break;
     }
     case 'omen': {
-      ctx.emit('dialogue.line', {
-        speakerId: 'narrator',
-        speakerName: '',
-        text: sanitizeText(p.text as string, ctx.world, ctx.content),
-        kind: 'narrate',
-      });
+      // the animals are seen where it happens (catalog 2.5): told only on the player's map
+      if (onPlayerMap)
+        ctx.emit('dialogue.line', {
+          speakerId: 'narrator',
+          speakerName: '',
+          text: sanitizeText(p.text as string, ctx.world, ctx.content),
+          kind: 'narrate',
+        });
       ctx.setFlag(`omen.${mapId}`, ctx.tick);
       note = tr('sys.goddess.note.omen');
       break;
     }
     case 'blessing': {
-      addMods(days(p, 7, 3) * TICKS_PER_GAME_DAY);
+      // the token blessing (catalog 2.4 div_merca_token_blessing): her coin grows warm
+      addMods(
+        days(p, 7, 3) * TICKS_PER_GAME_DAY,
+        undefined,
+        tr('sys.goddess.modifier.coin_blessing', { goddess: contentText('goddesses', def) }),
+      );
       note = tr('sys.goddess.note.blessing');
       break;
     }
     case 'miracle': {
       addMods(days(p, 7, 3) * TICKS_PER_GAME_DAY);
-      ctx.emit('dialogue.line', {
-        speakerId: 'narrator',
-        speakerName: '',
-        text: tr('sys.goddess.narrate.miracle', {
-          place: contentText('maps', mapById(ctx.content, mapId)),
-        }),
-        kind: 'narrate',
-      });
+      if (onPlayerMap)
+        ctx.emit('dialogue.line', {
+          speakerId: 'narrator',
+          speakerName: '',
+          text: tr('sys.goddess.narrate.miracle', {
+            place: contentText('maps', mapById(ctx.content, mapId)),
+          }),
+          kind: 'narrate',
+        });
       note = tr('sys.goddess.note.miracle');
       break;
     }
@@ -296,25 +463,37 @@ export function executeAct(
     case 'monster_tide':
     case 'weather': {
       const dur = days(p, a.id === 'weather' ? 3 : 7, 2) * TICKS_PER_GAME_DAY;
-      addMods(dur);
       const w =
         p.weather && WEATHERS.includes(p.weather) ? p.weather : (a.weather as Weather | undefined);
-      if (w) forceWeather(ctx, w, ctx.tick + dur, def.id);
+      addMods(dur, w);
+      // the sky turns for as long as its weather record lasts (the command's days, or the
+      // record's hours); a calamity without a record brings its storm for the default days
+      const record = (a.modifiers ?? []).find((m) => m.target === 'weather');
+      const sky =
+        p.days === undefined && record
+          ? Math.max(1, Math.round(record.hours * TICKS_PER_GAME_HOUR))
+          : dur;
+      if (w) forceWeather(ctx, w, ctx.tick + sky, def.id);
       note = a.label;
       break;
     }
     case 'price': {
       const factor = Math.max(0.6, Math.min(1.4, p.factor ?? 1.15));
       const dur = days(p, 30, 7) * TICKS_PER_GAME_DAY;
-      registerModifier(ctx, {
-        target: 'price',
-        key: p.goods ?? '*',
-        factor,
-        untilTick: ctx.tick + dur,
-        source: def.id,
-        visibility: 'public',
-        note: tr('sys.goddess.modifier.price', { goddess: contentText('goddesses', def) }),
-      });
+      // on a market: that market's goods (market:goods) or the whole market; elsewhere the
+      // goods everywhere (the old reach of the action)
+      for (const key of priceKeys(p.goods, market)) {
+        registerModifier(ctx, {
+          target: 'price',
+          key,
+          factor,
+          untilTick: ctx.tick + dur,
+          source: def.id,
+          visibility: 'public',
+          stackGroup: a.id,
+          note: tr('sys.goddess.modifier.price', { goddess: contentText('goddesses', def) }),
+        });
+      }
       note = tr('sys.goddess.note.price', {
         goods: p.goods ?? tr('sys.goddess.note.price_all'),
         pct: Math.round(factor * 100),
@@ -330,7 +509,55 @@ export function executeAct(
       break;
     }
     default:
-      return reject('no_action', tr('sys.goddess.reject.no_action'));
+      switch (a.exec) {
+        case 'gaze': {
+          // her sight rests on the map (catalog 1.3 gaze slots): not an intervention
+          brainOf(ctx.world.slices.goddess, def.id).gaze = {
+            mapId,
+            until: ctx.tick + days(p, 7, 1) * TICKS_PER_GAME_DAY,
+          };
+          inLedger = false;
+          note = tr('sys.goddess.note.gaze');
+          break;
+        }
+        case 'manifest': {
+          const text = p.text
+            ? sanitizeText(p.text, ctx.world, ctx.content)
+            : a.slot
+              ? goddessLine(ctx, def.id, a.slot)
+              : null;
+          ctx.emit('dialogue.line', {
+            speakerId: def.id,
+            speakerName: displayName(ctx, def),
+            text: text ?? tr('sys.goddess.line.manifest'),
+            listenerId: playerId,
+            kind: 'divine',
+          });
+          toPlayer = true;
+          note = tr('sys.goddess.note.manifest');
+          break;
+        }
+        case 'narrate': {
+          addMods(days(p, 30, 1) * TICKS_PER_GAME_DAY);
+          // the phenomenon is told where the player stands; elsewhere, or when nobody can
+          // perceive it at all (seen: never), it happens unseen
+          if (onPlayerMap && seenOf(a) !== 'never')
+            ctx.emit('dialogue.line', {
+              speakerId: 'narrator',
+              speakerName: '',
+              text: p.text
+                ? sanitizeText(p.text, ctx.world, ctx.content)
+                : tr(`sys.goddess.narrate.${a.id}`, {
+                    place: contentText('maps', mapById(ctx.content, mapId), mapId),
+                  }),
+              kind: 'narrate',
+            });
+          note = a.label;
+          break;
+        }
+        default:
+          return reject('no_action', tr('sys.goddess.reject.no_action'));
+      }
   }
 
   s.power -= cost;
@@ -338,16 +565,26 @@ export function executeAct(
   s.revision++;
   const act = currentAct(ctx);
   if (a.hostile && mapId === playerMap(ctx.world)) s.hostility[act] = (s.hostility[act] ?? 0) + 1;
-  const entry = recordIntervention(ctx, {
-    goddess: def.id,
-    action: a.id,
-    mapId,
-    power: cost,
-    sediment: Math.round(cost * a.sedimentRate * 100) / 100,
-    public: isPublic,
-    breach,
-    note: tr('sys.goddess.note.entry', { goddess: contentText('goddesses', def), note }),
-  });
+  // what her own choices spent is booked on `goddess.acted` (an act that lands an open
+  // scripted act stands outside the act budget, ./brain/budget.ts)
+  const origin: InterventionOrigin =
+    trusted(source) && d.origin ? d.origin : source.type === 'ai' ? 'plan' : 'command';
+  if (!isWritten(d, source)) recordDensity(ctx, mapId, cost, onPlayerMap);
+  const seen = perceived(a, mapId, onPlayerMap, toPlayer);
+  const entry = inLedger
+    ? recordIntervention(ctx, {
+        goddess: def.id,
+        action: a.id,
+        mapId,
+        power: cost,
+        sediment: Math.round(cost * a.sedimentRate * 100) / 100,
+        public: isPublic,
+        breach,
+        note: tr('sys.goddess.note.entry', { goddess: contentText('goddesses', def), note }),
+        seen,
+        origin,
+      })
+    : null;
   if (breach) {
     s.breachActs.push(act);
     const trace = tr('sys.goddess.breach.trace', {
@@ -372,9 +609,35 @@ export function executeAct(
     mapId,
     public: isPublic,
     breach,
-    miracleId: entry.id,
+    miracleId: entry?.id ?? '',
+    seen,
+    origin,
+    targetId: p.targetId,
+    power: cost,
   });
   return ok(note);
+}
+
+/** The price modifier keys of a price action (economy market.ts reads all three forms). */
+export function priceKeys(goods: string | undefined, market: string | undefined): string[] {
+  const list = (goods ?? '*')
+    .split(',')
+    .map((g) => g.trim())
+    .filter((g) => g !== '');
+  if (!market) return list.length > 0 ? list : ['*'];
+  if (list.length === 0 || list.includes('*')) return [market];
+  return list.map((g) => `${market}:${g}`);
+}
+
+/** Cost of an act: a whole-market price change costs half again (catalog 2.4). */
+export function priceCost(
+  a: DivineActionDef,
+  breach: boolean,
+  p: GoddessActParams,
+  market: string | undefined,
+): number {
+  const whole = a.id === 'price' && !!market && priceKeys(p.goods, market)[0] === market;
+  return actionCost(a, breach) * (whole ? 1.5 : 1);
 }
 
 /** Is the player standing where a follower of this goddess can see? (used for sight). */
