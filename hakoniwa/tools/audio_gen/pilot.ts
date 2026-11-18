@@ -12,6 +12,10 @@
 // Effects (sfx_hit_slash_flesh): eight Stable Audio 3 Small-SFX takes, trimmed to the hit.
 // Ambience (amb_town_day): two 120-second beds cut to a 90-second loop at the quietest seam.
 //
+// The listening set is pre-baked to one loop body, for ears only. What the review desk hands
+// to the asset import is a loop SOURCE (body plus crossfade material, loop_source.ts); the
+// pilot's own candidates were re-staged that way by restage_loops.ts.
+//
 // Prompts come from the prompt library (assets/prompts/specs/*.json and
 // templates_audio.json), so the pilot exercises the same entries a production batch uses.
 // Output: .local/audio_pilot/listen/ (numbered files, README.md, records.json).

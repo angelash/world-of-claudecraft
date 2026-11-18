@@ -79,3 +79,28 @@ export function toWav(input: string, output: string, channels?: number): void {
   args.push('-c:a', 'pcm_s16le', output);
   ffmpeg(args);
 }
+
+/** Re-encode to the output's format (FLAC or 16-bit WAV, by extension) without any filter. */
+export function encodeAs(input: string, output: string, channels?: number): void {
+  const args = ['-y', '-i', input, '-ar', '48000'];
+  if (channels) args.push('-ac', String(channels));
+  args.push('-c:a', output.toLowerCase().endsWith('.flac') ? 'flac' : 'pcm_s16le', output);
+  ffmpeg(args);
+}
+
+/**
+ * The one fixed gain that brings a reading to the target loudness without lifting its true peak
+ * over the ceiling (0 for silence). Loop sources take this instead of loudnorm, whose dynamic
+ * fallback (a range over 11 LU, or a linear gain that would break the ceiling) rides the level
+ * over time and moves the seam the import reads; the import normalises again with its limiter.
+ */
+export function linearGainDb(
+  reading: Pick<LoudnessReading, 'integrated' | 'truePeak'>,
+  targetLufs: number,
+  truePeakMax: number,
+): number {
+  if (!Number.isFinite(reading.integrated)) return 0;
+  const toTarget = targetLufs - reading.integrated;
+  const toCeiling = Number.isFinite(reading.truePeak) ? truePeakMax - reading.truePeak : toTarget;
+  return Math.min(toTarget, toCeiling);
+}

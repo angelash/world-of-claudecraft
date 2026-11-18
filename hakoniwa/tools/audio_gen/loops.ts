@@ -68,11 +68,35 @@ export function findQuietSeam(
   stepFrames: number,
   minStart = 0,
 ): { start: number; score: number } {
+  let best = { start: -1, score: Number.POSITIVE_INFINITY };
+  for (const c of quietSeamScores(
+    audio,
+    bodyFrames,
+    fadeFrames,
+    windowFrames,
+    stepFrames,
+    minStart,
+  )) {
+    if (c.score < best.score) best = c;
+  }
+  if (best.start < 0) throw new Error('Bed is too short for the loop body and its fade');
+  return best;
+}
+
+/** Every candidate seam start of findQuietSeam with its score (lower is quieter). */
+export function quietSeamScores(
+  audio: PcmAudio,
+  bodyFrames: number,
+  fadeFrames: number,
+  windowFrames: number,
+  stepFrames: number,
+  minStart = 0,
+): Array<{ start: number; score: number }> {
   const env = rmsEnvelope(audio, windowFrames);
   const sorted = [...env].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length / 2)] || 1e-9;
   const frames = frameCount(audio);
-  let best = { start: -1, score: Number.POSITIVE_INFINITY };
+  const out: Array<{ start: number; score: number }> = [];
   for (let start = minStart; start + bodyFrames + fadeFrames <= frames; start += stepFrames) {
     let peak = 0;
     for (const regionStart of [start, start + bodyFrames]) {
@@ -80,11 +104,9 @@ export function findQuietSeam(
       const to = Math.ceil((regionStart + fadeFrames) / windowFrames);
       for (let w = from; w < Math.min(to, env.length); w++) peak = Math.max(peak, env[w]);
     }
-    const score = peak / median;
-    if (score < best.score) best = { start, score };
+    out.push({ start, score: peak / median });
   }
-  if (best.start < 0) throw new Error('Bed is too short for the loop body and its fade');
-  return best;
+  return out;
 }
 
 /**

@@ -8,13 +8,15 @@
 //
 // Routes (docs/10_research/open_share/local_audio_generation.md):
 //   effects and interface sounds  Stable Audio 3 Small-SFX, 1.5 times the variation count
-//                                 (at least 4), each take trimmed to its hit; loops cut to a
-//                                 4 to 8 second body at the quietest seam
+//                                 (at least 4), each take trimmed to its hit; loops handed
+//                                 over as import sources (loop_source.ts) from the quietest
+//                                 seam the import's seam check passes
 //   ambience beds                 two 120-second takes as left and right (the model is mono),
-//                                 two sets, cut to the loop body at the quietest seam
+//                                 two sets, handed over the same way
 //   ambience points               like effects
 //   music                         ACE-Step 1.5 text to music, two seeds, with the entry's
-//                                 tempo, key, meter and length; motif seeds are written as
+//                                 tempo, key, meter and length (loops trimmed to the first
+//                                 bar the import's seam check passes); motif seeds are written as
 //                                 scores (scores/motif_seeds.ts) plus one ACE-Step cover
 // Order: M1, M2, M3; inside a milestone effects and ambience first (fast), then music.
 
@@ -42,14 +44,21 @@ import {
   stableAudioGraph,
   stageInput,
 } from './comfy';
-import { type LoudnessReading, measureLoudness, normalizeLoudness } from './ffmpeg';
-import { crossfadeLoop, findQuietSeam } from './loops';
+import {
+  encodeAs,
+  type LoudnessReading,
+  linearGainDb,
+  measureLoudness,
+  normalizeLoudness,
+} from './ffmpeg';
+import { bedLoopSource, type LoopSourceResult, musicLoopSource } from './loop_source';
+import { quietSeamScores } from './loops';
 import { generationSeconds, keyscaleOf, statedSeconds, timeSignatureOf } from './music_params';
 import { renderOneShot } from './render_score';
 import { hashString } from './score';
 import { MOTIF_SEEDS } from './scores/motif_seeds';
-import { loadTake, pairToStereo, RATE, trimHit } from './takes';
-import { writeWav } from './wav';
+import { loadTake, pairToStereo, RATE, scale, trimHit } from './takes';
+import { type PcmAudio, writeWav } from './wav';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ASSETS = join(ROOT, 'assets');
@@ -255,9 +264,75 @@ async function effectJob(job: Job): Promise<Candidate[]> {
   });
 }
 
+/** Default loop bodies when the entry states none (the import's ranges: 4 to 8 s, 60 to 120 s). */
+export const EFFECT_LOOP_BODY_SEC = 6;
+export const AMBIENCE_BED_BODY_SEC = 90;
+
+/** Seam search grids for generated beds: envelope window, step and earliest start, seconds. */
+export const EFFECT_LOOP_GRID = { window: 0.05, step: 0.1, minStart: 0.5 } as const;
+export const AMBIENCE_BED_GRID = { window: 0.05, step: 0.25, minStart: 2 } as const;
+
+/** Loop source of a generated bed or effect loop at its best seam (loop_source.ts). */
+export function bedSource(
+  bed: PcmAudio,
+  plan: AudioPlan,
+  defaultBodySec: number,
+  grid: { window: number; step: number; minStart: number },
+): LoopSourceResult {
+  const body = Math.round((plan.loopSec ?? defaultBodySec) * RATE);
+  const fade = Math.round((plan.fadeMs / 1000) * RATE);
+  const scores = quietSeamScores(
+    bed,
+    body,
+    fade,
+    Math.round(grid.window * RATE),
+    Math.round(grid.step * RATE),
+    Math.round(grid.minStart * RATE),
+  );
+  return bedLoopSource(bed, plan, defaultBodySec, scores);
+}
+
+/** The settings a loop source records: where the seam is and what the import will read. */
+export function loopSettings(cut: LoopSourceResult): Record<string, number | boolean> {
+  return {
+    loopBodySeconds: Math.round((cut.choice.cut.length / RATE) * 1000) / 1000,
+    seamStartSeconds: Math.round((cut.choice.start / RATE) * 1000) / 1000,
+    seamLevelStepDb: Math.round(cut.choice.seam.levelStepDb * 100) / 100,
+    seamPasses: cut.choice.passes,
+  };
+}
+
+/**
+ * Write a loop source into the pool with one linear gain toward the plan's loudness (never
+ * loudnorm, whose dynamic fallback would ride the level and move the seam the import reads).
+ */
+export function writeLoopSource(
+  source: PcmAudio,
+  scratchWav: string,
+  output: string,
+  plan: AudioPlan,
+): LoudnessReading {
+  mkdirSync(dirname(scratchWav), { recursive: true });
+  writeFileSync(scratchWav, writeWav(source));
+  const gainDb = linearGainDb(measureLoudness(scratchWav), plan.targetLufs, plan.truePeakMax);
+  const gained = scratchWav.replace(/\.wav$/i, '.gain.wav');
+  writeFileSync(gained, writeWav(scale(source, 10 ** (gainDb / 20))));
+  encodeAs(gained, output, plan.channels);
+  return measureLoudness(output);
+}
+
+/** How a loop source's seam came out, for the method text. */
+function seamPhrase(cut: LoopSourceResult): string {
+  return cut.choice.passes
+    ? "the import's seam check passes there"
+    : `no start passes the import's seam check; this one has the smallest level step, ${Math.round(cut.choice.seam.levelStepDb * 10) / 10} dB`;
+}
+
+function bodySeconds(cut: LoopSourceResult): number {
+  return Math.round((cut.choice.cut.length / RATE) * 100) / 100;
+}
+
 async function effectLoopJob(job: Job): Promise<Candidate[]> {
-  const body = Math.round(Math.min(8, Math.max(4, job.plan.loopSec ?? 6)) * RATE);
-  const fade = Math.round(0.2 * RATE);
   const prompt = `${job.subject}. ${job.style}. Continuous steady texture with no distinct start or end and no sudden events, no music, no voice. Length: 14 seconds`;
   const seed = seedOf(job.id, 1);
   const run = await runGraph(
@@ -273,45 +348,45 @@ async function effectLoopJob(job: Job): Promise<Candidate[]> {
   );
   return run.files.map((file, i) => {
     const bed = loadTake(file, job.plan.channels);
-    const seam = findQuietSeam(
-      bed,
-      body,
-      fade,
-      Math.round(0.05 * RATE),
-      Math.round(0.1 * RATE),
-      Math.round(0.5 * RATE),
-    );
-    const raw = join(WORK, job.id, `loop_${i + 1}.wav`);
-    writeFileSync(raw, writeWav(crossfadeLoop(bed, seam.start, body, fade)));
+    const cut = bedSource(bed, job.plan, EFFECT_LOOP_BODY_SEC, EFFECT_LOOP_GRID);
     const p = poolPath(job.id, `loop_${String(i + 1).padStart(2, '0')}.wav`);
-    const reading = normalizeLoudness(
-      raw,
+    const reading = writeLoopSource(
+      cut.source,
+      join(WORK, job.id, `loop_${i + 1}.wav`),
       p.abs,
-      job.plan.targetLufs,
-      job.plan.truePeakMax,
-      job.plan.channels,
+      job.plan,
     );
     return candidate({
       key: `l${i + 1}`,
       label: `循环第 ${i + 1} 条`,
       group: 'A',
-      method: `text to audio, ${body / RATE} s loop body at the quietest seam, 200 ms crossfade, ${job.plan.targetLufs} LUFS`,
+      method: effectLoopMethod(cut, job.plan),
       tool: 'stable_audio_3_small_sfx',
       toolVersion: SFX_VERSION,
       models: [MODELS.sfxCheckpoint, MODELS.sfxTextEncoder],
       seed: `${seed}#${i}`,
       prompt,
-      settings: { seconds: 14, batch: 3, batchIndex: i, seamStartSeconds: seam.start / RATE },
+      settings: { seconds: 14, batch: 3, batchIndex: i, ...loopSettings(cut) },
       metrics: { ...jobFields(run), lufs: reading.integrated, truePeak: reading.truePeak },
       files: [{ role: 'main', label: `l${i + 1}`, path: p.rel }],
     });
   });
 }
 
+/** Method text of a loop source; `what` says how the take was made. */
+export function loopSourceMethod(what: string, cut: LoopSourceResult, plan: AudioPlan): string {
+  return `${what}; loop source from the quietest seam on the grid (${seamPhrase(cut)}): ${bodySeconds(cut)} s body plus ${plan.fadeMs} ms crossfade material, the import bakes the loop; one linear gain toward ${plan.targetLufs} LUFS`;
+}
+
+export function effectLoopMethod(cut: LoopSourceResult, plan: AudioPlan): string {
+  return loopSourceMethod('text to audio, 14 s take', cut, plan);
+}
+
+export function ambienceBedMethod(cut: LoopSourceResult, plan: AudioPlan): string {
+  return loopSourceMethod('two 120 s takes as left and right', cut, plan);
+}
+
 async function ambienceBedJob(job: Job): Promise<Candidate[]> {
-  const bodySec = Math.min(110, Math.max(30, job.plan.loopSec ?? 90));
-  const body = Math.round(bodySec * RATE);
-  const fade = 2 * RATE;
   const prompt = `${job.subject}. ${job.style}. Continuous ambience with the same density throughout, realistic field recording, no music, no intelligible speech. Length: 120 seconds`;
   const out: Candidate[] = [];
   for (const set of [1, 2]) {
@@ -333,35 +408,26 @@ async function ambienceBedJob(job: Job): Promise<Candidate[]> {
       loadTake(run.files[0] as string, 1),
       loadTake(run.files[1] as string, 1),
     );
-    const seam = findQuietSeam(
-      bed,
-      body,
-      fade,
-      Math.round(0.05 * RATE),
-      Math.round(0.25 * RATE),
-      2 * RATE,
-    );
-    const raw = join(WORK, job.id, `bed_${set}.wav`);
-    writeFileSync(raw, writeWav(crossfadeLoop(bed, seam.start, body, fade)));
+    const cut = bedSource(bed, job.plan, AMBIENCE_BED_BODY_SEC, AMBIENCE_BED_GRID);
     const p = poolPath(job.id, `bed_${set}.wav`);
-    const reading = normalizeLoudness(raw, p.abs, job.plan.targetLufs, job.plan.truePeakMax, 2);
+    const reading = writeLoopSource(
+      cut.source,
+      join(WORK, job.id, `bed_${set}.wav`),
+      p.abs,
+      job.plan,
+    );
     out.push(
       candidate({
         key: `w${set}`,
         label: `宽立体声第 ${set} 版（两次生成分放左右声道）`,
         group: 'A',
-        method: `two 120 s takes as left and right, ${bodySec} s loop body at the quietest seam, 2 s crossfade, ${job.plan.targetLufs} LUFS`,
+        method: ambienceBedMethod(cut, job.plan),
         tool: 'stable_audio_3_small_sfx',
         toolVersion: SFX_VERSION,
         models: [MODELS.sfxCheckpoint, MODELS.sfxTextEncoder],
         seed: String(seed),
         prompt,
-        settings: {
-          seconds: 120,
-          batch: 2,
-          seamStartSeconds: seam.start / RATE,
-          seamScore: Math.round(seam.score * 100) / 100,
-        },
+        settings: { seconds: 120, batch: 2, ...loopSettings(cut) },
         metrics: { ...jobFields(run), lufs: reading.integrated, truePeak: reading.truePeak },
         files: [{ role: 'main', label: `w${set}`, path: p.rel }],
       }),
@@ -376,19 +442,22 @@ function musicCaption(job: Job): string {
     .join('. ');
 }
 
-/**
- * Loudness-normalize a take into the pool, or return null when it is (almost) silent, which
- * the normalizer cannot measure.
- */
-function normalizeAudible(
-  input: string,
-  output: string,
-  plan: AudioPlan,
-  channels: number,
-): LoudnessReading | null {
+/** False when a take is (almost) silent, which the normalizer cannot measure. */
+function isAudible(input: string): boolean {
   const first = measureLoudness(input);
-  if (!Number.isFinite(first.integrated) || first.integrated < -50) return null;
-  return normalizeLoudness(input, output, plan.targetLufs, plan.truePeakMax, channels);
+  return Number.isFinite(first.integrated) && first.integrated >= -50;
+}
+
+export function musicMethod(
+  seconds: number,
+  bpm: number,
+  keyscale: string,
+  timesignature: string,
+  cut: LoopSourceResult | null,
+): string {
+  const base = `text to music, ${seconds} s at ${bpm} BPM, ${keyscale}, ${timesignature} beats`;
+  if (!cut) return `${base}; the import cuts the loop`;
+  return `${base}; loop source from ${Math.round((cut.choice.start / RATE) * 100) / 100} s on the tempo grid (${seamPhrase(cut)}): ${bodySeconds(cut)} s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target`;
 }
 
 async function aceTextJob(job: Job): Promise<Candidate[]> {
@@ -409,6 +478,7 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
     let seed = 0;
     let run: JobResult | null = null;
     let reading: LoudnessReading | null = null;
+    let cut: LoopSourceResult | null = null;
     for (const attempt of [0, 10, 20]) {
       seed = seedOf(job.id, k + attempt);
       run = await runGraph(
@@ -423,8 +493,18 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
         }),
         join(WORK, job.id, `s${k}_${attempt}`),
       );
-      reading = normalizeAudible(run.files[0] as string, p.abs, job.plan, 2);
-      if (reading) break;
+      const take = run.files[0] as string;
+      if (!isAudible(take)) continue;
+      cut = job.template === 'music_loop' ? musicLoopSource(loadTake(take, 2), job.plan) : null;
+      reading = cut
+        ? writeLoopSource(
+            cut.source,
+            join(WORK, job.id, `s${k}_${attempt}_loop_source.wav`),
+            p.abs,
+            job.plan,
+          )
+        : normalizeLoudness(take, p.abs, job.plan.targetLufs, job.plan.truePeakMax, 2);
+      break;
     }
     if (!run || !reading) throw new Error(`three silent takes for seed slot ${k}`);
     out.push(
@@ -432,7 +512,7 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
         key: `ace${k}`,
         label: `ACE-Step 只用提示词生成，第 ${k} 版`,
         group: 'D',
-        method: `text to music, ${seconds} s at ${bpm} BPM, ${keyscale}, ${timesignature} beats; loop seams are cut on import`,
+        method: musicMethod(seconds, bpm, keyscale, timesignature, cut),
         tool: 'ace_step_15',
         toolVersion: ACE_VERSION,
         models: [MODELS.aceDit, MODELS.aceTextEncoder, MODELS.aceLm, MODELS.aceVae],
@@ -449,6 +529,7 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
           shift: 3,
           lmCodes: true,
           decode: aceDecodeNode().class_type,
+          ...(cut ? loopSettings(cut) : {}),
         },
         metrics: { ...jobFields(run), lufs: reading.integrated, truePeak: reading.truePeak },
         files: [{ role: 'main', label: `ace${k}`, path: p.rel }],
