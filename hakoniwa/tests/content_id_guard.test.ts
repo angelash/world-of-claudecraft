@@ -96,11 +96,29 @@ function literalsOf(fileName: string, text: string): { literals: Literal[]; grou
 }
 
 /**
+ * Reviewed person ids that coincide with a kernel vocabulary word (PK-M1-28, a test-policy
+ * exception). The gatekeeper Ash's canon id `ash` (combat fixture ref, scene speaker, topic
+ * owner, trust.ash) is also the world's tile kind and the combat hit material; renaming
+ * either side would cascade through canon, data and kernel. Such a person id is treated
+ * like an unprotected id: exempt only where its own directory declares it in a mixed closed
+ * vocabulary, a hit everywhere else. Exactly this pair is listed (pinned below); any other
+ * person id or vocabulary collision still fails.
+ */
+const VOCABULARY_PERSONS: ReadonlyMap<string, string> = new Map([
+  ['ash', 'TileKind (src/systems/world/types.ts), HitMaterial (src/systems/combat/types.ts)'],
+]);
+
+/**
  * Hits of one directory (one system): a literal equal to an entity id that is neither a
  * word of a closed vocabulary its directory declares (a group holding some non-id word)
- * nor exempt by the vocabulary rule. Ids of protected kinds are always hits.
+ * nor exempt by the vocabulary rule. Ids of protected kinds are always hits, except a
+ * reviewed person id of VOCABULARY_PERSONS that names a person and nothing else.
  */
-function scanSources(sources: { file: string; text: string }[], ids: IdIndex): Hit[] {
+function scanSources(
+  sources: { file: string; text: string }[],
+  ids: IdIndex,
+  vocabularyPersons: ReadonlyMap<string, string> = VOCABULARY_PERSONS,
+): Hit[] {
   const parsed = sources.map((s) => ({ file: s.file, ...literalsOf(s.file, s.text) }));
   const vocabulary = new Set<string>();
   for (const p of parsed)
@@ -111,7 +129,8 @@ function scanSources(sources: { file: string; text: string }[], ids: IdIndex): H
     for (const lit of p.literals) {
       const kinds = ids.kinds.get(lit.text);
       if (!kinds) continue;
-      if (!ids.protectedIds.has(lit.text) && vocabulary.has(lit.text)) continue;
+      const reviewed = vocabularyPersons.has(lit.text) && kinds.size === 1 && kinds.has('person');
+      if ((!ids.protectedIds.has(lit.text) || reviewed) && vocabulary.has(lit.text)) continue;
       hits.push({ file: p.file, line: lit.line, id: lit.text, kinds: [...kinds].sort() });
     }
   }
@@ -216,9 +235,39 @@ describe('content id guard: the scanner', () => {
     expect(scan(`const g = ${template('', '')};`)).toEqual([]);
     expect(scan("ctx.flag('feature.inner_court');")).toEqual([]);
   });
+
+  it('lets a reviewed person id pass only as its directory vocabulary word', () => {
+    const people: IdIndex = {
+      kinds: new Map([
+        ['ash', new Set(['person'])],
+        ['noi', new Set(['person'])],
+        ['ember', new Set(['person', 'item'])],
+      ]),
+      protectedIds: new Set(['ash', 'noi', 'ember']),
+    };
+    const reviewed = new Map([
+      ['ash', 'tile kind'],
+      ['ember', 'element'],
+    ]);
+    const run = (text: string) =>
+      scanSources([{ file: 'x.ts', text }], people, reviewed).map((h) => h.id);
+    // declared in a mixed vocabulary of this directory, then used: no hit
+    expect(run("type T = 'grass' | 'ash'; const m = { undead: 'ash' };")).toEqual([]);
+    // never declared here: a person id used as a value is a hit
+    expect(run("talkTo('ash');")).toEqual(['ash']);
+    // an unlisted person id in a mixed vocabulary is still a hit
+    expect(run("type T = 'grass' | 'noi';")).toEqual(['noi']);
+    // a listed id that names more than a person is not exempt
+    expect(run("type T = 'grass' | 'ember';")).toEqual(['ember']);
+  });
 });
 
 describe('content id guard: src/systems and src/core', () => {
+  it('pins the reviewed person-vocabulary exception to exactly the pair ash', () => {
+    expect([...VOCABULARY_PERSONS.keys()]).toEqual(['ash']);
+    expect(ids.kinds.get('ash')).toEqual(new Set(['person']));
+  });
+
   it('collects the entity ids of the content', () => {
     for (const id of ['old_outpost', 'wallenburg', 'eluen', 'janu', 'merca_coin', 'cut_p_earth'])
       expect(ids.kinds.has(id), id).toBe(true);

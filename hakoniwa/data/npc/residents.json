@@ -1,54 +1,5 @@
 [
   {
-    "id": "bs_townsfolk",
-    "map": "borderstone",
-    "name": "镇民",
-    "count": 4,
-    "homes": ["houses_north", "houses_south", "houses_west"],
-    "works": ["salt_market", "west_field", "plaza", "washing_creek"],
-    "schedule": "citizen",
-    "class": "peasant",
-    "race": "人族",
-    "level": [1, 5],
-    "tags": ["townsfolk"],
-    "faction": "townsfolk",
-    "palette": [
-      ["#7a6a4a", "#5a4a3a", "#e0b894", "#4a3a2a"],
-      ["#8a5a4a", "#c8b898", "#f0c8a0", "#2a2a2a"],
-      ["#5a6a7a", "#a09080", "#e8c0a0", "#6a4a2a"]
-    ]
-  },
-  {
-    "id": "bs_militia",
-    "map": "borderstone",
-    "name": "民兵",
-    "count": 3,
-    "homes": ["houses_north", "houses_south"],
-    "works": ["guard_post"],
-    "schedule": "guard",
-    "class": "peasant",
-    "race": "人族",
-    "level": [4, 8],
-    "tags": ["guard"],
-    "faction": "town_guard",
-    "palette": [["#4a5a6a", "#8a7a5a", "#e0b894", "#3a2a1a"]]
-  },
-  {
-    "id": "bs_lumber",
-    "map": "borderstone",
-    "name": "伐木工",
-    "count": 2,
-    "homes": ["houses_west"],
-    "works": ["lumberyard"],
-    "schedule": "lumber",
-    "class": "peasant",
-    "race": "人族",
-    "level": [3, 7],
-    "tags": ["lumber"],
-    "faction": "lumberyard",
-    "palette": [["#6a5a3a", "#5a4a2a", "#e0b080", "#4a3a2a"]]
-  },
-  {
     "id": "bs_orphan",
     "map": "borderstone",
     "name": "孤儿院的孩子",
@@ -62,6 +13,467 @@
     "tags": ["child"],
     "faction": "church",
     "palette": [["#8a8a9a", "#a0a0b0", "#f0d0b8", "#5a3a2a"]]
+  },
+  {
+    "id": "tpl_tenant_farmer",
+    "name": "佃农",
+    "band": "L4",
+    "schedule": "farmer",
+    "class": "peasant",
+    "race": "人族",
+    "level": [1, 5],
+    "knowledge": "K0",
+    "tags": ["farmer"],
+    "faction": "townsfolk",
+    "palette": [
+      ["#7a6a4a", "#5a4a3a", "#e0b894", "#4a3a2a"],
+      ["#8a5a4a", "#c8b898", "#f0c8a0", "#2a2a2a"]
+    ],
+    "exaggerate": 1.6,
+    "potential": { "chance": 0.02, "codes": ["fertile", "steward"] },
+    "unbelief": {
+      "ceiling": 15,
+      "threshold": 40,
+      "explain": ["luck", "miracle", "sorcery"],
+      "pressure": 0.8,
+      "oldOrder": 0.4
+    },
+    "placements": [
+      {
+        "map": "borderstone",
+        "count": 2,
+        "homes": ["farmhouse", "houses_west"],
+        "works": ["west_field"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_miner",
+    "name": "矿工",
+    "band": "L4",
+    "schedule": "miner",
+    "class": "peasant",
+    "race": "人族",
+    "level": [3, 9],
+    "knowledge": "K1",
+    "tags": ["miner"],
+    "faction": "townsfolk",
+    "palette": [
+      ["#5a5a4a", "#4a3a2a", "#d8a880", "#2a2a2a"],
+      ["#6a5a4a", "#3a3a3a", "#e0b894", "#4a3a2a"]
+    ],
+    "exaggerate": 1.5,
+    "potential": { "chance": 0.02, "codes": ["craft", "bulwark"] },
+    "unbelief": {
+      "ceiling": 12,
+      "threshold": 45,
+      "explain": ["gadget", "luck"],
+      "pressure": 0.5,
+      "oldOrder": 0.4
+    },
+    "placements": [
+      { "map": "borderstone", "count": 3, "homes": ["miners_shack"], "works": ["miners_shack"] }
+    ]
+  },
+  {
+    "id": "tpl_woodcutter",
+    "name": "伐木工",
+    "band": "L4",
+    "schedule": "lumber",
+    "class": "peasant",
+    "race": "人族",
+    "level": [3, 7],
+    "knowledge": "K0",
+    "tags": ["lumber"],
+    "faction": "lumberyard",
+    "palette": [["#6a5a3a", "#5a4a2a", "#e0b080", "#4a3a2a"]],
+    "exaggerate": 1.5,
+    "potential": { "chance": 0.02, "codes": ["huntking", "bulwark"] },
+    "unbelief": {
+      "ceiling": 15,
+      "threshold": 45,
+      "explain": ["luck", "wounded"],
+      "pressure": 0.5,
+      "oldOrder": 0.5
+    },
+    "placements": [
+      { "map": "borderstone", "count": 2, "homes": ["houses_west"], "works": ["lumberyard"] }
+    ]
+  },
+  {
+    "id": "tpl_herb_woman",
+    "name": "乡间药草婆",
+    "band": "L3",
+    "schedule": "herb_woman",
+    "class": "peasant",
+    "race": "人族",
+    "level": [4, 12],
+    "knowledge": "K1",
+    "tags": ["healer"],
+    "faction": "townsfolk",
+    "palette": [["#5a6a4a", "#8a7a5a", "#e0b894", "#9a9a9a"]],
+    "exaggerate": 1.2,
+    "potential": { "chance": 0.06, "codes": ["healhand", "spiritsense"] },
+    "unbelief": {
+      "ceiling": 25,
+      "threshold": 30,
+      "explain": ["miracle", "sorcery"],
+      "pressure": 0.2,
+      "oldOrder": 0.2
+    },
+    "placements": []
+  },
+  {
+    "id": "tpl_peddler",
+    "name": "行商",
+    "band": "L3",
+    "schedule": "peddler",
+    "class": "merchant",
+    "race": "人族",
+    "level": [3, 9],
+    "knowledge": "K1",
+    "tags": ["merchant"],
+    "faction": "townsfolk",
+    "palette": [["#9a6a3a", "#e0d0a0", "#f0c8a0", "#5a3a2a"]],
+    "exaggerate": 1.7,
+    "potential": { "chance": 0.03, "codes": ["trade", "luck"] },
+    "unbelief": {
+      "ceiling": 20,
+      "threshold": 35,
+      "explain": ["misreport", "conspiracy"],
+      "pressure": 0.2,
+      "oldOrder": 0.3
+    },
+    "placements": [
+      { "map": "borderstone", "count": 1, "homes": ["drunk_moon"], "works": ["salt_market"] }
+    ]
+  },
+  {
+    "id": "tpl_caravan_guard",
+    "name": "商队护卫",
+    "band": "L4",
+    "schedule": "caravan_guard",
+    "class": "adventurer",
+    "race": "人族",
+    "level": [8, 15],
+    "knowledge": "K1",
+    "tags": ["guard"],
+    "faction": "townsfolk",
+    "palette": [["#5a4a3a", "#8a7a5a", "#e0b894", "#3a2a1a"]],
+    "exaggerate": 1.6,
+    "potential": { "chance": 0.03, "codes": ["blade", "scout"] },
+    "unbelief": {
+      "ceiling": 30,
+      "threshold": 50,
+      "explain": ["wounded", "cheat", "hidden_identity"],
+      "pressure": 0.5,
+      "oldOrder": 0.5
+    },
+    "placements": [
+      { "map": "borderstone", "count": 1, "homes": ["post_station"], "works": ["post_yard"] }
+    ]
+  },
+  {
+    "id": "tpl_town_guard",
+    "name": "镇卫",
+    "band": "L4",
+    "schedule": "guard",
+    "class": "peasant",
+    "race": "人族",
+    "level": [6, 12],
+    "knowledge": "K0",
+    "tags": ["guard"],
+    "faction": "town_guard",
+    "palette": [["#4a5a6a", "#8a7a5a", "#e0b894", "#3a2a1a"]],
+    "exaggerate": 1.4,
+    "potential": { "chance": 0.03, "codes": ["bulwark", "command"] },
+    "unbelief": {
+      "ceiling": 15,
+      "threshold": 50,
+      "explain": ["misreport", "luck"],
+      "pressure": 0.8,
+      "oldOrder": 0.6
+    },
+    "placements": [
+      {
+        "map": "borderstone",
+        "count": 3,
+        "homes": ["houses_north", "houses_south"],
+        "works": ["guard_post"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_militia",
+    "name": "长弓民兵",
+    "band": "L4",
+    "schedule": "farmer",
+    "class": "peasant",
+    "race": "人族",
+    "level": [4, 8],
+    "knowledge": "K0",
+    "tags": ["militia"],
+    "faction": "townsfolk",
+    "palette": [["#5a6a4a", "#7a6a4a", "#e0b894", "#4a3a2a"]],
+    "exaggerate": 1.5,
+    "potential": { "chance": 0.03, "codes": ["command", "bulwark"] },
+    "unbelief": {
+      "ceiling": 15,
+      "threshold": 45,
+      "explain": ["luck", "miracle"],
+      "pressure": 0.8,
+      "oldOrder": 0.4
+    },
+    "placements": [
+      {
+        "map": "borderstone",
+        "count": 2,
+        "homes": ["farmhouse", "houses_west"],
+        "works": ["west_field"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_tax_collector",
+    "name": "税吏",
+    "band": "L3",
+    "schedule": "scribe",
+    "class": "merchant",
+    "race": "人族",
+    "level": [4, 10],
+    "knowledge": "K1",
+    "tags": ["official"],
+    "faction": "magistrate",
+    "palette": [["#4a4a5a", "#7a6a5a", "#e0c0a0", "#2a2a2a"]],
+    "exaggerate": 1.1,
+    "potential": { "chance": 0.02, "codes": ["steward", "trade"] },
+    "unbelief": {
+      "ceiling": 10,
+      "threshold": 65,
+      "explain": ["cheat", "conspiracy"],
+      "pressure": 0.5,
+      "oldOrder": 0.9
+    },
+    "placements": [
+      { "map": "borderstone", "count": 1, "homes": ["houses_south"], "works": ["magistrate"] }
+    ]
+  },
+  {
+    "id": "tpl_adventurer_fe",
+    "name": "F、E 级冒险者",
+    "band": "L4",
+    "schedule": "adventurer",
+    "class": "adventurer",
+    "race": "人族",
+    "level": [1, 9],
+    "knowledge": "K1",
+    "tags": ["adventurer"],
+    "faction": "guild",
+    "palette": [
+      ["#6b7a4a", "#a8925a", "#f0c8a0", "#8a5a2a"],
+      ["#5a5a6a", "#8a7a5a", "#e0b894", "#3a2a1a"]
+    ],
+    "exaggerate": 1.8,
+    "potential": { "chance": 0.04, "codes": ["blade", "scout", "luck"] },
+    "unbelief": {
+      "ceiling": 30,
+      "threshold": 45,
+      "explain": ["wounded", "cheat", "hidden_identity"],
+      "pressure": 0.8,
+      "oldOrder": 0.4
+    },
+    "placements": [
+      {
+        "map": "borderstone",
+        "count": 2,
+        "homes": ["drunk_moon", "houses_south"],
+        "works": ["guild"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_adventurer_d",
+    "name": "D 级冒险者",
+    "band": "L3",
+    "schedule": "adventurer",
+    "class": "adventurer",
+    "race": "人族",
+    "level": [10, 14],
+    "knowledge": "K1",
+    "tags": ["adventurer"],
+    "faction": "guild",
+    "palette": [["#4a5a4a", "#9a8a5a", "#e0b894", "#4a2a1a"]],
+    "exaggerate": 1.5,
+    "potential": { "chance": 0.03, "codes": ["blade", "unbroken"] },
+    "unbelief": {
+      "ceiling": 30,
+      "threshold": 55,
+      "explain": ["wounded", "cheat"],
+      "pressure": 0.5,
+      "oldOrder": 0.5
+    },
+    "placements": [
+      { "map": "borderstone", "count": 1, "homes": ["drunk_moon"], "works": ["guild"] }
+    ]
+  },
+  {
+    "id": "tpl_scavenger",
+    "name": "拾荒者",
+    "band": "L4",
+    "schedule": "scavenger",
+    "class": "peasant",
+    "race": "人族",
+    "level": [3, 12],
+    "knowledge": "K0",
+    "tags": ["scavenger"],
+    "faction": "townsfolk",
+    "palette": [["#6a6a5a", "#5a5a4a", "#d8a880", "#3a3a3a"]],
+    "exaggerate": 1.5,
+    "potential": { "chance": 0.04, "codes": ["luck", "scout", "farsight"] },
+    "unbelief": {
+      "ceiling": 17,
+      "threshold": 35,
+      "explain": ["luck", "sorcery"],
+      "pressure": 0.5,
+      "oldOrder": 0.1
+    },
+    "placements": [
+      {
+        "map": "brokenspan_post",
+        "count": 2,
+        "homes": ["scavenger_fire"],
+        "works": ["greymud_flats"]
+      },
+      {
+        "map": "ash_waste",
+        "count": 3,
+        "homes": ["west_hamlet", "east_hamlet"],
+        "works": ["grey_sand_slope", "dead_grove"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_smuggler",
+    "name": "灰路走私者",
+    "band": "L4",
+    "schedule": "smuggler",
+    "class": "merchant",
+    "race": "人族",
+    "level": [6, 14],
+    "knowledge": "K1",
+    "tags": ["smuggler"],
+    "faction": "greyroad",
+    "palette": [["#3a3a3a", "#5a4a3a", "#d8a880", "#1a1a1a"]],
+    "exaggerate": 1.4,
+    "potential": { "chance": 0.03, "codes": ["scout", "trade"] },
+    "unbelief": {
+      "ceiling": 17,
+      "threshold": 40,
+      "explain": ["conspiracy", "wounded"],
+      "pressure": 0.2,
+      "oldOrder": 0.2
+    },
+    "placements": [
+      {
+        "map": "brokenspan_post",
+        "count": 2,
+        "homes": ["smuggler_cellar"],
+        "works": ["smuggler_cellar"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_bandit",
+    "name": "匪帮成员",
+    "band": "L4",
+    "schedule": "bandit",
+    "class": "peasant",
+    "race": "人族",
+    "level": [5, 12],
+    "knowledge": "K0",
+    "tags": ["bandit"],
+    "faction": "oneeye",
+    "palette": [["#4a3a2a", "#2b211a", "#d6a888", "#141414"]],
+    "exaggerate": 1.7,
+    "potential": { "chance": 0.03, "codes": ["blade", "command"] },
+    "unbelief": {
+      "ceiling": 17,
+      "threshold": 35,
+      "explain": ["wounded", "luck"],
+      "pressure": 0.8,
+      "oldOrder": 0.3
+    },
+    "placements": []
+  },
+  {
+    "id": "tpl_hidden_gatefolk",
+    "name": "散居遗民",
+    "band": "L4",
+    "schedule": "citizen",
+    "class": "remnant",
+    "race": "人族",
+    "level": [1, 8],
+    "knowledge": "K0",
+    "tags": ["townsfolk"],
+    "faction": "townsfolk",
+    "palette": [["#5a5a6a", "#8a8a7a", "#e8c0a0", "#3a3a3a"]],
+    "exaggerate": 1.2,
+    "potential": { "chance": 0.12, "codes": ["doorsense", "spiritsense", "unbroken"] },
+    "unbelief": { "ceiling": 60, "threshold": 10, "explain": [], "pressure": 0.2, "oldOrder": 0 },
+    "placements": [
+      {
+        "map": "borderstone",
+        "count": 1,
+        "homes": ["houses_north"],
+        "works": ["washing_creek", "plaza"]
+      }
+    ]
+  },
+  {
+    "id": "tpl_street_urchin",
+    "name": "街童",
+    "band": "L4",
+    "schedule": "kid",
+    "class": "child",
+    "race": "人族",
+    "level": [1, 4],
+    "knowledge": "K0",
+    "tags": ["child"],
+    "faction": "townsfolk",
+    "palette": [["#6a5a4a", "#8a7a6a", "#f0d0b8", "#3a2a1a"]],
+    "exaggerate": 2,
+    "potential": { "chance": 0.04, "codes": ["scout", "luck", "farsight"] },
+    "unbelief": {
+      "ceiling": 17,
+      "threshold": 20,
+      "explain": ["hidden_identity", "miracle"],
+      "pressure": 0.5,
+      "oldOrder": 0.1
+    },
+    "placements": []
+  },
+  {
+    "id": "tpl_village_priest",
+    "name": "礼拜堂司祭",
+    "band": "L3",
+    "schedule": "priest",
+    "class": "clergy",
+    "race": "人族",
+    "level": [8, 15],
+    "knowledge": "K1",
+    "tags": ["priest"],
+    "faction": "church",
+    "palette": [["#e0e0d0", "#8a7a5a", "#e0c0a0", "#4a3a2a"]],
+    "exaggerate": 1.2,
+    "potential": { "chance": 0.03, "codes": ["witness", "teach"] },
+    "unbelief": {
+      "ceiling": 28,
+      "threshold": 55,
+      "explain": ["miracle", "sorcery", "conspiracy"],
+      "pressure": 0.5,
+      "oldOrder": 0.8
+    },
+    "placements": []
   },
   {
     "id": "wb_citizen",

@@ -238,17 +238,65 @@ export interface PersonaCard {
   /** item tags this person likes and dislikes as gifts (builtin_ai.md 5.5) */
   likes?: string[];
   dislikes?: string[];
+  /**
+   * The system that spawns this person's body (a combat fixture, the companion roster):
+   * the NPC system keeps the mind, the trust flag and the dialogue state, and never
+   * spawns an NPC entity of its own (catalog_characters_lotha.md 2.1: Ash, Yeyu).
+   */
+  body?: PersonaBody;
 }
 
-/** Template for nameless L4 residents generated at world creation. */
-export interface ResidentTemplate {
-  id: string;
+/** Who owns the entity of a persona whose body another system spawns. */
+export const PERSONA_BODIES = ['fixture', 'companion'] as const;
+export type PersonaBody = (typeof PERSONA_BODIES)[number];
+
+/** Where a resident template's people live: one map, how many, homes and work places. */
+export interface ResidentPlacement {
   map: string;
-  /** display name, a job title (L4 residents are not given personal names) */
-  name: string;
   count: number;
   homes: string[];
   works: string[];
+  /** schedule template for this placement (default: the template's) */
+  schedule?: string;
+}
+
+/** Hidden potential odds of a template (catalog_characters_lotha.md 6, table B). */
+export interface TemplatePotential {
+  /** chance 0..1 that a named-up resident has a potential */
+  chance: number;
+  /** potential codes (content_bible.md 9.3) */
+  codes: string[];
+}
+
+/** The unbelief parameters of a template (society.md 8; catalog_characters_lotha.md 6). */
+export interface TemplateUnbelief {
+  /** common-sense ceiling in apparent levels */
+  ceiling: number;
+  /** doubt threshold, 0..100 cognition */
+  threshold: number;
+  /** explanation order (cognition explanation ids) */
+  explain: string[];
+  /** social pressure sensitivity 0..1 */
+  pressure: number;
+  /** old-order dependence 0..1 */
+  oldOrder: number;
+}
+
+/**
+ * Template for nameless residents generated at world creation. A row is either one
+ * placement (map, count, homes, works: the first-round groups) or a catalog template
+ * (`tpl_` id, catalog_characters_lotha.md 6) with its placements; the line packs read the
+ * template id (ln_tpl_<rest>) through the generated resident id res_<template>_<n>.
+ */
+export interface ResidentTemplate {
+  id: string;
+  /** single-placement rows: the map, head count, homes and work places */
+  map?: string;
+  /** display name, a job title (L4 residents are not given personal names) */
+  name: string;
+  count?: number;
+  homes?: string[];
+  works?: string[];
   schedule: string;
   class: SocialClass;
   race: string;
@@ -257,6 +305,16 @@ export interface ResidentTemplate {
   faction: string;
   palette: string[][];
   base?: string;
+  /** catalog templates: where their people live (none: used only when named up later) */
+  placements?: ResidentPlacement[];
+  /** AI tier band of the template's people (D-009) */
+  band?: 'L3' | 'L4';
+  /** knowledge tier of the template's people (default K0) */
+  knowledge?: KnowledgeTier;
+  /** rumor exaggeration factor (catalog table B; 1 plain) */
+  exaggerate?: number;
+  potential?: TemplatePotential;
+  unbelief?: TemplateUnbelief;
 }
 
 /** A world fact a persona may speak about, gated by knowledge tier and flags. */
@@ -551,6 +609,8 @@ export interface ResidentCard {
   tags: string[];
   faction: string;
   appearance: Appearance;
+  /** knowledge tier from the template (absent on saves before it: K0) */
+  knowledge?: KnowledgeTier;
 }
 
 export interface DiaryRound {

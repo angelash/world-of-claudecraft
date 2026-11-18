@@ -701,7 +701,7 @@ describe('20 控制: crowd control (9.1 to 9.3, 9.7)', () => {
   it('首领免疫: a lair lord is slowed but not stunned; a dungeon lord not slowed; both interruptible', () => {
     const g = makeGame();
     const s = dummy(g, 'zz_s', { level: 12, side: 'ally', x: 3 });
-    const lair = monster(g, 'seg_oneeye', 12, 30, 3);
+    const lair = monster(g, 'seg_oneeye_duel', 12, 30, 3);
     const dungeon = monster(g, 'rat_king', 12, 30, 7);
     expect(laid(g, lair.id, 'zz_slow30', s.id)).not.toBeNull();
     expect(laid(g, lair.id, 'zz_stun', s.id)).toBeNull();
@@ -1110,7 +1110,7 @@ describe('20 难度: the four levels as registered modifiers (16)', () => {
       g.queue('flag.set', { key: 'difficulty', value: difficulty });
       g.step(1);
       toArena(g, 5);
-      const boss = monster(g, 'seg_oneeye', 12, 7);
+      const boss = monster(g, 'seg_oneeye_duel', 12, 7);
       const max = deriveStats(g.world, g.content, boss).maxHp;
       withCtx(g, (ctx) => {
         boss.hp = Math.floor(max * pct);
@@ -1230,7 +1230,7 @@ describe('19.2 duelWatch and duel.ended: the one-on-one duel', () => {
     const g = makeGame();
     toArena(g, 5);
     withCtx(g, (ctx) => setLevel(ctx, unit(g, 'player'), 12));
-    const seg = monster(g, 'seg_oneeye', 12, 8);
+    const seg = monster(g, 'seg_oneeye_duel', 12, 8);
     const gang = monster(g, 'oneeye_bandit', 10, 12);
     const full = deriveStats(g.world, g.content, seg).maxHp;
     g.queue('combat.duel', { opponentId: seg.id });
@@ -1246,7 +1246,7 @@ describe('19.2 duelWatch and duel.ended: the one-on-one duel', () => {
     });
     expect(gang.side).toBe('enemy');
     expect(events(g, 'duel.ended').at(-1)?.data).toMatchObject({
-      opponentRef: 'seg_oneeye',
+      opponentRef: 'seg_oneeye_duel',
       winner: 'draw',
     });
   });
@@ -1255,7 +1255,7 @@ describe('19.2 duelWatch and duel.ended: the one-on-one duel', () => {
     const g = makeGame();
     toArena(g, 5);
     withCtx(g, (ctx) => setLevel(ctx, unit(g, 'player'), 12));
-    const seg = monster(g, 'seg_oneeye', 12, 8);
+    const seg = monster(g, 'seg_oneeye_duel', 12, 8);
     g.queue('combat.duel', { opponentId: seg.id });
     g.step(1);
     withCtx(g, (ctx) => {
@@ -1269,11 +1269,11 @@ describe('19.2 duelWatch and duel.ended: the one-on-one duel', () => {
       });
     });
     expect(events(g, 'duel.ended').at(-1)?.data).toMatchObject({
-      opponentRef: 'seg_oneeye',
+      opponentRef: 'seg_oneeye_duel',
       winner: 'player',
     });
     expect(events(g, 'entity.died').some((e) => e.data.id === seg.id)).toBe(false);
-    expect(g.world.meta.flags['boss.seg_oneeye.yielded']).toBe(true);
+    expect(g.world.meta.flags['boss.seg_oneeye_duel.yielded']).toBe(true);
     // a lost duel leaves the player on 1 health, not in the corridor
     const g2 = makeGame();
     toArena(g2, 5);
@@ -1500,7 +1500,7 @@ describe('review fixes: doors overload, duels and companions', () => {
     const g = makeGame();
     toArena(g, 5);
     withCtx(g, (ctx) => setLevel(ctx, unit(g, 'player'), 12));
-    const seg = monster(g, 'seg_oneeye', 12, 8);
+    const seg = monster(g, 'seg_oneeye_duel', 12, 8);
     g.queue('combat.duel', { opponentId: seg.id });
     g.step(1);
     // the pets of the player hold off the duelist

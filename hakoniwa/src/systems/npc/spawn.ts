@@ -20,6 +20,7 @@ import {
 import { locationById, pointIn, resolvePlaceOn } from './places';
 import { seedMind } from './relations';
 import { scheduleOf, segmentAt } from './schedule';
+import { placementsOf } from './templates';
 import type { GoneReason, NpcState, PersonaCard, ResidentCard } from './types';
 
 function newState(card: CardView): NpcState {
@@ -58,6 +59,8 @@ function matches(ctx: SystemContext, cond: string): boolean {
 export function absenceReason(ctx: SystemContext, p: PersonaCard): GoneReason | null {
   // a death settled off the map (the tide night, tide/night.ts) takes the person away for good
   if (ctx.flag(`npc.${p.id}.dead`)) return 'dead';
+  // another system spawns this person's body (a combat fixture, the companion roster)
+  if (p.body) return 'absent';
   if (ctx.flag(`companion.${p.id}.recruited`)) return 'recruited';
   // held by the story (thousand_doors.md 5.4 absence: captured)
   if (ctx.flag(`npc.${p.id}.captured`)) return 'captured';
@@ -109,24 +112,31 @@ export function generateResidents(ctx: SystemContext): ResidentCard[] {
   const out: ResidentCard[] = [];
   const templates = [...(ctx.content.npcResidents ?? [])].sort((a, b) => a.id.localeCompare(b.id));
   for (const t of templates) {
-    if (!mapById(ctx.content, t.map)) continue;
-    for (let i = 1; i <= t.count; i++) {
-      const palette =
-        t.palette.length > 0 ? rng.pick(t.palette) : ['#6b5a45', '#a08a6a', '#e0b894', '#3a2a1a'];
-      out.push({
-        id: `res_${t.id}_${i}`,
-        name: t.name,
-        map: t.map,
-        home: rng.pick(t.homes),
-        work: rng.pick(t.works),
-        schedule: t.schedule,
-        class: t.class,
-        race: t.race,
-        level: rng.int(t.level[0], t.level[1]),
-        tags: [...t.tags],
-        faction: t.faction,
-        appearance: { base: t.base ?? 'human', colors: [...palette] },
-      });
+    // numbered across the template's placements: res_<template>_<n> (the line packs read
+    // the template from it, src/systems/dialogue/speak.ts speakerLayers)
+    let n = 0;
+    for (const place of placementsOf(t)) {
+      if (!mapById(ctx.content, place.map)) continue;
+      for (let i = 1; i <= place.count; i++) {
+        const palette =
+          t.palette.length > 0 ? rng.pick(t.palette) : ['#6b5a45', '#a08a6a', '#e0b894', '#3a2a1a'];
+        n++;
+        out.push({
+          id: `res_${t.id}_${n}`,
+          name: t.name,
+          map: place.map,
+          home: rng.pick(place.homes),
+          work: rng.pick(place.works),
+          schedule: place.schedule ?? t.schedule,
+          class: t.class,
+          race: t.race,
+          level: rng.int(t.level[0], t.level[1]),
+          tags: [...t.tags],
+          faction: t.faction,
+          appearance: { base: t.base ?? 'human', colors: [...palette] },
+          ...(t.knowledge ? { knowledge: t.knowledge } : {}),
+        });
+      }
     }
   }
   return out;

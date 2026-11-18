@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "eventFields": [
     { "kind": "aura", "event": "combat.aura", "key": "auraId" },
     {
@@ -1065,6 +1065,7 @@
     { "since": 2, "kind": "aura", "from": "tempering", "to": "aur_mon_tempering" },
     { "since": 2, "kind": "aura", "from": "faceless_veil", "to": "aur_mon_facelessveil" },
     { "since": 2, "kind": "aura", "from": "ash_spirits", "to": "aur_item_ashspirits" },
-    { "since": 2, "kind": "aura", "from": "stoneskin_draught", "to": "aur_item_stoneskindraught" }
+    { "since": 2, "kind": "aura", "from": "stoneskin_draught", "to": "aur_item_stoneskindraught" },
+    { "since": 3, "kind": "monster", "from": "seg_oneeye", "to": "seg_oneeye_duel" }
   ]
 }

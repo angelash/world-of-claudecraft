@@ -165,7 +165,7 @@
     "id": "hunter",
     "name": "猎户型",
     "segments": [
-      { "from": 5, "to": 11, "at": "@work", "act": "work", "note": "入林" },
+      { "from": 5, "to": 11, "at": "forest_edge:hunter_camp", "act": "work", "note": "入林" },
       { "from": 11, "to": 12, "at": "@home", "act": "eat" },
       { "from": 12, "to": 18, "at": "@home", "act": "work", "note": "剥皮熏肉" },
       { "from": 18, "to": 19, "at": "@home", "act": "eat" },
@@ -178,9 +178,9 @@
     "name": "伐木工型",
     "segments": [
       { "from": 5, "to": 6, "at": "@home", "act": "eat" },
-      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "伐区" },
+      { "from": 6, "to": 12, "at": "forest_edge:logging_site", "act": "work", "note": "伐区" },
       { "from": 12, "to": 13, "at": "@work", "act": "eat" },
-      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "伐区" },
+      { "from": 13, "to": 18, "at": "forest_edge:logging_site", "act": "work", "note": "伐区" },
       { "from": 18, "to": 21, "at": "@tavern", "act": "chat" },
       { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
     ]
@@ -451,6 +451,118 @@
       { "from": 12, "to": 13, "at": "@work", "act": "eat" },
       { "from": 13, "to": 19, "at": "@work", "act": "work", "note": "扛货" },
       { "from": 19, "to": 22, "at": "@tavern", "act": "chat" },
+      { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "miner",
+    "name": "矿工型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 17, "at": "borderstone_north:mine_camp", "act": "work", "note": "上工" },
+      { "from": 17, "to": 18, "at": "@home", "act": "eat" },
+      { "from": 18, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "postman",
+    "name": "驿卒型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "喂马、收邮袋" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@home", "act": "work", "note": "换马、分信" },
+      { "from": 18, "to": 20, "at": "@tavern", "act": "chat" },
+      { "from": 20, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "camp_smith",
+    "name": "营地军械手型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "修补刀枪" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 19, "at": "@work", "act": "work", "note": "修补刀枪" },
+      { "from": 19, "to": 22, "at": "@safe", "act": "chat", "note": "营火边" },
+      { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "bridge_keeper",
+    "name": "绳桥守型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "守桥、数人" },
+      { "from": 12, "to": 13, "at": "@safe", "act": "eat" },
+      { "from": 13, "to": 20, "at": "@work", "act": "work", "note": "守桥、数人" },
+      { "from": 20, "to": 22, "at": "@safe", "act": "chat" },
+      { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "bandit",
+    "name": "匪帮型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "站岗" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "看着赃物" },
+      { "from": 18, "to": 22, "at": "@home", "act": "chat", "note": "营火边喝酒" },
+      { "from": 22, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "caravan_guard",
+    "name": "商队护卫型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "看车" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "看车" },
+      { "from": 18, "to": 23, "at": "@tavern", "act": "chat" },
+      { "from": 23, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "scavenger",
+    "name": "拾荒者型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 17, "at": "@work", "act": "work", "note": "拾荒" },
+      { "from": 17, "to": 18, "at": "@home", "act": "eat" },
+      { "from": 18, "to": 21, "at": "@home", "act": "chat", "note": "营火边" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "smuggler",
+    "name": "灰路走私者型",
+    "segments": [
+      { "from": 4, "to": 12, "at": "@home", "act": "sleep" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 19, "at": "@safe", "act": "chat", "note": "营火边打听" },
+      { "from": 19, "to": 20, "at": "@home", "act": "eat" },
+      {
+        "from": 20,
+        "to": 4,
+        "at": "borderstone_north:ash_road_head",
+        "act": "work",
+        "note": "夜里走灰路"
+      }
+    ]
+  },
+  {
+    "id": "herb_woman",
+    "name": "药草婆型",
+    "segments": [
+      { "from": 5, "to": 8, "at": "@work", "act": "work", "note": "采药" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "看病" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@work", "act": "work", "note": "晾药" },
+      { "from": 17, "to": 19, "at": "@market", "act": "shop" },
+      { "from": 19, "to": 22, "at": "@work", "act": "work", "note": "熬药" },
       { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
     ]
   }

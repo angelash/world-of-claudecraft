@@ -217,6 +217,7 @@
       "colors": ["#7a3b2a", "#d4a24a", "#e8a060", "#c8602a"]
     },
     "tags": ["merchant"],
+    "potential": "商才",
     "core": true,
     "plot": 0.8,
     "goddess": "merca",
@@ -298,6 +299,7 @@
       "colors": ["#4a5a3a", "#7a6a4a", "#e0c0a0", "#d8d8d8"]
     },
     "tags": ["healer"],
+    "potential": "医手",
     "core": true,
     "plot": 0.9,
     "goddess": "sylvie",
@@ -388,6 +390,7 @@
       "colors": ["#e8e2d0", "#c8a84a", "#f0d0b0", "#3a2a1a"]
     },
     "tags": ["priest"],
+    "potential": "证人",
     "core": true,
     "plot": 0.9,
     "goddess": "eluen",
@@ -484,6 +487,7 @@
       "colors": ["#8a3a2a", "#e0d0b0", "#f0c8a0", "#5a3a2a"]
     },
     "tags": ["innkeeper"],
+    "potential": "守城",
     "core": true,
     "plot": 0.8,
     "goddess": "valda",
@@ -551,6 +555,7 @@
       "colors": ["#4a4a5a", "#7a6a5a", "#e0b894", "#9a8a7a"]
     },
     "tags": ["guild_master"],
+    "potential": "治吏",
     "core": true,
     "plot": 0.8,
     "goddess": "valda",
@@ -665,6 +670,11 @@
       "nera": {
         "trust": 30,
         "interest": 20
+      },
+      "seg_oneeye": {
+        "trust": 30,
+        "like": -20,
+        "interest": 30
       }
     },
     "roles": ["rival", "giver", "info"],
@@ -772,6 +782,7 @@
       "colors": ["#3a3a4a", "#8a8a7a", "#e8c8a8", "#e0e0e0"]
     },
     "tags": ["clerk"],
+    "potential": "学士",
     "goddess": "moira",
     "devotion": 0.6,
     "money": 600,
@@ -1051,7 +1062,7 @@
       "colors": ["#5a5a6a", "#8a8a9a", "#f0d8c0", "#2a2a3a"],
       "scale": 0.75
     },
-    "tags": ["child"],
+    "tags": ["child", "door_mark"],
     "potential": "门感",
     "devotion": 0,
     "money": 0,
@@ -1107,7 +1118,7 @@
       "colors": ["#c8a0b0", "#e8d8d0", "#f8e0c8", "#4a3a2a"],
       "scale": 0.65
     },
-    "tags": ["child"],
+    "tags": ["child", "door_mark"],
     "devotion": 0,
     "money": 0,
     "wage": 0,
@@ -1152,6 +1163,7 @@
       "colors": ["#6a3a2a", "#3a3a3a", "#e0a080", "#a03a1a"]
     },
     "tags": ["smith", "merchant"],
+    "potential": "巧匠",
     "goddess": "merca",
     "devotion": 0.6,
     "money": 900,
@@ -1392,6 +1404,7 @@
       "scale": 0.8
     },
     "tags": ["child"],
+    "potential": "斥候",
     "devotion": 0.2,
     "money": 5,
     "wage": 0,
@@ -1644,6 +1657,11 @@
       "moss": {
         "trust": 20,
         "interest": 40
+      },
+      "seg_oneeye": {
+        "trust": 40,
+        "like": -10,
+        "interest": 50
       }
     },
     "roles": ["info", "vendor", "recruit"]
@@ -2067,6 +2085,637 @@
     "spread": 1.6,
     "reliability": 0.75,
     "roles": ["rumor"]
+  },
+  {
+    "id": "yeyu",
+    "name": "夜羽",
+    "race": "灵鸦（人形）",
+    "gender": "f",
+    "age": 1000,
+    "job": "从者",
+    "level": 12,
+    "faction": "player",
+    "class": "remnant",
+    "traits": ["刻薄", "守约", "健忘", "固执", "护短"],
+    "intro": "被你在封门遗迹打败、又跟上了你的巨鸦，化作少女模样，腰上挂着一只封着暗红火漆的皮信囊。",
+    "goals": ["把信送到", "想起自己在等谁开门"],
+    "secrets": [
+      "她是门口那位的信使，大断绝之夜送信途中被光击落在封门，翅膀被烧断",
+      "信囊里有七封写在大断绝前夜的信：给五位女神各一封，一封给上面，一封给下一个开门的人",
+      "圣历 978 年她奉命去接一个从天上掉下来的人，那时她已被澱侵蚀了一半，没接住"
+    ],
+    "knowledge": "K0",
+    "knowledgeNotes": [
+      "封门遗迹的回廊、落灰阶与巢井怎么走",
+      "千年前的说法：银币叫门资，礼拜堂叫发光的铺子；那时候人出门都走门",
+      "记忆封在信囊里，只能随信一封封开启，不能自己补全"
+    ],
+    "attitude": 40,
+    "map": "seal_ruins_depths",
+    "home": "raven_nest",
+    "work": "raven_nest",
+    "schedule": [
+      {
+        "from": 0,
+        "to": 24,
+        "at": "@home",
+        "act": "wander",
+        "note": "守着巢井"
+      }
+    ],
+    "body": "companion",
+    "voice": {
+      "rules": [
+        "短句、命令式，每三句至少一句吐槽",
+        "偶尔冒出千年前的旧词：银币叫门资，圣教叫那个发光的铺子",
+        "被戳中痛处就突然沉默",
+        "对送信、等待、门三件事从不开玩笑",
+        "记忆只按信囊进度恢复，不自行补全"
+      ],
+      "catchphrases": ["门把手。", "信要送到。", "啧。"],
+      "address": "门把手",
+      "never": [
+        "拆开不是寄给她的信",
+        "说出门口那位的名字",
+        "向教会或任何女神透露玩家的门",
+        "丢下玩家"
+      ]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#1c1c22", "#d8d8d0", "#e0b896", "#c8a24a"],
+      "scale": 0.9
+    },
+    "tags": ["servant"],
+    "core": true,
+    "plot": 1,
+    "devotion": 0,
+    "money": 0,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0,
+    "pressure": 0.1,
+    "spread": 0.4,
+    "reliability": 0.6,
+    "fame": 0,
+    "relations": {
+      "shiya": {
+        "like": 20,
+        "interest": 30
+      },
+      "ron": {
+        "like": -10,
+        "interest": 10
+      },
+      "nera": {
+        "trust": 20,
+        "interest": 20
+      },
+      "oola": {
+        "trust": 50,
+        "interest": 40
+      },
+      "cassian": {
+        "like": -20
+      },
+      "ash": {
+        "awe": 70,
+        "interest": 40
+      }
+    },
+    "roles": ["recruit", "keyholder", "witness"]
+  },
+  {
+    "id": "ash",
+    "name": "守门人阿什",
+    "race": "巫妖",
+    "gender": "m",
+    "age": 1140,
+    "job": "守门人",
+    "level": 60,
+    "faction": "sealed_gate",
+    "class": "scholar",
+    "traits": ["沉默", "刻板", "慈悲", "固执"],
+    "intro": "封门遗迹最深处坐在灰里的骸骨，眼窝里两点冷光，身边的墙上写满了字。",
+    "goals": ["守住封门，直到对的人来", "把墙上的记录重写完"],
+    "secrets": [
+      "他是千门时代经门而来的第一批客人，前世是亚历山大图书馆的抄写员；大断绝后自愿化为巫妖",
+      "他对她的忠诚是分裂的：他爱她，她给了他第二次人生；他也怕她回来之后变成另一个艾琉恩",
+      "千门时代他曾对她讲起故乡的神都不再说话；玩家被选中与这段对话有关，他隐约猜到"
+    ],
+    "knowledge": "K3",
+    "knowledgeNotes": [
+      "封门遗迹每一层的结构与墙上每一行字",
+      "第一幕只说写定的话：还不是时候",
+      "对那一位只称她，不说名字"
+    ],
+    "attitude": 50,
+    "map": "seal_ruins_depths",
+    "home": "ash_chamber",
+    "work": "ash_chamber",
+    "schedule": [
+      {
+        "from": 0,
+        "to": 24,
+        "at": "@home",
+        "act": "work",
+        "note": "在墙上写字"
+      }
+    ],
+    "body": "fixture",
+    "voice": {
+      "rules": [
+        "慢，长停顿",
+        "用抄写员的比喻：这一行还没写完，墨会干，字不会",
+        "称女神们为她们，称那一位为她",
+        "只省略，从不说谎"
+      ],
+      "catchphrases": ["还不是时候。", "门的孩子。"],
+      "address": "门的孩子",
+      "never": ["说谎", "说出她的名字", "伤害遗民孩子", "离开封门遗迹太远"]
+    },
+    "appearance": {
+      "base": "undead",
+      "colors": ["#2a2826", "#4a4642", "#9fd8ff", "#d8d0bc"],
+      "scale": 1.1
+    },
+    "tags": ["gatekeeper"],
+    "core": true,
+    "plot": 1,
+    "devotion": 0,
+    "money": 0,
+    "wage": 0,
+    "personality": "stubborn",
+    "ceiling": 70,
+    "oldOrder": 0,
+    "pressure": 0,
+    "spread": 0.1,
+    "reliability": 1,
+    "fame": 0,
+    "relations": {
+      "yeyu": {
+        "trust": 50,
+        "interest": 60
+      },
+      "noi": {
+        "like": 30,
+        "interest": 40
+      },
+      "tess": {
+        "like": 30,
+        "interest": 40
+      }
+    },
+    "roles": ["keyholder", "trainer", "witness"]
+  },
+  {
+    "id": "seg_oneeye",
+    "name": "瑟格\"独眼\"",
+    "race": "人族",
+    "gender": "m",
+    "age": 39,
+    "job": "独眼团首领",
+    "level": 17,
+    "faction": "oneeye",
+    "class": "peasant",
+    "traits": ["记仇", "爱讲规矩", "护短", "能打"],
+    "intro": "独眼团的头目，守着旧哨村废墟里的哨塔，只服强者。",
+    "goals": ["让手下吃饱", "向上面的人讨回旧哨村的账"],
+    "secrets": [
+      "祖上是旧哨村人，圣历 908 年村子被焚时领主的援兵没有来",
+      "十五年前在旧巡逻道一带的一场魔物季里失去一只眼和全家，领主同样没有派援兵",
+      "和代官的往来信件他都留着当保险",
+      "团规：不杀平民"
+    ],
+    "knowledge": "K1",
+    "knowledgeNotes": ["旧巡逻道与旧哨村废墟的地形", "独眼团的团规：不杀平民，输了就认"],
+    "attitude": 25,
+    "map": "old_outpost",
+    "home": "ruined_tower",
+    "work": "old_granary",
+    "schedule": "bandit",
+    "voice": {
+      "rules": [
+        "话少，句句带着规矩",
+        "对强者说话客气一分",
+        "提到领主与代官就冷笑",
+        "被单挑打败就认"
+      ],
+      "catchphrases": ["规矩就是规矩。", "输了就认。"],
+      "address": "你",
+      "never": ["杀平民", "替代官或领主说话"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a3a2a", "#2b211a", "#d6a888", "#141414"],
+      "scale": 1.1
+    },
+    "tags": ["bandit"],
+    "plot": 0.7,
+    "potential": "统帅",
+    "devotion": 0,
+    "money": 600,
+    "wage": 0,
+    "personality": "stubborn",
+    "ceiling": 25,
+    "oldOrder": 0.1,
+    "pressure": 0.2,
+    "spread": 0.4,
+    "reliability": 0.7,
+    "fame": 0.4,
+    "relations": {
+      "viro": {
+        "trust": 60,
+        "like": 20
+      },
+      "moss": {
+        "trust": 10,
+        "like": -40
+      },
+      "knut_naumann": {
+        "trust": 70,
+        "like": 40
+      },
+      "fritz_kolb": {
+        "trust": 60,
+        "like": 20
+      }
+    },
+    "roles": ["rival", "recruit", "general"],
+    "pursuits": [
+      {
+        "id": "meet_contact",
+        "at": "borderstone_north:ash_road_head",
+        "act": "work",
+        "from": 21,
+        "hours": 2,
+        "everyDays": 7,
+        "abandon": "a1_oneeye_fate IN (absorbed, destroyed, scattered)"
+      }
+    ]
+  },
+  {
+    "id": "ulf_lange",
+    "name": "乌尔夫·兰格",
+    "race": "人族",
+    "gender": "m",
+    "age": 62,
+    "job": "南门驿站驿卒",
+    "level": 7,
+    "faction": "royal_post",
+    "class": "peasant",
+    "traits": ["沉默", "务实", "守规矩"],
+    "intro": "南门驿站的老驿卒，管着驿马和邮袋，跟马说话比跟人说话多。",
+    "goals": ["把每一封信送到", "养好驿站那几匹老马"],
+    "secrets": ["私拆过代官寄往瓦伦堡的信，知道那些矿石的收件仓在瓦伦堡"],
+    "knowledge": "K1",
+    "knowledgeNotes": ["驿马的租价：到苇桥 30 铜，到瓦伦堡 1 银", "寄信收信都经他的手"],
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "post_station",
+    "work": "post_yard",
+    "schedule": "postman",
+    "voice": {
+      "rules": ["老驿卒，说话慢", "三句不离马", "嘴严，只在信得过的人面前多说一句"],
+      "catchphrases": ["马不认得你是几级，它只认得你给不给燕麦。"],
+      "address": "年轻人",
+      "never": ["当众说出信里写了什么"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a4a3a", "#8a7a5a", "#e0b894", "#9a9a9a"]
+    },
+    "tags": ["courier"],
+    "plot": 0.4,
+    "goddess": "eluen",
+    "devotion": 0.4,
+    "money": 300,
+    "wage": 4,
+    "oldOrder": 0.5,
+    "pressure": 0.4,
+    "spread": 0.5,
+    "reliability": 0.85,
+    "fame": 0.1,
+    "relations": {
+      "moss": {
+        "trust": 20,
+        "like": -20,
+        "interest": 40
+      },
+      "bron": {
+        "trust": 60,
+        "like": 40
+      },
+      "owen": {
+        "trust": 50,
+        "like": 30
+      }
+    },
+    "roles": ["info", "giver"]
+  },
+  {
+    "id": "knut_naumann",
+    "name": "克努特·瑙曼",
+    "race": "人族",
+    "gender": "m",
+    "age": 44,
+    "job": "独眼团军械手",
+    "level": 13,
+    "faction": "oneeye",
+    "class": "artisan",
+    "traits": ["沉默", "务实", "直"],
+    "intro": "折桥驿的军械手，独眼团的刀枪都经他修补。",
+    "goals": ["守着自己的炉子", "让弟兄们手里的家伙不卷刃"],
+    "secrets": ["他把灰石掺进铁里冷锻，矛头格外利，他以为是运气好"],
+    "knowledge": "K1",
+    "knowledgeNotes": ["独眼团的刀出自镇上的铁匠铺，修补出自他手", "修补刀枪与民兵长枪的手艺"],
+    "attitude": 40,
+    "map": "brokenspan_post",
+    "home": "brokenspan_post",
+    "work": "brokenspan_post",
+    "schedule": "camp_smith",
+    "voice": {
+      "rules": ["粗，话短", "手艺人，开口就是铁和火", "不爱跟外人多说"],
+      "catchphrases": ["刀钝了别怪铁，怪你砍了不该砍的东西。"],
+      "address": "你",
+      "never": ["打一把配不上的刀交差"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a3a", "#6a4a2a", "#d8a888", "#2a2a2a"]
+    },
+    "tags": ["smith"],
+    "plot": 0.4,
+    "potential": "巧匠",
+    "goddess": "valda",
+    "devotion": 0.3,
+    "money": 250,
+    "wage": 5,
+    "oldOrder": 0.3,
+    "pressure": 0.4,
+    "spread": 0.5,
+    "reliability": 0.75,
+    "fame": 0.1,
+    "relations": {
+      "seg_oneeye": {
+        "trust": 60,
+        "like": 30,
+        "awe": 30
+      },
+      "barga": {
+        "interest": 30,
+        "awe": 20
+      }
+    },
+    "roles": ["crafter", "recruit", "rival"]
+  },
+  {
+    "id": "kas_ropebridge",
+    "name": "卡斯",
+    "race": "人族",
+    "gender": "m",
+    "age": 15,
+    "job": "绳桥守",
+    "level": 4,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["机灵", "记仇", "沉默"],
+    "intro": "灰溪断桥上守绳桥的少年，记得每个过桥的人和他们背的东西。",
+    "goals": ["数清过桥的每一个人"],
+    "secrets": ["父亲是被独眼团杀的", "他守桥，是为了数清独眼团还剩几个人"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["过绳桥 2 铜，带刀 5 铜", "这些天过桥的人和他们背着的东西"],
+    "attitude": 45,
+    "map": "brokenspan_post",
+    "home": "broken_bridge",
+    "work": "broken_bridge",
+    "schedule": "bridge_keeper",
+    "voice": {
+      "rules": ["数着过桥的人说话", "孤儿，警惕，话少", "信得过才说一句真话"],
+      "catchphrases": ["今天过去九个，回来七个。你是第十个。"],
+      "address": "你",
+      "never": ["放独眼团的人白过桥"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a5a4a", "#7a6a4a", "#e8c0a0", "#3a2a1a"],
+      "scale": 0.85
+    },
+    "tags": ["bridgekeeper"],
+    "plot": 0.3,
+    "potential": "千里眼",
+    "devotion": 0,
+    "money": 40,
+    "wage": 2,
+    "personality": "curious",
+    "oldOrder": 0.1,
+    "pressure": 0.3,
+    "spread": 0.6,
+    "reliability": 0.9,
+    "fame": 0,
+    "relations": {
+      "seg_oneeye": {
+        "trust": 0,
+        "like": -80
+      },
+      "knut_naumann": {
+        "trust": 10,
+        "like": -30
+      }
+    },
+    "roles": ["info", "recruit"]
+  },
+  {
+    "id": "fritz_kolb",
+    "name": "弗里茨·科尔布",
+    "race": "人族",
+    "gender": "m",
+    "age": 47,
+    "job": "矿工头",
+    "level": 11,
+    "faction": "oneeye",
+    "class": "artisan",
+    "traits": ["务实", "守规矩", "怕事"],
+    "intro": "替独眼团在边石旧矿管过灰路的工头，被生擒后认了输，如今在旧哨村带矿工上工。",
+    "goals": ["带着矿工平安下井、平安上来", "不再替人运来路不明的货"],
+    "secrets": ["他替独眼团运的不只是矿石，还有灰晶，收货仓在瓦伦堡"],
+    "knowledge": "K1",
+    "knowledgeNotes": ["边石旧矿上层坑道与塌方口的走向", "矿不认人，认支架"],
+    "attitude": 40,
+    "map": "old_outpost",
+    "home": "village_center",
+    "work": "village_center",
+    "schedule": [
+      {
+        "from": 5,
+        "to": 6,
+        "at": "@home",
+        "act": "eat"
+      },
+      {
+        "from": 6,
+        "to": 17,
+        "at": "borderstone_north:mine_camp",
+        "act": "work",
+        "note": "带矿工上工"
+      },
+      {
+        "from": 17,
+        "to": 18,
+        "at": "@home",
+        "act": "eat"
+      },
+      {
+        "from": 18,
+        "to": 21,
+        "at": "@home",
+        "act": "chat"
+      },
+      {
+        "from": 21,
+        "to": 5,
+        "at": "@home",
+        "act": "sleep"
+      }
+    ],
+    "hideWhen": ["act IN (prologue, act1)"],
+    "voice": {
+      "rules": ["老矿工，说话先看顶板", "认输了就认，不再嘴硬"],
+      "catchphrases": ["矿不认人，认支架。"],
+      "address": "你",
+      "never": ["让人在没撑好的巷道里干活"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a4a3a", "#6a5a3a", "#d8a880", "#2a2a2a"]
+    },
+    "tags": ["miner"],
+    "plot": 0.3,
+    "potential": "巧匠",
+    "goddess": "merca",
+    "devotion": 0.3,
+    "money": 150,
+    "wage": 4,
+    "oldOrder": 0.3,
+    "pressure": 0.6,
+    "spread": 0.6,
+    "reliability": 0.7,
+    "fame": 0,
+    "relations": {
+      "seg_oneeye": {
+        "trust": 60,
+        "like": 30
+      },
+      "knut_naumann": {
+        "trust": 50,
+        "like": 30
+      }
+    },
+    "roles": ["rival", "officer", "crafter"]
+  },
+  {
+    "id": "lene_mahler",
+    "name": "莲娜·马勒",
+    "race": "人族",
+    "gender": "f",
+    "age": 36,
+    "job": "磨坊人家的主妇",
+    "level": 3,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["勤劳", "护短", "算小账"],
+    "intro": "西田磨坊人家的主妇，一手好面食，孩子丢了一只红袜子就哭了一整个秋天。",
+    "goals": ["让孩子笑一回", "撑着这个家过冬"],
+    "secrets": ["丈夫三年前去追那头叼走袜子的野猪，回来就得了灰病"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["磨坊的面粉价与西田的粮情"],
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "farmhouse",
+    "work": "west_field",
+    "schedule": "farmer",
+    "voice": {
+      "rules": ["说话快，句句绕回孩子", "替家里算着每一个铜子"],
+      "catchphrases": ["它叼走的是一只袜子，又不是孩子。"],
+      "address": "你",
+      "never": ["把孩子的事当笑话讲"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#8a6a4a", "#c8b898", "#f0c8a0", "#5a3a2a"]
+    },
+    "tags": ["farmer"],
+    "plot": 0.2,
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 80,
+    "wage": 2,
+    "oldOrder": 0.4,
+    "pressure": 0.6,
+    "spread": 1.1,
+    "reliability": 0.6,
+    "fame": 0,
+    "relations": {
+      "simon": {
+        "trust": 50,
+        "like": 40
+      },
+      "ped": {
+        "trust": 50,
+        "like": 30
+      }
+    },
+    "roles": ["giver", "vendor"]
+  },
+  {
+    "id": "wilma_ascher",
+    "name": "薇尔玛·阿舍尔",
+    "race": "人族",
+    "gender": "f",
+    "age": 41,
+    "job": "鞣皮的寡妇",
+    "level": 5,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["沉默", "记仇也记恩", "务实"],
+    "intro": "住在南门外的寡妇，靠鞣皮过活，丈夫死在灰路上。",
+    "goals": ["拿回丈夫留下的那块铜狗牌", "让灰路上的人别再死"],
+    "secrets": ["她丈夫生前替独眼团和瓦伦堡的一个仓运过货，她心里有数"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["灰路上每一处断了的里程碑在哪里", "走灰路的人在里程碑上放肉干求平安"],
+    "attitude": 45,
+    "map": "borderstone",
+    "home": "houses_south",
+    "work": "post_yard",
+    "schedule": "citizen",
+    "voice": {
+      "rules": ["话少，一开口就是灰路上的事", "提到丈夫就停一停"],
+      "catchphrases": ["他说里程碑上放肉干就平安。他放了。"],
+      "address": "你",
+      "never": ["在代官面前提丈夫运过什么"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a4a4a", "#7a5a3a", "#e0b894", "#3a2a2a"]
+    },
+    "tags": ["tanner"],
+    "plot": 0.2,
+    "goddess": "merca",
+    "devotion": 0.2,
+    "money": 60,
+    "wage": 2,
+    "oldOrder": 0.3,
+    "pressure": 0.4,
+    "spread": 0.7,
+    "reliability": 0.75,
+    "fame": 0,
+    "relations": {
+      "owen": {
+        "trust": 40,
+        "like": 20
+      }
+    },
+    "roles": ["info", "giver"]
   },
   {
     "id": "selene",

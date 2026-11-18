@@ -66,7 +66,7 @@ export function speakerView(ctx: SystemContext, npcRef: string): SpeakerView {
   const r = ctx.world.slices.npc.residents[npcRef];
   return {
     id: npcRef,
-    tier: 'K0' as KnowledgeTier,
+    tier: r?.knowledge ?? ('K0' as KnowledgeTier),
     socialClass: r?.class,
     roles: [],
     region: homeRegion(ctx, r?.map),

@@ -5,7 +5,9 @@
 
 import { describe, expect, it } from 'vitest';
 import type { ContentPack } from '../src/content/pack';
+import { pack as cityPack } from '../src/content/packs/city';
 import { pack as cognitionPack } from '../src/content/packs/cognition';
+import { pack as combatPack } from '../src/content/packs/combat';
 import { pack as dialoguePack } from '../src/content/packs/dialogue';
 import { pack as inventoryPack } from '../src/content/packs/inventory';
 import { pack as npcPack } from '../src/content/packs/npc';
@@ -31,6 +33,7 @@ import {
 } from '../src/systems/npc';
 import { MEMORY_CAP } from '../src/systems/npc/constants';
 import { findPath, getEntity, mapById, system as world } from '../src/systems/world';
+import type { MapDef } from '../src/systems/world/types';
 
 declare module '../src/core/contracts' {
   interface CommandMap {
@@ -64,7 +67,15 @@ function merge(packs: ContentPack[]): ContentMap {
   return out as unknown as ContentMap;
 }
 
-const PACKS = [worldPack, inventoryPack, npcPack, cognitionPack, dialoguePack];
+// the maps of the combat and city packs only: the act-1 cast lives on them and the hunters'
+// and miners' schedules cross onto them (catalog_characters_lotha.md 2.1; map_briefs.md 1.10)
+const mapsOnly: ContentPack = {
+  id: 'zz_maps',
+  tables: {
+    maps: [...(combatPack.tables.maps as MapDef[]), ...(cityPack.tables.maps as MapDef[])],
+  },
+};
+const PACKS = [worldPack, inventoryPack, npcPack, cognitionPack, dialoguePack, mapsOnly];
 const CONTENT = merge(PACKS);
 const SYSTEMS = [world, inventory, modifiers, npc, dialogue, cognition, probe];
 
@@ -175,9 +186,10 @@ describe('npc content and maps', () => {
       'lucas',
     ])
       expect(personaById(CONTENT, id)?.map).toBe('wallenburg');
-    // yeyu and ash belong to other systems
-    expect(personaById(CONTENT, 'yeyu')).toBeUndefined();
-    expect(personaById(CONTENT, 'ash')).toBeUndefined();
+    // yeyu's and ash's bodies belong to other systems (the companion roster, a combat
+    // fixture): their cards carry the mind and the trust flag, never an NPC entity
+    expect(personaById(CONTENT, 'yeyu')?.body).toBe('companion');
+    expect(personaById(CONTENT, 'ash')?.body).toBe('fixture');
     expect(personaById(CONTENT, 'oola')?.trustKey).toBe('trust.oola');
     expect(personaById(CONTENT, 'ron')?.potential).toBe('统帅');
   });
@@ -238,7 +250,8 @@ describe('npc presence', () => {
     expect(eventsOf(g, 'world.entity_removed').some((e) => e.data.ref === 'shiya')).toBe(true);
     g.queue('flag.set', { key: 'companion.shiya.recruited', value: false });
     g.step(1);
-    expect(getEntity(g.world, npcEntityId('shiya'))?.mapId).toBe('borderstone');
+    // back where her schedule puts her at 06:00: the hunters' camp in the forest edge
+    expect(getEntity(g.world, npcEntityId('shiya'))?.mapId).toBe('forest_edge');
     expect(g.world.slices.npc.npcs.shiya?.gone).toBeNull();
   });
 

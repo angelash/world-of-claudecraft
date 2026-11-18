@@ -382,7 +382,7 @@
             "label": "晶背之母的甲壳（巴尔加能打一把好剑）"
           },
           { "type": "flag", "key": "boss.split_ear.defeated", "label": "与裂耳的一对一" },
-          { "type": "flag", "key": "boss.seg_oneeye.defeated", "label": "单挑独眼团的瑟格" }
+          { "type": "flag", "key": "boss.seg_oneeye_duel.defeated", "label": "单挑独眼团的瑟格" }
         ]
       }
     ],

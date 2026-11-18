@@ -531,7 +531,7 @@
     }
   },
   {
-    "id": "seg_oneeye",
+    "id": "seg_oneeye_duel",
     "name": "瑟格\"独眼\"",
     "desc": "独眼团的头目。接受单挑时手下不插手，输了就认。",
     "family": "humanoid",

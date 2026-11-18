@@ -244,7 +244,7 @@ describe('chosen doors', () => {
     g.queue('doors.open', { doorId: 'vocation_warrior' });
     g.step(1);
     expect(lastResult(g, 'doors.open')?.code).toBe('no_key');
-    setFlags(g, { 'boss.seg_oneeye.defeated': true });
+    setFlags(g, { 'boss.seg_oneeye_duel.defeated': true });
     expect(doorState(g.world, 'vocation_warrior')).toBe('openable');
     g.queue('doors.open', { doorId: 'vocation_warrior' });
     g.step(1);

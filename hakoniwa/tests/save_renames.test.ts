@@ -258,6 +258,7 @@ const PROBE_FIELDS: IdField[] = [
   { path: 'abilities.*', kind: 'ability' },
   { path: 'cds.@keys', kind: 'ability' },
   { path: 'auras.*.id', kind: 'aura' },
+  { path: 'units.*.monsterId', kind: 'monster' },
 ];
 
 describe('every entry loads with no trace of its old id', () => {
@@ -346,6 +347,8 @@ describe('every entry loads with no trace of its old id', () => {
         slot.cds = { [e.from]: 40 };
       } else if (e.kind === 'aura') {
         slot.auras = [{ id: e.from, stacks: 1 }];
+      } else if (e.kind === 'monster') {
+        slot.units = { u1: { monsterId: e.from } };
       }
       (w.slices as unknown as Record<string, unknown>).probe = slot;
       const out = await roundTrip(w);

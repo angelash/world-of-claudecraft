@@ -22,10 +22,12 @@ import {
   REACTION_PREDICATE_NAMES,
 } from '../../systems/npc/brain';
 import { resolvePlace, splitPlaceRef } from '../../systems/npc/places';
+import { placementsOf, residentRowProblems } from '../../systems/npc/templates';
 import {
   ACTIVITIES,
   FUNCTIONAL_ROLES,
   type KnowledgeEntry,
+  PERSONA_BODIES,
   type PersonaCard,
   type ResidentTemplate,
   type ScheduleSegment,
@@ -63,12 +65,26 @@ const CLASSES: SocialClass[] = [
 const TIERS = ['K0', 'K1', 'K2', 'K3', 'K4', 'K5'];
 const COLOR = /^#[0-9a-f]{6}$/i;
 
+/**
+ * Built maps of the world atlas whose map data is not merged in (only a partial content, the
+ * unit tests' packs, leaves one out): a person or a schedule place on them is taken on trust,
+ * and the full content, which merges every built map, checks it. A planned or scenario map,
+ * or an id the atlas does not know, is always checked.
+ */
+function deferredMaps(content: ContentMap): (mapId: string) => boolean {
+  const built = new Set(
+    (content.atlas_maps ?? []).filter((m) => m.status === 'built').map((m) => m.id),
+  );
+  return (mapId) => built.has(mapId) && !mapById(content, mapId);
+}
+
 function checkSegments(
   content: ContentMap,
   owner: string,
   card: { map: string; home: string; work: string },
   segs: ScheduleSegment[],
   problems: string[],
+  deferred: (mapId: string) => boolean = () => false,
 ): void {
   for (const s of segs) {
     if (
@@ -81,8 +97,9 @@ function checkSegments(
     )
       problems.push(`${owner}: bad hours ${s.from}-${s.to}`);
     if (!ACTIVITIES.includes(s.act)) problems.push(`${owner}: unknown activity ${s.act}`);
-    if (!resolvePlace(content, card, s.at))
-      problems.push(`${owner}: place ${s.at} not on ${splitPlaceRef(s.at).mapId ?? card.map}`);
+    const on = splitPlaceRef(s.at).mapId ?? card.map;
+    if (!resolvePlace(content, card, s.at) && !deferred(on))
+      problems.push(`${owner}: place ${s.at} not on ${on}`);
   }
 }
 
@@ -97,16 +114,18 @@ export function validateNpcContent(content: ContentMap): string[] {
   }
   const ids = new Set((content.npcs ?? []).map((p) => p.id));
   const trustKeys = new Set<string>();
+  const deferred = deferredMaps(content);
   for (const p of content.npcs ?? []) {
     const who = `npc ${p.id}`;
     const map = mapById(content, p.map);
-    if (!map) {
+    if (!map && !deferred(p.map)) {
       problems.push(`${who}: unknown map ${p.map}`);
       continue;
     }
-    for (const loc of [p.home, p.work])
-      if (!map.locations.some((l) => l.id === loc))
-        problems.push(`${who}: unknown location ${loc}`);
+    if (map)
+      for (const loc of [p.home, p.work])
+        if (!map.locations.some((l) => l.id === loc))
+          problems.push(`${who}: unknown location ${loc}`);
     if (!CLASSES.includes(p.class)) problems.push(`${who}: unknown class ${p.class}`);
     if (!TIERS.includes(p.knowledge))
       problems.push(`${who}: unknown knowledge tier ${p.knowledge}`);
@@ -116,11 +135,13 @@ export function validateNpcContent(content: ContentMap): string[] {
       problems.push(`${who}: devotion out of range`);
     if (!p.voice?.catchphrases?.length || !p.voice.address)
       problems.push(`${who}: voice incomplete`);
+    if (p.body !== undefined && !(PERSONA_BODIES as readonly string[]).includes(p.body))
+      problems.push(`${who}: unknown body owner ${p.body}`);
     if (p.appearance.colors.length !== 4 || p.appearance.colors.some((c) => !COLOR.test(c)))
       problems.push(`${who}: appearance needs four #rrggbb colors`);
     const segs = Array.isArray(p.schedule) ? p.schedule : templates.get(p.schedule)?.segments;
     if (!segs) problems.push(`${who}: unknown schedule ${String(p.schedule)}`);
-    else checkSegments(content, who, p, segs, problems);
+    else checkSegments(content, who, p, segs, problems, deferred);
     for (const other of Object.keys(p.relations ?? {}))
       if (!ids.has(other)) problems.push(`${who}: relation to unknown npc ${other}`);
     const key = p.trustKey ?? `trust.${p.id}`;
@@ -137,7 +158,8 @@ export function validateNpcContent(content: ContentMap): string[] {
     for (const g of p.pursuits ?? []) {
       const at = `${who} pursuit ${g.id}`;
       if (!ACTIVITIES.includes(g.act)) problems.push(`${at}: unknown activity ${g.act}`);
-      if (!resolvePlace(content, p, g.at)) problems.push(`${at}: unknown place ${g.at}`);
+      if (!resolvePlace(content, p, g.at) && !deferred(splitPlaceRef(g.at).mapId ?? p.map))
+        problems.push(`${at}: unknown place ${g.at}`);
       if (!Number.isInteger(g.from) || g.from < 0 || g.from > 23) problems.push(`${at}: bad hour`);
       if (!(g.hours >= 1 && g.hours <= 6)) problems.push(`${at}: hours must be 1 to 6`);
       if (!(g.everyDays >= 1)) problems.push(`${at}: everyDays must be at least 1`);
@@ -163,25 +185,37 @@ export function validateNpcContent(content: ContentMap): string[] {
   );
   for (const r of content.npcResidents ?? []) {
     const who = `resident ${r.id}`;
-    const map = mapById(content, r.map);
-    if (!map) {
-      problems.push(`${who}: unknown map ${r.map}`);
-      continue;
+    problems.push(...residentRowProblems(r));
+    if (r.placements && r.map !== undefined)
+      problems.push(`${who}: a template with placements has no map of its own`);
+    if (!templates.has(r.schedule)) problems.push(`${who}: unknown schedule ${r.schedule}`);
+    for (const place of placementsOf(r)) {
+      const map = mapById(content, place.map);
+      if (!map) {
+        if (!deferred(place.map)) problems.push(`${who}: unknown map ${place.map}`);
+        continue;
+      }
+      if (!Number.isInteger(place.count) || place.count < 0)
+        problems.push(`${who}: bad count on ${place.map}`);
+      if (place.homes.length === 0 || place.works.length === 0)
+        problems.push(`${who}: a placement on ${place.map} needs homes and work places`);
+      for (const loc of [...place.homes, ...place.works])
+        if (!map.locations.some((l) => l.id === loc))
+          problems.push(`${who}: unknown location ${loc}`);
+      const sched = place.schedule ?? r.schedule;
+      const t = templates.get(sched);
+      if (!t) problems.push(`${who}: unknown schedule ${sched}`);
+      else
+        for (const h of place.homes)
+          checkSegments(
+            content,
+            who,
+            { map: place.map, home: h, work: place.works[0] ?? h },
+            t.segments,
+            problems,
+            deferred,
+          );
     }
-    for (const loc of [...r.homes, ...r.works])
-      if (!map.locations.some((l) => l.id === loc))
-        problems.push(`${who}: unknown location ${loc}`);
-    const t = templates.get(r.schedule);
-    if (!t) problems.push(`${who}: unknown schedule ${r.schedule}`);
-    else
-      for (const h of r.homes)
-        checkSegments(
-          content,
-          who,
-          { map: r.map, home: h, work: r.works[0] ?? h },
-          t.segments,
-          problems,
-        );
     if (r.level[0] > r.level[1]) problems.push(`${who}: bad level range`);
   }
   for (const k of content.npcKnowledge ?? []) {
@@ -249,6 +283,13 @@ const PERSONA_FIELDS: FieldSchema[] = [
   { key: 'pursuits', label: '目标追求表', type: 'json' },
   { key: 'likes', label: '喜欢的礼物标签', type: 'list' },
   { key: 'dislikes', label: '讨厌的礼物标签', type: 'list' },
+  {
+    key: 'body',
+    label: '身体由谁生成',
+    type: 'enum',
+    options: [...PERSONA_BODIES],
+    help: '战斗的固定存在或同伴名册；NPC 系统不生成实体',
+  },
 ];
 
 export const pack: ContentPack = {
@@ -321,6 +362,12 @@ export const pack: ContentPack = {
         { key: 'works', label: '干活处', type: 'list' },
         { key: 'schedule', label: '日程模板', type: 'ref', refTable: 'npcSchedules' },
         { key: 'palette', label: '配色', type: 'json' },
+        { key: 'placements', label: '分布（地图、人数、住处、干活处）', type: 'json' },
+        { key: 'band', label: '档位', type: 'enum', options: ['L3', 'L4'] },
+        { key: 'knowledge', label: '知识层级', type: 'enum', options: TIERS },
+        { key: 'exaggerate', label: '传闻夸大系数', type: 'number', min: 1, max: 3 },
+        { key: 'potential', label: '隐藏潜质（概率与代码）', type: 'json' },
+        { key: 'unbelief', label: '凡人不信参数', type: 'json' },
       ],
     },
     {

@@ -189,7 +189,7 @@
       "count": 80
     },
     {
-      "id": "monster:seg_oneeye",
+      "id": "monster:seg_oneeye_duel",
       "kind": "monster",
       "appearance": {
         "base": "human",
