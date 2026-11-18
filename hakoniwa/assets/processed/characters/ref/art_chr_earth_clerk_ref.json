@@ -1,0 +1,42 @@
+{
+  "id": "art_chr_earth_clerk_ref",
+  "kind": "art",
+  "template": "chr_turnaround",
+  "style": "earth_modern",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/characters/ref/art_chr_earth_clerk_ref.png",
+    "sha256": "bdf3e63ab0f6dda7135cdc40603f96e927fc74a633a68ec58a437c6dbdbada1e",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

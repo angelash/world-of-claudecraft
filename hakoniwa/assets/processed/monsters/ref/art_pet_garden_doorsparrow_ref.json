@@ -1,0 +1,42 @@
+{
+  "id": "art_pet_garden_doorsparrow_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "divine_court",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_pet_garden_doorsparrow_ref.png",
+    "sha256": "aa68cd006c4a925c426ac00dfd7a2f9382ed3c813494d6fab243c75fd2c31efa",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

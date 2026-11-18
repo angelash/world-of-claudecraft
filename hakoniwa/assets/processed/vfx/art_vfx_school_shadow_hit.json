@@ -1,0 +1,203 @@
+{
+  "id": "art_vfx_school_shadow_hit",
+  "kind": "art",
+  "template": "vfx_small",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/vfx/art_vfx_school_shadow_hit.png",
+    "sha256": "46d9996315104493146b7932e01e4d537bb19eece699225386552e38d1df5dbe",
+    "w": 1774,
+    "h": 887,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    128,
+    64
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "palette": "vfx",
+  "swatch": [
+    "#20263a",
+    "#3a4a7a",
+    "#a8c0e0"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 11
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 1,
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 15
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 2,
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 2
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 3,
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 9
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 4,
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 9
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 5,
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 3
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 6,
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 2
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 7,
+      "x": 96,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": 70,
+      "footprint": 1
+    }
+  ],
+  "anims": {
+    "play/front": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "black",
+      "opaque": 0.0939,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 13.8594,
+      "blockAligned": false
+    },
+    "quantError": 0,
+    "nearestQuantError": 0,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

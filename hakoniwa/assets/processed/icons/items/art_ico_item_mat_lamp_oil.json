@@ -1,0 +1,129 @@
+{
+  "id": "art_ico_item_mat_lamp_oil",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_mat_lamp_oil.png",
+    "sha256": "2c309dc249da4c2d9e0f96dd616dbbd77197bef3ffd4669e05e3dde2faf2308d",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#a86e4a",
+    "#c88d64",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#8c3a24",
+    "#e09048",
+    "#6a4a1c",
+    "#a8782c",
+    "#dcae52",
+    "#23402a",
+    "#3e6e38",
+    "#74aa54",
+    "#847a66",
+    "#46464e",
+    "#3c2818",
+    "#a2764a",
+    "#1a1420",
+    "#b89a52",
+    "#fff4d6"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 5
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.1759,
+      "fringeRemoved": 2050
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 39.1875,
+      "blockAligned": false
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0374,
+    "nearestQuantError": 0.0374,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 32,
+      "added": 60
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

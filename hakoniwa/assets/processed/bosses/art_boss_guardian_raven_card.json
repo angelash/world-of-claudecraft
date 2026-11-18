@@ -1,0 +1,149 @@
+{
+  "id": "art_boss_guardian_raven_card",
+  "kind": "art",
+  "template": "boss_card",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/bosses/art_boss_guardian_raven_card.png",
+    "sha256": "6d026622ff9d0265152194172ed22d71c2aaf5edc3e5d721889ac3088e11fba1",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    384,
+    384
+  ],
+  "cell": [
+    384,
+    384
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#865236",
+    "#a86e4a",
+    "#c88d64",
+    "#f2cba8",
+    "#fce4d0",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#8c3a24",
+    "#c0582e",
+    "#e09048",
+    "#e8c068",
+    "#b8bcc8",
+    "#eceaf0",
+    "#5a1c22",
+    "#9a2e30",
+    "#d4584c",
+    "#a8782c",
+    "#dcae52",
+    "#3a2448",
+    "#603c7a",
+    "#926aaa",
+    "#847a66",
+    "#c6baa0",
+    "#f0e8d2",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#3c2818",
+    "#805836",
+    "#a2764a",
+    "#c69c6a",
+    "#1a1420",
+    "#2e2434",
+    "#4a3a62",
+    "#6e5c8c",
+    "#8a1424",
+    "#b89a52",
+    "#f0d890",
+    "#fff4d6",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 384,
+      "h": 384,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 14
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.5575,
+      "fringeRemoved": 55
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 2.6667,
+      "blockAligned": false
+    },
+    "quantError": 0.0285,
+    "nearestQuantError": 0.0285,
+    "localPaletteErrors": [],
+    "folded": 2,
+    "outline": {
+      "policy": "portrait",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 339,
+      "added": 5056
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

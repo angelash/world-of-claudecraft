@@ -1,0 +1,94 @@
+{
+  "id": "art_ui_appraisal_common",
+  "kind": "art",
+  "template": "ui_card",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/ui/art_ui_appraisal_common.png",
+    "sha256": "72cf75c6bf5e750fe454718f5583845b1af7a084d4ac34d267ca52391f2317af",
+    "w": 1086,
+    "h": 1448,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    384,
+    512
+  ],
+  "cell": [
+    384,
+    512
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 384,
+      "h": 512,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 384
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 2.8281,
+      "blockAligned": false
+    },
+    "quantError": 0,
+    "nearestQuantError": 0,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

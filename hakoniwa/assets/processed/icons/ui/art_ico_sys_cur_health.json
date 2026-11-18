@@ -1,0 +1,124 @@
+{
+  "id": "art_ico_sys_cur_health",
+  "kind": "art",
+  "template": "ico_ui",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/ui/art_ico_sys_cur_health.png",
+    "sha256": "5acdee237331d26cf88022cafa8e4952dcf98d1a54a09c61e69c761d45a6d068",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    24,
+    24
+  ],
+  "cell": [
+    24,
+    24
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "ui",
+  "swatch": [
+    "#1c1a24",
+    "#e8e4ec",
+    "#d83a3a"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 24,
+      "ax": 12,
+      "ay": 12,
+      "ms": null,
+      "footprint": 3
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.399,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 52.25,
+      "blockAligned": false
+    },
+    "reduction": "mode grouped by UI palette, original RGB means",
+    "quantError": 0.04,
+    "nearestQuantError": 0.04,
+    "localPaletteErrors": [
+      {
+        "frame": 0,
+        "region": [
+          16,
+          0,
+          4,
+          16
+        ],
+        "pixels": 31,
+        "meanError": 0.07129720143435953
+      }
+    ],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

@@ -157,12 +157,13 @@ export function buildAudioIndex(
   records: readonly AudioRecordLike[],
   meta: (rec: AudioRecordLike) => AudioMetaLike | null | undefined,
   importVersion: string,
+  statuses: readonly string[] = ['approved'],
 ): { index: AudioIndex; problems: string[] } {
   const problems: string[] = [];
   const entries: AudioEntry[] = [];
   const seen = new Set<string>();
   for (const rec of records) {
-    if (rec.kind !== 'audio' || rec.status !== 'approved') continue;
+    if (rec.kind !== 'audio' || !statuses.includes(rec.status)) continue;
     if (seen.has(rec.id)) {
       problems.push(`${rec.id}: approved twice`);
       continue;
@@ -176,14 +177,20 @@ export function buildAudioIndex(
   return { index: new AudioIndex(entries), problems };
 }
 
-/** The approved audio records of a manifest (the files whose metadata the loader fetches). */
-export function approvedAudio(raw: unknown): AudioRecordLike[] {
+/**
+ * The approved audio records of a manifest (the files whose metadata the loader fetches);
+ * development builds pass ['approved', 'review'] (loadedStatuses in ../assets/types.ts).
+ */
+export function approvedAudio(
+  raw: unknown,
+  statuses: readonly string[] = ['approved'],
+): AudioRecordLike[] {
   return (Array.isArray(raw) ? raw : []).filter(
     (r): r is AudioRecordLike =>
       !!r &&
       typeof r === 'object' &&
       (r as AudioRecordLike).kind === 'audio' &&
-      (r as AudioRecordLike).status === 'approved' &&
+      statuses.includes((r as AudioRecordLike).status) &&
       typeof (r as AudioRecordLike).id === 'string' &&
       typeof (r as AudioRecordLike).file === 'string',
   );

@@ -1,0 +1,218 @@
+{
+  "id": "art_prop_raven_great_nest",
+  "kind": "art",
+  "template": "prop_large",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/props/art_prop_raven_great_nest.png",
+    "sha256": "9bf5400647dc10d8680158338964c58015262e95866a1b3d9e75502af3d42ef2",
+    "w": 1024,
+    "h": 1536,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    128,
+    192
+  ],
+  "cell": [
+    64,
+    96
+  ],
+  "grid": [
+    2,
+    2
+  ],
+  "palette": "style:sealed_ruins",
+  "swatch": [
+    "#020103",
+    "#0c0c12",
+    "#1e1e24",
+    "#13131b",
+    "#2a2a34",
+    "#3e3e49",
+    "#2d3030",
+    "#464a4a",
+    "#5c6060",
+    "#525654",
+    "#6e7270",
+    "#868a88",
+    "#6d706d",
+    "#8a8e8a",
+    "#a3a6a3",
+    "#2f2720",
+    "#4a4038",
+    "#60564e",
+    "#4d4339",
+    "#6a5e52",
+    "#817569",
+    "#404d32",
+    "#5a6a4a",
+    "#718162",
+    "#7d89a5",
+    "#b4c1e1",
+    "#e0cff9",
+    "#cdb879",
+    "#f0d890",
+    "#fff3ae",
+    "#d9a25c",
+    "#ffc070",
+    "#ffdb8f"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "v1",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 96,
+      "ax": 32,
+      "ay": 95,
+      "ms": null,
+      "footprint": 29
+    },
+    {
+      "anim": "v2",
+      "dir": "front",
+      "i": 0,
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 96,
+      "ax": 32,
+      "ay": 95,
+      "ms": null,
+      "footprint": 29
+    },
+    {
+      "anim": "v3",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 96,
+      "w": 64,
+      "h": 96,
+      "ax": 32,
+      "ay": 95,
+      "ms": null,
+      "footprint": 29
+    },
+    {
+      "anim": "v4",
+      "dir": "front",
+      "i": 0,
+      "x": 64,
+      "y": 96,
+      "w": 64,
+      "h": 96,
+      "ax": 32,
+      "ay": 95,
+      "ms": null,
+      "footprint": 29
+    }
+  ],
+  "anims": {
+    "v1/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "v2/front": {
+      "frames": [
+        1
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "v3/front": {
+      "frames": [
+        2
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "v4/front": {
+      "frames": [
+        3
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.348,
+      "fringeRemoved": 8
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 8,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.0266,
+    "nearestQuantError": 0.0266,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 705,
+      "added": 1131
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "text",
+      "check": "text_suspect",
+      "message": "dense thin high-contrast strokes (41% of an 8x8 window): check for text",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

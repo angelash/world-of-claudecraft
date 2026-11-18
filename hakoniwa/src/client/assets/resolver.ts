@@ -1,7 +1,8 @@
 // The asset resolver (art_pipeline.md 2.1, 6.4 and 6.5): given an asset id (and a variant)
 // it returns the approved processed bitmap with its frame metadata, or says why there is
 // none so the caller keeps the procedural placeholder. Only records whose manifest status is
-// `approved` resolve; review, rework, rejected and retired ids, ids the manifest does not
+// `approved` resolve (development builds add `review`: AssetSource.statuses, loadedStatuses in
+// ./types.ts); review, rework, rejected and retired ids, ids the manifest does not
 // list, reference sheets (turnarounds) and records without processed metadata all miss.
 // Development builds can force every id to miss (?art=procedural, 6.4).
 //
@@ -67,6 +68,8 @@ export interface AssetSource {
   aliases?: Readonly<Record<string, string>>;
   /** force the procedural placeholder everywhere (?art=procedural) */
   procedural?: boolean;
+  /** statuses that resolve (default approved; development builds add review, loadedStatuses) */
+  statuses?: readonly AssetStatus[];
 }
 
 const DIR_SUFFIX: Readonly<Record<Dir | 'front', string>> = {
@@ -95,16 +98,18 @@ export class AssetResolver {
   private readonly hits = new Map<string, AssetHit>();
   private readonly aliases: Readonly<Record<string, string>>;
   private readonly procedural: boolean;
+  private readonly statuses: readonly AssetStatus[];
 
   constructor(private readonly source: AssetSource) {
     this.aliases = source.aliases ?? {};
     this.procedural = !!source.procedural;
+    this.statuses = source.statuses ?? ['approved'];
     for (const r of source.records) {
       if (r && typeof r.id === 'string') this.records.set(r.id, r);
     }
     if (this.procedural) return;
     for (const r of this.records.values()) {
-      if (r.kind !== 'art' || r.status !== 'approved') continue;
+      if (r.kind !== 'art' || !this.statuses.includes(r.status)) continue;
       const meta = source.meta(r);
       if (!meta || !Array.isArray(meta.frames) || meta.processing?.reference) continue;
       const image = source.image?.(r) ?? processedPathOf(r.file);
@@ -136,7 +141,7 @@ export class AssetResolver {
     const r = this.records.get(full);
     if (!r) return { ok: false, id: full, reason: 'missing' };
     if (r.kind !== 'art') return { ok: false, id: full, reason: 'not_art' };
-    if (r.status !== 'approved') {
+    if (!this.statuses.includes(r.status)) {
       const known = ['review', 'rework', 'rejected', 'retired'] as const;
       const reason = (known as readonly string[]).includes(r.status)
         ? (r.status as AssetMissReason)

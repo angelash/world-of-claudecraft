@@ -1,0 +1,117 @@
+{
+  "id": "art_ico_item_recruit_longsword",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_recruit_longsword.png",
+    "sha256": "2812daf8e1390245385f3ef827e9fbc9e5dbcaee9013c0b0397a1c44131a073c",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#2b2220",
+    "#6e4a30",
+    "#b8bcc8",
+    "#26262e",
+    "#46464e",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#3c2818",
+    "#1a1420"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 5
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.1175,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 39.1875,
+      "blockAligned": false
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0368,
+    "nearestQuantError": 0.0368,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 26,
+      "added": 68
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

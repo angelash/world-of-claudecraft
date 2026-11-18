@@ -1,0 +1,42 @@
+{
+  "id": "art_boss_guardian_raven_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_boss_guardian_raven_ref.png",
+    "sha256": "c1a71e3adb890eeb274d0c634f6f43f9c85133a9261905f87763b69761e6e69c",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

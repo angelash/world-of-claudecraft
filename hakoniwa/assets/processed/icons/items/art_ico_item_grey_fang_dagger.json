@@ -1,0 +1,126 @@
+{
+  "id": "art_ico_item_grey_fang_dagger",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_grey_fang_dagger.png",
+    "sha256": "4b7b893e01890126067792ed3ac3f378ddc2abbf0ef7fe1696b8b40bca08c684",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#623a26",
+    "#865236",
+    "#a86e4a",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#3a2448",
+    "#926aaa",
+    "#c6baa0",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#3c2818",
+    "#805836",
+    "#1a1420",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 4
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.1539,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 39.1875,
+      "blockAligned": false
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0315,
+    "nearestQuantError": 0.0315,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 39,
+      "added": 67
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_vein_grub_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "forge_deep",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_vein_grub_ref.png",
+    "sha256": "7f4801ba31209cf1ceea3f69174e55080a0d488c341602d50f9925747ba2d358",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

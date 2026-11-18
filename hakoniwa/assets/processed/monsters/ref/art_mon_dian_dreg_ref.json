@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_dian_dreg_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_dian_dreg_ref.png",
+    "sha256": "385887f9906d077a263513b42b0ef71ea578677c8cfbcfe291285a6b23512550",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -1,0 +1,105 @@
+{
+  "id": "art_ico_marker_presence",
+  "kind": "art",
+  "template": "ico_marker",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/markers/art_ico_marker_presence.png",
+    "sha256": "03262f5a57a7d8ac4eaee96ad3ce3d291f898707c01090d3a18e1a63b7144b9f",
+    "w": 800,
+    "h": 800,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    16,
+    16
+  ],
+  "cell": [
+    16,
+    16
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "ui",
+  "swatch": [
+    "#1c1a24",
+    "#6a6478",
+    "#4a3a62"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16,
+      "ax": 8,
+      "ay": 8,
+      "ms": null,
+      "footprint": 10
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.4785,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 50,
+      "blockAligned": false
+    },
+    "reduction": "mode grouped by UI palette, original RGB means",
+    "quantError": 0.0243,
+    "nearestQuantError": 0.0243,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

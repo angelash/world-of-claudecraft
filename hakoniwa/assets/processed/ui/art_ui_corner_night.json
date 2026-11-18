@@ -1,0 +1,96 @@
+{
+  "id": "art_ui_corner_night",
+  "kind": "art",
+  "template": "ui_ornament",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/ui/art_ui_corner_night.png",
+    "sha256": "23d95fe0946b14bd77a5bfcd49afb90984f865bd6c73ea103c00fc64a9a3ec32",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    128,
+    128
+  ],
+  "cell": [
+    128,
+    128
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "two",
+  "swatch": [
+    "#c8d0dc"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 128,
+      "h": 128,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 5
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.029,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 9.7969,
+      "blockAligned": false
+    },
+    "quantError": 0,
+    "nearestQuantError": 0,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

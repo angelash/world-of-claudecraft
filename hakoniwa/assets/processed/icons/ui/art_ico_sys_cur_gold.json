@@ -1,0 +1,105 @@
+{
+  "id": "art_ico_sys_cur_gold",
+  "kind": "art",
+  "template": "ico_ui",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/ui/art_ico_sys_cur_gold.png",
+    "sha256": "8101dfd9fe244c308f7eb3f31c18ec314adf83dfdfc3e23965880bd7531ed5e2",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    24,
+    24
+  ],
+  "cell": [
+    24,
+    24
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "ui",
+  "swatch": [
+    "#1c1a24",
+    "#e8c040",
+    "#a88a40"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 24,
+      "ax": 12,
+      "ay": 12,
+      "ms": null,
+      "footprint": 12
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.5048,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 52.25,
+      "blockAligned": false
+    },
+    "reduction": "mode grouped by UI palette, original RGB means",
+    "quantError": 0.0454,
+    "nearestQuantError": 0.0454,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -1,0 +1,344 @@
+{
+  "id": "art_doll_back_bell_pack",
+  "kind": "art",
+  "template": "doll_back",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/doll/art_doll_back_bell_pack.png",
+    "sha256": "9816c5030271dbf0f7a44f8d02fb8ee93a858558097791c56e119576aa248b03",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    144,
+    96
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    3,
+    2
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#f2cba8",
+    "#2b2220",
+    "#e09048",
+    "#e8c068",
+    "#b8bcc8",
+    "#eceaf0",
+    "#5a1c22",
+    "#d4584c",
+    "#6a4a1c",
+    "#dcae52",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#3c2818",
+    "#5e3e24",
+    "#1a1420",
+    "#ffffff",
+    "#5a0e12",
+    "#d83030",
+    "#ff7060",
+    "#101e5a",
+    "#3a64e0",
+    "#80a4ff",
+    "#806010",
+    "#f0d820"
+  ],
+  "slots": {
+    "#101e5a": {
+      "slot": "secondary",
+      "level": 0
+    },
+    "#80a4ff": {
+      "slot": "secondary",
+      "level": 3
+    },
+    "#f0d820": {
+      "slot": "hair",
+      "level": 2
+    },
+    "#3a64e0": {
+      "slot": "secondary",
+      "level": 2
+    },
+    "#ff7060": {
+      "slot": "primary",
+      "level": 3
+    },
+    "#d83030": {
+      "slot": "primary",
+      "level": 2
+    },
+    "#5a0e12": {
+      "slot": "primary",
+      "level": 0
+    },
+    "#806010": {
+      "slot": "hair",
+      "level": 0
+    }
+  },
+  "frames": [
+    {
+      "anim": "rest",
+      "dir": "down",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 15
+    },
+    {
+      "anim": "rest",
+      "dir": "right",
+      "i": 0,
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 6
+    },
+    {
+      "anim": "rest",
+      "dir": "up",
+      "i": 0,
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 15
+    },
+    {
+      "anim": "sway",
+      "dir": "down",
+      "i": 0,
+      "x": 0,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 5
+    },
+    {
+      "anim": "sway",
+      "dir": "right",
+      "i": 0,
+      "x": 48,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 11
+    },
+    {
+      "anim": "sway",
+      "dir": "up",
+      "i": 0,
+      "x": 96,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 44,
+      "ms": null,
+      "footprint": 3
+    },
+    {
+      "anim": "rest",
+      "dir": "left",
+      "i": 0,
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 23,
+      "ay": 44,
+      "ms": null,
+      "footprint": 6,
+      "flipX": true
+    },
+    {
+      "anim": "sway",
+      "dir": "left",
+      "i": 0,
+      "x": 48,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "ax": 23,
+      "ay": 44,
+      "ms": null,
+      "footprint": 11,
+      "flipX": true
+    }
+  ],
+  "anims": {
+    "rest/down": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "rest/right": {
+      "frames": [
+        1
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "rest/up": {
+      "frames": [
+        2
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "sway/down": {
+      "frames": [
+        3
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "sway/right": {
+      "frames": [
+        4
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "sway/up": {
+      "frames": [
+        5
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "rest/left": {
+      "frames": [
+        6
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    },
+    "sway/left": {
+      "frames": [
+        7
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [
+      "down",
+      "right",
+      "up"
+    ],
+    "mirrored": [
+      {
+        "dir": "left",
+        "from": "right"
+      }
+    ]
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.1035,
+      "fringeRemoved": 82
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 10.6667,
+      "blockAligned": false
+    },
+    "quantError": 0.0458,
+    "nearestQuantError": 0.0458,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 305,
+      "added": 420
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "text",
+      "check": "text_suspect",
+      "message": "dense thin high-contrast strokes (45% of an 8x8 window): check for text",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

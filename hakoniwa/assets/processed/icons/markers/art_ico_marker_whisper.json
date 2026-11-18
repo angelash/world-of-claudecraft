@@ -1,0 +1,105 @@
+{
+  "id": "art_ico_marker_whisper",
+  "kind": "art",
+  "template": "ico_marker",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/markers/art_ico_marker_whisper.png",
+    "sha256": "b29e19fcf29e804c388ef2114f8263ba9fb7da63eb452a39c2c93602be50232f",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    16,
+    16
+  ],
+  "cell": [
+    16,
+    16
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "ui",
+  "swatch": [
+    "#1c1a24",
+    "#a8a2b4",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16,
+      "ax": 8,
+      "ay": 8,
+      "ms": null,
+      "footprint": 7
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.3556,
+      "fringeRemoved": 3377
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 78.375,
+      "blockAligned": false
+    },
+    "reduction": "mode grouped by UI palette, original RGB means",
+    "quantError": 0.0241,
+    "nearestQuantError": 0.0241,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

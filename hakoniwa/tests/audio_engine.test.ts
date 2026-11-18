@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { checkPatch } from '../src/client/app/settings_schema';
+import { loadedStatuses } from '../src/client/assets/types';
 import {
   AUDIO_TABLES,
   AudioEngine,
@@ -16,6 +17,7 @@ import {
   type AudioOp,
   type AudioOutput,
   type AudioRuntimeSettings,
+  approvedAudio,
   audioMetaProblems,
   buildAudioIndex,
   CaptionBoard,
@@ -34,6 +36,7 @@ import {
   PointScheduler,
   pointTimeOk,
 } from '../src/client/audio/ambience_mixer';
+import { loadAudioIndex } from '../src/client/audio/audio_loader';
 import type { AudioEntry, AudioMetaLike } from '../src/client/audio/audio_manifest';
 import {
   captionShown,
@@ -85,6 +88,7 @@ import {
   audioPatch,
 } from '../src/client/windows/settings/audio_model';
 import { t } from '../src/shared_ui/i18n';
+import { IMPORT_VERSION } from '../tools/assets/core/meta';
 
 const OFF = Number.NEGATIVE_INFINITY;
 
@@ -622,6 +626,49 @@ describe('audio manifest (9.2, 9.3)', () => {
     expect(problems).toEqual(['mus_c: no processed metadata']);
     const e = index.get('mus_a') as AudioEntry;
     expect([e.layered, e.loopStartSec, e.loopEndSec]).toEqual([true, 0, 64]);
+  });
+
+  it('plays review results too when a development build passes its statuses', () => {
+    const records = [
+      rec,
+      { ...rec, id: 'mus_r', status: 'review' },
+      { ...rec, id: 'mus_w', status: 'rework' },
+    ];
+    const metaOf = (r: { id: string }) => meta({ id: r.id });
+    expect(approvedAudio(records).map((r) => r.id)).toEqual(['mus_a']);
+    expect(buildAudioIndex(records, metaOf, 'v1').index.ids()).toEqual(['mus_a']);
+    const dev = ['approved', 'review'];
+    expect(approvedAudio(records, dev).map((r) => r.id)).toEqual(['mus_a', 'mus_r']);
+    const { index, problems } = buildAudioIndex(records, metaOf, 'v1', dev);
+    expect(index.ids()).toEqual(['mus_a', 'mus_r']);
+    expect(problems).toEqual([]);
+  });
+
+  it('loadAudioIndex forwards the development statuses and defaults to approved', async () => {
+    const files: Record<string, unknown> = {
+      '/assets/manifest.json': [
+        rec,
+        { ...rec, id: 'mus_r', status: 'review', file: 'audio/music/mus_r.ogg' },
+      ],
+      '/assets/processed/audio/music/mus_a.json': meta({ importVersion: IMPORT_VERSION }),
+      '/assets/processed/audio/music/mus_r.json': meta({
+        id: 'mus_r',
+        importVersion: IMPORT_VERSION,
+      }),
+    };
+    const fetchJson = async (u: string) => {
+      if (!(u in files)) throw new Error(`404 ${u}`);
+      return files[u];
+    };
+    const release = await loadAudioIndex({ fetchJson });
+    expect(release.index.ids()).toEqual(['mus_a']);
+    const dev = await loadAudioIndex({ fetchJson, statuses: loadedStatuses('', true) });
+    expect(dev.index.ids()).toEqual(['mus_a', 'mus_r']);
+    const approvedOnly = await loadAudioIndex({
+      fetchJson,
+      statuses: loadedStatuses('?assets=approved', true),
+    });
+    expect(approvedOnly.index.ids()).toEqual(['mus_a']);
   });
 
   it("packs a map's tracks, beds and details that have files", () => {

@@ -1,0 +1,204 @@
+{
+  "id": "art_vfx_cut_earth_door",
+  "kind": "art",
+  "template": "vfx_medium",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/vfx/art_vfx_cut_earth_door.png",
+    "sha256": "477e6410e14141c7ecca408e9c73e195a3c9ee30fcbd91f54116d376013b4de2",
+    "w": 1024,
+    "h": 512,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    256,
+    128
+  ],
+  "cell": [
+    64,
+    64
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "palette": "vfx",
+  "swatch": [
+    "#302018",
+    "#684428",
+    "#a87840",
+    "#f0c070"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 2
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 1,
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 2
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 2,
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 2
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 3,
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 16
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 4,
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 16
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 5,
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 16
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 6,
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 16
+    },
+    {
+      "anim": "play",
+      "dir": "front",
+      "i": 7,
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 70,
+      "footprint": 16
+    }
+  ],
+  "anims": {
+    "play/front": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "hold": true
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "black",
+      "opaque": 0.0413,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 4,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 4,
+      "blockAligned": true
+    },
+    "quantError": 0,
+    "nearestQuantError": 0,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -5,6 +5,7 @@
 // needs from the page is read here, so ./index.ts stays testable in Node.
 
 import type { AtlasMapDef } from '../../systems/world/atlas';
+import { loadedStatuses } from '../assets/types';
 import type { GameView } from '../view/game_view';
 import { WebAudioBus } from './audio_bus';
 import { DEV_AUDIO_BASE, loadAudioIndex } from './audio_loader';
@@ -25,7 +26,10 @@ export function createBrowserAudio(opts: {
   const audio = createGameAudio({
     ...opts,
     output: () => WebAudioBus.create({ base: DEV_AUDIO_BASE, log }),
-    loadIndex: import.meta.env.DEV ? () => loadAudioIndex() : undefined,
+    loadIndex: import.meta.env.DEV
+      ? () =>
+          loadAudioIndex({ statuses: loadedStatuses(window.location.search, import.meta.env.DEV) })
+      : undefined,
     environment: () => ({
       focused:
         typeof document === 'undefined' ||

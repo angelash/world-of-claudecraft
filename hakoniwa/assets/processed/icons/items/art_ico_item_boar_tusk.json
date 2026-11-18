@@ -1,0 +1,124 @@
+{
+  "id": "art_ico_item_boar_tusk",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_boar_tusk.png",
+    "sha256": "5aa83d26ca646f8c226569e0782a4921c08a4ececb7545b041137ac68c3891ff",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#623a26",
+    "#a86e4a",
+    "#f2cba8",
+    "#fce4d0",
+    "#2b2220",
+    "#6e4a30",
+    "#f6e4a8",
+    "#6a4a1c",
+    "#847a66",
+    "#c6baa0",
+    "#3c2818",
+    "#5e3e24",
+    "#805836",
+    "#a2764a",
+    "#c69c6a",
+    "#1a1420",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 14
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.2119,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 39.1875,
+      "blockAligned": false
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0259,
+    "nearestQuantError": 0.0259,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 53,
+      "added": 74
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

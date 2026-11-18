@@ -1,0 +1,117 @@
+{
+  "id": "art_ico_door_past_life_signpost",
+  "kind": "art",
+  "template": "ico_door",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/doors/art_ico_door_past_life_signpost.png",
+    "sha256": "d41300858a76e5a23fd983ad84ef4ab4b216bc5c92ed839f2fe03586902cd293",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#2b2220",
+    "#e8c068",
+    "#f6e4a8",
+    "#b8bcc8",
+    "#6a4a1c",
+    "#dcae52",
+    "#f0e8d2",
+    "#8e949e",
+    "#3c2818",
+    "#805836",
+    "#c69c6a",
+    "#1a1420",
+    "#f0d890",
+    "#fff4d6",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 29
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.4736,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 26.125,
+      "blockAligned": false
+    },
+    "quantError": 0.0182,
+    "nearestQuantError": 0.0182,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 130,
+      "added": 139
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

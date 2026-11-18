@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_wandering_bones_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "ash_waste",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_wandering_bones_ref.png",
+    "sha256": "0042b20650756c1b74ce7cdfddd616873bdd46af90ec79dba441e89b6489f913",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

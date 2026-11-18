@@ -1,0 +1,138 @@
+{
+  "id": "art_ico_item_minor_healing_potion",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_minor_healing_potion.png",
+    "sha256": "db52d63f2bdcc5644d339cc13d75d7e38974a2a50fa77d773f17a8144f9dfc6a",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#865236",
+    "#a86e4a",
+    "#c88d64",
+    "#2b2220",
+    "#4a3226",
+    "#c0582e",
+    "#e09048",
+    "#5a1c22",
+    "#9a2e30",
+    "#d4584c",
+    "#6a4a1c",
+    "#a8782c",
+    "#dcae52",
+    "#23402a",
+    "#3e6e38",
+    "#74aa54",
+    "#2c706c",
+    "#5aaa9e",
+    "#847a66",
+    "#c6baa0",
+    "#f0e8d2",
+    "#46464e",
+    "#8e949e",
+    "#3c2818",
+    "#805836",
+    "#1a1420",
+    "#8a1424",
+    "#d8e070",
+    "#fff4d6"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 12
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.2514,
+      "fringeRemoved": 1787
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 32,
+      "blockAligned": false
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0471,
+    "nearestQuantError": 0.0471,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 35,
+      "added": 65
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

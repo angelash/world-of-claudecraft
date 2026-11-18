@@ -1,0 +1,203 @@
+{
+  "id": "art_vfx_school_frost_zone",
+  "kind": "art",
+  "template": "vfx_loop",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/vfx/art_vfx_school_frost_zone.png",
+    "sha256": "258c6f45e2fd972b573bc5643f39da30d240e742d16961f222f16a0051e1768a",
+    "w": 1774,
+    "h": 887,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    256,
+    128
+  ],
+  "cell": [
+    64,
+    64
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "palette": "vfx",
+  "swatch": [
+    "#3a78c8",
+    "#8fd8ff",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 18
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 1,
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 19
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 2,
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 19
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 3,
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 18
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 4,
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 19
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 5,
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 19
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 6,
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 19
+    },
+    {
+      "anim": "loop",
+      "dir": "front",
+      "i": 7,
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 32,
+      "ms": 100,
+      "footprint": 18
+    }
+  ],
+  "anims": {
+    "loop/front": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ms": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "black",
+      "opaque": 0.0371,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 6.9297,
+      "blockAligned": false
+    },
+    "quantError": 0,
+    "nearestQuantError": 0,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

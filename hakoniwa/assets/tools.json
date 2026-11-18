@@ -24,12 +24,25 @@
   {
     "id": "stable_audio_3_small_sfx",
     "name": "Stable Audio 3 Small-SFX (local ComfyUI)",
-    "usedVersions": ["Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0"],
+    "usedVersions": [
+      "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0"
+    ],
     "termsUrl": "https://stability.ai/community-license",
-    "termsCheckedAt": "2026-11-17",
-    "commercialUse": false,
-    "outputRights": "Stability AI Community License: commercial use is free below USD 1M annual revenue only after registering at stability.ai/community-license; the bundled T5Gemma encoder follows the Gemma Terms of Use. Set commercialUse to true once the registration is done.",
+    "termsCheckedAt": "2026-11-18",
+    "commercialUse": true,
+    "outputRights": "Stability AI Community License: commercial use is free below USD 1M annual revenue after registering at stability.ai/community-license; the user confirmed on 2026-11-18 that the registration is done. The bundled T5Gemma encoder follows the Gemma Terms of Use.",
     "aigcLabel": "Local generation writes no implicit label; the review desk writes an AIGC Vorbis comment on adoption.",
     "kind": "audio"
+  },
+  {
+    "id": "xiaojiu",
+    "name": "小九 AI",
+    "usedVersions": ["gpt-image-2"],
+    "termsUrl": "not recorded: the user confirmed the terms in the 小九 AI account on 2026-11-18 without a link; add the terms page (PK-M0-05)",
+    "termsCheckedAt": "2026-11-18",
+    "commercialUse": true,
+    "outputRights": "The user confirmed on 2026-11-18 that 小九 AI image output may be used commercially (U-03); the terms excerpt, rights holder and attribution rule are not recorded yet (PK-M0-05 12.1).",
+    "aigcLabel": "小九 AI (gpt-image-2) writes a C2PA manifest into the PNG (caBX chunk, urn:c2pa:<id>); the asset tools do not read caBX yet, so records say none (PK-M0-11 A2).",
+    "kind": "image"
   }
 ]

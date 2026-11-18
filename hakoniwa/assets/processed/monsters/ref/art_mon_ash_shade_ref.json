@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_ash_shade_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "ash_waste",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_ash_shade_ref.png",
+    "sha256": "4893af8f1f03fc737813b17a6c7935294ea211c7370f38960abab73862ed54c7",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

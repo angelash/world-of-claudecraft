@@ -1,0 +1,138 @@
+{
+  "id": "art_ico_item_mat_clay",
+  "kind": "art",
+  "template": "ico_item",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/items/art_ico_item_mat_clay.png",
+    "sha256": "9741aa67d40c7c1ecbf2dcca7e6bccbabdf6e430e19272a98f2f581a13912839",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    32,
+    32
+  ],
+  "cell": [
+    32,
+    32
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#e0ad84",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#847a66",
+    "#c6baa0",
+    "#8e949e",
+    "#3c2818",
+    "#5e3e24",
+    "#805836",
+    "#1a1420",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "ax": 16,
+      "ay": 16,
+      "ms": null,
+      "footprint": 14
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.3609,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 39.1875,
+      "blockAligned": false
+    },
+    "itemSemanticPaletteSelection": {
+      "subject": "required grey-brown wet clay material",
+      "sourceChromaMax": 0.06,
+      "candidateChromaMax": 0.065,
+      "candidateRamps": [
+        "cloth_cream",
+        "leather",
+        "skin",
+        "hair"
+      ],
+      "excludedCandidates": [
+        "#b8bcc8",
+        "#eceaf0"
+      ],
+      "extraCandidates": [
+        "#ffffff"
+      ],
+      "missingCandidates": "nearest supplied palette fallback"
+    },
+    "neutralPaletteSelection": {
+      "policy": "achromatic item pixels use existing near-neutral candidates",
+      "sourceChromaMax": 0.01,
+      "candidateChromaMax": 0.03,
+      "missingCandidates": "nearest full palette fallback"
+    },
+    "quantError": 0.0476,
+    "nearestQuantError": 0.0476,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 46,
+      "added": 64
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

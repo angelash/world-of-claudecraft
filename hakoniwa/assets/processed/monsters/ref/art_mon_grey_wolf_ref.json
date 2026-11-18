@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_grey_wolf_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_grey_wolf_ref.png",
+    "sha256": "1e90f78258cb4479c219b9311e0267c80d49bce5c1b63f09be426c0ee7014e9f",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

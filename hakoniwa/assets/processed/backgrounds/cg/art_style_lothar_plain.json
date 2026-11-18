@@ -1,0 +1,330 @@
+{
+  "id": "art_style_lothar_plain",
+  "kind": "art",
+  "template": "bg_cg",
+  "style": "lothar_plain",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/backgrounds/cg/art_style_lothar_plain.png",
+    "sha256": "7af3259a8edf468cfc543a94e3ae3ad92023561409a4f41f4c780bb5a381a415",
+    "w": 1536,
+    "h": 864,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    960,
+    540
+  ],
+  "cell": [
+    960,
+    540
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:lothar_plain",
+  "swatch": [
+    "#081207",
+    "#1e2a1c",
+    "#323e30",
+    "#264e23",
+    "#3d6b3a",
+    "#568252",
+    "#416b24",
+    "#5a8a3a",
+    "#73a256",
+    "#739345",
+    "#8fb35a",
+    "#a9cc77",
+    "#4c301c",
+    "#6b4a32",
+    "#82614a",
+    "#795832",
+    "#9a7448",
+    "#b28c62",
+    "#c5bca7",
+    "#e6dcc4",
+    "#fff7df",
+    "#833b24",
+    "#a8543a",
+    "#c06e54",
+    "#916625",
+    "#b4823a",
+    "#cc9b59",
+    "#6c6a64",
+    "#8a8780",
+    "#a29f98",
+    "#a89a75",
+    "#c9b98f",
+    "#e2d3aa",
+    "#5c4e3a",
+    "#7a6a52",
+    "#91826a",
+    "#353f50",
+    "#4e5a6e",
+    "#657185",
+    "#dab674",
+    "#ffd58a",
+    "#fff0a8"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 960,
+      "h": 540,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 960
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 1.6,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#f0d890",
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.0472,
+    "nearestQuantError": 0.0472,
+    "localPaletteErrors": [
+      {
+        "frame": 0,
+        "region": [
+          448,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15478673223607795
+      },
+      {
+        "frame": 0,
+        "region": [
+          768,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15477735298610756
+      },
+      {
+        "frame": 0,
+        "region": [
+          304,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15476216128897174
+      },
+      {
+        "frame": 0,
+        "region": [
+          192,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15445641744654034
+      },
+      {
+        "frame": 0,
+        "region": [
+          736,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15437799494219853
+      },
+      {
+        "frame": 0,
+        "region": [
+          176,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1543408085748899
+      },
+      {
+        "frame": 0,
+        "region": [
+          832,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15426941858227347
+      },
+      {
+        "frame": 0,
+        "region": [
+          752,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1542460210682632
+      },
+      {
+        "frame": 0,
+        "region": [
+          528,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1541649757412145
+      },
+      {
+        "frame": 0,
+        "region": [
+          816,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1541571284141661
+      },
+      {
+        "frame": 0,
+        "region": [
+          720,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15408723811787312
+      },
+      {
+        "frame": 0,
+        "region": [
+          688,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15406434648661177
+      },
+      {
+        "frame": 0,
+        "region": [
+          464,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15405288449034746
+      },
+      {
+        "frame": 0,
+        "region": [
+          320,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1540513245433587
+      },
+      {
+        "frame": 0,
+        "region": [
+          672,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15404194072513974
+      },
+      {
+        "frame": 0,
+        "region": [
+          656,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.15401257465397095
+      }
+    ],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

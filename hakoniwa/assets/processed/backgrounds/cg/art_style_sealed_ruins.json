@@ -1,0 +1,329 @@
+{
+  "id": "art_style_sealed_ruins",
+  "kind": "art",
+  "template": "bg_cg",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/backgrounds/cg/art_style_sealed_ruins.png",
+    "sha256": "cf9920a257e8eebb9a224487bbe9518d6e741c6973772096628fe1ab02a5a69f",
+    "w": 1536,
+    "h": 864,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    960,
+    540
+  ],
+  "cell": [
+    960,
+    540
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:sealed_ruins",
+  "swatch": [
+    "#020103",
+    "#0c0c12",
+    "#1e1e24",
+    "#13131b",
+    "#2a2a34",
+    "#3e3e49",
+    "#2d3030",
+    "#464a4a",
+    "#5c6060",
+    "#525654",
+    "#6e7270",
+    "#868a88",
+    "#6d706d",
+    "#8a8e8a",
+    "#a3a6a3",
+    "#2f2720",
+    "#4a4038",
+    "#60564e",
+    "#4d4339",
+    "#6a5e52",
+    "#817569",
+    "#404d32",
+    "#5a6a4a",
+    "#718162",
+    "#7d89a5",
+    "#9aa8c8",
+    "#b4c1e1",
+    "#a697bc",
+    "#c6b5e0",
+    "#e0cff9",
+    "#cdb879",
+    "#f0d890",
+    "#fff3ae",
+    "#d9a25c",
+    "#ffc070",
+    "#ffdb8f"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 960,
+      "h": 540,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 960
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 1.6,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.038,
+    "nearestQuantError": 0.038,
+    "localPaletteErrors": [
+      {
+        "frame": 0,
+        "region": [
+          144,
+          304,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.11333609365903541
+      },
+      {
+        "frame": 0,
+        "region": [
+          192,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10550763117293219
+      },
+      {
+        "frame": 0,
+        "region": [
+          192,
+          272,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10415700053302494
+      },
+      {
+        "frame": 0,
+        "region": [
+          352,
+          16,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1040470296518177
+      },
+      {
+        "frame": 0,
+        "region": [
+          192,
+          304,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10376222462617153
+      },
+      {
+        "frame": 0,
+        "region": [
+          352,
+          64,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10140355797576635
+      },
+      {
+        "frame": 0,
+        "region": [
+          176,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10136720729669789
+      },
+      {
+        "frame": 0,
+        "region": [
+          160,
+          272,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10088770210433871
+      },
+      {
+        "frame": 0,
+        "region": [
+          336,
+          16,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.10019985571420296
+      },
+      {
+        "frame": 0,
+        "region": [
+          80,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.0977104720619305
+      },
+      {
+        "frame": 0,
+        "region": [
+          160,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09641096734468926
+      },
+      {
+        "frame": 0,
+        "region": [
+          352,
+          0,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09568569854041722
+      },
+      {
+        "frame": 0,
+        "region": [
+          768,
+          208,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09507542126734166
+      },
+      {
+        "frame": 0,
+        "region": [
+          224,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09452475003252866
+      },
+      {
+        "frame": 0,
+        "region": [
+          80,
+          320,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09383429263387691
+      },
+      {
+        "frame": 0,
+        "region": [
+          128,
+          288,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09139909877230049
+      }
+    ],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    },
+    {
+      "code": "text",
+      "check": "text_suspect",
+      "message": "dense thin high-contrast strokes (41% of an 8x8 window): check for text",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

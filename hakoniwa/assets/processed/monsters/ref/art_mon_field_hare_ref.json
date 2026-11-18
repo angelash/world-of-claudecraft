@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_field_hare_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "lothar_plain",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_field_hare_ref.png",
+    "sha256": "80dc90710d1a038f8c4f79362799e5a5420d3c9a065efb58deee6bf7a6e10017",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

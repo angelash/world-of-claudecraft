@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_shard_louse_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "ash_waste",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_shard_louse_ref.png",
+    "sha256": "a1469a8c90e19035567bc380b9489e999eed18799a977c6e968b05214ad84f4b",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

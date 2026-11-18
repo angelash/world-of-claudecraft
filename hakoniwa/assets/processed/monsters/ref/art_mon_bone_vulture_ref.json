@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_bone_vulture_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "ash_waste",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_bone_vulture_ref.png",
+    "sha256": "016ee96b42dce7648cbc334f075509fc29f0a6f440629df8daae41af6acc0930",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -1,0 +1,42 @@
+{
+  "id": "art_pet_spring_fawn_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_pet_spring_fawn_ref.png",
+    "sha256": "8590fa99cd81ed5de23b910118cc220c8a389d2cd45f1168bab828bb8922dc2c",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

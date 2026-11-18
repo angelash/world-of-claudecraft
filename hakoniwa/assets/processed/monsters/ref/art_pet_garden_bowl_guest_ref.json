@@ -1,0 +1,42 @@
+{
+  "id": "art_pet_garden_bowl_guest_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "divine_court",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_pet_garden_bowl_guest_ref.png",
+    "sha256": "5f79086a6eace74269904d4be0e7f4ccd118f2796cb5e8460d06b9714caf24ad",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

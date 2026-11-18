@@ -1,0 +1,42 @@
+{
+  "id": "art_pet_sylvie_hartwolf_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_pet_sylvie_hartwolf_ref.png",
+    "sha256": "378d713af752db3b55f86d7db5f6205f86a28d1a09dfc10e0b36d4ea48be2ad1",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

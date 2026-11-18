@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_split_ear_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_split_ear_ref.png",
+    "sha256": "dc39d25e4d721a5c4814d90ad0c039ca126a56e0ce120c34f852436c0216cb1b",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

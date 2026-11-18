@@ -1,0 +1,111 @@
+{
+  "id": "art_tile_lothar_plain_dirt_road_02",
+  "kind": "art",
+  "template": "tile_ground",
+  "style": "lothar_plain",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/tiles/art_tile_lothar_plain_dirt_road_02.png",
+    "sha256": "e918469cc0a4ef67bcc1b9360ee4f6ef21e345649b60a6242504f48269c1d667",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    64,
+    64
+  ],
+  "cell": [
+    64,
+    64
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:lothar_plain",
+  "swatch": [
+    "#82614a",
+    "#9a7448",
+    "#b28c62",
+    "#c06e54",
+    "#916625",
+    "#b4823a",
+    "#cc9b59"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 64
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 16,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#f0d890",
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.0301,
+    "nearestQuantError": 0.0301,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -1,0 +1,123 @@
+{
+  "id": "art_ico_deed_hid_orphan_mark",
+  "kind": "art",
+  "template": "ico_deed",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/deeds/art_ico_deed_hid_orphan_mark.png",
+    "sha256": "cd95f0efe052cf8f39216c2d88c647e679624f512348a4c8b485a3fa795cca57",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#a86e4a",
+    "#c88d64",
+    "#f2cba8",
+    "#2b2220",
+    "#4a3226",
+    "#8c3a24",
+    "#c0582e",
+    "#e8c068",
+    "#b8bcc8",
+    "#dcae52",
+    "#847a66",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#c69c6a",
+    "#1a1420",
+    "#b89a52"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 3
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.3308,
+      "fringeRemoved": 1874
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 21.3333,
+      "blockAligned": false
+    },
+    "quantError": 0.0257,
+    "nearestQuantError": 0.0257,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 47,
+      "added": 92
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

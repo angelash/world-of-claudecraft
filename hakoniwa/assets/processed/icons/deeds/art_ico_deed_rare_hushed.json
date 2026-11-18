@@ -1,0 +1,120 @@
+{
+  "id": "art_ico_deed_rare_hushed",
+  "kind": "art",
+  "template": "ico_deed",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/deeds/art_ico_deed_rare_hushed.png",
+    "sha256": "551ad3b4652165612e65efce0f5bda2a01f6cf4792ac7756ed516310f8fd97ce",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#2b2220",
+    "#e8c068",
+    "#b8bcc8",
+    "#5a1c22",
+    "#9a2e30",
+    "#6a4a1c",
+    "#1c2850",
+    "#847a66",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#1a1420",
+    "#6e5c8c",
+    "#8a1424"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 5
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.3207,
+      "fringeRemoved": 2
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 26.125,
+      "blockAligned": false
+    },
+    "quantError": 0.036,
+    "nearestQuantError": 0.036,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 63,
+      "added": 120
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

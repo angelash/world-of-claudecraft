@@ -156,6 +156,7 @@ assets/
 - `npm run assets:import` 从原文件生成：`processed/<类>/<编号>.png`（量化、描边、对齐后的结果）与 `processed/<类>/<编号>.json`（帧矩形、锚点、动作时长、色样、导入版本、隐式标识与处理记录）。
 - 处理是确定性的：同一原文件与同一导入版本得到同一结果；不手改处理结果，要改就调整导入参数或重新生成原文件。
 - 图集在构建时由 `npm run assets:atlas` 生成，不入库；未通过审核的美术编号不进图集，游戏里显示程序化占位；未通过审核的音频编号静音。
+- 开发版（`npm run dev`）另外加载状态为 `review` 的美术与音频，采用并导入后刷新页面就能在游戏里看到、听到，不必等主审通过；地址加 `?assets=approved` 只加载 `approved`。开关是 `src/client/assets/types.ts` 的 `loadedStatuses`，只在开发版生效；`npm run build` 与发布版不跑这两个逐文件加载器，之后由图集与音频打包接手，只收 `approved`。
 - 音频的处理（重采样到 48 kHz、声道、去直流与 30 Hz 高通、变体拆分与裁切、按节拍网格切循环并烘焙接缝、响度归一与真峰值、Ogg 编码与编码后复测）是 `npm run assets:import` 的音频分支，结果在 `processed/audio/<类>/`，规格见 `../docs/40_design/audio_direction.md` 第 8、9 节；分轨分离（Demucs）不在工具内，多层曲目暂按单层处理并在元数据里注明。
 
 ### 4.1 命令

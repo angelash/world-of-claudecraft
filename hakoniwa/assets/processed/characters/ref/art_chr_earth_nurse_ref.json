@@ -1,0 +1,42 @@
+{
+  "id": "art_chr_earth_nurse_ref",
+  "kind": "art",
+  "template": "chr_turnaround",
+  "style": "earth_modern",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/characters/ref/art_chr_earth_nurse_ref.png",
+    "sha256": "7de057ca06caf328e68d27d6f3feeb50d0e2f6ee8c81ebb22c6be82803a664d4",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

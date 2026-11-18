@@ -1,0 +1,42 @@
+{
+  "id": "art_mon_elm_bee_swarm_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_mon_elm_bee_swarm_ref.png",
+    "sha256": "2b89b07730884d77c03d01f70025bf202704cd1a9efacc4d1f69b9443315af21",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

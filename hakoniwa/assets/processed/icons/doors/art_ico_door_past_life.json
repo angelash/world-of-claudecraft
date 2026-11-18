@@ -1,0 +1,125 @@
+{
+  "id": "art_ico_door_past_life",
+  "kind": "art",
+  "template": "ico_door",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/doors/art_ico_door_past_life.png",
+    "sha256": "5b0f62aee8e6e08df8ee4e003b62ec1a3c9f0c21b13515b69220a3efcda1d046",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#b8bcc8",
+    "#a8782c",
+    "#f0e8d2",
+    "#26262e",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#3c2818",
+    "#805836",
+    "#1a1420",
+    "#b89a52",
+    "#f0d890",
+    "#fff4d6"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 30
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.4538,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 26.125,
+      "blockAligned": false
+    },
+    "quantError": 0.0239,
+    "nearestQuantError": 0.0239,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 90,
+      "added": 134
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "text",
+      "check": "text_suspect",
+      "message": "dense thin high-contrast strokes (50% of an 8x8 window): check for text",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

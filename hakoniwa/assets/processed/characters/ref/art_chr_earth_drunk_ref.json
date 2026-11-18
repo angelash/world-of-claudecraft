@@ -1,0 +1,42 @@
+{
+  "id": "art_chr_earth_drunk_ref",
+  "kind": "art",
+  "template": "chr_turnaround",
+  "style": "earth_modern",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/characters/ref/art_chr_earth_drunk_ref.png",
+    "sha256": "938009765378c540487301ebcbaf72d9526a7b38be9cfa5f943161c7efda83d0",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

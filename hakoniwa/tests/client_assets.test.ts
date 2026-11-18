@@ -29,6 +29,7 @@ import {
 import {
   type AssetMeta,
   type AssetRecord,
+  loadedStatuses,
   metaPathOf,
   processedPathOf,
 } from '../src/client/assets/types';
@@ -701,8 +702,23 @@ describe('loader: manifest, processed files and decoding', () => {
     expect(forceProcedural('?art=atlas&x=1', true)).toBe(false);
   });
 
-  it('installs nothing from the real, empty manifest, or when the manifest is missing', async () => {
-    expect(manifestJson).toEqual([]);
+  it('installs nothing from the real manifest without processed files, or when it is missing', async () => {
+    expect(Array.isArray(manifestJson)).toBe(true);
+    const fetched: string[] = [];
+    const noProcessed = await loadAssets({
+      fetchJson: async (u) => {
+        fetched.push(u);
+        if (u === '/assets/manifest.json') return manifestJson;
+        throw new Error(`404 ${u}`);
+      },
+      decode: async () => createMatrix(1, 1),
+      statuses: loadedStatuses('', true),
+    });
+    expect(noProcessed.resolver.size).toBe(0);
+    const reviewArt = (manifestJson as { kind: string; status: string }[]).filter(
+      (r) => r.kind === 'art' && r.status === 'review',
+    ).length;
+    expect(fetched.length).toBe(1 + reviewArt);
     const decoded: string[] = [];
     const decode = async (u: string) => {
       decoded.push(u);
@@ -768,5 +784,53 @@ describe('loader: manifest, processed files and decoding', () => {
       decode: async () => undefined,
     });
     expect(forced.resolver.size).toBe(0);
+  });
+
+  it('loads review art too when a development build asks (loadedStatuses), never rework', () => {
+    expect(loadedStatuses('', true)).toEqual(['approved', 'review']);
+    expect(loadedStatuses('?seed=3', true)).toEqual(['approved', 'review']);
+    expect(loadedStatuses('?assets=approved', true)).toEqual(['approved']);
+    expect(loadedStatuses('', false)).toEqual(['approved']);
+    expect(loadedStatuses('?assets=review', false)).toEqual(['approved']);
+  });
+
+  it('resolves and decodes review art with the development statuses only', async () => {
+    const files: Record<string, unknown> = {
+      '/assets/manifest.json': [
+        rec('art_mon_dian_rat_d', 'mon_small', 'approved'),
+        rec('art_mon_dian_rat_u', 'mon_small', 'review'),
+        rec('art_mon_dian_rat_r', 'mon_small', 'rework'),
+      ],
+      '/assets/processed/test/art_mon_dian_rat_d.json': fresh('art_mon_dian_rat_d', 'mon_small'),
+      '/assets/processed/test/art_mon_dian_rat_u.json': fresh('art_mon_dian_rat_u', 'mon_small'),
+      '/assets/processed/test/art_mon_dian_rat_r.json': fresh('art_mon_dian_rat_r', 'mon_small'),
+    };
+    const decode = async () => createMatrix(288, 192);
+    const release = await loadAssets({ fetchJson: serve(files), decode });
+    expect(release.resolver.approved().map((h) => h.id)).toEqual(['art_mon_dian_rat_d']);
+    expect(release.resolver.lookup('art_mon_dian_rat_u')).toMatchObject({ reason: 'review' });
+    const dev = await loadAssets({
+      fetchJson: serve(files),
+      decode,
+      statuses: loadedStatuses('', true),
+    });
+    expect(
+      dev.resolver
+        .approved()
+        .map((h) => h.id)
+        .sort(),
+    ).toEqual(['art_mon_dian_rat_d', 'art_mon_dian_rat_u']);
+    expect(dev.resolver.lookup('art_mon_dian_rat_u')).toMatchObject({ ok: true });
+    expect(dev.resolver.lookup('art_mon_dian_rat_r')).toMatchObject({
+      ok: false,
+      reason: 'rework',
+    });
+    expect(dev.pixels.get('art_mon_dian_rat_u')?.w).toBe(288);
+    const approvedOnly = await loadAssets({
+      fetchJson: serve(files),
+      decode,
+      statuses: loadedStatuses('?assets=approved', true),
+    });
+    expect(approvedOnly.resolver.size).toBe(1);
   });
 });

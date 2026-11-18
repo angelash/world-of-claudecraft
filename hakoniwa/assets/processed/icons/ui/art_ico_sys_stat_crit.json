@@ -1,0 +1,134 @@
+{
+  "id": "art_ico_sys_stat_crit",
+  "kind": "art",
+  "template": "ico_ui",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/ui/art_ico_sys_stat_crit.png",
+    "sha256": "9897b016cd41927af43b0eccac9c6442047b068ee4a9c0b1cbc2a48d922bd7c8",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    24,
+    24
+  ],
+  "cell": [
+    24,
+    24
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "ui",
+  "swatch": [
+    "#e8c040",
+    "#6a4a30"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 24,
+      "ax": 12,
+      "ay": 12,
+      "ms": null,
+      "footprint": 3
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.2153,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 52.25,
+      "blockAligned": false
+    },
+    "reduction": "mode grouped by UI palette, original RGB means",
+    "quantError": 0.0648,
+    "nearestQuantError": 0.0648,
+    "localPaletteErrors": [
+      {
+        "frame": 0,
+        "region": [
+          16,
+          0,
+          4,
+          16
+        ],
+        "pixels": 8,
+        "meanError": 0.07651773178190673
+      },
+      {
+        "frame": 0,
+        "region": [
+          0,
+          16,
+          16,
+          4
+        ],
+        "pixels": 11,
+        "meanError": 0.07418497063546502
+      }
+    ],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

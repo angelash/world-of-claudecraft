@@ -1,0 +1,42 @@
+{
+  "id": "art_pet_fiend_colossus_remnant_ref",
+  "kind": "art",
+  "template": "mon_turnaround",
+  "style": "sealed_ruins",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/monsters/ref/art_pet_fiend_colossus_remnant_ref.png",
+    "sha256": "45335869886f4071de77ad717762a91974d0abed3bccc03956eda9c4888a8c0a",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

@@ -5,9 +5,19 @@
 // import version from there); tests/client_assets.test.ts pins the two against each other.
 // Pure types and constants.
 
-/** Review states of a manifest record; only `approved` art is ever drawn. */
+/** Review states of a manifest record; release draws only `approved` art (loadedStatuses). */
 export const ASSET_STATUSES = ['review', 'approved', 'rework', 'rejected', 'retired'] as const;
 export type AssetStatus = (typeof ASSET_STATUSES)[number];
+
+/**
+ * The statuses whose art and audio a build loads. Release builds: approved only. Development
+ * builds also load `review`, so adopted and imported files show and play before the reviewer
+ * decides (assets/README.md 3.3); ?assets=approved shows only what release would ship.
+ */
+export function loadedStatuses(search: string, dev: boolean): readonly AssetStatus[] {
+  if (!dev || new URLSearchParams(search).get('assets') === 'approved') return ['approved'];
+  return ['approved', 'review'];
+}
 
 /** The manifest fields the resolver reads (assets/manifest.json keeps more). */
 export interface AssetRecord {

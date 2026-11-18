@@ -1,0 +1,330 @@
+{
+  "id": "art_style_wild_forest",
+  "kind": "art",
+  "template": "bg_cg",
+  "style": "wild_forest",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/backgrounds/cg/art_style_wild_forest.png",
+    "sha256": "3bb3cf9967178969b303ce80a6feb0f87e9036ca20f391e623ac744f2a80002b",
+    "w": 1672,
+    "h": 941,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    960,
+    540
+  ],
+  "cell": [
+    960,
+    540
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:wild_forest",
+  "swatch": [
+    "#020601",
+    "#121c10",
+    "#252f23",
+    "#173e1a",
+    "#2e5a30",
+    "#467047",
+    "#234d1e",
+    "#3a6a34",
+    "#53814d",
+    "#325c24",
+    "#4a7a3a",
+    "#639254",
+    "#517a3a",
+    "#6a9a50",
+    "#84b26b",
+    "#9aa877",
+    "#b8c890",
+    "#d2e2ac",
+    "#3d2514",
+    "#5a3e2a",
+    "#705441",
+    "#654e35",
+    "#846a4c",
+    "#9b8265",
+    "#7a6953",
+    "#9a866c",
+    "#b29f85",
+    "#525654",
+    "#6e7270",
+    "#868a88",
+    "#22303d",
+    "#3a4a5a",
+    "#506070",
+    "#bfb887",
+    "#e0d8a0",
+    "#faf2bc"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 960,
+      "h": 540,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 960
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 1.7417,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#f0d890",
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.044,
+    "nearestQuantError": 0.044,
+    "localPaletteErrors": [
+      {
+        "frame": 0,
+        "region": [
+          592,
+          384,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1195325127123051
+      },
+      {
+        "frame": 0,
+        "region": [
+          592,
+          400,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.1184440885668525
+      },
+      {
+        "frame": 0,
+        "region": [
+          576,
+          400,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.11834560732349217
+      },
+      {
+        "frame": 0,
+        "region": [
+          560,
+          416,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.11716751652830647
+      },
+      {
+        "frame": 0,
+        "region": [
+          576,
+          368,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.11290905889871458
+      },
+      {
+        "frame": 0,
+        "region": [
+          608,
+          416,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.11175327499750883
+      },
+      {
+        "frame": 0,
+        "region": [
+          640,
+          336,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09942735420728599
+      },
+      {
+        "frame": 0,
+        "region": [
+          576,
+          416,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09856088378785519
+      },
+      {
+        "frame": 0,
+        "region": [
+          800,
+          224,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09414652148939864
+      },
+      {
+        "frame": 0,
+        "region": [
+          608,
+          400,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09272115209180727
+      },
+      {
+        "frame": 0,
+        "region": [
+          560,
+          400,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.0922761596536156
+      },
+      {
+        "frame": 0,
+        "region": [
+          576,
+          384,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09128930637148426
+      },
+      {
+        "frame": 0,
+        "region": [
+          416,
+          16,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.09111671708091683
+      },
+      {
+        "frame": 0,
+        "region": [
+          592,
+          416,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.0903824449265289
+      },
+      {
+        "frame": 0,
+        "region": [
+          656,
+          464,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.08808095256236598
+      },
+      {
+        "frame": 0,
+        "region": [
+          368,
+          48,
+          16,
+          16
+        ],
+        "pixels": 256,
+        "meanError": 0.08737349673568838
+      }
+    ],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    },
+    {
+      "code": "text",
+      "check": "text_suspect",
+      "message": "dense thin high-contrast strokes (45% of an 8x8 window): check for text",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

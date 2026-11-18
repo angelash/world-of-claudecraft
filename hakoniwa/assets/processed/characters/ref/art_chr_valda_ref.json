@@ -1,0 +1,42 @@
+{
+  "id": "art_chr_valda_ref",
+  "kind": "art",
+  "template": "chr_turnaround",
+  "style": "divine_court",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/characters/ref/art_chr_valda_ref.png",
+    "sha256": "c32ac6384630a329cd74e8431cfcd7c5d91ec4f598d2bc3b372d43c8b0d020b2",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    4,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}

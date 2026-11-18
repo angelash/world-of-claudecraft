@@ -6,6 +6,8 @@
 // the next reload. Release builds stay silent until the audio packing step ships the approved
 // files with the build (release_engineering.md 9.5). Never throws: with no manifest, no
 // approved audio or a broken record, the index is smaller and the game simply has less sound.
+// Development builds also load `review` records (loadedStatuses in ../assets/types.ts), so
+// adopted and imported sounds play before approval; ?assets=approved plays only approved.
 
 import { IMPORT_VERSION } from '../../../tools/assets/core/meta';
 import { metaPathOf } from '../assets/types';
@@ -23,6 +25,8 @@ export const DEV_AUDIO_BASE = '/assets/';
 export interface AudioLoadOptions {
   base?: string;
   fetchJson?: (url: string) => Promise<unknown>;
+  /** statuses to load (default approved; the browser wiring passes loadedStatuses) */
+  statuses?: readonly string[];
 }
 
 async function fetchJsonDefault(url: string): Promise<unknown> {
@@ -43,7 +47,8 @@ export async function loadAudioIndex(
   } catch {
     raw = [];
   }
-  const records = approvedAudio(raw);
+  const statuses = opts.statuses ?? ['approved'];
+  const records = approvedAudio(raw, statuses);
   const metas = new Map<string, AudioMetaLike | null>();
   await Promise.all(
     records.map(async (r: AudioRecordLike) => {
@@ -54,5 +59,5 @@ export async function loadAudioIndex(
       }
     }),
   );
-  return buildAudioIndex(records, (r) => metas.get(r.id), IMPORT_VERSION);
+  return buildAudioIndex(records, (r) => metas.get(r.id), IMPORT_VERSION, statuses);
 }

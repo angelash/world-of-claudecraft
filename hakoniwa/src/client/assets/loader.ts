@@ -3,6 +3,8 @@
 // pixels and installs the resolver the renderers draw from (./runtime.ts). With an empty
 // manifest (the state before the first art batch) it installs nothing, so the game draws the
 // procedural placeholder exactly as before. ?art=procedural forces the placeholder (6.4).
+// Development builds also load `review` records (loadedStatuses in ./types.ts), so generated
+// art shows before approval; ?assets=approved shows only approved art, as release would.
 //
 // This is the DOM side (Image, canvas, fetch); the rules live in the pure resolver. It serves
 // the development build only: the dev server hands out assets/ as files, so whatever
@@ -18,7 +20,14 @@ import { makeCanvas } from '../render/canvas_util';
 import type { PixelMatrix } from '../sprites/pixels';
 import { AssetResolver } from './resolver';
 import { installAssets, type SheetPixels } from './runtime';
-import { type AssetMeta, type AssetRecord, metaPathOf, processedPathOf } from './types';
+import {
+  type AssetMeta,
+  type AssetRecord,
+  type AssetStatus,
+  loadedStatuses,
+  metaPathOf,
+  processedPathOf,
+} from './types';
 
 /** Where the dev server serves hakoniwa/assets/. */
 export const DEV_ASSET_BASE = '/assets/';
@@ -32,6 +41,8 @@ export interface LoadOptions {
   fetchJson?: (url: string) => Promise<unknown>;
   /** image decoder (defaults to an Image drawn into a canvas) */
   decode?: (url: string) => Promise<PixelMatrix | undefined>;
+  /** statuses to load (default approved; installApprovedArt passes loadedStatuses) */
+  statuses?: readonly AssetStatus[];
 }
 
 /** Whether the page asks for the placeholder everywhere (development builds only). */
@@ -78,6 +89,7 @@ export async function loadAssets(
   const base = opts.base ?? DEV_ASSET_BASE;
   const fetchJson = opts.fetchJson ?? fetchJsonDefault;
   const decode = opts.decode ?? decodeDefault;
+  const statuses = opts.statuses ?? ['approved'];
   let raw: unknown = [];
   try {
     raw = await fetchJson(`${base}manifest.json`);
@@ -91,7 +103,9 @@ export async function loadAssets(
   if (!opts.procedural) {
     await Promise.all(
       records
-        .filter((r) => r.kind === 'art' && r.status === 'approved' && typeof r.file === 'string')
+        .filter(
+          (r) => r.kind === 'art' && statuses.includes(r.status) && typeof r.file === 'string',
+        )
         .map(async (r) => {
           try {
             const meta = (await fetchJson(`${base}${metaPathOf(r.file)}`)) as RawMeta;
@@ -109,6 +123,7 @@ export async function loadAssets(
     image: (r) => `${base}${processedPathOf(r.file)}`,
     aliases: ART_ALIASES,
     procedural: opts.procedural,
+    statuses,
   });
   const sheets = new Map<string, PixelMatrix>();
   await Promise.all(
@@ -133,7 +148,8 @@ export async function installApprovedArt(): Promise<void> {
   if (!import.meta.env.DEV) return;
   try {
     const procedural = forceProcedural(window.location.search, true);
-    const { resolver, pixels } = await loadAssets({ procedural });
+    const statuses = loadedStatuses(window.location.search, import.meta.env.DEV);
+    const { resolver, pixels } = await loadAssets({ procedural, statuses });
     installAssets(resolver, pixels);
   } catch (err) {
     console.warn('[assets] approved art not installed; drawing placeholders', err);

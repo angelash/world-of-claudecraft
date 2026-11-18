@@ -1,0 +1,130 @@
+{
+  "id": "art_ico_deed_mortal_dwarf_mechanism",
+  "kind": "art",
+  "template": "ico_deed",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/deeds/art_ico_deed_mortal_dwarf_mechanism.png",
+    "sha256": "2fd7ec2887a96c4d0d374543cd3ad7bf8037efb71a2c5f35df49532110a29693",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#865236",
+    "#a86e4a",
+    "#c88d64",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#e09048",
+    "#e8c068",
+    "#b8bcc8",
+    "#eceaf0",
+    "#6a4a1c",
+    "#a8782c",
+    "#dcae52",
+    "#847a66",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#3c2818",
+    "#805836",
+    "#a2764a",
+    "#1a1420",
+    "#f0d890"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 12
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.4851,
+      "fringeRemoved": 2400
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 21.3333,
+      "blockAligned": false
+    },
+    "quantError": 0.0279,
+    "nearestQuantError": 0.0279,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 109,
+      "added": 175
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

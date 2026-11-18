@@ -1,0 +1,148 @@
+{
+  "id": "art_prop_cut_blade_mark",
+  "kind": "art",
+  "template": "prop_huge",
+  "style": "lothar_plain",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/props/art_prop_cut_blade_mark.png",
+    "sha256": "6a3dbdc941ab5fe3f5c3493521e4772fafb0d1044b24d520b52de2352d720592",
+    "w": 1024,
+    "h": 1536,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    128,
+    192
+  ],
+  "cell": [
+    128,
+    192
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:lothar_plain",
+  "swatch": [
+    "#081207",
+    "#1e2a1c",
+    "#323e30",
+    "#264e23",
+    "#3d6b3a",
+    "#568252",
+    "#416b24",
+    "#5a8a3a",
+    "#73a256",
+    "#739345",
+    "#8fb35a",
+    "#a9cc77",
+    "#4c301c",
+    "#6b4a32",
+    "#82614a",
+    "#795832",
+    "#9a7448",
+    "#b28c62",
+    "#c5bca7",
+    "#e6dcc4",
+    "#fff7df",
+    "#833b24",
+    "#a8543a",
+    "#c06e54",
+    "#916625",
+    "#b4823a",
+    "#cc9b59",
+    "#6c6a64",
+    "#a89a75",
+    "#c9b98f",
+    "#e2d3aa",
+    "#5c4e3a",
+    "#7a6a52",
+    "#91826a",
+    "#353f50",
+    "#dab674",
+    "#ffd58a",
+    "#fff0a8"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 128,
+      "h": 192,
+      "ax": 64,
+      "ay": 191,
+      "ms": null,
+      "footprint": 102
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.3964,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 8,
+      "blockAligned": false
+    },
+    "stylePaletteSelection": {
+      "policy": "declared anchors; appended reserved colors require an exempt subject or pack",
+      "omittedCandidates": [
+        "#f0d890",
+        "#4a3a62",
+        "#fff4d6"
+      ],
+      "declaredAnchorsPreserved": true
+    },
+    "quantError": 0.0462,
+    "nearestQuantError": 0.0462,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 299,
+      "added": 447
+    },
+    "postOutlineQuantization": {
+      "quantError": 0,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

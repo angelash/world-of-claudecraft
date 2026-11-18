@@ -2,6 +2,7 @@
 
 音频是客户端的一个子系统（[音频方向](../../../docs/40_design/audio_direction.md)第 10.1 节，[发行工程](../../../docs/50_tech/release_engineering.md)第 9 节）：只经 `GameView` 与内核事件读世界，不调用内核命令，不改变任何结果。
 没有音频设备、音频上下文创建失败、或某个编号还没有通过的处理结果时，一律静默运行，不放占位音（音频方向第 9.2 节）；声音字幕与手柄震动不依赖音频设备。
+开发版另外加载审核中（`review`）的处理结果，采用并导入后刷新即可试听；地址加 `?assets=approved` 只放已通过的（`../assets/types.ts` 的 `loadedStatuses`，[素材说明](../../../assets/README.md)第 4 节）。
 
 ## 模块
 

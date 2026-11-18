@@ -1,0 +1,420 @@
+{
+  "id": "art_pet_mnt_donkey_d",
+  "kind": "art",
+  "template": "pet_mount",
+  "style": "lothar_plain",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/creatures/art_pet_mnt_donkey_d.png",
+    "sha256": "0986268a25f2cacfb096582c5a439a55a52566f9e6ebe850484758d54ae996a9",
+    "w": 1774,
+    "h": 887,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    384,
+    192
+  ],
+  "cell": [
+    64,
+    64
+  ],
+  "grid": [
+    6,
+    3
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#865236",
+    "#a86e4a",
+    "#c88d64",
+    "#e0ad84",
+    "#f2cba8",
+    "#fce4d0",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#8c3a24",
+    "#c0582e",
+    "#e09048",
+    "#e8c068",
+    "#f6e4a8",
+    "#5a1c22",
+    "#6a4a1c",
+    "#a8782c",
+    "#dcae52",
+    "#847a66",
+    "#c6baa0",
+    "#f0e8d2",
+    "#6c6c76",
+    "#8e949e",
+    "#3c2818",
+    "#5e3e24",
+    "#805836",
+    "#a2764a",
+    "#c69c6a",
+    "#1a1420",
+    "#f0d890"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "idle",
+      "dir": "down",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": 220,
+      "footprint": 17
+    },
+    {
+      "anim": "idle",
+      "dir": "down",
+      "i": 1,
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": 220,
+      "footprint": 18
+    },
+    {
+      "anim": "idle",
+      "dir": "down",
+      "i": 2,
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": 220,
+      "footprint": 18
+    },
+    {
+      "anim": "idle",
+      "dir": "down",
+      "i": 3,
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": 220,
+      "footprint": 17
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 0,
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 18
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 1,
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 7
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 2,
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 7
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 3,
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 14
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 4,
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 8
+    },
+    {
+      "anim": "walk",
+      "dir": "down",
+      "i": 5,
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 13
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 0,
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 20
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 1,
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 14
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 2,
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 7
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 3,
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 8
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 4,
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 9
+    },
+    {
+      "anim": "run",
+      "dir": "down",
+      "i": 5,
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "ax": 32,
+      "ay": 60,
+      "ms": null,
+      "footprint": 19
+    }
+  ],
+  "anims": {
+    "idle/down": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "ms": [
+        220,
+        220,
+        220,
+        220
+      ],
+      "loop": true,
+      "hold": false
+    },
+    "walk/down": {
+      "frames": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "ms": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "loop": true,
+      "hold": false,
+      "stepTiles": 0.32
+    },
+    "run/down": {
+      "frames": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "ms": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "loop": true,
+      "hold": false,
+      "stepTiles": 0.5
+    }
+  },
+  "directions": {
+    "drawn": [
+      "down"
+    ],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.2229,
+      "fringeRemoved": 542
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 4.6198,
+      "blockAligned": false
+    },
+    "bodySize": 57,
+    "quantError": 0.049,
+    "nearestQuantError": 0.049,
+    "localPaletteErrors": [
+      {
+        "frame": 13,
+        "region": [
+          32,
+          32,
+          1,
+          16
+        ],
+        "pixels": 2,
+        "meanError": 0.09521552901069749
+      },
+      {
+        "frame": 12,
+        "region": [
+          32,
+          32,
+          1,
+          16
+        ],
+        "pixels": 2,
+        "meanError": 0.08045432408132111
+      },
+      {
+        "frame": 8,
+        "region": [
+          32,
+          32,
+          1,
+          16
+        ],
+        "pixels": 3,
+        "meanError": 0.07376158975585204
+      }
+    ],
+    "folded": 5,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 2307,
+      "added": 2984
+    },
+    "postOutlineQuantization": {
+      "quantError": 0.0001,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 4
+    },
+    "jitter": 0.05
+  },
+  "problems": [
+    {
+      "code": "palette",
+      "check": "local_quant_error",
+      "message": "palette: localized palette loss exceeds 0.07; compare the recorded regions before requesting new art",
+      "warning": true
+    }
+  ],
+  "autoReason": ""
+}

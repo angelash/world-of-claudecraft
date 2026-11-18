@@ -1,0 +1,111 @@
+{
+  "id": "art_tile_door_corridor_mirror_floor_01",
+  "kind": "art",
+  "template": "tile_ground",
+  "style": "door_corridor",
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/tiles/art_tile_door_corridor_mirror_floor_01.png",
+    "sha256": "19b337070bd6c5ee7687560d04ae09e81689d2740a9b78bba5167bd904212533",
+    "w": 1254,
+    "h": 1254,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    64,
+    64
+  ],
+  "cell": [
+    64,
+    64
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "style:door_corridor",
+  "swatch": [
+    "#16161e",
+    "#292931",
+    "#0d0d15",
+    "#383842",
+    "#3a3a46",
+    "#4f4f5b",
+    "#302b3b",
+    "#4a4458",
+    "#3f3f4b",
+    "#6b5831",
+    "#8a7448",
+    "#a68a4b",
+    "#c8a860",
+    "#e1c27d",
+    "#f0d890",
+    "#fff3ae"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "ax": null,
+      "ay": null,
+      "ms": null,
+      "footprint": 64
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "none",
+      "opaque": 1,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 19.5938,
+      "blockAligned": false
+    },
+    "quantError": 0.0173,
+    "nearestQuantError": 0.0172,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "none",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 0,
+      "added": 0
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

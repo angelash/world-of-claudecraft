@@ -1,0 +1,133 @@
+{
+  "id": "art_ico_deed_mortal_crystal_broke",
+  "kind": "art",
+  "template": "ico_deed",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/icons/deeds/art_ico_deed_mortal_crystal_broke.png",
+    "sha256": "6dbc24cfbfe9d2abcc21796405d913f100922ad4ce227f855daf0142fb135ddf",
+    "w": 1024,
+    "h": 1024,
+    "colorType": 6,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    48,
+    48
+  ],
+  "cell": [
+    48,
+    48
+  ],
+  "grid": [
+    1,
+    1
+  ],
+  "palette": "creature",
+  "swatch": [
+    "#42281c",
+    "#623a26",
+    "#a86e4a",
+    "#c88d64",
+    "#f2cba8",
+    "#2b2220",
+    "#4a3226",
+    "#6e4a30",
+    "#e09048",
+    "#e8c068",
+    "#b8bcc8",
+    "#6a4a1c",
+    "#603c7a",
+    "#926aaa",
+    "#f0e8d2",
+    "#26262e",
+    "#46464e",
+    "#6c6c76",
+    "#3c4048",
+    "#626872",
+    "#8e949e",
+    "#bcc2ca",
+    "#e6eaee",
+    "#3c2818",
+    "#5e3e24",
+    "#805836",
+    "#c69c6a",
+    "#1a1420",
+    "#6e5c8c",
+    "#b89a52",
+    "#f0d890",
+    "#ffffff"
+  ],
+  "slots": {},
+  "frames": [
+    {
+      "anim": "main",
+      "dir": "front",
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "ax": 24,
+      "ay": 24,
+      "ms": null,
+      "footprint": 6
+    }
+  ],
+  "anims": {
+    "main/front": {
+      "frames": [
+        0
+      ],
+      "ms": [
+        null
+      ],
+      "loop": false,
+      "hold": false
+    }
+  },
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "keying": {
+      "mode": "magenta",
+      "opaque": 0.4831,
+      "fringeRemoved": 0
+    },
+    "block": {
+      "size": 1,
+      "phase": [
+        0,
+        0
+      ],
+      "score": 1
+    },
+    "scale": {
+      "ratio": 21.3333,
+      "blockAligned": false
+    },
+    "quantError": 0.0384,
+    "nearestQuantError": 0.0384,
+    "localPaletteErrors": [],
+    "folded": 0,
+    "outline": {
+      "policy": "standee",
+      "colorPolicy": "existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback",
+      "stripped": 102,
+      "added": 175
+    },
+    "postOutlineQuantization": {
+      "quantError": 0.0001,
+      "nearestQuantError": 0,
+      "localPaletteErrors": [],
+      "folded": 3
+    },
+    "jitter": 0
+  },
+  "problems": [],
+  "autoReason": ""
+}

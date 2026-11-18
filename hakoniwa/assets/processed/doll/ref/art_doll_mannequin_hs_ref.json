@@ -1,0 +1,42 @@
+{
+  "id": "art_doll_mannequin_hs_ref",
+  "kind": "art",
+  "template": "doll_mannequin",
+  "style": null,
+  "importVersion": "1.0.16",
+  "source": {
+    "file": "art/doll/ref/art_doll_mannequin_hs_ref.png",
+    "sha256": "2c768852db1991e92c3e278b93f78bde3eca172afd5ae2d4dd3c3b2ad2290fe7",
+    "w": 1536,
+    "h": 1024,
+    "colorType": 2,
+    "bitDepth": 8
+  },
+  "aigcLabel": "none",
+  "size": [
+    0,
+    0
+  ],
+  "cell": [
+    0,
+    0
+  ],
+  "grid": [
+    3,
+    1
+  ],
+  "palette": "none",
+  "swatch": [],
+  "slots": {},
+  "frames": [],
+  "anims": {},
+  "directions": {
+    "drawn": [],
+    "mirrored": []
+  },
+  "processing": {
+    "reference": true
+  },
+  "problems": [],
+  "autoReason": ""
+}
