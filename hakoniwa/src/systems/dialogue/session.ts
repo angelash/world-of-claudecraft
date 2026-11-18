@@ -23,7 +23,7 @@ export const KEEP_RANGE = 4;
 export const REPLY_DEADLINE = 60;
 const LINE_CAP = 40;
 
-const BUILTIN_IDS = ['chat', 'rumors', 'opinion', 'bye'] as const;
+const BUILTIN_IDS = ['topics', 'chat', 'rumors', 'opinion', 'bye'] as const;
 
 /** The built-in options, as fresh objects for a new session. */
 export function builtinOptions(): SessionOption[] {
@@ -78,10 +78,12 @@ export function addOffered(
   system: string,
   options: { id: string; label: TextParam; hint?: TextParam }[],
 ): void {
+  // while the topic menu shows, offers join the main list it will return to
+  const list = s.menu === 'topics' && s.root ? s.root : s.options;
   for (const o of options) {
     const id = `${system}:${o.id}`;
-    if (s.options.some((x) => x.id === id)) continue;
-    s.options.splice(Math.max(0, s.options.length - 1), 0, {
+    if (list.some((x) => x.id === id)) continue;
+    list.splice(Math.max(0, list.length - 1), 0, {
       id,
       label: o.label,
       hint: o.hint,

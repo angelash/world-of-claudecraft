@@ -5,6 +5,7 @@
 
 import type { SystemContext } from '../../core/system';
 import { clipText, type TextParam, tr } from '../../core/text';
+import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { react } from '../npc/brain/reactions';
 import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
@@ -120,13 +121,19 @@ export function witnessFeat(ctx: SystemContext, d: FeatInput): void {
       { kind: clarity >= 1 ? 'seen_close' : 'seen', weight: 5 * clarity },
     ];
     const b = ctx.world.slices.cognition.beliefs[id]?.[subject];
-    const again = b?.evidence.some(
-      (x) => (x.kind === 'seen' || x.kind === 'seen_close') && x.feat === d.kind && x.src !== d.key,
+    const seen = (b?.evidence ?? []).filter(
+      (x) => (x.kind === 'seen' || x.kind === 'seen_close') && x.src !== d.key,
     );
-    if (again) {
-      kinds.push({ kind: 'repeat', weight: 4 });
-      if (clarity >= 1) kinds.push({ kind: 'repeat_close', weight: 0 });
-    }
+    // the same kind of deed again is reproducible (3.1 可复现)
+    if (seen.some((x) => x.feat === d.kind)) kinds.push({ kind: 'repeat', weight: 4 });
+    // done again up close (3.4 当众复现, 亲眼看见空手): the same kind of deed seen before, or
+    // any deed of another event (seen at least a game hour before, not a blow of the same
+    // fight); the close repeat refutes tricks, gadgets and a hidden master and carries no
+    // weight of its own
+    const again =
+      seen.some((x) => x.feat === d.kind) ||
+      seen.some((x) => ctx.tick - x.tick >= TICKS_PER_GAME_HOUR);
+    if (clarity >= 1 && again) kinds.push({ kind: 'repeat_close', weight: 0 });
     if (d.targetId && d.targetId === e.id && (d.kind === 'rescue' || d.kind === 'heal'))
       kinds.push({ kind: 'benefit', weight: 3 });
     const o = observe(ctx, id, subject, {

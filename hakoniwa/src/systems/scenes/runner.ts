@@ -15,6 +15,7 @@ import type { Effect } from '../quests/effect_types';
 import { applyEffects, conditionHolds, teleportPlayer } from '../quests/effects';
 import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
 import { defaultKind, fillText, speakerName } from '../quests/speakers';
+import { ruleAnswer } from './answer_port';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
 import type {
@@ -519,15 +520,25 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
   if (clean) ctx.emit('player.said', { text: clean, mapId: playerMap, toId: spec.agentId });
   const reply = visibleLines(ctx, spec.reply);
   const classifyNode = spec.classify ? nodeOf(scene, spec.classify.node) : undefined;
+  const open = classifyNode
+    ? visibleChoices(ctx, run, classifyNode).filter((c) => spec.classify?.choices.includes(c.id))
+    : [];
+  // the rule classifier sorts the answer when no model does (and is the model's fallback);
+  // without a rule pick the input's written fallback stands (builtin_ai 6.7, PK-M1-19)
+  const fallbackChoice =
+    ruleAnswer(ctx, {
+      sceneId: scene.id,
+      nodeId: node.id,
+      text: clean,
+      choices: open.map((c) => c.id),
+    }) ?? spec.classify?.fallback;
   if (spec.agentId && clean) {
     run.waiting = 'resolve';
     run.revision++;
     run.resolveDeadline = ctx.tick + AI_DEADLINE + 2;
     const turn = (run.turn ?? 0) + 1;
     run.turn = turn;
-    const choices = classifyNode
-      ? visibleChoices(ctx, run, classifyNode).filter((c) => spec.classify?.choices.includes(c.id))
-      : [];
+    const choices = open;
     ctx.ai.request({
       agentId: spec.agentId,
       role: spec.role ?? 'goddess.dialogue',
@@ -545,7 +556,7 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
           : {}),
       }),
       allowed: ['scenes.resolve'],
-      fallback: [resolveCommand(run, reply, spec.classify?.fallback)],
+      fallback: [resolveCommand(run, reply, fallbackChoice)],
       deadlineTicks: AI_DEADLINE,
       priority: 6,
     });
@@ -555,7 +566,7 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
   // no model answer to wait for: the written reply closes a multi-turn round at once
   if (turns?.storeAs) ctx.setFlag(turns.storeAs, 'closed');
   if (spec.classify && classifyNode) {
-    const choice = (classifyNode.choices ?? []).find((c) => c.id === spec.classify?.fallback);
+    const choice = (classifyNode.choices ?? []).find((c) => c.id === fallbackChoice);
     if (choice) {
       applyChoice(ctx, run, scene, classifyNode, choice);
       return ok();

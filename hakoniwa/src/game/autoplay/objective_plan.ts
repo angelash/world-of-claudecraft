@@ -7,7 +7,8 @@
 import type { Objective } from '../../systems/quests/types';
 
 export type ObjectivePlan =
-  | { kind: 'talk'; npc: string }
+  /** talk to the person; `option` is the conversation option to choose there */
+  | { kind: 'talk'; npc: string; option?: string }
   | { kind: 'reach'; mapId: string; location?: string }
   | { kind: 'wait' }
   | null;
@@ -16,9 +17,11 @@ export type ObjectivePlan =
 export function modelObjectivePlan(o: Objective): ObjectivePlan {
   switch (o.type) {
     case 'deliver':
-    case 'persuade':
     case 'rescue':
       return { kind: 'talk', npc: o.npc };
+    case 'persuade':
+      // the talk itself persuades nobody: the persuade option is the attempt (PK-M1-19)
+      return { kind: 'talk', npc: o.npc, option: 'persuade' };
     case 'stealth':
       return { kind: 'reach', mapId: o.mapId, location: o.location };
     case 'escort':

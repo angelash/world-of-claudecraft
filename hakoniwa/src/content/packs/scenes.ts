@@ -86,7 +86,7 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
       if (cl) {
         const target = scene.nodes.find((x) => x.id === cl.node);
         if (!target) out.push(`${at}: classify -> unknown node ${cl.node}`);
-        for (const c of [...cl.choices, cl.fallback]) {
+        for (const c of [...cl.choices, ...(cl.fallback !== undefined ? [cl.fallback] : [])]) {
           if (target && !(target.choices ?? []).some((x) => x.id === c))
             out.push(`${at}: classify choice ${c} missing`);
         }

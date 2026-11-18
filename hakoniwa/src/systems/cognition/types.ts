@@ -240,6 +240,11 @@ export interface CognitionSlice {
   comedyStreak: Record<string, { bit: string; n: number }>;
   /** targetId -> tick, to de-duplicate feats synthesized from deaths */
   recentFeats: Record<string, number>;
+  /**
+   * Rumors each person already matched to the player's face (identity_matched, builtin_ai
+   * 5.6; PK-M1-19); absent on saves before it.
+   */
+  matched?: Record<string, string[]>;
 }
 
 declare module '../../core/contracts' {

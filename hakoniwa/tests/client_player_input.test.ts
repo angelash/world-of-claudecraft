@@ -53,9 +53,11 @@ beforeAll(() => {
 describe('free text', () => {
   it("an empty answer (the floating keyboard's default key) takes the node's default name", () => {
     expect(base.engine.world.meta.flags['player.name']).toBe('无名氏');
-    // the unsent reply of the first opening (P1), the name (P6), and the name once more: the
-    // nameless player's "其实，我有名字。" comes up among the call's questions (left empty too)
-    expect(base.sent['scenes.input']).toBe(3);
+    // the unsent reply of the first opening (P1), the name (P6), the name once more (the
+    // nameless player's "其实，我有名字。" among the call's questions, left empty too), and three
+    // free questions at the call, offered without a model once the written ones are asked
+    // (PK-M1-19)
+    expect(base.sent['scenes.input']).toBe(6);
     expect(base.engine.world.meta.flags.p_unsent_words).toBe('（没有回）');
   });
 });

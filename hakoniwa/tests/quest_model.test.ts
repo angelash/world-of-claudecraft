@@ -261,7 +261,7 @@ describe('objective kinds', () => {
     expect(clues).toEqual(['seal', 'ash']);
   });
 
-  it('persuade: talking succeeds only while the threshold holds', () => {
+  it('persuade: a persuasion in talk succeeds only while the threshold holds (PK-M1-19)', () => {
     const t = game([
       quest('zz_persuade', [
         stage('talk', [
@@ -271,12 +271,17 @@ describe('objective kinds', () => {
     ]);
     start(t, 'zz_persuade');
     set(t, 'trust.nera', 60);
-    talk(t, 'nera');
+    emit(t, 'dialogue.persuaded', { npcId: 'npc_nera', npcRef: 'nera', ok: true });
     expect(status(t.g, 'zz_persuade')).toBe('active');
     set(t, 'zz_proof', true);
-    talk(t, 'oola');
-    expect(status(t.g, 'zz_persuade')).toBe('active');
+    // opening a talk is not a persuasion any more: the objective waits for the attempt
     talk(t, 'nera');
+    expect(status(t.g, 'zz_persuade')).toBe('active');
+    // a failed attempt meets nothing, and persuading someone else does not count
+    emit(t, 'dialogue.persuaded', { npcId: 'npc_nera', npcRef: 'nera', ok: false });
+    emit(t, 'dialogue.persuaded', { npcId: 'npc_oola', npcRef: 'oola', ok: true });
+    expect(status(t.g, 'zz_persuade')).toBe('active');
+    emit(t, 'dialogue.persuaded', { npcId: 'npc_nera', npcRef: 'nera', ok: true });
     expect(status(t.g, 'zz_persuade')).toBe('done');
   });
 
@@ -961,9 +966,11 @@ describe('the autoplayer and the new objective kinds', () => {
       kind: 'talk',
       npc: 'oola',
     });
+    // the talk alone persuades nobody: the persuade option is the attempt (PK-M1-19)
     expect(plan({ type: 'persuade', npc: 'nera', when: 'true' })).toEqual({
       kind: 'talk',
       npc: 'nera',
+      option: 'persuade',
     });
     expect(plan({ type: 'rescue', npc: 'noi' })).toEqual({ kind: 'talk', npc: 'noi' });
     expect(plan({ type: 'stealth', mapId: TOWN, location: 'orphanage' })).toEqual({

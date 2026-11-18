@@ -66,9 +66,11 @@ export interface SceneInput {
   reply?: SceneLine[];
   /**
    * Model classification of the answer into one of this node's sibling choices
-   * (prologue 4.1 "分类器"). The fallback choice is used without a model.
+   * (prologue 4.1 "分类器"). Without a model the rule classifier of ./answer_port.ts picks
+   * (PK-M1-19), else the fallback choice; with no fallback an answer no rule sorts gets the
+   * written reply and goes on to `to`.
    */
-  classify?: { node: string; choices: string[]; fallback: string };
+  classify?: { node: string; choices: string[]; fallback?: string };
   /**
    * A multi-turn exchange with a model (catalog_cutscenes.md 4.1.2 `轮次 软 6 硬 10`,
    * prologue_antechamber.md 1): the input stays open after each reply until the answerer

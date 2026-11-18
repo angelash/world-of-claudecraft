@@ -7,7 +7,15 @@
 import type { EventMap } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { getEntity } from '../world';
-import { accrueTogether, deathFails, duelCounts, FAILED, onTalk, tradeAmount } from './objectives';
+import {
+  accrueTogether,
+  deathFails,
+  duelCounts,
+  FAILED,
+  onPersuade,
+  onTalk,
+  tradeAmount,
+} from './objectives';
 import { activeQuests, bump, checkStage, currentStage, markMet, objectiveFailed } from './progress';
 import type { Objective, QuestDef, QuestProgress } from './types';
 
@@ -44,6 +52,35 @@ export function talkObjectives(ctx: SystemContext, npc: string): void {
     const r = onTalk(ctx, q, o, i, npc);
     if (r === 'met') markMet(ctx, def, q, i);
     return r !== 'none';
+  });
+}
+
+/**
+ * The open persuade objectives on `npc` (a person's content id): the quest, the objective
+ * and its threshold, for the dialogue's persuasion option (PK-M1-19). A query: no writes.
+ */
+export function openPersuasions(
+  ctx: SystemContext,
+  npc: string,
+): { questId: string; index: number; when: string }[] {
+  const out: { questId: string; index: number; when: string }[] = [];
+  for (const { def, q } of activeQuests(ctx)) {
+    const stage = currentStage(def, q);
+    stage?.objectives.forEach((o, i) => {
+      if (o.type !== 'persuade' || o.npc !== npc) return;
+      if (q.met[i] || q.counts[i] === FAILED) return;
+      out.push({ questId: def.id, index: i, when: o.when });
+    });
+  }
+  return out;
+}
+
+/** The player persuaded `npc` in a conversation: thresholds that hold now are met. */
+export function persuadeObjectives(ctx: SystemContext, npc: string): void {
+  eachOpen(ctx, (def, q, o, i) => {
+    if (!onPersuade(ctx, o, npc)) return false;
+    markMet(ctx, def, q, i);
+    return true;
   });
 }
 

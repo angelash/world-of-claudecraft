@@ -20,6 +20,7 @@ import {
   isPlayerSide,
   mapChangedObjectives,
   objectiveSubscriptions,
+  persuadeObjectives,
   talkObjectives,
 } from './objective_events';
 import {
@@ -212,6 +213,11 @@ export const system: GameSystem = {
         if (!o.ref && !o.refs && (o.kind ?? 'monster') !== d.kind) return false;
         return true;
       });
+    },
+    'dialogue.persuaded'(ctx, e) {
+      // a persuasion in a conversation (PK-M1-19): the persuade objectives on this person
+      // whose threshold holds are met; a failed attempt meets nothing
+      if (e.data.ok) persuadeObjectives(ctx, e.data.npcRef);
     },
     'player.talked'(ctx, e) {
       const npc = e.data.npcRef ?? e.data.npcId;

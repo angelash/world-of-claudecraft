@@ -18,6 +18,7 @@ import { type EvidenceInput, observe } from './belief';
 import { comedyGate } from './comedy';
 import { ceilingOf, subjectName } from './params';
 import { rumorText } from './rumor_text';
+import { vouchWeight } from './sources';
 import type {
   CognitionSlice,
   ExplanationId,
@@ -412,6 +413,10 @@ export function receive(
   if (subject !== 'stranger' && subject !== 'lucky_newbie' && subject !== listenerId) {
     const kinds: EvidenceInput[] = [{ kind: 'rumor', weight: believed ? cred : 0 }];
     if (multi && believed) kinds.push({ kind: 'multi', weight: 3 });
+    // an authority who accepts the deeds vouches for them as they tell it (3.1 权威背书,
+    // 4.4 问权威): the endorsement refutes what only authority can (cheat, miracle, ...)
+    const vouch = believed ? vouchWeight(ctx, t.fromId, listenerId, subject) : 0;
+    if (vouch > 0) kinds.push({ kind: 'authority', weight: vouch });
     observe(ctx, listenerId, subject, {
       key: t.rumor.anchor,
       ind: `rumor:${t.rumor.id}:${t.origin}`,
@@ -616,6 +621,23 @@ export function tellPlayer(
   });
   ctx.emit('cognition.rumor_heard', { rumorId: r.id, fromId: npcId, text });
   return { rumorId: r.id, text };
+}
+
+/**
+ * A person keeps quiet about a subject (builtin_ai.md 5.6 row 9 守秘, a hush payment): they
+ * drop what they would pass on about it. Their own belief stays.
+ */
+export function keepQuiet(ctx: SystemContext, holder: string, subject: string): number {
+  const slice = ctx.world.slices.cognition;
+  const list = slice.holdings[holder];
+  if (!list) return 0;
+  const kept = list.filter((h) => {
+    const r = slice.rumors[h.rumor];
+    return !(r?.subject === subject || h.v.subject === subject);
+  });
+  const dropped = list.length - kept.length;
+  slice.holdings[holder] = kept;
+  return dropped;
 }
 
 /** Public fact (4.5): versions about the subject on the map drop to at most 0.3 distortion. */

@@ -17,7 +17,7 @@ import type { PersonaCard } from '../npc/types';
 import { currentWeather, entitiesNear, getEntity } from '../world';
 import { classifyIntent } from './intent/classify';
 import { respondTo } from './intent/respond';
-import type { IntentId } from './intent/types';
+import type { EntityHit, IntentId } from './intent/types';
 import { newLineHistory } from './lines/history';
 import { dayPartOf, trustBandOf } from './lines/trust';
 import type { TrustBand } from './lines/types';
@@ -237,18 +237,33 @@ export function farewell(ctx: SystemContext, npcRef: string): TextParam {
  * way with or without a model (builtin_ai 6.3: "分类器在两档都运行"); only the line's
  * wording may later be replaced by the model.
  */
-export function answer(ctx: SystemContext, npcRef: string, text: string): AnswerResult {
+export function answer(
+  ctx: SystemContext,
+  npcRef: string,
+  text: string,
+  talk: AnswerContext = {},
+): AnswerResult {
   // a hidden goddess name counts as the forbidden word only until its own reveal flag
   // holds (builtin_ai 1.7); without this reader every mention stays forbidden forever,
-  // even after the name is public.
-  const result = classifyIntent(text, ctx.content, { flag: (key) => ctx.flag(key) });
+  // even after the name is public. The open talk sets the context bonuses (6.3): a
+  // pending question favours yes and no, a topic being discussed favours clarify.
+  const rctx = { afterQuestion: !!talk.afterQuestion, inTopic: !!talk.topic };
+  const result = classifyIntent(text, ctx.content, { ...rctx, flag: (key) => ctx.flag(key) });
   // the per-speaker repetition ledger toward the player (builtin_ai 7.7, 18), kept in the
   // dialogue slice so the suppression windows survive save and load
   const slice = ctx.world.slices.dialogue;
   slice.lines ??= {};
   const history = slice.lines[npcRef] ?? newLineHistory();
   slice.lines[npcRef] = history;
-  const outcome = respondTo(ctx, { npcRef, text, result, ctx: {}, history });
+  const outcome = respondTo(ctx, {
+    npcRef,
+    text,
+    result,
+    ctx: rctx,
+    history,
+    topic: talk.topic,
+    refusals: talk.refusals,
+  });
   return {
     line: outcome.line,
     intent: result.main,
@@ -256,7 +271,23 @@ export function answer(ctx: SystemContext, npcRef: string, text: string): Answer
     entry: outcome.entry,
     notify: outcome.notify,
     offense: !!outcome.offense,
+    suggest: outcome.suggest,
+    topic: outcome.topic,
+    refused: !!outcome.refused,
+    refusedKey: outcome.refusedKey,
+    refusedOut: !!outcome.refusedOut,
+    entities: result.entities,
   };
+}
+
+/** The open talk around a free-text line (builtin_ai 6.3 context, 6.6 anti-loop). */
+export interface AnswerContext {
+  /** the person's last line asked a yes-or-no question */
+  afterQuestion?: boolean;
+  /** the topic being discussed */
+  topic?: string;
+  /** refusals per topic in this talk */
+  refusals?: Record<string, number>;
 }
 
 export interface AnswerResult {
@@ -267,4 +298,16 @@ export interface AnswerResult {
   notify: string[];
   /** a repeat the rules count as an offense (a second advance on a day, 6.4 row 9) */
   offense?: boolean;
+  /** topics offered instead (R4 and refusals, 6.6) */
+  suggest?: string[];
+  /** the topic answered or refused */
+  topic?: string;
+  /** a topic or clue was refused this round */
+  refused?: boolean;
+  /** the refused topic id or clue:<lore id> */
+  refusedKey?: string;
+  /** the third refusal of one topic in this talk ended it */
+  refusedOut?: boolean;
+  /** the entities the classifier found (people named to the player) */
+  entities?: EntityHit[];
 }

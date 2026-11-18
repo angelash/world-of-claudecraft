@@ -446,6 +446,11 @@ export interface Posting {
   deadline?: number;
   /** the day it closed (done, failed, expired, withdrawn) */
   closedDay?: number;
+  /**
+   * A resident's own request (quests_and_events.md 6.2 step 3, PK-M1-19): the giver pays
+   * the reward out of their own purse and the guild takes no cut.
+   */
+  personal?: boolean;
 }
 
 /** One change of the player's rank. */

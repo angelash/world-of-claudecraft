@@ -3198,7 +3198,7 @@
           {
             "id": "ask",
             "label": "（自由提问）",
-            "when": "ai_enabled AND p_call_free_count < 3",
+            "when": "p_call_free_count < 3",
             "to": "n5_q_free"
           },
           {
@@ -3660,7 +3660,21 @@
               "text": "这个嘛，客人，等面试完了再说？"
             }
           ],
-          "to": "n5_questions"
+          "to": "n5_questions",
+          "classify": {
+            "node": "n5_questions",
+            "choices": [
+              "where",
+              "world",
+              "review",
+              "thing",
+              "above",
+              "five",
+              "neighbors",
+              "home",
+              "chair"
+            ]
+          }
         }
       },
       {
@@ -4100,7 +4114,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n6_eluen_free"
           },
           {
@@ -5043,7 +5056,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n7_valda_free"
           }
         ]
@@ -5907,7 +5919,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n8_merca_free"
           }
         ]
@@ -6614,7 +6625,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n9_sylvie_free"
           }
         ]
@@ -7258,7 +7268,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n10_moira_free"
           }
         ]
@@ -7625,7 +7634,6 @@
           {
             "id": "free",
             "label": "（自由回答）",
-            "when": "ai_enabled",
             "to": "n10_past_free"
           }
         ]
@@ -8243,7 +8251,6 @@
           {
             "id": "free",
             "label": "（说点什么）",
-            "when": "ai_enabled",
             "to": "n11_say"
           }
         ]
@@ -8699,7 +8706,6 @@
           {
             "id": "free",
             "label": "（自由回应）",
-            "when": "ai_enabled",
             "to": "n11_free"
           }
         ]
@@ -9215,7 +9221,6 @@
           {
             "id": "free",
             "label": "（自由说一句）",
-            "when": "ai_enabled",
             "to": "n12_free"
           }
         ]

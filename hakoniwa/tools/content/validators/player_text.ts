@@ -160,6 +160,8 @@ export const PLAYER_TEXT: readonly TextField[] = [
   ...f('quests', 'desc', 'desc', 'stages[].desc'),
   ...f('quests', 'label', 'stages[].objectives[].label'),
   ...f('quests', 'line', 'onStart[].text', 'rewards[].text', 'stages[].onEnter[].text'),
+  // dialogue: a person's answer options to their reaction row (PK-M1-19)
+  ...f('reactionOptions', 'label', 'options[].label'),
   ...f('regiment_types', 'name', 'name'),
   ...f('regiment_types', 'desc', 'desc'),
   ...f('revelations', 'line', 'literal', 'responses.*'),
@@ -192,6 +194,8 @@ export const PLAYER_TEXT: readonly TextField[] = [
   ...f('slg_provinces', 'desc', 'desc'),
   ...f('titles', 'title', 'name'),
   ...f('titles', 'label', 'grantedBy', 'visibleTo', 'loss'),
+  // the topic graph's menu titles (builtin_ai.md 6.2; PK-M1-19)
+  ...f('topics', 'title', 'title'),
   ...f('trade_recipes', 'name', 'name'),
   ...f('trade_recipes', 'desc', 'desc'),
   ...f('trade_routes', 'name', 'name'),

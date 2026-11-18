@@ -22,6 +22,7 @@ import {
   tryTell,
   witnessVersion,
 } from './rumor';
+import { exposureFromFlag, guildEndorsement } from './sources';
 import { carryByRoad, injectHint } from './spread';
 import { type AppraisalResult, EVIDENCE_KINDS, type EvidenceKind } from './types';
 import { raiseChurchSuspicion, witnessDeath, witnessFeat } from './witness';
@@ -185,6 +186,18 @@ export const system: GameSystem = {
       }
       tryTell(ctx, a, b, mapId, locationKind, visible);
       tryTell(ctx, b, a, mapId, locationKind, visible);
+    },
+    'guild.registered'(ctx, e) {
+      // the guild's acknowledgement of a rank above the entry one is authority (PK-M1-19);
+      // a plain registration only writes the blank record down
+      if (e.data.rank !== 'f') guildEndorsement(ctx, e.data.rank, false);
+    },
+    'guild.promoted'(ctx, e) {
+      if (e.data.how !== 'register') guildEndorsement(ctx, e.data.rank, e.data.how === 'practical');
+    },
+    'flag.changed'(ctx, e) {
+      // a story flag that exposes the player in front of others (the trial's appraisal)
+      if (!e.data.previous) exposureFromFlag(ctx, e.data.key, e.data.value);
     },
     'doors.hint'(ctx, e) {
       if (e.data.channel === 'rumor') injectHint(ctx, e.data.text, e.data.doorId);

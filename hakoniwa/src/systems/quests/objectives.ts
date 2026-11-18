@@ -244,8 +244,9 @@ export function startStageObjectives(ctx: SystemContext, stage: QuestStage): voi
 // event matchers (the quests system calls them from its subscriptions)
 
 /**
- * What a talk does to deliver, persuade and rescue objectives: 'met', 'moved' (the captive
- * was freed) or 'none'.
+ * What a talk does to deliver and rescue objectives: 'met', 'moved' (the captive was freed)
+ * or 'none'. Opening a talk does not persuade anyone: a persuade objective waits for the
+ * persuasion in the conversation (onPersuade, PK-M1-19).
  */
 export function onTalk(
   ctx: SystemContext,
@@ -262,8 +263,6 @@ export function onTalk(
       if (o.consume !== false) removeItem(ctx, pid, o.item, n, 'quest');
       return 'met';
     }
-    case 'persuade':
-      return o.npc === npc && conditionHolds(ctx, o.when) ? 'met' : 'none';
     case 'rescue':
       if (o.npc !== npc || q.counts[i]) return 'none';
       q.counts[i] = 1;
@@ -271,6 +270,15 @@ export function onTalk(
     default:
       return 'none';
   }
+}
+
+/**
+ * Whether the player's persuasion of `npc` in a conversation meets a persuade objective:
+ * the person is the one to persuade and the threshold (evidence and relation, quests_and_
+ * events.md 5) holds now. The kernel judges it; the words only open the attempt.
+ */
+export function onPersuade(ctx: SystemContext, o: Objective, npc: string): boolean {
+  return o.type === 'persuade' && o.npc === npc && conditionHolds(ctx, o.when);
 }
 
 /** Whether a trade by the player counts for a trade objective (and how many). */

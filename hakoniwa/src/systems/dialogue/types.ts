@@ -3,6 +3,7 @@
 
 import type { TextParam } from '../../core/text';
 import type { LineHistory } from './lines/history';
+import type { TopicTalk } from './topics/types';
 
 export interface SessionLine {
   speakerId: string;
@@ -38,6 +39,27 @@ export interface DialogueSession {
   pending: boolean;
   /** a line of this talk recalled a memory or a diary entry (builtin_ai.md 14.2 metric 9) */
   recalled?: boolean;
+  /** which option list is shown: the main one or the topic menu (builtin_ai 6.1, 6.2) */
+  menu?: 'root' | 'topics';
+  /** the main option list, kept while the topic menu is shown */
+  root?: SessionOption[];
+  /** the topic talked about last (the `in_topic` context and `clarify`, 6.3) */
+  topic?: string;
+  /** refusals per topic in this talk (the anti-loop of 6.6) */
+  refusals?: Record<string, number>;
+  /** what is left of the person's patience (6.1); absent on talks opened before it */
+  patience?: number;
+  /** a yes-or-no question of the person waiting for an answer (a request) */
+  question?: SessionQuestion;
+  /** the person's last line asked it: yes and no score higher this round only (6.3) */
+  asked?: boolean;
+}
+
+/** A question the person asked, kept for the yes and no intents (builtin_ai 6.3, 6.4 rows 49, 50). */
+export interface SessionQuestion {
+  kind: 'request';
+  /** what the yes answer acts on (a request posting, a reaction offer) */
+  ref: string;
 }
 
 export interface DialogueSlice {
@@ -63,6 +85,14 @@ export interface DialogueSlice {
   placeBarks?: Record<string, { key: string; tick: number }[]>;
   /** Offenses the player gave each person today (the third one ends the talk, builtin_ai 6.1). */
   offenses?: Record<string, { day: number; n: number }>;
+  /** Topic progress of each person toward the player (builtin_ai 18 "话题进度"). */
+  topics?: Record<string, Record<string, TopicTalk>>;
+  /** People named to the player (their person topics enter the menu, catalog 3.3). */
+  introduced?: Record<string, number>;
+  /** Topics a person closed for the day after the third refusal (builtin_ai 6.6). */
+  closedTopics?: Record<string, { day: number; topics: string[] }>;
+  /** Each person's latest reaction row toward the player with options to answer (5.6). */
+  reactions?: Record<string, { row: string; tick: number }>;
 }
 
 declare module '../../core/contracts' {
@@ -78,6 +108,13 @@ declare module '../../core/contracts' {
       /** a line of the talk recalled a memory or a diary entry (alive metric 9) */
       recalled?: boolean;
     };
+    /**
+     * The player tried to persuade the person (builtin_ai.md 6.4 row 37); `ok` when a
+     * persuade objective's threshold held. The quests system marks the objective.
+     */
+    'dialogue.persuaded': { npcId: string; npcRef: string; ok: boolean };
+    /** A topic was answered or refused in a conversation (builtin_ai.md 6.2, 6.6). */
+    'dialogue.topic': { npcId: string; npcRef: string; topicId: string; outcome: string };
   }
   interface CommandMap {
     /** Start talking to an NPC entity within reach. */

@@ -287,6 +287,18 @@ function boardBonus(
   return out;
 }
 
+/** Who posts (PK-M1-19): a named giver instead of the draw, a reward cap, a personal request. */
+export interface PostOptions {
+  emergency?: boolean;
+  untilDay?: number;
+  /** the person posting it (a leader's intent, a resident's request); skips the giver draw */
+  giver?: string;
+  /** the reward at most this (a resident pays out of their purse) */
+  payCap?: number;
+  /** a resident's own request: paid by the giver, no guild cut */
+  personal?: boolean;
+}
+
 /**
  * Put a posting of a template on a board, drawing its parameters from the board's stream in a
  * fixed order (giver, place, goal, days). Emergencies skip the board's gates.
@@ -295,13 +307,18 @@ export function post(
   ctx: SystemContext,
   board: BoardDef,
   t: CommissionDef,
-  opts: { emergency?: boolean; untilDay?: number } = {},
+  opts: PostOptions = {},
 ): Posting | null {
   const cfg = guildConfig(ctx);
   if (!cfg) return null;
   const s = guildSlice(ctx.world);
   const rng = ctx.rng(`guild.board.${board.id}`);
-  const giver = t.givers && t.givers.length > 0 ? rng.pick(t.givers) : null;
+  const giver =
+    opts.giver !== undefined
+      ? opts.giver
+      : t.givers && t.givers.length > 0
+        ? rng.pick(t.givers)
+        : null;
   const place = rng.pick(t.places);
   let target: string | undefined;
   let item: string | undefined;
@@ -323,7 +340,8 @@ export function post(
   s.serial[t.rank] = serial;
   const { id, display } = instanceId(t.rank, serial);
   const urgent = urgentNow(ctx, t.id, board);
-  const reward = postingPay(cfg, t, urgent);
+  const pay = postingPay(cfg, t, urgent);
+  const reward = opts.payCap !== undefined ? Math.max(0, Math.min(pay, opts.payCap)) : pay;
   const day = today(ctx);
   const p: Posting = {
     id,
@@ -335,7 +353,7 @@ export function post(
     place: { ...place },
     days,
     reward,
-    cut: board.cut ? guildCut(cfg, reward) : 0,
+    cut: board.cut && !opts.personal ? guildCut(cfg, reward) : 0,
     urgent,
     emergency: !!opts.emergency,
     postedDay: day,
@@ -346,6 +364,7 @@ export function post(
   if (item !== undefined) p.item = item;
   if (count !== undefined) p.count = count;
   if (recipient !== undefined) p.recipient = recipient;
+  if (opts.personal) p.personal = true;
   s.postings[id] = p;
   ctx.emit('guild.posted', {
     postingId: id,
@@ -522,7 +541,9 @@ export function take(ctx: SystemContext, postingId: string): Posting | null {
   const day = today(ctx);
   // the days count the day it is taken: a one-day letter is due by tonight
   const deadline = day + Math.max(1, p.days) - 1;
-  const def = instanceQuest(t, p, { act: currentActId(ctx), turnIn: board.receptionist, deadline });
+  // a resident's own request is turned in to the person who asked (PK-M1-19)
+  const turnIn = p.personal && p.giver ? p.giver : board.receptionist;
+  const def = instanceQuest(t, p, { act: currentActId(ctx), turnIn, deadline });
   if (!addQuestInstance(ctx, def)) return null;
   p.state = 'accepted';
   p.acceptedDay = day;
@@ -605,17 +626,29 @@ export function settleDone(ctx: SystemContext, questId: string): void {
   p.state = 'done';
   p.closedDay = today(ctx);
   if (!t) return;
-  const earlier = countCompletion(ctx, t);
+  // a personal request is no guild work: it adds nothing to the member's record
+  const earlier = p.personal ? 0 : countCompletion(ctx, t);
   const playerId = ctx.world.slices.world.playerId;
-  addMoney(ctx, playerId, p.reward, 'commission');
+  // a resident's own request is paid out of the giver's purse (what they still have)
+  const pay = p.personal ? personalPay(ctx, p) : p.reward;
+  addMoney(ctx, playerId, pay, 'commission');
   const xp = commissionXp(cfg, t, playerLevel(ctx), earlier);
   // quest experience (progression 3.1): the act's catch-up applies to it like to any quest
   if (xp > 0) ctx.emit('xp.awarded', { entityId: playerId, amount: xp, reason: `quest:${t.id}` });
   applyModifiers(ctx, t.id, t.modifiers, contentRef('commissions', t.id, 'title'));
   s.ledger.cut += p.cut;
-  s.ledger.paid += p.reward;
+  if (!p.personal) s.ledger.paid += p.reward;
   if (t.cooldownDays) s.cooldown[t.id] = today(ctx) + t.cooldownDays;
-  ctx.emit('guild.commission_done', { postingId: p.id, templateId: t.id, pay: p.reward, xp });
+  ctx.emit('guild.commission_done', { postingId: p.id, templateId: t.id, pay, xp });
+}
+
+/** The giver of a personal request pays the reward from their purse, at most what they hold. */
+function personalPay(ctx: SystemContext, p: Posting): number {
+  const entityId = p.giver ? ctx.world.slices.npc?.npcs[p.giver]?.entityId : undefined;
+  if (!entityId) return 0;
+  const paid = Math.min(p.reward, holdingOf(ctx.world, entityId).money);
+  if (paid > 0) spendMoney(ctx, entityId, paid, 'commission');
+  return paid;
 }
 
 /** A taken commission failed (walked away) or ran out: a default on the record. */
@@ -632,7 +665,7 @@ export function settleDefault(
   p.closedDay = today(ctx);
   const t = commissionDef(ctx.content, p.template);
   if (t?.cooldownDays) s.cooldown[t.id] = today(ctx) + t.cooldownDays;
-  if (s.member) {
+  if (s.member && !p.personal) {
     s.member.defaults += 1;
     setCount(ctx, 'guild.defaults', s.member.defaults);
   }

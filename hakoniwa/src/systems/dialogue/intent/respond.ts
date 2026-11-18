@@ -1,10 +1,10 @@
 // Response strategies (builtin_ai.md 6.5, 18) that turn a classified intent into the
-// NPC's line and its world consequences: R1 reads a topic slot (the topic graph itself is
-// PK-M1-19; until then this resolves the topic id straight through the line-pack chain, so
-// the same slot names keep working once the graph lands), R2 a reaction or built-in reply,
-// R3 a ledger refusal stand-in, R4 a redirect stub, R5 a system-entry marker another system
-// reads off the result, R6 cognition evidence, R7 a relation change, R8 a notification
-// flag, R9 ends the session. Conditions named by `if` are evaluated here, not in data,
+// NPC's line and its world consequences: R1 answers a topic of the topic graph (the topic
+// the clause names, through its entity or its words; the 6.6 refusal table applies), R2 a
+// reaction or built-in reply, R3 the ledger refusal of the topic or clue the clause touches,
+// R4 a redirect with two suggested topics, R5 a system-entry marker another system reads
+// off the result, R6 cognition evidence, R7 a relation change, R8 a notification flag, R9
+// ends the session. Conditions named by `if` are evaluated here, not in data,
 // because they read live NPC and relation state the content layer cannot see.
 
 import type { SystemContext } from '../../../core/system';
@@ -12,6 +12,7 @@ import { type TextParam, tr } from '../../../core/text';
 import { calendarAt } from '../../../core/time';
 import { observe } from '../../cognition/belief';
 import { tellPlayer } from '../../cognition/rumor';
+import { guestClaim } from '../../cognition/sources';
 import type { EvidenceKind } from '../../cognition/types';
 import { moodOf } from '../../npc/brain/mood';
 import { personaById } from '../../npc/personas';
@@ -19,12 +20,24 @@ import { adjustRelation, relationBand, relationOf } from '../../npc/relations';
 import type { PersonaCard } from '../../npc/types';
 import { conditionHolds } from '../../quests/effects';
 import { lineText } from '../lines/fill';
-import { suppressionDays } from '../lines/grammar';
+import { FILL_SLOTS, suppressionDays } from '../lines/grammar';
 import { type LineHistory, recordLine } from '../lines/history';
 import { selectLine } from '../lines/select';
 import { dayPartOf } from '../lines/trust';
 import { opinion, rumorLine, smallTalk, trustBand, varsFor } from '../replies';
 import { speakerLayers } from '../speak';
+import { inScope, isKnower } from '../topics/access';
+import { allTopics, topicById, topicsAsked, topicsOfSubject } from '../topics/graph';
+import { clueRefusal, lockedCluesIn } from '../topics/ledger';
+import {
+  REFUSALS_TO_END,
+  redirectFor,
+  sayTopic,
+  speakerView,
+  type TopicSaid,
+  topicTitle,
+} from '../topics/talk';
+import type { TopicDef } from '../topics/types';
 import type { ClassifyContext, ClassifyResult, EntityHit, IntentDef, ResponseStep } from './types';
 
 export interface RespondInput {
@@ -34,6 +47,10 @@ export interface RespondInput {
   ctx: ClassifyContext;
   /** this NPC's reaction-slot repetition ledger toward the player, when the caller keeps one */
   history?: LineHistory;
+  /** the topic of the open conversation ({topic} of clarify) */
+  topic?: string;
+  /** refusals per topic in the open conversation (the anti-loop of 6.6) */
+  refusals?: Record<string, number>;
 }
 
 export interface RespondOutcome {
@@ -48,6 +65,16 @@ export interface RespondOutcome {
   codes: string[];
   /** the intent repeated today where the rules count a repeat as an offense (6.4 row 9) */
   offense?: boolean;
+  /** topics offered instead of a refused or misunderstood question (R4, 6.6) */
+  suggest: string[];
+  /** the topic answered or refused this round */
+  topic?: string;
+  /** the round refused a topic or a clue (patience, 6.1) */
+  refused?: boolean;
+  /** what was refused: the topic id, or clue:<lore id> (a repeat costs patience, 6.1, 6.6) */
+  refusedKey?: string;
+  /** the third refusal of one topic in this talk: the person ends it (6.6) */
+  refusedOut?: boolean;
 }
 
 function entityOf(entities: readonly EntityHit[], kinds: readonly string[]): EntityHit | undefined {
@@ -187,19 +214,168 @@ function topicId(template: string, result: ClassifyResult): string {
   );
 }
 
+/** The prefix a template's entity slot reads ({place} -> place_, ...). */
+const SLOT_PREFIX: Record<string, string> = {
+  person: 'person_',
+  place: 'place_',
+  event: 'event_',
+  lore: 'lore_',
+};
+
+/**
+ * The topics a clause names, nearest first (builtin_ai 6.2, 6.3 step 3): the topics of its
+ * entities (their `aliases`, a person's own topic), the last entity first because the head
+ * noun of a Chinese question comes last ("遗迹里的神纹"), then the topics whose words the
+ * clause uses; only those the speaker may speak of at all, own topics first. `prefix`
+ * narrows them to one kind.
+ */
+function namedTopics(
+  ctx: SystemContext,
+  npcRef: string,
+  result: ClassifyResult,
+  prefix?: string,
+): TopicDef[] {
+  const clause = result.clauses[result.mainClause]?.clause;
+  const fits = (t: TopicDef) => (!prefix || t.id.startsWith(prefix)) && !t.id.startsWith('gen_');
+  const out: TopicDef[] = [];
+  const add = (t: TopicDef) => {
+    if (fits(t) && !out.includes(t)) out.push(t);
+  };
+  for (const e of [...(clause?.entities ?? [])].reverse())
+    for (const t of topicsOfSubject(ctx.content, e.id)) add(t);
+  for (const t of topicsAsked(ctx.content, result.normalized, fits)) add(t);
+  const sp = speakerView(ctx, npcRef);
+  const own = (t: TopicDef) => (t.owners ?? []).includes(npcRef);
+  return out
+    .filter((t) => inScope(t, sp) || isKnower(t, sp))
+    .sort((a, b) => Number(own(b)) - Number(own(a)));
+}
+
+/**
+ * The topics an R1 step names: the conversation's topic for {topic}; for an entity slot the
+ * named topics of that kind; a fixed id as written.
+ */
+function graphTopics(
+  ctx: SystemContext,
+  npcRef: string,
+  template: string,
+  result: ClassifyResult,
+  current: string | undefined,
+): TopicDef[] {
+  if (template === '{topic}') {
+    const t = current ? topicById(ctx.content, current) : undefined;
+    return t ? [t] : [];
+  }
+  const slot = /\{(person|place|event|lore)\}/.exec(template)?.[1];
+  if (!slot) {
+    const t = topicById(ctx.content, template);
+    return t ? [t] : [];
+  }
+  return namedTopics(ctx, npcRef, result, SLOT_PREFIX[slot]);
+}
+
+/** Say the first topic that gives a line (an answer or a 6.6 refusal); null when none does. */
+function sayFirst(
+  ctx: SystemContext,
+  npcRef: string,
+  topics: readonly TopicDef[],
+  refusals: Record<string, number> | undefined,
+  target?: string,
+): TopicSaid | null {
+  for (const t of topics) {
+    const said = sayTopic(ctx, npcRef, t.id, { refusals, target });
+    if (said && !said.silent) return said;
+  }
+  return null;
+}
+
+/**
+ * Never confirm a locked clue the player named (6.6 rows 5, 6): a knower evades, anyone
+ * else hears nonsense; the same clue pressed a third time in one talk ends it (the anti-loop
+ * of 6.6), and asking it again costs patience like any refused question.
+ */
+function refuseClue(
+  ctx: SystemContext,
+  npcRef: string,
+  clues: readonly { id: string; knowers?: string[] }[],
+  out: RespondOutcome,
+  refusals: Record<string, number> | undefined,
+  history: LineHistory | undefined,
+): void {
+  const key = `clue:${clues[0]?.id}`;
+  out.refused = true;
+  out.refusedKey = key;
+  if (refusals) {
+    refusals[key] = (refusals[key] ?? 0) + 1;
+    if (refusals[key] >= REFUSALS_TO_END) {
+      out.line = reactionLine(ctx, npcRef, ['farewell'], history) ?? out.line;
+      out.end = true;
+      out.refusedOut = true;
+      return;
+    }
+  }
+  out.line =
+    reactionLine(
+      ctx,
+      npcRef,
+      [`react.${clueRefusal(clues as never, npcRef)}`, 'react.unknown'],
+      history,
+    ) ?? tr('sys.dialogue.intent.fallback');
+}
+
+/**
+ * The map or map/location a place entity names: a content place as it is, a generic word
+ * (公会, 铁匠铺) through the place topics that alias it.
+ */
+function placeTarget(ctx: SystemContext, e: EntityHit | undefined): string | undefined {
+  if (!e || e.kind !== 'place') return undefined;
+  if (e.id.includes('/') || (ctx.content.maps ?? []).some((m) => m.id === e.id)) return e.id;
+  for (const t of topicsOfSubject(ctx.content, e.id))
+    for (const a of t.aliases ?? [])
+      if (a.includes('/') || (ctx.content.maps ?? []).some((m) => m.id === a)) return a;
+  return undefined;
+}
+
+/** A topic answer or refusal as the outcome of this round. */
+function tookTopic(out: RespondOutcome, said: TopicSaid): void {
+  out.line = said.line;
+  out.topic = said.topic.id;
+  // a sincere misdirection is an answer to the speaker, not a refusal
+  if (said.outcome !== 'answer' && said.outcome !== 'mis') {
+    out.refused = true;
+    out.refusedKey = said.topic.id;
+  }
+  if (said.end) {
+    out.refusedOut = true;
+    out.end = true;
+  }
+  for (const id of said.suggest) if (!out.suggest.includes(id)) out.suggest.push(id);
+}
+
+/** Whether the graph knows a topic id (the generic topics and the act instances). */
+export function isGraphTopic(ctx: SystemContext, id: string): boolean {
+  return allTopics(ctx.content).some((t) => t.id === id);
+}
+
 /** Resolve a topic through the line-pack chain directly by slot name (ahead of PK-M1-19). */
 function topicLine(
   ctx: SystemContext,
   npcRef: string,
   slot: string,
   history: LineHistory | undefined,
+  extra: Record<string, TextParam | undefined> = {},
 ): TextParam | null {
   const dayIndex = calendarAt(ctx.tick).dayIndex;
+  const vars: Record<string, TextParam | undefined> = { ...varsFor(ctx, npcRef), ...extra };
+  // a line whose fill slot has no value now is void (7.9); {catch} may stay empty
+  const unfillable = new Set(
+    [...FILL_SLOTS].filter((f) => f !== 'catch' && (vars[f] === undefined || vars[f] === '')),
+  );
   const r = selectLine(
     ctx.content,
     npcRef,
     slot,
-    { holds: (w) => conditionHolds(ctx, w), dayIndex },
+    { holds: (w) => conditionHolds(ctx, w), dayIndex, unfillable },
     ctx.rng('dialogue.lines'),
     history,
     {
@@ -211,7 +387,7 @@ function topicLine(
   );
   if (!r) return null;
   if (history) recordLine(history, r.key, dayIndex);
-  return lineText({ zh: r.entry.zh, key: r.key }, { ...varsFor(ctx, npcRef), catch: '' });
+  return lineText({ zh: r.entry.zh, key: r.key }, { ...vars, catch: '' });
 }
 
 function reactionLine(
@@ -219,9 +395,10 @@ function reactionLine(
   npcRef: string,
   slots: readonly string[],
   history: LineHistory | undefined,
+  extra: Record<string, TextParam | undefined> = {},
 ): TextParam | null {
   for (const slot of slots) {
-    const line = topicLine(ctx, npcRef, slot, history);
+    const line = topicLine(ctx, npcRef, slot, history, extra);
     if (line) return line;
   }
   return null;
@@ -313,17 +490,24 @@ function applyR7(
 
 /**
  * Carry out one intent's response table against live state, returning the line and the
- * flags another layer (the dialogue session, R5 and R8 consumers) acts on. R3 and R4 are
- * stand-ins until the reveal-ledger refusal table and the topic graph (PK-M1-19) land: R3
- * answers "unknown" and R4 ends with a plain redirect prompt, both of which already keep
- * the ledger safe (nothing unlocked is said) and never block the session.
+ * flags another layer (the dialogue session, R5 and R8 consumers) acts on. R1 and R3 go
+ * through the topic graph and its refusal table (builtin_ai 6.6); a topic the graph does
+ * not know, or one with no line for this speaker, falls back to the step's slots. R4 offers
+ * two topics instead (the caller turns `suggest` into options).
  */
 export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutcome {
   const { npcRef, result, ctx: rctx, history } = input;
   const persona = personaById(ctx.content, npcRef);
   const rel = relationOf(ctx.world.slices.npc, npcRef, 'player');
   const def: IntentDef | undefined = ctx.content.intentRules?.intents[result.main];
-  const out: RespondOutcome = { line: '', end: false, entry: null, notify: [], codes: [] };
+  const out: RespondOutcome = {
+    line: '',
+    end: false,
+    entry: null,
+    notify: [],
+    codes: [],
+    suggest: [],
+  };
   const band = trustBand(ctx, npcRef);
   const part = dayPart(ctx);
   const subst = (s: string) => s.replace('{band}', band).replace('{part}', part);
@@ -341,8 +525,27 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
     if (!holds(ctx, npcRef, step.if, persona, rel, result, rctx)) continue;
     if (step.code === 'R1') {
       if (spoke) continue;
-      const slot = `topic.${subst(topicId(step.topic, result))}`;
-      const line = topicLine(ctx, npcRef, slot, history);
+      // the topics the step names, then (a question the classifier filed under another
+      // kind) any topic the clause names; the 6.6 table decides answer or refusal
+      const template = subst(step.topic);
+      const graph = graphTopics(ctx, npcRef, template, result, input.topic);
+      const named = template.includes('{') ? namedTopics(ctx, npcRef, result) : [];
+      // the place a "how do I get to" names (gen_directions points at it)
+      const target = placeTarget(ctx, mainEntity(result));
+      const said = sayFirst(ctx, npcRef, [...graph, ...named], input.refusals, target);
+      if (said) {
+        tookTopic(out, said);
+        out.codes.push('R1');
+        spoke = true;
+        continue;
+      }
+      // a topic the graph knows is never read straight from the packs: its gates (scope,
+      // requires, tier, trust, the act window) stand even when it has no line now
+      const resolved = subst(topicId(step.topic, result));
+      const line =
+        isGraphTopic(ctx, template) || isGraphTopic(ctx, resolved)
+          ? null
+          : topicLine(ctx, npcRef, `topic.${resolved}`, history);
       if (line) {
         out.line = line;
         out.codes.push('R1');
@@ -425,18 +628,37 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
     }
     if (step.code === 'R3') {
       if (spoke) continue;
-      out.line =
-        reactionLine(ctx, npcRef, ['react.unknown'], history) ?? tr('sys.dialogue.intent.fallback');
+      // the ledger refusal (6.6): the topic the clause touches goes through the refusal
+      // table (an open topic is simply answered, row 1); a locked clue named with no topic
+      // of its own is never confirmed (rows 5, 6); anything else is not known
+      const said = sayFirst(ctx, npcRef, namedTopics(ctx, npcRef, result), input.refusals);
+      if (said) {
+        tookTopic(out, said);
+      } else {
+        const clues = lockedCluesIn(ctx, result.normalized);
+        if (clues.length > 0) refuseClue(ctx, npcRef, clues, out, input.refusals, history);
+        else {
+          out.line =
+            reactionLine(ctx, npcRef, ['react.unknown'], history) ??
+            tr('sys.dialogue.intent.fallback');
+          out.refused = true;
+        }
+      }
       out.codes.push('R3');
       spoke = true;
       continue;
     }
     if (step.code === 'R4') {
-      if (spoke) continue;
-      out.line =
-        reactionLine(ctx, npcRef, ['react.confused'], history) ??
-        tr('sys.dialogue.intent.fallback');
+      // the redirect (6.6): two open topics as options, led in by the {topic_hint} line
+      const suggest = redirectFor(ctx, npcRef, null);
+      for (const id of suggest) if (!out.suggest.includes(id)) out.suggest.push(id);
       out.codes.push('R4');
+      if (spoke) continue;
+      const hint = suggest[0] ? topicById(ctx.content, suggest[0]) : undefined;
+      out.line =
+        reactionLine(ctx, npcRef, ['react.confused'], history, {
+          topic_hint: hint ? topicTitle(ctx, hint) : undefined,
+        }) ?? tr('sys.dialogue.intent.fallback');
       spoke = true;
       continue;
     }
@@ -448,6 +670,9 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
     }
     if (step.code === 'R6') {
       applyR6(ctx, npcRef, result.main, step.weight);
+      // a self-claim of coming from beyond is exposed only where someone credits it (6.4
+      // row 41, 5.6 identity_guest); words alone never confirm anything (ledger rule 6)
+      if (result.main === 'reveal_identity') guestClaim(ctx, npcRef);
       out.codes.push('R6');
       continue;
     }
@@ -464,6 +689,15 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
     if (step.code === 'R9') {
       out.end = true;
       out.codes.push('R9');
+    }
+  }
+  // the ledger guard (6.3 step 8 "台账防护", 6.6 rows 5 and 6): words that name a locked
+  // clue are never confirmed, whatever the intent; a topic answer of its own stands
+  if (!out.topic && def.group !== 'safety' && !out.codes.includes('R3')) {
+    const clues = lockedCluesIn(ctx, result.normalized);
+    if (clues.length > 0) {
+      refuseClue(ctx, npcRef, clues, out, input.refusals, history);
+      out.codes.push('R3');
     }
   }
   if (def.respond.some((step) => step.if === 'repeat_today')) {

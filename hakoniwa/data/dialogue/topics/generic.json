@@ -1,0 +1,202 @@
+[
+  {
+    "id": "gen_self",
+    "category": "self",
+    "title": "你是谁",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "relation",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["你是谁", "叫什么", "你的名字"]]
+  },
+  {
+    "id": "gen_work",
+    "category": "work",
+    "title": "你做什么营生",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["做什么的", "干什么的", "营生", "职业"]]
+  },
+  {
+    "id": "gen_place",
+    "category": "place",
+    "title": "这里怎么样",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["这里怎么样", "这地方"]]
+  },
+  {
+    "id": "gen_news",
+    "category": "event",
+    "title": "最近有什么事",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["最近有什么事", "出什么事", "新鲜事"]]
+  },
+  {
+    "id": "gen_you",
+    "category": "you",
+    "title": "你怎么看我",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "cognition",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["怎么看我", "觉得我"]]
+  },
+  {
+    "id": "gen_faith",
+    "category": "faith",
+    "title": "你信奉谁",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["信谁", "信奉", "信什么"]]
+  },
+  {
+    "id": "gen_trouble",
+    "category": "self",
+    "title": "有什么烦心事",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["烦心事", "难处", "烦恼"]],
+    "trouble": true
+  },
+  {
+    "id": "gen_advice",
+    "category": "world",
+    "title": "给我点建议",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["建议", "指点"]]
+  },
+  {
+    "id": "gen_people",
+    "category": "person",
+    "title": "你认识谁",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["认识谁", "熟人"]]
+  },
+  {
+    "id": "gen_directions",
+    "category": "place",
+    "title": "怎么走",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "askOnly": true
+  },
+  {
+    "id": "gen_prices",
+    "category": "service",
+    "title": "行情",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["行情", "物价"]]
+  },
+  {
+    "id": "gen_danger",
+    "category": "danger",
+    "title": "附近哪里危险",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "act": "act1",
+    "keywords": [["危险", "不安全"]]
+  },
+  {
+    "id": "gen_past",
+    "category": "self",
+    "title": "你的过去",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "relation",
+    "repeat": "evergreen",
+    "act": "act1",
+    "trustMin": 30,
+    "keywords": [["过去", "以前", "年轻时"]]
+  },
+  {
+    "id": "gen_shop",
+    "category": "service",
+    "title": "买卖",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "service": "vendor"
+  },
+  {
+    "id": "gen_craft",
+    "category": "service",
+    "title": "打造",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "service": "crafter"
+  },
+  {
+    "id": "gen_train",
+    "category": "service",
+    "title": "学艺",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "service": "trainer"
+  },
+  {
+    "id": "gen_heal",
+    "category": "service",
+    "title": "看病",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "service": "healer"
+  },
+  {
+    "id": "gen_info",
+    "category": "service",
+    "title": "情报",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "none",
+    "repeat": "evergreen",
+    "act": "act1",
+    "service": "info"
+  }
+]

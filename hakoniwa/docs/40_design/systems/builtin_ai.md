@@ -158,7 +158,7 @@ D-067 的设置页按角色绑定模型；内置 AI 的接替粒度与之一一�
 | `data/ai/bt/*.json` | 行为树 | |
 | `data/ai/htn/*.json` | HTN 方法表（按势力类型、女神） | |
 | `data/ai/personas/*.json` | 女神、统治者、将领、官员的权重表 | |
-| `data/dialogue/topics.json` | 话题图 | |
+| `data/dialogue/topics/*.json` | 话题图：通用话题、序章、第一幕各一个文件（后续各幕追加文件）；`data/dialogue/topic_cast.json` 是话题点名而尚未上场的人物 | |
 | `data/dialogue/intents.json`、`data/dialogue/lexicon.json` | 意图规则与词典 | |
 | `data/dialogue/lines/ln_*.json`、`data/dialogue/lines/bark_*.json` | 台词包与吠叫池（内容由台词目录产出），一包一个文件；`data/dialogue/legacy_lines.json` 是原规则模板键到包内槽位的对照 | |
 
@@ -910,6 +910,8 @@ L4 人群单元的份额传播照常由规则批量结算；人群的"声音"来
 **可用性**：话题 t 对说话者 n 可用，当且仅当 n 的台词包或其回退链（第 7.3 节）能为 t 给出当前版本；n 的知识层级不低于 `tier` 或 n 在 `knowers` 内；`requires` 为真；`after` 已满足。
 信任不足（`trustMin`）的话题出现在菜单里，但选择后对方回避，提示玩家"关系还不够"。
 
+**数据落点与补充字段**（PK-M1-19）：话题图在 `data/dialogue/topics/`（`generic.json`、`prologue.json`、`act1.json`），实现在 `src/systems/dialogue/topics/`（`decideTopic` 第 6.6 节的拒答表，`rankMenu`、`rankRedirect` 菜单与转移，`sayTopic` 会话中的回答与拒答）。在上表字段之外，数据另有：`owners`（个人话题的说话者；地区与通用话题里是有本人版的人）、`region`（地区话题按说话者家所在地图的 `region` 归属）、`act` 与 `until`（话题出现的幕次窗口）、`locked` 与 `lockedBy`（知情者在 `requires` 成立前的处理，默认回避）、`mis`（谁真诚地说误导版本：人物 ID、`class:<阶层>` 或 `tier:<层级>`，以及推翻条件 `until`）、`aliases`（自由输入里指称此话题的实体 ID 或词典词）、`keywords`（自由提问的关键词组）、`introduced`（人物话题在此人被提起之后才进菜单：`gen_people` 说到此人，或玩家用名字问起）、`scene`（序章话题由过场的哪个选项作答）、`service`（服务话题只有对应功能角色有）、`askOnly`（只经自由输入，如 `gen_directions`）。台词包里每个 `topic.<id>` 槽位都必须是话题图登记的编号（数据门 V8）。
+
 ### 6.3 自由输入：规整与抽取
 
 自由输入取代 `src/systems/dialogue/replies.ts` 的 `answer()`。玩家文字永远只是资料，不是指令（[my_ai_town_agents.md 第 4.2 节](../../10_research/ai_npc/my_ai_town_agents.md)），长度上限 200 字（现有 `MAX_TEXT`）。
@@ -1037,6 +1039,7 @@ L4 人群单元的份额传播照常由规则批量结算；人群的"声音"来
 ```
 
 - 防死循环：同一场会话里对同一问题第三次拒答时，对方说一句 `farewell` 结束会话；当日再开口，该话题仍不可聊。
+- 台账防护：自由输入说中了未解锁线索的关键词或泄露签名（`data/quests/lore.json` 的 `keywords`、`leakSignatures`），而这一轮没有话题作答时，不论意图如何都按本节处理：知情者回避，不知情者当作胡话（`src/systems/dialogue/topics/ledger.ts`）。
 - 不确定时宁可"不知"：分类置信度低于阈值且命中了泄露签名时，一律按 `unknown` 处理，并在审计里记"疑似抢答"。
 
 ### 6.7 女神、序章与特殊对话

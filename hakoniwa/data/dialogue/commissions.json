@@ -1,0 +1,25 @@
+{
+  "requests": {
+    "cap": 0.2,
+    "minReward": 5,
+    "needBelow": 50,
+    "needs": {
+      "money": ["cmm_a1_lost_item"],
+      "safety": ["cmm_a1_cellar_rats"],
+      "duty": ["cmm_a1_town_letter"],
+      "peace": ["cmm_a1_herb_gather"]
+    }
+  },
+  "leaders": {
+    "tags": ["guild_master", "official"],
+    "weekday": 1,
+    "hour": 8,
+    "keep": 2,
+    "post": {
+      "base": 0,
+      "threat": 6,
+      "room": 1
+    },
+    "threat": "seal_unrest"
+  }
+}

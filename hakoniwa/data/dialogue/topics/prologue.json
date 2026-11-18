@@ -1,0 +1,176 @@
+[
+  {
+    "id": "place_antechamber",
+    "category": "place",
+    "title": "这是哪里？你们是谁？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "keywords": [["这是哪", "这里是哪", "什么地方", "你们是谁"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "where"
+    }
+  },
+  {
+    "id": "lore_hortus",
+    "category": "world",
+    "title": "那个世界叫什么？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "keywords": [["世界叫什么", "叫什么世界", "那个世界", "什么世界"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "world"
+    }
+  },
+  {
+    "id": "lore_judgment",
+    "category": "world",
+    "title": "审定是什么？",
+    "scope": "global",
+    "tier": "K0",
+    "versionBy": "knowledge",
+    "repeat": "evergreen",
+    "mis": {
+      "by": ["class:clergy"]
+    },
+    "clues": ["M10-C01", "M10-C02", "MIS-04"],
+    "keywords": [["审定"]],
+    "act": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "review"
+    }
+  },
+  {
+    "id": "event_that_matter",
+    "category": "event",
+    "title": "「那件事」是什么？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "clues": ["M05-C03"],
+    "keywords": [["那件事"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "thing"
+    }
+  },
+  {
+    "id": "lore_above",
+    "category": "world",
+    "title": "「上面」是谁？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "clues": ["M12-C01", "M12-C02"],
+    "keywords": [["上面", "东家"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "above"
+    }
+  },
+  {
+    "id": "self_number_five",
+    "category": "you",
+    "title": "我为什么是五号？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "keywords": [["五号", "号码", "第五"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "five"
+    }
+  },
+  {
+    "id": "person_four_heroes",
+    "category": "person",
+    "title": "隔壁那四个人是谁？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "keywords": [["隔壁", "四个人", "那四个"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "neighbors"
+    }
+  },
+  {
+    "id": "self_way_home",
+    "category": "you",
+    "title": "我能回家吗？我死了吗？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "keywords": [["回家", "死了", "回去", "回地球"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "home"
+    }
+  },
+  {
+    "id": "place_sixth_chair",
+    "category": "place",
+    "title": "那把空椅子是谁的？",
+    "scope": "persona",
+    "owners": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "tier": "K0",
+    "knowers": ["eluen", "valda", "merca", "sylvie", "moira"],
+    "requires": "p_mirror_done",
+    "versionBy": "act",
+    "repeat": "evergreen",
+    "clues": ["M02"],
+    "keywords": [["椅子", "空位"]],
+    "act": "prologue",
+    "until": "prologue",
+    "scene": {
+      "id": "cut_p_call",
+      "choice": "chair"
+    }
+  }
+]

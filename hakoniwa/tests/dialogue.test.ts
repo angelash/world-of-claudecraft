@@ -167,6 +167,7 @@ describe('opening a conversation', () => {
     expect(view?.name).toBe('罗恩');
     expect(view?.lines[0]?.speakerName).toBe('罗恩');
     expect(view?.options.map((o) => o.id)).toEqual([
+      'topics',
       'chat',
       'rumors',
       'opinion',
@@ -175,6 +176,7 @@ describe('opening a conversation', () => {
     ]);
     // built-in labels are text keys; offered labels pass through as the offering system wrote them
     expect(view?.options.map((o) => o.label)).toEqual([
+      tr('sys.dialogue.option.topics'),
       tr('sys.dialogue.option.chat'),
       tr('sys.dialogue.option.rumors'),
       tr('sys.dialogue.option.opinion'),

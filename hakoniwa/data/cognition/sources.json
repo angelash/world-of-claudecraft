@@ -1,0 +1,53 @@
+{
+  "authority": {
+    "ranks": [
+      {
+        "tags": ["inquisitor"],
+        "weight": 4
+      },
+      {
+        "tags": ["guild_master"],
+        "weight": 3
+      },
+      {
+        "tags": ["official"],
+        "weight": 3
+      },
+      {
+        "tags": ["priest"],
+        "weight": 3
+      },
+      {
+        "roles": ["officer"],
+        "weight": 2
+      }
+    ],
+    "devoutBonus": {
+      "tags": ["priest", "inquisitor"],
+      "devotion": 0.6,
+      "bonus": 1
+    },
+    "max": 4,
+    "guild": {
+      "rank": 3,
+      "practical": 2
+    },
+    "church": {
+      "explanations": ["miracle", "sorcery"],
+      "tags": ["priest", "inquisitor"]
+    }
+  },
+  "exposure": {
+    "flags": [
+      {
+        "flag": "a1_cassian_appraise",
+        "kind": "identity_pageless"
+      }
+    ],
+    "claims": {
+      "minTier": "K2",
+      "classes": ["remnant"]
+    },
+    "matchHeat": 0.5
+  }
+}

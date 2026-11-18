@@ -9,12 +9,29 @@ import { commandText, type TextParam, tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../core/time';
 import type { World } from '../../core/world';
 import { tellPlayer } from '../cognition/rumor';
+import { matchOnTalk } from '../cognition/sources';
 import { noteOffense } from '../npc/brain';
 import { addMemory } from '../npc/memory';
 import { personaById } from '../npc/personas';
 import { setConversing } from '../npc/ports';
 import { adjustRelation } from '../npc/relations';
 import { distance, getEntity, playerEntity } from '../world';
+import {
+  answerRequest,
+  leadersPlan,
+  offerRequest,
+  REQUEST_NO,
+  REQUEST_YES,
+  requestDone,
+} from './commissions';
+import { attemptPersuasion, offerPersuasion, PERSUADE_OPTION } from './persuade';
+import {
+  chooseReaction,
+  noteReaction,
+  offerReactions,
+  REACTION_OPTION_PREFIX,
+} from './reaction_offers';
+import './prologue/port';
 import { answer, farewell, greetingLine, opinion, rumorLine, smallTalkLine } from './replies';
 import {
   addOffered,
@@ -27,9 +44,23 @@ import {
   requestReply,
   TALK_RANGE,
 } from './session';
+import {
+  addSuggestions,
+  BACK_OPTION,
+  chooseTopic,
+  closeTopicMenu,
+  openTopicMenu,
+  rootOptions,
+  spendPatience,
+  startPatience,
+  TOPIC_OPTION_PREFIX,
+  TOPICS_OPTION,
+} from './topic_session';
+import { introduce } from './topics/talk';
 import type { DialogueSession, SessionOption } from './types';
 
 export * from './templates';
+export * from './topics';
 export * from './types';
 export { BUILTIN_OPTIONS, TALK_RANGE };
 
@@ -117,6 +148,18 @@ export const system: GameSystem = {
   },
 
   on: {
+    'npc.reaction'(ctx, e) {
+      // a reaction row toward the player: the next talks offer its options (5.6)
+      if (e.data.subject === 'player') noteReaction(ctx, e.data.npcId, e.data.row);
+    },
+    'world.hour'(ctx) {
+      // leaders and officials plan their postings once a week (9.6)
+      leadersPlan(ctx);
+    },
+    'guild.commission_done'(ctx, e) {
+      // a resident's request done: the relation and the memory follow (6.2 step 4)
+      requestDone(ctx, e.data.postingId);
+    },
     'dialogue.options_offered'(ctx, e) {
       const s = session(ctx);
       if (!s || e.data.npcId !== s.npcId || e.data.system === 'dialogue') return;
@@ -166,11 +209,17 @@ export const system: GameSystem = {
         lines: [],
         options: builtinOptions(),
         pending: false,
+        menu: 'root',
+        patience: startPatience(ctx, npcRef),
       };
       slice.session = s;
+      offerPersuasion(ctx, s);
+      offerReactions(ctx, s);
       setConversing(ctx, npcRef, true);
       ctx.emit('dialogue.opened', { sessionId: s.id, npcId: e.id, npcRef });
       ctx.emit('player.talked', { npcId: e.id, npcRef });
+      // face to face with someone who holds a hot rumor about the player (5.6 identity_matched)
+      matchOnTalk(ctx, npcRef);
       const hello = greetingLine(ctx, npcRef, first);
       if (hello.recalled) s.recalled = true;
       npcSays(ctx, s, hello.text);
@@ -225,7 +274,54 @@ export const system: GameSystem = {
       // decides the world consequences (relation, cognition, notifications) before the
       // reply is requested, so the model can only reword the line, never the outcome
       // (builtin_ai.md 6.3: "分类结果驱动关系与认知写入").
-      const answered = answer(ctx, s.npcRef, text);
+      s.refusals ??= {};
+      const askedBefore = new Set(Object.keys(s.refusals));
+      // the yes-or-no bonus holds only for the round right after the person asked (6.3)
+      const asked = !!s.asked;
+      s.asked = false;
+      const answered = answer(ctx, s.npcRef, text, {
+        afterQuestion: asked,
+        topic: s.topic,
+        refusals: s.refusals,
+      });
+      // the free text named people: their topics may now come up (catalog 3.3 "玩家问起其名")
+      for (const e of answered.entities ?? []) if (e.kind === 'person') introduce(ctx, e.id);
+      if (answered.topic) {
+        s.topic = answered.topic;
+        ctx.emit('dialogue.topic', {
+          npcId: s.npcId,
+          npcRef: s.npcRef,
+          topicId: answered.topic,
+          outcome: answered.refused ? 'refused' : 'answer',
+        });
+      }
+      // the person's request (6.4 rows 30, 34) and the player's yes or no to it (rows 49, 50)
+      if (answered.entry?.id === 'quest' && !s.question) offerRequest(ctx, s);
+      if (
+        (answered.entry?.id === 'answer_yes' || answered.entry?.id === 'answer_no') &&
+        s.question?.kind === 'request'
+      ) {
+        const reply = answerRequest(ctx, s, answered.entry.id === 'answer_yes');
+        if (reply) answered.line = reply;
+      }
+      // persuading someone the player has a persuade objective on is the attempt itself
+      // (6.4 row 37): the kernel judges it by the objective's threshold
+      let line = answered.line;
+      let failedPersuasion = false;
+      if (answered.intent === 'persuade' && rootOptions(s).some((o) => o.id === PERSUADE_OPTION)) {
+        const tried = attemptPersuasion(ctx, s);
+        line = tried.line;
+        failedPersuasion = !tried.ok;
+      }
+      if (answered.suggest && answered.suggest.length > 0) addSuggestions(ctx, s, answered.suggest);
+      // a wasted round costs patience (6.1): the intent's own cost, a refused topic asked
+      // again, an offense; the person who has had enough says goodbye
+      const def = ctx.content.intentRules?.intents[answered.intent];
+      let cost = def?.valid ? 0 : -(def?.patience ?? 0);
+      if (answered.refused && answered.refusedKey && askedBefore.has(answered.refusedKey))
+        cost += 1;
+      if (failedPersuasion) cost += 1;
+      const spent = spendPatience(s, cost);
       // an insult or a threat angers the person at the player (builtin_ai.md 3.3, 6.1)
       if (answered.intent === 'insult' || answered.intent === 'threaten' || answered.offense) {
         noteOffense(ctx, s.npcRef, answered.intent === 'threaten');
@@ -238,23 +334,17 @@ export const system: GameSystem = {
           notify,
           intent: answered.intent,
         });
-      if (answered.end) {
-        // the intent (e.g. farewell) already ends the talk: show the line straight away,
-        // like the explicit "bye" option does, instead of routing it through the
-        // model-reply round trip, whose dialogue.reply would arrive after the session (and
-        // its revision) this reply was requested against is already gone (stale, dropped).
-        npcSays(ctx, s, answered.line);
-        closeSession(ctx, 'bye');
+      if (answered.end || spent) {
+        // the intent (e.g. farewell), the third refusal of a topic or a spent patience ends
+        // the talk: show the line straight away, like the explicit "bye" option does,
+        // instead of routing it through the model-reply round trip, whose dialogue.reply
+        // would arrive after the session (and its revision) this reply was requested
+        // against is already gone (stale, dropped).
+        npcSays(ctx, s, answered.end ? line : farewell(ctx, s.npcRef));
+        closeSession(ctx, answered.refusedOut ? 'refused' : spent ? 'patience' : 'bye');
         return ok();
       }
-      requestReply(
-        ctx,
-        s,
-        'player_text',
-        answered.line,
-        tr('sys.dialogue.prompt.reply_player'),
-        text,
-      );
+      requestReply(ctx, s, 'player_text', line, tr('sys.dialogue.prompt.reply_player'), text);
       return ok();
     },
 
@@ -269,6 +359,18 @@ export const system: GameSystem = {
         closeSession(ctx, 'walked_away');
         return reject('too_far', tr('sys.dialogue.reject.too_far.earshot'));
       }
+      // opening and leaving the topic menu only changes the options (6.1, 6.2)
+      const own = opt.system === 'dialogue';
+      if (own && opt.id === TOPICS_OPTION) {
+        s.lastTick = ctx.tick;
+        openTopicMenu(ctx, s);
+        return ok();
+      }
+      if (own && opt.id === BACK_OPTION) {
+        s.lastTick = ctx.tick;
+        closeTopicMenu(s);
+        return ok();
+      }
       pushLine(
         ctx,
         s,
@@ -280,6 +382,61 @@ export const system: GameSystem = {
         },
         s.npcId,
       );
+      if (own && (opt.id === REQUEST_YES || opt.id === REQUEST_NO)) {
+        s.rev += 1;
+        s.lastTick = ctx.tick;
+        const reply = answerRequest(ctx, s, opt.id === REQUEST_YES);
+        if (reply) requestReply(ctx, s, 'request', reply, tr('sys.dialogue.prompt.request'));
+        return ok();
+      }
+      if (own && opt.id.startsWith(REACTION_OPTION_PREFIX)) {
+        s.rev += 1;
+        s.lastTick = ctx.tick;
+        const chosen = chooseReaction(ctx, s, opt.id);
+        if (!chosen) return reject('no_option', tr('sys.dialogue.reject.no_option'));
+        if (chosen.refused) {
+          // a payment the player cannot make: a note, not the person's line
+          pushLine(ctx, s, {
+            speakerId: s.npcId,
+            speakerName: '',
+            text: tr('sys.dialogue.reaction.no_money'),
+            kind: 'narrate',
+          });
+          return ok();
+        }
+        if (chosen.request) offerRequest(ctx, s);
+        if (chosen.line)
+          requestReply(ctx, s, 'reaction', chosen.line, tr('sys.dialogue.prompt.reaction'));
+        return ok();
+      }
+      if (own && opt.id === PERSUADE_OPTION) {
+        s.rev += 1;
+        s.lastTick = ctx.tick;
+        const tried = attemptPersuasion(ctx, s);
+        // a failed attempt is a wasted round (6.1)
+        if (!tried.ok && spendPatience(s, 1)) {
+          npcSays(ctx, s, tried.line);
+          closeSession(ctx, 'patience');
+          return ok();
+        }
+        requestReply(ctx, s, 'persuade', tried.line, tr('sys.dialogue.prompt.persuade'));
+        return ok();
+      }
+      if (own && opt.id.startsWith(TOPIC_OPTION_PREFIX)) {
+        s.rev += 1;
+        const said = chooseTopic(ctx, s, opt.id.slice(TOPIC_OPTION_PREFIX.length));
+        if (!said) return reject('no_option', tr('sys.dialogue.reject.no_option'));
+        if (said.end) {
+          npcSays(ctx, s, said.line);
+          closeSession(ctx, 'refused');
+        } else if (s.patience === 0) {
+          // the line still goes out, then the person has had enough (6.1)
+          npcSays(ctx, s, said.line);
+          npcSays(ctx, s, farewell(ctx, s.npcRef));
+          closeSession(ctx, 'patience');
+        }
+        return ok();
+      }
       if (opt.system !== 'dialogue') {
         s.lastTick = ctx.tick;
         // an offered option is answered once; the offering system re-offers it on the next talk

@@ -4,12 +4,16 @@
 
 import classes from '../../../data/cognition/classes.json';
 import explanations from '../../../data/cognition/explanations.json';
+import sources from '../../../data/cognition/sources.json';
 import type { ContentMap } from '../../core/contracts';
+import { defaultRegistry } from '../../core/registry';
+import type { CognitionSources } from '../../systems/cognition/sources';
 import {
   type ClassParams,
   EVIDENCE_KINDS,
   type ExplanationDef,
 } from '../../systems/cognition/types';
+import { IDENTITY_KINDS } from '../../systems/npc/brain/reactions';
 import type { ContentPack } from '../pack';
 
 const CATEGORIES = ['luck', 'cheat', 'gadget', 'miracle', 'monster', 'conspiracy', 'real'];
@@ -35,6 +39,20 @@ export function validateCognitionContent(content: ContentMap): string[] {
     if (!(content.cognitionClasses ?? []).some((c) => c.id === p.class))
       problems.push(`npc ${p.id}: class ${p.class} has no cognition parameters`);
   }
+  // evidence and exposure sources (PK-M1-19)
+  const src = content.cognitionSources;
+  if (!src) problems.push('cognitionSources table missing');
+  else {
+    for (const r of src.authority.ranks)
+      if (!(r.weight >= 2 && r.weight <= src.authority.max))
+        problems.push(`authority rank weight ${r.weight} is outside 2 to ${src.authority.max}`);
+    for (const f of src.exposure.flags) {
+      if (!defaultRegistry().resolve(f.flag))
+        problems.push(`exposure flag ${f.flag} is not a registered variable`);
+      if (!(IDENTITY_KINDS as readonly string[]).includes(f.kind))
+        problems.push(`exposure flag ${f.flag}: unknown kind ${f.kind}`);
+    }
+  }
   return problems;
 }
 
@@ -43,6 +61,7 @@ export const pack: ContentPack = {
   tables: {
     cognitionClasses: classes as unknown as ClassParams[],
     cognitionExplanations: explanations as unknown as ExplanationDef[],
+    cognitionSources: sources as unknown as CognitionSources,
   },
   schemas: [
     {

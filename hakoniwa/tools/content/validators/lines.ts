@@ -9,10 +9,10 @@
 // ln_role_, ln_class_, ln_tpl_, bark_ pools say the folk terms, 2.4); a forbidden
 // character (when no data file scan runs). Warning: the same source text in three or more
 // packs (7.10). The registry (V4) checks the `when` conditions and the ledger (V5) runs the
-// leak scan over the line text fields of ./player_text.ts. Not checked yet, because their
-// data does not exist yet: topic registration and quest ids (data/dialogue/topics.json),
-// the per-speaker coverage and minimum counts of 7.8, the misdirection table, catchphrase
-// density.
+// leak scan over the line text fields of ./player_text.ts. A topic slot names a topic of
+// the topic graph (data/dialogue/topics/). Not checked yet, because their data does not
+// exist yet: quest ids, the per-speaker coverage and minimum counts of 7.8, the
+// misdirection table, catchphrase density.
 
 import { findForbidden } from '../../../src/editor/checks/rules';
 import {
@@ -231,11 +231,43 @@ export function linePackFindings(
   return out;
 }
 
+/**
+ * Topic slots that name no topic of the topic graph (builtin_ai.md 7.10 "话题编号已在话题图登记";
+ * data/dialogue/topics/, PK-M1-19).
+ */
+export function unregisteredTopicFindings(
+  packs: readonly LinePack[],
+  topics: readonly { id: string }[],
+): Finding[] {
+  const known = new Set(topics.map((t) => t.id));
+  const out: Finding[] = [];
+  for (const pack of packs) {
+    const where: [string, Record<string, unknown> | undefined][] = [
+      ['slots', pack.slots],
+      ...Object.entries(pack.acts ?? {}).map(
+        ([act, slots]) => [`acts.${act}`, slots] as [string, Record<string, unknown>],
+      ),
+    ];
+    for (const [base, slots] of where)
+      for (const slot of Object.keys(slots ?? {})) {
+        if (!slot.startsWith('topic.')) continue;
+        const id = slot.slice('topic.'.length);
+        if (!known.has(id))
+          out.push(err(pack.id, `${base}.${slot}`, `topic ${id} is not in the topic graph`));
+      }
+  }
+  return out;
+}
+
 /** The line pack findings of a validation input (part of V8). */
 export function linesFindings(input: Pick<ValidationInput, 'content' | 'files'>): Finding[] {
   const goddesses = new Set((input.content.goddesses ?? []).map((g) => g.id));
-  return linePackFindings(input.content.linePacks ?? [], {
-    goddesses,
-    forbidden: input.files.size === 0,
-  });
+  const packs = input.content.linePacks ?? [];
+  return [
+    ...linePackFindings(packs, {
+      goddesses,
+      forbidden: input.files.size === 0,
+    }),
+    ...(input.content.topics ? unregisteredTopicFindings(packs, input.content.topics) : []),
+  ];
 }

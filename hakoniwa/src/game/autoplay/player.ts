@@ -802,6 +802,11 @@ export class Autoplayer {
     }
     // the objective kinds of the quest model (objective_plan.ts)
     const plan = modelObjectivePlan(o);
+    if (plan?.kind === 'talk' && plan.option) {
+      const key = `${plan.npc}:${plan.option}`;
+      if (this.engine.tick - (this.talkedAt[key] ?? -1e9) < 40) return -20;
+      return this.talk(plan.npc, plan.option, why);
+    }
     if (plan?.kind === 'talk')
       return this.objective(def, { type: 'talk', npc: plan.npc, label: o.label });
     if (plan?.kind === 'reach')

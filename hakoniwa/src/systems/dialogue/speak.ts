@@ -87,6 +87,8 @@ export interface SpeakRequest {
   firstMeeting?: boolean;
   /** keys already said in the open conversation */
   saidThisSession?: ReadonlySet<string>;
+  /** take the lines in order, the first not in saidThisSession (topics, 7.7) */
+  rotate?: boolean;
 }
 
 export interface Spoken {
@@ -183,6 +185,7 @@ export function speak(ctx: SystemContext, req: SpeakRequest): Spoken | null {
       version: req.version,
       versionBy: req.versionBy,
       suppressDays: ledger === 'none' ? 0 : suppressionDays(req.slot),
+      rotate: req.rotate,
     },
   );
   if (!pick) return null;

@@ -4,10 +4,16 @@
 // data/cognition/lines.json moved into the packs, PK-M0-25). Persona cards may still
 // override any former key with their own lines.
 
+import commissionsData from '../../../data/dialogue/commissions.json';
 import intentRulesData from '../../../data/dialogue/intents.json';
 import legacyMap from '../../../data/dialogue/legacy_lines.json';
 import intentLexiconData from '../../../data/dialogue/lexicon.json';
+import prologueAnswersData from '../../../data/dialogue/prologue_answers.json';
+import reactionOptionsData from '../../../data/dialogue/reaction_options.json';
+import topicCastData from '../../../data/dialogue/topic_cast.json';
 import type { ContentMap } from '../../core/contracts';
+import { defaultRegistry } from '../../core/registry';
+import type { CommissionRules } from '../../systems/dialogue/commissions/requests';
 import { ruleSetProblems } from '../../systems/dialogue/intent/content';
 import {
   type LegacyLineMap,
@@ -15,12 +21,40 @@ import {
   legacyProblems,
   sliceDigest,
 } from '../../systems/dialogue/lines/legacy';
+import { resolveSlot } from '../../systems/dialogue/lines/packs';
 import type { LinePack } from '../../systems/dialogue/lines/types';
+import {
+  type PrologueAnswers,
+  prologueAnswerProblems,
+} from '../../systems/dialogue/prologue/answers';
+import {
+  type ReactionOptionsRow,
+  reactionOptionProblems,
+} from '../../systems/dialogue/reaction_offers';
+import { topicProblems } from '../../systems/dialogue/topics/content';
+import type { TopicDef } from '../../systems/dialogue/topics/types';
+import { NEED_KEYS } from '../../systems/npc/types';
+import { checkCondition, referencedVars } from '../../systems/quests/conditions';
 import type { ContentPack, TableSchema } from '../pack';
 
 const files = import.meta.glob<{ default: LinePack }>('../../../data/dialogue/lines/*.json', {
   eager: true,
 });
+
+const topicFiles = import.meta.glob<{ default: TopicDef[] }>(
+  '../../../data/dialogue/topics/*.json',
+  {
+    eager: true,
+  },
+);
+
+/** Topic files (path under data/) in file order: the generic topics, then by act. */
+const topicsByFile: [string, TopicDef[]][] = Object.keys(topicFiles)
+  .sort()
+  .map((k) => [
+    k.slice(k.indexOf('data/') + 5),
+    (topicFiles[k] as { default: TopicDef[] }).default,
+  ]);
 
 /** Line packs with their data file (path under data/), in file order. */
 const byFile: [string, LinePack][] = Object.keys(files)
@@ -193,8 +227,97 @@ export function validateDialogueContent(content: ContentMap): string[] {
   for (const k of REQUIRED_KEYS)
     if (legacyLines(content, k).length === 0) problems.push(`legacy line key ${k} missing`);
   problems.push(...ruleSetProblems(content.intentLexicon, content.intentRules));
+  problems.push(...topicProblems(content));
+  problems.push(...prologueAnswerProblems(content.prologueAnswers, content.scenes));
+  problems.push(
+    ...reactionOptionProblems(
+      content.reactionOptions,
+      content.npcBrain ? content.npcBrain.reactions : undefined,
+      (slot) => !!resolveSlot(content, '', slot, {}),
+    ),
+  );
+  for (const r of content.reactionOptions ?? [])
+    for (const o of r.options) {
+      if (!o.when) continue;
+      const bad = checkCondition(o.when);
+      if (bad) problems.push(`reaction option ${r.id}.${o.id}: condition does not parse: ${bad}`);
+      else
+        for (const v of referencedVars(o.when))
+          if (!defaultRegistry().resolve(v))
+            problems.push(`reaction option ${r.id}.${o.id}: reads unregistered variable ${v}`);
+    }
+  problems.push(...commissionRuleProblems(content));
   return problems;
 }
+
+/** The request mapping and the leaders' menu name real templates, needs and variables. */
+function commissionRuleProblems(content: ContentMap): string[] {
+  const out: string[] = [];
+  const rules = content.dialogueCommissions;
+  if (!rules) return ['dialogueCommissions table missing'];
+  const ids = content.commissions ? new Set(content.commissions.map((c) => c.id)) : null;
+  for (const [need, list] of Object.entries(rules.requests.needs)) {
+    if (!(NEED_KEYS as readonly string[]).includes(need)) out.push(`request need ${need} unknown`);
+    for (const id of list ?? [])
+      if (ids && !ids.has(id)) out.push(`request template ${id} unknown`);
+  }
+  if (!(rules.requests.cap > 0 && rules.requests.cap <= 1)) out.push('request cap must be 0 to 1');
+  if (!defaultRegistry().resolve(rules.leaders.threat))
+    out.push(`leader threat variable ${rules.leaders.threat} is not registered`);
+  if (!(rules.leaders.weekday >= 1 && rules.leaders.weekday <= 7))
+    out.push('leader weekday must be 1 to 7');
+  return out;
+}
+
+const topicSchemas: TableSchema[] = topicsByFile.map(([file]) => ({
+  table: 'topics',
+  label: `话题图：${file}`,
+  file,
+  idField: 'id',
+  fields: [
+    { key: 'id', label: '编号', type: 'string', required: true },
+    { key: 'category', label: '类别', type: 'string', required: true },
+    { key: 'title', label: '菜单标题', type: 'string' },
+    { key: 'scope', label: '范围', type: 'string', required: true },
+    { key: 'owners', label: '本人', type: 'json' },
+    { key: 'region', label: '地区', type: 'string' },
+    { key: 'tier', label: '知识层级', type: 'string', required: true },
+    { key: 'knowers', label: '知情者', type: 'json' },
+    { key: 'requires', label: '解锁条件', type: 'string' },
+    { key: 'trustMin', label: '信任下限', type: 'number' },
+    { key: 'versionBy', label: '版本维度', type: 'string', required: true },
+    { key: 'act', label: '起始幕', type: 'string', required: true },
+    { key: 'until', label: '截止幕', type: 'string' },
+    { key: 'locked', label: '解锁前处理', type: 'string' },
+    { key: 'mis', label: '误导', type: 'json' },
+    { key: 'aliases', label: '指称', type: 'json' },
+    { key: 'keywords', label: '自由提问词', type: 'json' },
+    { key: 'repeat', label: '重复', type: 'string', required: true },
+    { key: 'after', label: '前置话题', type: 'json' },
+    { key: 'unlocks', label: '聊完解锁', type: 'json' },
+    { key: 'lockedBy', label: '各人的解锁前处理', type: 'json' },
+    { key: 'introduced', label: '提起后才进菜单', type: 'boolean' },
+    { key: 'interest', label: '吸引', type: 'json' },
+    { key: 'clues', label: '台账条目', type: 'json' },
+    { key: 'scene', label: '序章作答的过场选项', type: 'json' },
+    { key: 'service', label: '服务角色', type: 'string' },
+    { key: 'askOnly', label: '只经自由输入', type: 'boolean' },
+    { key: 'trouble', label: '只在有烦心事时', type: 'boolean' },
+  ],
+}));
+
+const ruleSchemas: TableSchema[] = [
+  {
+    table: 'reactionOptions',
+    label: '反应表各行的对话选项',
+    file: 'dialogue/reaction_options.json',
+    idField: 'id',
+    fields: [
+      { key: 'id', label: '反应行', type: 'string', required: true },
+      { key: 'options', label: '选项', type: 'json', required: true },
+    ],
+  },
+];
 
 const schemas: TableSchema[] = byFile.map(([file, p]) => ({
   table: 'linePacks',
@@ -216,7 +339,12 @@ export const pack: ContentPack = {
     legacyLines: { keys: (legacyMap as unknown as LegacyLineMap).keys },
     intentLexicon: intentLexiconData as unknown as ContentMap['intentLexicon'],
     intentRules: intentRulesData as unknown as ContentMap['intentRules'],
+    topics: topicsByFile.flatMap(([, f]) => f),
+    topicCast: topicCastData as string[],
+    prologueAnswers: prologueAnswersData as unknown as PrologueAnswers,
+    reactionOptions: reactionOptionsData as unknown as ReactionOptionsRow[],
+    dialogueCommissions: commissionsData as unknown as CommissionRules,
   },
-  schemas,
+  schemas: [...schemas, ...topicSchemas, ...ruleSchemas],
   validate: validateDialogueContent,
 };

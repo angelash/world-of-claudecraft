@@ -190,8 +190,10 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
     expect(hub.device).toBe('pad');
     expect(h.sent['world.set_intent'] ?? 0).toBeGreaterThan(0);
     expect(h.sent['scenes.choose'] ?? 0).toBe(choices);
-    // the unsent reply of the first opening (P1) and the name (P6)
-    expect(h.sent['scenes.input'] ?? 0).toBe(2);
+    // the unsent reply of the first opening (P1), the name (P6), and three free questions at the
+    // call: once the nine written questions are asked, `ask` is offered without a model too
+    // until three are asked (PK-M1-19)
+    expect(h.sent['scenes.input'] ?? 0).toBe(5);
     for (const kind of CHEATS) expect(h.sent[kind] ?? 0, kind).toBe(0);
   });
 

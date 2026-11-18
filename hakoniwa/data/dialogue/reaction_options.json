@@ -1,0 +1,77 @@
+[
+  {
+    "id": "belief_exploit",
+    "options": [
+      {
+        "id": "deal",
+        "label": "说说你的买卖",
+        "say": "react.belief_exploit",
+        "effects": [{ "type": "relation", "like": 2, "trust": 2 }]
+      },
+      {
+        "id": "hush",
+        "label": "给你点好处，这事别往外说",
+        "say": "react.promise_noted",
+        "effects": [{ "type": "pay", "amount": 20 }, { "type": "hush" }]
+      },
+      {
+        "id": "refuse",
+        "label": "我不做这种买卖",
+        "effects": [{ "type": "relation", "like": -2 }]
+      }
+    ]
+  },
+  {
+    "id": "challenge",
+    "options": [
+      {
+        "id": "comply",
+        "label": "配合盘问",
+        "say": "react.thanked",
+        "effects": [{ "type": "relation", "trust": 3 }]
+      },
+      {
+        "id": "card",
+        "label": "亮出公会卡",
+        "when": "a1_guild_registered",
+        "say": "react.thanked",
+        "effects": [{ "type": "relation", "trust": 5 }]
+      },
+      {
+        "id": "refuse",
+        "label": "无可奉告",
+        "effects": [{ "type": "relation", "like": -3, "trust": -3 }]
+      }
+    ]
+  },
+  {
+    "id": "belief_worship",
+    "options": [
+      {
+        "id": "modest",
+        "label": "别这样，我只是个普通人",
+        "effects": [{ "type": "relation", "like": 1 }]
+      }
+    ]
+  },
+  {
+    "id": "belief_depend",
+    "options": [
+      {
+        "id": "listen",
+        "label": "说说你的难处",
+        "effects": [{ "type": "request" }]
+      }
+    ]
+  },
+  {
+    "id": "gatefolk_recognize",
+    "options": [
+      {
+        "id": "whisper",
+        "label": "（低声）我认得路",
+        "effects": [{ "type": "relation", "trust": 5 }, { "type": "hush" }]
+      }
+    ]
+  }
+]
