@@ -448,7 +448,7 @@ async function aceTextJob(job: Job): Promise<Candidate[]> {
           sampler: 'euler',
           shift: 3,
           lmCodes: true,
-          decode: aceDecodeNode(seconds).class_type,
+          decode: aceDecodeNode().class_type,
         },
         metrics: { ...jobFields(run), lufs: reading.integrated, truePeak: reading.truePeak },
         files: [{ role: 'main', label: `ace${k}`, path: p.rel }],

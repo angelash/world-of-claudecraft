@@ -32,21 +32,21 @@ export interface AceSettings {
 }
 
 /**
- * Above this length the ACE-Step VAE decodes in tiles. On the 8 GB card a whole 330-second
- * take overflowed into shared memory and decoded for over three hours before ComfyUI's own
- * out-of-memory fallback tiled it in about a minute; every take up to 180 seconds decoded
- * whole in seconds, so shorter music keeps the untiled decode.
+ * Tiles of 512 latent frames (about 20 s at 25 Hz) with a 64-frame (about 2.6 s) overlap,
+ * ComfyUI's own defaults. The 8 GB card shares its memory with the desktop, so a whole
+ * decode overflows into shared memory once free memory runs low: a 330-second take decoded
+ * for over three hours and, later on a busy desktop, takes of 140 to 160 seconds for 15 to
+ * 20 minutes, while tiles finish in about a minute. A take shorter than one tile decodes as
+ * one tile, which equals the whole decode.
  */
-export const ACE_TILED_DECODE_ABOVE_SECONDS = 180;
-/** Tiles of 1,024 latent frames (about 41 s at 25 Hz) with a 128-frame (about 5 s) overlap. */
-const ACE_DECODE_TILE = { tile_size: 1024, overlap: 128 } as const;
+export const ACE_DECODE_TILE = { tile_size: 512, overlap: 64 } as const;
 
-/** The VAE decode node for an ACE-Step take of the given length. */
-export function aceDecodeNode(seconds: number): Graph[string] {
-  const inputs = { samples: ['sampler', 0], vae: ['vae', 0] };
-  return seconds > ACE_TILED_DECODE_ABOVE_SECONDS
-    ? { class_type: 'VAEDecodeAudioTiled', inputs: { ...inputs, ...ACE_DECODE_TILE } }
-    : { class_type: 'VAEDecodeAudio', inputs };
+/** The VAE decode node for every ACE-Step take. */
+export function aceDecodeNode(): Graph[string] {
+  return {
+    class_type: 'VAEDecodeAudioTiled',
+    inputs: { samples: ['sampler', 0], vae: ['vae', 0], ...ACE_DECODE_TILE },
+  };
 }
 
 function aceBase(s: AceSettings, generateCodes: boolean): Graph {
@@ -87,7 +87,7 @@ function aceBase(s: AceSettings, generateCodes: boolean): Graph {
       },
     },
     negative: { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['text', 0] } },
-    decode: aceDecodeNode(s.seconds),
+    decode: aceDecodeNode(),
     save: {
       class_type: 'SaveAudio',
       inputs: { audio: ['decode', 0], filename_prefix: s.outputPrefix },

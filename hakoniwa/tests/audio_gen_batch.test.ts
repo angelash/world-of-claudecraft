@@ -2,12 +2,12 @@
 // becomes one job with a route, the ACE-Step parameters parsed from the entry's sentence
 // are valid choices, the motif seeds hold the motif table note for note inside the seed
 // template's length, the shared take helpers trim, pair and scale as documented, and the
-// ComfyUI client decodes long music in tiles and cancels a job it gives up on.
+// ComfyUI client decodes music in tiles and cancels a job it gives up on.
 
 import { describe, expect, it } from 'vitest';
 import { allJobs, takeCount, variationSeconds } from '../tools/audio_gen/batch';
 import {
-  ACE_TILED_DECODE_ABOVE_SECONDS,
+  ACE_DECODE_TILE,
   aceCoverGraph,
   aceText2MusicGraph,
   cancelPrompt,
@@ -168,16 +168,24 @@ describe('ComfyUI client', () => {
     outputPrefix: 'test/x',
   });
 
-  it('decodes music longer than the threshold in tiles and shorter music whole', () => {
-    const long = ACE_TILED_DECODE_ABOVE_SECONDS + 1;
-    for (const graph of [aceText2MusicGraph(ace(long)), aceCoverGraph(ace(long), 'in.wav', 1)]) {
-      expect(graph.decode?.class_type).toBe('VAEDecodeAudioTiled');
-      expect(graph.decode?.inputs).toMatchObject({ tile_size: 1024, overlap: 128 });
-      expect(graph.save?.inputs.audio).toEqual(['decode', 0]);
+  it('decodes every music graph in tiles, short and long, text and cover', () => {
+    expect(ACE_DECODE_TILE).toEqual({ tile_size: 512, overlap: 64 });
+    for (const seconds of [10, 330]) {
+      for (const graph of [
+        aceText2MusicGraph(ace(seconds)),
+        aceCoverGraph(ace(seconds), 'in.wav', 1),
+        aceCoverGraph(ace(seconds), 'in.wav', 0.7),
+      ]) {
+        expect(graph.decode?.class_type).toBe('VAEDecodeAudioTiled');
+        expect(graph.decode?.inputs).toEqual({
+          samples: ['sampler', 0],
+          vae: ['vae', 0],
+          tile_size: 512,
+          overlap: 64,
+        });
+        expect(graph.save?.inputs.audio).toEqual(['decode', 0]);
+      }
     }
-    const short = aceText2MusicGraph(ace(ACE_TILED_DECODE_ABOVE_SECONDS));
-    expect(short.decode?.class_type).toBe('VAEDecodeAudio');
-    expect(short.decode?.inputs).not.toHaveProperty('tile_size');
   });
 
   it('cancels a prompt by dropping it from the queue and interrupting it', async () => {
