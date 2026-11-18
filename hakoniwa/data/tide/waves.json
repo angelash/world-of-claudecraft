@@ -1,0 +1,121 @@
+[
+  {
+    "id": "mtide_lotha_rim",
+    "name": "兽潮第一波：兽群",
+    "mapId": "borderstone",
+    "at": "gate_forest_edge",
+    "target": "east_gate",
+    "radius": 4,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_wolf", "count": 12 },
+      { "monster": "dian_boar", "count": 6 },
+      { "monster": "edge_spider", "count": 8 },
+      { "monster": "black_ridge", "count": 1 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_undead",
+    "name": "兽潮第二拍：亡灵",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "north_gate",
+    "radius": 4,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "wandering_bones", "count": 10 },
+      { "monster": "waste_wraith", "count": 4 },
+      { "monster": "raven_flock", "count": 2 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_grave",
+    "name": "兽潮第二拍：墓地的澱渣",
+    "mapId": "borderstone",
+    "at": "graveyard",
+    "target": "south_gate",
+    "radius": 2,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [{ "monster": "dian_dreg", "count": 2 }]
+  },
+  {
+    "id": "mtide_lotha_rim_colossus",
+    "name": "兽潮之夜：澱巨像",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "orphanage",
+    "radius": 2,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [{ "monster": "dian_colossus", "count": 1 }]
+  },
+  {
+    "id": "mtide_lotha_rim_surge_north",
+    "name": "兽潮第二波：澱流（北门）",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "north_gate",
+    "radius": 5,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_dreg", "count": 20, "level": 10 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_spirit", "count": 2 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_surge_east",
+    "name": "兽潮第二波：澱流（东栅）",
+    "mapId": "borderstone",
+    "at": "gate_forest_edge",
+    "target": "east_gate",
+    "radius": 5,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_dreg", "count": 20, "level": 10 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_spirit", "count": 2 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_surge_south",
+    "name": "兽潮第二波：澱流（南门）",
+    "mapId": "borderstone",
+    "at": "gate_wallenburg",
+    "target": "south_gate",
+    "radius": 5,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_dreg", "count": 20, "level": 10 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_spirit", "count": 2 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_surge_west",
+    "name": "兽潮第二波：澱流（西田）",
+    "mapId": "borderstone",
+    "at": "west_field",
+    "target": "mill",
+    "radius": 5,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_dreg", "count": 20, "level": 10 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_spirit", "count": 2 }
+    ]
+  },
+  {
+    "id": "mtide_lotha_rim_wild",
+    "name": "林缘魔物潮（满巢或溢出）",
+    "mapId": "borderstone",
+    "at": "gate_forest_edge",
+    "target": "east_gate",
+    "radius": 4,
+    "groups": [
+      { "monster": "grey_wolf", "count": 4 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_boar", "count": 4 },
+      { "monster": "edge_spider", "count": 6 }
+    ]
+  }
+]

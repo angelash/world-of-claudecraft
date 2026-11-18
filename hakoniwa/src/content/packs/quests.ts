@@ -29,6 +29,7 @@ const COMPUTE_FNS = new Set([
   'ending',
   'act5_outcome',
   'review_score',
+  'tide_attribution',
 ]);
 
 /** Problems in one condition expression (empty when fine). */

@@ -1,0 +1,1041 @@
+[
+  {
+    "id": "night_a1_borderstone",
+    "name": "兽潮之夜",
+    "act": "act1",
+    "mapId": "borderstone",
+    "start": "a1_tide_night",
+    "vars": {
+      "stage": "a1_tide_stage",
+      "started": "a1_beast_tide_started",
+      "cleared": "a1_beast_tide_cleared",
+      "post": "a1_tide_post",
+      "leftPost": "a1_tide_left_post",
+      "colossusTarget": "a1_colossus_target",
+      "weakest": "a1_tide_weakest",
+      "gapWeakest": "a1_tide_gap_weakest",
+      "otherDead": "a1_tide_other_dead",
+      "survival": "a1_bs_survival",
+      "population": "a1_bs_population",
+      "prosperity": "a1_bs_prosperity",
+      "credit": "a1_tide_credit",
+      "exposed": "a1_children_exposed",
+      "childrenAt": "a1_children_location"
+    },
+    "phases": [
+      {
+        "id": "dusk",
+        "stage": 0,
+        "hour": 0
+      },
+      {
+        "id": "wave1",
+        "stage": 1,
+        "hour": 1,
+        "settle": true,
+        "playerLines": true,
+        "waves": [
+          {
+            "wave": "mtide_lotha_rim"
+          }
+        ]
+      },
+      {
+        "id": "wave2",
+        "stage": 2,
+        "hour": 3,
+        "settle": true,
+        "playerLines": true,
+        "mob": true,
+        "waves": [
+          {
+            "wave": "mtide_lotha_rim_undead"
+          },
+          {
+            "wave": "mtide_lotha_rim_grave",
+            "when": "NOT a1_graveyard_purified"
+          }
+        ]
+      },
+      {
+        "id": "colossus",
+        "stage": 3,
+        "hour": 4,
+        "witness": true,
+        "until": "boss.dian_colossus.defeated OR boss.dian_colossus.yielded OR combat.wave.mtide_lotha_rim_colossus.state == cleared",
+        "seek": {
+          "place": "north_gate",
+          "range": 20,
+          "near": "player",
+          "far": "children"
+        },
+        "waves": [
+          {
+            "wave": "mtide_lotha_rim_colossus"
+          }
+        ]
+      },
+      {
+        "id": "surge",
+        "stage": 4,
+        "hour": 4,
+        "settle": true,
+        "surge": true
+      },
+      {
+        "id": "dawn",
+        "stage": 5,
+        "hour": 10,
+        "minHours": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "north",
+        "location": "north_gate",
+        "base": 20,
+        "pressure": {
+          "wave1": 20,
+          "wave2": 60
+        },
+        "behind": ["orphanage", "guard_post"],
+        "face": true,
+        "surgeWave": "mtide_lotha_rim_surge_north"
+      },
+      {
+        "id": "east",
+        "location": "east_gate",
+        "base": 10,
+        "pressure": {
+          "wave1": 60,
+          "wave2": 10
+        },
+        "behind": ["lumberyard", "herb_hut"],
+        "face": true,
+        "surgeWave": "mtide_lotha_rim_surge_east"
+      },
+      {
+        "id": "south",
+        "location": "south_gate",
+        "base": 15,
+        "pressure": {
+          "wave1": 0,
+          "wave2": 20
+        },
+        "behind": ["post_station", "merchant_branch"],
+        "face": true,
+        "surgeWave": "mtide_lotha_rim_surge_south"
+      },
+      {
+        "id": "west",
+        "location": "west_field",
+        "base": 5,
+        "pressure": {
+          "wave1": 15,
+          "wave2": 10
+        },
+        "behind": ["mill", "farmhouse"],
+        "face": true,
+        "surgeWave": "mtide_lotha_rim_surge_west"
+      },
+      {
+        "id": "slope",
+        "location": "east_slope",
+        "base": 20,
+        "pressure": {
+          "wave1": 40
+        },
+        "behind": ["slope_hut"],
+        "front": true
+      }
+    ],
+    "mods": [
+      {
+        "when": "a1_tide_prep.east_fence",
+        "line": "east",
+        "defence": 15
+      },
+      {
+        "when": "a1_culvert_sealed",
+        "line": "east",
+        "phases": ["wave1"],
+        "pressure": -10
+      },
+      {
+        "when": "NOT a1_graveyard_purified",
+        "line": "south",
+        "phases": ["wave2"],
+        "pressure": 10
+      }
+    ],
+    "actors": [
+      {
+        "id": "barto",
+        "npcs": ["barto"],
+        "group": true,
+        "rows": [
+          {
+            "id": "hold",
+            "when": "a1_barto_family_safe OR a1_moss_exposed",
+            "label": "带着民兵死守北门到天亮",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": 25
+              },
+              "wave2": {
+                "line": "north",
+                "defence": 25
+              },
+              "surge": {
+                "line": "north",
+                "defence": 25
+              },
+              "colossus": {
+                "line": "north"
+              }
+            }
+          },
+          {
+            "id": "chapel",
+            "when": "trust.barto >= 50",
+            "label": "守北门到第二拍结束，然后撤到礼拜堂护着平民",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": 25
+              },
+              "wave2": {
+                "line": "north",
+                "defence": 25
+              }
+            },
+            "shelter": "chapel"
+          },
+          {
+            "id": "withdraw",
+            "label": "第一波过后带着民兵撤离北门",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": 10
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "dris",
+        "npcs": ["dris"],
+        "rows": [
+          {
+            "id": "shoulder",
+            "when": "a1_dris_face == won",
+            "label": "服了气，和巴托并肩守北门",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "north",
+                "defence": 10
+              },
+              "surge": {
+                "line": "north",
+                "defence": 10
+              },
+              "colossus": {
+                "line": "north"
+              }
+            },
+            "fate": {
+              "survives": true
+            }
+          },
+          {
+            "id": "prove",
+            "when": "a1_dris_face == yielded",
+            "label": "抢东栅最危险的位置，想证明自己",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 10
+              },
+              "surge": {
+                "line": "east",
+                "defence": 10
+              }
+            },
+            "fate": {
+              "deathRoll": {
+                "gap": 20,
+                "chance": 0.5
+              }
+            }
+          },
+          {
+            "id": "glory",
+            "label": "独自去找巨像，想拿头功",
+            "posts": {
+              "colossus": {
+                "line": "@boss"
+              }
+            },
+            "fate": {
+              "diesWhen": {
+                "phase": "colossus",
+                "when": "a1_colossus_target == children"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "oneeye",
+        "group": true,
+        "rows": [
+          {
+            "id": "absorbed",
+            "when": "a1_oneeye_fate == absorbed",
+            "label": "独眼团守南门与西田",
+            "posts": {
+              "wave1": [
+                {
+                  "line": "south",
+                  "defence": 15
+                },
+                {
+                  "line": "west",
+                  "defence": 10
+                }
+              ],
+              "wave2": [
+                {
+                  "line": "south",
+                  "defence": 15
+                },
+                {
+                  "line": "west",
+                  "defence": 10
+                }
+              ],
+              "surge": [
+                {
+                  "line": "south",
+                  "defence": 15
+                },
+                {
+                  "line": "west",
+                  "defence": 10
+                }
+              ]
+            },
+            "prosperity": 5
+          },
+          {
+            "id": "turned",
+            "when": "(NOT a1_oneeye_fate OR a1_oneeye_fate == active) AND a1_seg_turned",
+            "label": "瑟格不参与守城，带人去代官宅邸找莫斯算账"
+          },
+          {
+            "id": "raid",
+            "when": "(NOT a1_oneeye_fate OR a1_oneeye_fate == active) AND NOT a1_seg_turned AND (NOT a1_viro_status OR a1_viro_status == in_band) AND dispute.q_a1_d01_tax_and_bandits.choice.viro_raid != lie_low",
+            "label": "第二拍趁乱劫商会后仓，薇罗带队，瑟格本人在镇外观望",
+            "posts": {
+              "wave2": {
+                "line": "south",
+                "defence": -5
+              }
+            },
+            "loss": "company"
+          },
+          {
+            "id": "watch",
+            "when": "(NOT a1_oneeye_fate OR a1_oneeye_fate == active) AND NOT a1_seg_turned AND (dispute.q_a1_d01_tax_and_bandits.choice.viro_raid == lie_low OR (a1_viro_status AND a1_viro_status != in_band))",
+            "label": "瑟格带着独眼团在镇外观望"
+          }
+        ]
+      },
+      {
+        "id": "moss",
+        "npcs": ["moss"],
+        "rows": [
+          {
+            "id": "flee",
+            "when": "a1_moss_fate == in_power AND dispute.q_a1_d01_tax_and_bandits.choice.moss_cart != stay_put",
+            "label": "第二拍带着钱箱与澱晶车从南门逃，还调走了两名守门民兵",
+            "posts": {
+              "wave2": {
+                "line": "south",
+                "defence": -10
+              },
+              "surge": {
+                "line": "south",
+                "defence": -10
+              }
+            },
+            "prosperity": -10,
+            "prosperityUnless": "a1_moss_intercepted"
+          },
+          {
+            "id": "stay",
+            "when": "a1_moss_fate == in_power AND dispute.q_a1_d01_tax_and_bandits.choice.moss_cart == stay_put",
+            "label": "留在镇上，打算事后宣称代官府组织了防御"
+          },
+          {
+            "id": "cellar",
+            "when": "a1_moss_fate == puppet",
+            "label": "躲在宅邸的地窖里"
+          },
+          {
+            "id": "cell",
+            "when": "a1_moss_fate == arrested",
+            "label": "在拘留室里大喊要人放他出去"
+          }
+        ]
+      },
+      {
+        "id": "nera",
+        "npcs": ["nera"],
+        "rows": [
+          {
+            "id": "partner",
+            "when": "npc.nera.stance == partner OR a1_tide_prep.nera_stock",
+            "label": "开仓，波波扛着药水箱跑遍各条防线",
+            "casualty": 0.8,
+            "prosperity": 5
+          },
+          {
+            "id": "neutral",
+            "when": "(NOT npc.nera.stance OR npc.nera.stance == neutral) AND NOT a1_tide_prep.nera_stock",
+            "label": "三倍价卖药，给孤儿院赊账",
+            "casualty": 0.95
+          },
+          {
+            "id": "bought",
+            "when": "npc.nera.stance == bought AND NOT a1_tide_prep.nera_stock",
+            "label": "高价卖药"
+          },
+          {
+            "id": "hostile",
+            "when": "npc.nera.stance == hostile AND NOT a1_tide_prep.nera_stock",
+            "label": "带着货从南门撤离"
+          }
+        ]
+      },
+      {
+        "id": "cassian",
+        "npcs": ["cassian"],
+        "rows": [
+          {
+            "id": "bell",
+            "always": true,
+            "label": "敲钟，打开礼拜堂收容平民",
+            "shelter": "chapel"
+          },
+          {
+            "id": "release",
+            "when": "(a1_oola_fate == convicted OR NOT a1_oola_fate) AND NOT a1_oola_jailbroken AND npc.cassian.doubt >= 1",
+            "label": "亲自打开拘留室，让欧拉出来救人"
+          },
+          {
+            "id": "refuse",
+            "when": "(a1_oola_fate == convicted OR NOT a1_oola_fate) AND NOT a1_oola_jailbroken AND NOT (npc.cassian.doubt >= 1)",
+            "label": "拒绝放人：审判已定",
+            "rescueAttempt": true
+          }
+        ]
+      },
+      {
+        "id": "oola",
+        "npcs": ["oola"],
+        "rows": [
+          {
+            "id": "free",
+            "when": "a1_oola_fate == cleared OR a1_tide_prep.oola_placed OR ((a1_oola_fate == convicted OR NOT a1_oola_fate) AND NOT a1_oola_jailbroken AND npc.cassian.doubt >= 1)",
+            "label": "在礼拜堂与东栅之间熏烟驱澱，治伤员",
+            "casualty": 0.7,
+            "pressure": [
+              {
+                "phase": "surge",
+                "line": "@surge",
+                "amount": -10
+              }
+            ]
+          },
+          {
+            "id": "custody",
+            "when": "(a1_oola_fate == convicted OR NOT a1_oola_fate) AND NOT a1_oola_jailbroken AND NOT (npc.cassian.doubt >= 1) AND NOT a1_tide_prep.oola_placed",
+            "label": "关在拘留室里，什么也做不了"
+          },
+          {
+            "id": "forest",
+            "when": "(a1_oola_fate == fled OR a1_oola_jailbroken) AND NOT a1_oola_wounded AND a1_forest_accord != broken AND NOT a1_tide_prep.oola_placed",
+            "label": "第一波时带着那只鹿从林子里出现在东栅外",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 5
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 5
+              },
+              "surge": {
+                "line": "east",
+                "defence": 5
+              }
+            },
+            "slopeCasualty": 0.7
+          }
+        ]
+      },
+      {
+        "id": "gaspar",
+        "npcs": ["gaspar"],
+        "group": true,
+        "rows": [
+          {
+            "id": "open",
+            "when": "a1_forest_accord == restored AND a1_shiya_family != left",
+            "label": "打开东栅接东坡进来，持斧共守",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 15
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 15
+              },
+              "surge": {
+                "line": "east",
+                "defence": 15
+              }
+            }
+          },
+          {
+            "id": "wait",
+            "when": "a1_shiya_family != left AND a1_forest_accord != restored AND (a1_forest_accord == partial OR a1_tide_prep.eastslope_in)",
+            "label": "守东栅，但要等玩家或希雅下令才开门",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 15
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 15
+              },
+              "surge": {
+                "line": "east",
+                "defence": 15
+              }
+            },
+            "slopeDelay": true
+          },
+          {
+            "id": "curfew",
+            "label": "依宵禁令拒开东栅",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 10
+              },
+              "surge": {
+                "line": "east",
+                "defence": 10
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "eastslope",
+        "npcs": ["gorn"],
+        "group": true,
+        "rows": [
+          {
+            "id": "inside",
+            "when": "a1_shiya_family != left AND (a1_forest_accord IN (restored, partial) OR a1_tide_prep.eastslope_in)",
+            "label": "东坡猎户进了栅，共守东栅",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 20
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 20
+              },
+              "surge": {
+                "line": "east",
+                "defence": 20
+              }
+            }
+          },
+          {
+            "id": "outside",
+            "when": "a1_shiya_family != left AND NOT (a1_forest_accord IN (restored, partial) OR a1_tide_prep.eastslope_in)",
+            "label": "被关在栅外，死守东坡木屋",
+            "posts": {
+              "wave1": {
+                "line": "slope",
+                "defence": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "boro",
+        "npcs": ["boro"],
+        "rows": [
+          {
+            "id": "covered",
+            "when": "a1_shiya_family != left AND (a1_boro_calmed OR a1_forest_accord == restored)",
+            "label": "第一波冲向黑脊，有人在旁掩护",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 5
+              }
+            },
+            "fate": {
+              "survives": true
+            }
+          },
+          {
+            "id": "alone",
+            "when": "a1_shiya_family != left AND NOT (a1_boro_calmed OR a1_forest_accord == restored)",
+            "label": "第一波一个人冲向黑脊",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 5
+              }
+            },
+            "fate": {
+              "diesAtGap": {
+                "phase": "wave1",
+                "gap": 10
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "shiya",
+        "npcs": ["shiya"],
+        "rows": [
+          {
+            "id": "follow",
+            "when": "trust.shiya >= 40 OR companion.shiya.recruited",
+            "label": "跟着玩家守在一起",
+            "posts": {
+              "wave1": {
+                "line": "@player",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "@player",
+                "defence": 10
+              },
+              "colossus": {
+                "line": "@player"
+              }
+            }
+          },
+          {
+            "id": "family",
+            "when": "a1_shiya_family != left AND NOT (trust.shiya >= 40) AND NOT companion.shiya.recruited",
+            "label": "守在家人身边",
+            "posts": {
+              "wave1": {
+                "line": "east",
+                "defence": 5
+              },
+              "wave2": {
+                "line": "east",
+                "defence": 5
+              },
+              "surge": {
+                "line": "east",
+                "defence": 5
+              }
+            },
+            "orders": true
+          }
+        ]
+      },
+      {
+        "id": "ron",
+        "npcs": ["ron"],
+        "rows": [
+          {
+            "id": "organize",
+            "when": "trust.ron >= 60 OR companion.ron.recruited",
+            "label": "留了下来，下意识地把民兵和难民组织起来",
+            "posts": {
+              "wave1": {
+                "line": "@player",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "@player",
+                "defence": 10
+              },
+              "colossus": {
+                "line": "@player"
+              }
+            },
+            "casualty": 0.8
+          },
+          {
+            "id": "turn_back",
+            "label": "想从南门跑，跑到门口看见一群孩子，骂了一句又折回来",
+            "posts": {
+              "wave2": {
+                "line": "south",
+                "defence": 5
+              },
+              "surge": {
+                "line": "south",
+                "defence": 5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "bron",
+        "npcs": ["bron"],
+        "rows": [
+          {
+            "id": "old_sword",
+            "when": "npc.bron.story_level >= 2",
+            "label": "拎着旧剑去北门：这次我不躲了",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": 5
+              },
+              "wave2": {
+                "line": "north",
+                "defence": 5
+              },
+              "surge": {
+                "line": "north",
+                "defence": 5
+              },
+              "colossus": {
+                "line": "north"
+              }
+            }
+          },
+          {
+            "id": "stone_house",
+            "label": "守公会石屋，护住避难的人",
+            "shelter": "guild"
+          }
+        ]
+      },
+      {
+        "id": "bertha",
+        "npcs": ["bertha"],
+        "rows": [
+          {
+            "id": "mob",
+            "when": "a1_oola_fate == convicted AND NOT a1_oola_jailbroken AND NOT (npc.cassian.doubt >= 1)",
+            "label": "在礼拜堂里煽动众人：把巫婆交出去，光就会回来",
+            "mob": true,
+            "shelter": "chapel"
+          },
+          {
+            "id": "pray",
+            "when": "a1_oola_fate == cleared",
+            "label": "抱着托比在礼拜堂祈祷，替伤员递水",
+            "shelter": "chapel"
+          }
+        ]
+      },
+      {
+        "id": "toma",
+        "npcs": ["toma"],
+        "rows": [
+          {
+            "id": "bell",
+            "always": true,
+            "label": "整夜在钟楼敲钟，第二波前用钟声报出最弱的一面",
+            "call": 10
+          }
+        ]
+      },
+      {
+        "id": "ed",
+        "npcs": ["ed"],
+        "rows": [
+          {
+            "id": "graveyard",
+            "always": true,
+            "label": "不肯离开墓地"
+          }
+        ]
+      },
+      {
+        "id": "jed",
+        "npcs": ["jed"],
+        "rows": [
+          {
+            "id": "desert",
+            "when": "NOT a1_jed_exposed",
+            "label": "第一波就开了小差",
+            "posts": {
+              "wave1": {
+                "line": "north",
+                "defence": -5
+              },
+              "wave2": {
+                "line": "north",
+                "defence": -5
+              },
+              "surge": {
+                "line": "north",
+                "defence": -5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "vick",
+        "npcs": ["vick"],
+        "rows": [
+          {
+            "id": "cellar",
+            "always": true,
+            "label": "抱着账本躲进代官宅邸的地窖"
+          }
+        ]
+      },
+      {
+        "id": "orphans",
+        "npcs": ["isa", "greta"],
+        "group": true,
+        "rows": [
+          {
+            "id": "mill",
+            "when": "a1_mill_owner == orphanage",
+            "label": "把孤儿们转移到磨坊",
+            "children": "mill",
+            "shelter": "mill"
+          },
+          {
+            "id": "chapel",
+            "label": "把孤儿们转移到礼拜堂",
+            "children": "chapel",
+            "shelter": "chapel"
+          }
+        ]
+      },
+      {
+        "id": "yeyu",
+        "npcs": ["yeyu"],
+        "rows": [
+          {
+            "id": "follow",
+            "when": "companion.yeyu.recruited",
+            "label": "跟着玩家，已净化的鸦群替玩家侦察",
+            "posts": {
+              "wave1": {
+                "line": "@player",
+                "defence": 10
+              },
+              "wave2": {
+                "line": "@player",
+                "defence": 10
+              },
+              "colossus": {
+                "line": "@player"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "striker": {
+      "npc": "martha",
+      "revealed": "npc.martha.revealed",
+      "strike": "a1_martha_strike",
+      "ally": {
+        "when": "npc.martha.assessment >= 5",
+        "flag": "a1_martha_drink"
+      }
+    },
+    "mob": {
+      "var": "a1_bertha_mob",
+      "outcomes": [
+        {
+          "value": "player",
+          "when": "a1_tide_left_post"
+        },
+        {
+          "value": "isa",
+          "when": "trust.isa >= 60 OR a1_isa_will_testify"
+        },
+        {
+          "value": "dragged"
+        }
+      ],
+      "effects": {
+        "dragged": [
+          {
+            "type": "flag",
+            "key": "a1_oola_fate",
+            "value": "fled"
+          },
+          {
+            "type": "flag",
+            "key": "a1_oola_wounded",
+            "value": true
+          }
+        ]
+      }
+    },
+    "settle": {
+      "gapPerDeath": 10,
+      "injury": {
+        "gap": 20,
+        "chance": 0.5
+      },
+      "death": {
+        "gap": 40,
+        "chance": 0.3
+      },
+      "buildingGap": 30,
+      "survival": [
+        {
+          "max": 5,
+          "value": "intact"
+        },
+        {
+          "max": 20,
+          "value": "damaged"
+        },
+        {
+          "value": "ravaged"
+        }
+      ],
+      "population": {
+        "base": 800,
+        "min": 600,
+        "max": 900
+      },
+      "prosperity": {
+        "start": 50,
+        "perBuilding": -5,
+        "min": 0,
+        "max": 100
+      },
+      "trust": {
+        "sameLine": 15,
+        "saved": 25,
+        "leftChildren": {
+          "when": "a1_colossus_target == children",
+          "amount": -20,
+          "npcs": ["isa", "greta", "noi", "tess"]
+        }
+      },
+      "protected": ["shiya", "ron", "nera", "oola", "cassian", "martha", "bron", "moss", "yeyu"],
+      "ownLines": ["boro", "dris", "barto", "gaspar"],
+      "injuryValue": "major",
+      "grievance": {
+        "front": "slope",
+        "group": "eastslope",
+        "amount": -30
+      },
+      "postRadius": 12,
+      "playerBonus": 40,
+      "slopeDelayFactor": 1.5,
+      "slopeInside": {
+        "line": "east",
+        "phase": "wave1"
+      },
+      "surgePressure": 100,
+      "slopeOrdered": "a1_east_gate_ordered OR a1_tide_prep.eastslope_in"
+    },
+    "escalation": {
+      "when": "dispute.q_a1_d04_forest_dispute.ending == broken",
+      "npc": "boro",
+      "chance": 0.5,
+      "civilians": 1
+    },
+    "children": [
+      {
+        "var": "a1_toby_state",
+        "dead": "dead",
+        "dies": "sed_case.toby == crystal AND a1_toby_state != recovered",
+        "diesLater": "sed_case.toby == crystal AND a1_toby_state != recovered"
+      },
+      {
+        "var": "a1_lin_state",
+        "dead": "dead",
+        "dies": "sed_case.lin IN (spot, fever, crystal) AND a1_lin_state != recovered",
+        "diesLater": "sed_case.lin IN (spot, fever, crystal) AND a1_lin_state != recovered AND act_week >= 10",
+        "healthy": {
+          "when": "act_week >= 10 AND (NOT sed_case.lin OR sed_case.lin == none)",
+          "value": "healthy"
+        }
+      }
+    ],
+    "childrenAt": [
+      {
+        "when": "a1_mill_owner == orphanage",
+        "value": "mill"
+      },
+      {
+        "value": "orphanage"
+      }
+    ],
+    "crowdShelters": ["chapel"],
+    "exposedUnless": "a1_tide_prep.children_safe",
+    "credit": {
+      "versions": [
+        {
+          "id": "player",
+          "witnesses": {
+            "count": 4,
+            "trust": 60
+          },
+          "tellers": ["ron", "shiya", "isa", "greta"]
+        },
+        {
+          "id": "martha",
+          "strike": true,
+          "tellers": ["dora"]
+        },
+        {
+          "id": "light",
+          "when": "church_suspicion >= 40",
+          "tellers": ["bertha", "cassian"]
+        },
+        {
+          "id": "self_collapse",
+          "tellers": ["simon", "ron"]
+        }
+      ],
+      "lines": ["north", "@player", "@boss"],
+      "shelters": ["chapel"],
+      "radius": 10
+    }
+  }
+]

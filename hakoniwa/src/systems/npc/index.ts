@@ -83,6 +83,7 @@ function presenceFlags(ctx: SystemContext): Set<string> {
       for (const f of p.requiresFlags ?? []) set.add(f);
       for (const c of p.hideWhen ?? []) for (const v of referencedVars(c)) set.add(v);
       set.add(`npc.${p.id}.captured`);
+      set.add(`npc.${p.id}.dead`);
     }
     relevantFlagCache.set(ctx.content, set);
   }

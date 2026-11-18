@@ -1,0 +1,9 @@
+{
+  "sys.tide.reject.not_allowed": "兽潮之夜里，镇上的人各自拿主意，你只能守在防线上",
+  "sys.tide.reject.no_night": "眼下没有兽潮",
+  "sys.tide.reject.unknown": "这个人不在兽潮之夜的行动表里",
+  "sys.tide.reject.bad_row": "这个行动此刻不在他能选的范围里",
+  "sys.tide.reason.same_line": "兽潮之夜与你同守一条防线",
+  "sys.tide.reason.saved": "兽潮之夜被你救下",
+  "sys.tide.reason.left_children": "巨像扑向孩子们的时候，你不在那里"
+}

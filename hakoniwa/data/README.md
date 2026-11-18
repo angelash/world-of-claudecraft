@@ -22,6 +22,7 @@
 | `quests/` | 任务、幕次、剧情物品与证据、揭示台账知识、名词 |
 | `scenes/` | 神庭地图与过场布景（地球四景、坠落、千门回廊、梦中的门口）、序章、各幕过场、神庭审判、结局与后日谈 |
 | `records/` | 事迹（`deeds.json`）、称号（`titles.json`）、图鉴条目（`codex.json`）、传书（`letters.json`）与事迹系统参数（`config.json`：记事柱的格数、事迹簿随幕的形态）；事迹与称号只记名、不给数值 |
+| `tide/` | 兽潮之夜（`nights.json`：写定的兽潮夜，阶段、四道防线与东坡、备战修正、NPC 行动判定表、玛莎、暴民、结算常数、孩子与归功）、魔物潮波次（`waves.json`，`mtide_`，并入战斗的 `waves` 表）、溢出与满巢转潮的规则（`surges.json`） |
 | `registry/` | 世界状态变量注册表 `vars.json`：规范名、族、别名、值别名、换算与旧任务编号，由 `npm run registry` 从 `../docs/40_design/world_state_registry.md` 生成，不手改；`npm run registry:check` 核对它是最新的且数据与代码只用规范名 |
 | `autoplay/` | 无模型通关的自动玩家路线表（`routes.json`：各结局路线的场景选择、猎场、商店、保留物资、城建与政策计划），随内容批次维护，由 `tests/content_id_guard.test.ts` 对照内容校验 |
 | `_staging/`、`_batches/` | 内容导入批次的工具状态，内核不加载、编辑器不当内容读：`_staging/<批次>.json` 是待审的暂存记录，`_staging/index.json` 列出全部批次，`_batches/<批次>.json` 是合入后的批次记录（新增、改动的 ID，校验结果，七步流程）；由 `node tools/content/import_catalog.ts` 与编辑器的批次视图维护（`../docs/50_tech/release_engineering.md` 第 7.3 节） |

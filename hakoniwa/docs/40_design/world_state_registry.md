@@ -680,10 +680,10 @@
 | `a1_owen_left` | `owen.status`（离开） | 欧文第 6 周离开（税与匪默认发展） | 欧文的人设可见性（`np`） |
 | `a1_dris_duel_won` | 无 | A1-S16 赢德里斯 | 刃之门 |
 | `a1_seg_duel_won` | 无 | 与瑟格的决斗 | 刃之门 |
-| `a1_beast_tide_started` | 无 | 兽潮开始（`q` 的 `a1_m09_tide`） | 波次 |
-| `a1_beast_tide_cleared` | 无 | 兽潮结束（`q`） | 波次 `endOnFlag`、识才之门（`dr`）、`lore` |
+| `a1_beast_tide_started` | 无 | 兽潮开始（tide：兽潮之夜的黄昏；`q` 的 `a1_m09_tide`） | 波次 |
+| `a1_beast_tide_cleared` | 无 | 兽潮结束（tide：兽潮之夜黎明结算的最后一笔；`q`） | 波次 `endOnFlag`、识才之门（`dr`）、`lore` |
 | `a1_tide_with_shiya` | 无 | party 的在场记录：兽潮结算那一刻希雅在玩家 20 格内（同伴数据 `presence` 的 `storeAs`） | 希雅的招募条件（party，同伴数据 `recruit.when`） |
-| `a1_martha_strike` | 无 | 玛莎出手（`q`） | `lore` |
+| `a1_martha_strike` | 无 | 玛莎出手（tide：第二波扑向的最弱面缺口大于 0；`q`） | `lore` |
 | `a1_dream_door_woman` | 无 | 兽潮次夜的梦（`s1`） | 门内庭院（`dr`）、雅努（`gd`）、`lore` |
 | `a1_bron_sees_mark` | 无 | 布伦看见门纹（`s1`） | 台账 |
 | `a1_culvert_sealed` | 无 | A1-M07 的 `seal` 选项：以落石堵住渗泉暗渠口（`q` 的 `q_a1_m07_spring`；现有任务数据尚无 `seal` 阶段，随第一幕任务导入补上写入） | ailments：镇内澱度 `a1_town_dian` 的每周增量由 +8 降到 +3（[第一幕 7.2][a1]） |
@@ -790,10 +790,10 @@
 | `p_coin_terms` | `merca_coin.terms` | 枚举 | `interest_free`、`three_percent`、`first_free` | 梅尔卡估价（`s0`） | 神龛兑换比例、奈拉的反应 |
 | `p_courtyard_object` | `courtyard.first_object` | 枚举 | 第 7.6 节十种 | 希尔薇轮或开场默认（`s0`） | 第一幕末门内庭院 |
 | `p_mode` | `prologue.mode` | 枚举 | `ai`、`rules` | 运行环境 | 调试与平衡 |
-| `a1_bs_survival` | `borderstone.survival` | 枚举 | `intact`、`damaged`、`ravaged` | 兽潮结算（[第一幕 8.6][a1]） | 旧哨村难民规模 |
-| `a1_bs_population` | `borderstone.population` | 整数 | 600 到 900 | 兽潮结算与离开者 | 边石镇人力 |
-| `a1_bs_prosperity` | `borderstone.prosperity` | 整数 | 0 到 100 | 兽潮结算、税率、独眼团与莫斯的结局 | 商会起步资金与物价 |
-| `a1_oola_fate` | `a1_ola_fate`、`ola.fate` | 枚举 | `cleared`、`convicted`、`fled`、`executed`（executed 只由第二幕光之审写入，D-055） | 魔女审判（`s1`） | `dr`、`pc`、`q`、`np`、`sep`、第二幕光之审 |
+| `a1_bs_survival` | `borderstone.survival` | 枚举 | `intact`、`damaged`、`ravaged` | tide 兽潮结算（[第一幕 8.6][a1]） | 旧哨村难民规模 |
+| `a1_bs_population` | `borderstone.population` | 整数 | 600 到 900 | tide 兽潮结算与离开者 | 边石镇人力 |
+| `a1_bs_prosperity` | `borderstone.prosperity` | 整数 | 0 到 100 | tide 兽潮结算、税率、独眼团与莫斯的结局 | 商会起步资金与物价 |
+| `a1_oola_fate` | `a1_ola_fate`、`ola.fate` | 枚举 | `cleared`、`convicted`、`fled`、`executed`（executed 只由第二幕光之审写入，D-055） | 魔女审判（`s1`）；tide 兽潮暴民无人拦阻时写 `fled` | `dr`、`pc`、`q`、`np`、`sep`、第二幕光之审 |
 | `a1_moss_fate` | `moss.fate` | 枚举 | `in_power`、`puppet`、`arrested`、`fled`（别名值 `fled_south`）、`dead`、`retained`、`dismissed`、`handed_over` | 税与匪（[第一幕 12][a1]：南逃为 `fled`） | 第二幕伯爵府、A2-S11 |
 | `a1_oneeye_fate` | `oneeye.fate` | 枚举 | `active`、`absorbed`、`destroyed`、`scattered` | 税与匪 | 旧哨村 |
 | `a1_viro_status` | `viro.status`、`vero.status` | 枚举 | `in_band`、`fled_wallenburg`（别名值 `fled_to_wallenburg`）、`captured`、`recruited` | 税与匪 | 瓦伦堡灰鼠线 |
@@ -803,16 +803,16 @@
 | `a1_forest_accord` | `forest.accord` | 枚举 | `restored`、`partial`、`broken` | 林地之争 | 希雅、第四幕兽王之争 |
 | `a1_shiya_family` | `shiya_family` | 枚举 | `in_town`、`left` | 林地之争 | 同上 |
 | `a1_children_safe` | `refugee_children.safe` | 布尔 | | 魔女审判、兽潮 | 门徒会绑架难度 |
-| `a1_children_exposed` | `refugee_children.exposed` | 布尔 | | A1-S19 | 同上 |
-| `a1_children_location` | `refugee_children.location` | 枚举 | `orphanage`、`mill`、`forest`、`with_oola` | 兽潮结算 | 同上 |
-| `a1_toby_state` | `children.toby` | 枚举 | `recovered`、`dead` | 澱病线（第 8 周期限） | 贝莎与孤儿院；ailments 病例 `sed_case.toby` 的治愈条件 |
-| `a1_lin_state` | `children.lin` | 枚举 | `healthy`、`recovered`、`dead` | 澱病线 | 同上；ailments 病例 `sed_case.lin` 的治愈条件 |
+| `a1_children_exposed` | `refugee_children.exposed` | 布尔 | | A1-S19；tide 兽潮结算（巨像扑向人群中的孩子） | 同上 |
+| `a1_children_location` | `refugee_children.location` | 枚举 | `orphanage`、`mill`、`forest`、`with_oola` | tide 兽潮结算（未写入时） | 同上 |
+| `a1_toby_state` | `children.toby` | 枚举 | `recovered`、`dead` | 澱病线的任务（第 8 周期限）；tide 兽潮黎明的生死判定 | 贝莎与孤儿院；ailments 病例 `sed_case.toby` 的治愈条件 |
+| `a1_lin_state` | `children.lin` | 枚举 | `healthy`、`recovered`、`dead` | 澱病线的任务；tide 兽潮黎明的生死判定 | 同上；ailments 病例 `sed_case.lin` 的治愈条件 |
 | `a1_mill_owner` | `mill.owner` | 枚举 | `orphanage`、`vick`、`company` | A1-S11 | 孤儿院存续；ailments 病例 `sed_case.lin` 的发病条件（孤儿院改喝磨坊井水） |
 | `a1_lisa_nick` | `lisa_nick` | 枚举 | `married`、`broken`、`eloped` | A1-S10 | 瓦伦堡客串 |
 | `a1_vick_informant` | `vik.informant` | 布尔 | | A1-S10 | 账本证据 |
 | `a1_jed_exposed` | `jed.status` | 布尔 | | A1-S12 | 卫队 |
 | `a1_town_dian` | `town_dian` | 整数 | 0 到 100 | 镇内澱度（澱病线）：ailments 按幕周结算（第 1 周 15，北泉未处理时每周 +8，[第一幕 7.2][a1]）；任务效果（A1-M07 堵暗渠 -20） | 北区后遗症；ailments 病例 `sed_case.lin` 的发病条件 |
-| `a1_tide_credit` | `rumor.tide_attribution` | 枚举 | `player`、`martha`、`light`、`self_collapse` | 兽潮归功 | 瓦伦堡第一印象 |
+| `a1_tide_credit` | `rumor.tide_attribution` | 枚举 | `player`、`martha`、`light`、`self_collapse` | tide 兽潮归功 | 瓦伦堡第一印象 |
 | `a1_count_letter` | `count_letter.variant` | 枚举 | `a`、`b`、`c`、`d` | 伯爵来信 | 伯爵府态度 |
 | `a1_janu_dream_answer` | `janu.first_dream_answer` | 枚举 | `like`、`unsure`、`dislike` | 兽潮次夜的梦（`s1`） | 第六幕回扣 |
 | `a2_wb_ruler` | `wb_ruler` | 枚举 | `edric`、`cecilia`、`lucas`、`regency`、`citizen_council`、`martial_chaos` | 城议（`q` 的 `a2_m05_defense`） | `q`、`territory_autonomy` 起点（市民议会 +10） |
@@ -934,7 +934,7 @@
 | `npc.bron.story_level` | `bron.story_level`、`brun.story_level` | 整数 | 0 到 3 | A1-S18 | 公会大区与教会注意玩家的时机 |
 | `npc.bron.secret_kept` | `bron.secret_kept`、`brun.secret_kept` | 布尔 | | 布伦的旧伤（`s1`） | 第二幕 |
 | `npc.martha.assessment` | `martha.assessment`、`marsha.assessment` | 整数 | -5 到 10 | 酒馆的眼睛 | 玛莎能为玩家打开的门 |
-| `npc.martha.revealed` | `martha.revealed`、`marsha.revealed` | 布尔 | | 兽潮之夜玛莎出手 | 第二、三幕 |
+| `npc.martha.revealed` | `martha.revealed`、`marsha.revealed` | 布尔 | | tide：兽潮之夜玛莎出手 | 第二、三幕 |
 | `npc.yeyu.memory_shards` | `yeyu.memory_shards` | 整数 | 0 到 7 | 夜羽记忆线 | 信使之门、第六幕 |
 | `npc.selene.stance` | `selene_stance` | 枚举 | `hunt`、`enforce`、`waver`、`covert_ally` | 第二幕赛琳线 | 第二、三幕 |
 | `npc.selene.evidence` | `selene_evidence` | 整数 | 0 到 5 | 问话、伪录 | 光之审 |
@@ -944,14 +944,14 @@
 | `npc.ferryman.bond` | `ferryman_bond` | 派生整数 | 0 到 3（第 2.8 节） | 派生 | 第二幕 |
 | `npc.<人>.awakened` | `ron.commander_awakened` | 标记 | 人物 ID | 启才之门（`dr`） | 将领与官员 |
 | `npc.<人>.potential_seen` | `potential.seen` | 标记 | 人物 ID | 识才之门注视 | 培养与任命 |
-| `npc.<人>.dead` | `npc.deaths` | 标记 | 人物 ID | 任何死亡结算；npc（有名人物的实体死亡） | 后日谈、悼念 |
+| `npc.<人>.dead` | `npc.deaths` | 标记 | 人物 ID | 任何死亡结算；npc（有名人物的实体死亡）；tide（兽潮之夜的伤亡） | 后日谈、悼念 |
 | `npc.<人>.captured` | 无 | 布尔 | 人物 ID；被捕期间为真 | 任务与场景（剧情写入） | npc（被捕者离开地图）、千门替钥的缺位判定（`dr`，千门 5.4） |
 | `npc.<人>.hostile` | 无 | 布尔 | 人物 ID；对玩家的认知分叉为敌视，或好感跌到 -60 以下时为真 | npc（镜像，随认知与关系变化） | 千门替钥的缺位判定（`dr`） |
 | `npc.<人>.at_spring` | 无 | 布尔 | 人物 ID；有名将领死后 7 个游戏日内为真（千门 10.1.1 的泉畔期） | npc（死亡与每日结算） | 千门替钥的缺位判定（`dr`）、渡魂之门 |
 | `npc.<人>.gate` | 无 | 整数 | 0 到 5（已过的关数，[成长 8.2][pp]） | 铭录破关结算 | 同伴等级 |
 | `npc.<人>.temper_days` | 无 | 整数 | 0 到 30 | 淬体修炼期日结算 | 淬体关 |
 | `npc.<人>.tellings` | 无 | 整数 | ≥ 0 | 讲述数日结算（[成长 12][pp]） | 立名关 |
-| `npc.<人>.injury` | 无 | 枚举 | `none`、`minor`、`major`、`limb`、`temper_recoil`、`old_wound` | combat 与 party（[成长 10][pp]） | 同伴随行 |
+| `npc.<人>.injury` | 无 | 枚举 | `none`、`minor`、`major`、`limb`、`temper_recoil`、`old_wound` | combat 与 party（[成长 10][pp]）；tide（兽潮之夜的重伤写 `major`） | 同伴随行 |
 | `npc.nera.handed_over` | `nera.handed_over` | 标记 | | 交出奈拉（交给哈特或逐出商会） | 双账之门的强制闭门 X10（[千门 9][td]） |
 | `npc.cassian.path` | `cassian.path` | 枚举 | `reform`、`chapel`、`zealot` | 个人线 `PL-cassian-4` 的信仰危机抉择（[同伴 9.2][cmp]） | 卡西安入队（`chapel`）、后日谈 |
 | `npc.ron.command_growth` | 无 | 整数 | 0 到 3（按范围截断） | A2-S17 罗恩的第一次带队（放手 +2，暗中帮 +1，亲自上 +0）；A3-M02 千军（全权指挥 +2，微操 +1；向前失败时减半） | 识才之门里罗恩"统帅"潜质的成长、将领罗恩的统帅档案 |
@@ -1090,7 +1090,7 @@
 | `letters_found` | 无 | 整数 | ≥ 0 | 万户街每层的灰夜家书 | "送信人"、事迹"十二封信" |
 | `ash_pages_returned` | 无 | 整数 | ≥ 0 | 交还阿什的灰页（第三幕起） | `trial_ash_vigil` 的条件、第四幕 |
 | `doorplates_returned` | 无 | 整数 | 0 到 12 | 外环门牌归位 | 收藏 `col_thousand_archive` |
-| `a1_tide_prep.<项>` | 无 | 布尔 | `east_fence`、`nera_stock`、`eastslope_in`、`children_safe`、`oola_placed`、`barto_seg` | A1-M11 的六个小目标 | `a1_defense` |
+| `a1_tide_prep.<项>` | 无 | 布尔 | `east_fence`、`nera_stock`、`eastslope_in`、`children_safe`、`oola_placed`、`barto_seg` | A1-M11 的六个小目标 | `a1_defense`；tide 兽潮结算（各线的备战来源） |
 | `a1_defense` | 无 | 整数 | 0 到 120 | A1-M11 结算（第一幕 8.6 的防御值） | 兽潮结算 |
 | `a1_lamp_exposed` | `a1_trial_debunk` | 布尔 | | A1-M09 当场拆穿光之鉴（`cut_a1_trial`） | 教会怀疑、台账 |
 | `a1_summons_answer` | 无 | 枚举 | `appeared`、`refused`、`investigated` | A1-M08 | 魔女审判 |
@@ -1111,6 +1111,7 @@
 | `a1_blade_mark_seen` | 无 | 标记 | | 匪徒刀上的暗记 | A1-S02 |
 | `a1_lair_located` | 无 | 标记 | | 护送伏击中活捉匪徒 | 旧哨村据点 |
 | `a1_viro_pact_known` | 无 | 标记 | | 薇罗与莫斯的密约线索 | 税与匪的反咬 |
+| `a1_seg_turned` | 无 | 标记 | | 反咬：玩家把薇罗与莫斯的密约给瑟格看（A1-D01.f，`quest.q_a1_d01f_old_watch.path == turned`） | 兽潮之夜的行动判定（tide：瑟格不守城，去代官宅邸找莫斯算账） |
 | `a1_forest_pact_proof` | 无 | 标记 | | 约树刻痕与林约抄本 | 林地之争 |
 | `a1_owen_escorted` | 无 | 标记 | | 护送欧文的商队平安到达，他留在边石镇（A1-D01.b、A1-S01） | 纷争链任务税与匪：第 6 周欧文离开的默认发展不再发生 |
 | `a1_logger_saved` | 无 | 标记 | | 救下被灰毛狼咬伤的伐木工（A1-D04.c、A1-S07） | 纷争链任务林地之争的和解 |
@@ -1235,16 +1236,16 @@
 | `a1_cassian_report` | 无 | 出口 | 枚举 | `convicted`、`cleared`、`fled`、`unresolved`；默认未写入 | `cut_a1_trial`；无人到场的审判与纷争结算由 disputes（纷争运行器）按 A1-D02 写入（贿赂放人时为 `unresolved`，周报写"未能审结"） | 第二幕赛琳的追查（`npc.selene.evidence` 的起点、`cut_a2_arrival` 起的赛琳台词） | 卡西安第 8 周周报的版本；第二幕赛琳追查时读取 |
 | `a1_yeyu_told_fall` | 无 | 标记 | 标记 | 默认假 | `cut_a1_yeyu_memory` | 夜羽的台词包（同一句不重复）、`npc.yeyu.memory_shards` 的记忆线 | 夜羽说过"你掉下来那天晚上，整个遗迹都在响。" |
 | `a1_tide_dusk_seen` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 兽潮黄昏段已播 |
-| `a1_tide_post` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`、`free`；默认未写入 | `cut_a1_tide` | combat 兽潮防线结算（玩家所在防线 +40） | 黄昏时玩家选择赶去的防线 |
-| `a1_east_gate_ordered` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | combat 兽潮防线结算（林约 `partial` 时东坡不延迟入栅） | 玩家下令开东栅（林约 `partial` 时东坡不延迟入栅） |
+| `a1_tide_post` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`、`free`；默认未写入 | `cut_a1_tide` | tide 兽潮防线结算（整段都在跳时里时作玩家所在防线，+40） | 黄昏时玩家选择赶去的防线 |
+| `a1_east_gate_ordered` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | tide 兽潮防线结算（林约 `partial` 时东坡不延迟入栅） | 玩家下令开东栅（林约 `partial` 时东坡不延迟入栅） |
 | `a1_mob_seen` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 礼拜堂暴民段已播 |
-| `a1_bertha_mob` | 无 | 出口 | 枚举 | `player`、`isa`、`dragged`；默认未写入 | `cut_a1_tide` | `a1_oola_wounded` 的结算、欧拉与伊莎的台词 | 暴民的收场：玩家拦下、伊莎拦下、欧拉被拖出北门 |
-| `a1_tide_left_post` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | combat 兽潮防线结算（原防线本阶段失去玩家的 +40） | 玩家丢下防线赶去礼拜堂（原防线本阶段失去玩家的 +40） |
-| `a1_oola_wounded` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_martha` | 欧拉被丢出北门，受伤后由鹿引入林中 |
+| `a1_bertha_mob` | 无 | 出口 | 枚举 | `player`、`isa`、`dragged`；默认未写入 | `cut_a1_tide`；tide 在第二拍结束时兜底（无人拦阻为 `dragged`） | `a1_oola_wounded` 的结算、欧拉与伊莎的台词 | 暴民的收场：玩家拦下、伊莎拦下、欧拉被拖出北门 |
+| `a1_tide_left_post` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | tide 兽潮防线结算（原防线本阶段失去玩家的 +40） | 玩家丢下防线赶去礼拜堂（原防线本阶段失去玩家的 +40） |
+| `a1_oola_wounded` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide`；tide 兽潮暴民的兜底 | `cut_a1_martha` | 欧拉被丢出北门，受伤后由鹿引入林中 |
 | `a1_colossus_seen` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 巨像段已播 |
 | `a1_core_choice` | 无 | 出口 | 枚举 | `smash`、`grasp`、`shattered`；默认未写入 | `cut_a1_tide` | 渊契之门的序钥（doors）、`trust.yeyu`、`church_suspicion`、事迹 | 澱核的处置（`shattered`：借形之门已开，澱核自碎） |
 | `a1_core_choice_made` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 澱核段已播 |
-| `a1_martha_drink` | 无 | 标记 | 标记 | 默认假 | `cut_a1_martha` | 玛莎的台词（第一幕 8.5 的隐性盟友） | 玛莎请了那杯不收钱的酒（第一幕 8.5 的隐性盟友） |
+| `a1_martha_drink` | 无 | 标记 | 标记 | 默认假 | `cut_a1_martha`；tide 黎明兜底 | 玛莎的台词（第一幕 8.5 的隐性盟友） | 玛莎请了那杯不收钱的酒（第一幕 8.5 的隐性盟友） |
 | `a1_dream_free_question` | 无 | 出口 | 文本 | 至多 80 字；默认空 | `cut_a1_dream` | 雅努的题面（有模型时）、第六幕回扣 | 梦中玩家最后一次自由提问的原话 |
 | `a1_court_first_visit` | 无 | 标记 | 标记 | 默认假 | `cut_a1_mark` | 门内庭院的复苏点说明（界面，只给一次） | 门内庭院首访（复苏点说明已给出） |
 | `a1_isa_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S20`（`q_a1_s20_nun_testimony` 完成时置真）；伊莎亲眼看见孩子有危险时由节点任务置真；无人介入时由 disputes（纷争运行器）按 A1-D02 的决策点置真 | `cut_a1_tide`、`cut_a1_trial` | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险） |
@@ -1256,11 +1257,11 @@
 | `a1_vouched` | 无 | 标记 | 标记 | 默认假 | cognition 社会结算（任一人物信任不低于 80，且在审判、传讯或广场公开替玩家说话）；`cut_a1_trial`（布伦作证） | `cut_a1_talent`、`cut_a1_trial` | 一位凡人当众替玩家担保（任一 NPC 信任 80 以上，在审判、传讯或广场公开替玩家说话；识才之门的第三把钥）；社会结算写入，`cut_a1_trial` 的布伦作证也写 |
 | `a1_vouch_by` | 无 | 出口 | 文本 | 人物 ID；默认空 | 与 `a1_vouched` 同时写入（第一次当众担保的人） | `cut_a1_talent` | 第一次当众担保的人 |
 | `a1_tide_night` | 无 | 标记 | 标记 | 默认假 | quests 的幕时钟：第一幕的兽潮夜规则（`seal_unrest` 达到 100 那周的暗月夜日落，钳制在第 8 到 10 周）；`A1-M12` 以它开始 | `cut_a1_tide` | 暗月夜日落 |
-| `a1_tide_stage` | 无 | 出口 | 整数 | 0 到 5；默认 0 | combat 兽潮波次结算（`A1-M12` 的 `dusk` 到 `dawn`，[第一幕 8.2][a1]） | `cut_a1_tide` | 兽潮阶段（第一幕 8.2） |
-| `a1_colossus_target` | 无 | 出口 | 枚举 | `player`、`children`；默认未写入 | combat：澱巨像抵达时按玩家是否在射程内结算（`A1-M12` 的 `colossus` 阶段） | `cut_a1_tide` | 巨像抵达时追的目标（玩家在射程内追玩家，否则追门纹孩子） |
-| `a1_tide_weakest` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`；默认未写入 | combat 防线结算（`A1-M12` 的 `second_surge` 之前，按 [第一幕 8.6][a1] 的防御值） | `cut_a1_tide`、`cut_a1_martha` | 第二波扑向的最弱面 |
-| `a1_tide_gap_weakest` | 无 | 出口 | 整数 | 0 以上；默认 0 | combat 防线结算（同上；压力减防御，小于 0 取 0） | `cut_a1_martha` | 最弱面第二波的缺口（压力减防御，小于 0 取 0） |
-| `a1_tide_other_dead` | 无 | 出口 | 整数 | 0 以上；默认 0 | combat 伤亡结算（`A1-M12` 的 `dawn`） | `cut_a1_martha` | 博罗、德里斯、巴托、加斯帕之外的具名死者人数 |
+| `a1_tide_stage` | 无 | 出口 | 整数 | 0 到 5；默认 0 | tide 兽潮阶段（`A1-M12` 的 `dusk` 到 `dawn`，[第一幕 8.2][a1]） | `cut_a1_tide` | 兽潮阶段（第一幕 8.2） |
+| `a1_colossus_target` | 无 | 出口 | 枚举 | `player`、`children`；默认未写入 | tide：澱巨像抵达时按玩家是否在射程内结算（`A1-M12` 的 `colossus` 阶段） | `cut_a1_tide` | 巨像抵达时追的目标（玩家在射程内追玩家，否则追门纹孩子） |
+| `a1_tide_weakest` | 无 | 出口 | 枚举 | `north`、`east`、`south`、`west`；默认未写入 | tide 防线结算（`A1-M12` 的 `second_surge` 之前，按 [第一幕 8.6][a1] 的防御值） | `cut_a1_tide`、`cut_a1_martha` | 第二波扑向的最弱面 |
+| `a1_tide_gap_weakest` | 无 | 出口 | 整数 | 0 以上；默认 0 | tide 防线结算（同上；压力减防御，小于 0 取 0） | `cut_a1_martha` | 最弱面第二波的缺口（压力减防御，小于 0 取 0） |
+| `a1_tide_other_dead` | 无 | 出口 | 整数 | 0 以上；默认 0 | tide 伤亡结算（`A1-M12` 的 `dawn`） | `cut_a1_martha` | 博罗、德里斯、巴托、加斯帕之外的具名死者人数 |
 | `a1_dream_bed` | 无 | 出口 | 枚举 | `tavern`、`guild`、`chapel`；默认未写入 | quests：`A1-M13` 开始时按醉月亭是否受损结算（`a1_bs_survival`） | `cut_a1_dream`、`cut_a1_mark` | 兽潮次夜的睡处（醉月亭客房受损时改睡公会石屋或礼拜堂） |
 
 #### 8.8.3 第二幕
@@ -1599,7 +1600,7 @@
 | --- | --- | --- | --- | --- |
 | `scene.pending` | 文本 | 场景 ID | quests 的 `scene` 效果、幕切换 | scenes 播放后清除 |
 | `war.pending` | 文本 | 战场剧本 ID | quests 的 `war` 效果 | warfare 开战后清除 |
-| `combat.wave.<波次>` | 枚举 | `go` | quests 的 `wave` 效果 | combat 生成波次后清除，状态转入 `combat.wave.<波次>.state` |
+| `combat.wave.<波次>` | 枚举 | `go` | quests 的 `wave` 效果；tide 的兽潮阶段与魔物潮 | combat 生成波次后清除，状态转入 `combat.wave.<波次>.state` |
 | `order.moral_tag` | 枚举 | `kill_surrender`、`rob_civilians`、`break_pact`、`desecrate`、`harm_children` | 队伍命令处理器（读后即清） | 同伴拒绝命令的台词与羁绊结算（[同伴 8.5][cmp]、[内置 AI 11.2][bai]） |
 
 ### 8.10 任务目录（第四幕到终章）登记的变量

@@ -42,7 +42,8 @@ export type ComputeFn =
   | 'janu_release'
   | 'ending'
   | 'act5_outcome'
-  | 'review_score';
+  | 'review_score'
+  | 'tide_attribution';
 
 export type EffectBody =
   /** set a world flag */

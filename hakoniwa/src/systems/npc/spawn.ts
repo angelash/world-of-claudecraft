@@ -56,6 +56,8 @@ function matches(ctx: SystemContext, cond: string): boolean {
 
 /** Why a persona should currently be absent from the world, or null when present. */
 export function absenceReason(ctx: SystemContext, p: PersonaCard): GoneReason | null {
+  // a death settled off the map (the tide night, tide/night.ts) takes the person away for good
+  if (ctx.flag(`npc.${p.id}.dead`)) return 'dead';
   if (ctx.flag(`companion.${p.id}.recruited`)) return 'recruited';
   // held by the story (thousand_doors.md 5.4 absence: captured)
   if (ctx.flag(`npc.${p.id}.captured`)) return 'captured';

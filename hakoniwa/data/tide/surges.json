@@ -1,0 +1,19 @@
+[
+  {
+    "id": "surge_lotha_rim_overflow",
+    "on": "overflow",
+    "toMap": "borderstone",
+    "waves": ["mtide_lotha_rim_wild"],
+    "region": "edgestone_area",
+    "cooldownDays": 14
+  },
+  {
+    "id": "surge_lotha_rim_nest",
+    "on": "nest_full",
+    "toMap": "borderstone",
+    "fromMaps": ["forest_edge", "borderstone_north"],
+    "waves": ["mtide_lotha_rim_wild"],
+    "region": "edgestone_area",
+    "cooldownDays": 14
+  }
+]

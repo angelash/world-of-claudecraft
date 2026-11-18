@@ -1415,6 +1415,13 @@ export type TextKey =
   | 'sys.strategy.treaty.accord'
   | 'sys.strategy.treaty.anti_coalition'
   | 'sys.strategy.treaty.league'
+  | 'sys.tide.reason.left_children'
+  | 'sys.tide.reason.same_line'
+  | 'sys.tide.reason.saved'
+  | 'sys.tide.reject.bad_row'
+  | 'sys.tide.reject.no_night'
+  | 'sys.tide.reject.not_allowed'
+  | 'sys.tide.reject.unknown'
   | 'sys.travel.rest.reject.battle'
   | 'sys.travel.rest.reject.combat'
   | 'sys.travel.rest.reject.dungeon'
@@ -3019,5 +3026,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (3015). */
-export const TEXT_KEY_COUNT = 3015;
+/** Number of keys in TextKey (3022). */
+export const TEXT_KEY_COUNT = 3022;
