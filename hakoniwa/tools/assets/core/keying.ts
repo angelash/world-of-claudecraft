@@ -14,6 +14,8 @@ const MAGENTA = labOf(0xff00ffff);
 export const MAGENTA_RADIUS = 0.13;
 /** OKLab lightness under which an additive-effect pixel counts as black background. */
 export const BLACK_L = 0.06;
+/** One RGB code level of black encoding noise, including green-heavy values above BLACK_L. */
+const BLACK_RGB_NOISE = 1;
 
 /** An edge pixel that is at least this much magenta (blended with the subject behind it) goes. */
 export const FRINGE_SHARE = 0.3;
@@ -64,7 +66,10 @@ export function keyBackground(src: Img, keying: Keying, opts: { checkEdges: bool
     if (keying === 'none') continue;
     const px = ((d[o]! << 24) | (d[o + 1]! << 16) | (d[o + 2]! << 8) | 255) >>> 0;
     const lab = labOf(px);
-    const clear = keying === 'magenta' ? deltaE(lab, MAGENTA) < MAGENTA_RADIUS : lab[0] < BLACK_L;
+    const clear =
+      keying === 'magenta'
+        ? deltaE(lab, MAGENTA) < MAGENTA_RADIUS
+        : lab[0] < BLACK_L || Math.max(d[o]!, d[o + 1]!, d[o + 2]!) <= BLACK_RGB_NOISE;
     if (clear) d[o] = d[o + 1] = d[o + 2] = d[o + 3] = 0;
   }
   let fringeRemoved = 0;

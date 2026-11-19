@@ -6,6 +6,9 @@
 // Canvas, in-game size, grid and background come from the template definition itself, so the
 // prompt library stays the single source for those.
 
+import { cutscenePropIsCentered } from './cutscene_contracts';
+import { vfxColorCapFor, vfxFillsCell, vfxKeepsFinalLight, vfxMovesInCell } from './vfx_contracts';
+
 export type AssetClass =
   | 'reference'
   | 'standee'
@@ -733,6 +736,7 @@ const RULES: Record<string, Rule> = {
   vfx_small: {
     cls: 'vfx',
     palette: 'vfx',
+    maxColors: 4,
     outline: 'none',
     anchor: 'center',
     cells: variantsTimed(8, 'play', 70),
@@ -742,6 +746,7 @@ const RULES: Record<string, Rule> = {
   vfx_medium: {
     cls: 'vfx',
     palette: 'vfx',
+    maxColors: 5,
     outline: 'none',
     anchor: 'center',
     cells: variantsTimed(8, 'play', 70),
@@ -751,6 +756,7 @@ const RULES: Record<string, Rule> = {
   vfx_large: {
     cls: 'vfx',
     palette: 'vfx',
+    maxColors: 6,
     outline: 'none',
     anchor: 'center',
     cells: variantsTimed(8, 'play', 70),
@@ -760,6 +766,7 @@ const RULES: Record<string, Rule> = {
   vfx_projectile: {
     cls: 'vfx',
     palette: 'vfx',
+    maxColors: 4,
     outline: 'none',
     anchor: 'center',
     cells: variantsTimed(4, 'loop', 80),
@@ -768,6 +775,7 @@ const RULES: Record<string, Rule> = {
   vfx_loop: {
     cls: 'vfx',
     palette: 'vfx',
+    maxColors: 4,
     outline: 'none',
     anchor: 'center',
     cells: variantsTimed(8, 'loop', 100),
@@ -939,9 +947,10 @@ export function importSpecFor(
     grid,
     keying,
     palette: rule.palette,
-    maxColors: rule.maxColors,
+    maxColors:
+      rule.palette === 'vfx' ? (vfxColorCapFor(assetId) ?? rule.maxColors) : rule.maxColors,
     outline: rule.outline,
-    anchor: rule.anchor,
+    anchor: template === 'prop_huge' && cutscenePropIsCentered(assetId) ? 'center' : rule.anchor,
     dirAxis: rule.dirAxis ?? 'none',
     cells,
     anims: rule.anims ?? [],
@@ -960,19 +969,25 @@ export function importSpecFor(
     const b = BODY[bodyOf(assetId, deps)];
     spec.body = { target: b.target, min: b.min, max: b.max };
     spec.anchorPx = b.anchor;
-  } else if (rule.anchor === 'foot' || rule.anchor === 'flying') {
+  } else if (spec.anchor === 'foot' || spec.anchor === 'flying') {
     // Creatures: bottom center, 4 px above the cell floor (3.2); props sit on the floor.
     const lift = rule.cls === 'standee' && rule.palette === 'creature' ? 4 : 1;
     spec.anchorPx = [Math.floor(final[0] / 2), final[1] - lift];
-  } else if (rule.anchor === 'neck') {
+  } else if (spec.anchor === 'neck') {
     spec.anchorPx = [Math.floor(final[0] / 2), final[1] - 1];
-  } else if (rule.anchor === 'center') {
+  } else if (spec.anchor === 'center') {
     spec.anchorPx = [Math.floor(final[0] / 2), Math.floor(final[1] / 2)];
   } else if (template === 'doll_back') {
     // Back parts keep their place in the body's frame; the body's foot anchor is recorded.
     spec.anchorPx = [Math.floor(final[0] / 2), final[1] - 4];
   }
   if (template === 'mon_flying') spec.inPlace = [];
+  if (spec.cls === 'vfx' && vfxKeepsFinalLight(assetId)) {
+    spec.fadeLastFrame = false;
+    spec.anims = spec.anims.map((anim) => ({ ...anim, hold: true }));
+  }
+  if (spec.cls === 'vfx' && vfxFillsCell(assetId)) spec.fullBleed = true;
+  if (spec.cls === 'vfx' && vfxMovesInCell(assetId)) spec.anchor = 'none';
   return spec;
 }
 

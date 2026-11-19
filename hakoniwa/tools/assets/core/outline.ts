@@ -8,7 +8,7 @@
 import { deltaE, type Lab, labOf } from './color';
 import { KEY_RAMP_COLORS, keyColorInfo } from './doll_keys';
 import { createImg, getPx, type Img, isOpaque, setPx } from './image';
-import type { PaletteColor } from './palettes';
+import { neutralCandidates, type PaletteColor } from './palettes';
 import type { OutlinePolicy } from './template_specs';
 
 export interface OutlineResult {
@@ -17,6 +17,25 @@ export interface OutlineResult {
   padded: boolean;
   stripped: number;
   added: number;
+}
+
+export const OUTLINE_COLOR_POLICY =
+  'existing near-neutral neighbors for achromatic fills; darker hue neighbor within 20 degrees for chromatic fills; nearest target fallback';
+
+const HUE_NEIGHBOR_COS = Math.cos((20 * Math.PI) / 180);
+
+function hueNeighbors(colors: readonly PaletteColor[], fill: Lab): readonly PaletteColor[] {
+  const neutral = neutralCandidates(colors, fill);
+  if (neutral !== colors) return neutral;
+  const chroma = Math.hypot(fill[1], fill[2]);
+  if (chroma < 0.04) return colors;
+  const neighbors = colors.filter((c) => {
+    const candidateChroma = Math.hypot(c.lab[1], c.lab[2]);
+    if (candidateChroma < 0.015) return false;
+    const dot = fill[1] * c.lab[1] + fill[2] * c.lab[2];
+    return dot / (chroma * candidateChroma) >= HUE_NEIGHBOR_COS;
+  });
+  return neighbors.length > 0 ? neighbors : colors;
 }
 
 const N4: [number, number][] = [
@@ -80,9 +99,11 @@ export class OutlinePainter {
       const target: Lab = [lab[0] * f, lab[1] * 0.85, lab[2] * 0.85];
       let best: PaletteColor | null = null;
       let bd = Number.POSITIVE_INFINITY;
-      for (const c of this.palette) {
-        if (c.px >>> 8 === 0) continue;
-        if (c.lab[0] >= lab[0] - 0.04) continue;
+      const darker = this.palette.filter((c) => c.px >>> 8 !== 0 && c.lab[0] < lab[0] - 0.04);
+      // Lowering lightness can make a different hue perceptually nearer: brown leather used
+      // to gain red cloth edges. Prefer an existing darker neighbor of the fill's hue first.
+      // Neutral fills and sparse palettes retain the original nearest-target fallback.
+      for (const c of hueNeighbors(darker, lab)) {
         const d = deltaE(c.lab, target);
         if (d < bd) {
           bd = d;

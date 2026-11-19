@@ -4,8 +4,9 @@
 // under the true-peak ceiling, and the measured values for the metadata. Pure and deterministic;
 // decoding and Vorbis encoding happen in the CLI's ffmpeg adapter.
 //
-// Layers (stems) need a source separator (Demucs, 11.3) that is not part of this tool; a
-// single-file music entry is processed as one layer and the metadata says so.
+// Layers (stems): a multi-layer entry whose separated stems sit beside the original
+// (`<id>.stems/`) goes through ./stems.ts instead, which cuts and normalises the layers on the
+// mix; without a stem folder the entry is processed as one layer and the metadata says so.
 
 import { type Problem, problem } from '../reasons';
 import {
@@ -154,7 +155,7 @@ export function processAudio(input: Pcm, fs: number, plan: AudioPlan): AudioProc
     outputs = [{ suffix: '', pcm: slice(pcm, a, b) }];
   }
   if (plan.stems > 1) {
-    processing.stems = `entry asks for ${plan.stems} layers; layer separation (11.3) is not run by this tool, processed as one layer`;
+    processing.stems = `entry asks for ${plan.stems} layers; no stem folder beside the original (11.3, stems.ts), processed as one layer`;
   }
   // Loudness: one gain for the whole entry, so variants keep their relative level (11.4).
   // Gain to the target, then the look-ahead limiter under the true-peak ceiling; limiting lowers

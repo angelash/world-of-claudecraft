@@ -76,7 +76,11 @@ export interface CellResult {
   problems: Problem[];
 }
 
-export function locateCells(img: Img, layout: CellDef[][], opts: { search: boolean }): CellResult {
+export function locateCells(
+  img: Img,
+  layout: CellDef[][],
+  opts: { search: boolean; fadingLastFrame?: boolean; sparseRequiredFrames?: readonly number[] },
+): CellResult {
   const rows = layout.length;
   const cols = layout[0]?.length ?? 1;
   const problems: Problem[] = [];
@@ -128,7 +132,15 @@ export function locateCells(img: Img, layout: CellDef[][], opts: { search: boole
   const extra: string[] = [];
   for (const row of cells) {
     for (const cell of row) {
-      const occupied = cell.pixels >= Math.max(4, 0.002 * cell.w * cell.h);
+      // A one-shot effect must approach disappearance in its last frame. A small residual
+      // light is still a required frame; a truly empty cell remains an error.
+      const fading = opts.fadingLastFrame && cell.row === rows - 1 && cell.col === cols - 1;
+      // A declared point or sparse light-grain frame must retain its real source content.
+      // The processed-image checks still reject a mark that vanishes during reduction.
+      const sparse =
+        cell.def.need === 'req' &&
+        (opts.sparseRequiredFrames?.includes(cell.row * cols + cell.col) ?? false);
+      const occupied = cell.pixels >= (fading || sparse ? 4 : Math.max(4, 0.002 * cell.w * cell.h));
       if (cell.def.need === 'req' && !occupied) empty.push(`(${cell.col + 1},${cell.row + 1})`);
       if (cell.def.need === 'blank' && occupied) extra.push(`(${cell.col + 1},${cell.row + 1})`);
       if (!occupied) cell.content = null;

@@ -21,6 +21,7 @@ import { type AudioPlan, type AudioTemplateLike, audioPlanOf } from './core/audi
 import { processAudio } from './core/audio/process';
 import { type ContactRow, changedShare, contactIndex, contactPages } from './core/contact';
 import type { Img } from './core/image';
+import { AUDIO_IMPORT_VERSION, importVersionFor } from './core/import_versions';
 import { type ManifestRecord, manifestJson } from './core/manifest';
 import { type ArtMeta, IMPORT_VERSION, metaPathOf, processedPathOf } from './core/meta';
 import { processArt } from './core/pipeline';
@@ -144,7 +145,7 @@ export async function run(argv: string[], log: Logger = consoleLogger): Promise<
     );
     const fresh =
       prevMeta &&
-      prevMeta.importVersion === IMPORT_VERSION &&
+      prevMeta.importVersion === importVersionFor(rec.kind) &&
       prevMeta.source.sha256 === rec.sha256;
     if (fresh && !all) {
       skipped++;
@@ -380,7 +381,7 @@ function encodeOutputs(
     const rel = `${base}${o.suffix}.ogg`;
     const comments: Record<string, string> = {
       HAKONIWA_ID: rec.id,
-      HAKONIWA_IMPORT: IMPORT_VERSION,
+      HAKONIWA_IMPORT: AUDIO_IMPORT_VERSION,
     };
     if (res.loopStart !== null && res.loopEnd !== null) {
       comments.LOOPSTART = String(res.loopStart);

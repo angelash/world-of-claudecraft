@@ -20,6 +20,7 @@ import { type AudioMeta, checkAudio } from './core/audio/meta';
 import { parseOgg } from './core/audio/ogg';
 import { type AudioTemplateLike, audioPlanOf } from './core/audio/plan';
 import { checkProcessed } from './core/checks';
+import { importVersionFor } from './core/import_versions';
 import {
   type ManifestRecord,
   manifestJson,
@@ -29,11 +30,12 @@ import {
   validateManifest,
   validateTools,
 } from './core/manifest';
-import { type ArtMeta, IMPORT_VERSION, metaPathOf, processedPathOf } from './core/meta';
+import { type ArtMeta, metaPathOf, processedPathOf } from './core/meta';
 import { paletteFor } from './core/pipeline';
 import { decodePng } from './core/png';
 import { type Problem, problem, reasonOf } from './core/reasons';
 import { importSpecFor, isReference, type TemplateLike } from './core/template_specs';
+import { uiGlyphPalette } from './core/ui_glyph';
 import { decodeAudio, ffmpegPath } from './ffmpeg';
 import {
   consoleLogger,
@@ -127,7 +129,7 @@ export async function run(argv: string[], log: Logger = consoleLogger): Promise<
       report.stale.push(`${r.id}: no processed result (npm run assets:import)`);
       continue;
     }
-    if (meta.importVersion !== IMPORT_VERSION || meta.source.sha256 !== r.sha256) {
+    if (meta.importVersion !== importVersionFor(r.kind) || meta.source.sha256 !== r.sha256) {
       report.stale.push(
         `${r.id}: processed with import ${meta.importVersion} from another original; rerun npm run assets:import`,
       );
@@ -163,9 +165,11 @@ export async function run(argv: string[], log: Logger = consoleLogger): Promise<
       );
       const style = r.style || null;
       const palette =
-        spec.palette === 'vfx' || spec.palette === 'two'
-          ? null
-          : paletteFor(spec, style, style ? lib.styles[style]?.palette : null);
+        spec.palette === 'ui'
+          ? uiGlyphPalette(r.id)
+          : spec.palette === 'vfx' || spec.palette === 'two'
+            ? null
+            : paletteFor(spec, style, style ? lib.styles[style]?.palette : null);
       for (const p of checkProcessed(img, art, { spec, palette, assetId: r.id })) {
         if (!(art.problems ?? []).some((q) => q.check === p.check && q.message === p.message))
           add(p);

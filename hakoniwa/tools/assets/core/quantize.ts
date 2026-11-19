@@ -11,7 +11,8 @@
 import { deltaE, type Lab, labOf, pxToHex } from './color';
 import { classifyKey, KEY_RAMP_COLORS, type KeySlot, keyColorInfo, keyLevel } from './doll_keys';
 import type { Img } from './image';
-import { nearest, type Palette, type PaletteColor } from './palettes';
+import { type LocalPaletteError, paletteErrorEvidence } from './palette_diagnostics';
+import { nearest, neutralCandidates, type Palette, type PaletteColor } from './palettes';
 
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
@@ -19,6 +20,10 @@ export interface QuantOptions {
   dither?: boolean;
   maxColors?: number;
   keySlots?: readonly KeySlot[] | null;
+  /** Material policy: achromatic pixels use existing near-neutral palette candidates. */
+  preserveNeutrals?: boolean;
+  /** Explicit source-pixel semantics may restrict the supplied palette; defaults are unchanged. */
+  candidatesFor?: (colors: readonly PaletteColor[], source: Lab) => readonly PaletteColor[];
   /** false: keep existing key ramp colors as keys but classify nothing new (re-fold after outlining). */
   classify?: boolean;
 }
@@ -27,6 +32,10 @@ export interface QuantResult {
   frames: Img[];
   /** Mean OKLab error over palette-mapped (non-key) pixels. */
   meanError: number;
+  /** Minimum feasible mapping error before ordered dither and the per-image color cap. */
+  nearestMeanError: number;
+  /** Local regions whose error exceeds 0.07; evidence for visual review, not automatic rejection. */
+  localErrors: LocalPaletteError[];
   /** Swatch row: the colors the sheet uses, in palette order then key ramps. */
   swatch: string[];
   /** Key ramp colors used and their slot and level. */
@@ -56,14 +65,28 @@ export function quantizeFrames(
 ): QuantResult {
   const out = frames.map((f) => ({ w: f.w, h: f.h, data: new Uint8Array(f.data) }));
   for (const f of out) binarizeAlpha(f);
-  if (!palette) return { frames: out, meanError: 0, swatch: [], slots: {}, folded: 0 };
+  if (!palette)
+    return {
+      frames: out,
+      meanError: 0,
+      nearestMeanError: 0,
+      localErrors: [],
+      swatch: [],
+      slots: {},
+      folded: 0,
+    };
   const colors = palette.colors;
   const byPx = new Map<number, PaletteColor>(colors.map((c) => [c.px, c]));
   const near = new Map<number, ReturnType<typeof nearest>>();
   const nearOf = (px: number, lab: Lab): ReturnType<typeof nearest> => {
     let n = near.get(px);
     if (!n) {
-      n = nearest(colors, lab);
+      const semantic = opts.candidatesFor ? opts.candidatesFor(colors, lab) : colors;
+      // A declared material subset owns its neutral shades too. Apply the generic neutral
+      // policy only when the semantic selector returns the original, unrestricted candidates.
+      const material =
+        opts.preserveNeutrals && semantic === colors ? neutralCandidates(colors, lab) : semantic;
+      n = nearest(material, lab);
       near.set(px, n);
     }
     return n;
@@ -191,5 +214,13 @@ export function quantizeFrames(
     const hex = pxToHex(px);
     if (!swatch.includes(hex)) swatch.push(hex);
   }
-  return { frames: out, meanError: errN > 0 ? errSum / errN : 0, swatch, slots, folded };
+  const evidence = paletteErrorEvidence(frames, out, keyMask);
+  return {
+    frames: out,
+    ...evidence,
+    nearestMeanError: errN > 0 ? errSum / errN : 0,
+    swatch,
+    slots,
+    folded,
+  };
 }

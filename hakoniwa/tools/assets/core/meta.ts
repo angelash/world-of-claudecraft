@@ -1,10 +1,11 @@
 // Step 10 (art_pipeline.md 13): the frame metadata written next to every processed image,
-// assets/processed/<category>/<id>.json. Bump IMPORT_VERSION whenever any step's output can
-// change; processed results carry it, and `assets:check` lists results made by another version.
+// assets/processed/<category>/<id>.json. Bump ART_IMPORT_VERSION in import_versions.ts when
+// art output can change; audio has its own version. IMPORT_VERSION stays an art-only alias
+// for existing art consumers (pipeline, atlas and client loader).
 
 import type { Problem } from './reasons';
 
-export const IMPORT_VERSION = '1.0.0';
+export { ART_IMPORT_VERSION as IMPORT_VERSION } from './import_versions';
 
 export interface FrameMeta {
   anim: string;

@@ -3,7 +3,7 @@
 // headers: sample rate, channels, length, loop points (JSON and the LOOPSTART / LOOPLENGTH
 // Vorbis comments agree and lie inside the file), file count, loudness and true peak.
 
-import { IMPORT_VERSION } from '../meta';
+import { AUDIO_IMPORT_VERSION } from '../import_versions';
 import { type Problem, problem } from '../reasons';
 import type { OggInfo } from './ogg';
 import type { AudioPlan } from './plan';
@@ -73,7 +73,7 @@ export function newAudioMeta(
     syncOffsetMs: null,
     priority: plan.priority,
     caption: null,
-    importVersion: IMPORT_VERSION,
+    importVersion: AUDIO_IMPORT_VERSION,
     source,
     aigcLabel,
     processing: {},
@@ -94,6 +94,20 @@ export function checkAudio(
 ): Problem[] {
   const out: Problem[] = [];
   if (headers.length === 0) out.push(problem('format', 'files', 'no processed audio file'));
+  // A layered entry (stems.ts): one file per layer, all of one length (5.2: sample-aligned).
+  if (meta.stems > 1) {
+    if (meta.files.length !== plan.stems)
+      out.push(
+        problem(
+          'format',
+          'stems',
+          `${meta.files.length} layer file(s), the entry asks for ${plan.stems} layers`,
+        ),
+      );
+    const lengths = new Set(headers.filter((h) => h.info).map((h) => h.info!.totalSamples));
+    if (lengths.size > 1)
+      out.push(problem('format', 'stems', 'layer files differ in length: they must stay aligned'));
+  }
   if (plan.variants > 1 && meta.files.length !== plan.variants) {
     out.push(
       problem(

@@ -84,6 +84,7 @@ export function estimateBlock(img: Img, maxSize = 16): BlockEstimate {
 /**
  * Mode downsample: output pixel (i, j) takes the dominant color bucket of the source window
  * [ox + i*rx, ox + (i+1)*rx) x [oy + j*ry, oy + (j+1)*ry).
+ * A palette-aware caller may group encoder shades together without changing RGB averaging.
  */
 export function reduceMode(
   img: Img,
@@ -93,6 +94,7 @@ export function reduceMode(
   ry: number,
   outW: number,
   outH: number,
+  colorBucket?: (r: number, g: number, b: number) => number,
 ): Img {
   const out = createImg(outW, outH);
   const d = img.data;
@@ -123,7 +125,9 @@ export function reduceMode(
             transparent++;
             continue;
           }
-          const key = ((d[o]! >> 3) << 10) | ((d[o + 1]! >> 3) << 5) | (d[o + 2]! >> 3);
+          const key = colorBucket
+            ? colorBucket(d[o]!, d[o + 1]!, d[o + 2]!)
+            : ((d[o]! >> 3) << 10) | ((d[o + 1]! >> 3) << 5) | (d[o + 2]! >> 3);
           const s = sums.get(key);
           if (s) {
             s[0] += d[o]!;

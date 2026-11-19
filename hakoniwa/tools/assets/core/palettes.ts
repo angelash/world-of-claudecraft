@@ -33,6 +33,21 @@ export function paletteColor(hex: string, ramp: string, level: number): PaletteC
   return { hex: hex.toLowerCase(), px: pack(r, g, b, 255), lab: rgbToOklab(r, g, b), ramp, level };
 }
 
+export const NEUTRAL_SOURCE_CHROMA_MAX = 0.01;
+export const NEUTRAL_CANDIDATE_CHROMA_MAX = 0.03;
+
+/** Keep achromatic material in existing near-neutral colors; sparse boards keep their fallback. */
+export function neutralCandidates(
+  colors: readonly PaletteColor[],
+  source: Lab,
+): readonly PaletteColor[] {
+  if (Math.hypot(source[1], source[2]) > NEUTRAL_SOURCE_CHROMA_MAX) return colors;
+  const neutral = colors.filter(
+    (c) => Math.hypot(c.lab[1], c.lab[2]) <= NEUTRAL_CANDIDATE_CHROMA_MAX,
+  );
+  return neutral.length > 0 ? neutral : colors;
+}
+
 function ramp(name: string, hexes: string[]): PaletteColor[] {
   return hexes.map((h, i) => paletteColor(h, name, i));
 }

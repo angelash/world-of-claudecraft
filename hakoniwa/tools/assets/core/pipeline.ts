@@ -9,13 +9,16 @@ import { checkProcessed } from './checks';
 import { crateWoodLeaks, keySlotsFor } from './doll_keys';
 import { anchoredFrameMeta, buildAnims } from './frames';
 import { type Box, blit, createImg, type Img, resizeNearest } from './image';
+import { itemSemanticPaletteFor } from './item_semantic_palette';
 import { keyBackground } from './keying';
 import { type ArtMeta, IMPORT_VERSION } from './meta';
-import { OutlinePainter, outlineFrame } from './outline';
+import { OUTLINE_COLOR_POLICY, OutlinePainter, outlineFrame } from './outline';
 import {
   CREATURE_PALETTE,
   grayPalette,
   medianCut,
+  NEUTRAL_CANDIDATE_CHROMA_MAX,
+  NEUTRAL_SOURCE_CHROMA_MAX,
   type Palette,
   stylePalette,
   UI_PALETTE,
@@ -28,14 +31,18 @@ import {
   type ScaleChoice,
   snapOrigin,
 } from './pixel_grid';
+import { quantizationEvidence } from './quant_evidence';
 import { quantizeFrames } from './quantize';
 import { type Problem, problem } from './reasons';
+import { styleQuantizationPalette } from './style_palette';
 import {
   type ImportSpec,
   importSpecFor,
   sheetDirection,
   type TemplateLike,
 } from './template_specs';
+import { outlineUiGlyph, uiGlyphBucket, uiGlyphOutlineColors, uiGlyphPalette } from './ui_glyph';
+import { vfxPaletteFor, vfxSparseFramesFor } from './vfx_contracts';
 
 export interface ArtInput {
   id: string;
@@ -89,6 +96,7 @@ function median(v: number[]): number {
 
 export function processArt(input: ArtInput): ArtResult {
   const spec = importSpecFor(input.template, input.templateDef, input.id, input.deps ?? []);
+  const uiPalette = spec.palette === 'ui' ? uiGlyphPalette(input.id) : null;
   const problems: Problem[] = [];
   const processing: Record<string, unknown> = {};
   const baseMeta = (): ArtMeta => ({
@@ -144,7 +152,13 @@ export function processArt(input: ArtInput): ArtResult {
     fringeRemoved: keyed.fringeRemoved,
   };
   // Step 3: locate the cells.
-  const cellRes = locateCells(keyed.img, spec.cells, { search: !spec.fullBleed });
+  const sparseRequiredFrames = spec.cls === 'vfx' ? vfxSparseFramesFor(input.id) : undefined;
+  if (sparseRequiredFrames) processing.sparseRequiredFrames = sparseRequiredFrames;
+  const cellRes = locateCells(keyed.img, spec.cells, {
+    search: !spec.fullBleed,
+    fadingLastFrame: spec.cls === 'vfx' && spec.fadeLastFrame,
+    sparseRequiredFrames,
+  });
   problems.push(...cellRes.problems);
   const cells = cellRes.cells.flat();
   // Step 4: effective pixel grid and scale.
@@ -181,6 +195,8 @@ export function processArt(input: ArtInput): ArtResult {
     ...(choice.refinedFrom ? { refinedFrom: Number(choice.refinedFrom.toFixed(4)) } : {}),
   };
   const frameInputs: FrameInput[] = [];
+  const colorBucket = uiPalette ? uiGlyphBucket(uiPalette) : undefined;
+  if (colorBucket) processing.reduction = 'mode grouped by UI palette, original RGB means';
   for (const cell of cells) {
     if (cell.def.need === 'blank') continue;
     if (spec.fullBleed) {
@@ -201,6 +217,7 @@ export function processArt(input: ArtInput): ArtResult {
         aligned ? block.size : ry,
         fw,
         fh,
+        colorBucket,
       );
       frameInputs.push({ col: cell.col, row: cell.row, def: cell.def, img, rel: [0, 0] });
       continue;
@@ -212,7 +229,7 @@ export function processArt(input: ArtInput): ArtResult {
     const oy = choice.blockAligned ? snapOrigin(c.y, block.phaseY, block.size) : c.y;
     const w = Math.max(1, Math.ceil((c.x + c.w - ox) / r));
     const h = Math.max(1, Math.ceil((c.y + c.h - oy) / r));
-    const img = reduceMode(keyed.img, ox, oy, r, r, w, h);
+    const img = reduceMode(keyed.img, ox, oy, r, r, w, h, colorBucket);
     const rel: [number, number] = [Math.round((ox - cell.x) / r), Math.round((oy - cell.y) / r)];
     frameInputs.push({ col: cell.col, row: cell.row, def: cell.def, img, rel });
   }
@@ -248,7 +265,14 @@ export function processArt(input: ArtInput): ArtResult {
     }
   }
   // Steps 5 and 6: quantize and binarize.
-  let palette = paletteFor(spec, input.style, input.styleAnchors);
+  const vfxPalette = spec.palette === 'vfx' ? vfxPaletteFor(input.id) : null;
+  let palette = uiPalette ?? vfxPalette ?? paletteFor(spec, input.style, input.styleAnchors);
+  if (vfxPalette) {
+    processing.vfxPaletteSelection = {
+      policy: 'frozen requirement semantic hues and color-step cap',
+      colors: vfxPalette.colors.map((c) => c.hex),
+    };
+  }
   if (spec.palette === 'style' && !palette) {
     problems.push(
       problem(
@@ -259,9 +283,24 @@ export function processArt(input: ArtInput): ArtResult {
     );
     palette = CREATURE_PALETTE;
   }
-  let quantPalette = palette;
-  if (spec.palette === 'vfx')
-    quantPalette = medianCut(mergeFrames(frameInputs.map((f) => f.img)), 6, 'vfx', 0.06);
+  let quantPalette =
+    spec.palette === 'style' && palette
+      ? styleQuantizationPalette(palette, input.id, input.style)
+      : palette;
+  if (palette && quantPalette !== palette) {
+    processing.stylePaletteSelection = {
+      policy: 'declared anchors; appended reserved colors require an exempt subject or pack',
+      omittedCandidates: palette.colors.filter((c) => c.ramp === 'reserved').map((c) => c.hex),
+      declaredAnchorsPreserved: true,
+    };
+  }
+  if (spec.palette === 'vfx' && !vfxPalette)
+    quantPalette = medianCut(
+      mergeFrames(frameInputs.map((f) => f.img)),
+      spec.maxColors ?? 6,
+      'vfx',
+      0.06,
+    );
   if (spec.palette === 'two')
     quantPalette = medianCut(mergeFrames(frameInputs.map((f) => f.img)), 2, 'two');
   const keySlots = keySlotsFor(input.template, input.id);
@@ -277,33 +316,45 @@ export function processArt(input: ArtInput): ArtResult {
         ),
       );
   }
+  const preserveNeutrals = input.template === 'ico_item' && quantPalette?.id === 'creature';
+  const itemSemantics = preserveNeutrals ? itemSemanticPaletteFor(input.id) : null;
+  if (itemSemantics) processing.itemSemanticPaletteSelection = itemSemantics.metadata;
+  if (preserveNeutrals) {
+    processing.neutralPaletteSelection = {
+      policy: 'achromatic item pixels use existing near-neutral candidates',
+      sourceChromaMax: NEUTRAL_SOURCE_CHROMA_MAX,
+      candidateChromaMax: NEUTRAL_CANDIDATE_CHROMA_MAX,
+      missingCandidates: 'nearest full palette fallback',
+    };
+  }
   const quant = quantizeFrames(
     frameInputs.map((f) => f.img),
     quantPalette,
-    { dither: spec.dither, maxColors: spec.maxColors, keySlots },
+    {
+      dither: spec.dither,
+      maxColors: spec.maxColors,
+      keySlots,
+      preserveNeutrals,
+      candidatesFor: itemSemantics?.candidatesFor,
+    },
   );
-  processing.quantError = Number(quant.meanError.toFixed(4));
-  processing.folded = quant.folded;
-  if (quant.meanError > 0.07) {
-    problems.push(
-      problem(
-        'palette',
-        'quant_error',
-        `mean quantization error ${quant.meanError.toFixed(3)} (over 0.07): colors far from the palette`,
-      ),
-    );
-  }
+  const paletteEvidence = quantizationEvidence(quant, 'palette');
+  Object.assign(processing, paletteEvidence.processing);
+  problems.push(...paletteEvidence.problems);
   // Step 7: outline.
-  const painter = new OutlinePainter(quantPalette?.colors ?? []);
+  const painter = new OutlinePainter(
+    spec.palette === 'ui' ? uiGlyphOutlineColors() : (quantPalette?.colors ?? []),
+  );
   let stripped = 0;
   let added = 0;
   const outlined: FrameInput[] = frameInputs.map((f, i) => {
-    const res = outlineFrame(quant.frames[i]!, painter, spec.outline, !!spec.big);
+    const outline = uiPalette ? outlineUiGlyph : outlineFrame;
+    const res = outline(quant.frames[i]!, painter, spec.outline, !!spec.big);
     stripped += res.stripped;
     added += res.added;
     return { ...f, img: res.img, rel: res.padded ? [f.rel[0] - 1, f.rel[1] - 1] : f.rel };
   });
-  processing.outline = { policy: spec.outline, stripped, added };
+  processing.outline = { policy: spec.outline, colorPolicy: OUTLINE_COLOR_POLICY, stripped, added };
   // Outline colors may push the sheet over its color cap: fold again (identity mapping otherwise).
   let finalFrames = outlined;
   let swatch = quant.swatch;
@@ -314,6 +365,9 @@ export function processArt(input: ArtInput): ArtResult {
       quantPalette,
       { maxColors: spec.maxColors, keySlots, classify: false },
     );
+    const outlineEvidence = quantizationEvidence(again, 'post-outline');
+    processing.postOutlineQuantization = outlineEvidence.processing;
+    problems.push(...outlineEvidence.problems);
     finalFrames = outlined.map((f, i) => ({ ...f, img: again.frames[i]! }));
     swatch = again.swatch;
     // The outline adds each slot's darkest level: the slot map must cover it too.

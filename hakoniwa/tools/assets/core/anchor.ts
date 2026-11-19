@@ -1,7 +1,7 @@
 // Steps 8 and 9 (art_pipeline.md 13, 3.2, 3.5): place every frame in its in-game cell.
-// - Foot anchor: each direction row shares one baseline: the row's median lowest opaque line
+// - Foot anchor: animated direction rows share one baseline: the row's median lowest opaque line
 //   lands on the template anchor (H humanoid (24, 44)); relative vertical motion inside the row
-//   (a jump, a lift) is kept.
+//   (a jump, a lift) is kept. Independent static variants each land on their own foot anchor.
 // - Torso center: in-place animations (idle, walk, cast loop, ...) put every frame's torso on
 //   the anchor column, which removes generator jitter; drift over 2 px means the frames were
 //   drawn unstable and the sheet goes to rework. Moving animations shift as a group.
@@ -9,9 +9,11 @@
 // - Neck, center and none anchors: parts keep the generator's placement, icons are centered.
 // - Mirroring: left-facing frames are the right-facing ones flipped (recorded, not duplicated).
 
+import { baselineGroups } from './anchor_groups';
 import { contentBox, createImg, type Img, isOpaque, overlay } from './image';
 import { type Problem, problem } from './reasons';
 import type { CellDef, ImportSpec } from './template_specs';
+import { vfxLoopCoreBox } from './vfx_loop_anchor';
 
 export interface FrameInput {
   col: number;
@@ -101,10 +103,8 @@ export function placeFrames(
   const anchored = spec.anchor === 'foot' || spec.anchor === 'flying';
   if (anchored && spec.anchorPx) {
     const [ax, ay] = spec.anchorPx;
-    const rows = new Map<number, FrameInput[]>();
-    for (const f of frames) rows.set(f.row, [...(rows.get(f.row) ?? []), f]);
-    for (const group of rows.values()) {
-      // Vertical: one baseline per row.
+    for (const group of baselineGroups(frames, spec)) {
+      // Vertical: preserve animated motion, ground independent static variants individually.
       const bases = group.map((f) => f.rel[1] + lowestRow(f.img));
       const dy = spec.anchor === 'flying' ? 0 : Math.round(ay - median(bases));
       // Horizontal: per animation inside the row.
@@ -139,9 +139,15 @@ export function placeFrames(
     }
   } else {
     for (const f of frames) {
-      if (spec.anchor === 'center')
-        at.set(f, [Math.floor((fw - f.img.w) / 2), Math.floor((fh - f.img.h) / 2)]);
-      else at.set(f, [f.rel[0], f.rel[1]]);
+      if (spec.anchor === 'center') {
+        const core = spec.template === 'vfx_loop' ? vfxLoopCoreBox(f.img) : null;
+        at.set(
+          f,
+          core
+            ? [Math.floor(fw / 2 - core.x - core.w / 2), Math.floor(fh / 2 - core.y - core.h / 2)]
+            : [Math.floor((fw - f.img.w) / 2), Math.floor((fh - f.img.h) / 2)],
+        );
+      } else at.set(f, [f.rel[0], f.rel[1]]);
     }
   }
   const placed: PlacedFrame[] = [];
