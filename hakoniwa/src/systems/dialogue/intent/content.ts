@@ -21,6 +21,11 @@ export function ruleSetProblems(
   const out: string[] = [];
   if (!lex) return ['intentLexicon table missing'];
   if (!set) return ['intentRules table missing'];
+  if (lex.modifierLinks !== undefined) {
+    const links = lex.modifierLinks;
+    if (!Array.isArray(links) || links.some((w) => typeof w !== 'string' || w.length === 0))
+      out.push('intentLexicon.modifierLinks must be a list of non-empty strings');
+  }
   if (!(set.threshold > 0)) out.push('intentRules.threshold must be positive');
   for (const g of ['keyword', 'pattern', 'entity', 'feature', 'exclude'] as const) {
     if (typeof set.weights[g] !== 'number') out.push(`intentRules.weights.${g} missing`);

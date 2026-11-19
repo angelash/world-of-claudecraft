@@ -1,0 +1,174 @@
+{
+  "id": "ln_janu",
+  "speaker": "janu",
+  "slots": {
+    "greet.cold.dream": [
+      {
+        "zh": "……你来了。今天不太想说话？",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "门还开着。你可以只站一会儿。",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "累了的话，就别问问题了。",
+        "when": "a1_dream_door_woman"
+      }
+    ],
+    "greet.neutral.dream": [
+      {
+        "zh": "你来了。",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "门总会开的。你看，又开了一点。",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "坐一会儿吧，外面的事等得起。",
+        "when": "a1_dream_door_woman"
+      }
+    ],
+    "greet.warm.dream": [
+      {
+        "zh": "你来了。我等了一会儿。……不久。",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "今天的你，看起来走了很远的路。",
+        "when": "a1_dream_door_woman"
+      },
+      {
+        "zh": "门后面暖和，进来吧。",
+        "when": "a1_dream_door_woman"
+      }
+    ],
+    "greet.cold.avatar": [
+      {
+        "zh": "……你在生我的气。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "站在门边就好，我听得见。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "你想问的，我知道。",
+        "when": "act >= 5"
+      }
+    ],
+    "greet.neutral.avatar": [
+      {
+        "zh": "你来了。这一次，不是梦。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "别怕门框，它只是我现在的样子。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "外面很吵，我们说小声一点。",
+        "when": "act >= 5"
+      }
+    ],
+    "greet.warm.avatar": [
+      {
+        "zh": "你来了。真好。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "你长高了。……门开得多的人，都会长高。",
+        "when": "act >= 5"
+      },
+      {
+        "zh": "过来，让我看看你的手。",
+        "when": "act >= 5"
+      }
+    ],
+    "farewell": ["醒来吧。外面有人在等你。", "门总会开的。", "别急，下一扇门在你身后。"],
+    "topic.gen_self": {
+      "act1": ["一个守门的。名字……现在说出来，会有人听见。", "我站在门口很久了。"]
+    },
+    "topic.gen_you": {
+      "act1": ["你会知道的。一扇一扇来。", "你是那个推开门的人。"]
+    },
+    "topic.self_janu_name": {
+      "act1": ["一个守门的。名字……现在说出来，会有人听见。"]
+    },
+    "topic.self_janu_caught": {
+      "act1": [
+        {
+          "zh": "嗯。那天我接住你了。你那时候伸手了，所以我抓得住。",
+          "when": "p_reached_out"
+        },
+        {
+          "zh": "嗯。那天我接住你了。你那时候没伸手。没关系，我抓得住。",
+          "when": "NOT p_reached_out"
+        },
+        "你比我想的重一点。"
+      ]
+    },
+    "topic.place_dream_door": {
+      "act1": ["门后面。你的门后面。"]
+    },
+    "topic.self_janu_wish": {
+      "act1": ["我想让这里重新连起来。"]
+    },
+    "topic.person_ash": {
+      "act1": ["一个比我更会守门的人。他放你走了，对吧？那就好。"]
+    },
+    "topic.self_janu_why_me": {
+      "act1": ["你会知道的。一扇一扇来。"]
+    },
+    "react.anchor_a10": ["接住你了。"],
+    "react.beat_a0_caught": ["接住你了。"],
+    "react.beat_a1_dream_door": [
+      "你来了。",
+      {
+        "zh": "你来了。这次没有错过末班车。",
+        "when": "p_earth_opening == a"
+      },
+      {
+        "zh": "你来了。雨停了。",
+        "when": "p_earth_opening == b"
+      },
+      {
+        "zh": "你来了。那边的结果，我也不知道，对不起。",
+        "when": "p_earth_opening == c"
+      },
+      {
+        "zh": "你来了。钥匙还在吧？",
+        "when": "p_earth_opening == d"
+      },
+      "这个先给你。别让太多人看见。",
+      "这里先给你。一间小屋，一小片园子。别嫌小。",
+      "门总会开的。",
+      "醒来吧。外面有人在等你。"
+    ],
+    "react.dream_question": ["那个镇子，你喜欢吗？"],
+    "react.dream_answer_like": ["那就好。喜欢的地方，会替你开门。", "嗯，我也觉得它不坏。"],
+    "react.dream_answer_unsure": ["还早呢。地方要住一阵子才知道。"],
+    "react.dream_answer_dislike": [
+      "那就慢慢来。不喜欢，也可以先住着。",
+      "门多着呢，不止一个镇子。"
+    ],
+    "react.hint": ["有些门要从里面开。", "你问的那个，在你身后，不在前面。", "钥匙会自己找到手。"],
+    "react.evade": ["别急。", "这个……下一次梦里再说。", "你看，园子里的土翻过了。"],
+    "react.dream_yes": [
+      {
+        "zh": "……是的。",
+        "when": "a3_seal_aware"
+      }
+    ],
+    "react.insult": ["……嗯，你可以生气。", "气完了，门还在。"],
+    "react.flattered": ["你嘴真甜。", "……好久没人这么说了。"],
+    "react.threatened": ["梦里的刀，砍不到人。", "你不会的。"],
+    "react.joke": ["（她笑了，钥匙轻轻晃了一下）", "你还是这么有意思。"],
+    "react.thanked": ["不用谢。门本来就该开。", "嗯。"],
+    "react.nonsense": ["梦里说什么都可以。", "这句我听不懂，但我喜欢听你说。"],
+    "react.confused": ["慢慢说，梦很长。", "再说一次？"],
+    "react.goddess_invoked": ["那些名字……在梦里就不必喊了。", "她们听不见这里。"],
+    "react.earth_talk": ["你的世界……还好吗？", "那边的门，也是这样开的吗？"]
+  }
+}

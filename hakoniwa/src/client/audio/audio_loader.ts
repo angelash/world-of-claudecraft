@@ -9,7 +9,7 @@
 // Development builds also load `review` records (loadedStatuses in ../assets/types.ts), so
 // adopted and imported sounds play before approval; ?assets=approved plays only approved.
 
-import { IMPORT_VERSION } from '../../../tools/assets/core/meta';
+import { AUDIO_IMPORT_VERSION } from '../../../tools/assets/core/import_versions';
 import { metaPathOf } from '../assets/types';
 import {
   type AudioIndex,
@@ -59,5 +59,5 @@ export async function loadAudioIndex(
       }
     }),
   );
-  return buildAudioIndex(records, (r) => metas.get(r.id), IMPORT_VERSION, statuses);
+  return buildAudioIndex(records, (r) => metas.get(r.id), AUDIO_IMPORT_VERSION, statuses);
 }

@@ -9,6 +9,7 @@
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { ensureSlice } from './slice';
+import type { DoorDef } from './types';
 
 /** Taint per point of blockage (6.2, C83). */
 export const TAINT_PER_BLOCKAGE = 4;
@@ -19,6 +20,20 @@ export const MAX_OVERLOAD = 3;
 export const RETURN_FATIGUE = 60;
 /** Fatigue that wears off per game hour (6.3). */
 export const FATIGUE_PER_HOUR = 10;
+
+/**
+ * The blockage and door fatigue opening `door` adds in act `act` (its `openCost`; 6.2 ties
+ * the abyss door's +10 to the act 1 opening): the opening settlement and the door card's
+ * cost preview read the same numbers.
+ */
+export function openCostNow(
+  door: Pick<DoorDef, 'openCost'>,
+  act: number,
+): { blockage: number; fatigue: number } {
+  const c = door.openCost;
+  if (!c || (c.act !== undefined && c.act !== act)) return { blockage: 0, fatigue: 0 };
+  return { blockage: c.blockage ?? 0, fatigue: c.fatigue ?? 0 };
+}
 
 /** Blockage tiers (6.2): clear, sluggish, clogged, gnawing, drowning, swallowed. */
 export function blockageTier(blockage: number): number {

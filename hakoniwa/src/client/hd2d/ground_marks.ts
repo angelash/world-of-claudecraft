@@ -7,6 +7,7 @@
 // draw them, the flat one straight onto its pixel canvas. Pure; Node-tested.
 
 import { TILE_PX } from '../render/camera';
+import { activePalette } from '../render/palette_modes';
 import { bayer4, createMatrix, type PixelMatrix, setPixel } from '../sprites/pixels';
 
 export type RingStyle = 'self' | 'hostile' | 'friendly' | 'neutral' | 'hover' | 'threat';
@@ -21,7 +22,7 @@ export function silhouetteColor(e: { relation: string; kind: string }): number |
   return null;
 }
 
-/** Ring colour by relation (the hover and threat rings have their own). */
+/** Ring colour by relation in the standard palette (the hover and threat rings have their own). */
 export const RING_COLORS: Readonly<Record<RingStyle, number>> = {
   self: 0xf0e6c8,
   hostile: 0xe0503c,
@@ -30,6 +31,11 @@ export const RING_COLORS: Readonly<Record<RingStyle, number>> = {
   hover: 0xffffff,
   threat: 0xff3a2a,
 };
+
+/** Ring colour of a style in the active colour-vision palette (18.2; ../render/palette_modes.ts). */
+export function ringColor(style: RingStyle): number {
+  return activePalette().rings[style] ?? RING_COLORS[style];
+}
 
 /** Footprint of a figure's ground marks in metres, from its frame width in sprite pixels. */
 export function markSize(frameW: number, scale: number): { w: number; d: number } {

@@ -767,16 +767,16 @@ describe('review hardening', () => {
   it('keeps scenes others queued when the opening is chosen again', () => {
     const g = withScenes([]);
     g.step(1);
-    g.queue('flag.set', { key: 'scene.pending', value: 'a1_tide_dawn' });
+    g.queue('flag.set', { key: 'scene.pending', value: 'cut_a1_martha' });
     g.step(1);
-    expect(g.world.slices.scenes.queue).toContain('a1_tide_dawn');
+    expect(g.world.slices.scenes.queue).toContain('cut_a1_martha');
     const events: string[][] = [];
     g.onEvents((evs) => {
       for (const e of evs) if (e.kind === 'scene.restarted') events.push(e.data.cleared);
     });
     g.queue('scenes.restart', {});
     g.step(1);
-    expect(g.world.slices.scenes.queue).toContain('a1_tide_dawn');
+    expect(g.world.slices.scenes.queue).toContain('cut_a1_martha');
     expect(events.length).toBe(1);
     expect(events[0]).toContain('p_door_attempts_refused');
   });

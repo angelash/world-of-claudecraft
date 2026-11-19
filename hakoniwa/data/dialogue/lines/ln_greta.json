@@ -1,0 +1,60 @@
+{
+  "id": "ln_greta",
+  "speaker": "greta",
+  "slots": {
+    "greet.cold": ["孩子们在睡觉。有事吗？", "请回吧。", "孤儿院不招待外人。"],
+    "greet.neutral": ["好心人，你好。", "孩子们还等着吃饭呢。", "进来吧，别踩着玩具。"],
+    "greet.warm": ["好心人！孩子们一直念叨你。", "你来了，正好，帮我搬一下面粉。", "坐，喝碗汤。"],
+    "farewell": ["路上小心，好心人。", "孩子们，跟客人说再见。", "谢谢你来。"],
+    "unbelief.deny": ["大人们说的那些，我没空听。", "孩子们比传闻重要。"],
+    "unbelief.explain": ["光保佑你吧。也许是运气。", "我不懂这些。"],
+    "unbelief.waver": ["你帮了孩子们。别的我不问。", "你是好人。这就够了。"],
+    "react.feat_seen": ["孩子们，别看，进屋去！", "光在上……"],
+    "react.gift_liked": ["面粉！孩子们能吃饱了。谢谢！", "布……能给孩子们做衣裳了。"],
+    "react.insult": ["请你离开。孩子们在听。", "我不跟你吵。"],
+    "topic.gen_self": {
+      "neutral": ["格蕾塔，圣灯孤儿院的院长。", "十四个孩子，十四张嘴。"]
+    },
+    "topic.gen_work": {
+      "K0": ["做饭、洗衣、哄睡、看病。一天到晚。", "礼拜堂出点钱，剩下的我自己想办法。"]
+    },
+    "topic.self_greta_children": {
+      "K0": ["孩子们乖，就是饿。", "米洛走了以后，我每天晚上都数一遍人。"]
+    },
+    "topic.event_otto_will": {
+      "K0": ["奥托老爷说过，磨坊留给孤儿院。可维克拿出一份不一样的遗嘱。"]
+    },
+    "quest.q_a1_s11_otto_will.offer": [
+      "好心人……磨坊的事，你能帮我吗？我只求这一次。",
+      "那口井的水是干净的。孩子们需要它。"
+    ],
+    "quest.q_a1_s11_otto_will.progress": ["侯克那里也许有原件。他只回答问对了的问题。"],
+    "quest.q_a1_s11_otto_will.complete": [
+      {
+        "zh": "磨坊是孤儿院的了！孩子们有干净水了！",
+        "when": "a1_mill_owner == orphanage"
+      }
+    ],
+    "quest.q_a1_s11_otto_will.fail": [
+      {
+        "zh": "……算了。我们再想办法。",
+        "when": "a1_mill_owner IN (vick, company)"
+      }
+    ],
+    "quest.q_a1_s11_otto_will.after": [
+      {
+        "zh": "孩子们现在喝磨坊井的水。没人再咳了。",
+        "when": "a1_mill_owner == orphanage"
+      }
+    ],
+    "bark.work": ["吃饭了！洗手！", "谁又把汤洒了？"],
+    "bark.pray": ["光啊，让孩子们吃饱。"],
+    "bark.worried": ["面粉钱还欠着商会……"],
+    "topic.quest_otto_will": {
+      "K0": [
+        "奥托的遗嘱……好心人，这事我不该管，可孩子们还等着吃饭呢。",
+        "奥托走了一冬，磨坊就停了一冬，谁都说自己有份。"
+      ]
+    }
+  }
+}

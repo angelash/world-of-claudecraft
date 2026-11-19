@@ -1,0 +1,28 @@
+{
+  "id": "ln_role_info",
+  "slots": {
+    "topic.gen_info": [
+      "你想知道什么？先说价钱。",
+      "这条消息我只卖一次，卖给出价高的。",
+      "真的、假的、半真半假的，价钱都不一样。"
+    ],
+    "topic.gen_news": {
+      "K1": ["最近值钱的消息是{event}，别处听不到我这么全的。", "{event}。剩下的半句，得加钱。"]
+    },
+    "react.haggle_ok": ["行，这条算你便宜。"],
+    "react.haggle_no": ["消息不讲价，你嫌贵可以去酒馆碰运气。"],
+    "react.deny": ["我从没卖过这种消息。", "你听谁说我知道这个？"],
+    "react.evade": ["这一条，现在还不能说。"],
+    "react.wrong_person": ["这事你去问{who}，他们那儿消息快。"],
+    "react.cheated": ["拿了消息不付钱？以后别来了。"],
+    "bark.chat": ["嗯，嗯，然后呢？", "这事有意思，再说说。"],
+    "bark.wander": ["今天{place}人多，耳朵也多。"],
+    "bark.evening": [
+      {
+        "zh": "天一黑，酒馆里的话就多了。",
+        "place": ["tavern"]
+      }
+    ],
+    "greet.neutral": ["又来买消息？", "有什么想打听的？"]
+  }
+}

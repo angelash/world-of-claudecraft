@@ -1,0 +1,54 @@
+{
+  "id": "ln_nick",
+  "speaker": "nick",
+  "slots": {
+    "greet.cold": ["嗯……有、有事？", "我、我去干活了。", "……"],
+    "greet.neutral": ["你、你好。", "嗯……今天伐区往北。", "吃、吃了吗？"],
+    "greet.warm": ["你来了！我、我刻了个小木雕，给你。", "嗯，你好。今天……不结巴了。", "坐、坐。"],
+    "farewell": ["嗯，再见。", "我、我去干活了。", "小心。"],
+    "unbelief.deny": ["不、不会吧……", "他们说的，我、我不知道。"],
+    "unbelief.explain": ["运、运气吧。", "可能那狼……本来就伤了。"],
+    "unbelief.waver": ["我、我看见了。你……真厉害。", "希雅说你是真的。我信她。"],
+    "react.feat_seen": ["哇……", "你、你好厉害。"],
+    "react.gift_liked": ["给、给我的？谢谢。", "这个……我可以送给莉莎吗？"],
+    "react.insult": ["……你别这样说。", "我、我走了。"],
+    "topic.gen_self": {
+      "neutral": ["尼克。伐、伐木工。", "我跟希雅从小就认识。别、别告诉加斯帕。"]
+    },
+    "topic.gen_work": {
+      "K0": ["砍树。伐区越往里，魔、魔物越多。", "我力气大，手笨。"]
+    },
+    "topic.self_nick_lisa": {
+      "K0": [
+        {
+          "zh": "莉莎……我想娶她。可、可她爹不答应。",
+          "when": "trust.nick >= 40"
+        },
+        {
+          "zh": "我、我们成亲了！",
+          "when": "a1_lisa_nick == married"
+        }
+      ]
+    },
+    "quest.q_a1_s10_lisa_bundle.progress": [
+      "莉莎的包袱……我知道。我们、我们想走。",
+      "可是走了，她爹怎么办。"
+    ],
+    "quest.q_a1_d07_bakery_betrothal.after": [
+      {
+        "zh": "谢、谢谢你。",
+        "when": "a1_lisa_nick == married"
+      },
+      {
+        "zh": "我们走了。别告诉别人去哪。",
+        "when": "a1_lisa_nick == eloped"
+      },
+      {
+        "zh": "……没事。我去干活了。",
+        "when": "a1_lisa_nick == broken"
+      }
+    ],
+    "bark.work": ["嘿、嘿哟！", "这棵树……好、好粗。"],
+    "bark.chat": ["我、我在面包房后头等人。"]
+  }
+}

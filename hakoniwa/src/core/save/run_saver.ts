@@ -19,6 +19,7 @@ import type { SaveBackend, SaveFileBlob, SaveWriteResult } from './backend';
 import { decodeSaveBytes, defaultCodec, type SaveCodec } from './codec';
 import {
   type AnchorRef,
+  type ClientSegmentData,
   CONTAINER_VERSION,
   NO_FLAGS,
   SAVE_FORMAT,
@@ -90,6 +91,8 @@ export interface SaveRequest {
   flags?: Partial<SaveFlags>;
   /** what asked for the save; an ironman run accepts only `auto`, `exit` and `recovery` */
   trigger?: SaveTrigger;
+  /** the interface's segment (opaque here; header.ts bounds it) */
+  client?: ClientSegmentData;
 }
 
 export class RunSaver {
@@ -301,6 +304,7 @@ export class RunSaver {
       tick,
       flags: { ...NO_FLAGS, ...this.runFlags, ...req.flags },
       summary: req.summary,
+      ...(req.client ? { client: req.client } : {}),
       files: {
         snapshot: { sha256: snapSha, bytes: snapBytes.length },
         segments,

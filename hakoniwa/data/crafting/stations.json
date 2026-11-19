@@ -33,5 +33,60 @@
     "type": "kitchens",
     "tier": 2,
     "places": [{ "mapId": "borderstone", "location": "drunk_moon" }]
+  },
+  {
+    "id": "stn_bs_slope_hut_tan_pits",
+    "name": "东坡猎户棚的鞣池",
+    "desc": "东坡猎户剥皮鞣革的棚子，气味大，离镇子远远的。",
+    "type": "tannery",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "slope_hut" }]
+  },
+  {
+    "id": "stn_bs_home_loom",
+    "name": "民居的家织机",
+    "desc": "镇上人家自己织布用的织机。",
+    "type": "loom",
+    "tier": 1,
+    "places": [
+      { "mapId": "borderstone", "location": "houses_north" },
+      { "mapId": "borderstone", "location": "houses_south" },
+      { "mapId": "borderstone", "location": "houses_west" }
+    ]
+  },
+  {
+    "id": "stn_bs_herb_hut_racks",
+    "name": "欧拉小屋的晾架",
+    "desc": "药草小屋檐下的晾架，草药在这里晾干。",
+    "type": "racks",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "herb_hut" }]
+  },
+  {
+    "id": "stn_bs_smithy_toolbench",
+    "name": "巴尔加铁匠铺的工具台",
+    "desc": "乡间没有机匠，坏了的工具都送到铁匠这里。",
+    "type": "toolworks",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "smithy" }]
+  },
+  {
+    "id": "stn_bs_guild_desk",
+    "name": "公会档案室的书案",
+    "desc": "公会分部档案室里的旧书案，登记与抄写都在这里。",
+    "type": "scribe_desk",
+    "tier": 1,
+    "places": [{ "mapId": "borderstone", "location": "guild" }]
+  },
+  {
+    "id": "stn_field_campfire",
+    "name": "营火",
+    "desc": "野外营地的火堆，能烤肉、煮一锅汤。",
+    "type": "kitchens",
+    "tier": 1,
+    "places": [
+      { "mapId": "forest_edge", "location": "hunter_camp" },
+      { "mapId": "ash_waste", "location": "waste_camp" }
+    ]
   }
 ]

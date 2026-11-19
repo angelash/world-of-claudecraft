@@ -1,0 +1,198 @@
+{
+  "id": "ln_bron",
+  "speaker": "bron",
+  "slots": {
+    "greet.cold.day": ["又是你。有事登记，没事滚。", "柜台不是聊天的地方。", "哼。"],
+    "greet.cold.night": ["下班了。明天再来。", "别在我喝酒的时候说公事。", "滚，我喝着呢。"],
+    "greet.neutral.day": [
+      "新来的。委托在板上，自己看。",
+      "登记簿上写什么，就是什么。说吧。",
+      "交委托？放这儿。"
+    ],
+    "greet.neutral.night": ["再来一杯。……你也来一杯？", "坐。别说话，听我说。", "嗯，你也在。"],
+    "greet.warm.day": [
+      "来了？今天板上有个活，适合你。……别告诉别人我说的。",
+      "新来的。坐。你那一页我又添了几行。……没什么，簿子上的事。",
+      "嗯。活着回来了，好。"
+    ],
+    "greet.warm.night": [
+      "来，喝一杯，我请。玛莎那儿记账。",
+      "你来了。我今晚……少喝点。",
+      "坐吧，新来的。不对，你不是新来的了。"
+    ],
+    "farewell": ["滚吧，别死在外头。", "交委托别迟到。", "再来一杯。……不是跟你说的。"],
+    "unbelief.deny": [
+      "登记簿上写的是 F 级，Lv1。登记簿不说谎。",
+      "那是传闻。传闻不进簿子。",
+      "吹的吧。"
+    ],
+    "unbelief.explain": [
+      "那东西早被人打残了吧。",
+      "运气。这一行运气也是本事。",
+      "这木桩用了三十年，早就朽了。"
+    ],
+    "unbelief.waver": ["……（他盯着断口）", "簿子上记不下你。可我记得下。", "别测了。"],
+    "react.identity_pageless": [
+      "坏了就拿去给侯克，别在柜台上拍它。",
+      {
+        "zh": "……别测了。",
+        "when": "act_week >= 6"
+      }
+    ],
+    "topic.gen_self": {
+      "cold": ["分部长。老布伦。", "管簿子的。"],
+      "neutral": [
+        "冒险者公会边石分部长，布伦。镇上的冒险者都从我这儿过。",
+        "以前是 C 级。……胳膊没了以后，就坐柜台了。"
+      ],
+      "warm": [
+        "我就想把每一个冒险者都好好记下来。死了的，也记着。",
+        "新来的，你知道这本簿子有多重吗？我单手翻了二十年。"
+      ]
+    },
+    "topic.gen_work": {
+      "K1": ["登记、发委托、收凭证、发钱。还有骂人。", "公会有公会的规矩。规矩能救命。"]
+    },
+    "topic.gen_past": {
+      "cold": ["没什么好说的。", "喝酒，别问。"],
+      "warm": ["我以前也进过……算了。再来一杯。", "我的胳膊？丢在北边了。"]
+    },
+    "topic.gen_advice": {
+      "K1": ["别碰写着\"遗迹\"两个字的委托。", "活着回来，簿子上才能多一行。"]
+    },
+    "topic.self_bron_ledger": {
+      "K1": ["登记簿上写什么，就是什么。", "你的那一页……什么都写不出来。我就自己写。"]
+    },
+    "topic.self_bron_arm": {
+      "K1": [
+        {
+          "zh": "……那地方，不是给活人去的。",
+          "when": "npc.bron.story_level >= 1"
+        },
+        {
+          "zh": "灰里有东西。我们那时候没看清。",
+          "when": "npc.bron.story_level >= 2"
+        },
+        {
+          "zh": "没有脸的人。从灰里爬出来的。我的胳膊，两个兄弟，都留在那儿了。",
+          "when": "npc.bron.story_level >= 3"
+        }
+      ]
+    },
+    "topic.secret_bron_mark": {
+      "K1": [
+        {
+          "zh": "二十年前那个人手上，也有这个。",
+          "when": "a1_bron_sees_mark"
+        },
+        {
+          "zh": "他从灰里爬出来的时候，手背上就是这个纹。不一样的是……他没有脸。你有。",
+          "when": "a1_bron_sees_mark AND npc.bron.story_level >= 3"
+        }
+      ]
+    },
+    "topic.event_expedition_978": {
+      "K1": [
+        {
+          "zh": "二十年前，公会派人进过遗迹。报告被教会烧了。……我什么都没说。",
+          "when": "npc.bron.story_level >= 1"
+        },
+        {
+          "zh": "那块铜牌，是我兄弟的。",
+          "when": "npc.bron.story_level >= 1"
+        }
+      ]
+    },
+    "topic.event_crystal_broke": {
+      "K0": ["水晶坏了就拿去修。别大惊小怪。"]
+    },
+    "topic.lore_guild_ranks": {
+      "K1": ["F 到 S。你是 F。簿子上写的。", "C 级以上，这镇子养不起。"]
+    },
+    "topic.place_sealed_ruins": {
+      "K1": [
+        "别去。",
+        {
+          "zh": "那是禁地。教会立碑的时候，我就站在旁边。",
+          "when": "npc.bron.story_level >= 2"
+        }
+      ]
+    },
+    "topic.quest_board": {
+      "K0": ["板上的活自己挑，F 级挑 F 级的。", "三件 F 级委托，干完了再来找我。"]
+    },
+    "react.feat_seen": ["……簿子上记不下这个。", "哼。运气。"],
+    "react.gift_liked": ["酒？好东西。……别告诉玛莎。", "这个……我收着。"],
+    "react.gift_disliked": ["拿走，公会不收礼。", "不要。"],
+    "react.insult": ["再说一遍，我用簿子砸你。", "滚出去。"],
+    "react.thanked": ["谢什么，我只是登记。", "哼。"],
+    "react.flattered": ["少拍马屁。", "夸我也不给你升级。"],
+    "react.threatened": ["我一只手也能把你扔出去。", "公会里动手？你想上簿子的黑页？"],
+    "react.helped": ["……你帮了分部。我记下了，在簿子上。", "欠你一杯。"],
+    "react.saved": ["二十年前没人救我。这次……谢了。", "我这条命，簿子上记着你的名字。"],
+    "react.identity_claim": ["别的世界？你醉得比我还厉害。", "簿子上写不出来的东西，你别说出来。"],
+    "react.accused": ["我从不改簿子。一个字都不改。", "证据。没证据别来烦我。"],
+    "react.belief_worship": ["我不跪人。不过你那一页……我写得很仔细。", "簿子记不下你，我记。"],
+    "react.deny": ["我没说过。", "醉话不算数。"],
+    "react.evade": ["再来一杯。", "簿子上没写的事，我不说。"],
+    "quest.q_a1_m03_register.after": ["F 级，Lv1，无职能。……簿子上就这么写。"],
+    "quest.q_a1_m04_hunt.offer": [
+      "三件 F 级委托：地窖老鼠、采银叶草、送信去礼拜堂。干完了再来。",
+      "新来的都从这儿开始。别嫌丢人。"
+    ],
+    "quest.q_a1_m04_hunt.accept": ["好。别迷路。"],
+    "quest.q_a1_m04_hunt.progress": ["还差几件？自己数。"],
+    "quest.q_a1_m04_hunt.complete": [
+      "三件都干完了。……行，簿子上给你记一笔。",
+      "现在你可以看板上的别的活了。"
+    ],
+    "quest.q_a1_m04_hunt.after": ["F 级的规矩你懂了。别给分部丢脸。"],
+    "quest.q_a1_s18_bron_drinks.offer": [
+      {
+        "zh": "坐下，陪我喝一杯。",
+        "when": "hour >= 19"
+      }
+    ],
+    "quest.q_a1_s18_bron_drinks.progress": [
+      "那地方，不是给活人去的……",
+      {
+        "zh": "没有脸的人……你没见过……你不会想见……",
+        "when": "npc.bron.story_level >= 2"
+      }
+    ],
+    "quest.q_a1_s18_bron_drinks.after": ["我昨晚说什么了？没说什么。你听错了。"],
+    "quest.q_a1_m02_raven.after": ["这铜牌……放这儿吧。"],
+    "quest.q_a1_m13_letter.offer": ["伯爵要见那个打退兽潮的 F 级。……你说，我该带谁去？"],
+    "quest.q_a1_m13_letter.complete": ["收拾收拾，去瓦伦堡。簿子我会带着。"],
+    "quest.q_a1_m13_letter.after": [
+      {
+        "zh": "手套戴好。在城里，别让神父看见。",
+        "when": "npc.bron.secret_kept"
+      },
+      {
+        "zh": "……你先去吧。我还有封信要写。",
+        "when": "NOT npc.bron.secret_kept"
+      }
+    ],
+    "quest.q_a1_d06_bron_old_wound.after": [
+      {
+        "zh": "戴上。在这个镇上，别让神父看见。",
+        "when": "npc.bron.secret_kept"
+      },
+      {
+        "zh": "……你先回去。",
+        "when": "NOT npc.bron.secret_kept"
+      }
+    ],
+    "bark.work": ["簿子……簿子……", "凭证呢？没凭证不发钱。"],
+    "bark.eat": ["饭就饭，别跟我说委托。"],
+    "bark.chat": ["再来一杯。", "那地方……不说了。"],
+    "bark.sleep": ["……没有脸……", "……兄弟……"],
+    "topic.quest_count_summons": {
+      "K0": [
+        "伯爵府来人了，新来的。要见的是你，不是我。",
+        "登记簿上写什么，就是什么：信上写的是你的名字。"
+      ]
+    }
+  }
+}

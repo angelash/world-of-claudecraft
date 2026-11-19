@@ -1,0 +1,39 @@
+{
+  "id": "ln_boro",
+  "speaker": "boro",
+  "slots": {
+    "greet.cold": ["人族小子，滚出东坡！", "看什么看？来扳一把？", "哼！"],
+    "greet.neutral": ["人族小子！来，扳一把！", "嗯？有事？", "东坡的酒，喝不喝？"],
+    "greet.warm": ["哈！我的对手来了！", "来，喝！你赢过我，你是兄弟！", "坐！今天打了头鹿！"],
+    "farewell": ["下回再扳！", "走好，兄弟！", "哼，滚吧。"],
+    "unbelief.deny": ["人族用了诈。", "我不信。扳一把就知道了。"],
+    "unbelief.explain": ["人族用了诈！", "你运气好！"],
+    "unbelief.waver": ["……你的手腕是铁打的？", "我认。你是强的。"],
+    "react.feat_seen": ["哈！好！", "再来一次！"],
+    "react.gift_liked": ["好酒！兄弟！", "这个我喜欢！"],
+    "react.insult": ["你说什么？出来！", "我扳断你的手！"],
+    "topic.gen_self": {
+      "neutral": ["博罗！熊族！东坡最能打的！", "我能扳倒一头公牛！"]
+    },
+    "topic.gen_work": {
+      "K0": ["打猎！打架！", "人族欺负东坡，我第一个上！"]
+    },
+    "topic.self_boro_armwrestle": {
+      "K0": ["扳手腕！赢了我，我就服你！", "东坡没人赢过我。"]
+    },
+    "quest.q_a1_s06_arm_wrestle.offer": ["人族小子！敢不敢扳一把？"],
+    "quest.q_a1_s06_arm_wrestle.accept": ["好！手放上来！"],
+    "quest.q_a1_s06_arm_wrestle.decline": ["胆小鬼！哈哈！"],
+    "quest.q_a1_s06_arm_wrestle.complete": [
+      "……人族用了诈。",
+      {
+        "zh": "好吧，你没用诈。你是强的。这个护符给你。",
+        "when": "trust.boro >= 50"
+      }
+    ],
+    "quest.q_a1_s06_arm_wrestle.after": ["你赢过我！你是我兄弟！", "下回我还要扳！"],
+    "bark.work": ["嘿！扛起来！"],
+    "bark.chat": ["人族那帮伐木工……哼！"],
+    "bark.combat": ["吼！来啊！"]
+  }
+}

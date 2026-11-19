@@ -531,5 +531,17 @@ describe('the arbiter’s new limits', () => {
     );
     expect(dream).toMatchObject({ seen: true, mapId: 'borderstone' });
     expect(g.world.slices.goddess.brains?.janu?.doorsSinceDream).toBe(0);
+    // her words come from her own pack as a text key (PK-M1-34, D-077), never a sentence
+    const words = g.world.recent.filter(
+      (e) => e.kind === 'dialogue.line' && e.data.speakerId === 'janu',
+    );
+    expect(words.length).toBeGreaterThan(0);
+    for (const w of words)
+      expect(w.kind === 'dialogue.line' && w.data.text).toEqual({
+        // a conditional line's key ends in its source field (.zh), as the extractor writes it
+        key: expect.stringMatching(
+          /^c\.line_packs\.ln_janu\.slots\.greet_neutral_dream\.\d+(\.zh)?$/,
+        ),
+      });
   });
 });

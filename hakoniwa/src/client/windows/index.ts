@@ -5,12 +5,21 @@ import { battleWindow } from './battle_window';
 import { characterWindow } from './character_window';
 import { debugWindow } from './debug_window';
 import { companyWindow, tradeWindow } from './economy_windows';
+import {
+  beastsWindow,
+  boardWindow,
+  craftWindow,
+  dungeonWindow,
+  gatherWindow,
+  partyWindow,
+} from './field';
 import { helpWindow } from './help_window';
 import { inventoryWindow } from './inventory_window';
 import { mapWindow } from './map_window';
+import { codexWindow, deedsWindow, evidenceWindow, lettersWindow } from './records';
 import { settingsWindow } from './settings_window';
 import { menuWindow, savesWindow } from './simple_windows';
-import { goddessWindow, partyWindow, rumorsWindow } from './social_windows';
+import { goddessWindow, rumorsWindow } from './social_windows';
 import { doorsWindow, questsWindow } from './story_windows';
 import { strategyWindow } from './strategy_window';
 import { territoryWindow } from './territory_window';
@@ -37,10 +46,22 @@ const FACTORIES: Record<WindowId, (ctx: WindowContext) => WindowContent> = {
   goddess: goddessWindow,
   saves: savesWindow,
   menu: menuWindow,
-  help: () => helpWindow(),
+  // the help window's guidance cards and glossary read the tutorial store (17.7)
+  help: (ctx) => helpWindow(ctx.help),
   debug: debugWindow,
   trade: tradeWindow,
   settings: settingsWindow,
+  // the act-1 windows (6.3; PK-M1-23); the party window carries the roster and the ironman
+  // switch (6.2.7; the field module), the codex replays through the story when it can
+  deeds: deedsWindow,
+  codex: (ctx) => codexWindow(ctx, ctx.replayScene),
+  craft: craftWindow,
+  gather: gatherWindow,
+  beasts: beastsWindow,
+  board: boardWindow,
+  letters: lettersWindow,
+  dungeon: dungeonWindow,
+  evidence: (ctx) => evidenceWindow(ctx, ctx.evidenceNotes),
 };
 
 export function registerWindows(wm: WindowManager, ctx: WindowContext): void {

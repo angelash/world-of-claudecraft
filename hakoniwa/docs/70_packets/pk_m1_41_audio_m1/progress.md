@@ -5,6 +5,7 @@
 | 日期 | 会话或阶段 | 做了什么 | 提交号 | 验证（完整命令与量化结果） | 下一步 |
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-18 | 暂定采用、导入、开发版接线（与 PK-M0-11 同一会话） | 729 条音频经审核台采用代码落成原文件并登记为 `review`；导入与校验；开发版加载 `review`；问题清单 | 未提交 | 见 `verification_matrix.md` | 主审在素材审核台试听；第 3 节的工具问题交 `tools/assets` 与 `tools/audio_gen` 的所有方；修好的编号重新采用 |
+| 2026-11-19 | 循环条目按 R4 重新采用 | 音频会话重排循环候选（`6cd38acf08`、`d12272c111`，报告 `.local/audio_batch/restage_report.json`）后，经审核台的 `adopt` 重新采用 82 个编号：在 `rework` 的 47 个循环条目全部，加候选被重排的 35 个 `review` 条目。R4：报告里 `importProblems` 为空的候选中取 `seamLevelStepDb` 最小的，同值按候选池顺序（重排没动的候选用导入自己的接缝测量）；选中的就是现行原文件时不重采（5 个），候选都没重排的不动（3 个）；选中的导入不过时取下一条（`sfx_rng_arrow_fly` 由 `l3` 换 `l2`）。备注与审核记录写明 R4 与"未试听" | 未提交 | `assets:register` nothing new；`assets:import` 82 processed，2 with problems（换候选后剩 `amb_fall_void`）；`assets:check -- --mark` 0 marked；末次 `assets:check`：`946 record(s), 0 error(s), 0 stale, 325 failing check(s)`。音频 `review` 530 到 576，`rework` 199 到 153（`seam` 47 到 1）。开发版（`hakoniwa` 配置）：`amb_divine_court`、`amb_earth_last_train`、`amb_inner_court`、`amb_base_forest` HTTP 200，浏览器解码为 48 kHz 立体声并带循环点；开发状态的音频索引收进 9 个抽查编号，0 问题。四个单测文件 128 个用例通过 | 主审试听；`amb_fall_void` 见 B1；`_rejected/audio/` 见 B13 |
 
 ## 2. 汇报
 
@@ -64,9 +65,9 @@ R3 的结果：17 首里 8 首换到过检的一版（`mus_act1_beast_tide`、`m
 
 | 序 | 编号 | 种类 | 证据 | 建议的修法 | 负责方 |
 | --- | --- | --- | --- | --- | --- |
-| B1 | 环境底层 28 条：`amb_ash_rim`、`amb_base_field`、`amb_base_forest`、`amb_base_river`、`amb_crowd_festival`、`amb_crowd_tense`、`amb_dg_mine`、`amb_dg_ruins`、`amb_dian_low`、`amb_divine_court`、`amb_dream_door`、`amb_earth_hospital`、`amb_earth_last_train`、`amb_earth_old_house`、`amb_earth_store_rain`、`amb_fall_void`、`amb_fauna_temperate_day`、`amb_fauna_temperate_night`、`amb_inner_court`、`amb_int_chapel`、`amb_int_guild`、`amb_int_home`、`amb_int_tavern`、`amb_town_day`、`amb_town_night`、`amb_wx_rain_heavy`、`amb_wx_rain_light`、`amb_wx_wind_storm`；另 `mus_town_borderstone_day`（试做曲的全部 7 版） | 工具缺陷（循环接缝） | 导入报 `seam/loop_points`："source is 90.0 s, too short for a 90.0 s loop body plus its 2000 ms crossfade"。`tools/audio_gen/batch.ts` 已经把候选切成正好一个循环体并烘焙了接缝，`tools/assets/core/audio/process.ts` 却要求原文件比循环体长一个交叉淡化。结果：序章与第一幕每一张地图的环境底层都是 `rework`，游戏里静默 | 二选一：导入认出"已烘焙的循环"（文件长度等于循环体时直接采用整段并写循环点），或批处理多留一个交叉淡化的尾巴 | `tools/assets`、`tools/audio_gen` 的所有方（已由主会话转达，并行修） |
-| B2 | 音乐 9 首：`mus_cue_comedy`、`mus_cue_dream_door`、`mus_god_merca`、`mus_god_sylvie`、`mus_inner_court_night`、`mus_pro_antechamber`、`mus_pro_earth`、`mus_title_main`、`mus_town_borderstone_night` | 循环接缝 | 两版候选都报 `seam/loop_seam`，接缝电平跳变 3.1 到 6.6 dB（R3 取了较小的一版）。ACE-Step 只用提示词生成，不按节拍网格出循环；序章的地球与候见厅、门内庭院夜、标题曲都在里面 | 用乐谱直出加翻奏的路线（试做曲的 A、B 组）重做这几首，或导入按节拍网格另找接缝 | `tools/audio_gen` 的所有方；主审试听 |
-| B3 | 循环音效 9 条：`sfx_cin_a1_quill_night`、`sfx_cls_warlock_drain_life`、`sfx_env_seal_stone`、`sfx_god_eluen_halo`、`sfx_god_merca_coin_float`、`sfx_pres_heartbeat_low`、`sfx_sch_nature_cast_loop`、`sfx_sch_shadow_cast_loop`、`sfx_ui_llm_thinking` | 循环接缝 | `seam/loop_seam`：接缝电平跳变；`sfx_pres_heartbeat_low` 是威压心跳（0 级不可抢占） | 同 B1 的接缝处理；心跳类改用节拍对齐的切法 | 同 B1 |
+| B1 | `amb_fall_void`（坠落虚空 `gap_void` 唯一的环境底层，序章与第五到第七幕） | 循环接缝（循环长度） | 两版候选都是 45 秒循环体加交叉淡化，导入切得出循环；校验报 `seam/loop_length`："loop body 45.00 s, expected 60.0 to 120.0 s"。提示词条目写"循环体约 45 秒"，`tools/assets/core/audio/plan.ts` 的 `audioPlanOf` 对 `ambience_bed` 固定要求 60 到 120 秒，不看条目写的长度。重排报告的 `importProblems` 只跑 `processAudio`，不跑这条元数据检查，所以报告里两版都显示无问题。结果：这张地图仍是 `rework`，游戏里静默。其余 27 条环境底层与 `mus_town_borderstone_day` 已按 R4 重新采用并回到 `review`（第 1 节 2026-11-19 行） | 二选一：`ambience_bed` 的循环长度范围按条目写的长度定，或把条目改为 60 秒以上再重排；重排报告同时跑元数据检查 | `tools/assets`、`tools/audio_gen` 的所有方；提示词库 |
+| B2 | 音乐 9 首：`mus_cue_comedy`、`mus_cue_dream_door`、`mus_god_merca`、`mus_god_sylvie`、`mus_inner_court_night`、`mus_pro_antechamber`、`mus_pro_earth`、`mus_title_main`、`mus_town_borderstone_night` | 循环接缝（待试听） | 重排把候选切到导入接缝检查能过的小节起点，R4 重新采用后都过检并回到 `review`，接缝电平跳变 0.16 到 1.73 dB（上限 3 dB）。ACE-Step 只用提示词生成，循环点是事后在小节网格上找的，听感没确认；序章的地球与候见厅、门内庭院夜、标题曲都在里面 | 主审在审核台开循环试听；听得出接缝的，用乐谱直出加翻奏的路线（试做曲的 A、B 组）重做 | 主审；`tools/audio_gen` 的所有方 |
+| B3 | 循环音效 9 条：`sfx_cin_a1_quill_night`、`sfx_cls_warlock_drain_life`、`sfx_env_seal_stone`、`sfx_god_eluen_halo`、`sfx_god_merca_coin_float`、`sfx_pres_heartbeat_low`、`sfx_sch_nature_cast_loop`、`sfx_sch_shadow_cast_loop`、`sfx_ui_llm_thinking` | 循环接缝（待试听） | R4 重新采用后都过检并回到 `review`，接缝电平跳变 0 到 1.3 dB。效果循环按最安静的接缝网格切，不按节拍：`sfx_pres_heartbeat_low` 与 `sfx_pres_heartbeat_high` 是威压心跳（0 级不可抢占），过接缝时心跳间隔可能不匀 | 主审试听；心跳类听得出就改用节拍对齐的切法 | 主审；`tools/audio_gen` 的所有方 |
 | B4 | 60 条多变体音效与点缀（序章与第一幕会触发的 23 条，例如 `amb_pt_branch_snap`、`amb_pt_dog_bark`、`amb_pt_owl`、`amb_pt_rooster`、`sfx_hit_slash_bone`、`sfx_hit_pierce_wood`、`sfx_mon_canine_death`、`sfx_mon_boar_death`、`sfx_door_open_minor`、`sfx_down_revive`、`sfx_boss_colossus_roar`） | 导入原因码 `format/variants` | "found 8 sounding part(s), the entry asks for 4 variants"：Stable Audio 的单条候选里本身有几段发声（犬吠两声、鸟叫几声），按顺序拼接后导入的分段数多于变体数 | 批处理逐条裁成一段（`trimHit` 只截长度，不保证只有一段）；或导入按采用时写入的候选边界拆分（`HAKONIWA_CANDIDATES` 注释已记了几条） | 同 B1 |
 | B5 | 55 条：例如 `amb_pt_branch_snap` | 响度（`loudness/limiting`） | "reaching the target needs 10.6 dB of peak limiting (over 9 dB): too spiky"：短促的瞬态要拉到模板的瞬时响度目标，限幅超过上限 | 换候选（池里还有其余几条）；或这类模板改用短时响度 | 主审在审核台换候选；音频方向第 8.1 节的模板目标 |
 | B6 | 55 条 `loudness/loudness`、31 条 `loudness/true_peak` | 响度 | 编码后复测仍差目标 1 LU 以上或真峰值超上限（三遍编码后） | 随 B5；查导入的三遍收敛是否够 | `tools/assets` |
@@ -76,7 +77,7 @@ R3 的结果：17 首里 8 首换到过检的一版（`mus_act1_beast_tide`、`m
 | B10 | `sfx_pres_heartbeat`、`sfx_boss_roar`、`sfx_door_open`（字幕键） | 幕需要的条目缺失（低） | 事件表里这三个是字幕键的主干，不是音效编号，对应的音效都有（`_low`、`_high`、`_major`、`_minor` 等）；记下以免误读 | 无 | 无 |
 | B11 | 美术处理结果（详见 PK-M0-11 的 A12） | 流程协调 | 美术执行器（`.local/art_generation/`）在 21:20 前后用旧导入版本的结果覆盖了 `assets/processed/` 下 126 条美术处理结果，`assets:check` 报过时，开发版退回占位；它记为 `approved_delivery_integrity_restored`。用户已让执行器改为只写候选池（`.local/art_generation/HANDOFF_ASSET_PIPELINE.md`） | 执行器按交接文件改完之前不反复重导；改完后重跑一次导入与校验。本会话收尾时重导一次，`assets:check` 报 0 条过时 | 用户的美术执行器 |
 | B12 | 全部记录 | 流程协调 | 处理结果的导入版本 `1.0.16` 来自 `tools/assets/core/meta.ts` 未提交的改动；若处理结果先于那份工具改动提交，干净克隆会判它们过期 | 与 `tools/assets` 的改动一起提交，或提交前重导 | 提交的主会话 |
-| B13 | 采用代码 | 工具缺陷（低） | `store.adopt` 把被替换的原文件移进 `_rejected/` 时，同名文件加 `_2`、`_3` 后缀；R3 的试换在 `_rejected/audio/` 留下 26 个 Ogg（约 80 MB），其中 4 个与现行原文件逐字节相同（换回了第一版） | 采用时若新原文件与被替换的同哈希就不移；`_rejected/` 按素材说明第 3.3 节在批次关闭后删除 | `tools/assets` 的所有方 |
+| B13 | 采用代码 | 工具缺陷（低） | `store.adopt` 把被替换的原文件移进 `_rejected/` 时，同名文件加 `_2`、`_3` 后缀；R3 的试换在 `_rejected/audio/` 留下 26 个 Ogg（约 80 MB），其中 4 个与现行原文件逐字节相同（换回了第一版）。那 26 个已清理；R4 的重新采用又留下 83 个（约 138 MB），与现行原文件没有逐字节相同的 | 采用时若新原文件与被替换的同哈希就不移；`_rejected/` 按素材说明第 3.3 节在批次关闭后删除 | `tools/assets` 的所有方 |
 | B15 | 文件名与来源 | 文件名对不上编号；合规与来源 | 采用代码按提示词条目的 `file` 落盘，没有文件名问题；每个原文件都带审核台写的 AIGC 注释与候选编号注释 | 无 | 无 |
 | B14 | `amb_pt_*` 等点缀 | 工具缺陷（低） | 候选的 `metrics` 只有生成耗时与显存，音效与点缀没有响度测量值；R1 对它们只查工具与主文件，等于取候选池第一条 | 批处理给每条候选记响度、峰值、发声段数，挑选规则才有依据 | `tools/audio_gen` 的所有方 |
 
@@ -92,5 +93,5 @@ node <报告脚本> <hakoniwa> <输出目录> # 本会话的脚本：按处理�
 | 序 | 事项 | 现状 | 选项 |
 | --- | --- | --- | --- |
 | 1 | 挑选规则 R1 到 R3 是否接受为暂定 | 729 条按它采用，未试听 | 接受，主审在审核台逐条换；或给出别的规则重跑 |
-| 2 | B2 的 9 首音乐 | 两版都有可听接缝 | 推荐：按试做曲的乐谱路线重做序章与门内庭院的几首 |
+| 2 | B2 的 9 首音乐 | R4 重新采用后都过导入的接缝检查，听感未确认 | 推荐：主审开循环试听，听得出接缝的按试做曲的乐谱路线重做 |
 | 3 | B9 弓的挥动音 | 落到徒手回退 | 推荐：挥动行跳过远程武器 |

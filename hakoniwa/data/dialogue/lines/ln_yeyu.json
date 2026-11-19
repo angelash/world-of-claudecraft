@@ -1,0 +1,355 @@
+{
+  "id": "ln_yeyu",
+  "speaker": "yeyu",
+  "slots": {
+    "greet.cold.day": ["啧。又干什么。", "门把手，你挡着我晒太阳了。", "有话说，没话滚。"],
+    "greet.cold.night": ["半夜吵我？说重点。", "冷。别站在风口跟我说话。", "啧，你也睡不着？"],
+    "greet.neutral.day": ["门把手。来了。", "嗯。今天去哪？", "你脸上有灰。……算了，不重要。"],
+    "greet.neutral.night": ["夜里别乱走，门把手。", "我在上面看着。下面没事。", "嗯？做梦了？"],
+    "greet.warm.day": [
+      "来了？走吧，我跟着。",
+      "门把手。……今天天气不坏。",
+      "我找到一个亮的东西，不给你看。"
+    ],
+    "greet.warm.night": [
+      "坐过来点。风小。",
+      "你回来了。……我又没在等。",
+      "睡不着就看星星，别吵我。"
+    ],
+    "farewell": ["去吧，别把自己弄丢了。", "啧，快走。", "我在高处，喊一声就行。"],
+    "topic.gen_you": {
+      "act1": [
+        "门把手。门是我的，你只是个把手。",
+        "你掉下来那天晚上，整个遗迹都在响。",
+        "你打赢了我。……别提这个。"
+      ],
+      "doubt": ["门把手也想开门？先学会站稳。", "你？你连门资都数不清。"],
+      "explaining": ["运气。还有我在旁边。", "是门帮了你，不是你帮了门。"],
+      "wavering": ["……你比我想的结实一点。一点。", "啧。别这么看我。"],
+      "worship": ["别指望我夸你。", "好吧。你是个……还行的门把手。"]
+    },
+    "topic.gen_self": {
+      "cold": ["夜羽。就这些。", "我是乌鸦。"],
+      "neutral": ["夜羽。门口那位给的名字。……我想不起门口那位是谁。", "我送信的。以前送过很多。"],
+      "warm": [
+        "我叫夜羽。这个名字是有人给我的，我记得声音，记不得脸。",
+        "我很老了。老到你们的银币我都叫不惯。"
+      ]
+    },
+    "topic.gen_work": {
+      "K0": ["送信。信要送到。", "现在？跟着你，当个看门的。"]
+    },
+    "topic.gen_past": {
+      "cold": ["不记得。别问。", "……（她不说话）"],
+      "warm": [
+        "我记得飞，记得风，记得一扇门开着。别的，没了。",
+        "很久以前，路上到处是门。现在怎么一扇都不见了？"
+      ]
+    },
+    "topic.gen_advice": {
+      "K0": ["门资别乱花。那个发光的铺子收得最狠。", "夜里别回头。灰里的东西会跟着回头的人。"]
+    },
+    "topic.gen_faith": {
+      "K0": ["那个发光的铺子？我不进去。太亮。", "我不拜谁。我只送信。"]
+    },
+    "topic.self_yeyu_wait": {
+      "K0": [
+        {
+          "zh": "我在等一个人开门。等了很久很久。",
+          "when": "a1_yeyu_bound"
+        },
+        {
+          "zh": "等谁？……我不知道。我只记得我在等。",
+          "when": "a1_yeyu_bound"
+        }
+      ]
+    },
+    "topic.self_yeyu_bag": {
+      "K0": [
+        {
+          "zh": "信囊里有七封信，我打不开。不许碰。",
+          "when": "a1_dream_door_woman"
+        },
+        {
+          "zh": "信是别人的。不到时候，火漆不会开。",
+          "when": "a1_dream_door_woman"
+        }
+      ]
+    },
+    "topic.self_yeyu_old_words": {
+      "K0": [
+        "门资就是门资。你们叫银币，我叫门资。",
+        "那个发光的铺子，你们叫礼拜堂？太长了。",
+        "以前大家出门都走门，谁走路？"
+      ]
+    },
+    "topic.self_yeyu_shinies": {
+      "K0": [
+        "亮的东西不偷，是捡。",
+        {
+          "zh": "……还了。都还了。别再提。",
+          "when": "quest.q_a1_s13_yeyu_hoard"
+        }
+      ]
+    },
+    "topic.self_yeyu_door": {
+      "K0": [
+        {
+          "zh": "那扇门，是不该被打开的。可我等了好久好久。",
+          "when": "a1_yeyu_bound AND act_week >= 8"
+        },
+        {
+          "zh": "……我不知道。我只记得我在等。",
+          "when": "a1_yeyu_bound AND act_week >= 8"
+        }
+      ]
+    },
+    "topic.place_sealed_ruins": {
+      "K0": ["我的巢在那儿。现在不是了。", "那里冷。灰太多。"]
+    },
+    "topic.person_ash": {
+      "act1": [
+        {
+          "zh": "灰里坐着的那个……别惹他。",
+          "when": "a1_ash_met"
+        },
+        {
+          "zh": "他看我的眼神，像认得我。我不认得他。",
+          "when": "a1_ash_met"
+        }
+      ]
+    },
+    "topic.lore_dian_word": {
+      "K3": [
+        {
+          "zh": "灰里那股味道，叫澱。你们镇上的人叫它灰气，叫错了。",
+          "when": "a1_yeyu_bound"
+        },
+        {
+          "zh": "澱会咬东西。咬过我。",
+          "when": "a1_yeyu_bound"
+        }
+      ]
+    },
+    "topic.lore_sixth_sigil": {
+      "K0": [
+        {
+          "zh": "那面墙……别问。",
+          "when": "a1_wake_ruins"
+        },
+        {
+          "zh": "六个。我数过。别再让我数。",
+          "when": "a1_wake_ruins"
+        }
+      ]
+    },
+    "topic.lore_door_mural": {
+      "K0": [
+        {
+          "zh": "画上是门。很多门。连在一起。",
+          "when": "a1_wake_ruins"
+        },
+        {
+          "zh": "我觉得我在那里飞过。……不确定。",
+          "when": "a1_wake_ruins"
+        }
+      ]
+    },
+    "unbelief.deny": [
+      {
+        "zh": "你？算了。",
+        "when": "act >= 1"
+      },
+      {
+        "zh": "门把手就是门把手。",
+        "when": "act >= 1"
+      },
+      {
+        "zh": "别得意，你还差得远。",
+        "when": "act >= 1"
+      }
+    ],
+    "unbelief.explain": ["运气。", "是我帮你看着的。", "门帮你的。"],
+    "unbelief.waver": ["……那一下，不坏。", "啧。我没看见。", "下次再那样，我就……算了。"],
+    "react.feat_seen": ["还行。别得意。", "那一下……谁教你的？"],
+    "react.gift_liked": ["亮的！……给我的？拿来。", "这个我收了。不许要回去。"],
+    "react.gift_plain": ["嗯。放那儿。", "不亮。不过能用。"],
+    "react.gift_disliked": ["不亮。不要。", "你送乌鸦这个？"],
+    "react.insult": ["再说一遍，我啄你。", "门把手也敢顶嘴？"],
+    "react.thanked": ["谢什么。契约。", "……哼。"],
+    "react.flattered": ["少来。", "夸我也不分你亮的。"],
+    "react.threatened": ["你打得过我？上次是运气。", "来，我不怕。"],
+    "react.helped": ["……我自己也行。不过，嗯。", "记下了。乌鸦记仇，也记情。"],
+    "react.saved": ["你……接住我了？……不许说出去。", "下次换我。"],
+    "react.identity_claim": [
+      "别的世界？我知道你不是这儿的。不用嚷。",
+      "小声点。那个发光的铺子会听见。"
+    ],
+    "react.accused": ["我没拿。……那个不算。", "乌鸦不偷，乌鸦捡。"],
+    "react.belief_worship": ["别指望我跪。", "你是个还行的门把手。就这样。"],
+    "react.apology_accept": ["哼。下不为例。", "行了，别啰嗦。"],
+    "react.apology_reject": ["道歉没用，拿亮的来。", "不听。"],
+    "react.joke": ["不好笑。", "……哼，还行。"],
+    "react.advance": ["你脑子被灰糊了？", "我是乌鸦。别想了。"],
+    "react.boast": ["吹。", "你那点本事，我数得清。"],
+    "react.persuaded": ["……好，听你的。这次。", "你说得对。别得意。"],
+    "react.unpersuaded": ["不行就是不行。", "我说了不。"],
+    "react.promise_noted": ["约定就是约定。我记着。", "说了要做到。信要送到，话也一样。"],
+    "react.declined": [
+      {
+        "zh": "他已经放下了。我不啄放下的人。",
+        "when": "order.moral_tag == kill_surrender"
+      },
+      {
+        "zh": "抢穷人？我捡东西，不抢。",
+        "when": "order.moral_tag == rob_civilians"
+      },
+      {
+        "zh": "约好的事不能反悔。你也不能。",
+        "when": "order.moral_tag == break_pact"
+      },
+      {
+        "zh": "那是别人的墓。别碰。",
+        "when": "order.moral_tag == desecrate"
+      },
+      {
+        "zh": "孩子不行。谁都不行。",
+        "when": "order.moral_tag == harm_children"
+      }
+    ],
+    "react.nothing_more": ["没了。", "我就记得这么多。"],
+    "react.confused": ["啊？", "说人话。"],
+    "react.nonsense": ["你在说什么鬼东西。", "灰吸多了吧。"],
+    "react.haggle_ok": ["便宜点？行，我替你啄他。", "门资省下了。"],
+    "react.haggle_no": ["他不让，我也没办法。", "贵。走。"],
+    "react.bribe_accept": ["亮的？……行，这次算了。", "收了。别告诉别人。"],
+    "react.bribe_refuse": ["拿走。我不卖。", "用这个换？你当我是哪种鸟。"],
+    "react.wrong_person": ["别问我，问镇上的人。", "我只认得路，不认得人。"],
+    "react.no_work": ["我没活给你。", "自己找事做。"],
+    "react.decline": ["不帮。", "这事你自己来。"],
+    "react.recruit_yes": ["契约就是契约。走吧。", "跟着。不代表喜欢你。"],
+    "react.recruit_terms": ["亮的东西归我。", "夜里我要最高的地方。"],
+    "react.recruit_later": ["等一下。我在晒羽毛。", "过会儿。"],
+    "react.recruit_no": ["我已经跟着你了，笨。", "不用问。"],
+    "react.self_recommend": ["我去看看，我飞得快。", "送信？交给我。"],
+    "react.request_battle": ["打吧。等着更冷。", "我先下去，你跟上。"],
+    "react.rival_taunt": ["你飞得起来吗？不能就闭嘴。", "慢。"],
+    "react.rival_concede": ["……这次算你的。", "啧。"],
+    "react.call_favor": ["你欠我一个。记着。", "上次帮你那次，现在还。"],
+    "react.ask_help": ["帮我找个东西。亮的。", "那封信……没什么。帮我拿着包一会儿。"],
+    "react.invite": ["晚上上屋顶。看星星。", "集上有亮东西。去不去？"],
+    "react.deny": ["不是。", "你记错了。"],
+    "react.evade": ["……不说。", "换一个问。"],
+    "react.unknown": ["不记得。", "我真的不知道。别逼我。"],
+    "react.goddess_invoked": ["别喊那些名字。", "她们听见了也不会来。"],
+    "react.earth_talk": ["你那边的门是什么样的？", "会飞的铁？……乌鸦不信。"],
+    "react.earth_refuse": ["一点就炸的东西？不行。会吓到鸟。", "纸做的门资？那叫废纸。"],
+    "quest.q_a1_m02_raven.complete": [
+      {
+        "zh": "……你打赢了。契约就是契约。",
+        "when": "a1_yeyu_bound"
+      },
+      "我叫夜羽。门口那位给的名字。我想不起来门口那位是谁。"
+    ],
+    "quest.q_a1_m02_raven.after": [
+      "巢里那个铜牌，给你了。我不喜欢不亮的东西。",
+      "别跟别人说你打赢过我。"
+    ],
+    "quest.q_a1_s13_yeyu_hoard.offer": [
+      "窗台上的那些，是我捡的。……你要我还？",
+      "他们不要的东西，我捡了，有什么错？"
+    ],
+    "quest.q_a1_s13_yeyu_hoard.progress": [
+      "这家的铜勺，那家的扣子……我都记得。",
+      "夜里偷偷放回去。白天去，丢脸。"
+    ],
+    "quest.q_a1_s13_yeyu_hoard.complete": [
+      {
+        "zh": "钥匙……要交给开门的人。……我刚才说了什么？",
+        "when": "npc.yeyu.memory_shards >= 1"
+      },
+      "还完了。就剩这把锈钥匙。它不还。"
+    ],
+    "quest.q_a1_s13_yeyu_hoard.after": [
+      "他们现在叫我\"那只会偷东西的乌鸦精\"。……哼。",
+      "那把锈钥匙，我收着。别问为什么。"
+    ],
+    "quest.q_a1_s14_grave_lights.progress": [
+      {
+        "zh": "这是澱。坟里的人身上带着灰。……难受。离远点。",
+        "when": "a1_yeyu_bound"
+      }
+    ],
+    "quest.q_a1_m12_tide.offer": [
+      {
+        "zh": "风不对。林子里的鸟全飞了。快了。",
+        "when": "seal_unrest >= 80"
+      },
+      {
+        "zh": "暗月那天晚上，别睡。",
+        "when": "seal_unrest >= 80"
+      }
+    ],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "我在上面看着，左边，左边多！",
+        "when": "a1_beast_tide_started"
+      },
+      {
+        "zh": "那个大的……是澱聚起来的。别让它进镇子。",
+        "when": "a1_beast_tide_started"
+      }
+    ],
+    "quest.q_a1_m12_tide.after": [
+      {
+        "zh": "他们说是你。……也不全错。",
+        "when": "a1_tide_credit == player"
+      },
+      {
+        "zh": "他们说是别人。随便。我看见了。",
+        "when": "a1_tide_credit != player"
+      }
+    ],
+    "bark.combat": ["啧，来！", "鸦群，上！", "别挡我。"],
+    "bark.hurt": ["啧……羽毛掉了。", "疼。别看我。", "还能飞。"],
+    "bark.victory": ["完了。走。", "就这点？", "亮的归我。"],
+    "bark.ally_down": ["起来！门把手，起来！", "喂，别躺着！", "我不许你倒在这儿。"],
+    "bark.flee": ["撤！我在上面引开它！", "跑，别回头！", "先活着，再算账。"],
+    "bark.travel": ["这条路以前有门。现在只有路。", "走快点，天要黑了。"],
+    "bark.camp": ["我守上半夜。", "火别太亮，会招东西。"],
+    "bark.eat": ["这个……能吃？", "给我留一块亮晶晶的糖。"],
+    "bark.sleep": ["……别碰信囊……", "……门……开着……"],
+    "bark.wander": ["那边有亮东西。", "镇子太吵。"],
+    "bark.market_day": ["集上的勺子真亮。", "我就看看。真的。"],
+    "bark.night": ["夜里灰重。别出去。", "星星还在老地方。"],
+    "bark.dream": ["……我在等……", "……信……要送到……"],
+    "bark.see_player": ["门把手回来了。", "嗯，活着。"],
+    "bark.ashfall": ["澱在落。闭上嘴。", "冷，冷。"]
+  },
+  "acts": {
+    "act1": {
+      "greet.neutral": [
+        {
+          "zh": "你身上有门的味道。说不出是谁的门。",
+          "when": "a1_yeyu_bound",
+          "first": true
+        },
+        {
+          "zh": "契约就是契约。我跟着你，不代表我喜欢你。",
+          "when": "a1_yeyu_bound AND act_week <= 3"
+        },
+        "我是乌鸦。别问第二遍。"
+      ],
+      "greet.warm": [
+        {
+          "zh": "那一夜……你没跑。还行。",
+          "when": "a1_beast_tide_cleared"
+        },
+        {
+          "zh": "你手上那个……没什么。手洗干净再说话。",
+          "when": "a1_dream_door_woman"
+        }
+      ]
+    }
+  }
+}

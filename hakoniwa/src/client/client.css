@@ -505,6 +505,31 @@ body {
   cursor: move;
   touch-action: none;
 }
+.hk-window-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.hk-window-help-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  color: var(--hk-text);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.hk-window-help-btn:hover,
+.hk-window-help-btn[aria-expanded="true"] {
+  border-color: rgba(226, 176, 74, 0.5);
+}
+.hk-window-help {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--hk-text);
+  opacity: 0.85;
+}
 .hk-window-close {
   position: relative;
   width: 24px;

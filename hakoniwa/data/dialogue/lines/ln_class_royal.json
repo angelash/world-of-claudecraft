@@ -1,0 +1,19 @@
+{
+  "id": "ln_class_royal",
+  "slots": {
+    "greet.cold": ["退下。", "此刻不见客。"],
+    "greet.neutral": ["你就是那个人？", "近前来说话。"],
+    "greet.warm": ["你来了，我心安一些。", "免礼，坐吧。"],
+    "farewell": ["去吧。", "记住今天说过的话。"],
+    "unbelief.deny": ["宫里听到的故事，比外头还离谱。", "一国之事，不能凭传闻定。"],
+    "unbelief.explain": ["无非是{expl}。", "我看是{expl}，有人想借他做文章。"],
+    "unbelief.waver": ["若真如此……这一局棋就要换下法了。", "让我想想。"],
+    "react.feat_seen": ["此人不能放走。", "好，好。"],
+    "react.insult": ["你在王前失礼。", "来人。"],
+    "react.gift_liked": ["此礼我收下了，你有心了。", "难得。"],
+    "topic.gen_faith": {
+      "K1": ["王冠要光来加冕，可光也要王冠来供养。"]
+    },
+    "bark.chat": ["议会又在吵了。"]
+  }
+}

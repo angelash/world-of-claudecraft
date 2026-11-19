@@ -84,7 +84,10 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
   // Storage budget (city_building 6.4): a building whose output has nowhere to go does not
   // run, so no input is consumed and nothing is discarded. Output still waiting in the
   // carry buffers from an earlier full day counts against the space.
-  let budget = storageCap(site, sdef, ctx.content) - storageUsed(ctx.world, owner) - backlog(site);
+  let budget =
+    storageCap(site, sdef, ctx.content, ctx.world.meta.flags) -
+    storageUsed(ctx.world, owner) -
+    backlog(site);
   const scale = {
     harvest: modifierScale(ctx, sdef, 'harvest', site.id),
     production: modifierScale(ctx, sdef, 'production', site.id),
@@ -171,7 +174,7 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
 
   // Stored output, including yesterday's waiting backlog. What still does not fit (the
   // additive part of a modifier, rounding) stays in the carry buffer for the next day.
-  const cap = storageCap(site, sdef, ctx.content);
+  const cap = storageCap(site, sdef, ctx.content, ctx.world.meta.flags);
   let free = cap - storageUsed(ctx.world, owner);
   const ids = new Set([...Object.keys(out), ...backlogIds(site)]);
   for (const id of [...ids].sort()) {

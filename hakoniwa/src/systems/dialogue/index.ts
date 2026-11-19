@@ -333,6 +333,7 @@ export const system: GameSystem = {
           npcRef: s.npcRef,
           notify,
           intent: answered.intent,
+          ...(notify === 'audit' && answered.audit ? answered.audit : {}),
         });
       if (answered.end || spent) {
         // the intent (e.g. farewell), the third refusal of a topic or a spent patience ends

@@ -137,6 +137,9 @@ export function validateNpcContent(content: ContentMap): string[] {
       problems.push(`${who}: voice incomplete`);
     if (p.body !== undefined && !(PERSONA_BODIES as readonly string[]).includes(p.body))
       problems.push(`${who}: unknown body owner ${p.body}`);
+    for (const a of p.scripted ?? [])
+      if (!(defaultRegistry().resolve('act')?.def.values ?? []).includes(a))
+        problems.push(`${who}: scripted act ${a} is not an act`);
     if (p.appearance.colors.length !== 4 || p.appearance.colors.some((c) => !COLOR.test(c)))
       problems.push(`${who}: appearance needs four #rrggbb colors`);
     const segs = Array.isArray(p.schedule) ? p.schedule : templates.get(p.schedule)?.segments;
@@ -289,6 +292,12 @@ const PERSONA_FIELDS: FieldSchema[] = [
     type: 'enum',
     options: [...PERSONA_BODIES],
     help: '战斗的固定存在或同伴名册；NPC 系统不生成实体',
+  },
+  {
+    key: 'scripted',
+    label: '只说写定台词的幕',
+    type: 'list',
+    help: '这些幕里只用本人台词包，不回退、不走模型',
   },
 ];
 

@@ -1,0 +1,79 @@
+[
+  {
+    "id": "lore_h01",
+    "name": "界石铭文",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "镇北界石线上的刻字石柱，没有年款，背面有一行字被凿去了。正面刻着：「光止于此。此石以北，勿耕，勿葬，勿名。」",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h02",
+    "name": "童谣《千扇门》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "边石镇孩子跳绳时唱的歌：「一扇门，两扇门，千扇门里住着人。灰来了，门关了，骨头坐着看门人。看门人，你别睡，门后有人在敲门。」",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h03",
+    "name": "封门门楣的六神纹",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "封门遗迹外庭的门楣浮雕：光轮、断剑、硬币、枝叶、书卷，还有一个门形神纹。门形神纹旁边的名框被凿空了。",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h04",
+    "name": "公会登记簿夏页",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "公会边石分部登记簿，圣历九百七十八年夏的一页：「北遗迹调查，五人。归者一人：布伦，左臂失。口述：门里爬出一个人，没有脸，手上……」下一行被墨涂去。分部长批：「灰气致幻，不予采信。已报礼拜堂。」",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h05",
+    "name": "《光典·初章》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "礼拜堂讲台上诵读的经文：「太初无形，唯光照之。光于庭中立人，人为长子。又立侍灵四位：司金者、司林者、司书者、司战者。司战者骄而堕，是为邪神，其秽化为魔。光许诺：千年之后，天下归一。」",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h06",
+    "name": "遗民的摇篮曲",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "母亲口口相传的摇篮曲，孤儿院里有几个孩子会哼：「睡吧，手心里有一扇门。门总会开的，母亲在门后。别给光看见，别给光看见。」",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  },
+  {
+    "id": "lore_h21",
+    "name": "天启碑碑文（官译）",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "圣教的官译，刻在礼拜堂门侧：「此庭为光所植。授汝诸司，各执一隅：护其生，导其长，勿使枯，勿使乱。千年一审，审谁可独执此庭。」旁注：天启碑凡六座，五司各一，眠鳞之巅一。",
+    "use": { "effect": "read" },
+    "stack": 1,
+    "tags": ["history", "no_sell"]
+  }
+]

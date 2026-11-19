@@ -1,0 +1,216 @@
+{
+  "id": "ln_martha",
+  "speaker": "martha",
+  "slots": {
+    "greet.cold.day": [
+      "有事说事，别挡着门口。",
+      "今天的酒卖完了，对你。",
+      "在我店里，规矩你知道。"
+    ],
+    "greet.cold.night": ["打烊了，孩子。", "夜里来闹事的，我一般请他们睡在门外。", "喝一杯就走。"],
+    "greet.neutral.day": ["来了？先吃饭。", "坐，炖菜还热。", "孩子，今天想吃什么？"],
+    "greet.neutral.night": ["晚上好。账记上，还是现付？", "坐吧，灯给你留着。", "外头冷，进来。"],
+    "greet.warm.day": [
+      "来了。先吃饭，吃完再说。",
+      "给你留了个座，靠窗那个。",
+      "孩子，你瘦了。多吃点。"
+    ],
+    "greet.warm.night": [
+      "回来了？锅里有汤。",
+      "坐吧，今晚的酒不收你钱。……就一杯。",
+      "嗯，平安就好。"
+    ],
+    "farewell": ["去吧。回来吃饭。", "账记上了。", "别死在外头，你还欠我一顿饭钱。"],
+    "unbelief.deny": [
+      "外头传的那些？听听就算了。",
+      "酒客的嘴，比我的锅还能装。",
+      "孩子，吹牛的人我见多了。"
+    ],
+    "unbelief.explain": [
+      "运气好呗。来，吃饭。",
+      "大概是那东西先被人打残了吧。……我随口说的。",
+      "镇上人说什么就是什么，我开酒馆的，不跟客人争。"
+    ],
+    "unbelief.waver": [
+      "嗯。手上有茧，脚下有根。不坏。",
+      "我在看着呢，孩子。一直在看。",
+      "……我押你不走。我赢了一桌酒钱。"
+    ],
+    "topic.gen_self": {
+      "cold": ["开酒馆的。", "玛莎。醉月亭的。"],
+      "neutral": [
+        "玛莎，醉月亭的老板娘。吃饭、住店、喝酒，都找我。",
+        "我在这儿开了很多年店了。别的没什么好说。"
+      ],
+      "warm": [
+        "我就想看着这个镇子别出事。就这么简单。",
+        "孩子，有人问起你，我就说你是我店里的客人。别的不说。"
+      ]
+    },
+    "topic.gen_work": {
+      "K0": ["做饭、打酒、收账、赶走闹事的。", "醉月亭不许打架。这是规矩，我亲自执行。"]
+    },
+    "topic.gen_past": {
+      "cold": ["过去？先吃饭。", "饭要凉了。"],
+      "warm": ["我年轻的时候也到处跑过。……来，尝尝这个，新腌的。", "过去的事，跟着酒一起喝下去了。"]
+    },
+    "topic.gen_advice": {
+      "K0": ["晚上别往北边去。不为别的，那边的风不对。", "吃饱了再出门。饿着肚子的人，判断最差。"]
+    },
+    "topic.self_martha_kitchen": {
+      "K0": ["今天的炖菜放了东坡的熏肉。尝尝。", "先吃饭，天塌下来也先吃饭。"]
+    },
+    "topic.self_martha_bell": {
+      "K0": ["那个铃？旧货。挂着好看。", "孩子，饭要凉了。"]
+    },
+    "topic.secret_martha_blade": {
+      "K0": [
+        {
+          "zh": "别让我再把那把刀拿出来。",
+          "when": "a1_martha_strike AND npc.martha.assessment >= 5"
+        },
+        {
+          "zh": "风太大，我去关窗。就这样。",
+          "when": "a1_martha_strike"
+        }
+      ]
+    },
+    "topic.event_martha_bet": {
+      "K0": [
+        {
+          "zh": "他们赌你一个月内哭着回城。我跟了，押你不走。",
+          "when": "a1_guild_registered"
+        },
+        {
+          "zh": "我赢了一桌酒钱。谢谢你没走。",
+          "when": "a1_guild_registered AND act_week >= 6"
+        }
+      ]
+    },
+    "topic.person_bron": {
+      "K0": ["老布伦？喝多了就胡说。别当真。", "他的酒钱……记着呢。"]
+    },
+    "topic.place_bs_drunk_moon": {
+      "K0": [
+        "醉月亭。吃的、住的、酒，都有。打架的不收。",
+        "楼上客房，干净，便宜。地窖别下去，老鼠多。"
+      ]
+    },
+    "topic.danger_tide_omens": {
+      "K0": [
+        {
+          "zh": "北边的风变了。今晚把门窗关好。",
+          "when": "seal_unrest >= 70"
+        },
+        {
+          "zh": "林子里的鸟都飞到南边来了。不对劲。",
+          "when": "seal_unrest >= 70"
+        }
+      ]
+    },
+    "react.feat_seen": ["嗯。不坏。", "……我什么都没看见。去洗手吃饭。"],
+    "react.gift_liked": ["好东西。拿来，我给你做顿好的。", "这个……有心了，孩子。"],
+    "react.gift_disliked": ["这个我用不上，留着吧。", "酒馆不缺这个。"],
+    "react.insult": ["在我店里骂人？出去。", "嘴巴干净点，孩子，我这儿有刀，切菜的。"],
+    "react.thanked": ["谢什么，吃饭。", "记账上。"],
+    "react.flattered": ["少来，夸我也得付钱。", "嘴甜的，多给你一勺。"],
+    "react.threatened": [
+      "孩子，你知道在我店里说这话的人，后来都怎么了吗？……他们都去洗碗了。",
+      "坐下，喝杯水，冷静一下。"
+    ],
+    "react.helped": ["你帮了镇子。我记着。", "这顿我请。"],
+    "react.saved": ["欠你一回。我会还。", "……你出手比我想的快。"],
+    "react.identity_claim": [
+      "从哪来都一样，在我店里就是客人。",
+      "别的世界？那边的人也吃饭吗？那就行。"
+    ],
+    "react.accused": ["拿证据来。没有的话，坐下吃饭。", "我开店二十年，没坑过一个客人。"],
+    "react.belief_worship": [
+      "别捧我，也别捧你自己。吃饭。",
+      "门，你帮我看住了。……我是说，镇子的门。"
+    ],
+    "react.belief_depend": ["有你在镇上，我能睡个整觉。", "别走太远，孩子。"],
+    "quest.q_a1_s17_moon_cellar.offer": [
+      "地窖里老鼠闹得凶。你去清一清？住店钱给你免了。",
+      "别碰那个长木匣，旧货。"
+    ],
+    "quest.q_a1_s17_moon_cellar.accept": ["好。灯在楼梯口。"],
+    "quest.q_a1_s17_moon_cellar.complete": [
+      "干净了。不坏，脚步挺稳。",
+      {
+        "zh": "你没碰那个匣子。好孩子。",
+        "when": "npc.martha.assessment >= 1"
+      }
+    ],
+    "quest.q_a1_s17_moon_cellar.after": ["楼上那间房，以后就是你的。"],
+    "quest.q_a1_m04_hunt.progress": ["布伦让你来清地窖？好，正好。"],
+    "quest.q_a1_d05_tavern_eyes.progress": [
+      {
+        "zh": "哎呀，手滑了。",
+        "when": "act_week <= 1"
+      },
+      {
+        "zh": "孩子，你晚上做梦吗？",
+        "when": "act_week >= 5 AND act_week <= 7"
+      },
+      {
+        "zh": "你是从北边来的吧？",
+        "when": "act_week >= 5 AND act_week <= 7"
+      }
+    ],
+    "quest.q_a1_d05_tavern_eyes.after": [
+      {
+        "zh": "我看了你很久。你能看住门。",
+        "when": "npc.martha.assessment >= 5"
+      },
+      {
+        "zh": "还行。再看看。",
+        "when": "npc.martha.assessment < 5"
+      }
+    ],
+    "quest.q_a1_m12_tide.offer": [
+      {
+        "zh": "北边的风变了。今晚把门窗关好。",
+        "when": "seal_unrest >= 80"
+      },
+      {
+        "zh": "孩子，暗月那天，你别睡死。",
+        "when": "seal_unrest >= 80"
+      }
+    ],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "孩子们上楼！朵拉，把后头的门闩上！",
+        "when": "a1_beast_tide_started"
+      },
+      {
+        "zh": "……退后。",
+        "when": "a1_martha_strike"
+      }
+    ],
+    "quest.q_a1_m12_tide.after": [
+      {
+        "zh": "风太大，我去关窗。",
+        "when": "a1_martha_strike"
+      },
+      {
+        "zh": "都还活着？好。先吃饭。",
+        "when": "a1_beast_tide_cleared"
+      }
+    ],
+    "bark.work": ["杯子要擦亮。", "这锅汤再炖一刻钟。"],
+    "bark.eat": ["自己做的饭，自己尝一口。", "盐放多了。……还行。"],
+    "bark.sleep": ["……把门看住……", "……铃……"],
+    "bark.night": [
+      {
+        "zh": "最后一杯了，各位。",
+        "place": ["tavern"]
+      },
+      "打烊，打烊。"
+    ],
+    "bark.see_player": ["那孩子回来了。", "嗯，没缺胳膊少腿。"],
+    "topic.quest_cellar": {
+      "K0": ["地窖里有老鼠，咬了两袋面。孩子，先吃饭，吃完再说。", "我自己下不去，膝盖不行了。"]
+    }
+  }
+}

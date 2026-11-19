@@ -1,0 +1,14 @@
+/* Instance notes of the inventory window (ux_and_onboarding.md 6.2.2): durability, signature,
+   sediment grain; a lapsed piece is marked by an outline and its own words, never colour alone. */
+.hk-inv-inst {
+  font-size: 12px;
+  color: var(--hk-muted, #9a958c);
+  padding-left: 12px;
+}
+.hk-inv-inst.lapsed {
+  color: #e8b04a;
+  border-left: 2px solid #e8b04a;
+}
+.hk-inv-inst-row {
+  justify-content: space-between;
+}

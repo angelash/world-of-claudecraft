@@ -9,18 +9,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "797123912",
+    "seed": "797123913",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "5174d3de6f6466a77ecde19fbb1448fd5369b1b9719c07844a789638f8dd2a25",
+    "sha256": "a6326b9f8ab732a0160f79e69da41eb6c0d678e054f46f2a08847ea8653f9096",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_base_field",
@@ -35,15 +35,15 @@
     "seed": "247620431",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "7a015eba488868d7d9841d67c429c758650f951c8bd023735f2c84d18b112f15",
+    "sha256": "67a3ff9a6bd3454258b5f8b61323f9a97360f6139ce27618cb6d4c0b59647e05",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_base_forest",
@@ -55,18 +55,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "666747412",
+    "seed": "666747413",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "0508a672bfa38e6b1f6398573d40dd166bd17a1616658134f187b2761c47012e",
+    "sha256": "ec8ef6d07cecd3c12d44b48fecd6c223c0b8e4e9fbbf45a67c69053fa95fbee3",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_base_river",
@@ -81,15 +81,15 @@
     "seed": "266583109",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "357b4615e6117029cb7f9878bb7bb52dc21e412fb20941e47b22cfb78098a1c4",
+    "sha256": "4cb970f10466679c167275c3c0756dbe4888a1ee2238d7018ecca921a18c7fdb",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_crowd_festival",
@@ -104,15 +104,15 @@
     "seed": "174638923",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "129cbe7f342ad71adbbdeb5033c1c4418458948b1aa3b2fb24601a67e3bc41c2",
+    "sha256": "be46f9afdcc34e56b156e01302f3936b4e42bd34f0a14e7da9c6caff10ca9f2f",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_crowd_tense",
@@ -124,18 +124,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "812463526",
+    "seed": "812463527",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "2637a3286c498fb317178ff23cadf036445c2f7052e22d2208cc01550009e81a",
+    "sha256": "81de1c53eda817d076455eae945f00c5d87e5a965d9a2ff1688537f5649b708d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_dg_mine",
@@ -150,15 +150,15 @@
     "seed": "206248894",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "5a3e3e893667c3fd4e602c4ee3d8234253243602866f8a484465bcd47b8a1137",
+    "sha256": "1cb9a6f0c9aad0641c67d28a6c9d248c10a417a3d299fc3fdd10d7f119173016",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_dg_ruins",
@@ -173,15 +173,15 @@
     "seed": "802100090",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "47d572e1c1e78bddfe69083c9879b2b0e9fe6d37ad3eeb3142dc0574ede00a29",
+    "sha256": "791212de00001f5c577910ea5d515bae4e65617dad2ee6af339d338631e6896a",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_dian_low",
@@ -196,15 +196,15 @@
     "seed": "199679290",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "4c3fa4f0e4946e903ca1be5129a0508161b59b6be275e1c3fcbabe4503c2ad8d",
+    "sha256": "ec82cb18016a9893b4b9b2f92c7c05e33dba1ab390d4cdf55cbbddeb5f4f214b",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_divine_court",
@@ -216,18 +216,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "942777408",
+    "seed": "942777409",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "b640b3147891ecd4f188327e9ee804e0800139fd8947212d551c99fd341358de",
+    "sha256": "1c2b4ae979b0d2ff5ac64db1636499e84b9b780becb26539739a6aa46e93f6a7",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_dream_door",
@@ -242,15 +242,15 @@
     "seed": "370187217",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "832f65a67fdedaeaae3ece827c9ef2b4044c2148894c27b358eeb435a9b2b633",
+    "sha256": "31b0db8abc016d7ef7968d0f1bf37cb62b0bfe2ebf388310cc76c7c708a4d9e2",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_earth_hospital",
@@ -262,18 +262,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "555242828",
+    "seed": "555242829",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "8f73f7a7ec2c78f46f24b0515f4da0878a8161c1d25f27620e0180d8fbc326aa",
+    "sha256": "1e7a9d3c46d7023adace48945715110c6291d1b0979b81f1f2816c2b828eaec6",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_earth_last_train",
@@ -288,15 +288,15 @@
     "seed": "892533529",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "c0a12f88d10b5f4ce3080ce8c533b52cb740a7bb209d0deaecdb780c4563fd8b",
+    "sha256": "ff6231b49394aa8479afe22149935afaf05b88c0356113a768cfb007a6d2daf9",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_earth_old_house",
@@ -311,15 +311,15 @@
     "seed": "85150031",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "46bc7f10c364e71d33b61d8f200e3dc0a1c92c3245979ba953837c26511f8c37",
+    "sha256": "9f435234738ef92bf64d183c77bcce23119087ed1f54a84247318b35f257ea29",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R2 of PK-M1-41 (no take passed R1; the take with a cleared tool and a main file whose recorded LUFS is closest to the template target, ties in pool order; import re-normalizes); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_earth_store_rain",
@@ -334,15 +334,15 @@
     "seed": "441182530",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "c827338571b46a1cf1f1123fc7e2c9dcac8bbafff63872ff2e1bd7fbfc1cbd87",
+    "sha256": "e1914c1db514444b4c0715095691b818d61688656893ca9622c04360c3735f0d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 60 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 60 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_fall_void",
@@ -357,7 +357,7 @@
     "seed": "750808913",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "8ab01e4b26201127624a15bab0169e53b817dd453bc372d40f9c6b9f01280495",
+    "sha256": "2c9e1ff56d0716d4504ae8fb639f184c9065837406b6747bb4a7f02609013766",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "rework",
@@ -365,7 +365,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 45 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 45 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_fauna_temperate_day",
@@ -377,18 +377,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "886629741",
+    "seed": "886629742",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "4be4e71bbda42c9e4f24c999ce54ed720b525439305d918310a6805a3508f0c9",
+    "sha256": "7e2d88e5cab2f01ac8b6600fdcc0a5b716595ca9094bdbe12bcb9590c95d5a13",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_fauna_temperate_night",
@@ -403,15 +403,15 @@
     "seed": "735326945",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "6994de77fcb377fd1deea19f3e5c4eff77bac7e77595bbef48cb4b952daebc5a",
+    "sha256": "83e99b8ecca052aa64ea6ef7b245d2f400b86e6b46001bb5bba7b5323ce061d7",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_inner_court",
@@ -426,15 +426,15 @@
     "seed": "95780949",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "cf924b1adad1da97e09146b7a25bf5750a2d43cfc040264d3b9b6d69e646fced",
+    "sha256": "bfd1711c1ff3efc2a5ed10ee65089170de8f42717518f6bd6fdbc8a1bfe225ed",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_int_chapel",
@@ -446,18 +446,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "827252062",
+    "seed": "827252063",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "f5a087d2ea9bd696db474031c034e2689b68bfb3c64270153b9e5d40fae1f39c",
+    "sha256": "790c9e66af363a97790343bf4f08a3fbd2641ce4b7613a76b3baf450d55742a6",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_int_guild",
@@ -469,18 +469,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "861633306",
+    "seed": "861633307",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e3b29c01af30d7d3520ddde78797ba4fa6cf0980ca145fabbcc7473013c9f3ad",
+    "sha256": "708179ffe598a745079c31cb9064d44661b5ff06600fa16e1391b46b3433a3df",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_int_home",
@@ -492,18 +492,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "427407867",
+    "seed": "427407866",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "c128a7c6e23df7e3265aa4ae95b01ab55270e8b182bf14511e4d7141f3dd746e",
+    "sha256": "ec1f8aeabbb4a0d701f6a4d41c3f19416569e4a7149b23210605f9893a7d14f9",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w2 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_int_tavern",
@@ -518,15 +518,15 @@
     "seed": "581201829",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "f9626662791f3779b4808e70b69eca02d1bb3a00cd2a43a6b940faaf33f5785c",
+    "sha256": "dab7a7ff656cc84643154ffa9bd69a12968ef0d40cc442071eed83c685f806f1",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_pt_ash_whistle",
@@ -771,15 +771,15 @@
     "seed": "81731",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "18dc5ce5a1829f16e35f8f39ea2005ed81cd7abf7725a95662f9202af701874c",
+    "sha256": "eb23b7ec17760d6e5496c077b603d1cee7c865ef47df01bd0d54e64deb82da4d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked mono of 2 candidates (120 s take (model output is dual mono), 90 s loop at the quietest seam, 2 s equal-power crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked mono of 2 candidates (one 120 s take (the model writes the same signal on both channels); loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_town_night",
@@ -794,15 +794,15 @@
     "seed": "947176058",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "47026b7382976b7649339c37a82bc213dedb0784c435f9077ce666689c68c3e2",
+    "sha256": "be31a55bd6b1f06f216e0cd7b66400c29fb5d4d6349000b98b5a29a01864bdd3",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 90 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 90 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_wx_rain_heavy",
@@ -817,15 +817,15 @@
     "seed": "242872611",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "dc4d3bb7497f3082cc56ec164661f8939074276ea0f81cdfcc51b50a4ffc3408",
+    "sha256": "9f8a43389d6a727eea20a78ffbc41e03230f605f68734c95d72a7058217c613d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_wx_rain_light",
@@ -840,15 +840,15 @@
     "seed": "902551162",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "8a979aabe967c9380dd72917ef3a519fdbf72c35c6cd3568c59e9bfc6f618bc2",
+    "sha256": "788d7c60b1e0bcb24b83b0b51610813d6a1d2e79903f8e9d594b5e58fb8d367d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "amb_wx_wind_storm",
@@ -863,15 +863,15 @@
     "seed": "503593105",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "a635a4768305ce039c79ccbba07b37e80d719b6163b99f6127c1386d559ccf9a",
+    "sha256": "a0e410e21f34430604224ab6c9b6e3036540f7e2e654e8b2c9b1cbf0410b6839",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right, 75 s loop body at the quietest seam, 2 s crossfade, -26 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked w1 of 2 candidates (two 120 s takes as left and right; loop source from the quietest seam on the grid (the import's seam check passes there): 75 s body plus 2000 ms crossfade material, the import bakes the loop; one linear gain toward -26 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "art_bg_lothar_plain_far",
@@ -5975,7 +5975,7 @@
     "seed": "474422861",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "814d79220d79eda2148f0a7e7a6c4d9f4f884b180f5cc3fec8a3c389438bea90",
+    "sha256": "0b14298cc3206f47457b4d5ee84e99b75605b857bc78941d877885a62565e040",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -5983,7 +5983,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 111.3 s at 138 BPM, G minor, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 111.3 s at 138 BPM, G minor, 4 beats; loop source from 1.74 s on the tempo grid (the import's seam check passes there): 69.57 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_boss_rival",
@@ -5998,7 +5998,7 @@
     "seed": "711618429",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "65e1b17a5ca3690ecaf44554bde3fe490545bcb75d3d681a8ba0a86fc0d839b6",
+    "sha256": "aa379d119b3e447f47df2c0375d55379348ff93922a70664fb1b25718190dcf4",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6006,7 +6006,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 91.43 s at 168 BPM, A minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 91.43 s at 168 BPM, A minor, 4 beats; loop source from 10 s on the tempo grid (the import's seam check passes there): 57.14 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_boss_standard",
@@ -6021,7 +6021,7 @@
     "seed": "59661434",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "cab56d1180a5f5dd774e1c549f78628aa2781e79d3013522074094df42a3391d",
+    "sha256": "dda646dcedcdccf1da57abed72b6e0f09fd95de70db4962d97977ead73326303",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6029,7 +6029,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 98.46 s at 156 BPM, E minor, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 98.46 s at 156 BPM, E minor, 4 beats; loop source from 1.54 s on the tempo grid (the import's seam check passes there): 61.54 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_cmb_elite",
@@ -6044,7 +6044,7 @@
     "seed": "144351586",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "c1765d89715bc4aed3d763e7164f5822a317fe9839e1e19f813b50a370a71cf8",
+    "sha256": "5718adbb4c12a08be4e8fa81e4ca337bc2fd72f2620faef2ff598a59bec5c54e",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6052,7 +6052,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 81.92 s at 150 BPM, C minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 81.92 s at 150 BPM, C minor, 4 beats; loop source from 3.2 s on the tempo grid (the import's seam check passes there): 51.2 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_cmb_presence",
@@ -6113,7 +6113,7 @@
     "seed": "658154871",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e10b25b260078dd292434ac8dbbb0a16e83b75df7345caa1dc8ee69852635a05",
+    "sha256": "3f03af74fe99cc64a9646bf5201d5d85218d348e527f5004500f5477a787a624",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6121,7 +6121,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M2",
-    "notes": "picked ace1 of 2 candidates (text to music, 93.09 s at 132 BPM, G minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 93.09 s at 132 BPM, G minor, 4 beats; loop source from 9.09 s on the tempo grid (the import's seam check passes there): 58.18 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_cue_comedy",
@@ -6133,18 +6133,18 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "659944791",
+    "seed": "659944792",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "688e16ab1a7c2ea23ce37f3e6362ab9c8f2e83c19bb4cf4f5cf6e56d5f4a33e1",
+    "sha256": "b7199d694586d11ad83f2974b8e570c5b4b183485660d8fbbdd6d42685ffe1b0",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 82.29 s at 112 BPM, F major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 82.29 s at 112 BPM, F major, 4 beats; loop source from 0.54 s on the tempo grid (the import's seam check passes there): 51.43 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_cue_dream_door",
@@ -6159,15 +6159,15 @@
     "seed": "343423058",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "421283b5eefacd0ea08f8b9edb1718a79e58edf3714d0abd9db24e73aeb37b8d",
+    "sha256": "f9cf076d4956ee314c8e73b06766bdcca96491c9c6c951dc6397cfb62e242ae6",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 142.22 s at 54 BPM, D major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 142.22 s at 54 BPM, D major, 4 beats; loop source from 4.44 s on the tempo grid (the import's seam check passes there): 88.89 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_cue_intrigue",
@@ -6274,7 +6274,7 @@
     "seed": "172044216",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "1a56f143183354d513237c4d102d23e9823a4135e8e047666bd46e90c657f054",
+    "sha256": "e95ee81d7dceb1b18b34f89c1acfa3638118738187404e0ef898e54a969ec103",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6282,7 +6282,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 153.6 s at 60 BPM, D minor, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 153.6 s at 60 BPM, D minor, 4 beats; loop source from 8 s on the tempo grid (the import's seam check passes there): 96 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_dg_mixed",
@@ -6294,10 +6294,10 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "638671729",
+    "seed": "638671730",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "5316977f40f4979f477d08ac0dd478df60b34a5ced08390a5e6f7cc41c178548",
+    "sha256": "8fcd679db17f25c321d149c059f90df93aa0a92957476e53ea37d7f0aa87d9b5",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6305,7 +6305,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 128 s at 84 BPM, E minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 128 s at 84 BPM, E minor, 4 beats; loop source from 5.71 s on the tempo grid (the import's seam check passes there): 80 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_dg_pact",
@@ -6366,15 +6366,15 @@
     "seed": "216294235",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "4f51c5fad76b484e9ed853894f2885dffbf3d59f5715d1b6cde5d569abb4dfc0",
+    "sha256": "a6916f0dddc4f8148973d21219c9761bb158beb8afc605042dc24492d2fa0bbc",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 104.73 s at 132 BPM, A major, 3 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 104.73 s at 132 BPM, A major, 3 beats; loop source from 15 s on the tempo grid (the import's seam check passes there): 65.45 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_god_moira",
@@ -6412,15 +6412,15 @@
     "seed": "16540099",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e6b7df8a1fa259cd6866867f80550e04670d51e3343f8d966eeeb06f727432ab",
+    "sha256": "2c23e0131e752c88f839ae9362a9388e9efb736174ae7ceda7a28958d9dfdf08",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 128 s at 60 BPM, D minor, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 128 s at 60 BPM, D minor, 4 beats; loop source from 41 s on the tempo grid (the import's seam check passes there): 80 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_god_valda",
@@ -6432,10 +6432,10 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "985337219",
+    "seed": "985337220",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "51f4a77652ad1e5f303f68b35ca0e79ab3d23f5afde450ebf429e57c6fa294c4",
+    "sha256": "ee0e745702ab2a4a4a19cf0c279b7d321f8aa3d6825f839764f82e891972b371",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6443,7 +6443,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 128 s at 96 BPM, F minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 128 s at 96 BPM, F minor, 4 beats; loop source from 2.5 s on the tempo grid (the import's seam check passes there): 80 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_inner_court_day",
@@ -6455,10 +6455,10 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "375239275",
+    "seed": "375239276",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "2e2ab00290e27d6cbf2018ee11eb46101a3e7994350ca49abd5f21372fe2e04f",
+    "sha256": "b097c688923ae23080fcc7dcf63d4a114241a06b9f853d89a2aae83b026c003b",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6466,7 +6466,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 153.6 s at 80 BPM, D major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 153.6 s at 80 BPM, D major, 4 beats; loop source from 15 s on the tempo grid (the import's seam check passes there): 96 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_inner_court_night",
@@ -6481,15 +6481,15 @@
     "seed": "600249512",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "353e0d368d543ca66732aeba2887ea20b9cd3f34901cb7b64935541d131e68c0",
+    "sha256": "2cbf8d207be2450f34fd8ef3710aa7eb9305dff5f52d51f7f67d6241d06d7a53",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 153.6 s at 80 BPM, D major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 153.6 s at 80 BPM, D major, 4 beats; loop source from 3 s on the tempo grid (the import's seam check passes there): 96 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_pro_antechamber",
@@ -6501,18 +6501,18 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "354288994",
+    "seed": "354288995",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "d08476af8688447a1951992ddbce300da9bad1ecd32e7518da26357262b2f990",
+    "sha256": "ba59d1199d03ec7f5486fce6d19698d805a2d4ca130667c017369079e3846d8c",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 153.6 s at 60 BPM, E minor, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 153.6 s at 60 BPM, E minor, 4 beats; loop source from 48 s on the tempo grid (the import's seam check passes there): 96 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_pro_earth",
@@ -6524,18 +6524,18 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "384453317",
+    "seed": "384453316",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "1b5d76896c33268035a93d7e90bbc9b33a7963d16da8dae8184a1c548a39124f",
+    "sha256": "5e2d39636aabed10627e61ac90ebdb0935d41897b5aeb0e3f630ce9d4e77b401",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 170.67 s at 72 BPM, F major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 170.67 s at 72 BPM, F major, 4 beats; loop source from 6.67 s on the tempo grid (the import's seam check passes there): 106.67 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_pro_fall",
@@ -6570,10 +6570,10 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "944281426",
+    "seed": "944281425",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "18cf5b55d7243d7e157bd562839643ce0cee79c97f3e895681215fe52c7aac7f",
+    "sha256": "3739aeee6038f1397a140918bf614ce3a820d2517afc06ad38a48fb44da4de85",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6581,7 +6581,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 146.29 s at 84 BPM, D major, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 146.29 s at 84 BPM, D major, 4 beats; loop source from 11.43 s on the tempo grid (the import's seam check passes there): 91.43 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_pro_judgment",
@@ -6619,7 +6619,7 @@
     "seed": "339554310",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "b1a9e059ebeb7d04f3ce74244381887cc77e42f9e43039c9c195c5c2fa46f280",
+    "sha256": "e964a5bfaf6491927f48e385a904e6f6797a1715accea5d7856610c5e4fb6ef3",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6627,7 +6627,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 131.66 s at 70 BPM, C# minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 131.66 s at 70 BPM, C# minor, 4 beats; loop source from 6.86 s on the tempo grid (the import's seam check passes there): 82.29 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_reg_lotha_north",
@@ -6639,10 +6639,10 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "113083579",
+    "seed": "113083580",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "680516a22052b8143fa68d4b33387320d70e8e39b2d973dcd53fd39f9c1047a5",
+    "sha256": "e2442d58a3593ab7ff720f6107b6fc4702cd7d65dd68cc543af2ff8141171d17",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -6650,7 +6650,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace1 of 2 candidates (text to music, 146.29 s at 84 BPM, E minor, 4 beats; loop seams are cut on import); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 146.29 s at 84 BPM, E minor, 4 beats; loop source from 31.43 s on the tempo grid (the import's seam check passes there): 91.43 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_stg_act_card",
@@ -7240,15 +7240,15 @@
     "seed": "16260681",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "11f9b5e77d6149c9d87d0fc08f2b146ec6b6b40e578698c580d3ed5cfb9c67c7",
+    "sha256": "d1e40e8ab1cea3e4acbb95b3b8ba41f6ab0f0d5f28d2f2199fbcf57f7da8f5b8",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 202.11 s at 76 BPM, D major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace2 of 2 candidates (text to music, 202.11 s at 76 BPM, D major, 4 beats; loop source from 15.79 s on the tempo grid (the import's seam check passes there): 126.32 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_town_borderstone_day",
@@ -7258,20 +7258,20 @@
     "style": "m_lotha_folk",
     "promptHash": "e05563298c16",
     "promptLang": "en",
-    "tool": "score_render_fluidsynth",
-    "toolVersion": "FluidSynth 2.6.2, GeneralUser GS 2.0.3",
-    "seed": "",
+    "tool": "ace_step_15",
+    "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
+    "seed": "2208",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "f87975ce761ba16ff144911d9839d589e91e844f3abee970b70a271d7296e981",
-    "aigcLabel": "AIGC=AI generated with Score render (FluidSynth with GeneralUser GS), FluidSynth 2.6.2, GeneralUser GS 2.0.3, models no model files, on 2026-11-17",
+    "sha256": "643f5e5b0a6a19d13c609af2887d1c5817fa47dbc9fe54ecebfc33986e54c557",
+    "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-17",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked A_render of 7 candidates (score render (full mix)); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked B_noise_seed2 of 7 candidates (cover, semantic hints only; loop source from 4.62 s on the tempo grid: the body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "mus_town_borderstone_night",
@@ -7283,18 +7283,18 @@
     "promptLang": "en",
     "tool": "ace_step_15",
     "toolVersion": "ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0",
-    "seed": "770552570",
+    "seed": "770552569",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "bc90c8b034f978349218843e01aa263594bff2b5bb61aa510fe9c542ada0960d",
+    "sha256": "c9fb2c2ce2b94695e4b8463a046d0dd484222df3349abb611a11fa18a7937b4f",
     "aigcLabel": "AIGC=AI generated with ACE-Step 1.5 (local ComfyUI), ACE-Step 1.5 turbo (Comfy-Org/ACE-Step-1.5 371bb168), ComfyUI 0.34.0, models acestep_v1.5_turbo.safetensors + qwen_0.6b_ace15.safetensors + qwen_1.7b_ace15.safetensors + ace_1.5_vae.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked ace2 of 2 candidates (text to music, 118.15 s at 104 BPM, G major, 4 beats; loop seams are cut on import); provisional pick by rule R3 of PK-M1-41 (the earlier pick failed the import loop seam check; the next take in pool order that passes it, else the take with the smallest seam level step); not listened to, the reviewer decides"
+    "notes": "picked ace1 of 2 candidates (text to music, 118.15 s at 104 BPM, G major, 4 beats; loop source from 4.62 s on the tempo grid (the import's seam check passes there): 73.85 s body plus 1.5 s crossfade material, the import bakes the loop; one linear gain toward the target); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_boss_champion_death",
@@ -8252,15 +8252,15 @@
     "seed": "302493244#1",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "60e55f12dc2e9dc3af1bd563dcdbc4cea72534f53e3e8e7968eb7d36fcb9ffe4",
+    "sha256": "0b0c8e634114acbe1ee8e6ce5da305517e5be44abb2cba0450a938f52c3b7acc",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_cin_a1_raven_screech",
@@ -9560,10 +9560,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "729711071#0",
+    "seed": "729711071#1",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "59878d2bdcb8c3deb5b54cf3ca3ace6fc24b08e316a8a9a4c53cd8a5a29f9880",
+    "sha256": "6c99a5ec0bd4bbaf9a0763ec76a9e3659f027f5a03f58b6491feb0fa38a6b534",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
     "status": "review",
@@ -9571,7 +9571,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_cls_druid_moonfire",
@@ -9951,18 +9951,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "518167316#1",
+    "seed": "518167316#2",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "b684200c75a0c97d65bbbe9b514a48c3f17b6094eac632c0d13772cbb9d30e1e",
+    "sha256": "e63bfcc216125494c40671f98aca9e1c8aa4401f53424bc60f62453f9b8a21c6",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_cls_warlock_fear",
@@ -9997,10 +9997,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "761065254#0",
+    "seed": "761065254#1",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "88bf7f1f27c65f9712684b17eedd94f6b2b0180c899176d665dfc8c612e2b60e",
+    "sha256": "66cb7e81b4ae2ad5b0867d9461607306299fc1a3219fe01e85ba4b927236b594",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
     "status": "review",
@@ -10008,7 +10008,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_cls_warlock_shadow_bolt",
@@ -10667,7 +10667,7 @@
     "seed": "834764250#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "a34ab31557ca7c3769463c97704b83c2fba43862dce01b437264eb22b099b000",
+    "sha256": "fa54432b7294c84fb402558cae9408987ae4b050b6ada780a6760ec69880554f",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -10675,7 +10675,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -30 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -30 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_door_corridor_open",
@@ -11469,10 +11469,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "293784828#0",
+    "seed": "293784828#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "29383fa155e9e7e41d3115b99465cf6480042a0449439d67304118ff86861482",
+    "sha256": "5c13deb8206b0b8fdb2ed5f04433d4da2361cdeb271420f4e35a240543ad3ac4",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -11480,7 +11480,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R2 of PK-M1-41 (no take passed R1; the take with a cleared tool and a main file whose recorded LUFS is closest to the template target, ties in pool order; import re-normalizes); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_env_campfire_on",
@@ -11610,7 +11610,7 @@
     "seed": "414342863#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "6b063045213eaf6af47e4eb8112af9eff7bec8f1e8cf4f5dee6f8147c69450fa",
+    "sha256": "e9fd8529c1703d2d4b136331140224484c4ef6a4d0cc787aa0ade992ae2ddd1b",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -11618,7 +11618,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_env_door_frame",
@@ -11633,7 +11633,7 @@
     "seed": "262526404#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "f623318caeca6296f36cc6cc62bd80b8f5d633a455b8927ac5c288e251aed151",
+    "sha256": "5cd3ade6b26e34ac9a6fffb3e81896189ac939064fe4e270fffbf75e2c997975",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -11641,7 +11641,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_env_door_iron",
@@ -11952,18 +11952,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "788257347#0",
+    "seed": "788257347#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "7ff341fd21bba313a79694fd50729f867e77dfb21532ca8b941af33e1d31f02f",
+    "sha256": "ea5ef350920b1b1ebbf01c7ca62a7f7229058f2aa98e9474d747bd65798aa1b8",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_env_secret_wall",
@@ -13151,15 +13151,15 @@
     "seed": "844998925#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "3104332b5270bedb4b7ddfe44369085b57ace65a491702c1fbc4ee2a994db2df",
+    "sha256": "f5208cdc741f75953dd174defca2af102657589c9a39fbdea1eb29a1a2b19a13",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_god_merca_coin_flip",
@@ -13197,15 +13197,15 @@
     "seed": "818683476#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "aa0f961cff5bf968bd2f67458da143a5f06fad683db2d36663b40a81695b016b",
+    "sha256": "9f3e05d8c94b7ffd83da9907b91d0a84f52a3d427de39183df24bb0fc2fdd9b0",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R2 of PK-M1-41 (no take passed R1; the take with a cleared tool and a main file whose recorded LUFS is closest to the template target, ties in pool order; import re-normalizes); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_god_merca_deal",
@@ -16506,10 +16506,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "620829559#0",
+    "seed": "620829559#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "946a9ed03958176961c8f25d162f08d450efd9c97acdeab06b0690973435043d",
+    "sha256": "72b40c27658ad240d4b19b50563b0fb451a273895e1facfe0bf354b66aae57e3",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -16517,7 +16517,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_mon_rodent_attack",
@@ -17035,10 +17035,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "776705266#0",
+    "seed": "776705266#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "2266d2cca3d3ce9b2dff850176c412273f7b530d6f3847f49a9bf24f532b0ac3",
+    "sha256": "f47131d5e2cc6df94ae856c5873df7df90ff7588bad8065795fc2d1b58af94a7",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17046,7 +17046,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_pres_heartbeat_low",
@@ -17061,15 +17061,15 @@
     "seed": "4940286#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e30cb6cfbabcf753ee86397c5869a828f61b816877dacd923ac3bb3f371eb9a4",
+    "sha256": "4d81c72a905d2d17d2fcb24f9978e6fb761f274b9e696b267ebb0a67d821f3a4",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_pres_pressure_drone",
@@ -17081,10 +17081,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "156840883#0",
+    "seed": "156840883#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "5fa9635d181ed4814dc89e8d2d5b86f36cdd08ca877fb8b0de5bf63485b506fa",
+    "sha256": "32b44429b75747b6141325a7842bf0635eada17d822a597c921892821e666c7a",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17092,7 +17092,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_pres_release_wave",
@@ -17199,7 +17199,7 @@
     "seed": "644889747#1",
     "refs": [],
     "generatedAt": "2026-11-17",
-    "sha256": "23014a568be55c7250c8c424aab05fc825d72a977a322b3a04709ffc6dd169ad",
+    "sha256": "6fca4a11021fe68f24a02b7f5092780b67f0dca9ec54ce4a9f2668f1b77ad8ef",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-17",
     "converted": true,
     "status": "review",
@@ -17207,7 +17207,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R2 of PK-M1-41 (no take passed R1; the take with a cleared tool and a main file whose recorded LUFS is closest to the template target, ties in pool order; import re-normalizes); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the smallest seam level step, pool order on a tie; when the pick fails the import, the next take in that order); the R4 pick l3 failed the import (true peak -2.75 dBTP over the -3 dBTP ceiling after three encode passes); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_rng_bow_draw",
@@ -17452,7 +17452,7 @@
     "seed": "345864346#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "380322cd031b74eaf5ff17d60b1db2c90e4323dfc3822d255c74164c4f53ce74",
+    "sha256": "b9143835e42fe52989db6bcd4df8ec9e459284f8d536a78d578bc5815b21bd97",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17460,7 +17460,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_arcane_cast_start",
@@ -17567,7 +17567,7 @@
     "seed": "664725459#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "8c6cd951c6ea7163df8e4cce850e4121873ad362de0d6a28125c62a7c7d08992",
+    "sha256": "e2b5be78157e26a7d7ece3caadab0d83b893db573f85e7f8e52b8201d270fffa",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17575,7 +17575,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_arcane_release",
@@ -17656,10 +17656,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "566675844#0",
+    "seed": "566675844#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "d952af59271349e13f016f05fc488dce3c84c5abafb533a58aba6321d203b5b3",
+    "sha256": "b5728f6a6e067f897b3632b5720c176986f2ed04f8b5a0fa5438edf07e408f6a",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17667,7 +17667,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_fire_cast_start",
@@ -17771,10 +17771,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "400631061#0",
+    "seed": "400631061#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "eefdc5cc5a6f8ad9930219d012ddb1f9d429116878569e6562e0fc0c64afc2d1",
+    "sha256": "6f0ba4314346044ea0080de48d9ddd2b9fc08c6f1f1e1ad4bbf4fdf65b8f8b7c",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17782,7 +17782,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_fire_release",
@@ -17866,7 +17866,7 @@
     "seed": "66784686#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "de6fd68b45538664800c0cb0b862856baff6093323f03c7262ccb3fb8e873708",
+    "sha256": "a63245dd3e04c77d732c8fcefb2a1ab43e2793154e9c1a11b16e867a338a373f",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17874,7 +17874,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R2 of PK-M1-41 (no take passed R1; the take with a cleared tool and a main file whose recorded LUFS is closest to the template target, ties in pool order; import re-normalizes); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_frost_cast_start",
@@ -17981,7 +17981,7 @@
     "seed": "277832991#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e35c411690903019285c135652cb50d502ec69a0164282a5087a906473de3989",
+    "sha256": "f2e9c60c8fa8c8f99bab8b03b6ecee05a456176f568e660cff4ae947ba9a12b0",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -17989,7 +17989,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_frost_release",
@@ -18073,7 +18073,7 @@
     "seed": "965770746#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "c52845203bf9fb08b942952acce9c0aa899d29fc62a418e0889c045abed3ccaf",
+    "sha256": "71a9afbdcf921144c22bdf70503974958722ff681ec0dbf22d7cf6d5e4576690",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18081,7 +18081,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_holy_cast_start",
@@ -18185,10 +18185,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "343839859#0",
+    "seed": "343839859#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "22d5608653c94e1b69bb881b7189e5a1abf219c0c4d9a2aae22c0518c1464aca",
+    "sha256": "0d668d2a87b465aef988ae6b9f06de2ee77f02fdd5bd0e64117cc31d91f3c7a0",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18196,7 +18196,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_holy_release",
@@ -18280,15 +18280,15 @@
     "seed": "393441185#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "aaa134e790fcb02b09df9de8202196561f49b38473c6f87b3faad1daff80c381",
+    "sha256": "b4763a72493103b2c8cd8df877261a7774a60a85eb097f51e4e6e126da40664c",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l2 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_nature_cast_start",
@@ -18392,10 +18392,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "616501794#0",
+    "seed": "616501794#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "bd5c15d50c67259410261f051ef0ee788af6190e5e61f9e1350388e7911882ef",
+    "sha256": "d9dade2ca7ff95ad32d2c309dc594f26ce5b0514045e37a3f0d7442ed6b9b168",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18403,7 +18403,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_nature_release",
@@ -18487,7 +18487,7 @@
     "seed": "122728555#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "a5d25cb15708cb1e04e4a4e6200437279a9ad741eb4f6e22a13153a3448d4929",
+    "sha256": "1f50f29b05527781ae372a26be14a71f61ec09d483fefb74e0e22a1633a63665",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18495,7 +18495,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_physical_cast_start",
@@ -18602,7 +18602,7 @@
     "seed": "763172764#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "94b4b2da63ca719094390b1a967f4d0824bc2fab6b82fe1e86c83c7686bb432c",
+    "sha256": "f70be91187a3f60ae03227305d2f9e2fcb293d02afd03df8f221be9159ea66ce",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18610,7 +18610,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_physical_release",
@@ -18691,18 +18691,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "601593984#0",
+    "seed": "601593984#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e67a2ce82ef7ae5b10fae8fdeea36b1982d2c4d6ddc40fef8d3b3eebe26c6106",
+    "sha256": "1eb591e38b5fec20cbb79995f73ab630b7f19958810697efb929746f2b7a3b8a",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_shadow_cast_start",
@@ -18806,10 +18806,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "455232441#0",
+    "seed": "455232441#1",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "99e774fd42c1b0ced03e9dd7211178e868ae5862f1586fab0dea3bfb8017a590",
+    "sha256": "781d7e9f882504dcceeb1d38c58613f883d28e57ff7bde09d48e77c96a9bd079",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -18817,7 +18817,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l2 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_sch_shadow_release",
@@ -19151,10 +19151,10 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "597408447#2",
+    "seed": "597408447#0",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "4dd1af8edbe5171ba9cb17941746a3ade12ed487d8412d65e00b9f8987981ab3",
+    "sha256": "003d964fa2d864676506cffe03ac0b617ba64dbb36a1925456d43be5d00f583d",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
     "status": "review",
@@ -19162,7 +19162,7 @@
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l3 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -24 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l1 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -24 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_ui_ability_ready",
@@ -20324,18 +20324,18 @@
     "promptLang": "en",
     "tool": "stable_audio_3_small_sfx",
     "toolVersion": "Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0",
-    "seed": "792034601#0",
+    "seed": "792034601#2",
     "refs": [],
     "generatedAt": "2026-11-18",
-    "sha256": "e89c0304041864edea6096236cdebf1ec5fd2070f1d02eae127646543c444d61",
+    "sha256": "b8a55ed083043a06d88b1c36238762faead551ba74d0366b13ac0d50f9d68d9b",
     "aigcLabel": "AIGC=AI generated with Stable Audio 3 Small-SFX (local ComfyUI), Stable Audio 3 Small-SFX (Comfy-Org/stable-audio-3 75aad883), ComfyUI 0.34.0, models stable_audio_3_small_sfx.safetensors + t5gemma_b_b_ul2.safetensors, on 2026-11-18",
     "converted": true,
-    "status": "rework",
-    "reason": "seam",
+    "status": "review",
+    "reason": "",
     "reviewer": "",
     "reviewedAt": "",
     "milestone": "M1",
-    "notes": "picked l1 of 3 candidates (text to audio, 6 s loop body at the quietest seam, 200 ms crossfade, -30 LUFS); provisional pick by rule R1 of PK-M1-41 (first takes in pool order with a cleared tool, a main file, recorded LUFS within 1 LU of the template target and true peak under the ceiling); not listened to, the reviewer decides"
+    "notes": "picked l3 of 3 candidates (text to audio, 14 s take; loop source from the quietest seam on the grid (the import's seam check passes there): 6.01 s body plus 200 ms crossfade material, the import bakes the loop; one linear gain toward -30 LUFS); provisional pick by rule R4 of PK-M1-41 (loop sources re-staged by tools/audio_gen/restage_loops.ts: among the takes its report lists with no import problems, the one with the smallest seam level step, pool order on a tie); not listened to, the reviewer decides"
   },
   {
     "id": "sfx_ui_load_done",

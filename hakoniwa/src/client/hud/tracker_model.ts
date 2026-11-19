@@ -29,6 +29,9 @@ export interface LiveQuest {
   kind: string;
 }
 
+/** Quests seen that a save keeps (the tracker auto-tracks a main quest the first time). */
+export const SEEN_KEPT = 300;
+
 /** Which quests and which door the player follows (client session state). */
 export class TrackerState {
   private list: Tracked[] = [];
@@ -86,6 +89,40 @@ export class TrackerState {
     if (this.pinnedDoor === id) return;
     this.pinnedDoor = id;
     this.version++;
+  }
+
+  /**
+   * What the save's client segment keeps (../app/client_segment.ts): the tracked quests, the
+   * pinned door, and the most recent SEEN_KEPT quests seen (older ones are long settled; a
+   * forgotten one is at worst tracked again once).
+   */
+  snapshot(): { tracked: Tracked[]; seen: string[]; door: string | null } {
+    return {
+      tracked: this.list.map((x) => ({ ...x })),
+      seen: [...this.seen].slice(-SEEN_KEPT),
+      door: this.pinnedDoor,
+    };
+  }
+
+  /** Restore a snapshot, field by field; false (nothing changes) when it is not one. */
+  restore(raw: unknown): boolean {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return false;
+    const o = raw as Record<string, unknown>;
+    if (!Array.isArray(o.tracked) || !Array.isArray(o.seen)) return false;
+    const list: Tracked[] = [];
+    for (const x of o.tracked) {
+      if (list.length >= TRACK_MAX) break;
+      const t = x as Record<string, unknown> | null;
+      if (!t || typeof t.id !== 'string' || typeof t.manual !== 'boolean') continue;
+      if (list.some((y) => y.id === t.id)) continue;
+      list.push({ id: t.id, manual: t.manual });
+    }
+    this.list = list;
+    this.seen.clear();
+    for (const id of o.seen) if (typeof id === 'string') this.seen.add(id);
+    this.pinnedDoor = typeof o.door === 'string' ? o.door : null;
+    this.version++;
+    return true;
   }
 
   private add(id: string, manual: boolean): boolean {

@@ -1,0 +1,38 @@
+{
+  "id": "ln_simon",
+  "speaker": "simon",
+  "slots": {
+    "greet.cold": ["后生，有事？", "地里忙。", "嗯。"],
+    "greet.neutral": ["后生。吃了吗？", "今天天气好，地里干活。", "嗯，你好。"],
+    "greet.warm": ["后生！来，尝尝新麦子。", "你来了，坐。", "多亏你，盐价下来了。"],
+    "farewell": ["后生，走好。", "天黑前回去。", "嗯。"],
+    "unbelief.deny": ["哪有那种人。", "碰巧罢了。"],
+    "unbelief.explain": ["车轴本来就松了吧，一抬就起来了。", "那就是盐受潮变轻了。"],
+    "unbelief.waver": ["哪有那种人……可我看见了。", "后生，你到底是什么人？"],
+    "react.feat_seen": ["哪有那种……哎？", "光在上。"],
+    "react.gift_liked": ["好盐！后生，谢谢。", "种子！明年有指望了。"],
+    "react.insult": ["后生，说话客气点。", "我们种地的也是人。"],
+    "topic.gen_self": {
+      "neutral": ["西蒙，种地的。", "西田那块麦子是我家的。"]
+    },
+    "topic.gen_work": {
+      "K0": ["种麦子，卖菜。看天吃饭。", "税交完还剩多少，我每天都在算。"]
+    },
+    "topic.self_simon_wheat": {
+      "K0": ["今年的麦子要是能收上来就好了。", "新税太重了。"]
+    },
+    "topic.event_tax_hike": {
+      "K0": ["十取一变六取一。这还让不让人活了。"]
+    },
+    "quest.q_a1_s08_salt_price.offer": [
+      {
+        "zh": "后生，盐价涨成这样，我们腌不起菜了。你能不能去商会说说？",
+        "when": "act_week >= 5"
+      }
+    ],
+    "quest.q_a1_s08_salt_price.complete": ["盐价下来了！后生，你是好人。"],
+    "quest.q_a1_s08_salt_price.after": ["今年冬天有咸菜吃了。"],
+    "bark.work": ["这块地要深翻。", "麦子长得还行。"],
+    "bark.shop": ["盐又贵了。"]
+  }
+}

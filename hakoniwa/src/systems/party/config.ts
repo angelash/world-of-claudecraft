@@ -8,7 +8,7 @@ import type { ContentMap, FlagValue } from '../../core/contracts';
 import type { World } from '../../core/world';
 import { calendarTerms } from '../quests/calendar_terms';
 import { evaluate, flagResolver } from '../quests/conditions';
-import type { CompanionDef, PartyConfig } from './types';
+import type { BanterConfig, CompanionDef, PartyConfig, TacticsConfig } from './types';
 
 export const DEFAULT_PARTY_CONFIG: PartyConfig = {
   slots: { byAct: { prologue: 3, act1: 3 }, default: 4 },
@@ -39,8 +39,57 @@ export const DEFAULT_PARTY_CONFIG: PartyConfig = {
   tempObjectives: ['escort', 'rescue', 'accompany'],
 };
 
+/**
+ * The stance score of builtin_ai.md 11.1 (weight 3, state 2, protect 3, foes 1, inertia 1,
+ * the player under half health, two hard fights in a row) with the proposed readings of
+ * "full", "low", "hard" and "known" (progress.md of PK-M1-21, user decisions).
+ */
+export const DEFAULT_TACTICS: TacticsConfig = {
+  auto: true,
+  weight: 3,
+  state: 2,
+  protect: 3,
+  foes: 1,
+  inertia: 1,
+  protectBelow: 0.5,
+  hardStreak: 2,
+  fullHp: 0.8,
+  fullMana: 0.5,
+  lowMana: 0.3,
+  lowPotions: 1,
+  hardHp: 0.5,
+  sight: 20,
+  openingSec: 3,
+};
+
+/**
+ * Chatter pacing: 8.2 (no chatter under bond 20), 10.1 (one exchange per 10 real minutes
+ * exploring, one per 30 game minutes of travel, one to three a campfire night); the line
+ * and reply seconds, the freshness and the relevance are proposals.
+ */
+export const DEFAULT_BANTER: BanterConfig = {
+  minBond: 20,
+  campTalkBond: 40,
+  lineSec: 4,
+  replySec: 15,
+  exploreGap: 10 * 60 * 20,
+  travelGap: 30 * 20,
+  campfireMax: 3,
+  freshPerDay: 0.1,
+  relevance: 2,
+  journeyRoles: ['field'],
+};
+
 export function partyConfig(content: ContentMap): PartyConfig {
   return content.partyConfig ?? DEFAULT_PARTY_CONFIG;
+}
+
+export function tacticsConfig(content: ContentMap): TacticsConfig {
+  return { ...DEFAULT_TACTICS, ...partyConfig(content).tactics };
+}
+
+export function banterConfig(content: ContentMap): BanterConfig {
+  return { ...DEFAULT_BANTER, ...partyConfig(content).banter };
 }
 
 export function companionDef(content: ContentMap, id: string): CompanionDef | undefined {

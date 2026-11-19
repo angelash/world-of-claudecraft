@@ -70,7 +70,7 @@ export interface SceneInput {
    * (PK-M1-19), else the fallback choice; with no fallback an answer no rule sorts gets the
    * written reply and goes on to `to`.
    */
-  classify?: { node: string; choices: string[]; fallback?: string };
+  classify?: SceneClassify;
   /**
    * A multi-turn exchange with a model (catalog_cutscenes.md 4.1.2 `轮次 软 6 硬 10`,
    * prologue_antechamber.md 1): the input stays open after each reply until the answerer
@@ -79,6 +79,63 @@ export interface SceneInput {
    * model the written reply closes the round at once.
    */
   turns?: SceneTurns;
+  /**
+   * The improvisation brief of the answer (catalog_cutscenes.md 2.2 `即兴` before an `输入`):
+   * purpose, situation, meaning keys and the forbidden list go to the model; a model reply
+   * that misses a meaning key or says a forbidden word is replaced by the written reply.
+   */
+  improv?: SceneBrief;
+  /**
+   * Written lines the runner says itself after a model's reply (catalog_cutscenes.md 2.4: an
+   * anchor or a key line the model may not rewrite), each once per run of the scene.
+   */
+  anchor?: SceneLine[];
+  /**
+   * Values the model may pull out of the conversation (prologue 4.1.2: the courtyard object
+   * of Sylvie's round, the past life of Moira's): a value outside `values` is ignored. Without
+   * a model nothing is extracted; the written choices decide.
+   */
+  extract?: SceneExtract[];
+}
+
+/**
+ * Classification of a free answer into choices of a sibling node (`归类`). `settle`: only the
+ * picked choice's effects apply and the input goes on to its own `to` (catalog_cutscenes.md
+ * 13.6, the second destination semantics); otherwise the choice is taken as if picked. `by`:
+ * the model that sorts an input with no answerer (default `narrator`, role scene.improv).
+ */
+export interface SceneClassify {
+  node: string;
+  choices: string[];
+  fallback?: string;
+  settle?: boolean;
+  by?: string;
+}
+
+/** The brief of an improvised answer or line (`即兴 …｜目的｜情境｜含义键｜禁区`). */
+export interface SceneBrief {
+  purpose?: string;
+  situation?: string;
+  /**
+   * The meanings the answer must carry, as the catalog writes them (含义键): the model reads
+   * them; they are not matched word for word (a meaning may be said many ways).
+   */
+  meaningKeys?: string[];
+  /** The catalog's forbidden list (禁区), as rules the model reads; not matched either. */
+  forbidden?: string[];
+  /**
+   * What the executor checks (catalog 2.4 "执行者校验不过即换回原句"): `must` lists literal
+   * phrases of which a model answer must contain AT LEAST ONE (the brief's core phrase in the
+   * forms it may take); `never` lists literal words no answer may contain (the unlocked names
+   * and concepts of the forbidden list). A failed check puts the written lines back.
+   */
+  check?: { must?: string[]; never?: string[] };
+}
+
+/** One value the model may extract from a conversation into a flag. */
+export interface SceneExtract {
+  key: string;
+  values: string[];
 }
 
 export interface SceneTurns {
@@ -104,6 +161,22 @@ export interface SceneImprov {
   purpose: string;
   situation: string;
   fallback: SceneLine[];
+  /** the meanings the lines must carry, for the model (see SceneBrief) */
+  meaningKeys?: string[];
+  /** the forbidden list, for the model (see SceneBrief) */
+  forbidden?: string[];
+  /** the executor's literal check (see SceneBrief.check) */
+  check?: { must?: string[]; never?: string[] };
+}
+
+/**
+ * Evidence presented at an act-1 trial (PK-M1-55; act1_borderstone.md 4.2): the held pieces of
+ * the trial table are offered beside the node's written choices (witnesses, the lamp, the
+ * speech); a piece is judged by the shared core (present.ts) and the run stays on the node.
+ */
+export interface TrialSpec {
+  /** the trial table id (data/scenes/trials.json) */
+  trial: string;
 }
 
 /** Evidence presentation against one goddess (act6 3.3). */
@@ -122,6 +195,7 @@ export interface CourtSpec {
  * to -24 dB for the seconds given); `letter` shows an `ltr_` letter as a step of its own.
  */
 export type StageDirective =
+  | StageDirectiveMore
   | { op: 'music'; id: string; mode?: 'in' | 'out' | 'cross' | 'layer'; layer?: 1 | 2 | 3 | 4 }
   | { op: 'sfx'; id: string }
   | { op: 'ambience'; id: string }
@@ -242,8 +316,11 @@ export type ScenePresentation = 'staged' | 'theater' | 'illustration';
 export interface SceneNode {
   id: string;
   lines?: SceneLine[];
-  /** stage directives for the client player (13.5); ignored by the kernel */
-  stage?: StageDirective[];
+  /**
+   * stage directives for the client player (13.5); ignored by the kernel except `when`, which
+   * the view evaluates (a directive whose condition fails is not handed to the client)
+   */
+  stage?: StageStep[];
   /** an anchor node: skipping stops here (ux 8.3) */
   anchor?: boolean;
   /**
@@ -258,6 +335,8 @@ export interface SceneNode {
   input?: SceneInput;
   improv?: SceneImprov;
   court?: CourtSpec;
+  /** offer the held pieces of an act-1 trial beside the written choices (PK-M1-55) */
+  present?: TrialSpec;
   /** assemble and show the epilogue for the current ending */
   epilogue?: boolean;
   next?: string;
@@ -295,7 +374,55 @@ export interface SceneDef {
    * this scene plays, the player may restart from `scene`.
    */
   restart?: SceneRestart;
+  /**
+   * When the scene plays by itself (catalog_cutscenes.md 5 "触发" rows that no quest stage
+   * requests): the scenes system requests it once a trigger holds while nothing plays, the
+   * player stands at the trigger's place and the act is the scene's act. A trigger condition
+   * should name what the scene writes when it ends, or the scene plays again.
+   */
+  triggers?: SceneTrigger[];
 }
+
+/** One self-request of a scene: a condition and, optionally, where the player stands. */
+export interface SceneTrigger {
+  when: string;
+  mapId?: string;
+  location?: string;
+}
+
+/**
+ * Stage directives added for act 1 (PK-M1-34; catalog_cutscenes.md 2.3, 13.5): `@转场` (the
+ * door-frame wipe, a dissolve, a cut) and a full-screen still in the middle of a scene
+ * (`still`, an `art_bg_cut_*` id, standing until `still_end` or the scene ends).
+ */
+export type StageDirectiveMore =
+  | { op: 'transition'; kind: StageTransition }
+  | { op: 'still'; id: string }
+  | { op: 'still_end' };
+
+/** `@转场` kinds (2.3): 门扉擦除, 溶, 切. */
+export const STAGE_TRANSITIONS = ['door_wipe', 'dissolve', 'cut'] as const;
+export type StageTransition = (typeof STAGE_TRANSITIONS)[number];
+
+/**
+ * When a directive runs (PK-M1-34): `at` is the written index of the node's line it waits
+ * for (it runs as that line starts showing; a line hidden by its condition hands it to the
+ * next shown line, and with none left it runs once the lines are read); absent, it runs as
+ * the node is entered. `when` is a condition read when the node is entered.
+ */
+export interface StageTiming {
+  at?: number;
+  when?: string;
+}
+
+/** A directive as written in a node: the directive and its timing. */
+export type StageStep = StageDirective & StageTiming;
+
+/**
+ * A directive as the client gets it (scenes/stage_steps.ts): the condition is already read
+ * and `at` already counts the lines actually shown, so the player counts what is on screen.
+ */
+export type ShownStep = StageDirective & { at?: number };
 
 export interface SceneSegment {
   id: string;
@@ -328,6 +455,11 @@ export interface SceneRestart {
   take?: string[];
   /** a segment of this scene: once it starts, the offer is gone */
   until?: string;
+  /**
+   * The player entity goes back to its unnamed, default look (PK-M1-34): the opening asks the
+   * name and the look again, so the old ones must not stand in the meantime.
+   */
+  resetPlayer?: boolean;
 }
 
 /** A speaker's display data for lines (NPC names here are scene-local labels). */
@@ -438,6 +570,8 @@ export interface ShownLine {
   speakerName: TextParam;
   text: TextParam;
   kind: LineKind;
+  /** the written index of the line in its node (stage timing `at`); absent for composed lines */
+  line?: number;
 }
 
 export interface SceneRun {
@@ -468,6 +602,8 @@ export interface SceneRun {
   segment?: string;
   /** the restart offer of this run is gone (its `until` segment started) */
   restartClosed?: boolean;
+  /** nodes whose written anchors this run has said (once per run; PK-M1-34) */
+  anchored?: string[];
 }
 
 export interface SceneUiWait {
@@ -500,4 +636,6 @@ export interface ScenesSlice {
   epilogue: { subject: string; year: number; text: TextParam; layer: EpilogueLayer }[];
   /** once-only combat barks already said (`<sceneId>/<barkId>`); absent in older saves */
   barked?: string[];
+  /** what each act-1 trial was shown (PK-M1-55, present.ts); absent in older saves */
+  trials?: Record<string, { shown: readonly string[]; forgeryCaught?: boolean }>;
 }

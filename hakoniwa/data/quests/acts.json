@@ -5,7 +5,7 @@
     "index": 1,
     "title": "第一幕：边石镇",
     "entry": { "mapId": "seal_ruins", "location": "wake_point" },
-    "introScene": "act1_intro",
+    "introScene": "cut_a1_wake",
     "onEnter": [
       { "type": "flag", "key": "a1_wake_ruins", "value": true },
       { "type": "flag", "key": "continent", "value": 70 }

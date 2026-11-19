@@ -6,7 +6,8 @@
 // red lines, departures and personal lines (story.ts), going down and grave injury
 // (wounds.ts), the ironman switch (ironman.ts), beasts and retainers (pets.ts), temporary
 // companions (temps.ts), sediment exposure (exposure.ts) and mounts (mounts.ts) are their
-// own modules.
+// own modules; so are the built-in AI's per-fight tactics (tactics.ts), the avoid layer
+// (danger.ts), party chatter (banter.ts) and the care of the hurt (care.ts) (PK-M1-21).
 
 import type { ContentMap } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
@@ -14,7 +15,9 @@ import { unitOf } from '../combat';
 import { referencedVars } from '../quests/conditions';
 import { getEntity, teleportEntity } from '../world';
 import { type Profile, tickMember } from './ai';
+import { onRelation, raise, setBanterGate, tickBanter } from './banter';
 import { addKillBond, applyBondFlags } from './bond';
+import { noteTreated, onInjuryFlag, onRecovered, onSlept, onWounded, tickCare } from './care';
 import { commands } from './commands';
 import { companionDef, partyConfig } from './config';
 import { enrolBodies, onCrystalDue } from './exposure';
@@ -24,6 +27,7 @@ import { mountItemChanged } from './mounts';
 import { onBag, syncPets } from './pets';
 import { bodyFor, bringIn, fieldMembers, join, leave, sortedMembers, stateOf } from './roster';
 import { checkPresence, seenRedLines, settleStory } from './story';
+import { noteDown, noteRescue, rescueTarget, tickFight } from './tactics';
 import { onQuestStage, onTalked, releaseTemp, settleTemps } from './temps';
 import type { Member } from './types';
 import {
@@ -36,6 +40,8 @@ import {
   tickClocks,
 } from './wounds';
 
+export { banterState } from './banter';
+export { banterMetric } from './banter_metric';
 export * from './bond';
 export { DEFAULT_PARTY_CONFIG, partyConfig, slotsFor } from './config';
 export { catchUpFactor, levelCap } from './growth';
@@ -115,6 +121,7 @@ export const system: GameSystem = {
       const body = bodyFor(ctx, m);
       if (body) bringIn(ctx, m, body);
     }
+    tickFight(ctx);
     snapHealth(ctx);
     const list = fieldMembers(ctx.world);
     list.forEach((m, i) => {
@@ -125,6 +132,8 @@ export const system: GameSystem = {
     if (ctx.tick % 20 === 0) {
       tickClocks(ctx);
       settleTemps(ctx);
+      tickCare(ctx);
+      tickBanter(ctx);
     }
   },
 
@@ -145,6 +154,7 @@ export const system: GameSystem = {
         return;
       }
       if (key === 'door_rank') syncPets(ctx);
+      onInjuryFlag(ctx, key, ev.data.value);
       const keys = storyKeys(ctx.content);
       if (keys.presence.has(key)) checkPresence(ctx);
       for (const m of sortedMembers(ctx.world)) {
@@ -172,8 +182,11 @@ export const system: GameSystem = {
         onDefeat(ctx);
         return;
       }
-      for (const m of fieldMembers(ctx.world))
-        if (m.entityId === ev.data.id && !m.temp) onDown(ctx, m);
+      for (const m of fieldMembers(ctx.world)) {
+        if (m.entityId !== ev.data.id || m.temp) continue;
+        noteDown(ctx);
+        onDown(ctx, m);
+      }
     },
     'combat.damage'(ctx, ev) {
       if (ev.data.amount <= 0) return;
@@ -208,6 +221,46 @@ export const system: GameSystem = {
     },
     'combat.bag'(ctx, ev) {
       onBag(ctx, ev.data.bagId, ev.data.op);
+    },
+    'combat.heal'(ctx, ev) {
+      const hit = rescueTarget(ctx, ev.data.targetId, ev.data.amount);
+      if (!hit) return;
+      // a heal at full health still treats the wound (10.1); a companion's own leech does not;
+      // only a real heal is a rescue
+      if (ev.data.sourceId !== ev.data.targetId) noteTreated(ctx, hit.m);
+      if (ev.data.amount > 0 && ev.data.sourceId === ctx.world.slices.world.playerId)
+        noteRescue(ctx, hit.m, hit.before);
+    },
+    'party.wounded'(ctx, ev) {
+      onWounded(ctx, ev.data.companionId);
+    },
+    'party.recovered'(ctx, ev) {
+      onRecovered(ctx, ev.data.companionId);
+    },
+    'time.skipped'(ctx, ev) {
+      if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') onSlept(ctx, ev.data.hours);
+    },
+    'feat.performed'(ctx, ev) {
+      if (ev.data.actorId === ctx.world.slices.world.playerId)
+        raise(ctx, 'event', `feat.${ev.data.kind}`);
+    },
+    'act.changed'(ctx) {
+      raise(ctx, 'act');
+    },
+    'npc.relation_changed'(ctx, ev) {
+      onRelation(ctx, ev.data.from, ev.data.to);
+    },
+    'dialogue.opened'(ctx) {
+      setBanterGate(ctx, 'talk', true);
+    },
+    'dialogue.closed'(ctx) {
+      setBanterGate(ctx, 'talk', false);
+    },
+    'scene.started'(ctx) {
+      setBanterGate(ctx, 'scene', true);
+    },
+    'scene.ended'(ctx) {
+      setBanterGate(ctx, 'scene', false);
     },
     'ailments.crystal_due'(ctx, ev) {
       onCrystalDue(ctx, ev.data.entityId);

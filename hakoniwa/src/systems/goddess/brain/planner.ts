@@ -12,6 +12,7 @@
 import type { ScoredTerm } from '../../../core/brain/utility';
 import type { SystemContext } from '../../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../../core/time';
+import { npcPackId } from '../../dialogue/lines/packs';
 import { actIndex } from '../../quests/conditions';
 import { entitiesOnMap, playerEntity } from '../../world';
 import {
@@ -105,6 +106,13 @@ function believerOn(ctx: SystemContext, def: GoddessDef, mapId: string): string 
     .sort()[0];
 }
 
+/** Whether her own pack ln_<goddess> has this slot (base or any act override). */
+function hasPackSlot(ctx: SystemContext, goddess: string, slot: string): boolean {
+  const pack = (ctx.content.linePacks ?? []).find((p) => p.id === npcPackId(goddess));
+  if (!pack) return false;
+  return slot in pack.slots || Object.values(pack.acts ?? {}).some((act) => slot in act);
+}
+
 /** The written text of an action for her (the oracle, dream, omen and request lines). */
 function writtenText(ctx: SystemContext, a: DivineActionDef, goddess: string): string | undefined {
   const lines = a.lines?.[goddess];
@@ -122,9 +130,15 @@ export function actParams(
 ): GoddessActParams | null {
   const params: GoddessActParams = { mapId, ...extra };
   if (a.id === 'oracle' || a.id === 'dream' || a.id === 'omen') {
-    const text = params.text ?? writtenText(ctx, a, def.id);
-    if (!text) return null;
-    params.text = text;
+    // her words come from her own pack (catalog 1.1; PK-M1-34): name the slot, the executor
+    // draws the line when the act runs; a goddess with no pack keeps the written lines
+    const slot = a.slots?.[def.id];
+    if (params.text === undefined && slot && hasPackSlot(ctx, def.id, slot)) params.slot = slot;
+    else {
+      const text = params.text ?? writtenText(ctx, a, def.id);
+      if (!text) return null;
+      params.text = text;
+    }
     if (a.id === 'oracle' && !params.targetId) {
       const t = believerOn(ctx, def, mapId);
       if (t) params.targetId = t;

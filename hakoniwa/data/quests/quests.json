@@ -390,7 +390,7 @@
           },
           {
             "type": "scene",
-            "scene": "a1_ash_glimpse"
+            "scene": "cut_a1_ash_glimpse"
           }
         ]
       }
@@ -440,14 +440,14 @@
         "objectives": [
           {
             "type": "scene",
-            "scene": "a1_yeyu_bound",
+            "scene": "cut_a1_yeyu_bound",
             "label": "伸出手，或者拒绝"
           }
         ],
         "onEnter": [
           {
             "type": "scene",
-            "scene": "a1_yeyu_bound"
+            "scene": "cut_a1_yeyu_bound"
           }
         ],
         "onComplete": [
@@ -577,7 +577,7 @@
           },
           {
             "type": "scene",
-            "scene": "a1_guild_register"
+            "scene": "cut_a1_guild"
           }
         ]
       }
@@ -1336,7 +1336,7 @@
         "onEnter": [
           {
             "type": "scene",
-            "scene": "a1_oola_trial",
+            "scene": "cut_a1_trial",
             "when": "NOT a1_oola_fate AND NOT dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
           },
           {
@@ -1783,7 +1783,8 @@
       },
       {
         "type": "scene",
-        "scene": "a1_tide_dawn"
+        "scene": "cut_a1_martha",
+        "when": "NOT scene.cut_a1_martha.seen"
       }
     ]
   },
@@ -1813,14 +1814,14 @@
         "objectives": [
           {
             "type": "scene",
-            "scene": "a1_dream",
+            "scene": "cut_a1_dream",
             "label": "梦见门口的女人"
           }
         ],
         "onEnter": [
           {
             "type": "scene",
-            "scene": "a1_dream"
+            "scene": "cut_a1_dream"
           }
         ]
       },
@@ -1888,7 +1889,7 @@
       },
       {
         "type": "scene",
-        "scene": "a1_count_letter"
+        "scene": "cut_a1_letter"
       }
     ]
   },

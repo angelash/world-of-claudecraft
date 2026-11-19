@@ -184,13 +184,16 @@ function nightRound(ctx: SystemContext): void {
     const brain = brainOf(ctx.world.slices.goddess, def.id);
     if ((brain.doorsSinceDream ?? 0) < per) continue;
     const a = ctx.content.divineActions.find((x) => x.id === p.night?.action);
+    // her own pack's slot first (a text key at execution, PK-M1-34); the written lines of the
+    // action are the fallback of a goddess with no pack
+    const slot = a?.slots?.[def.id];
     const lines = a?.lines?.[def.id] ?? [];
-    if (lines.length === 0) continue;
+    if (!slot && lines.length === 0) continue;
     const cmd: GoddessActCommand = {
       goddessId: def.id,
       action: p.night.action,
       revision: s.revision,
-      params: { text: ctx.rng('goddess.plan').pick(lines) },
+      params: slot ? { slot } : { text: ctx.rng('goddess.plan').pick(lines) },
       origin: 'plan',
     };
     if (validateAct(ctx, cmd, SRC)) continue;

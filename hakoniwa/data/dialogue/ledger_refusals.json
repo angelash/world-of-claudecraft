@@ -1,0 +1,389 @@
+[
+  {
+    "clue": "M01-C01",
+    "by": [
+      {
+        "speaker": "eluen",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "hint"
+      },
+      {
+        "speaker": "moira",
+        "refusal": "hint"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "sylvie",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M01-C02",
+    "by": [
+      {
+        "speaker": "yeyu",
+        "refusal": "unknown"
+      }
+    ]
+  },
+  {
+    "clue": "M01-C05",
+    "by": [
+      {
+        "speaker": "oola",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "cassian",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-05"
+  },
+  {
+    "clue": "M01-C08",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "eluen",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "hint"
+      }
+    ]
+  },
+  {
+    "clue": "M02-C01",
+    "by": [
+      {
+        "speaker": "cassian",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-05"
+  },
+  {
+    "clue": "M02-C02",
+    "by": [
+      {
+        "speaker": "cassian",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-05"
+  },
+  {
+    "clue": "M02-C08",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "eluen",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "sylvie",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "moira",
+        "refusal": "deny"
+      }
+    ]
+  },
+  {
+    "clue": "M02-C11",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "eluen",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "sylvie",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "moira",
+        "refusal": "evade"
+      }
+    ],
+    "default": "evade"
+  },
+  {
+    "clue": "M03-C01",
+    "by": [
+      {
+        "speaker": "lina",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-06"
+  },
+  {
+    "clue": "M03-C06",
+    "by": [
+      {
+        "speaker": "aiden",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "moira",
+        "refusal": "hint"
+      }
+    ]
+  },
+  {
+    "clue": "M03-C09",
+    "by": [
+      {
+        "speaker": "moira",
+        "refusal": "deny"
+      }
+    ]
+  },
+  {
+    "clue": "M04-C02",
+    "by": [
+      {
+        "speaker": "cassian",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-19"
+  },
+  {
+    "clue": "M04-C10",
+    "by": [
+      {
+        "speaker": "eluen",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "sylvie",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M05-C07",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M05-C09",
+    "by": [
+      {
+        "speaker": "eluen",
+        "refusal": "mis"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      }
+    ],
+    "mis": "MIS-10"
+  },
+  {
+    "clue": "M06-C06",
+    "by": [
+      {
+        "speaker": "moira",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-14"
+  },
+  {
+    "clue": "M07-C05",
+    "by": [
+      {
+        "speaker": "moira",
+        "refusal": "hint"
+      }
+    ]
+  },
+  {
+    "clue": "M08-C10",
+    "by": [
+      {
+        "speaker": "eluen",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M09-C01",
+    "by": [
+      {
+        "speaker": "janu",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M09-C04",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M09-C06",
+    "by": [
+      {
+        "speaker": "merca",
+        "refusal": "deny"
+      }
+    ]
+  },
+  {
+    "clue": "M09-C08",
+    "by": [
+      {
+        "speaker": "janu",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "M09-C11",
+    "by": [
+      {
+        "speaker": "janu",
+        "refusal": "mis"
+      }
+    ],
+    "mis": "MIS-15"
+  },
+  {
+    "clue": "M10-C10",
+    "by": [
+      {
+        "speaker": "janu",
+        "refusal": "evade"
+      },
+      {
+        "speaker": "eluen",
+        "refusal": "unknown"
+      },
+      {
+        "speaker": "valda",
+        "refusal": "unknown"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "unknown"
+      },
+      {
+        "speaker": "sylvie",
+        "refusal": "unknown"
+      },
+      {
+        "speaker": "moira",
+        "refusal": "unknown"
+      }
+    ]
+  },
+  {
+    "clue": "M11-C06",
+    "by": [
+      {
+        "speaker": "moira",
+        "refusal": "hint"
+      }
+    ],
+    "default": "evade"
+  },
+  {
+    "clue": "S01-C05",
+    "by": [
+      {
+        "speaker": "ash",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "S02-C02",
+    "by": [
+      {
+        "speaker": "martha",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "S03-C06",
+    "by": [
+      {
+        "speaker": "nera",
+        "refusal": "deny"
+      },
+      {
+        "speaker": "merca",
+        "refusal": "evade"
+      }
+    ]
+  },
+  {
+    "clue": "S07-C05",
+    "by": [
+      {
+        "speaker": "janu",
+        "refusal": "evade"
+      }
+    ]
+  }
+]

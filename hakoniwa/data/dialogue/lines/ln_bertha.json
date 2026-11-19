@@ -1,0 +1,65 @@
+{
+  "id": "ln_bertha",
+  "speaker": "bertha",
+  "slots": {
+    "greet.cold": ["外乡人。离我孙子远点。", "光保佑！别过来。", "你又来做什么？"],
+    "greet.neutral": ["外乡人，你也去礼拜吗？", "光保佑你。……你身上没带什么不干净的吧？", "早。"],
+    "greet.warm": [
+      "好心人，你来了。光保佑你。",
+      "托比今天能下床了！你看见没有？",
+      "进来坐，我给你烧水。"
+    ],
+    "farewell": ["光保佑你。", "晚上别出门。", "走好，别往北边去。"],
+    "unbelief.deny": ["那种事？光才做得到。你？", "别瞎说，那是邪术的事。"],
+    "unbelief.explain": ["这里头一定有邪祟。", "光的奇迹……要不就是别的东西。"],
+    "unbelief.waver": ["你……你救了托比。邪术会救人吗？", "光啊，我糊涂了。"],
+    "react.feat_seen": ["光保佑！这是什么！", "邪、邪术！快去叫神父！"],
+    "react.gift_liked": ["给托比的？光保佑你，好心人。", "谢谢……谢谢。"],
+    "react.insult": ["光会惩罚你的！", "外乡人就是外乡人。"],
+    "topic.gen_self": {
+      "neutral": ["贝莎，虔诚妇女会的会长。", "我男人死于荒原病。现在只剩托比了。"]
+    },
+    "topic.gen_work": {
+      "K0": ["每天上午去礼拜堂，下午去各家看看。", "镇子得干干净净的。"]
+    },
+    "topic.self_bertha_toby": {
+      "K0": [
+        "托比六岁，是我唯一的亲人。",
+        {
+          "zh": "托比好了！光听见了！",
+          "when": "a1_toby_state == recovered"
+        }
+      ]
+    },
+    "topic.event_tess_song": {
+      "K0": ["孤儿院那个丫头唱的歌……门开了，门开了……那是邪歌！"]
+    },
+    "topic.person_oola": {
+      "mis": [
+        {
+          "zh": "那个药草婆婆，夜里出入孤儿院，米洛死了，托比病了……还用说吗？",
+          "when": "NOT a1_spring_source_found"
+        }
+      ]
+    },
+    "quest.q_a1_d02_witch_trial.progress": [
+      {
+        "zh": "审她！光之鉴会照出来的！",
+        "when": "a1_witch_trial_started"
+      }
+    ],
+    "quest.q_a1_d02_witch_trial.after": [
+      {
+        "zh": "……是水？不是她？光啊，我做了什么。",
+        "when": "a1_oola_fate == cleared"
+      },
+      {
+        "zh": "光会给托比讨个公道。",
+        "when": "a1_oola_fate != cleared"
+      }
+    ],
+    "bark.pray": ["光啊，别再收走他。", "光保佑！"],
+    "bark.chat": ["你听说了吗？（压低声音）北边又出事了。"],
+    "bark.fear": ["邪祟！一定有邪祟！"]
+  }
+}

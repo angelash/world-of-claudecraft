@@ -19,12 +19,43 @@
       {
         "zh": "是你啊。说起来，{diary}",
         "w": 2
+      },
+      {
+        "zh": "外乡人？{place}可不大，你是从哪儿来的？",
+        "first": true
       }
     ],
-    "bark.sleep": ["……唔……（睡得正香）", "……唔……让我再睡会儿……"],
-    "unbelief.deny": ["就你？那个 F 级的？", "哦，是你啊。外面传的那些，我一个字都不信。"],
-    "unbelief.explain": ["哟，{player}。今天运气还好吗？", "是你啊。", "又来了。"],
-    "unbelief.waver": ["……是你。", "你……算了，有什么事？", "也许……不，不可能。"],
+    "bark.sleep": ["……唔……（睡得正香）", "……唔……让我再睡会儿……", "……（睡得正香）……"],
+    "unbelief.deny": [
+      "就你？那个 F 级的？",
+      "哦，是你啊。外面传的那些，我一个字都不信。",
+      "外头传的那些，我一个字都不信。",
+      "{rumor}？编得真像回事。",
+      "你的公会卡上写着什么，我可看见了。",
+      "一个连鉴定都读不出来的人，能干出这种事？",
+      "吹牛的人我见多了，{player}。"
+    ],
+    "unbelief.explain": [
+      "哟，{player}。今天运气还好吗？",
+      "是你啊。",
+      "又来了。",
+      "我看是{expl}。",
+      "{expl}，没别的。",
+      "又是{expl}。",
+      "说破天也就是{expl}。",
+      "你别得意，{expl}罢了。",
+      "换谁去都一样，{expl}。"
+    ],
+    "unbelief.waver": [
+      "……是你。",
+      "你……算了，有什么事？",
+      "也许……不，不可能。",
+      "{feat}那回……我还是想不通。",
+      "你别这么看我，我只是还没想好。",
+      "我没说信你，我只是……算了。",
+      "那天的事，我跟谁都没细说。",
+      "要是真的，那可就……不，别想了。"
+    ],
     "greet.warm": [
       "是你啊，{player}。有什么能帮上的？",
       "你是真有本事。我认了。",
@@ -37,11 +68,29 @@
       {
         "zh": "来得正好。{diary}",
         "w": 2
-      }
+      },
+      "来啦，{player}。",
+      "正想着你呢。坐，坐。",
+      "你来得正好。"
     ],
-    "react.belief_worship": ["您来了！", "是您！快请快请。"],
-    "react.belief_hostile": ["……你来做什么。", "离我远点。", "这不是人能做到的事。离他远点。"],
-    "react.belief_exploit": ["正想找你呢，{player}。"],
+    "react.belief_worship": [
+      "您来了！",
+      "是您！快请快请。",
+      "是您！您来了！",
+      "我就知道，您不是一般人。",
+      "您要什么尽管开口。"
+    ],
+    "react.belief_hostile": [
+      "……你来做什么。",
+      "离我远点。",
+      "这不是人能做到的事。离他远点。",
+      "这里不欢迎你。"
+    ],
+    "react.belief_exploit": [
+      "正想找你呢，{player}。",
+      "你这样的人，我用得上。",
+      "有笔买卖，只有你做得成。"
+    ],
     "greet.cold": [
       "有话快说。",
       "又是你。",
@@ -49,7 +98,8 @@
         "zh": "{memory}，你还好意思来？",
         "w": 3
       },
-      "……有事就说。"
+      "……有事就说。",
+      "说吧，我听着呢。"
     ],
     "bark.chat": ["今天也就这样吧。{catch}", "日子总得过下去。", "随便聊聊呗。", "你也来凑热闹？"],
     "bark.work": ["活儿还没干完呢。", "忙着呢。{catch}"],
@@ -61,39 +111,48 @@
         "mood": ["tired"]
       }
     ],
-    "bark.pray": ["我在祷告，等一会儿。"],
+    "bark.pray": ["我在祷告，等一会儿。", "求保佑一家平安……"],
     "bark.shop": ["东西又涨价了。", "盐比上个月贵了。"],
     "bark.wander": ["今天{place}挺热闹。", "随便走走。"],
-    "bark.tired": ["累死了，想睡一觉。", "腿都站不直了。"],
-    "bark.worried": ["手头紧，最近得多干点活。", "这日子可怎么过。"],
-    "bark.happy": ["天气不错。", "今天真不错。"],
-    "bark.rain": ["要变天了吧。", "这雨下得人心里发潮。"],
-    "bark.storm": ["这雷打得吓人，早点回去吧。"],
-    "bark.fog": ["雾大，别往荒原那边走。"],
-    "bark.snow": ["雪下大了。"],
-    "bark.ashfall": ["天上在落灰……不吉利。"],
+    "bark.tired": ["累死了，想睡一觉。", "腿都站不直了。", "腿都直不起来了。"],
+    "bark.worried": ["手头紧，最近得多干点活。", "这日子可怎么过。", "手头紧，得多干点活。"],
+    "bark.happy": ["天气不错。", "今天真不错。", "今天是个好日子。", "哈，运气不错。"],
+    "bark.rain": ["要变天了吧。", "这雨下得人心里发潮。", "雨一时停不了。"],
+    "bark.storm": ["这雷打得吓人，早点回去吧。", "风大，把门闩好。"],
+    "bark.fog": ["雾大，别往荒原那边走。", "雾大，别往北边走。", "什么都看不清。"],
+    "bark.snow": ["雪下大了。", "冷得手都伸不出来。"],
+    "bark.ashfall": ["天上在落灰……不吉利。", "把窗关上，灰进屋了。"],
     "banter": ["嘿，{other}。", "{other}，今天怎么样？"],
     "banter.work": ["{other}，又在忙？", "干完这点就歇会儿。"],
     "banter.eat": ["{other}，一起吃吧。", "这炖菜不错。"],
     "banter.shop": ["{other}，你看这价钱！", "又涨了，又涨了。"],
     "banter.wander": ["{other}，听说了吗？", "今天{place}人真多。"],
     "banter.chat": ["{other}，坐下聊会儿。", "来来来，{other}。"],
-    "banter.hungry": ["{other}，有吃的没有？饿坏了。"],
-    "banter.tired": ["累死了，{other}，你也歇歇吧。"],
+    "banter.hungry": ["{other}，有吃的没有？饿坏了。", "先垫垫肚子再说。"],
+    "banter.tired": ["累死了，{other}，你也歇歇吧。", "今天就到这儿吧。"],
     "banter.sour": ["哼，{other}。", "少跟我套近乎，{other}。"],
-    "banter.weather.clear": ["{other}，今天天气真好。"],
-    "banter.weather.rain": ["{other}，这雨什么时候停啊。"],
+    "banter.weather.clear": ["{other}，今天天气真好。", "难得晴一天。"],
+    "banter.weather.rain": ["{other}，这雨什么时候停啊。", "地里该喝饱了。"],
     "banter.weather.fog": ["{other}，雾这么大，别往北门外去。"],
-    "banter.weather.ashfall": ["{other}，天上落灰了，你看见没有？"],
+    "banter.weather.ashfall": ["{other}，天上落灰了，你看见没有？", "把孩子叫回屋去。"],
     "topic.gen_you": {
       "unaware": ["你？没怎么听说过。新来的吧。", "不认识你，也没听人说起过。"],
-      "doubt": ["就你？那个 F 级的？", "听说了些你的事，我一个字都不信。"],
-      "explaining": ["你嘛……说不清，大概是运气吧。"],
-      "wavering": ["我……说不好。也许你真有两下子。不，不可能。"],
-      "worship": ["您就别谦虚了！您的本事谁不知道！"],
-      "hostile": ["你不是人。别靠近我。"],
-      "exploit": ["你有本事，我有门路。我们可以谈谈。"],
-      "depend": ["有您在就好。"]
+      "doubt": [
+        "就你？那个 F 级的？",
+        "听说了些你的事，我一个字都不信。",
+        "就你？外头传的那些，我一个字都不信。",
+        "听说了些你的事，吹得没边了吧。"
+      ],
+      "explaining": [
+        "你嘛……说不清，大概是运气吧。",
+        "你嘛……说不清，大概是{expl}。",
+        "我看啊，{expl}，没别的。"
+      ],
+      "wavering": ["我……说不好。也许你真有两下子。不，不可能。", "别问我。我最近不太敢下结论。"],
+      "worship": ["您就别谦虚了！您的本事谁不知道！", "有您在，这地方就踏实。"],
+      "hostile": ["你不是人。别靠近我。", "你不是寻常人。离我远点。", "我不想跟你这种人多说话。"],
+      "exploit": ["你有本事，我有门路。我们可以谈谈。", "像你这样的人，用对了地方，大家都有好处。"],
+      "depend": ["有您在就好。", "这地方能撑下来，多亏了您。"]
     },
     "unbelief.explain.luck": [
       "你？运气好罢了。",
@@ -133,12 +192,54 @@
     ],
     "unbelief.explain.bloodline": ["你家里是不是出过勇者？", "血统，一定是血统。"],
     "unbelief.explain.useful": ["你这种人，我用得上。", "这个人……用得上。"],
-    "rumor.tell.plain": ["我跟你说，{rumor}", "听说{rumor}"],
-    "react.nothing_more": ["最近没听到什么新鲜事。", "我可不爱嚼舌根。"],
-    "react.nonsense": ["就你说的这些，我可信不了几分。", "空口无凭，谁知道是真是假。"],
-    "farewell": ["慢走。", "{catch}"],
-    "react.confused": ["嗯……你说的这些，我不太明白。", "是吗。"],
-    "react.unknown": ["这我可不知道。", "问我也没用。"],
+    "rumor.tell.plain": [
+      "我跟你说，{rumor}",
+      "听说{rumor}",
+      "我跟你说，{rumor}。",
+      "听说{rumor}。",
+      "有人讲，{rumor}。"
+    ],
+    "react.nothing_more": [
+      "最近没听到什么新鲜事。",
+      "我可不爱嚼舌根。",
+      "就这些了。",
+      "我知道的都说了。",
+      "再多的，我也不知道了。",
+      "别问了，真没了。"
+    ],
+    "react.nonsense": [
+      "就你说的这些，我可信不了几分。",
+      "空口无凭，谁知道是真是假。",
+      "你在说胡话吧？",
+      "这都是什么怪词。",
+      "你是不是发烧了？",
+      "听不懂，也不想懂。"
+    ],
+    "farewell": [
+      "慢走。",
+      "{catch}",
+      "回头见。",
+      {
+        "zh": "走吧走吧。",
+        "mood": ["angry"]
+      },
+      {
+        "zh": "我得歇会儿了，改天再说。",
+        "mood": ["tired"]
+      },
+      {
+        "zh": "下回再来，{player}！",
+        "mood": ["happy"]
+      }
+    ],
+    "react.confused": [
+      "嗯……你说的这些，我不太明白。",
+      "是吗。",
+      "嗯？你说什么？",
+      "我没听明白。",
+      "你说的这些，我不太懂。{topic_hint}，这个我倒能说说。"
+    ],
+    "react.unknown": ["这我可不知道。", "问我也没用。", "没听说过。", "那是什么？头一回听说。"],
     "greet.neutral.day": [
       "你好。",
       "嗯，你好。",
@@ -149,14 +250,31 @@
       {
         "zh": "你好。跟你说，{diary}",
         "w": 2
-      }
+      },
+      "嗯？{player}，有事？",
+      "天亮着呢，有什么事？",
+      "是你啊。找我？"
     ],
-    "react.thanked": ["不用谢。", "客气什么。"],
-    "react.decline": ["我没空听你说这些。", "哼。"],
-    "react.joke": ["哈哈，你这人真有意思。", "说得也是。"],
+    "react.thanked": ["不用谢。", "客气什么。", "应该的。", "记着就行，下回换你帮我。"],
+    "react.decline": [
+      "我没空听你说这些。",
+      "哼。",
+      "我帮不了你。",
+      "这忙我帮不上。",
+      "对不起，我自己都顾不过来。",
+      "别的事还行，这事不行。"
+    ],
+    "react.joke": [
+      "哈哈，你这人真有意思。",
+      "说得也是。",
+      "哈，你这人真有意思。",
+      "不好笑。",
+      "行行行，算你说得对。",
+      "你这是逗我呢。"
+    ],
     "feat": ["做了件了不得的事"],
     "feat.kill": ["一个人收拾了魔物"],
-    "feat.elite_kill": ["单挑放倒了精英魔物"],
+    "feat.elite_kill": ["单挑放倒了精英魔物", "单挑放倒了凶得出名的魔物"],
     "feat.boss_kill": ["打倒了大家伙"],
     "feat.heal": ["把人治好了"],
     "feat.rescue": ["救了人"],
@@ -190,49 +308,161 @@
     "rumor.tpl.witch": ["，跟魔女作祟似的"],
     "rumor.tpl.noble_bastard": ["，准是哪个贵族的私生子"],
     "rumor.tpl.ghost": ["，夜里还有灰色的鬼火跟着"],
-    "react.switch": ["……那就是另一回事了。"],
-    "react.switch.cheat": ["……那你是不是跟公会串通了？", "不对，这里头一定有诈。"],
-    "react.switch.hidden_identity": ["你其实是哪家的少爷吧？"],
-    "react.switch.sorcery": ["不是光……那就是别的东西。"],
-    "react.switch.conspiracy": ["……这里头一定有人安排。"],
-    "react.feat_seen": ["我看见了，是真的。", "好厉害！"],
+    "react.switch": ["……那就是另一回事了。", "不对，不对，我想岔了。"],
+    "react.switch.cheat": [
+      "……那你是不是跟公会串通了？",
+      "不对，这里头一定有诈。",
+      "……那你是不是跟谁串通了？"
+    ],
+    "react.switch.hidden_identity": ["你其实是哪家的少爷吧？", "隐姓埋名的高手，对，一定是。"],
+    "react.switch.sorcery": ["不是光……那就是别的东西。", "这里头有邪祟，我早该想到。"],
+    "react.switch.conspiracy": ["……这里头一定有人安排。", "有人在背后推着，我看出来了。"],
+    "react.feat_seen": [
+      "我看见了，是真的。",
+      "好厉害！",
+      "我看见了，这……是真的？",
+      "你怎么做到的？",
+      {
+        "zh": "别、别过来……",
+        "mood": ["fear"]
+      }
+    ],
     "bark.vendor_call": [
       "来看看，来看看！",
       "新到的货，过路的瞧一眼！",
-      "便宜卖了，错过可没有了！"
+      "便宜卖了，错过可没有了！",
+      "新货到了，便宜卖！"
     ],
-    "bark.sermon": ["光照着每一个肯回头的人。", "愿光庇佑边石镇。"],
-    "bark.see_player": ["哟，是你。", "又碰上了。"],
-    "bark.see_feat": ["你们看见没有？", "这……怎么做到的？", "我没看花眼吧？"],
-    "bark.fear": ["别过来……", "快回家，把门闩上。"],
-    "bark.angry": ["气死我了。", "哼，这口气我咽不下。"],
-    "bark.patrol": ["都安分点。", "巡一圈，没事就好。"],
-    "bark.home": ["还是家里待着踏实。", "回去歇着。"],
-    "bark.morning": ["一早就得忙起来。", "又是新的一天。"],
-    "bark.evening": ["天要黑了。", "忙完这点就收工。"],
-    "bark.night": ["这么晚了还在外头？", "夜里别乱走。"],
-    "bark.market_day": ["集日人真多。", "今天赶集，东西都便宜点。"],
-    "bark.holy_day": ["礼拜日，可别迟到。", "该去礼拜堂了。"],
-    "react.helped": ["上回多亏了你，{player}。这份情我记着。", "那天要不是你，我真不知道怎么办。"],
-    "react.saved": ["{player}，你救过我的命。这辈子都忘不了。", "那天……谢谢你。真的。"],
-    "react.awe_fear": ["别、别过来！", "你……你到底是什么人？"],
-    "react.heresy_alarm": ["这不是光的手笔……愿光护佑我。", "我得去禀告神父。"],
-    "react.miracle_awe": ["这是神迹……我亲眼看见了。", "光回应了，光真的回应了。"],
+    "bark.sermon": [
+      "光照着每一个肯回头的人。",
+      "愿光庇佑边石镇。",
+      "光照着每一个人。",
+      "诸位，请静一静。"
+    ],
+    "bark.see_player": ["哟，是你。", "又碰上了。", "那人是谁？", "就是他吧，外头说的那个。"],
+    "bark.see_feat": [
+      "你们看见没有？",
+      "这……怎么做到的？",
+      "我没看花眼吧？",
+      "你们看见了吗？",
+      "这不可能……"
+    ],
+    "bark.fear": ["别过来……", "快回家，把门闩上。", "我听见外头有动静。"],
+    "bark.angry": ["气死我了。", "哼，这口气我咽不下。", "谁都别来惹我。"],
+    "bark.patrol": ["都安分点。", "巡一圈，没事就好。", "这边没事。下一处。", "眼睛放亮点。"],
+    "bark.home": ["还是家里待着踏实。", "回去歇着。", "回家，关门，睡觉。", "家里还有一堆事。"],
+    "bark.morning": [
+      "一早就得忙起来。",
+      "又是新的一天。",
+      "天亮了，又是一天。",
+      "早起的鸟儿有虫吃。"
+    ],
+    "bark.evening": ["天要黑了。", "忙完这点就收工。", "天快黑了，收工吧。", "晚饭吃什么呢。"],
+    "bark.night": ["这么晚了还在外头？", "夜里别乱走。", "这么晚还有人在外头？", "夜里静得吓人。"],
+    "bark.market_day": [
+      "集日人真多。",
+      "今天赶集，东西都便宜点。",
+      "今天集日，人真多。",
+      "去集上转转。"
+    ],
+    "bark.holy_day": [
+      "礼拜日，可别迟到。",
+      "该去礼拜堂了。",
+      "今天礼拜日，别干重活。",
+      "去礼拜堂吗？"
+    ],
+    "react.helped": [
+      "上回多亏了你，{player}。这份情我记着。",
+      "那天要不是你，我真不知道怎么办。",
+      "上回多亏了你。",
+      "你帮过我，我记着。",
+      "欠你一个人情。"
+    ],
+    "react.saved": [
+      "{player}，你救过我的命。这辈子都忘不了。",
+      "那天……谢谢你。真的。",
+      "要不是你，我这条命就没了。",
+      "救命之恩，我这辈子都记得。",
+      "我……我还活着。谢谢你。"
+    ],
+    "react.awe_fear": [
+      "别、别过来！",
+      "你……你到底是什么人？",
+      "别、别伤我！",
+      "我什么都没看见！什么都没看见！",
+      "光啊……保佑……"
+    ],
+    "react.heresy_alarm": [
+      "这不是光的手笔……愿光护佑我。",
+      "我得去禀告神父。",
+      "这不是光……这是别的东西！",
+      "别靠近他，去叫神父！",
+      "光不会这样……这里头有邪祟。"
+    ],
+    "react.miracle_awe": [
+      "这是神迹……我亲眼看见了。",
+      "光回应了，光真的回应了。",
+      "这是奇迹……光在看着！",
+      "我要去告诉大家，真的有神迹！",
+      "跪下，快跪下！"
+    ],
     "react.challenge": [
       "站住。你跟传闻里说的那个人，长得太像了。",
-      "{player}，跟我走一趟，有话问你。"
+      "{player}，跟我走一趟，有话问你。",
+      "站住，例行问话。",
+      "你的名字，从哪儿来，到哪儿去。",
+      "有人报了你的事，跟我走一趟。"
     ],
-    "react.belief_depend": ["{player}，镇上的事，还得靠您拿主意。", "有您在，大家心里就踏实。"],
-    "react.gatefolk_recognize": ["……原来是你。我什么都不会说。", "门的那一边……我懂。"],
-    "react.request_battle": ["外头不太平。让我带人去看看吧。", "要打的话，算我一个。"],
+    "react.belief_depend": [
+      "{player}，镇上的事，还得靠您拿主意。",
+      "有您在，大家心里就踏实。",
+      "您得替我们拿个主意。",
+      "有您在，我们就不怕了。",
+      "求您了，这事只有您能管。"
+    ],
+    "react.gatefolk_recognize": [
+      "……原来是你。我什么都不会说。",
+      "门的那一边……我懂。",
+      "（低声）门开着呢。",
+      "你也是……认得路的人？"
+    ],
+    "react.request_battle": [
+      "外头不太平。让我带人去看看吧。",
+      "要打的话，算我一个。",
+      "让我上吧。",
+      "再等下去就晚了，打吧。"
+    ],
     "react.rival_taunt": [
       "哟，F 级的，今天又捡到什么漏了？",
-      "别以为运气好一回，就真当自己有本事。"
+      "别以为运气好一回，就真当自己有本事。",
+      "又是你，还没走呢？",
+      "有本事跟我比一场。"
     ],
-    "react.hint": ["你要是真想知道，就别只问我。", "有些东西，得自己去找。"],
+    "react.hint": [
+      "你要是真想知道，就别只问我。",
+      "有些东西，得自己去找。",
+      "你看见的，未必是全部。",
+      "门后面的东西，得自己去看。"
+    ],
     "topic.gen_trouble": [
       "{player}，能借一步说话吗？我这儿有件难事。",
-      "不瞒你说，最近遇上点麻烦，想托你帮个忙。"
+      "不瞒你说，最近遇上点麻烦，想托你帮个忙。",
+      {
+        "zh": "烦心事？多得很。就说眼下这件吧……",
+        "mood": ["worried"]
+      },
+      {
+        "zh": "你要是有空，帮我个忙？我这儿真是没辙了。",
+        "mood": ["worried"]
+      },
+      {
+        "zh": "累，就是累，干不完的活。",
+        "mood": ["tired"]
+      },
+      {
+        "zh": "还好，没什么大事。谢谢你问。",
+        "mood": ["calm"]
+      }
     ],
     "banter.ask_help": ["{other}，能帮我个忙吗？", "实在没法子了，{other}。"],
     "banter.invite": ["{other}，改天一起喝一杯？", "得空来坐坐，{other}。"],
@@ -364,6 +594,1209 @@
     "react.no_work": ["没活给你。", "眼下没什么要帮忙的。", "有活我会说的。", "你去委托板看看吧。"],
     "react.declined": ["不行。", "这事我不干。", "换个人吧。", "别为难我。"],
     "react.promise_noted": ["说定了。", "我记下了，你可别忘。", "好，就这么办。", "一言为定。"],
-    "react.ask_help": ["能帮我个忙吗？", "这事我一个人办不了。"]
+    "react.ask_help": ["能帮我个忙吗？", "这事我一个人办不了。"],
+    "greet.neutral.night": ["这么晚了，{player}。", "夜里走动，小心脚下。", "天都黑了，什么事？"],
+    "react.feat_heard": ["听说{feat}，是你？", "外头都在说你{feat}，我可不信。"],
+    "react.rumor_self": ["外头说我什么了？谁说的？", "我的事轮不到别人嚼舌头。"],
+    "react.identity_pageless": [
+      "无记载？怎么会什么都读不出来？",
+      "水晶又坏了吧。",
+      "读不出来的人……我头一回见。",
+      "光照不出的东西……算了，我什么都没说。"
+    ],
+    "react.identity_door": ["人……人呢？刚才还在这儿！", "他走进去了？进哪儿去了？"],
+    "react.identity_gatemark": ["你手上那是……别让人看见。", "那个印子，我在别处见过。"],
+    "react.identity_pressure": ["你身上……有股压得人喘不过气的东西。", "我腿软了，怎么回事？"],
+    "react.switch.luck": ["那就是运气。一定是。", "碰巧罢了，碰巧。"],
+    "react.switch.wounded": ["那东西肯定早被人打残了。", "捡了个漏，没别的。"],
+    "react.switch.gadget": ["身上准藏着什么机关。", "不是人的本事，是东西的本事。"],
+    "react.switch.misreport": ["那就是传话的人吹过头了。", "见过的人少，说的人多，信不得。"],
+    "react.switch.miracle": ["那是光在眷顾。", "不是人力，是神迹。"],
+    "react.switch.bloodline": ["血统，一定是血统。", "祖上出过大人物吧？"],
+    "react.switch.useful": ["管他怎么做到的，这个人用得上。", "想那么多做什么，有用就行。"],
+    "react.harmed": ["你伤了我，别想我当没发生过。", "这笔账我记下了。"],
+    "react.cheated": ["你骗了我。", "下回别指望我再信你。"],
+    "react.mourning": ["人没了……什么都没了。", "让我一个人待会儿。"],
+    "react.apology_accept": [
+      "算了，这回就算了。",
+      "知道错就好。",
+      "行，翻篇。",
+      "我也有不对的地方。"
+    ],
+    "react.apology_reject": [
+      "一句对不起就完了？",
+      "我现在不想听。",
+      "等你做点什么再说。",
+      "道歉不值钱。"
+    ],
+    "react.flattered": ["哪里哪里。", "你嘴可真甜。", "少来这套，不过……谢谢。", "夸我也不打折。"],
+    "react.insult": [
+      "你说什么？",
+      "嘴放干净点。",
+      "我没空跟你吵。",
+      {
+        "zh": "再说一遍试试？",
+        "mood": ["angry"]
+      }
+    ],
+    "react.threatened": [
+      {
+        "zh": "别、别动手，有话好说……",
+        "mood": ["fear"]
+      },
+      {
+        "zh": "我、我知道了……",
+        "mood": ["fear"]
+      },
+      "你吓唬谁呢？",
+      "在{place}动手？你试试看。"
+    ],
+    "react.advance": [
+      "去去去，没正经。",
+      "这话你跟谁都这么说吧。",
+      "我可没那个心思。",
+      "再这么说我就不理你了。"
+    ],
+    "react.boast": [
+      "吹吧你就。",
+      "说得跟真的似的。",
+      "嗯，嗯，我信了。",
+      "本事大不大，不是嘴上说的。"
+    ],
+    "react.accused": [
+      "你凭什么这么说？",
+      "拿出证据来。",
+      "血口喷人！",
+      "我没做过的事，你别往我头上扣。"
+    ],
+    "react.gift_liked": [
+      "给我的？这正是我想要的！",
+      "太好了，谢谢你！",
+      "你怎么知道我喜欢这个？",
+      "这礼我收下了，记你一份情。"
+    ],
+    "react.gift_plain": ["谢谢。", "嗯，收下了。", "你有心了。", "用得上。"],
+    "react.gift_disliked": [
+      "这个……我用不上。",
+      "你还是拿回去吧。",
+      "谢谢，不过我不太喜欢这个。",
+      "你确定是要给我的？"
+    ],
+    "react.haggle_ok": [
+      "行行行，算你便宜点。",
+      "就这一回啊。",
+      "看你顺眼，让一点。",
+      "成交。别跟别人说这个价。"
+    ],
+    "react.haggle_no": ["不能再低了。", "这个价已经是亏本了。", "嫌贵别买。", "一个铜板都不让。"],
+    "react.bribe_accept": [
+      "（压低声音）……这回就当我没看见。",
+      "你懂事。走吧。",
+      "收起来，别让人看见。",
+      "只此一次。"
+    ],
+    "react.bribe_refuse": [
+      "收回去。你当我是什么人？",
+      "想用钱买我？",
+      "这事钱办不了。",
+      "再拿出来，我就叫人了。"
+    ],
+    "react.wrong_person": [
+      "这事你找错人了，去问{who}。",
+      "我不管这个，{who}管。",
+      "你得去{place}找人。",
+      "我帮不上，不过{who}也许行。"
+    ],
+    "react.recruit_yes": ["好，我跟你走。", "早等你这句话了。", "算我一个。", "行，就当我欠你的。"],
+    "react.recruit_terms": [
+      "跟你走可以，先说好条件。",
+      "你先帮我把手上的事了了。",
+      "工钱怎么算？",
+      "我有个条件。"
+    ],
+    "react.recruit_later": [
+      "现在不行，等过阵子。",
+      "再让我想想。",
+      "等你在这儿站稳了再说。",
+      "我还有事放不下。"
+    ],
+    "react.recruit_no": ["我不去。", "我们不是一路人。", "你找别人吧。", "这条命我还想留着。"],
+    "react.self_recommend": ["那个差事，能不能让我试试？", "我觉得我干得了。"],
+    "react.rival_concede": ["……我输了。", "这回算你赢。"],
+    "react.call_favor": ["你还欠我一个人情，记得吗？", "该你还人情的时候了。"],
+    "react.invite": ["晚上一起吃个饭？", "改天来我那儿坐坐。"],
+    "react.goddess_invoked": [
+      "你在念谁的名字？",
+      "这名字可不是随便叫的。",
+      {
+        "zh": "别、别在这儿念那个……",
+        "mood": ["fear"]
+      },
+      "光在上，你这是做什么？"
+    ],
+    "react.earth_talk": [
+      "什么？那是什么东西？",
+      "你那边的玩意儿真稀奇。",
+      "会自己跑的车？你做梦呢。",
+      "说说看，那东西怎么做的？"
+    ],
+    "react.earth_refuse": [
+      "那种东西做不出来的。",
+      "这话要是让教会听见，会烧掉你的。",
+      "纸上写的钱？那叫欠条。",
+      "一点就炸的粉？别想了，没人会碰。"
+    ],
+    "bark.travel": ["路还远着呢。", "天黑前得赶到{next}。"],
+    "bark.camp": ["火别灭了。", "轮到谁守夜了？"],
+    "bark.danger": ["快跑！有东西来了！", "关门，关门！"],
+    "bark.combat": ["上啊！", "小心背后！"],
+    "bark.hurt": ["啊！", "我受伤了……"],
+    "bark.flee": ["撤！快撤！", "打不过，跑！"],
+    "bark.victory": ["赢了！", "总算打完了。"],
+    "bark.ally_down": ["有人倒下了！", "快，扶起来！"],
+    "bark.festival": ["今天热闹！", "喝一杯，喝一杯！"],
+    "bark.wartime": ["又要打仗了。", "粮食得省着吃。"],
+    "bark.monster_season": ["魔物季到了，夜里别出门。", "今年的魔物季来得早。"],
+    "bark.crowd": ["让一让，让一让。", "前面出什么事了？"],
+    "bark.dream": ["……别走……", "……门……开着……"],
+    "mem.feat_seen.folk": ["{place}，我亲眼看见{who}{feat}。"],
+    "mem.feat_seen.guild": ["在{place}亲眼见{who}{feat}，记一笔。"],
+    "mem.feat_seen.lettered": ["于{place}目睹{who}{feat}，此事须记。"],
+    "mem.feat_seen.short": ["那回你{feat}"],
+    "mem.rumor_heard.folk": ["听{who}说，{rumor}。"],
+    "mem.rumor_heard.guild": ["{who}传来的消息：{rumor}。真假待查。"],
+    "mem.rumor_heard.lettered": ["闻{who}言：{rumor}。存疑。"],
+    "mem.rumor_heard.short": ["听人说起你的那件事"],
+    "mem.talk_player.folk": ["跟{player}在{place}说了会儿话。"],
+    "mem.talk_player.guild": ["和{player}谈过一次，人还算爽快。"],
+    "mem.talk_player.lettered": ["与{player}一晤。"],
+    "mem.talk_player.short": ["上回我们聊过"],
+    "mem.gift.folk": ["{who}送了我{item}。"],
+    "mem.gift.guild": ["收了{who}的{item}，这份情得记着。"],
+    "mem.gift.lettered": ["受{who}所赠{item}。"],
+    "mem.gift.short": ["你送我的{item}"],
+    "mem.helped.folk": ["{who}在{place}帮了我一把。"],
+    "mem.helped.guild": ["{who}帮过我，欠一份人情。"],
+    "mem.helped.lettered": ["蒙{who}相助。"],
+    "mem.helped.short": ["上回你帮我那件事"],
+    "mem.saved.folk": ["那天要不是{who}，我就死在{place}了。"],
+    "mem.saved.guild": ["命是{who}救的。这个人情还不完。"],
+    "mem.saved.lettered": ["{place}之事，赖{who}活命。"],
+    "mem.saved.short": ["你救我那回"],
+    "mem.insulted.folk": ["{who}当众骂我。"],
+    "mem.insulted.guild": ["{who}落了我的面子，记下了。"],
+    "mem.insulted.lettered": ["受{who}之辱。"],
+    "mem.insulted.short": ["你那天说的话"],
+    "mem.harmed.folk": ["{who}伤了我。"],
+    "mem.harmed.guild": ["挨了{who}一下，这笔账没完。"],
+    "mem.harmed.lettered": ["为{who}所伤。"],
+    "mem.harmed.short": ["你伤我那回"],
+    "mem.cheated.folk": ["被{who}坑了。"],
+    "mem.cheated.guild": ["{who}骗了我，以后得防着。"],
+    "mem.cheated.lettered": ["为{who}所欺。"],
+    "mem.cheated.short": ["你骗我那回"],
+    "mem.trade.folk": ["跟{who}换了{item}。"],
+    "mem.trade.guild": ["和{who}做了一笔{item}的买卖，{price}。"],
+    "mem.trade.lettered": ["与{who}易{item}。"],
+    "mem.trade.short": ["上回那笔买卖"],
+    "mem.quarrel.folk": ["跟{who}吵了一架。"],
+    "mem.quarrel.guild": ["和{who}起了争执，话说得难听。"],
+    "mem.quarrel.lettered": ["与{who}有龃龉。"],
+    "mem.quarrel.short": ["我们吵的那一回"],
+    "mem.reconcile.folk": ["跟{who}和好了。"],
+    "mem.reconcile.guild": ["和{who}把话说开了。"],
+    "mem.reconcile.lettered": ["与{who}释嫌。"],
+    "mem.reconcile.short": ["后来我们说开了"],
+    "mem.promise.folk": ["答应了{who}一件事。"],
+    "mem.promise.guild": ["跟{who}说定了，得办到。"],
+    "mem.promise.lettered": ["与{who}有约。"],
+    "mem.promise.short": ["你答应我的事"],
+    "mem.kept.folk": ["{who}说到做到。"],
+    "mem.kept.guild": ["{who}守约，可以再打交道。"],
+    "mem.kept.lettered": ["{who}践约。"],
+    "mem.kept.short": ["你守了约"],
+    "mem.broken.folk": ["{who}说话不算话。"],
+    "mem.broken.guild": ["{who}违约，下回先付钱再说。"],
+    "mem.broken.lettered": ["{who}背约。"],
+    "mem.broken.short": ["你没守的那个约"],
+    "mem.miracle.folk": ["在{place}，我看见了神迹。"],
+    "mem.miracle.guild": ["{place}出了怪事，像是神迹。"],
+    "mem.miracle.lettered": ["于{place}得见异象。"],
+    "mem.miracle.short": ["那天的神迹"],
+    "mem.oracle.folk": ["神父说上头有话传下来了。"],
+    "mem.oracle.guild": ["听说教会接了神谕。"],
+    "mem.oracle.lettered": ["受神谕：{event}。"],
+    "mem.oracle.short": ["那道神谕"],
+    "mem.mourning.folk": ["{who}没了。"],
+    "mem.mourning.guild": ["{who}走了，再也见不着了。"],
+    "mem.mourning.lettered": ["{who}亡故。"],
+    "mem.mourning.short": ["{who}走的那天"],
+    "mem.belief_changed.folk": ["{who}……我想我看错了。"],
+    "mem.belief_changed.guild": ["对{who}的看法得改一改了。"],
+    "mem.belief_changed.lettered": ["先前对{who}所论，有误。"],
+    "mem.belief_changed.short": ["我对你改了看法的那回"],
+    "diary.leave.folk": ["去了一趟{place}。"],
+    "diary.leave.guild": ["出门去了{place}，办了点事。"],
+    "diary.leave.lettered": ["是日赴{place}。"],
+    "diary.hurt.folk": ["在{place}受了点伤。"],
+    "diary.hurt.guild": ["挂了彩，不重。"],
+    "diary.hurt.lettered": ["于{place}负伤。"],
+    "diary.quarrel.folk": ["跟{who}吵了一架，别提了。"],
+    "diary.quarrel.guild": ["和{who}起了冲突。"],
+    "diary.quarrel.lettered": ["与{who}争执。"],
+    "diary.ask_help.folk": ["去求{who}帮忙。"],
+    "diary.ask_help.guild": ["找{who}搭了把手。"],
+    "diary.ask_help.lettered": ["求助于{who}。"],
+    "diary.met.folk": ["认识了{who}。"],
+    "diary.met.guild": ["结识{who}，可交。"],
+    "diary.met.lettered": ["识{who}。"],
+    "diary.trade.folk": ["跟{who}做了笔买卖。"],
+    "diary.trade.guild": ["成交一笔，跟{who}。"],
+    "diary.trade.lettered": ["与{who}交易。"],
+    "diary.gossip.folk": ["听{who}讲了件新鲜事。"],
+    "diary.gossip.guild": ["跟{who}交换了消息。"],
+    "diary.gossip.lettered": ["与{who}闲谈时事。"],
+    "diary.work_odd.folk": ["今天的活不顺。"],
+    "diary.work_odd.guild": ["手上的事出了岔子。"],
+    "diary.work_odd.lettered": ["事有不谐。"],
+    "diary.pray.folk": ["去祷告了。"],
+    "diary.pray.guild": ["祷了一回，求个心安。"],
+    "diary.pray.lettered": ["晚祷。"],
+    "diary.work.folk": ["干了一天活。"],
+    "diary.work.guild": ["照常做事。"],
+    "diary.work.lettered": ["理事如常。"],
+    "diary.chat.folk": ["跟{who}聊了几句。"],
+    "diary.chat.guild": ["和{who}喝了一杯。"],
+    "diary.chat.lettered": ["与{who}叙话。"],
+    "diary.mood.fear": ["心里发慌。", "夜里怕是睡不好。"],
+    "diary.mood.angry": ["气还没消。", "这口气咽不下。"],
+    "diary.mood.worried": ["愁。", "不知道明天怎么办。"],
+    "diary.mood.tired": ["累坏了。", "只想倒头就睡。"],
+    "diary.mood.happy": ["是个好日子。", "心里松快。"],
+    "diary.mood.calm": ["就这样吧。", "没什么特别的。"],
+    "rumor.tell.x5": [
+      "真的真的！{rumor}，少说也有五回！",
+      "我跟你说哦，{rumor}，比你想的大五倍！",
+      "你猜怎么着？{rumor}，一群人都看呆了！"
+    ],
+    "rumor.tell.cute": [
+      "好厉害！{rumor}，你说厉不厉害？",
+      "听说{rumor}，好可爱的说法吧？",
+      "哇，{rumor}，我都想亲眼看看了！"
+    ],
+    "rumor.tell.fear": [
+      "（压低声音）{rumor}……这里头一定有邪祟。",
+      "你听了别害怕：{rumor}。",
+      "光保佑！{rumor}，夜里可别出门。"
+    ],
+    "rumor.tell.ghost": [
+      "夜里别往坡上去……{rumor}，那是鬼在引路。",
+      "老辈人讲过：{rumor}，那是死人回来了。",
+      "{rumor}。我看啊，是不干净的东西。"
+    ],
+    "rumor.tell.flatten": [
+      "{rumor}？哪有那种事，碰巧罢了。",
+      "都说{rumor}，我看就是寻常事。",
+      "听着玄，说穿了不过是{rumor}。"
+    ],
+    "rumor.tell.self_credit": [
+      "{rumor}。那东西其实是我们先打残的。",
+      "要说{rumor}，我们才是出了大力的。",
+      "{rumor}？没我们在前头，哪轮得到别人。"
+    ],
+    "rumor.tell.deflect": [
+      "{rumor}，不过多半是运气，或者有什么机关。",
+      "听说{rumor}，功劳该算在别人头上。",
+      "{rumor}，我觉得是碰巧。"
+    ],
+    "rumor.tell.detail": [
+      "我跟你讲，{rumor}，那人衣角上还沾着灰。",
+      "{rumor}，那天是傍晚，下过雨，我记得清清楚楚。",
+      "{rumor}，气味我都还记得。"
+    ],
+    "rumor.tell.price": [
+      "{rumor}。这事值多少钱，我心里有数。",
+      "听说{rumor}，盐价怕是要变。",
+      "{rumor}，你要是想知道更多，得加钱。"
+    ],
+    "rumor.tell.light": [
+      "{rumor}。光会看见的……或者是别的东西。",
+      "有人说{rumor}，这是光的眷顾。",
+      "{rumor}，愿光照明真相。"
+    ],
+    "rumor.tell.song": [
+      "听好了，这可是真事：{rumor}！",
+      "我给你唱一段：{rumor}，嘿！",
+      "新编的段子：{rumor}，押韵吧？"
+    ],
+    "rumor.tell.record": [
+      "据记录：{rumor}。",
+      "记下来的是：{rumor}，日期待核。",
+      "有人报过一条：{rumor}。"
+    ],
+    "rumor.tell.threat": [
+      "{rumor}。这样的人，不是麻烦就是用得上的棋子。",
+      "听说{rumor}，得防着点，也得拉拢着点。",
+      "{rumor}，你说他背后站着谁？"
+    ],
+    "rumor.tell.understate": [
+      "{rumor}，没多大事。",
+      "说是{rumor}，我看也就那样。",
+      "{rumor}，传的人添了料。"
+    ],
+    "feat.vanish": ["一转眼就不见了"],
+    "feat.walk_ash": ["在灰暴里走路像散步"],
+    "feat.catch_arrow": ["徒手接住了一支箭"],
+    "expl.luck": ["运气好罢了", "碰巧打中了要害", "走了狗屎运"],
+    "expl.wounded": ["那东西早被人打残了", "捡了别人的漏", "前头有人替他拼过命"],
+    "expl.gadget": ["身上准藏着什么魔导器", "用了什么机关", "靠的是道具，不是手"],
+    "expl.cheat": ["这里头有诈", "跟公会串通好了", "耍了什么花招"],
+    "expl.misreport": ["传话的人吹过头了", "见过的人没几个，说的人一大堆", "十成里有八成是编的"],
+    "expl.miracle": ["光在眷顾", "那是神迹，不是人力", "有神在背后保佑"],
+    "expl.sorcery": ["怕是邪术", "光不会赐福给没有记载的人，那就是别的东西", "魔物作祟"],
+    "expl.conspiracy": ["有人在背后安排", "这是谁演的一出戏", "是谁家的棋子"],
+    "expl.hidden_identity": ["哪家微服的少爷", "退隐的高手装成新人", "隐姓埋名的大人物"],
+    "expl.bloodline": ["血统，一定是血统", "祖上出过勇者", "天生的，学不来"],
+    "expl.useful": ["管他怎么做到的，用得上就行", "这种人迟早有人要", "能用就好"],
+    "doc.notice.tax": [
+      "{place}告示：自即日起，{item}按{num}成征收。理由：{event}。逾期不缴者，依例处置。",
+      "告诸位乡邻：{event}，税额调整为{num}成，集日起征。"
+    ],
+    "doc.notice.summons": [
+      "{place}告示：兹有{who}一名，限{num}日内至官府应询。藏匿、包庇者，同罪论。",
+      "传：{who}，事涉{event}，速来说明。"
+    ],
+    "doc.notice.wanted": [
+      "缉拿：{who}，因{event}在逃。知情来报者，赏{price}。",
+      "告示：见{who}者，报卫队。"
+    ],
+    "doc.notice.festival": [
+      "{place}告示：{event}之日，集市延长，酒水半价，愿诸位尽兴。",
+      "节庆在即，诸位各守本分，莫生事端。"
+    ],
+    "doc.notice.levy": [
+      "征召令：{place}每户出丁{num}人，{event}，三日内到营。",
+      "奉命征粮：每户{num}斗，以供{event}。"
+    ],
+    "doc.report.weekly": [
+      "{place}本周：{event}。人口{num}，粮储{item}。另有一事禀报：{rumor}。",
+      "周报：诸事如常，唯{event}，请示下。"
+    ],
+    "doc.report.battle_win": [
+      "战报：{place}一战，我军得胜。敌溃，我伤亡{num}。{feat}。",
+      "捷报：{event}，{place}已守住。"
+    ],
+    "doc.report.battle_loss": [
+      "战报：{place}失守。我伤亡{num}，余部退往{next}。",
+      "急报：{event}，请速援。"
+    ],
+    "doc.report.battle_hold": [
+      "战报：{place}对峙，双方各有损伤{num}，阵线未动。",
+      "军情：敌在{dir}集结，我守{place}，待命。"
+    ],
+    "doc.petition": [
+      "请示：{event}。臣意{expl}，望示下。若{num}日内无示，依常例办理。",
+      "禀：{place}出了{event}，此事超出下官权限，请定夺。"
+    ],
+    "doc.letter.official": [
+      "致{who}：据报{event}。望于{num}日内携相关人等至{place}说明。谨启。",
+      "敬启者：{event}一事，烦请查明回复。"
+    ],
+    "doc.letter.state_alliance": [
+      "{who}亲启：我方愿与贵方结盟，共御{event}。条款附后。",
+      "国书：为{event}计，愿结同盟，约期{num}年。"
+    ],
+    "doc.letter.state_war": [
+      "{who}：贵方{event}，我方忍无可忍。自即日起，两国兵戎相见。",
+      "宣战书：因{event}，即刻开战。"
+    ],
+    "doc.letter.state_peace": [
+      "{who}亲启：战事已久，民不堪命。愿以{item}为约，罢兵议和。",
+      "和书：{event}已了，愿各守边界。"
+    ],
+    "doc.commission": [
+      "委托：{event}。地点{place}，报酬{price}。接者至柜台登记。",
+      "求助：{event}，酬{price}，越快越好。"
+    ],
+    "doc.receipt": [
+      "收讫：{item}{num}件，作价{price}。",
+      "凭条：今收到{who}{item}，日后照价归还。"
+    ],
+    "interp.view_fortify": [
+      "大人说这里风景好。",
+      "风景好，就是视野好；视野好，就该筑一座哨。",
+      "哨冲着北边，大人是要我们防北边。"
+    ],
+    "interp.quiet_plot": ["大人今天话很少。", "话少，是在想大事。", "大事，多半是要动谁了。"],
+    "interp.walk_inspect": [
+      "大人从工坊门口走过。",
+      "走得慢，是在看。",
+      "看了不说，是嫌我们慢。加班。"
+    ],
+    "interp.eat_frugal": ["大人只喝了一碗汤。", "节俭是做给我们看的。", "省下的粮，是要囤着打仗。"],
+    "interp.gift_recruit": [
+      "大人送了那人一样东西。",
+      "送东西就是看上了。",
+      "看上了，就是要招他。我先去探探口风。"
+    ],
+    "interp.map_war": [
+      "大人盯着地图看了很久。",
+      "看的是东边那一角。",
+      "东边要有事。先把粮道修好。"
+    ],
+    "interp.praise_promote": [
+      "大人夸了他一句。",
+      "夸一句，就是要用他。",
+      "要用他，就得先给他腾位置。"
+    ],
+    "interp.ask_price": ["大人问了盐价。", "问价，是嫌贵。", "嫌贵，是要整顿集市。"],
+    "interp.sigh_displeased": [
+      "大人叹了口气。",
+      "叹气，是有人办砸了。",
+      "办砸的人，大概是我。我去补救。"
+    ],
+    "interp.rest_test": ["大人说今天歇一天。", "歇一天，是看我们自己会不会做事。", "那就不能歇。"],
+    "interp.again": [
+      "大人这是在考验我。",
+      "我明白了，大人是不想让旁人知道。",
+      "是我说得太直了，大人自有深意。",
+      "好，我当没听见。可我心里有数。"
+    ],
+    "topic.place_borderstone": {
+      "K0": [
+        "边石镇，八百来口人，北边是荒原，南边是去瓦伦堡的大路。",
+        "小地方，谁家有点事，第二天全镇都知道。"
+      ],
+      "K1": [
+        "边石镇近来不太平：税涨了，南路有匪，魔物季一年比一年长。",
+        "代官管着镇子，领主在王都，从来不来。"
+      ]
+    },
+    "topic.place_bs_edgestone": {
+      "K0": ["广场那块灰石头？建镇时立的王国界碑。", "老人说摸一摸边石，出门不迷路。"]
+    },
+    "topic.place_bs_guild": {
+      "K0": [
+        "公会分部，两层木楼。委托板在一楼，鉴定水晶在柜台上。",
+        "后院有根木桩，冒险者天天在那儿练。"
+      ],
+      "K1": ["分部长是老布伦，一只胳膊，记性比谁都好。", "公会的水晶这个月又坏了，听说。"]
+    },
+    "topic.place_bs_chapel": {
+      "K0": ["小礼拜堂，钟楼是镇上最高的地方。礼拜日都去。", "祭坛上供着圣灯，叫光之鉴。"],
+      "K1": ["神父每周给瓦伦堡教区写报告。镇上的事，教区都知道。"]
+    },
+    "topic.place_bs_branch": {
+      "K0": ["梅尔卡托商会的分号，盐和药水都在那儿买。", "院子角上有座小神龛，商人都拜。"],
+      "K1": ["商会的盐最近贵得离谱。听说是总号的意思。"]
+    },
+    "topic.place_bs_drunk_moon": {
+      "K0": ["醉月亭，吃饭、住店、喝酒。老板娘玛莎人好。", "店里不许打架，老板娘亲自管。"]
+    },
+    "topic.place_bs_smithy": {
+      "K0": ["巴尔加的铁匠铺，矮人打的铁，好。", "那个矮人睡得晚，半夜还听见敲打声。"]
+    },
+    "topic.place_bs_herb_hut": {
+      "K0": [
+        "药草婆婆住在东栅外，看病收鸡蛋。",
+        {
+          "zh": "那屋子……魔女的屋子，别去。",
+          "when": "a1_witch_trial_started AND a1_oola_fate != cleared"
+        }
+      ],
+      "K1": ["药草婆婆懂的比神父多，这话别往外说。"]
+    },
+    "topic.place_bs_orphanage": {
+      "K0": ["圣灯孤儿院，十四个孩子，贴着北泉。", "孩子常被远房亲戚接走，也是好事。"]
+    },
+    "topic.place_bs_north_spring": {
+      "K0": ["北泉不收井税，北区的穷人都喝它。", "水凉，有点铁味。"],
+      "K1": [
+        {
+          "zh": "北泉的水发灰，别喝了。病就是从那儿来的。",
+          "when": "a1_spring_source_found"
+        }
+      ]
+    },
+    "topic.place_bs_magistrate": {
+      "K0": ["代官府，镇上唯一的石头房子。前厅收税，侧屋关人。"]
+    },
+    "topic.place_bs_salt_lane": {
+      "K0": ["盐巷每周一个集日，什么都有。", "集日人多，看好钱袋。"]
+    },
+    "topic.place_bs_guardpost": {
+      "K0": ["北门旁边的哨所，十二个民兵，一口警钟。"]
+    },
+    "topic.place_bs_north_gate": {
+      "K0": ["荒原门。出了北门就是荒原，没事别去。", "北段的墙是石头的，东边的栅子朽了。"]
+    },
+    "topic.place_bs_south_gate": {
+      "K0": ["南门外是驿站，往南的大路通瓦伦堡。", "寄信、租马，都找驿站的老乌尔夫。"]
+    },
+    "topic.place_bs_east_slope": {
+      "K0": ["东栅外的东坡，兽人猎户住那儿。", "他们的熏肉好，皮子也好。"]
+    },
+    "topic.place_bs_lumberyard": {
+      "K0": ["东北溪边的伐木场，加斯帕带着三十个人。"]
+    },
+    "topic.place_bs_graveyard": {
+      "K0": ["西南坡上的墓地，守墓的埃德老头一个人住。", "米洛的坟还是新土。"]
+    },
+    "topic.place_bs_mill": {
+      "K0": ["奥托磨坊，老奥托冬天走了，磨坊空着。", "那磨坊有口深井，水好。"]
+    },
+    "topic.place_bs_bakery": {
+      "K0": ["佩德的面包房，清早第一缕烟就是他家的。"]
+    },
+    "topic.place_bs_wash_creek": {
+      "K0": ["洗衣溪，西边的浅滩。女人们洗衣服、说闲话。", "想打听什么，去洗衣溪坐一会儿。"]
+    },
+    "topic.place_bs_west_fields": {
+      "K0": ["西田是镇上的麦地。今年的税，种地的最苦。"]
+    },
+    "topic.place_bs_dice_house": {
+      "K0": ["盐巷尽头有个赌局。正经人别去。"],
+      "K1": ["骰子屋是荒原那帮人开的，你自己掂量。"]
+    },
+    "topic.place_east_forest": {
+      "K0": ["镇东的林子，越往里树越老。", "林子里有棵老橡树，叫约树。"],
+      "K1": ["伐区和猎径挨着，伐木的跟东坡的老吵架。"]
+    },
+    "topic.place_old_mine": {
+      "K0": [
+        "东北丘陵的旧铁矿，两年前塌了。",
+        {
+          "zh": "听说一夜之间打通了，矿道里有矮人的机关。",
+          "when": "quest.q_a1_m06_mine"
+        }
+      ],
+      "K1": ["塌方是两年前代官说的。塌得也太巧了。"]
+    },
+    "topic.place_old_watch": {
+      "K0": ["旧哨村，往东半天路，早没人住了。", "现在是荒原那帮匪的窝。"],
+      "K1": ["九百零八年魔王军南下，旧哨村被烧，领主的援兵没来。"]
+    },
+    "topic.place_waste_rim": {
+      "K0": ["荒原外缘，灰沙、枯树、碎石头。别去。"],
+      "mis": ["荒原是古代邪神之乱的战场，被诅咒的地方。教会说的。"]
+    },
+    "topic.place_sealed_ruins": {
+      "K0": ["镇北荒原边上的遗迹，教会立了禁碑，凡人禁地。", "进去的人，没几个出来的。"],
+      "K1": ["二十年前公会派人进去过。回来的人少了一只胳膊。"]
+    },
+    "topic.place_broken_door_slope": {
+      "K0": ["荒原外缘有片坡，碎石头一排排倒着。夜里有东西。"]
+    },
+    "topic.place_ropebridge": {
+      "K0": ["灰溪上的断桥，有个孩子在守绳桥，过桥收铜子。"]
+    },
+    "topic.place_wallenburg": {
+      "K0": ["瓦伦堡，往南的大城，伯爵住在那儿。", "去瓦伦堡，走南门大路，三四天。"],
+      "K1": [
+        "瓦伦堡有公会大区总部，B 级考核在那儿考。",
+        {
+          "zh": "伯爵府来信了，说要见人。",
+          "when": "a1_count_letter IN (a, b, c, d)"
+        }
+      ]
+    },
+    "topic.place_merca_shrine": {
+      "K0": ["商会院子里那座小神龛，商人拜交易的那一位。"]
+    },
+    "topic.person_cassian": {
+      "K0": ["卡西安神父，年轻，虔诚得很。", "他教孤儿院的孩子认字。"]
+    },
+    "topic.person_oola": {
+      "K0": [
+        "药草婆婆，嘴巴刻薄，心软。",
+        {
+          "zh": "神父说她用巫术害了孩子。",
+          "when": "a1_witch_trial_started AND a1_oola_fate != cleared"
+        }
+      ],
+      "mis": [
+        {
+          "zh": "米洛死了，托比病了，都跟那个药草婆婆有关。",
+          "when": "NOT a1_spring_source_found"
+        }
+      ]
+    },
+    "topic.person_martha": {
+      "K0": ["醉月亭的老板娘，做饭好吃，人爽快。", "别在她店里闹事。"]
+    },
+    "topic.person_bron": {
+      "K0": ["公会的老布伦，一只胳膊，喝多了就说胡话。"]
+    },
+    "topic.person_moss": {
+      "K0": ["代官大人。税是他加的。", "他说是为了讨伐魔物。"]
+    },
+    "topic.person_nera": {
+      "K0": ["商会的奈拉，狐族，笑眯眯的，算账算得精。"]
+    },
+    "topic.person_shiya": {
+      "K0": ["东坡的狼族丫头，箭射得准，不爱说话。"]
+    },
+    "topic.person_ron": {
+      "K0": ["罗恩，D 级冒险者，胆小，人好。"]
+    },
+    "topic.person_lina": {
+      "K0": ["公会接待的小姑娘，嘴快，见什么都说好厉害。"]
+    },
+    "topic.person_hock": {
+      "K0": ["公会管档案的侯克，眼神不好，记性好。"]
+    },
+    "topic.person_isa": {
+      "K0": ["伊莎修女，温柔，下午在孤儿院帮忙。"]
+    },
+    "topic.person_toma": {
+      "K0": ["敲钟的托马，耳背，跟他说话得大声。"]
+    },
+    "topic.person_bertha": {
+      "K0": ["贝莎，妇女会的会长，什么事都往邪术上想。"]
+    },
+    "topic.person_greta": {
+      "K0": ["孤儿院的格蕾塔院长，一个人拉扯十四个孩子。"]
+    },
+    "topic.person_noi": {
+      "K0": ["孤儿院那个男孩，不爱说话，老盯着人看。"]
+    },
+    "topic.person_tess": {
+      "K0": ["孤儿院的小丫头，爱唱歌。"]
+    },
+    "topic.person_barga": {
+      "K0": ["矮人铁匠，脾气爆，手艺好。"]
+    },
+    "topic.person_gaspar": {
+      "K0": ["伐木场的工头加斯帕，护着他的工人，跟东坡不对付。"]
+    },
+    "topic.person_nick": {
+      "K0": ["伐木的尼克，老实孩子，一说话就结巴。"]
+    },
+    "topic.person_gorn": {
+      "K0": ["东坡兽人的头葛恩，腿瘸，说话算话。"]
+    },
+    "topic.person_ako": {
+      "K0": ["东坡的小崽子阿柯，野得很。"]
+    },
+    "topic.person_boro": {
+      "K0": ["东坡那个熊族大个子，动不动就要扳手腕。"]
+    },
+    "topic.person_barto": {
+      "K0": ["卫队长巴托，累得像头老牛，人不坏。"]
+    },
+    "topic.person_jed": {
+      "K0": [
+        "民兵杰德，嘴甜。",
+        {
+          "zh": "铜铃是他偷的，拿去赌了。",
+          "when": "a1_jed_exposed"
+        }
+      ]
+    },
+    "topic.person_vick": {
+      "K0": ["代官的书记官维克，文绉绉的。"]
+    },
+    "topic.person_seg_oneeye": {
+      "K0": ["独眼团的头，独眼瑟格。荒原上的匪。"]
+    },
+    "topic.person_viro": {
+      "K0": ["骰子屋那个女人，冷冰冰的，别跟她赌。"]
+    },
+    "topic.person_popo": {
+      "K0": ["商会的半身人伙计波波，什么都要标个价。"]
+    },
+    "topic.person_owen": {
+      "K0": [
+        "跑南路的行商欧文，车被劫过。",
+        {
+          "zh": "欧文走了，说不回来了。",
+          "when": "a1_owen_left"
+        }
+      ]
+    },
+    "topic.person_dora": {
+      "K0": ["醉月亭的朵拉，说什么都乘五。"]
+    },
+    "topic.person_ed": {
+      "K0": ["守墓的埃德，一肚子鬼故事。"]
+    },
+    "topic.person_ped": {
+      "K0": ["面包师佩德，老实人，怕官。"]
+    },
+    "topic.person_lisa": {
+      "K0": ["佩德家的莉莎，好姑娘。"]
+    },
+    "topic.person_dris": {
+      "K0": ["德里斯，C 级，镇上最能打的冒险者。……他自己说的。"]
+    },
+    "topic.person_simon": {
+      "K0": ["西田的西蒙，种地的，老实。"]
+    },
+    "topic.person_marg": {
+      "K0": ["洗衣的玛格，镇上一半人家的衣裳过她的手。"]
+    },
+    "topic.person_ulf_lange": {
+      "K0": ["南门驿站的老乌尔夫，跟马说话比跟人多。"]
+    },
+    "topic.person_knut_naumann": {
+      "K0": ["修刀的克努特，以前给匪修家伙，现在什么都修。"]
+    },
+    "topic.person_kas_ropebridge": {
+      "K0": ["守绳桥的孩子卡斯，数着过桥的人。"]
+    },
+    "topic.person_yeyu": {
+      "K0": [
+        {
+          "zh": "那个怪人带了个说自己是乌鸦的怪家伙。",
+          "when": "a1_yeyu_bound"
+        },
+        {
+          "zh": "那丫头老盯着亮东西看。",
+          "when": "a1_yeyu_bound"
+        }
+      ]
+    },
+    "topic.person_adalbert": {
+      "K0": ["瓦伦边境伯爵，管着这一片。没见过。"],
+      "K1": [
+        "伯爵病了，听说。三个孩子在争家业。",
+        {
+          "zh": "伯爵府来信，要见那个打退兽潮的人。",
+          "when": "a1_count_letter IN (a, b, c, d)"
+        }
+      ]
+    },
+    "topic.event_milo_death": {
+      "K0": ["孤儿米洛，七岁，没了。棺材那么小。", "他先是发灰，后来就起不来了。"],
+      "mis": [
+        {
+          "zh": "药草婆婆夜里去过孤儿院。神父说是巫术。",
+          "when": "NOT a1_spring_source_found"
+        }
+      ],
+      "K1": [
+        {
+          "zh": "是北泉的水。不是巫术。神父当众认了错。",
+          "when": "a1_oola_fate == cleared"
+        }
+      ]
+    },
+    "topic.event_tax_hike": {
+      "K0": [
+        "讨伐税从十取一涨到六取一，说是要募兵讨伐。",
+        {
+          "zh": "又加了井税。喝口水都要钱。",
+          "when": "act_week >= 5"
+        }
+      ],
+      "K1": ["讨伐税收了，讨伐的人呢？没见卫队出过镇。"]
+    },
+    "topic.event_caravan_raid": {
+      "K0": [
+        {
+          "zh": "欧文的车在南路被劫了，护卫重伤。",
+          "when": "act_week >= 3"
+        },
+        "听说匪不杀人，团规。"
+      ]
+    },
+    "topic.event_crystal_broke": {
+      "K0": [
+        {
+          "zh": "新来的那个把公会的水晶弄坏了。",
+          "when": "a1_guild_registered"
+        },
+        {
+          "zh": "听说一巴掌拍裂的。",
+          "when": "a1_guild_registered"
+        }
+      ],
+      "mis": [
+        {
+          "zh": "水晶照不出他。光照不出的东西……",
+          "when": "a1_guild_registered"
+        },
+        {
+          "zh": "那玩意儿本来就老坏。",
+          "when": "a1_guild_registered"
+        }
+      ]
+    },
+    "topic.event_toby_sick": {
+      "K0": [
+        {
+          "zh": "贝莎的孙子托比倒下了，跟米洛一样。",
+          "when": "act_week >= 6"
+        },
+        {
+          "zh": "托比好了，能下床了。",
+          "when": "a1_toby_state == recovered"
+        }
+      ]
+    },
+    "topic.event_tess_song": {
+      "K0": [
+        {
+          "zh": "孤儿院那个小丫头唱什么\"门开了\"，贝莎说是邪歌。",
+          "when": "act_week >= 5"
+        }
+      ]
+    },
+    "topic.event_witch_trial": {
+      "K0": [
+        {
+          "zh": "神父要审药草婆婆，用光之鉴。",
+          "when": "a1_witch_trial_started"
+        },
+        {
+          "zh": "光之鉴照出来了，不是婆婆的错。",
+          "when": "a1_oola_fate == cleared"
+        },
+        {
+          "zh": "婆婆被定了罪，要押去瓦伦堡。",
+          "when": "a1_oola_fate == convicted"
+        },
+        {
+          "zh": "婆婆跑了，进林子了。",
+          "when": "a1_oola_fate == fled"
+        }
+      ]
+    },
+    "topic.event_summons": {
+      "K0": [
+        {
+          "zh": "代官府贴了告示，传那个无记载的人去问话。",
+          "when": "act_week >= 7"
+        },
+        {
+          "zh": "说藏着他的人以通匪论。",
+          "when": "act_week >= 7"
+        }
+      ]
+    },
+    "topic.event_salt_price": {
+      "K0": ["盐又贵了，商会说是行情。", "魔物季前，年年涨。"],
+      "K1": ["商会囤着盐呢，等魔物季卖高价。"]
+    },
+    "topic.event_burned_shed": {
+      "K0": [
+        {
+          "zh": "东坡的猎棚被人烧了。",
+          "when": "act_week >= 4"
+        }
+      ]
+    },
+    "topic.event_market_theft": {
+      "K0": [
+        {
+          "zh": "集上丢了个铜铃，说是东坡那小崽子拿的。",
+          "when": "act_week >= 4"
+        },
+        {
+          "zh": "铜铃是民兵杰德偷的。冤枉了那孩子。",
+          "when": "a1_jed_exposed"
+        }
+      ]
+    },
+    "topic.event_mine_opened": {
+      "K0": [
+        {
+          "zh": "旧矿道一夜打通了！说是有矮人的机关，一按就开。",
+          "when": "quest.q_a1_m06_mine"
+        },
+        {
+          "zh": "连矮人都急了，那就是真有机关。",
+          "when": "quest.q_a1_m06_mine"
+        }
+      ]
+    },
+    "topic.event_beast_tide": {
+      "K0": [
+        {
+          "zh": "那个 F 级打退了兽潮！",
+          "when": "a1_tide_credit == player"
+        },
+        {
+          "zh": "老板娘一刀斩了巨像！……她说她去关窗了。",
+          "when": "a1_tide_credit == martha"
+        },
+        {
+          "zh": "是光庇佑了边石镇。",
+          "when": "a1_tide_credit == light"
+        },
+        {
+          "zh": "那巨像是自己塌的，灰散了。",
+          "when": "a1_tide_credit == self_collapse"
+        }
+      ],
+      "K1": [
+        {
+          "zh": "暗月夜，狼和灰鬼从北边涌过来，后面跟着个大家伙。镇子守住了。",
+          "when": "a1_beast_tide_cleared"
+        }
+      ]
+    },
+    "topic.event_otto_will": {
+      "K0": [
+        {
+          "zh": "老奥托的磨坊，孤儿院和维克在争。",
+          "when": "act_week >= 3"
+        },
+        {
+          "zh": "磨坊归孤儿院了。",
+          "when": "a1_mill_owner == orphanage"
+        }
+      ]
+    },
+    "topic.event_bakery_engagement": {
+      "K0": [
+        {
+          "zh": "书记官维克要娶面包房的莉莎。",
+          "when": "act_week >= 5"
+        },
+        {
+          "zh": "莉莎跟伐木的尼克跑了！",
+          "when": "a1_lisa_nick == eloped"
+        }
+      ]
+    },
+    "topic.event_martha_bet": {
+      "K0": [
+        {
+          "zh": "酒客赌那个 F 级一个月内哭着回城，老板娘押他不走。",
+          "when": "a1_guild_registered"
+        },
+        {
+          "zh": "老板娘赢了一桌酒钱。老板娘运气真好。",
+          "when": "act_week >= 6"
+        }
+      ]
+    },
+    "topic.event_count_letter": {
+      "K0": [
+        {
+          "zh": "伯爵府的信到了，要见人。",
+          "when": "a1_count_letter IN (a, b, c, d)"
+        }
+      ]
+    },
+    "topic.event_old_watch_908": {
+      "K0": ["旧哨村九十年前被烧了，一个人都没剩。"],
+      "K1": ["魔王军南下那年，领主的援兵没来。荒原上的匪恨领主，就是为这个。"]
+    },
+    "topic.event_expedition_978": {
+      "K0": ["二十年前，公会有人死在遗迹里。"],
+      "K1": ["那次探索队回来的人，布伦是一个。他不提。"]
+    },
+    "topic.event_dris_duel": {
+      "K0": [
+        {
+          "zh": "公会后院那根木桩断了。早就朽了。",
+          "when": "a1_dris_duel_won"
+        },
+        {
+          "zh": "德里斯说他早就说过该换了。",
+          "when": "a1_dris_duel_won"
+        }
+      ]
+    },
+    "topic.event_crow_person": {
+      "K0": [
+        {
+          "zh": "那怪家伙说\"我是乌鸦\"。",
+          "when": "a1_yeyu_bound"
+        },
+        {
+          "zh": "乌鸦是给死人引路的。埃德说的。",
+          "when": "a1_yeyu_bound"
+        }
+      ]
+    },
+    "topic.event_drunk_bandits": {
+      "K0": [
+        {
+          "zh": "一伙醉匪撞上了新人，被抓了。",
+          "when": "quest.q_a1_s01_owen_wagon"
+        },
+        {
+          "zh": "玛格说那几个人身上一点酒味都没有。",
+          "when": "quest.q_a1_s01_owen_wagon"
+        }
+      ]
+    },
+    "topic.lore_demon_king": {
+      "K0": ["魔王是邪神在世上的化身，魔族之王。", "光会派勇者去打。"],
+      "K1": ["上一代魔王军南下，是九十年前的事。北边的老人还记得。"],
+      "mis": ["魔物是邪神之秽，是魔族的诅咒。圣典上写着。"]
+    },
+    "topic.lore_heroes": {
+      "K0": ["光召来的勇者，打魔王的。故事里都这么讲。"],
+      "K1": ["听说教会又要召勇者了。魔物这么多，怕是要来了。"]
+    },
+    "topic.lore_waste": {
+      "K0": ["荒原，北边那一大片灰地，寸草不生。"],
+      "mis": ["荒原是古代邪神之乱的战场，被诅咒了，所以长不出东西。"]
+    },
+    "topic.lore_appraisal": {
+      "K0": ["鉴定水晶一照，就知道你几级、干什么的。铭录上都写着。"],
+      "K1": ["公会卡上写着等级和职能，跟铭录对得上。"],
+      "mis": ["照不出来？那是水晶坏了，要不就是这人被诅咒了。"]
+    },
+    "topic.lore_ranks": {
+      "K0": ["凡阶、精英阶、英雄阶……我们这种人，一辈子在凡阶。"],
+      "K1": ["二十级以上就是精英，镇上没几个。"]
+    },
+    "topic.lore_guild_ranks": {
+      "K0": ["冒险者分 F 到 S，F 是新人。"],
+      "K1": ["C 级在小镇就是顶梁柱了。B 级以上得去城里考。"]
+    },
+    "topic.lore_grey_sickness": {
+      "K0": ["荒原病，从北边来的，人慢慢发灰。", "有人说是诅咒。"],
+      "K1": ["荒原病跟水有关，北泉一带的人得得多。"]
+    },
+    "topic.lore_grey_crystal": {
+      "K0": ["灰晶，荒原和矿里出的，不能私卖。"],
+      "K1": ["灰晶得经城里持证的工坊净炼，才能卖。私卖的要坐牢。"]
+    },
+    "topic.lore_nameless_god": {
+      "K1": ["边境的老人说有个\"无名之神\"。别在神父面前提。", "老人们这么叫，我也只听过名字。"]
+    },
+    "topic.lore_branded": {
+      "K0": ["教会说手上有怪纹的人叫烙印者，是邪神的仆从。"],
+      "mis": ["烙印者见光就躲。离他们远点。"]
+    },
+    "topic.lore_sixth_sigil": {
+      "K0": ["遗迹里画着神纹，那是禁地，别去看。"]
+    },
+    "topic.lore_judgment": {
+      "K0": ["千年之审，教会说到时候会昭示唯一之光。"],
+      "mis": ["上一次审定碑上写了个\"未\"，教会说是光还没普照。"]
+    },
+    "topic.lore_monster_season": {
+      "K0": ["魔物季一年比一年长。", "魔物季前要囤盐、修栅子。"],
+      "K1": ["今年的魔物季来得早，狼都下山了。"],
+      "mis": ["魔物多，是邪神作祟。多祷告。"]
+    },
+    "topic.lore_lords": {
+      "K0": ["领主在王都，从来不来。镇上的事归代官。"],
+      "K1": ["这一片归瓦伦边境伯爵管，伯爵上头是国王。"]
+    },
+    "topic.faith_eluen": {
+      "K0": ["光之女神，圣教拜的。礼拜日去礼拜堂。"],
+      "K1": ["教会说光是唯一的。别的神……教会自有说法。"]
+    },
+    "topic.faith_valda": {
+      "K0": ["打仗的那一位，教会说是邪神，魔族之母。"],
+      "mis": ["魔物就是她的孩子。拜她的都是疯子。"]
+    },
+    "topic.faith_merca": {
+      "K0": ["交易的那一位，商人和矮人拜。"]
+    },
+    "topic.faith_sylvie": {
+      "K0": ["林子的那一位，兽人拜。"]
+    },
+    "topic.faith_moira": {
+      "K0": ["管记录的那一位，读书人心里拜。"]
+    },
+    "topic.faith_light_mirror": {
+      "K0": ["光之鉴，礼拜堂的圣灯。神父说它能照出真假。"]
+    },
+    "topic.faith_holy_day": {
+      "K0": ["七天一个礼拜日，那天不干重活，去礼拜堂。", "洗礼、婚礼、临终礼，都找神父。"]
+    },
+    "topic.danger_east_forest": {
+      "K0": ["伐区北边有狼，听说有灰色的。", "别一个人进林子深处。"]
+    },
+    "topic.danger_old_mine": {
+      "K0": ["旧矿上层有掘穴虫，咬人。"]
+    },
+    "topic.danger_waste_rim": {
+      "K0": ["荒原上有灰鬼，夜里出来。", "灰沙会埋人。"]
+    },
+    "topic.danger_sealed_ruins": {
+      "K0": ["遗迹是禁地，进去的没好下场。"]
+    },
+    "topic.danger_south_road": {
+      "K0": ["南路有匪，独眼团。商队都结伴走。"]
+    },
+    "topic.danger_monster_season": {
+      "K0": ["魔物季到了，夜里关好门窗。"]
+    },
+    "topic.danger_north_spring": {
+      "K0": [
+        {
+          "zh": "北泉的水别喝了，打井水喝。",
+          "when": "a1_spring_source_found"
+        }
+      ]
+    },
+    "topic.danger_tide_omens": {
+      "K0": [
+        {
+          "zh": "林子里的鸟都飞走了，北泉的水变了色。不对劲。",
+          "when": "seal_unrest >= 70"
+        },
+        {
+          "zh": "夜里有乌鸦成群地飞。",
+          "when": "seal_unrest >= 70"
+        }
+      ]
+    },
+    "topic.danger_graveyard_wisp": {
+      "K0": [
+        {
+          "zh": "墓地夜里有灰色的鬼火，米洛坟上。",
+          "when": "act_week >= 3"
+        }
+      ]
+    },
+    "topic.quest_board": {
+      "K0": [
+        {
+          "zh": "公会的委托板，新人先接 F 级的活。",
+          "when": "a1_guild_registered"
+        }
+      ]
+    },
+    "topic.quest_grey_wolf": {
+      "K0": [
+        {
+          "zh": "东坡的丫头说北边有灰色的狼，没人信。",
+          "when": "act_week >= 2"
+        }
+      ]
+    },
+    "topic.quest_old_mine": {
+      "K0": [
+        {
+          "zh": "旧矿的掘穴虫，委托板上挂了一个月了。",
+          "when": "act_week >= 4"
+        }
+      ]
+    },
+    "topic.quest_salt": {
+      "K0": [
+        {
+          "zh": "盐太贵了，西田的西蒙想找人去商会说说。",
+          "when": "act_week >= 5"
+        }
+      ]
+    },
+    "topic.quest_copper_bell": {
+      "K0": [
+        {
+          "zh": "集上卖铃的丢了个铜铃，正找人呢。",
+          "when": "act_week >= 4"
+        }
+      ]
+    },
+    "topic.quest_tide_prep": {
+      "K0": [
+        {
+          "zh": "东栅得修，孩子得安顿，盐和药得备上。快了。",
+          "when": "seal_unrest >= 80"
+        }
+      ]
+    }
   }
 }

@@ -184,6 +184,26 @@ describe('the selector (builtin_ai 7.4)', () => {
     expect(sel(packs, 'farewell')).toMatchObject({ packId: 'ln_common', entry: { zh: 'common' } });
   });
 
+  it("an act override that is all conditioned out gives way to the pack's own base slot", () => {
+    // the act-1 data writes overrides made only of first-meeting lines (ln_oola, ln_ron):
+    // outside the first meeting the speaker's own base greeting answers, not the next pack
+    const packs: LinePack[] = [
+      {
+        id: 'ln_ann',
+        slots: { 'greet.neutral': ['own base'] },
+        acts: { act1: { 'greet.neutral': [{ zh: 'own first', first: true }] } },
+      },
+      { id: 'ln_common', slots: { 'greet.neutral': ['common'] } },
+    ];
+    expect(sel(packs, 'greet.neutral', {}, undefined, { act: 'act1' })).toMatchObject({
+      packId: 'ln_ann',
+      entry: { zh: 'own base' },
+    });
+    expect(
+      sel(packs, 'greet.neutral', { firstMeeting: true }, undefined, { act: 'act1' }),
+    ).toMatchObject({ packId: 'ln_ann', act: 'act1', entry: { zh: 'own first' } });
+  });
+
   it('weights: mood x2, place x1.5, time x1.3, freshness up to x2', () => {
     // a 2:1 mood preference shows in the draw frequencies
     const packs = common([{ zh: 'mood', mood: ['happy'] }, 'plain']);
@@ -340,9 +360,12 @@ describe('ln_common migration (catalog_dialogue_lines 4.14)', () => {
       { zh: '头一回见啊，{player}。', first: true },
       { zh: '{player}？没见过你。新来的吧。', first: true },
     ]);
-    // Lina's crystal lines are hers alone: nobody else falls back to them
-    expect(resolveSlot(CONTENT, 'ron', 'react.identity_pageless')).toBeNull();
-    expect(resolveSlot(CONTENT, 'lina', 'react.identity_pageless')?.packId).toBe('ln_lina');
+    // Lina's crystal lines are hers alone: anyone else falls through to the common layer
+    // (catalog 4.3 gives ln_common its own react.identity_pageless, PK-M1-29)
+    expect(resolveSlot(CONTENT, 'ron', 'react.identity_pageless')?.packId).toBe('ln_common');
+    const lina = resolveSlot(CONTENT, 'lina', 'react.identity_pageless');
+    expect(lina?.packId).toBe('ln_lina');
+    expect(lina?.lines).not.toEqual(resolveSlot(CONTENT, 'ron', 'react.identity_pageless')?.lines);
     // a goddess's own pack may register her reaction kinds (lines validator, builtin_ai 7.5)
     const goddesses = new Set((CONTENT.goddesses ?? []).map((g) => g.id as string));
     for (const pack of CONTENT.linePacks) {

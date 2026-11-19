@@ -22,6 +22,28 @@
     "lose": { "when": "title.title_street_tide_f" }
   },
   {
+    "id": "title_street_crystal_breaker",
+    "name": "弄坏水晶的",
+    "kind": "common",
+    "family": "street",
+    "act": 1,
+    "grantedBy": "街头：水晶坏了的事，从莉娜传到朵拉，又传到贝莎",
+    "visibleTo": "边石镇；公会职员之间",
+    "loss": "布伦说了“别测了”之后，公会里改口叫“测不出的那个”",
+    "lose": { "when": "deed.deed_mortal_new_crystal" }
+  },
+  {
+    "id": "title_street_lucky_newbie",
+    "name": "运气好的新人",
+    "kind": "common",
+    "family": "street",
+    "act": 1,
+    "grantedBy": "街头：把事情往小里说的那一版，传得最远",
+    "visibleTo": "边石镇到瓦伦堡的商路",
+    "loss": "同样的事一再做到，“运气”的说法就在当地失效",
+    "lose": { "when": "deed.deed_mortal_three_times" }
+  },
+  {
     "id": "title_street_tide_f",
     "name": "打退兽潮的 F 级",
     "kind": "common",
@@ -31,5 +53,57 @@
     "visibleTo": "边石镇；随伯爵来信到瓦伦堡",
     "loss": "到了瓦伦堡，会有别的说法与它对照",
     "grant": { "when": "deed.deed_hunt_tide_night AND a1_tide_credit == player" }
+  },
+  {
+    "id": "title_guild_crystal_debt",
+    "name": "器材损坏：二",
+    "kind": "office",
+    "family": "guild",
+    "act": 1,
+    "grantedBy": "公会：分部账房写在卡背，第二块水晶之后",
+    "visibleTo": "看见卡背的人",
+    "loss": "日后会被人划掉，换成另一行字"
+  },
+  {
+    "id": "title_tribe_dwarf_cross_section",
+    "name": "看过断面的人",
+    "kind": "common",
+    "family": "tribe",
+    "act": 1,
+    "grantedBy": "矮人：巴尔加与赤砧山炉长会；矮人只认物证",
+    "visibleTo": "矮人",
+    "loss": "拿伪造的物证给矮人看"
+  },
+  {
+    "id": "title_wrong_bad_luck",
+    "name": "带衰的",
+    "kind": "common",
+    "family": "wrong",
+    "act": 1,
+    "grantedBy": "商人：水晶失灵的传闻，经商人之口变了味",
+    "visibleTo": "商人圈",
+    "loss": "商会的裁定，或同行的商队平安归来并被多方证实"
+  },
+  {
+    "id": "title_wrong_witch_accomplice",
+    "name": "魔女同谋",
+    "kind": "common",
+    "family": "wrong",
+    "act": 1,
+    "grantedBy": "街头：魔女审判期间贝莎的说法",
+    "visibleTo": "边石镇；随审判庭卷宗到瓦伦堡",
+    "loss": "欧拉婆婆平反",
+    "grant": { "when": "a1_witch_trial_started" },
+    "lose": { "when": "deed.deed_bond_oola_cleared" }
+  },
+  {
+    "id": "title_col_bring_home",
+    "name": "带他们回家",
+    "kind": "common",
+    "family": "col",
+    "act": 1,
+    "grantedBy": "阵亡者的铜牌，都由你交回了分部或家人手里",
+    "visibleTo": "冒险者公会",
+    "loss": "不失去"
   }
 ]

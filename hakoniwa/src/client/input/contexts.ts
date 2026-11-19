@@ -16,6 +16,7 @@ export const INPUT_CONTEXTS = [
   'global',
   'field',
   'dialogue',
+  'creator',
   'window',
   'corridor',
   'lord',
@@ -145,6 +146,25 @@ export const DEFAULT_CONTEXT_KEYMAP: ContextKeymap = {
     ...Object.fromEntries(
       Array.from({ length: 9 }, (_, i) => [`option_${i + 1}`, two(k(`Digit${i + 1}`))]),
     ),
+    // the AI mark of the newest generated line (ux_and_onboarding.md 7.3): its connection and
+    // model and "block and flag"; live over the field too, where generated talk shows
+    ai_mark: two(k('KeyY', { shift: true })),
+  },
+  // the spirit mirror, `ui_mode_creator` (3.4.3): rows, the focused row's options, pages,
+  // turning the preview, random, restore and "done"; Tab is left to the browser so the
+  // keyboard focus reaches every control of the panel (18.5)
+  creator: {
+    row_prev: two(k('ArrowUp'), k('KeyW')),
+    row_next: two(k('ArrowDown'), k('KeyS')),
+    cycle_prev: two(k('ArrowLeft'), k('KeyA')),
+    cycle_next: two(k('ArrowRight'), k('KeyD')),
+    page_prev: two(k('PageUp'), k('BracketLeft')),
+    page_next: two(k('PageDown'), k('BracketRight')),
+    turn_left: two(k('KeyQ')),
+    turn_right: two(k('KeyE')),
+    randomize: two(k('KeyR')),
+    reset_look: two(k('Delete')),
+    done: two(k('Enter')),
   },
   window: {
     focus_next: two(k('Tab')),

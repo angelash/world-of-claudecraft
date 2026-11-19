@@ -88,6 +88,11 @@ export interface AilmentsConfig {
   relapseChance: number;
   /** taint a sediment cure taken too early leaves instead of its effect (药毒 I, catalog 2.1) */
   earlyTaint: number;
+  /**
+   * taint a portion of food or draught from a tainted stack adds, by its grain (light, mid,
+   * heavy; catalog_consumables_magitools.md 2.4); the inventory names the grain on item.used
+   */
+  portionTaint?: [number, number, number];
 }
 
 /**

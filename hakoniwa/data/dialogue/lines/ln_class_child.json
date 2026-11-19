@@ -1,0 +1,19 @@
+{
+  "id": "ln_class_child",
+  "slots": {
+    "greet.cold": ["我不跟你玩。", "走开。"],
+    "greet.neutral": ["你是谁呀？", "你从哪里来的？"],
+    "greet.warm": ["你来啦！", "陪我玩一会儿嘛。"],
+    "farewell": ["明天还来吗？", "拜拜！"],
+    "unbelief.deny": ["大人说你是吹牛的。", "我才不信呢。"],
+    "unbelief.explain": ["我亲眼看见的才算！", "那你再做一次给我看。"],
+    "unbelief.waver": ["哇……是真的吗？", "我、我要去告诉他们！"],
+    "react.feat_seen": ["好厉害！再来一次！", "你是勇者吗？"],
+    "react.insult": ["你是坏人！", "我去告诉院长！"],
+    "react.gift_liked": ["给我的？真的吗？", "好甜！谢谢！"],
+    "topic.gen_faith": {
+      "K0": ["院长说要对着光祷告，可光不会说话。"]
+    },
+    "bark.chat": ["我们玩捉迷藏吧！"]
+  }
+}

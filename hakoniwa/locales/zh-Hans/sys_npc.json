@@ -240,5 +240,7 @@
   "sys.npc.plan.note.service": "去做礼拜",
   "sys.npc.plan.why.service": "今天是礼拜日",
   "sys.npc.plan.note.market": "赶集",
-  "sys.npc.plan.why.market": "今天是集日"
+  "sys.npc.plan.why.market": "今天是集日",
+  "sys.npc.prompt.tide_situation": "兽潮之夜的 {phase} 一拍开始了：镇子四面受压。下一拍你要怎么做？从选项里选一个；不选就照你一贯的做法（建议项）。",
+  "sys.npc.prompt.tide_command": "选这一拍的做法。数据：{ actor: \"{actor}\", row }。row 只能取 extra.options 里的 id。"
 }

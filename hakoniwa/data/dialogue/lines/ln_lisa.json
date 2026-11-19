@@ -1,0 +1,58 @@
+{
+  "id": "ln_lisa",
+  "speaker": "lisa",
+  "slots": {
+    "greet.cold": ["嗯。", "我还有事。", "请回吧。"],
+    "greet.neutral": ["嗯，你好。", "要买面包吗？", "今天的面包是我烤的。"],
+    "greet.warm": ["你来了。谢谢你上次……", "嗯，好。坐一会儿？", "我给你留了甜饼。"],
+    "farewell": ["嗯，好。再见。", "路上小心。", "谢谢你。"],
+    "unbelief.deny": ["我不太懂这些。", "也许吧。"],
+    "unbelief.explain": ["是运气吧。", "光保佑你。"],
+    "unbelief.waver": ["我相信你。", "你是好人。"],
+    "react.feat_seen": ["啊……", "你没事吧？"],
+    "react.gift_liked": ["嗯，好。谢谢你。", "这个……我会好好收着。"],
+    "react.insult": ["……", "请你走吧。"],
+    "topic.gen_self": {
+      "neutral": ["莉莎，面包房的女儿。", "我喜欢傍晚去洗衣溪。"]
+    },
+    "topic.gen_work": {
+      "K0": ["帮爹爹烤面包。", "洗衣、做饭、看店。"]
+    },
+    "topic.self_lisa_bundle": {
+      "K0": [
+        {
+          "zh": "我收拾好了一个小包袱。……我不想嫁给维克。",
+          "when": "trust.lisa >= 50"
+        },
+        {
+          "zh": "尼克说，我们可以走。可是爹爹怎么办？",
+          "when": "trust.lisa >= 50"
+        }
+      ]
+    },
+    "quest.q_a1_s10_lisa_bundle.offer": [
+      {
+        "zh": "我只求你这一次。帮帮我。",
+        "when": "trust.lisa >= 50"
+      }
+    ],
+    "quest.q_a1_s10_lisa_bundle.complete": [
+      {
+        "zh": "谢谢你。真的。",
+        "when": "a1_lisa_nick == married"
+      }
+    ],
+    "quest.q_a1_s10_lisa_bundle.after": [
+      {
+        "zh": "我们会好好过日子。",
+        "when": "a1_lisa_nick == married"
+      },
+      {
+        "zh": "……没关系。",
+        "when": "a1_lisa_nick == broken"
+      }
+    ],
+    "bark.work": ["面包快好了。"],
+    "bark.chat": ["洗衣溪的水今天很凉。"]
+  }
+}

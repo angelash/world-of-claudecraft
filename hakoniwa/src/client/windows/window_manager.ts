@@ -96,16 +96,34 @@ export class WindowManager {
     const mode = this.modeOpen;
     if (mode) this.close(mode);
     const content = factory(close);
+    // the title bar's "？" shows the window's own help entry (6.1, 17.7)
+    const help = el('p', { className: 'hk-window-help', text: t(def.helpKey) });
+    help.hidden = true;
+    const helpButton = el('button', {
+      className: 'hk-window-help-btn',
+      text: t('ui.common.panel.help_mark'),
+      title: t('ui.common.panel.help'),
+      attrs: { 'aria-label': t('ui.common.panel.help'), 'aria-expanded': 'false', type: 'button' },
+      on: {
+        click: () => {
+          help.hidden = !help.hidden;
+          helpButton.setAttribute('aria-expanded', String(!help.hidden));
+        },
+      },
+    });
     const titleBar = el('div', { className: 'hk-window-title' }, [
       el('span', { text: windowTitle(id) }),
-      el('button', {
-        className: 'hk-window-close',
-        title: t('ui.common.panel.close'),
-        attrs: { 'aria-label': t('ui.common.panel.close'), type: 'button' },
-        on: { click: close },
-      }),
+      el('span', { className: 'hk-window-actions' }, [
+        helpButton,
+        el('button', {
+          className: 'hk-window-close',
+          title: t('ui.common.panel.close'),
+          attrs: { 'aria-label': t('ui.common.panel.close'), type: 'button' },
+          on: { click: close },
+        }),
+      ]),
     ]);
-    const body = el('div', { className: 'hk-window-body' }, [content.el]);
+    const body = el('div', { className: 'hk-window-body' }, [help, content.el]);
     const frame = el(
       'section',
       {
@@ -114,6 +132,8 @@ export class WindowManager {
       },
       [titleBar, body],
     );
+    // the onboarding outlines a window by this name (src/client/tutorial/glow.ts)
+    frame.dataset.hud = `win_${id}`;
     frame.style.width = `${def.width}px`;
     const pos = this.positions.get(id) ?? cascadePos(this.opened++, def.width, window.innerWidth);
     const clamped = clampWindowPos(pos.x, pos.y, def.width, window.innerWidth, window.innerHeight);

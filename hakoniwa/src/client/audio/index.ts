@@ -324,7 +324,12 @@ export function createGameAudio(opts: GameAudioOptions): GameAudio {
       for (const t of triggers) engine.trigger(t);
       engine.update(frame);
       flush();
-      painter?.paint(engine.captionLines(nowMs), engine.captions.stamp(nowMs));
+      painter?.paint(
+        engine.captionLines(nowMs),
+        engine.captions.stamp(nowMs),
+        current.captionStyle,
+        state.inScene ? 'scene' : state.dialogueOpen ? 'dialogue' : 'field',
+      );
     },
     events(evs, at) {
       if (disposed) return;

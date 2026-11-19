@@ -21,7 +21,8 @@
         "depth": 2,
         "boss": "guardian_raven"
       }
-    ]
+    ],
+    "overflowTo": "borderstone"
   },
   {
     "id": "dg_old_mine",
@@ -49,7 +50,14 @@
         "depth": 1,
         "boss": "crystal_mother"
       }
-    ]
+    ],
+    "coreBoss": "crystal_mother",
+    "overflowTo": "borderstone",
+    "choices": {
+      "nurture": { "when": "act.3.entered" },
+      "destroy": { "when": "act.3.entered" },
+      "purify": { "when": "act.3.entered", "days": 3 }
+    }
   },
   {
     "id": "dg_moon_cellar",
@@ -63,7 +71,19 @@
     "gate": { "mapId": "borderstone", "location": "moon_cellar_stairs" },
     "entry": { "mapId": "borderstone", "location": "moon_cellar_landing" },
     "floors": [
-      { "id": "cellar", "name": "地窖", "mapId": "borderstone", "area": "moon_cellar", "depth": 1 }
-    ]
+      {
+        "id": "cellar",
+        "name": "地窖",
+        "mapId": "borderstone",
+        "area": "moon_cellar",
+        "depth": 1
+      }
+    ],
+    "coreBoss": "tally_rat_crone",
+    "choices": {
+      "nurture": { "ownerRefuses": true },
+      "destroy": { "days": 1 },
+      "purify": { "days": 3 }
+    }
   }
 ]

@@ -110,7 +110,7 @@ describe('client adapters on the real game', () => {
     r.engine.step(3);
     const seen = playScenes(r, '测试者');
     expect(seen.some((s) => s.startsWith('cut_p_call/n5_name'))).toBe(true);
-    expect(seen.some((s) => s.startsWith('act1_intro'))).toBe(true);
+    expect(seen.some((s) => s.startsWith('cut_a1_wake'))).toBe(true);
     expect(r.a.scene?.scene(r.view)).toBeNull();
     const pid = r.view.playerId();
     const p = r.view.player();

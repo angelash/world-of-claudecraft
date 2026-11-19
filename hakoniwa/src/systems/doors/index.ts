@@ -3,7 +3,10 @@
 // records visits, grows the corridor's segments, opens story doors on their own, applies
 // door effects through the combat ports, and keeps the door costs: the door rank (4), the
 // seal points and stage with seal_unrest (6.4), blockage (6.2) and door fatigue (6.3).
-// The opening settles in the fixed order of 3.5.
+// The opening settles in the fixed order of 3.5. The feature readers of PK-M1-56 (the
+// past-life readings, the spring purification, the door as an identity exposure, the
+// catch-up of old saves, the talent door's seen potentials) live in their own
+// modules.
 
 import { ok, reject } from '../../core';
 import type { EventKind } from '../../core/contracts';
@@ -13,18 +16,31 @@ import { TICK_HZ } from '../../core/time';
 import { removeItem } from '../inventory';
 import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity, mapById } from '../world';
-import { costFlagWritten, playerReturned, settleFatigue, taintChanged } from './costs';
-import { applyDoorEffects, revertDoorEffects } from './effects';
+import {
+  addBlockage,
+  costFlagWritten,
+  openCostNow,
+  playerReturned,
+  setFatigue,
+  settleFatigue,
+  taintChanged,
+} from './costs';
+import { applyDoorEffects, catchUpDoors, revertDoorEffects } from './effects';
 import { applyExclusion, liftActLocks } from './exclusive';
+import { exposeOnDeath, exposeOnReturn } from './exposure';
 import { discover, droughtHint, onSlept } from './hints';
 import { actNumber, consumedItems, countEvent, keysMet, readDoor, visitTargets } from './keys';
+import { purifySpring } from './purify';
 import { contentCurve, rankFromPoints, rankValueOf } from './rank';
 import { sealFlagWritten, sealOnClose, sealOnOpen, unrestOnOpen, updateStage } from './seal';
 import { advanceSequences } from './sequence';
 import { ensureDoorEntries, ensureSlice, freshSlice } from './slice';
 import { setState } from './state';
+import { potentialSeen } from './talent';
 import { COUNTABLE_EVENTS, type DoorDef, type DoorStatus } from './types';
 
+export { purifyOffer } from './purify';
+export * from './readers';
 export type * from './types';
 export * from './view';
 
@@ -70,8 +86,14 @@ export function openDoor(ctx: SystemContext, door: DoorDef): void {
   // 1. the item keys that go into the door
   for (const used of consumedItems(ctx.world, door, ctx.content))
     removeItem(ctx, pid, used.itemId, used.count, 'door_key');
-  // 2. effects, 3. the door flag
+  // 2. effects (and the door's own blockage and fatigue, 6.2: the act 1 abyss door), 3. the flag
   applyDoorEffects(ctx, door);
+  const cost = openCostNow(door, actNumber(ctx.flag('act')));
+  if (cost.blockage > 0) addBlockage(ctx, cost.blockage);
+  if (cost.fatigue > 0) {
+    settleFatigue(ctx);
+    setFatigue(ctx, (slice.fatigue ?? 0) + cost.fatigue);
+  }
   ctx.setFlag(`door.${door.id}`, true);
   setState(ctx, door.id, 'opened');
   const rt = slice.doors[door.id];
@@ -170,18 +192,29 @@ const on: { [K in EventKind]?: EventHandler<K> } = {
   'time.skipped': (ctx, ev) => {
     if (ev.data.kind === 'sleep' && ev.data.outcome === 'done') onSlept(ctx);
   },
+  // the talent door's gaze: a potential the player read is seen (npc.<id>.potential_seen)
+  'cognition.appraised': (ctx, ev) => potentialSeen(ctx, ev.data),
 };
 for (const kind of COUNTABLE) {
   (on as Record<string, EventHandler<EventKind>>)[kind] = (ctx, ev) => {
     countEvent(ctx.world, ctx.content, ev.kind, ev.data as unknown as Record<string, unknown>);
     advanceSequences(ctx.world, ctx.content);
+    if (ev.kind === 'entity.died')
+      exposeOnDeath(ctx, ev.data as { id: string; mapId: string; x: number; y: number });
     if (ev.kind === 'combat.player_returned') {
-      const d = ev.data as { fatigueFloor?: number; overload?: number };
+      const d = ev.data as {
+        fatigueFloor?: number;
+        overload?: number;
+        toMap: string;
+        toX: number;
+        toY: number;
+      };
       playerReturned(
         ctx,
         typeof d.fatigueFloor === 'number' ? d.fatigueFloor : undefined,
         typeof d.overload === 'number' ? d.overload : undefined,
       );
+      exposeOnReturn(ctx, d);
     }
   };
 }
@@ -191,6 +224,7 @@ for (const kind of COUNTABLE) {
 // drought (17.4 counts live play only).
 registerSkipHandler('doors', (ctx) => {
   ensureDoorEntries(ctx.world, ctx.content);
+  catchUpDoors(ctx);
   recordVisits(ctx);
   settleFatigue(ctx);
   refreshDoors(ctx);
@@ -212,6 +246,8 @@ export const system: GameSystem = {
     // a save from before the door rank and the seal stage: write their mirrors once
     if ((slice.rankPoints ?? 0) > 0 && ctx.flag('door_rank') !== slice.rank)
       ctx.setFlag('door_rank', slice.rank ?? 1);
+    // a save from before a door's data gave an effect: give it once (PK-M1-26's summon)
+    catchUpDoors(ctx);
     updateStage(ctx);
     settleFatigue(ctx);
     recordVisits(ctx);
@@ -240,6 +276,9 @@ export const system: GameSystem = {
       if (!door.closable) return reject('not_closable', tr('sys.doors.reject.not_closable'));
       closeDoor(ctx, door);
       return ok();
+    },
+    'doors.purify'(ctx) {
+      return purifySpring(ctx);
     },
   },
 

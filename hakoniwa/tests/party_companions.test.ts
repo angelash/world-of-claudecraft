@@ -680,9 +680,11 @@ describe('ironman (17.5 铁人 单向; 11.4)', () => {
 
 describe('reaction delay to a ground warning (7.5)', () => {
   it('stands for the difficulty delay, then steps out of the marked area', () => {
-    const g = makeGame();
+    const g = makeGame({ content: withTestRows() });
     recruit(g, 'shiya');
     g.step(20 * 3);
+    // the warning's caster is a foe far off (the party's own warnings are no danger)
+    const foe = spawnNear(g, 'zz_eroded_hound', 3, -12);
     const e = ents(g).companion_shiya;
     if (!e) throw new Error('no shiya');
     const tx = Math.floor(e.x);
@@ -691,7 +693,7 @@ describe('reaction delay to a ground warning (7.5)', () => {
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) cells.push(tx + dx, ty + dy);
     const t: TelegraphState = {
       id: 'zz_t',
-      casterId: 'player',
+      casterId: foe,
       mapId: e.mapId,
       kind: 'circle',
       tier: 'normal',
@@ -716,15 +718,16 @@ describe('reaction delay to a ground warning (7.5)', () => {
 
 describe('boss mechanics the companions answer (PK-M1-12 handover)', () => {
   it('a marked companion steps out of reach after the reaction delay', () => {
-    const g = makeGame();
+    const g = makeGame({ content: withTestRows() });
     recruit(g, 'shiya');
     g.step(20 * 3);
+    const boss = spawnNear(g, 'zz_eroded_hound', 3, -12);
     const e = ents(g).companion_shiya;
     const p = ents(g).player;
     if (!e || !p) throw new Error('no shiya');
     const t = {
       id: 'zz_mark',
-      casterId: 'player',
+      casterId: boss,
       mapId: e.mapId,
       kind: 'circle',
       tier: 'normal',

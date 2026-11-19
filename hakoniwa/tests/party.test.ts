@@ -231,6 +231,10 @@ describe('following and fighting', () => {
     isolate(g);
     g.queue('flag.set', { key: 'a2_company_partner', value: true });
     recruit(g, 'nera');
+    // a stance of the player's: the built-in AI would hold this cautious companion back
+    // from an elite (builtin_ai.md 11.1), and this case is about getting up
+    g.queue('party.order', { order: 'assist' });
+    g.step(1);
     const id = spawnNear(g, 'black_ridge', 11, 2);
     const nu = units(g).companion_nera;
     if (nu) nu.hp = 1;

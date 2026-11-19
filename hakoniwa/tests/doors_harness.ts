@@ -84,6 +84,7 @@ export function door(id: string, over: Partial<DoorDef> = {}): DoorDef {
     keys: [{ type: 'flag', key: `test.${id}`, label: 'key' }],
     effects: [],
     seal: 'none',
+    dangerBand: 'none',
     rankValue: 1,
     jam: 'combat',
     closable: true,

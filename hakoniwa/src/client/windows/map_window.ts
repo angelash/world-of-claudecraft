@@ -3,7 +3,7 @@
 
 import { el, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
-import { DOT_COLORS, minimapMatrix, minimapScale } from '../hud/minimap_model';
+import { dotColor, minimapMatrix, minimapScale } from '../hud/minimap_model';
 import { ctx2d, makeCanvas, matrixToCanvas } from '../render/canvas_util';
 import { relationOf } from '../render/scene';
 import { contentNames } from '../view/content_names';
@@ -42,14 +42,14 @@ export function mapWindow(ctx: WindowContext): WindowContent {
     c.font = '11px system-ui, sans-serif';
     c.textAlign = 'center';
     for (const ex of map.exits) {
-      dot(ex.x + 0.5, ex.y + 0.5, DOT_COLORS.exit, 6);
+      dot(ex.x + 0.5, ex.y + 0.5, dotColor('exit'), 6);
       c.fillStyle = '#f2d78a';
       c.fillText(ex.label, ox + (ex.x + 0.5) * s, oy + ex.y * s - 4);
     }
     const pid = ctx.view.playerId();
     for (const e of ctx.view.entitiesOnMap(map.id)) {
       if (e.hidden || !e.alive || e.kind === 'object' || e.id === pid) continue;
-      dot(e.x, e.y, DOT_COLORS[relationOf(e, pid)], 4);
+      dot(e.x, e.y, dotColor(relationOf(e, pid)), 4);
     }
     for (const m of ctx.adapters.mapMarkers?.markers(ctx.view, map.id) ?? []) {
       dot(m.x, m.y, '#f2c94c', 8);
@@ -61,7 +61,7 @@ export function mapWindow(ctx: WindowContext): WindowContent {
     const p = ctx.view.player();
     if (p) {
       dot(p.x, p.y, '#101018', 9);
-      dot(p.x, p.y, DOT_COLORS.self, 7);
+      dot(p.x, p.y, dotColor('self'), 7);
       c.fillStyle = '#ffffff';
       c.fillText(t('ui.win.map.you'), ox + p.x * s, oy + p.y * s + 16);
     }

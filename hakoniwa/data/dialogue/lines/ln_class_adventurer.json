@@ -1,0 +1,19 @@
+{
+  "id": "ln_class_adventurer",
+  "slots": {
+    "greet.cold": ["新来的？别挡道。", "有事说，我等着接活呢。"],
+    "greet.neutral": ["今天板上有什么好活？", "哟，又见面了。"],
+    "greet.warm": ["来，喝一杯，我请。", "听说你最近干得不错。"],
+    "farewell": ["活着回来。", "别死在外头。"],
+    "unbelief.deny": ["你？F 级？哈。", "吹牛不上税，是吧。"],
+    "unbelief.explain": ["{expl}，换我也行。", "别装了，{expl}。"],
+    "unbelief.waver": ["那东西……我们一队人都没拿下。", "你到底是什么级别？"],
+    "react.feat_seen": ["好家伙……", "这手我得学学。"],
+    "react.insult": ["出来，后院说话。", "你找打？"],
+    "react.gift_liked": ["好东西，能保命的那种。", "这个我收下了，欠你一回。"],
+    "topic.gen_faith": {
+      "K0": ["出门前随便拜一拜，哪位灵就拜哪位。"]
+    },
+    "bark.chat": ["最近魔物多，活倒是不缺。"]
+  }
+}

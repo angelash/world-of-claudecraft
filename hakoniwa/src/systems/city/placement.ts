@@ -17,6 +17,7 @@ import {
   siteDef,
   stageAtLeast,
 } from './common';
+import { buildingCap } from './court_tiers';
 import { type BuildingDef, type SiteDef, type SiteState, type Stage, stageLabel } from './types';
 
 export interface Tile {
@@ -90,11 +91,12 @@ function unlockCheck(
       );
     }
   }
-  if (def.max !== undefined && countBuildings(site, def.id, true) >= def.max)
+  const max = buildingCap(sdef, def, world.meta.flags);
+  if (max !== undefined && countBuildings(site, def.id, true) >= max)
     return {
       limit: true,
       reason: tr('sys.city.reject.limit', {
-        max: def.max,
+        max,
         building: contentText('city_buildings', def),
       }),
     };

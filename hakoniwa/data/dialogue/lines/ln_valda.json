@@ -1,7 +1,171 @@
 {
   "id": "ln_valda",
   "speaker": "valda",
-  "slots": {},
+  "slots": {
+    "react.oracle_instruct": [
+      "磨好你的刀。",
+      "去找一个比你强的人。",
+      "别躲。站出来打。",
+      "输了就爬起来，再打。",
+      "先站稳，再挥刀。"
+    ],
+    "greet.cold.avatar": [
+      {
+        "zh": "哟，这块肉还挺硬。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "又是你，{player}。皮痒了？",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "站直了说话，别缩着。",
+        "when": "act >= 3"
+      }
+    ],
+    "greet.neutral.avatar": [
+      {
+        "zh": "新肉，过来让我瞧瞧。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "来了，{player}。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "哈，还活着呢？",
+        "when": "act >= 3"
+      }
+    ],
+    "greet.warm.avatar": [
+      {
+        "zh": "哈！我就知道你会来。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "对手，打一场再说话？",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "你身上的伤又多了，好看。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.cold.shrine": [
+      {
+        "zh": "跪着求我的，我不看。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "要打就打，要求就滚。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "声音太小，听不见。",
+        "when": "act >= 3"
+      }
+    ],
+    "greet.neutral.shrine": [
+      {
+        "zh": "要上场了？说吧。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "刀磨好了没有？",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "喊我，就得有架打。",
+        "when": "act >= 3"
+      }
+    ],
+    "greet.warm.shrine": [
+      {
+        "zh": "哈！是你在喊我？好！",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "今天打谁？我来见证。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "痛快，就这股劲。",
+        "when": "act >= 4"
+      }
+    ],
+    "farewell": [
+      "滚吧，别死得太快。",
+      "下回带点硬的来。",
+      {
+        "zh": "哈，看戏去了。",
+        "when": "act == 0"
+      }
+    ],
+    "topic.gen_self": {
+      "prologue": ["争斗与淬炼之司。打架的都归我管。", "我？我就是那个看你们打架会笑的。"]
+    },
+    "topic.gen_you": {
+      "prologue": ["一块还没被打过的肉。看着软，说不定硬。", "你不合她的规格？那你合我的口味。"]
+    },
+    "topic.place_antechamber": {
+      "prologue": ["候见厅，等着挨挑的地方。"]
+    },
+    "topic.lore_hortus": {
+      "prologue": ["一块好地，打架的地方多得是。"]
+    },
+    "topic.lore_judgment": {
+      "prologue": ["看谁最厉害的那种。"]
+    },
+    "topic.event_that_matter": {
+      "prologue": ["等你活得够久，自己去挖。"]
+    },
+    "topic.lore_above": {
+      "prologue": ["一千年一句话都没有，说不定早睡着了。"]
+    },
+    "topic.self_number_five": {
+      "prologue": ["管你几号，能打就行。"]
+    },
+    "topic.person_four_heroes": {
+      "prologue": ["她挑的，听话的那种。"]
+    },
+    "topic.self_way_home": {
+      "prologue": ["回去？往前走都还没学会呢。"]
+    },
+    "topic.place_sixth_chair": {
+      "prologue": ["什么椅子？……你眼睛不错，可惜看错了。"]
+    },
+    "react.anchor_a03": ["哈！你也有看走眼的时候？上一次你这么慌，还是那件事的时候吧？"],
+    "react.evade": ["自己去挖。", "这个不打一架，我不说。"],
+    "react.duel_won": [
+      {
+        "zh": "哈！再来一个硬的。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "赢得好看。下一个更硬。",
+        "when": "act >= 3"
+      }
+    ],
+    "react.taunt_hiding": [
+      {
+        "zh": "藏着干什么？拳头不用会锈。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "装弱？骗得过别人，骗不过我。",
+        "when": "act >= 3"
+      }
+    ],
+    "react.insult": ["哈！骂得好，有本事动手。", "嘴上功夫，算不上本事。"],
+    "react.flattered": ["夸我？不如揍我一拳。", "少来，我不吃这套。"],
+    "react.threatened": ["来啊！我等这句话很久了。", "威胁？哈，好，我喜欢。"],
+    "react.joke": ["哈哈哈！有意思。", "你这张嘴，比拳头快。"],
+    "react.thanked": ["谢什么，打赢了再谢。", "别谢我，谢你自己没趴下。"],
+    "react.nonsense": ["说人话。", "听不懂，打一架就懂了。"],
+    "react.confused": ["啊？再说一遍，大声点。", "你嘴里含着什么？"],
+    "react.goddess_invoked": ["喊她？她只会给你量尺寸。", "喊谁都行，喊完记得出拳。"],
+    "react.earth_talk": ["你那边的人打架用什么？说来听听。", "没有神的地方，也有人打架吧？"]
+  },
   "acts": {
     "act3": {
       "react.honorific": ["哈！谁在喊我的全名？报上来：是要打一架，还是要我来见证？"]

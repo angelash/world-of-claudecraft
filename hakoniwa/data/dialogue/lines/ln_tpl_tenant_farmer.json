@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_tenant_farmer",
+  "slots": {
+    "greet.neutral": ["吃了吗？", "今天地里干活。", "嗯，你好。"],
+    "greet.cold": ["有事？我忙。", "别踩我的苗。"],
+    "greet.warm": ["来，喝口水。", "是你啊，进屋坐。"],
+    "farewell": ["慢走。", "天黑前回去。"],
+    "unbelief.deny": ["说书的才这么讲。", "哪有那种人。"],
+    "unbelief.explain": ["碰巧罢了。", "光保佑，或者是魔物作祟。"],
+    "unbelief.waver": ["种了一辈子地，没见过……", "也许真有那种人。"],
+    "react.feat_seen": ["光在上！", "我得回去告诉家里人。"],
+    "topic.gen_work": {
+      "K0": ["种地，交租，看天吃饭。", "收成的三四成要交出去。"]
+    },
+    "bark.work": [
+      "苗长得还行。",
+      {
+        "zh": "今年的租又涨了。",
+        "mood": ["worried"]
+      }
+    ],
+    "bark.eat": ["黑面包就咸菜。"],
+    "bark.sleep": ["……麦子……"]
+  }
+}

@@ -1,10 +1,10 @@
-// Social windows: the rumor book and reputation, the party, and the goddesses with the
-// divine record and Merca's coin offering.
+// Social windows: the rumor book and reputation, and the goddesses with the divine record and
+// Merca's coin offering. The party window lives in ./field/party_window.ts (roster, ironman).
 
 import { clear, el } from '../../shared_ui/dom';
-import { t as renderText, t } from '../../shared_ui/i18n';
-import { orderName, type PartyOrder } from '../../systems/party';
-import { actionButton, badge, empty, progress, rebuilder, tabs } from './kit';
+import { t } from '../../shared_ui/i18n';
+import { coinCommand } from '../hud/coin_badge_model';
+import { actionButton, badge, empty, rebuilder, tabs } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
@@ -86,66 +86,6 @@ export function rumorsWindow(ctx: WindowContext): WindowContent {
   return { el: el('div', { className: 'hk-rumors' }, [tabStrip.strip, body]), update };
 }
 
-const ORDERS: PartyOrder[] = ['follow', 'assist', 'passive', 'stay'];
-
-export function partyWindow(ctx: WindowContext): WindowContent {
-  const ad = ctx.adapters.party;
-  if (!ad) return placeholderWindow();
-  const root = el('div', { className: 'hk-party' });
-  const update = rebuilder(
-    root,
-    () => ad.companions(ctx.view),
-    (list) => {
-      if (list.length === 0) {
-        root.append(empty(t('ui.win.party.empty_state')));
-        return;
-      }
-      root.append(
-        el('div', { className: 'hk-row' }, [
-          el('span', { className: 'hk-muted', text: t('ui.win.party.all') }),
-          ...ORDERS.map((o) =>
-            actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, undefined, o)),
-          ),
-        ]),
-      );
-      for (const c of list) {
-        const u = c.unit;
-        root.append(
-          el('div', { className: `hk-card${c.downed ? ' downed' : ''}` }, [
-            el('div', { className: 'hk-card-head' }, [
-              el('strong', { text: c.name }),
-              el('span', {
-                className: 'hk-muted',
-                text: [c.title, c.className, c.role].filter(Boolean).join('  '),
-              }),
-            ]),
-            u ? progress(u.hp, u.maxHp, `${u.hp} / ${u.maxHp}`, 'hk-bar-hp') : null,
-            el('div', {
-              className: 'hk-muted',
-              text: [
-                t('ui.win.party.bond', { n: c.bond }),
-                c.nextThreshold !== null ? t('ui.win.party.next_bond', { n: c.nextThreshold }) : '',
-                c.downed ? t('ui.win.party.downed') : '',
-              ]
-                .filter(Boolean)
-                .join('  '),
-            }),
-            el('div', { className: 'hk-row' }, [
-              el('span', { className: 'hk-muted', text: t('ui.win.party.orders') }),
-              ...ORDERS.map((o) =>
-                actionButton(ctx, renderText(orderName(o)), () => ad.order(ctx.view, c.id, o), {
-                  cls: c.order === o ? 'active' : '',
-                }),
-              ),
-            ]),
-          ]),
-        );
-      }
-    },
-  );
-  return { el: root, update };
-}
-
 export function goddessWindow(ctx: WindowContext): WindowContent {
   const ad = ctx.adapters.goddess;
   if (!ad) return placeholderWindow();
@@ -175,6 +115,10 @@ export function goddessWindow(ctx: WindowContext): WindowContent {
   offerBox.append(
     el('div', { className: 'hk-card-head' }, [
       el('strong', { text: t('ui.win.goddess.offer_title') }),
+    ]),
+    el('div', { className: 'hk-row' }, [
+      // the coin reaches her (goddess.coin): the badge shows, and it opens her account
+      actionButton(ctx, t('ui.win.goddess.use_coin'), () => [coinCommand()]),
     ]),
     el('div', { className: 'hk-row' }, [
       select,

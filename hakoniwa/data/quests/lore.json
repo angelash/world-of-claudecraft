@@ -354,5 +354,121 @@
     "tier": "K4",
     "unlock": "a5_faceless_named",
     "keywords": ["沈望"]
+  },
+  {
+    "id": "M05-C12",
+    "mystery": "M05",
+    "text": "镇北的界石刻着「光止于此。此石以北，勿耕，勿葬，勿名」；镇民读作：荒原是光照不到的诅咒之地。",
+    "tier": "K0",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M05-C13",
+    "mystery": "M05",
+    "text": "界石是圣历以前光之祭司团立下的禁区标记：「勿名」是不许为北方的城与神起名；石上没有年款，因为那个年代刻意不留日期。",
+    "tier": "K3",
+    "unlock": "read.lore_h01 AND a3_archive_sealed_room",
+    "keywords": ["禁区标记", "光之祭司团"]
+  },
+  {
+    "id": "M05-C14",
+    "mystery": "M05",
+    "text": "大人们说童谣《千扇门》里的「看门人」是遗迹里吃小孩的怪物，唱这首歌是吓唬孩子别去遗迹。",
+    "tier": "K0",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M05-C15",
+    "mystery": "M05",
+    "text": "童谣《千扇门》唱的是千门都与大断绝：「骨头坐着看门人」是守门的巫妖，门后被封着的是那一位。",
+    "tier": "K3",
+    "unlock": "read.lore_h02 AND a3_ash_tells_sundering",
+    "keywords": ["守门的巫妖"]
+  },
+  {
+    "id": "M02-C13",
+    "mystery": "M02",
+    "text": "卡西安神父说，封门门楣上的纹是光与诸灵镇压邪物的护符，那把断剑是被光折断的邪神之剑。",
+    "tier": "K0",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M02-C14",
+    "mystery": "M02",
+    "text": "封门门楣上的五个神纹是五道封印的签名，不是供奉；第六个门形神纹是被封的那一位，名框是被人凿空的。门楣上的断剑和瓦尔妲的断剑是同一把。",
+    "tier": "K3",
+    "unlock": "read.lore_h03 AND a3_ash_tells_sundering",
+    "keywords": ["五道封印", "封印的签名"]
+  },
+  {
+    "id": "S02-C06",
+    "mystery": "S02",
+    "text": "公会边石分部的登记簿记着圣历 978 年北遗迹调查五人去、一人回；分部长把布伦的口述批作灰气致幻，不予采信。",
+    "tier": "K1",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "S07-C06",
+    "mystery": "S07",
+    "text": "登记簿上被墨涂去的那一行，布伦亲口补上了：门里爬出来的那个人，手上也有门纹。",
+    "tier": "P",
+    "knowers": ["bron", "martha"],
+    "unlock": "read.lore_h04 AND a1_bron_sees_mark",
+    "keywords": ["被涂去的那一行"]
+  },
+  {
+    "id": "S07-C07",
+    "mystery": "S07",
+    "text": "登记簿里那个从门里爬出来、没有脸的人就是无貌者：和你一样，他也是从门里出来的人。",
+    "tier": "K3",
+    "unlock": "read.lore_h04 AND ((a3_martha_tale AND a4_key_theft_exposed) OR a5_seal_torn)",
+    "keywords": ["另一个从门里出来的人"]
+  },
+  {
+    "id": "M10-C17",
+    "mystery": "M10",
+    "text": "《光典·初章》教人相信：光创造了世界，人族是长子，魔物是邪神之秽，千年之后的审定是「天下归一」。",
+    "tier": "K0",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M10-C18",
+    "mystery": "M10",
+    "text": "回看《光典·初章》：「庭中」一词漏出了「庭」的说法；侍灵四位加上光恰好五位，漏掉了一位。",
+    "tier": "K3",
+    "unlock": "read.lore_h05 AND a3_ash_tells_sundering",
+    "keywords": ["恰好五位", "漏掉了一位"]
+  },
+  {
+    "id": "M09-C14",
+    "mystery": "M09",
+    "text": "遗民母亲哼的门的摇篮曲，在圣教眼里是邪教歌谣，可以当作魔女审判的证据。",
+    "tier": "P",
+    "knowers": ["cassian"],
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M09-C15",
+    "mystery": "M09",
+    "text": "遗民的摇篮曲说明遗民信奉开门的母亲；「门总会开的」和梦里门口的女人说的一样；「别给光看见」说明遗民被圣教追捕。",
+    "tier": "K2",
+    "knowers": ["oola"],
+    "unlock": "read.lore_h06 AND a1_dream_door_woman",
+    "keywords": ["遗民被圣教追捕"]
+  },
+  {
+    "id": "M10-C19",
+    "mystery": "M10",
+    "text": "圣教的官译说：此庭为光所植，光授诸司各执一隅；千年一审，审谁可独执此庭；天启碑凡六座，五司各一，眠鳞之巅一。",
+    "tier": "K0",
+    "unlock": "act>=1"
+  },
+  {
+    "id": "M02-C15",
+    "mystery": "M02",
+    "text": "天启碑的官译是改过的：把「吾」换成了「光」，把「六司」换成了「诸司」，把「可离手否」译成了「谁可独执」。",
+    "tier": "K3",
+    "unlock": "read.lore_h21 AND a4_aiden_reads_charter",
+    "keywords": ["官译是改过的"]
   }
 ]

@@ -1,9 +1,11 @@
 // Party pack: companions who can join the player (the servant Yeyu, Shiya, Ron, Nera, and
 // granny Oola as a healer), the party's numbers, the beasts the hunting door can tame, the
-// mounts (each also an item the player buys and holds) and the companions' signature
-// skills. Data lives in data/party/.
+// mounts (each also an item the player buys and holds), the companions' signature
+// skills and the party chatter's exchanges (their lines are ln_party, PK-M1-29). Data lives
+// in data/party/.
 
 import abilities from '../../../data/party/abilities.json';
+import banter from '../../../data/party/banter.json';
 import companions from '../../../data/party/companions.json';
 import config from '../../../data/party/config.json';
 import mounts from '../../../data/party/mounts.json';
@@ -11,8 +13,15 @@ import pets from '../../../data/party/pets.json';
 import type { ContentMap } from '../../core/contracts';
 import type { AbilityDef } from '../../systems/combat/types';
 import type { ItemDef } from '../../systems/inventory';
-import type { CompanionDef, MountDef, PartyConfig, PetDef } from '../../systems/party/types';
-import { STANCES } from '../../systems/party/types';
+import type {
+  BanterDef,
+  CompanionDef,
+  MountDef,
+  PartyConfig,
+  PetDef,
+} from '../../systems/party/types';
+import { BANTER_KINDS, STANCES } from '../../systems/party/types';
+import { checkCondition } from '../../systems/quests/conditions';
 import type { ContentPack } from '../pack';
 
 const MOUNTS = mounts as unknown as MountDef[];
@@ -31,7 +40,71 @@ export function mountItems(list: readonly MountDef[]): ItemDef[] {
   }));
 }
 
-const RULE_KINDS = new Set(['guard', 'shield', 'retreat']);
+const RULE_KINDS = new Set(['guard', 'shield', 'retreat', 'spare']);
+const ID = /^[a-z0-9_]+$/;
+/** Event keys an event exchange may wait for (builtin_ai.md 11.3): a feat of the player. */
+const BANTER_ON = /^feat\.[a-z0-9_]+$/;
+
+/**
+ * Problems in the party chatter (builtin_ai.md 11.3): ids, kinds, a cast of one to three
+ * persons (companions or carded people), speakers from the cast, two to six lines, a place
+ * for an enter exchange, conditions that parse, replies of two or three options whose bond
+ * names the cast. When ln_party is loaded, each exchange's slot holds at least its lines
+ * and reply labels (the pack itself is PK-M1-29's).
+ */
+export function validateBanter(content: ContentMap): string[] {
+  const out: string[] = [];
+  const persons = new Set([
+    ...(content.companions ?? []).map((c) => c.id),
+    ...((content as { npcs?: { id: string }[] }).npcs ?? []).map((n) => n.id),
+  ]);
+  const places = new Set<string>();
+  for (const m of content.maps ?? []) {
+    places.add(m.id);
+    for (const l of m.locations ?? []) places.add(l.id);
+  }
+  const pack = (content.linePacks ?? []).find((p) => p.id === 'ln_party');
+  const seen = new Set<string>();
+  for (const b of content.partyBanter ?? []) {
+    const at = `banter ${b.id}`;
+    if (!ID.test(b.id)) out.push(`${at}: id must be lowercase`);
+    if (seen.has(b.id)) out.push(`${at}: duplicate id`);
+    seen.add(b.id);
+    if (!BANTER_KINDS.includes(b.kind)) out.push(`${at}: unknown kind ${b.kind}`);
+    if (!(b.cast.length >= 1 && b.cast.length <= 3)) out.push(`${at}: cast of 1 to 3`);
+    for (const c of b.cast) if (!persons.has(c)) out.push(`${at}: unknown person ${c}`);
+    if (!(b.speakers.length >= 2 && b.speakers.length <= 6)) out.push(`${at}: 2 to 6 lines`);
+    for (const sp of b.speakers)
+      if (!b.cast.includes(sp)) out.push(`${at}: speaker ${sp} is not in the cast`);
+    if (b.at !== undefined && b.kind !== 'enter') out.push(`${at}: only enter takes at`);
+    if (b.at === undefined && b.kind === 'enter')
+      out.push(`${at}: an enter exchange names its place`);
+    // a relation exchange answers a change between two of its own cast
+    if (b.kind === 'relation' && b.cast.length < 2)
+      out.push(`${at}: relation needs two in the cast`);
+    if (b.at !== undefined && !places.has(b.at)) out.push(`${at}: unknown place ${b.at}`);
+    if (b.on !== undefined && (b.kind !== 'event' || !BANTER_ON.test(b.on)))
+      out.push(`${at}: on must be feat.<kind> on an event exchange`);
+    if (b.when) {
+      const bad = checkCondition(b.when);
+      if (bad) out.push(`${at}: condition does not parse: ${bad}`);
+    }
+    if (!(b.priority > 0)) out.push(`${at}: priority must be positive`);
+    if (b.replies && !(b.replies.length >= 2 && b.replies.length <= 3))
+      out.push(`${at}: a reply point has two or three options`);
+    for (const r of b.replies ?? [])
+      for (const who of Object.keys(r.bond ?? {}))
+        if (!b.cast.includes(who)) out.push(`${at}: reply bond names ${who} outside the cast`);
+    if (pack) {
+      const lines = pack.slots[`party.${b.id}`];
+      const need = b.speakers.length + (b.replies?.length ?? 0);
+      if (!Array.isArray(lines)) out.push(`${at}: ln_party has no slot party.${b.id}`);
+      else if (lines.length < need)
+        out.push(`${at}: ln_party slot party.${b.id} holds ${lines.length} of ${need} lines`);
+    }
+  }
+  return out;
+}
 
 /** Problems in the party's own tables (the content validation and the tests run it). */
 export function validateParty(content: ContentMap): string[] {
@@ -90,6 +163,11 @@ export function validateParty(content: ContentMap): string[] {
     if (cfg.rest.minDays > cfg.rest.maxDays) problems.push('partyConfig: rest min above max');
     if (!STANCES.length) problems.push('partyConfig: no stances');
   }
+  for (const c of content.companions ?? [])
+    for (const r of c.ai?.rules ?? [])
+      if (r.kind === 'spare' && !(r.families?.length > 0))
+        problems.push(`companion ${c.id}: a spare rule names its families`);
+  problems.push(...validateBanter(content));
   return problems;
 }
 
@@ -102,6 +180,7 @@ export const pack: ContentPack = {
     mounts: MOUNTS,
     abilities: abilities as unknown as AbilityDef[],
     items: mountItems(MOUNTS),
+    partyBanter: banter as unknown as BanterDef[],
   },
   schemas: [
     {
@@ -172,6 +251,35 @@ export const pack: ContentPack = {
         { key: 'load', label: '驮载', type: 'number', min: 0 },
         { key: 'stopsAtSediment', label: '止步澱度', type: 'json' },
         { key: 'fearless', label: '不怕灵压', type: 'boolean' },
+      ],
+    },
+    {
+      table: 'partyBanter',
+      label: '队内闲聊',
+      file: 'party/banter.json',
+      idField: 'id',
+      fields: [
+        {
+          key: 'id',
+          label: 'ID',
+          type: 'string',
+          required: true,
+          help: '台词在 ln_party 的槽位 party.<ID>：先说话句，再回应选项',
+        },
+        { key: 'cast', label: '出场', type: 'json', required: true },
+        {
+          key: 'kind',
+          label: '触发',
+          type: 'enum',
+          options: ['enter', 'event', 'travel', 'campfire', 'relation', 'act'],
+        },
+        { key: 'at', label: '地点（进入地点）', type: 'string' },
+        { key: 'on', label: '事件键（feat.<种类>）', type: 'string' },
+        { key: 'when', label: '条件', type: 'string' },
+        { key: 'once', label: '一局一次', type: 'boolean' },
+        { key: 'priority', label: '优先级', type: 'number', min: 1 },
+        { key: 'speakers', label: '逐句说话者', type: 'json', required: true },
+        { key: 'replies', label: '回应点（各选项的羁绊）', type: 'json' },
       ],
     },
   ],

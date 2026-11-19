@@ -319,6 +319,79 @@
       "radius": 3,
       "respawnMinutes": 15,
       "level": [6, 8]
+    },
+    {
+      "kind": "monster",
+      "id": "bn_hare_slope",
+      "ref": "field_hare",
+      "x": 76.5,
+      "y": 80.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 30
+    },
+    {
+      "kind": "monster",
+      "id": "bn_boar_scrub_w",
+      "ref": "forest_boar",
+      "x": 52.5,
+      "y": 66.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 30
+    },
+    {
+      "kind": "monster",
+      "id": "bn_boar_scrub_e",
+      "ref": "forest_boar",
+      "x": 100.5,
+      "y": 70.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 30
+    },
+    {
+      "kind": "monster",
+      "id": "bn_ashhorn_north",
+      "ref": "ashhorn_deer",
+      "x": 100.5,
+      "y": 30.5,
+      "count": 4,
+      "radius": 3,
+      "respawnMinutes": 40,
+      "level": [6, 8]
+    },
+    {
+      "kind": "monster",
+      "id": "bn_three_toes",
+      "ref": "three_toes",
+      "x": 110.5,
+      "y": 40.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 2400
+    },
+    {
+      "kind": "monster",
+      "id": "bn_elk_slope",
+      "ref": "northern_elk",
+      "x": 10.5,
+      "y": 29.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 60,
+      "requiresFlags": ["act.2.entered"]
+    },
+    {
+      "kind": "monster",
+      "id": "bn_smuggler_road",
+      "ref": "greyroad_smuggler",
+      "x": 92.5,
+      "y": 53.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60,
+      "requiresFlags": ["act.2.entered"]
     }
   ],
   "exits": [

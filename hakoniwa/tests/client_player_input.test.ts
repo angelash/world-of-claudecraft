@@ -216,7 +216,8 @@ describe('rings (16.5)', () => {
     const h = base;
     const party = h.player.ringSectors('party');
     const companions = h.adapters.party?.companions(h.view) ?? [];
-    expect(party.length).toBe(companions.length === 0 ? 0 : 4);
+    // four orders, plus the single-companion sector once there are two or more (16.5)
+    expect(party.length).toBe(companions.length === 0 ? 0 : companions.length > 1 ? 5 : 4);
     for (const s of h.player.ringSectors('items')) {
       expect(h.view.itemDef(s.id)?.kind).toBe('consumable');
     }

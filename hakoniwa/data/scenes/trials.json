@@ -1,0 +1,102 @@
+[
+  {
+    "id": "a1_witch_trial",
+    "points": ["evidence", "testimony", "exposure", "debate"],
+    "clears": 2,
+    "pieces": [
+      {
+        "id": "spring_water",
+        "item": "north_spring_water",
+        "targets": [
+          {
+            "tribunal": "a1_witch_trial",
+            "point": "evidence",
+            "strength": 1
+          }
+        ],
+        "writes": {
+          "evidence": "a1_trial_evidence"
+        },
+        "to": "water"
+      },
+      {
+        "id": "manifest",
+        "item": "smuggling_manifest",
+        "targets": [
+          {
+            "tribunal": "a1_moss_tax",
+            "point": "smuggling",
+            "strength": 1
+          }
+        ]
+      },
+      {
+        "id": "otto_will",
+        "item": "otto_will",
+        "targets": [
+          {
+            "tribunal": "a1_otto_mill",
+            "point": "will",
+            "strength": 1
+          }
+        ]
+      },
+      {
+        "id": "magistrate_seal",
+        "item": "magistrate_seal_fragment",
+        "targets": [
+          {
+            "tribunal": "a1_moss_tax",
+            "point": "seal",
+            "strength": 1
+          }
+        ]
+      },
+      {
+        "id": "merca_coin",
+        "item": "merca_coin",
+        "targets": []
+      },
+      {
+        "id": "guild_card",
+        "item": "guild_card",
+        "targets": []
+      }
+    ],
+    "rebuttals": [
+      {
+        "on": "wrong",
+        "speaker": "cassian",
+        "text": "这与那孩子的死有什么关系？审的是巫术，不是别的。",
+        "effects": [
+          {
+            "type": "add",
+            "key": "church_suspicion",
+            "amount": 2,
+            "max": 100
+          }
+        ]
+      },
+      {
+        "on": "forged",
+        "speaker": "cassian",
+        "text": "这是假的。在光面前拿假东西，比巫术还可疑。",
+        "effects": [
+          {
+            "type": "add",
+            "key": "church_suspicion",
+            "amount": 5,
+            "max": 100
+          }
+        ]
+      }
+    ],
+    "pointFlags": {
+      "evidence": "a1_trial_evidence",
+      "testimony": "a1_trial_testimony",
+      "exposure": "a1_lamp_exposed",
+      "debate": "a1_trial_debate"
+    },
+    "countFlag": "a1_trial_points"
+  }
+]

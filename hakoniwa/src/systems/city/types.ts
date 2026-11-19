@@ -4,6 +4,7 @@
 // buildings 4, population 5, production 6, officials 7.4, autonomy 8, events 10).
 
 import { type KeyText, type TextParam, type TextRef, tr } from '../../core/text';
+import type { StackQualifiers } from '../inventory';
 
 export type SiteKind = 'settlement' | 'court';
 /** Scale ladder (D-045 for battles; city 1.1): outpost, village, territory. Court is separate. */
@@ -152,6 +153,67 @@ export interface SiteDef {
   roles?: SiteRole[];
   /** court: the location the door opens onto (else the first safe location) */
   arrivalLocation?: string;
+  /** court: the door rule, the display and the expansion tiers (court_tiers.ts) */
+  court?: CourtConfig;
+}
+
+/**
+ * How the court's door is pushed (act1 9.2, travel_and_exploration.md 5.1): the player stands
+ * within `reach` tiles (tile centres) of a tile whose kind is listed, on the live map (a
+ * closed switch counts by its closed tile), of a closed switch whose closed tile is in
+ * `switchTiles` (an iron gate drawn as wall), or of a location carrying a listed tag.
+ */
+export interface CourtDoorRule {
+  tiles: string[];
+  reach: number;
+  switchTiles?: string[];
+  anchorTags?: string[];
+  /** game minutes between two entries; 0 none */
+  cooldownMinutes: number;
+}
+
+/** A display case of a tier (catalog_relics_lore.md 1.7): one piece per slot. */
+export interface CourtCaseDef {
+  id: string;
+  slots: number;
+}
+
+/**
+ * One expansion tier of the court (catalog_buildings_city.md 4.1, thousand_doors.md 13). A
+ * tier holds while every flag holds; the current tier is the last such tier in order, and
+ * the tiers up to it add their cases and override building limits and storage.
+ */
+export interface CourtTierDef {
+  id: string;
+  requiresFlags?: string[];
+  display?: CourtCaseDef[];
+  /** building id to the most instances of it at this tier (garden plots) */
+  buildingMax?: Record<string, number>;
+  /** building id to its storage at this tier (the store's second level) */
+  buildingStorage?: Record<string, number>;
+}
+
+export interface CourtConfig {
+  door: CourtDoorRule;
+  /** inventory owner id of the display: an item on display is held by it, not the player */
+  displayOwner: string;
+  /** game days from asking to take a piece down until it is back in the court's storage */
+  takeDownDays: number;
+  tiers: CourtTierDef[];
+}
+
+/** One piece on display (rule 1: on display it is locked; taking it down takes a day). */
+export interface CourtDisplayEntry {
+  id: string;
+  itemId: string;
+  caseId: string;
+  /** the record of an instanced piece */
+  instanceId?: string;
+  /** the stack key of a qualified stack unit */
+  qualifiers?: StackQualifiers;
+  since: number;
+  /** tick at which the take-down completes */
+  takeDue?: number;
 }
 
 /**
@@ -388,7 +450,13 @@ export interface CitySlice {
     offices: Partial<Record<Domain, OfficeState>>;
     core: AutonomyLedger | null;
   };
-  court: { returnTo: { mapId: string; x: number; y: number } | null };
+  court: {
+    returnTo: { mapId: string; x: number; y: number } | null;
+    /** tick of the last entry through a door (the cooldown); absent on older saves */
+    lastEnterTick?: number;
+    /** pieces on display; absent on older saves (read as empty) */
+    display?: CourtDisplayEntry[];
+  };
 }
 
 export type MicroAction = 'boost' | 'rush' | 'handle_dispute' | 'personal_defense';
@@ -447,6 +515,13 @@ declare module '../../core/contracts' {
       note: TextRef | string;
     };
     'city.autonomy_changed': { siteId: string; value: number; raw: number };
+    /** a piece went on display, its take-down began, or it came off into the court's storage */
+    'city.court_display': {
+      op: 'put' | 'taking' | 'taken';
+      entryId: string;
+      itemId: string;
+      caseId: string;
+    };
   }
   interface CommandMap {
     'city.found': { siteId: string };
@@ -476,5 +551,17 @@ declare module '../../core/contracts' {
     };
     'city.enter_court': Record<string, never>;
     'city.leave_court': Record<string, never>;
+    /**
+     * one piece from the pack onto a display case (the first with room when caseId is absent);
+     * instanceId picks a record, qualifiers a stack key ({} the plain stack)
+     */
+    'city.display_put': {
+      itemId: string;
+      instanceId?: string;
+      qualifiers?: StackQualifiers;
+      caseId?: string;
+    };
+    /** start taking a piece down: after takeDownDays it is in the court's storage */
+    'city.display_take': { entryId: string };
   }
 }

@@ -8,12 +8,12 @@
     "minAct": 1,
     "visibility": "hidden",
     "params": "{mapId?, targetId?（受谕的信徒实体 ID）, text（四到二十字）, flag?（只能是 oracle.<你的 ID>. 开头）, value?}",
-    "lines": {
-      "eluen": ["守好秩序。", "警惕规格之外的东西。", "光在看着这座镇子。", "清点你的信众，孩子。"],
-      "valda": ["磨好你的刀。", "去找一个比你强的人。"],
-      "merca": ["这季的盐要涨，先囤一点。", "客人，记得供奉。", "账要算清楚。"],
-      "sylvie": ["……林子里，有东西醒了。", "……别砍那棵树。"],
-      "moira": ["把今天发生的事写下来。", "留意那些巧合。"]
+    "slots": {
+      "eluen": "react.oracle_instruct",
+      "valda": "react.oracle_instruct",
+      "merca": "react.oracle_instruct",
+      "sylvie": "react.oracle_instruct",
+      "moira": "react.oracle_instruct"
     },
     "tags": ["religious"],
     "kpi": {
@@ -227,14 +227,9 @@
     "minAct": 1,
     "visibility": "hidden",
     "params": "{text}：夜里入梦，只对那个人说一两句话",
-    "lines": {
-      "janu": [
-        "你来了。门总会开的。",
-        "别急，下一扇门在你身后。",
-        "今天的路，走得很稳。",
-        "别让太多人看见你的手。"
-      ],
-      "sylvie": ["……林子在喘气。"]
+    "slots": {
+      "sylvie": "react.dream_vision",
+      "janu": "greet.neutral.dream"
     },
     "tags": ["covert", "protective"],
     "kpi": {
@@ -255,11 +250,8 @@
     "minAct": 1,
     "visibility": "hidden",
     "params": "{mapId, text}：动物的异常举动，必须对应一个真实的危险",
-    "lines": {
-      "sylvie": [
-        "林间的鸟群一下子全飞了起来，往南边去了。",
-        "一头鹿站在路边，看了你很久，才转身跑开。"
-      ]
+    "slots": {
+      "sylvie": "react.omen_beast"
     },
     "tags": ["protective"],
     "kpi": {
@@ -273,7 +265,7 @@
     "id": "request",
     "label": "任务请托",
     "power": 2,
-    "cooldownHours": 168,
+    "cooldownHours": 72,
     "sedimentRate": 0.01,
     "minAct": 1,
     "visibility": "hidden",
@@ -526,6 +518,51 @@
         "key": "region",
         "add": 1,
         "hours": 720
+      }
+    ]
+  },
+  {
+    "id": "div_sylvie_bless",
+    "label": "授予加护",
+    "power": 1,
+    "cooldownHours": 720,
+    "sedimentRate": 0.1,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{mapId, targetId?（虔诚达标的有页信徒：德鲁伊、萨满、猎人、精灵与兽人）}：林佑、生息、灵语、形许",
+    "tags": ["protective"],
+    "kpi": {
+      "peace": 0.04,
+      "diversity": 0.02
+    },
+    "scale": "believers",
+    "needs": ["believer"],
+    "seen": "never",
+    "exec": "narrate"
+  },
+  {
+    "id": "div_sylvie_migration",
+    "label": "兽群迁徙",
+    "power": 30,
+    "cooldownHours": 720,
+    "sedimentRate": 0.1,
+    "minAct": 2,
+    "visibility": "public",
+    "params": "{mapId, days?（1 到 30）}：鹿群、狼群、角兽沿一条路线过境，不攻击；路线上的行旅变慢",
+    "tags": ["protective", "public"],
+    "kpi": {
+      "diversity": 0.05,
+      "forest": 0.03
+    },
+    "scale": "faith",
+    "seen": "map",
+    "exec": "narrate",
+    "modifiers": [
+      {
+        "target": "travel",
+        "key": "region",
+        "factor": 1.15,
+        "hours": 168
       }
     ]
   }

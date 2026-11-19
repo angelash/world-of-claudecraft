@@ -119,5 +119,6 @@
   "sys.goddess.reject.gate.market": "那里没有市场",
   "sys.goddess.reject.gate.player": "那个人不在那里",
   "sys.goddess.reject.gate.token": "那个人身上没有她的信物",
-  "sys.goddess.narrate.silent.janu": "门缝里漏出一点暖光，又暗了下去。"
+  "sys.goddess.narrate.silent.janu": "门缝里漏出一点暖光，又暗了下去。",
+  "sys.goddess.narrate.div_sylvie_migration": "鹿群、狼群和角兽从{place}过境，谁也没有攻击谁。"
 }

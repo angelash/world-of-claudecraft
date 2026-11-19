@@ -1,0 +1,303 @@
+{
+  "id": "ln_shiya",
+  "speaker": "shiya",
+  "slots": {
+    "greet.cold.day": ["有事？", "（嗅了嗅）你身上有酒味。离远点。", "我在忙。说快点。"],
+    "greet.cold.night": ["夜里别靠近东坡。", "回去吧。", "你跟着我干什么？"],
+    "greet.neutral.day": ["你来了。", "林子今天安静。", "要进林子？跟紧我。"],
+    "greet.neutral.night": ["还不睡？", "夜里林子里的东西多。", "月亮亮，好走路。"],
+    "greet.warm.day": [
+      "来了。说好了，今天一起进林子。",
+      "祖灵在上，你又给我带了什么麻烦？",
+      "我闻到你了，老远就闻到了。"
+    ],
+    "greet.warm.night": ["坐。火边暖和。", "你睡不着？我也是。", "今晚的风，好闻。"],
+    "farewell": ["走吧。", "说好了的事，别忘。", "小心，林子边有狼。"],
+    "unbelief.deny": [
+      "传闻？我不听传闻。",
+      "他们说的我没看见，不算。",
+      "人族的嘴，十句有八句是吹的。"
+    ],
+    "unbelief.explain": ["我没看见，不说。", "等我亲眼看。", "也许是运气。也许不是。我要看。"],
+    "unbelief.waver": [
+      "我闻得出来。你不一样。",
+      "（耳朵竖起来）那一下……是真的。",
+      "我看见了，就信。"
+    ],
+    "topic.gen_you": {
+      "act1": ["你闻起来像外面的风。不是这里的。", "我信你。我看见了。别让我后悔。"]
+    },
+    "topic.gen_self": {
+      "cold": ["希雅。东坡的。", "猎户。就这样。"],
+      "neutral": ["希雅。狼族。东坡的猎户。", "我家在东坡。人族叫那里狗坡。我们叫东坡。"],
+      "warm": [
+        "我叫希雅。会射箭，会追踪，会剥皮。不会说好听的话。",
+        "我想让家里人别再被叫\"狗坡的\"。就这个。"
+      ]
+    },
+    "topic.gen_work": {
+      "K0": ["打猎。天亮进林子，午后剥皮，集日卖皮子。", "皮子总被压价。我知道，可是要吃饭。"]
+    },
+    "topic.gen_past": {
+      "cold": ["不想说。", "（她转开了视线）"],
+      "warm": ["我们是从草原那边过来的。很久以前。", "我爹……不说了。"]
+    },
+    "topic.gen_advice": {
+      "K0": ["进林子先看风。逆风走，它们闻不到你。", "狼不会无缘无故咬人。会咬人的狼，都是被逼的。"]
+    },
+    "topic.gen_faith": {
+      "K0": ["祖灵在上。还有林子的母亲。", "礼拜堂？我不进去。他们看我的耳朵。"]
+    },
+    "topic.self_shiya_family": {
+      "K0": ["我有个弟弟，阿柯。他总闯祸。", "东坡的人都是一家人。谁欺负一个，就是欺负全部。"]
+    },
+    "topic.self_shiya_nose": {
+      "K0": ["我闻得出来。人撒谎的时候，味道会变。", "林子病了，也有味道。最近有。"]
+    },
+    "topic.secret_shiya_reading": {
+      "K0": [
+        {
+          "zh": "……我在跟伊莎修女学认字。别笑。",
+          "when": "trust.shiya >= 60"
+        },
+        {
+          "zh": "我想自己看林约上写的是什么，不用别人念给我听。",
+          "when": "trust.shiya >= 60"
+        }
+      ]
+    },
+    "topic.place_east_forest": {
+      "K0": ["林缘那边是我们的猎径。越往里，树越老。", "约树在林子深处。上面刻着林约。"],
+      "K1": ["伐区越往北推，林子里的东西越凶。不是我们引的。"]
+    },
+    "topic.danger_east_forest": {
+      "K0": ["北边有狼，颜色不对。灰的。我早说了，没人信。", "别一个人往伐区北边走。"]
+    },
+    "topic.lore_wolf_saying": {
+      "K1": [
+        {
+          "zh": "族里的老话：很久以前，草原和海之间只隔一扇门。",
+          "when": "trust.shiya >= 40"
+        },
+        {
+          "zh": "老人们这么说。我也不知道是什么意思。",
+          "when": "trust.shiya >= 40"
+        }
+      ]
+    },
+    "topic.person_gaspar": {
+      "K0": [
+        "加斯帕？他恨我们。他弟弟的事，不是我们干的。",
+        {
+          "zh": "……加斯帕也不全是坏人。他护他的工人。",
+          "when": "a1_forest_accord == restored"
+        }
+      ]
+    },
+    "topic.person_ako": {
+      "K0": ["阿柯没偷东西。我闻得出来。"]
+    },
+    "topic.place_bs_east_slope": {
+      "K0": ["东坡。我们的家。皮架、熏肉棚，还有狗……不对，没有狗。", "别在东坡说\"狗坡\"。"]
+    },
+    "react.feat_seen": ["（耳朵竖起来）……好。", "我看见了。是真的。"],
+    "react.gift_liked": ["好肉。谢谢。我会还你。", "这个……我收下。说好了，我欠你一次。"],
+    "react.gift_plain": ["嗯。有用。", "谢谢。"],
+    "react.gift_disliked": ["我不要施舍。", "拿回去。我们自己能活。"],
+    "react.insult": ["再说一次。", "嘴别那么脏。"],
+    "react.thanked": ["不用。说好的。", "你也帮过我。"],
+    "react.flattered": ["别说好听的。", "（尾巴慢慢摆了一下）……嗯。"],
+    "react.threatened": ["你试试。", "我不先动手。你先动，我就不客气了。"],
+    "react.helped": ["我欠你的，我会还。", "你帮了东坡。我记着。"],
+    "react.saved": ["你救了我。祖灵在上，我欠你一条命。", "……谢谢。我会还的。"],
+    "react.identity_claim": ["我信。你闻起来就不是这里的。", "别跟人族说这个。他们不信，还会怕。"],
+    "react.accused": ["我没做。我不撒谎。", "拿出证据来。"],
+    "react.belief_worship": ["我信你。不是因为你强，是因为你说话算话。", "跟着你，我不后悔。"],
+    "react.apology_accept": ["好。说开了就行。", "嗯。下次别这样。"],
+    "react.apology_reject": ["不行。你伤了东坡的人。", "我现在不想听。"],
+    "react.joke": ["……不好笑。", "（她嘴角动了一下）还行。"],
+    "react.advance": ["你在说什么。", "别说这种话。我们是一起打猎的。"],
+    "react.boast": ["吹。我要看。", "说没用，做给我看。"],
+    "react.persuaded": ["你说得对。我听你的。", "好。说好了。"],
+    "react.unpersuaded": ["不。", "我闻得出来这不对。"],
+    "react.promise_noted": ["说好了。", "我记着，你也记着。"],
+    "react.declined": [
+      {
+        "zh": "他放下弓了。我不射放下弓的人。",
+        "when": "order.moral_tag == kill_surrender"
+      },
+      {
+        "zh": "抢穷人？我们东坡最恨这个。",
+        "when": "order.moral_tag == rob_civilians"
+      },
+      {
+        "zh": "说好的事，不能反悔。",
+        "when": "order.moral_tag == break_pact"
+      },
+      {
+        "zh": "那是别人的祖灵。不碰。",
+        "when": "order.moral_tag == desecrate"
+      },
+      {
+        "zh": "孩子不行。你再说一次，我就走。",
+        "when": "order.moral_tag == harm_children"
+      }
+    ],
+    "react.nothing_more": ["就这些。", "我知道的都说了。"],
+    "react.confused": ["什么？", "说清楚。"],
+    "react.nonsense": ["听不懂。", "你说的话，没有味道。"],
+    "react.haggle_ok": ["好。成交。", "便宜点就便宜点，我要的是盐。"],
+    "react.haggle_no": ["这皮子好。不让。", "你又压价。"],
+    "react.bribe_accept": [
+      {
+        "zh": "……好吧，这一次，是你。",
+        "when": "trust.shiya >= 80"
+      },
+      {
+        "zh": "我收下。不是因为钱。",
+        "when": "trust.shiya >= 80"
+      }
+    ],
+    "react.bribe_refuse": ["收回去。", "我不卖。"],
+    "react.wrong_person": ["这个问葛恩。", "我只懂林子。"],
+    "react.no_work": ["今天没活。", "皮子剥完了。"],
+    "react.decline": ["这个我帮不了。", "不行。"],
+    "react.recruit_yes": ["说好了，一起。", "我跟你走。你守住你的话。"],
+    "react.recruit_terms": ["东坡的人要有人照看。你答应，我就走。", "我要合作，不要施舍。"],
+    "react.recruit_later": ["林子的事还没完。等一等。", "等林约的事说清楚。"],
+    "react.recruit_no": ["我不跟不守信的人走。", "不。"],
+    "react.self_recommend": ["让我去探路。我鼻子好。", "追踪我来。"],
+    "react.request_battle": ["它们在那边，我闻到了。打吧。", "等下去，它们会绕到后面。"],
+    "react.rival_taunt": ["你射得没我准。", "比一比？"],
+    "react.rival_concede": ["你赢了。我认。", "好箭。"],
+    "react.call_favor": ["你答应过帮东坡。现在。", "说好的，该你了。"],
+    "react.ask_help": ["帮我一个忙。东坡的事。", "我一个人不够。"],
+    "react.invite": ["明天天亮，一起进林子？", "来东坡，有熏肉。"],
+    "react.deny": ["不是。", "没有。"],
+    "react.evade": ["（她不说话）", "换个问题。"],
+    "react.unknown": ["不知道。", "没闻到过。"],
+    "react.goddess_invoked": ["祖灵在上……你喊谁？", "别乱喊名字。"],
+    "react.earth_talk": ["你那边有狼吗？", "那边的林子，也这么大？"],
+    "react.earth_refuse": ["会炸的粉？林子会着火。不行。", "纸做的钱？谁会信。"],
+    "quest.q_a1_m05_grey_wolf.offer": [
+      "北边有灰色的狼。我说了，没人信。你信不信？",
+      "伐区北边，狼穴。我要去看。一起？"
+    ],
+    "quest.q_a1_m05_grey_wolf.accept": ["说好了。跟紧我，别出声。", "逆风走。"],
+    "quest.q_a1_m05_grey_wolf.decline": ["那我自己去。", "我就知道。"],
+    "quest.q_a1_m05_grey_wolf.progress": [
+      "这脚印……太大了。",
+      "有一只缺了耳朵的。头狼。",
+      "味道不对。它们身上有灰。"
+    ],
+    "quest.q_a1_m05_grey_wolf.complete": ["裂耳倒了。牙是你的。", "我看见了。你没退。祖灵在上。"],
+    "quest.q_a1_m05_grey_wolf.after": [
+      "他们说是你捡了德里斯的漏。我在场。不是。",
+      "灰色的狼，还会有。我闻得出来。"
+    ],
+    "quest.q_a1_s05_burned_shed.offer": ["猎棚被烧了。有人放的火。", "我知道是谁。我要证据。"],
+    "quest.q_a1_s05_burned_shed.accept": ["好。先去现场。", "我闻火油的味道。"],
+    "quest.q_a1_s05_burned_shed.progress": [
+      "火油是伐木场那边的味道。可不是加斯帕。",
+      "别急着报仇。我要先弄清楚。"
+    ],
+    "quest.q_a1_s05_burned_shed.complete": [
+      "弄清楚了。……我不报复。我要他当面说。",
+      "谢谢你没让我动手。"
+    ],
+    "quest.q_a1_s05_burned_shed.after": ["猎棚重新搭起来了。东坡的人都来帮忙。"],
+    "quest.q_a1_d04_forest_dispute.progress": [
+      "林约刻在约树上。人族忘了，树没忘。",
+      "博罗要动手了，我拦不住多久。"
+    ],
+    "quest.q_a1_d04_forest_dispute.after": [
+      {
+        "zh": "林约回来了。祖灵在上。",
+        "when": "a1_forest_accord == restored"
+      },
+      {
+        "zh": "一半。总比没有好。",
+        "when": "a1_forest_accord == partial"
+      },
+      {
+        "zh": "……东坡要走了。我……还没想好跟不跟。",
+        "when": "a1_forest_accord == broken"
+      }
+    ],
+    "quest.q_a1_d02_witch_trial.progress": [
+      "欧拉婆婆没害人。我闻得出来。",
+      "他们要把她关起来？凭什么。"
+    ],
+    "quest.q_a1_d02_witch_trial.after": [
+      {
+        "zh": "婆婆回家了。好。",
+        "when": "a1_oola_fate == cleared"
+      },
+      {
+        "zh": "婆婆不在了。东坡的药，以后找谁。",
+        "when": "a1_oola_fate IN (convicted, fled)"
+      }
+    ],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "林缘我守。它们从林子里来，我认得路。",
+        "when": "a1_beast_tide_started"
+      },
+      {
+        "zh": "东坡的人进栅子了吗？快！",
+        "when": "a1_beast_tide_started"
+      }
+    ],
+    "quest.q_a1_m12_tide.after": [
+      {
+        "zh": "镇子还在。东坡也还在。",
+        "when": "a1_bs_survival == intact"
+      },
+      {
+        "zh": "……烧了好多房子。东坡的熏肉棚也没了。",
+        "when": "a1_bs_survival != intact"
+      }
+    ],
+    "bark.combat": ["祖灵在上！", "别动，我瞄准了。", "左边！"],
+    "bark.hurt": ["呜……没事。", "擦破皮。", "还能拉弓。"],
+    "bark.victory": ["倒了。", "好。收箭。", "剥皮的活归我。"],
+    "bark.ally_down": ["起来！别躺着！", "我来拖你！", "喂！看着我！"],
+    "bark.flee": ["退！往林子里退！", "跟着我跑，我认得路！", "别回头！"],
+    "bark.work": ["这张皮好。", "刀要顺着纹走。"],
+    "bark.eat": ["熏肉。吃吗？", "吃饱了才有力气。"],
+    "bark.chat": ["阿柯又跑哪去了。", "今天林子里很安静。"],
+    "bark.sleep": ["……别动我的弓……", "……娘……"],
+    "bark.travel": ["这条路有鹿走过。", "前面有水，我闻到了。"],
+    "bark.camp": ["我守夜。狼族不怕黑。", "火堆别太大。"],
+    "bark.morning": ["天亮了。进林子。"],
+    "bark.see_feat": ["（耳朵竖起来）……我看见了！"]
+  },
+  "acts": {
+    "act1": {
+      "greet.neutral": [
+        {
+          "zh": "你闻起来不像这里的人。",
+          "first": true
+        },
+        {
+          "zh": "人族？来东坡做什么。",
+          "when": "act_week <= 4"
+        },
+        {
+          "zh": "……别跟我说话。现在不想。",
+          "when": "a1_forest_accord == broken"
+        }
+      ],
+      "greet.warm": [
+        {
+          "zh": "那一夜，你守住了。我看见了。",
+          "when": "a1_beast_tide_cleared"
+        },
+        {
+          "zh": "裂耳的牙，你留着。那是你的。",
+          "when": "quest.q_a1_m05_grey_wolf"
+        }
+      ]
+    }
+  }
+}

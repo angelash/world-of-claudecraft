@@ -36,6 +36,13 @@ export interface RadialState {
   /** what opened it: released, it picks (unless sticky) */
   opener: string;
   sticky: boolean;
+  /**
+   * Whom the ring acts for, when not the whole set: a companion id for the party ring opened
+   * on one member's frame (ux_and_onboarding.md 5.2), so its orders go to that member only.
+   */
+  target?: string;
+  /** the ring's title when it names its target ("the orders of X"), else the ring's own */
+  title?: string;
 }
 
 export function openRing(
@@ -43,8 +50,13 @@ export function openRing(
   sectors: readonly RingSector[],
   opener: string,
   sticky: boolean,
+  target?: string,
+  title?: string,
 ): RadialState {
-  return { ring, sectors, page: 0, highlight: null, opener, sticky };
+  const s: RadialState = { ring, sectors, page: 0, highlight: null, opener, sticky };
+  if (target !== undefined) s.target = target;
+  if (title) s.title = title;
+  return s;
 }
 
 export function pageCount(sectors: readonly RingSector[]): number {

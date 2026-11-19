@@ -1,0 +1,53 @@
+{
+  "id": "ln_viro",
+  "speaker": "viro",
+  "slots": {
+    "greet.cold": ["押多少？不押就走。", "客人，这里不欢迎看热闹的。", "嗯。"],
+    "greet.neutral": ["押多少？", "客人，手气怎么样？", "坐。"],
+    "greet.warm": ["客人，你来了。这局我请。", "有笔生意，你感兴趣吗？", "坐，我们聊聊。"],
+    "farewell": ["下回带够钱。", "客人慢走。", "骰子会记得你。"],
+    "unbelief.deny": ["传闻我不押。", "没看见的，我不信。"],
+    "unbelief.explain": ["有人在背后撑着你吧。", "你值多少，我还在算。"],
+    "unbelief.waver": ["你不对劲。我第一眼就看出来了。", "这一局，我押你。"],
+    "react.feat_seen": ["……有意思。", "你值得押。"],
+    "react.gift_liked": ["客人，出手大方。", "嗯，收了。"],
+    "react.insult": ["骂我？这局你输了。", "客人，嘴巴贵。"],
+    "topic.gen_self": {
+      "neutral": ["薇罗。骰子屋是我的。", "独眼团的副手。……暂时。"]
+    },
+    "topic.gen_work": {
+      "K1": ["开局，收账，听消息。", "骰子不说谎，赌的人才说谎。"]
+    },
+    "topic.self_viro_dice": {
+      "K1": ["骰子是公平的。人不是。", "押多少？押错了，别怪骰子。"]
+    },
+    "topic.secret_viro_pact": {
+      "K1": [
+        {
+          "zh": "代官答应过我：卖了瑟格，我拿赦免和分成。",
+          "when": "a1_viro_status IN (captured, recruited)"
+        },
+        {
+          "zh": "现在你出价更高。",
+          "when": "a1_viro_status IN (captured, recruited)"
+        }
+      ]
+    },
+    "quest.q_a1_s03_dice_house.progress": [
+      "杰德欠我九枚银币。他拿什么还，我不问。",
+      "赢我一局，我告诉你一件事。"
+    ],
+    "quest.q_a1_d01_tax_and_bandits.after": [
+      {
+        "zh": "好吧，客人，我跟你干。价钱另谈。",
+        "when": "a1_viro_status == recruited"
+      },
+      {
+        "zh": "瓦伦堡的骰子，更大。",
+        "when": "a1_viro_status == fled_wallenburg"
+      }
+    ],
+    "bark.work": ["押好离手。", "下一局。"],
+    "bark.wander": ["消息比骰子值钱。"]
+  }
+}

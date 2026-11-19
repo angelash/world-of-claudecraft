@@ -348,12 +348,12 @@ describe('scene engine', () => {
   it('plays scenes requested through scene.pending in order', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
-    g.queue('flag.set', { key: 'scene.pending', value: 'a1_tide_dawn' });
+    g.queue('flag.set', { key: 'scene.pending', value: 'cut_a1_martha' });
     g.step(1);
-    expect(g.world.slices.scenes.queue).toContain('a1_tide_dawn');
+    expect(g.world.slices.scenes.queue).toContain('cut_a1_martha');
     playScene(g);
     expect(g.world.slices.scenes.seen).toContain('cut_p_discard');
-    expect(g.world.slices.scenes.seen).toContain('a1_tide_dawn');
+    expect(g.world.slices.scenes.seen).toContain('cut_a1_martha');
   });
 
   it('rejects choices that are not offered', () => {
@@ -575,7 +575,7 @@ describe('court and endings', () => {
       y: chamber.y + chamber.h / 2,
     });
     drain();
-    expect(g.world.slices.scenes.seen).toContain('a1_ash_glimpse');
+    expect(g.world.slices.scenes.seen).toContain('cut_a1_ash_glimpse');
     g.queue('flag.set', { key: 'boss.guardian_raven.defeated', value: true });
     drain();
     expect(g.world.meta.flags['companion.yeyu.recruited']).toBe(true);

@@ -3,14 +3,15 @@
 // (window tab keys and the pad's LB and RB step through them), the page on the right, and
 // "restore this page's defaults" at the bottom. Pages: `ui_set_graphics`, `ui_set_audio`
 // (PK-M1-06), `ui_set_controls`, `ui_set_gameplay` (first part), `ui_set_llm` (the model switch
-// until PK-M1-02) and `ui_set_language`; accessibility and data join with their packages
-// (shell_model.ts PAGE_OWNERS). A page is built when first shown and kept. Thin painter over
+// until PK-M1-02), `ui_set_access` (PK-M1-23) and `ui_set_language`; the data page joins with
+// its package (shell_model.ts PAGE_OWNERS). A page is built when first shown and kept. Thin painter over
 // ./settings/shell_model.ts.
 
 import './settings/settings.css';
 import { el, setClass, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
 import { askConfirm } from '../hud/confirm_pop';
+import { accessPage } from './settings/access_page';
 import { audioPage } from './settings/audio_page';
 import { controlsPage } from './settings/controls_page';
 import { gameplayPage } from './settings/gameplay_page';
@@ -35,6 +36,7 @@ const PAINTERS: Partial<Record<SettingsPageId, SettingsPageFactory>> = {
   controls: controlsPage,
   gameplay: gameplayPage,
   llm: llmPage,
+  access: accessPage,
   language: languagePage,
 };
 

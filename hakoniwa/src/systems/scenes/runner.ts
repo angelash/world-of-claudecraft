@@ -5,6 +5,7 @@
 
 import type { AiContextV1, AnyCommand, CommandResult } from '../../core';
 import { ok, reject } from '../../core';
+import { contentRef, contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
 import { joinText, rawText, type TextParam, tr } from '../../core/text';
 import { TICK_HZ } from '../../core/time';
@@ -14,10 +15,14 @@ import { countItem, removeItem } from '../inventory';
 import type { Effect } from '../quests/effect_types';
 import { applyEffects, conditionHolds, teleportPlayer } from '../quests/effects';
 import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
+import { resetQuests } from '../quests/progress';
 import { defaultKind, fillText, speakerName } from '../quests/speakers';
+import { DEFAULT_PLAYER_APPEARANCE, setAppearance, setEntityName } from '../world';
 import { ruleAnswer } from './answer_port';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
+import { briefKept, extractValues } from './improv';
+import { presentAtTrial, type TrialDef, trialOffers } from './trial';
 import type {
   RoundEnd,
   SceneChoice,
@@ -38,6 +43,13 @@ export const AI_DEADLINE = 200;
 
 export const COURT_END = 'end';
 export const EVIDENCE_PREFIX = 'evidence:';
+/** A trial piece offered beside a present node's choices (PK-M1-55). */
+export const PIECE_PREFIX = 'piece:';
+
+/** The trial table of a present node, or undefined. */
+export function trialOf(content: { trials?: TrialDef[] }, node: SceneNode): TrialDef | undefined {
+  return node.present ? content.trials?.find((x) => x.id === node.present?.trial) : undefined;
+}
 
 export function sceneDef(content: { scenes: SceneDef[] }, id: string): SceneDef | undefined {
   return content.scenes.find((s) => s.id === id);
@@ -246,12 +258,32 @@ function requestImprov(ctx: SystemContext, run: SceneRun, node: SceneNode): void
       runId: run.runId,
       revision: run.revision,
       writtenLines: fallback.map((l) => l.text),
+      // the brief the answer is checked against (catalog 2.4): the model must see it too
+      ...(imp.meaningKeys?.length || imp.forbidden?.length || imp.check
+        ? {
+            brief: {
+              meaningKeys: imp.meaningKeys ?? [],
+              forbidden: imp.forbidden ?? [],
+              ...(imp.check ? { check: imp.check } : {}),
+            },
+          }
+        : {}),
     }),
     allowed: ['scenes.resolve'],
     fallback: [resolveCommand(run, fallback)],
     deadlineTicks: AI_DEADLINE,
     priority: 5,
   });
+}
+
+/** The written anchors of a node's input, each once per run (catalog 2.4; PK-M1-34). */
+function sayAnchors(ctx: SystemContext, run: SceneRun, node: SceneNode): void {
+  const anchors = visibleLines(ctx, node.input?.anchor);
+  if (anchors.length === 0) return;
+  run.anchored ??= [];
+  if (run.anchored.includes(node.id)) return;
+  run.anchored.push(node.id);
+  for (const l of anchors) say(ctx, run, l);
 }
 
 /** Enter a node: effects, lines, branches, then decide what to wait for. */
@@ -333,7 +365,9 @@ function settleNode(
     return;
   }
   const choices = visibleChoices(ctx, run, node);
-  if (choices.length > 0) {
+  const trial = trialOf(ctx.content, node);
+  const pieces = trial ? trialOffers(ctx, trial) : [];
+  if (choices.length > 0 || pieces.length > 0) {
     run.waiting = 'choice';
     // a timed choice: the shortest timeout among the choices on offer (13.6)
     let timed: SceneChoice | null = null;
@@ -418,15 +452,22 @@ export function applyChoice(
   scene: SceneDef,
   node: SceneNode,
   choice: SceneChoice,
+  /**
+   * The choice was sorted out of a free answer, not picked by the player (PK-M1-34): no
+   * scene.choice, so the backlog does not read the player's own words back as a written
+   * option (the request PK-M1-27 left behind, item 6).
+   */
+  classified = false,
 ): void {
   if (choice.once && !run.picked.includes(choice.id)) run.picked.push(choice.id);
   run.timed = undefined;
-  ctx.emit('scene.choice', {
-    sceneId: scene.id,
-    nodeId: node.id,
-    choiceId: choice.id,
-    label: choice.label,
-  });
+  if (!classified)
+    ctx.emit('scene.choice', {
+      sceneId: scene.id,
+      nodeId: node.id,
+      choiceId: choice.id,
+      label: choice.label,
+    });
   const ui = activeUi(ctx, choice.effects);
   applyEffects(ctx, choice.effects);
   if (ctx.world.slices.scenes.current?.runId !== run.runId) return;
@@ -437,16 +478,97 @@ export function applyChoice(
   moveOn(ctx, run, scene, choice.to, node);
 }
 
+/**
+ * A classified answer with `settle` (catalog_cutscenes.md 13.6, the second destination
+ * semantics the prologue asked for): only the sorted choice's EFFECTS apply, then the run goes
+ * on to the input's own destination. Without this the runner replays the written reaction and
+ * the written follow-up of a choice the player never picked (PK-M1-27's deviation note 2, which
+ * had to add a settling node per round). Returns false when the run ended inside the effects.
+ */
+function settleClassified(
+  ctx: SystemContext,
+  run: SceneRun,
+  choice: SceneChoice,
+  node: SceneNode,
+): boolean {
+  if (choice.once && !run.picked.includes(choice.id)) run.picked.push(choice.id);
+  ctx.emit('scene.classified', { nodeId: node.id, choiceId: choice.id });
+  applyEffects(ctx, choice.effects);
+  return ctx.world.slices.scenes.current?.runId === run.runId;
+}
+
 export function cmdChoose(ctx: SystemContext, choiceId: string): CommandResult {
   const cur = current(ctx);
   if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
   const { run, scene, node } = cur;
   if (run.waiting === 'court' && node.court) return chooseInCourt(ctx, run, scene, node, choiceId);
   if (run.waiting !== 'choice') return reject('no_choice', tr('sys.scenes.reject.no_choice'));
+  if (choiceId.startsWith(PIECE_PREFIX) && node.present)
+    return presentInTrial(ctx, run, scene, node, choiceId.slice(PIECE_PREFIX.length));
   const choice = visibleChoices(ctx, run, node).find((c) => c.id === choiceId);
   if (!choice) return reject('no_option', tr('sys.scenes.reject.no_option'));
   applyChoice(ctx, run, scene, node, choice);
   return ok(choice.label);
+}
+
+/**
+ * Present a held piece at an act-1 trial (PK-M1-55): the shared core judges it, the trial
+ * writes its points or its rebuttal; the run stays on the node (the next piece, a witness, or
+ * "说完了"). The piece is said by the player as the presentation line.
+ */
+function presentInTrial(
+  ctx: SystemContext,
+  run: SceneRun,
+  scene: SceneDef,
+  node: SceneNode,
+  pieceId: string,
+): CommandResult {
+  const trial = trialOf(ctx.content, node);
+  const piece = trial?.pieces.find((p) => p.id === pieceId);
+  if (!trial || !piece) return reject('no_evidence', tr('sys.scenes.reject.no_evidence'));
+  const item = ctx.content.items?.find((i) => i.id === piece.item);
+  // the item as a content key in the line (rendered in the reader's language); its plain name
+  // for the choice event the backlog prints, as the court does with an evidence name
+  const name = item ? contentText('items', item) : piece.item;
+  const label = item?.name ?? piece.item;
+  const res = presentAtTrial(ctx, trial, pieceId);
+  if (res.outcome === 'missing') return reject('no_evidence', tr('sys.scenes.reject.no_evidence'));
+  if (res.outcome === 'repeat') return reject('no_option', tr('sys.scenes.reject.no_option'));
+  // a piece's or a rebuttal's effects may end or switch the scene: nothing more to say then
+  if (ctx.world.slices.scenes.current?.runId !== run.runId) return ok(label);
+  run.shown = [];
+  // a landed piece with its own written reaction plays it (the node's lines, then back to the
+  // presentation node through its next)
+  if (res.outcome === 'hit' && piece.to) {
+    ctx.emit('scene.choice', {
+      sceneId: scene.id,
+      nodeId: node.id,
+      choiceId: `${PIECE_PREFIX}${pieceId}`,
+      label,
+    });
+    enterNode(ctx, run, scene, piece.to, 0);
+    return ok(label);
+  }
+  say(ctx, run, { speaker: 'player', text: tr('sys.scenes.trial.present_line', { name }) });
+  if (res.rebuttal) {
+    const i = trial.rebuttals.indexOf(res.rebuttal);
+    // the rebuttal is content text: its content key (the extractor's c.trials.<id>.rebuttals...)
+    say(ctx, run, {
+      speaker: res.rebuttal.speaker,
+      text: contentRef('trials', trial.id, `rebuttals.${i}.text`),
+    });
+  } else if (res.outcome === 'hit')
+    say(ctx, run, { speaker: 'narrator', text: tr('sys.scenes.trial.landed') });
+  ctx.emit('scene.choice', {
+    sceneId: scene.id,
+    nodeId: node.id,
+    choiceId: `${PIECE_PREFIX}${pieceId}`,
+    label,
+  });
+  // the run stays waiting on this node: its choices and the remaining pieces are offered again
+  // (the view reads them live), without replaying the node's own lines or effects
+  run.revision++;
+  return ok(label);
 }
 
 function chooseInCourt(
@@ -532,7 +654,11 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
       text: clean,
       choices: open.map((c) => c.id),
     }) ?? spec.classify?.fallback;
-  if (spec.agentId && clean) {
+  // An input with no answerer still gets a model sort when it classifies (the request
+  // PK-M1-27 left behind, item 2): the judgement scene's free reply fell to its fallback on
+  // every model run. `classify.by` names who sorts (default the narrator), as scene.improv.
+  const sorter = spec.agentId || (spec.classify ? (spec.classify.by ?? 'narrator') : '');
+  if (sorter && clean) {
     run.waiting = 'resolve';
     run.revision++;
     run.resolveDeadline = ctx.tick + AI_DEADLINE + 2;
@@ -540,16 +666,20 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
     run.turn = turn;
     const choices = open;
     ctx.ai.request({
-      agentId: spec.agentId,
-      role: spec.role ?? 'goddess.dialogue',
+      agentId: sorter,
+      role: spec.agentId ? (spec.role ?? 'goddess.dialogue') : 'scene.improv',
       purpose: spec.classify ? 'classify_answer' : 'reply',
       revision: run.revision,
-      context: aiContextFor(ctx, spec.agentId, spec.prompt, {
+      context: aiContextFor(ctx, sorter, spec.prompt, {
         runId: run.runId,
         revision: run.revision,
         playerText: clean,
         writtenReply: reply.map((l) => l.text),
         classifyInto: choices.map((c) => ({ id: c.id, label: c.label })),
+        // the improvisation brief of the answer (catalog 2.4): purpose, situation, the meaning
+        // keys a reply must carry and the words it may not say
+        ...(spec.improv ? { brief: spec.improv } : {}),
+        ...(spec.extract?.length ? { extractInto: spec.extract } : {}),
         // a multi-turn round: which turn this is, and whether to wrap up (soft cap reached)
         ...(turns
           ? { turn, softCap: turns.soft, hardCap: turns.hard, wrapUp: turn >= turns.soft }
@@ -563,13 +693,19 @@ export function cmdInput(ctx: SystemContext, text: string): CommandResult {
     return ok();
   }
   for (const l of reply) say(ctx, run, l);
+  sayAnchors(ctx, run, node);
   // no model answer to wait for: the written reply closes a multi-turn round at once
   if (turns?.storeAs) ctx.setFlag(turns.storeAs, 'closed');
   if (spec.classify && classifyNode) {
-    const choice = (classifyNode.choices ?? []).find((c) => c.id === fallbackChoice);
+    // only a choice still open: a spent `once` choice is not taken again (the model path does
+    // the same through visibleChoices), else a used-up fallback loops the node forever
+    const choice = open.find((c) => c.id === fallbackChoice);
     if (choice) {
-      applyChoice(ctx, run, scene, classifyNode, choice);
-      return ok();
+      if (!spec.classify.settle) {
+        applyChoice(ctx, run, scene, classifyNode, choice, true);
+        return ok();
+      }
+      if (!settleClassified(ctx, run, choice, classifyNode)) return ok();
     }
   }
   enterNode(ctx, run, scene, spec.to, 0);
@@ -584,6 +720,12 @@ export interface ResolveData {
   written?: boolean;
   /** the answerer closes a multi-turn round with this reply (written replies always do) */
   done?: boolean;
+  /**
+   * Values the answerer read out of the conversation (SceneInput.extract, prologue 4.1.2: the
+   * courtyard object, the past life): only the keys the node lists and the values it allows are
+   * written, so a model cannot write any flag it likes.
+   */
+  values?: Record<string, string>;
 }
 
 /** Model (or fallback) lines for an improv node or a free-text reply. */
@@ -599,7 +741,36 @@ export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolea
     ...(node.improv?.fallback ?? []).map((l) => l.speaker),
     ...(node.input?.reply ?? []).map((l) => l.speaker),
   ]);
-  for (const l of (d.lines ?? []).slice(0, 6)) {
+  // The meaning keys and the forbidden list of the brief (catalog 2.4: "执行者校验不过即换回
+  // 原句"): a model answer that misses a meaning key or says a word of the forbidden list is
+  // dropped and the written lines stand. A written reply is never checked.
+  // What a model sends is never "written": only a kernel source (the written fallback, the
+  // timeout guard) may claim it. A model claiming `written` would skip the leak filter, the AI
+  // mark and the brief, and speak under any display name (the field is the kernel's own).
+  const brief = node.input?.improv ?? node.improv;
+  const writtenLines = () =>
+    visibleLines(ctx, node.input?.reply ?? node.improv?.fallback).map((l) => ({
+      speaker: l.speaker,
+      text: l.text,
+      name: l.name,
+      kind: l.kind,
+    }));
+  let lines = d.lines ?? [];
+  let written = !fromModel && !!d.written;
+  let refused = false;
+  // An input with no answerer only asks a model to SORT the answer (cmdInput, `classify.by`):
+  // the model's choice counts, its words do not; the written reply is what the player reads.
+  const sortOnly = fromModel && !!node.input && !node.input.agentId && !!node.input.classify;
+  if (sortOnly) {
+    lines = writtenLines();
+    written = true;
+  } else if (fromModel && !briefKept(brief, lines)) {
+    lines = writtenLines();
+    written = true;
+    refused = true;
+    ctx.emit('scene.improv_refused', { sceneId: scene.id, nodeId: node.id });
+  }
+  for (const l of lines.slice(0, 6)) {
     const speaker = allowedSpeakers.has(l.speaker)
       ? l.speaker
       : (node.improv?.agentId ?? node.input?.agentId ?? 'narrator');
@@ -608,10 +779,18 @@ export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolea
     say(
       ctx,
       run,
-      { speaker, text, name: d.written ? l.name : undefined, kind: d.written ? l.kind : undefined },
-      fromModel,
+      { speaker, text, name: written ? l.name : undefined, kind: written ? l.kind : undefined },
+      fromModel && !written,
     );
   }
+  // The written anchors of the answer (catalog 2.4): the executor says them itself after the
+  // answer, once per run of the scene (not again on a later turn or a loop back to the node).
+  sayAnchors(ctx, run, node);
+  // What the answerer read out of the conversation, filtered to the node's own keys and values;
+  // a refused answer extracts nothing (its reading is not trusted either)
+  if (fromModel && !refused && !sortOnly)
+    for (const [key, value] of extractValues(node.input?.extract, d.values))
+      ctx.setFlag(key, value);
   run.spoken = true;
   if (run.waiting !== 'resolve') return ok();
   const spec = node.input;
@@ -632,13 +811,17 @@ export function cmdResolve(ctx: SystemContext, d: ResolveData, fromModel: boolea
       d.choiceId && spec.classify.choices.includes(d.choiceId)
         ? d.choiceId
         : spec.classify.fallback;
-    const choice = cnode
-      ? (visibleChoices(ctx, run, cnode).find((c) => c.id === pick) ??
-        (cnode.choices ?? []).find((c) => c.id === spec.classify?.fallback))
-      : undefined;
+    // an open choice only: the pick, else the fallback while it is still open; with neither,
+    // the reply stands and the input goes on to its own destination
+    const openNow = cnode ? visibleChoices(ctx, run, cnode) : [];
+    const choice =
+      openNow.find((c) => c.id === pick) ?? openNow.find((c) => c.id === spec.classify?.fallback);
     if (cnode && choice) {
-      applyChoice(ctx, run, scene, cnode, choice);
-      return ok();
+      if (!spec.classify.settle) {
+        applyChoice(ctx, run, scene, cnode, choice, true);
+        return ok();
+      }
+      if (!settleClassified(ctx, run, choice, cnode)) return ok();
     }
   }
   enterNode(ctx, run, scene, spec?.to ?? node.next ?? node.id, 0);
@@ -721,6 +904,9 @@ export function cmdUiDone(ctx: SystemContext, d: UiDoneData): CommandResult {
   return ok();
 }
 
+/** The player flags a restart with `resetPlayer` forgets (the spirit mirror's and the name's). */
+const RESET_PLAYER_FLAGS = ['player.name', 'p_appearance'] as const;
+
 /** Whether the playing scene offers "re-choose the opening" right now. */
 export function restartOpen(content: { scenes: SceneDef[] }, run: SceneRun | null): boolean {
   if (!run || run.restartClosed) return false;
@@ -759,6 +945,28 @@ export function cmdRestart(ctx: SystemContext): CommandResult {
     if (n > 0) removeItem(ctx, playerId, item, n, 'restart');
   }
   slice.seen = slice.seen.filter((id) => !cleared.includes(`scene.${id}.seen`));
+  // The quests whose flag was cleared go back to unstarted (the request PK-M1-27 left behind,
+  // item 7): the prologue's quests only ever moved forward, so after re-choosing the opening
+  // the log still showed the stages of the run that was dropped.
+  const questIds = cleared
+    .filter((k) => k.startsWith('quest.') && !k.slice(6).includes('.'))
+    .map((k) => k.slice(6));
+  if (questIds.length > 0) {
+    // the quests' own sub-keys go with them (stage, path, choice), whatever the clear list said
+    for (const k of Object.keys(flags))
+      if (questIds.some((id) => k.startsWith(`quest.${id}.`))) delete flags[k];
+    resetQuests(ctx, questIds);
+  }
+  // the opening asks the name and the look again: the player goes back to unnamed and default
+  if (restart.resetPlayer) {
+    // a reset like the clear above: the flags go back to unwritten, with no flag.changed
+    for (const k of RESET_PLAYER_FLAGS) delete flags[k];
+    setEntityName(ctx, playerId, '?');
+    setAppearance(ctx, playerId, {
+      base: DEFAULT_PLAYER_APPEARANCE.base,
+      colors: [...DEFAULT_PLAYER_APPEARANCE.colors],
+    });
+  }
   // scenes other systems queued stay queued: they play after the opening as they would have
   slice.current = null;
   ctx.emit('scene.restarted', { sceneId: scene.id, to: restart.scene, cleared });

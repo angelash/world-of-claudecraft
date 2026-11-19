@@ -32,6 +32,7 @@ import { type AudioMeta, checkAudio, newAudioMeta } from '../tools/assets/core/a
 import { buildOggSkeleton, parseOgg } from '../tools/assets/core/audio/ogg';
 import { audioPlanOf, parseExtra } from '../tools/assets/core/audio/plan';
 import { processAudio } from '../tools/assets/core/audio/process';
+import { AUDIO_IMPORT_VERSION } from '../tools/assets/core/import_versions';
 import { type ManifestRecord, manifestJson, type ToolRecord } from '../tools/assets/core/manifest';
 import { metaPathOf, processedPathOf } from '../tools/assets/core/meta';
 import { encodeOgg, ffmpegPath } from '../tools/assets/ffmpeg';
@@ -548,6 +549,7 @@ describe.skipIf(!ffmpegPath())(
         readFileSync(join(root, metaPathOf(entry.file)), 'utf8'),
       ) as AudioMeta;
       expect(meta.files).toHaveLength(4);
+      expect(meta.importVersion).toBe(AUDIO_IMPORT_VERSION);
       expect(meta).toMatchObject({
         kind: 'sfx',
         bus: 'sfx',
@@ -561,6 +563,7 @@ describe.skipIf(!ffmpegPath())(
       const first = parseOgg(new Uint8Array(readFileSync(join(root, meta.files[0]!))));
       expect(first).toMatchObject({ sampleRate: 48000, channels: 1 });
       expect(first.comments.AIGC).toEqual(['{"Label":"1","ProduceID":"a-7"}']);
+      expect(first.comments.HAKONIWA_IMPORT).toEqual([AUDIO_IMPORT_VERSION]);
       expect(await runCheck([...base, '--measure'], log)).toBe(0);
       const bytes = readFileSync(join(root, meta.files[0]!));
       expect(await runImport([...base, '--all'], log)).toBe(0);

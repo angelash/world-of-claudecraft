@@ -24,7 +24,7 @@ import { TICK_HZ } from '../../core/time';
 import { fieldRepair } from './durability';
 import { itemDef } from './gear';
 import { syncItem, unwear, wear, wearingOrder } from './holding';
-import { holderId, holding, removeItem, transferItem } from './ports';
+import { holderId, holding, takeItems, transferItem } from './ports';
 import type { ProcEffect } from './procs';
 import { applyCoating, onDamage, onHeal, onKill } from './procs';
 import { hasTag, type Smith } from './rules';
@@ -125,6 +125,8 @@ declare module '../../core/contracts' {
       ability?: string;
       /** used before its group's timer ran out: no effect (a sediment cure's poison) */
       early?: boolean;
+      /** the sediment grain of the portion used (1 light, 2 mid, 3 heavy; unpurified stacks) */
+      sedTier?: 1 | 2 | 3;
     };
     'item.equipped': { ownerId: string; itemId: string; slot: EquipSlot; instanceId?: string };
     /** low at 20%, broken at 0, shattered (a poor piece gone), repaired */
@@ -304,7 +306,12 @@ export const system: GameSystem & {
           return reject('no_weapon', tr('sys.inventory.reject.no_weapon'));
         if (!coat.ok) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
       }
-      if (def.kind === 'consumable') removeItem(ctx, d.ownerId, d.itemId, 1, 'use');
+      // the portion eaten carries its stack's sediment grain unless purified; the ailments
+      // system adds the taint of that grade (catalog_consumables_magitools.md 2.4)
+      const portion =
+        def.kind === 'consumable' ? takeItems(ctx, d.ownerId, d.itemId, 1, 'use') : null;
+      const part = portion?.parts[0];
+      const sedTier = part && !part.purified ? part.sedTier : undefined;
       if (!early) startUseTimers(slice, d.ownerId, def, ctx.tick, d.targetId);
       ctx.emit('item.used', {
         ownerId: d.ownerId,
@@ -314,6 +321,7 @@ export const system: GameSystem & {
         amount: def.use.amount,
         ability: def.use.ability,
         ...(early ? { early: true } : {}),
+        ...(sedTier ? { sedTier } : {}),
       });
       return ok();
     },

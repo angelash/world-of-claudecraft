@@ -295,6 +295,7 @@ export function itemUsed(
     effect: string;
     amount?: number;
     early?: boolean;
+    sedTier?: 1 | 2 | 3;
   },
 ): void {
   const cfg = ailmentsConfig(ctx);
@@ -308,6 +309,8 @@ export function itemUsed(
     | { taint?: unknown; sed?: CureSpec }
     | undefined;
   if (typeof use?.taint === 'number') addTaint(ctx, id, use.taint);
+  // a portion from a tainted stack: light +1, mid +3, heavy +8 (catalog 2.4)
+  if (d.sedTier) addTaint(ctx, id, cfg.portionTaint?.[d.sedTier - 1] ?? 0);
   if (d.effect === 'taint') addTaint(ctx, id, d.amount ?? 0);
   else if (d.effect === 'sed_cure') {
     if (d.amount) addTaint(ctx, id, d.amount);

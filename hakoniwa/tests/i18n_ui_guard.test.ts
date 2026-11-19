@@ -36,6 +36,21 @@ const ALLOWED: readonly { file: string; symbol: string; why: string }[] = [
     symbol: 'shortName',
     why: 'detector: a full-width parenthesis starts a province note',
   },
+  {
+    file: 'src/client/tutorial/card_model.ts',
+    symbol: 'firstSentence',
+    why: 'detector: full-width sentence ends cut a brief card to one sentence (17.3)',
+  },
+  {
+    file: 'src/client/tutorial/check.ts',
+    symbol: 'KEY_WORDS',
+    why: 'detector: the onboarding check rejects written key and mouse words (16.6 rule 6)',
+  },
+  {
+    file: 'src/client/tutorial/check.ts',
+    symbol: 'displayLength',
+    why: 'detector: a full-width stand-in counts a placeholder as one character (19.2)',
+  },
   { file: 'src/shared_ui/pseudo.ts', symbol: 'PSEUDO_OPEN', why: 'pseudo-locale mark (20.6)' },
   { file: 'src/shared_ui/pseudo.ts', symbol: 'PSEUDO_CLOSE', why: 'pseudo-locale mark (20.6)' },
 ];

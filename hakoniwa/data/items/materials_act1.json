@@ -1,0 +1,691 @@
+[
+  {
+    "id": "mat_copper_ore",
+    "name": "铜矿石",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "边石旧矿与各地铜脉出的铜矿石。铜环币的原料，私熔铜环是重罪。"
+  },
+  {
+    "id": "mat_copper_ingot",
+    "name": "铜锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 60,
+    "desc": "炼好的铜锭，打灯具、饰品与录杖的杖头。"
+  },
+  {
+    "id": "mat_silverleaf",
+    "name": "银叶草",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "洛萨草甸上的止血草，叶背泛银。军医最常用。"
+  },
+  {
+    "id": "mat_flax",
+    "name": "亚麻",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "河谷收的亚麻。纺成的布凉快，做夏衣与绷带。"
+  },
+  {
+    "id": "mat_quartz",
+    "name": "石英",
+    "kind": "material",
+    "quality": 1,
+    "value": 12,
+    "desc": "边石旧矿常见的石英，做灯石壳、法杖杖头与廉价饰品。"
+  },
+  {
+    "id": "crystal_shard",
+    "name": "魔晶碎",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "持证工坊净炼过的碎晶，合法流通，约一顿饭钱。研粉入墨，或作灯石的小芯。"
+  },
+  {
+    "id": "part_fang_t1",
+    "name": "兽牙",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "野兽与弱小魔物的牙爪。磨箭镞、做砺锋的料，也是猎人的战利品。"
+  },
+  {
+    "id": "part_bone_t1",
+    "name": "兽骨",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "野兽与弱小魔物的骨头。磨骨粉、煅骨白，或刻成骨坠。"
+  },
+  {
+    "id": "part_carapace_t1",
+    "name": "甲片",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "甲虫与虾蟹一类魔物的硬壳片，可钉在盾面上。"
+  },
+  {
+    "id": "part_gland_t1",
+    "name": "腺",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "从魔物身上割下的腺囊，药与毒都用得上。"
+  },
+  {
+    "id": "part_essence_t1",
+    "name": "淡精华",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "某些魔物散去后凝下的一点精华，颜色很淡。附纹墨与元素药剂的底料。"
+  },
+  {
+    "id": "part_ash_t1",
+    "name": "冷灰",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "亡灵倒下后留下的冷灰。送魂仪式与安息符要用。"
+  },
+  {
+    "id": "part_feather_t1",
+    "name": "羽",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "鸟与会飞的魔物身上的羽毛，做箭羽与录笔。"
+  },
+  {
+    "id": "part_horn_t1",
+    "name": "兽角",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "鹿与野羊一类的角，做弓梢、号角与乐器。"
+  },
+  {
+    "id": "part_eye_t1",
+    "name": "兽眼",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "收拾好的兽眼，鉴定器具与千里眼药的料。"
+  },
+  {
+    "id": "part_scale_t1",
+    "name": "细鳞",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "小型鳞兽身上的细鳞，可缀成小片鳞甲。"
+  },
+  {
+    "id": "part_meat_t1",
+    "name": "兽肉",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "野兽身上割下的肉，直接下锅。异兽的肉要先祛灰才能吃。"
+  },
+  {
+    "id": "mat_barley",
+    "name": "大麦",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "瓦伦河谷的大麦，酿麦酒、喂马、做军粮。北境酒馆离不开它。"
+  },
+  {
+    "id": "mat_frost_rye",
+    "name": "霜黑麦",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "洛萨北境的黑麦，灰年也收得上来。做黑面包与北境黑麦酒。"
+  },
+  {
+    "id": "mat_thousand_ear_wheat",
+    "name": "千穗白麦",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "格兰提亚千穗平原的白麦，大陆的粮仓。白面包与宫廷宴都用它。"
+  },
+  {
+    "id": "mat_bell_oats",
+    "name": "铃燕麦",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "麦铃乡的燕麦，半身人行商的口粮，军马吃得更多。"
+  },
+  {
+    "id": "mat_steppe_millet",
+    "name": "草原黍",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "风牙耕地上的黍，做成黍饼，骑兵带得走、不怕颠。"
+  },
+  {
+    "id": "mat_tundra_tuber",
+    "name": "冻原薯",
+    "kind": "material",
+    "quality": 1,
+    "value": 2,
+    "desc": "夜境冻原的薯，那里的主粮，也能酿薯酒。"
+  },
+  {
+    "id": "mat_cloud_barley",
+    "name": "云麦",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "眠鳞高地的云麦，炒熟了是御寒的高山口粮。"
+  },
+  {
+    "id": "mat_venison",
+    "name": "鹿肉",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "苍榆林地与东林的鹿肉，猎户的体面菜。"
+  },
+  {
+    "id": "mat_salt_pork",
+    "name": "咸猪肉",
+    "kind": "material",
+    "quality": 1,
+    "value": 12,
+    "desc": "用盐腌过的猪肉，远行与军粮都带它。魔物季前家家腌肉。"
+  },
+  {
+    "id": "mat_steppe_mutton",
+    "name": "草原羊肉",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "风牙的羊肉，草原人一年到头吃它，也是会盟大宴的主菜。"
+  },
+  {
+    "id": "mat_mare_milk",
+    "name": "马奶",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "风牙的马奶，酿马奶酒、做奶干。会盟时第一碗敬兽王。"
+  },
+  {
+    "id": "mat_hard_cheese",
+    "name": "硬奶酪",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "洛萨南部牧场的硬奶酪，三个月不坏，硬得能当锤子。"
+  },
+  {
+    "id": "mat_milk",
+    "name": "牛奶",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "牧场每日的牛奶，当天不用就得做成奶酪。"
+  },
+  {
+    "id": "mat_egg",
+    "name": "鸡蛋",
+    "kind": "material",
+    "quality": 1,
+    "value": 1,
+    "desc": "鸡舍里的蛋，最便宜的荤食。糕饼铺离不开它。"
+  },
+  {
+    "id": "mat_valen_carp",
+    "name": "瓦伦鲤",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "瓦伦河里的鲤鱼，瓦伦堡鱼市的大路货。"
+  },
+  {
+    "id": "mat_greybrook_trout",
+    "name": "灰溪鳟",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "灰溪下游苇桥村一带的鳟鱼。"
+  },
+  {
+    "id": "mat_sunset_herring",
+    "name": "落日鲱",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "落日港外滩的鲱鱼，多半腌成咸鱼出口。"
+  },
+  {
+    "id": "mat_saltmirror_shrimp",
+    "name": "盐镜虾",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "盐镜港的小虾，做虾酱与干虾。"
+  },
+  {
+    "id": "mat_season_catfish",
+    "name": "季河鲇",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "风牙季河的鲇鱼。季河一年只流半年。"
+  },
+  {
+    "id": "mat_shellfish",
+    "name": "贝类",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "礁石与退潮池里拾的贝，坏得快，只在港口便宜。偶尔开出珍珠。"
+  },
+  {
+    "id": "mat_windseed",
+    "name": "风籽",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "风牙草场的香籽，兽人烤肉的味道就是它的味道。"
+  },
+  {
+    "id": "mat_olive",
+    "name": "橄榄",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "教国橄榄林的果子，两份榨一瓶油。"
+  },
+  {
+    "id": "mat_grape",
+    "name": "葡萄",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "洛萨南部与教国的葡萄，酿葡萄酒。"
+  },
+  {
+    "id": "mat_sweetroot",
+    "name": "甜根",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "洛萨河谷的甜根，原本是喂猪的。"
+  },
+  {
+    "id": "mat_vinegar",
+    "name": "醋",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "酒变酸或木头闷出来的醋。腌菜、铜绿与伤口都要它。"
+  },
+  {
+    "id": "mat_olive_oil",
+    "name": "橄榄油",
+    "kind": "material",
+    "quality": 1,
+    "value": 12,
+    "desc": "榨出的橄榄油，一份约一瓶。做面包、白酱与上品灯油。"
+  },
+  {
+    "id": "mat_vegetables",
+    "name": "菜蔬",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "菜园里的青菜，三日就坏，不走远路。"
+  },
+  {
+    "id": "mat_sapling",
+    "name": "树苗",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "苗圃育出的树苗，补种林场，也可供奉。"
+  },
+  {
+    "id": "mat_woad",
+    "name": "菘蓝",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "草甸边的菘蓝，染出北境的蓝斗篷。"
+  },
+  {
+    "id": "mat_madder_root",
+    "name": "茜根",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "千穗田埂的茜草根，染出帝国军服的深红。"
+  },
+  {
+    "id": "mat_ochre",
+    "name": "赭土",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "最古老的颜料，猎纹与壁画都用它。"
+  },
+  {
+    "id": "mat_verdigris",
+    "name": "铜绿",
+    "kind": "material",
+    "quality": 1,
+    "value": 20,
+    "desc": "铜器上生出的绿锈，做绿色颜料与防腐剂。"
+  },
+  {
+    "id": "mat_bone_white",
+    "name": "骨白",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "兽骨煅烧研成的白粉，便宜的白色颜料，也是瓷釉的底。"
+  },
+  {
+    "id": "mat_mordant_alum",
+    "name": "明矾",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "赤砧明矾坡的矾石。媒染、鞣革要它，也能让浑水变清。"
+  },
+  {
+    "id": "mat_gall_ink",
+    "name": "栎瘿墨",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "栎瘿熬的墨，写下去慢慢变黑，越旧越清楚。记账、画符都用它。"
+  },
+  {
+    "id": "mat_coal",
+    "name": "石炭",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "帝国山前与赤砧挖出的石炭，杂质多，取暖与冶炼都用。"
+  },
+  {
+    "id": "mat_peat",
+    "name": "泥炭",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "帝国北部高沼的泥炭，烧起来一股烟熏味。"
+  },
+  {
+    "id": "mat_lamp_oil",
+    "name": "灯油",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "鱼油、橄榄油与油脂熬成的灯油，点灯、做火把。"
+  },
+  {
+    "id": "mat_fieldstone",
+    "name": "毛石",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "随处可捡的石头，垫地基、砌田埂。村子从它开始。"
+  },
+  {
+    "id": "mat_clay",
+    "name": "黏土",
+    "kind": "material",
+    "quality": 1,
+    "value": 2,
+    "desc": "河岸挖来的黏土，烧砖、制陶、做坩埚。"
+  },
+  {
+    "id": "mat_fired_brick",
+    "name": "烧砖",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "窑里烧出的砖，盖房砌烟囱，防火。"
+  },
+  {
+    "id": "mat_quicklime",
+    "name": "生石灰",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "石料烧出的生石灰。和灰浆、鞣革脱毛、调石灰水都要它。"
+  },
+  {
+    "id": "mat_white_sand",
+    "name": "白砂",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "盐镜港的白砂，吹玻璃的料。"
+  },
+  {
+    "id": "mat_wolfsbane",
+    "name": "狼毒草",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "北境林地阴坡的毒草。东坡猎户拿它对付偷羊的灰狼。"
+  },
+  {
+    "id": "mat_arsenic_stone",
+    "name": "砒石",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "矿里伴生的毒石。矿工把它和铜矿分开堆，混进一炉会毒死整个工棚。"
+  },
+  {
+    "id": "mat_hide_glue",
+    "name": "皮胶",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "碎皮与骨熬的胶，弓、书、家具都靠它粘。"
+  },
+  {
+    "id": "mat_resin",
+    "name": "松脂",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "伐木时顺手刮下的松脂，做清漆与火把。"
+  },
+  {
+    "id": "mat_pine_tar",
+    "name": "松焦油",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "松脂熬成的焦油。船不漏、绳不烂，攻城时还能点火。"
+  },
+  {
+    "id": "mat_beeswax",
+    "name": "蜂蜡",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "取蜜剩下的蜂蜡，做蜡烛与封蜡。礼拜堂的白蜡烛就是它。"
+  },
+  {
+    "id": "mat_sinew",
+    "name": "兽筋",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "野兽的筋，晾干后做弓弦与缝线。"
+  },
+  {
+    "id": "mat_tannin_bark",
+    "name": "栎皮与栎瘿",
+    "kind": "material",
+    "quality": 1,
+    "value": 3,
+    "desc": "老橡树的皮与瘿。皮去鞣革，瘿去做墨。"
+  },
+  {
+    "id": "mat_hemp_rope",
+    "name": "麻绳",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "亚麻搓的绳，船、晾架、投石机都系在它上面。"
+  },
+  {
+    "id": "mat_lead_ingot",
+    "name": "铅锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 30,
+    "desc": "炼银时分出的铅，做水管、封印与投石弹。铅本身有毒。"
+  },
+  {
+    "id": "mat_river_agate",
+    "name": "河玛瑙",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "灰溪滩上捡的小玛瑙，孤儿院的孩子常捡来送人。"
+  },
+  {
+    "id": "mat_graphite",
+    "name": "石墨",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "锈岭矿里的石墨层，矿工拿它在矿壁上画记号。"
+  },
+  {
+    "id": "mat_bone_meal",
+    "name": "骨粉",
+    "kind": "material",
+    "quality": 1,
+    "value": 4,
+    "desc": "兽骨磨的粉，上田作肥。"
+  },
+  {
+    "id": "mat_ash_mud",
+    "name": "灰泥",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "荒原外缘冬天雪落下化成的灰泥，荒原上就地取材的建材。"
+  },
+  {
+    "id": "mat_garden_well_water",
+    "name": "庭井水",
+    "kind": "material",
+    "quality": 1,
+    "value": 0,
+    "desc": "门内庭院井里的水，能洗掉轻微的灰气。带出庭院三日就与普通水无异。"
+  },
+  {
+    "id": "mat_garden_greens",
+    "name": "庭蔬",
+    "kind": "material",
+    "quality": 1,
+    "value": 0,
+    "desc": "庭院园子里的青菜，不看季节，冬天里也有一盘。"
+  },
+  {
+    "id": "mat_greybane",
+    "name": "祛灰草",
+    "kind": "material",
+    "quality": 1,
+    "value": 30,
+    "desc": "只长在灰地边上的草，灰退了它也退。欧拉婆婆的看家药，泡水能洗掉灰气。"
+  },
+  {
+    "id": "mat_glowcap",
+    "name": "磷光菌",
+    "kind": "material",
+    "quality": 1,
+    "value": 50,
+    "desc": "铁杉林深处夜里发光的菌，做夜视药与廉价的发光墨。"
+  },
+  {
+    "id": "mat_nest_residue",
+    "name": "灰巢残渣",
+    "kind": "material",
+    "quality": 1,
+    "value": 60,
+    "desc": "清理后的巢里刮下的灰窝土。不收走，巢会从原地再长出来。",
+    "tags": ["tainted"]
+  },
+  {
+    "id": "crystal_small",
+    "name": "小晶",
+    "kind": "material",
+    "quality": 1,
+    "value": 120,
+    "desc": "净炼过的小晶，约一日工钱。魔道具的燃料，边陲小镇也拿它找零。"
+  },
+  {
+    "id": "part_bone_t2",
+    "name": "坚骨",
+    "kind": "material",
+    "quality": 1,
+    "value": 20,
+    "desc": "较强的野兽与魔物的骨头，比兽骨坚硬。"
+  },
+  {
+    "id": "mat_silver_ingot",
+    "name": "银锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 220,
+    "desc": "炼银分铅得来的银锭，打饰品、圣器与银刃。银对亡灵有效。"
+  },
+  {
+    "id": "mat_steel_ingot",
+    "name": "精钢锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 250,
+    "desc": "铁锭加炭渗炼出的精钢，骑士剑的料。一把精钢骑士剑约用三锭。"
+  },
+  {
+    "id": "mat_hardened_leather",
+    "name": "硬革",
+    "kind": "material",
+    "quality": 1,
+    "value": 90,
+    "desc": "厚兽皮加栲皮与蜂蜡鞣硬的皮料，做皮甲、盾面与书箱。"
+  },
+  {
+    "id": "mat_blackiron_ingot",
+    "name": "黑铁锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 500,
+    "desc": "重而韧的黑铁锭，适合大盾与炮身，不吃灵纹。"
+  },
+  {
+    "id": "mat_nightiron_ingot",
+    "name": "夜铁锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 5000,
+    "desc": "黑、冷，暗处不反光的夜铁锭，只在黯冠城的淬池里出。"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_town_guard",
+  "slots": {
+    "greet.neutral": ["站住，例行检查。", "嗯，过吧。", "有事报卫队。"],
+    "greet.cold": ["别惹事。", "你的卡呢？"],
+    "greet.warm": ["是你，过吧。", "今天没事，好。"],
+    "farewell": ["走吧。", "天黑前回来。"],
+    "unbelief.deny": ["卡上写着 Lv1。我认卡。", "传闻不归卫队管。"],
+    "unbelief.explain": ["一定是误报。", "运气好。"],
+    "unbelief.waver": ["……我亲眼看见的。卡上还是 Lv1。", "怪了。"],
+    "react.feat_seen": ["站、站住！……你干了什么？", "带走……不对，没犯法。"],
+    "topic.gen_work": {
+      "K0": ["站岗、巡逻、抓贼。", "轮值，一天两班。"]
+    },
+    "bark.patrol": [
+      "这边没事。",
+      {
+        "zh": "谁在那儿？",
+        "when": "hour >= 21 OR hour < 5"
+      }
+    ],
+    "bark.work": ["下一个。"],
+    "bark.tired": ["站了一天了。"]
+  }
+}

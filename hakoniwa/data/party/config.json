@@ -81,5 +81,37 @@
     "slots": 2,
     "fatigue": 20
   },
-  "tempObjectives": ["escort", "rescue", "accompany"]
+  "tempObjectives": ["escort", "rescue", "accompany"],
+  "tactics": {
+    "auto": true,
+    "weight": 3,
+    "state": 2,
+    "protect": 3,
+    "foes": 1,
+    "inertia": 1,
+    "protectBelow": 0.5,
+    "hardStreak": 2,
+    "fullHp": 0.8,
+    "fullMana": 0.5,
+    "lowMana": 0.3,
+    "lowPotions": 1,
+    "hardHp": 0.5,
+    "sight": 20,
+    "openingSec": 3
+  },
+  "banter": {
+    "minBond": 20,
+    "campTalkBond": 40,
+    "lineSec": 4,
+    "replySec": 15,
+    "exploreGap": 12000,
+    "travelGap": 600,
+    "campfireMax": 3,
+    "freshPerDay": 0.1,
+    "relevance": 2,
+    "journeyRoles": ["field"]
+  },
+  "care": {
+    "npcDays": 2
+  }
 }

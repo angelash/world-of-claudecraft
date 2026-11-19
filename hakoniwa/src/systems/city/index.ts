@@ -10,6 +10,7 @@ import { registerSkipHandler } from '../travel/skip_registry';
 import { siteDef, today } from './common';
 import { cancelBuilding, placeBuilding } from './construction';
 import { deposit, enterCourt, leaveCourt, presence, withdraw } from './court';
+import { COURT_ID_FIELDS, putOnDisplay, settleDisplay, startTakeDown } from './court_display';
 import { foundNation, grantTerritory, initCity, refreshActive, runDay } from './daily';
 import { assignOffice, officialAct } from './officials';
 import { foundVillage, micro, setPolicy } from './orders';
@@ -28,7 +29,10 @@ export {
   stocksAny,
   totalPop,
 } from './common';
-export { presence } from './court';
+export { atCourtDoor, courtCooldownLeft, displayReserve, presence } from './court';
+export { COURT_ID_FIELDS, displayEntries } from './court_display';
+export { buildingCap, type CourtTier, courtConfigProblems, courtTier } from './court_tiers';
+export { type CourtView, courtView, TAINT_TAG } from './court_view';
 export { OFFICIAL_ACTIONS, utilityAction } from './officials';
 export { FOUND_FOOD_DAYS, FOUND_MIN_POP, policySlots } from './orders';
 export {
@@ -55,9 +59,10 @@ export * from './types';
 // of its own yet, so its handler has nothing more to settle.
 registerSkipHandler('city', () => {});
 
-export const system: GameSystem = {
+export const system: GameSystem & { idFields: typeof COURT_ID_FIELDS } = {
   id: 'city',
   order: 55,
+  idFields: COURT_ID_FIELDS,
 
   init(ctx) {
     initCity(ctx);
@@ -132,6 +137,12 @@ export const system: GameSystem = {
     'city.leave_court'(ctx) {
       return leaveCourt(ctx);
     },
+    'city.display_put'(ctx, d) {
+      return putOnDisplay(ctx, d);
+    },
+    'city.display_take'(ctx, d) {
+      return startTakeDown(ctx, d);
+    },
   },
 
   on: {
@@ -143,6 +154,7 @@ export const system: GameSystem = {
         const site = ctx.world.slices.city.sites[sdef.id];
         if (site?.active) settlerSchedule(ctx, site, sdef, ev.data.hour);
       }
+      settleDisplay(ctx);
     },
     'flag.changed'(ctx, ev) {
       const { key, value } = ev.data;

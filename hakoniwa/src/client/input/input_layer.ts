@@ -14,15 +14,24 @@ import { FloatingKeyboard } from '../hud/floating_keyboard';
 import { type HotbarLayout, hotbarLayout } from '../hud/hotbar_model';
 import { RadialMenu } from '../hud/radial_menu';
 import { VirtualCursorView } from '../hud/virtual_cursor';
+import { answerTutorialCard, tutorialCardState } from '../tutorial/card_pop';
+import { type CardButtons, cardButtons, cardPadAnswer } from './card_pad';
 import type { ContextKeyOverrides, InputContext } from './contexts';
 import { resolveContextKeymap } from './contexts';
 import { type FocusMove, type FocusRect, moveFocus } from './focus_nav';
+import type { PadSnapshot } from './gamepad';
 import { readGamepad } from './gamepad_poller';
 import { installKeyText, type KeyTextState, type LayoutMap } from './glyphs';
 import { InputController } from './input_controller';
-import { type GameSink, type HubChange, InputHub, type UiSink } from './input_hub';
+import {
+  type GameSink,
+  type HubChange,
+  InputHub,
+  RING_OPENER_POINTER,
+  type UiSink,
+} from './input_hub';
 import type { InputSettings } from './input_settings';
-import { type PadKeyOverrides, resolvePadKeymap } from './pad_bindings';
+import { type PadKeyOverrides, type RingId, resolvePadKeymap } from './pad_bindings';
 
 /** The slice of the sync settings the input layer reads. */
 export interface InputSettingsSource {
@@ -74,6 +83,30 @@ export class InputLayer implements UiSink {
   private optionSig = '';
   private settingsSig = '';
   private stackSeen: readonly InputContext[] = ['field', 'global'];
+  /** the pad's guidance-card route (cardPad): buttons down last frame, the B hold start */
+  private cardPrev: CardButtons | null = null;
+  private cardBackSince: number | null = null;
+  /** a ring took a mouse press: the click or context menu that follows it reaches nothing */
+  private swallowClick = false;
+  /**
+   * A mouse press while a ring opened by key or from the HUD shows (5.2, 16.5): the left
+   * button picks, the right button cancels, and nothing under the pointer (the world, a HUD
+   * button) sees the press.
+   */
+  private readonly onPointerCapture = (ev: PointerEvent) => {
+    this.swallowClick = false;
+    if (ev.button !== 0 && ev.button !== 2) return;
+    if (!this.hub.pointerButton(ev.button)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.swallowClick = true;
+  };
+  private readonly onClickCapture = (ev: MouseEvent) => {
+    if (!this.swallowClick) return;
+    this.swallowClick = false;
+    ev.preventDefault();
+    ev.stopPropagation();
+  };
 
   constructor(private readonly d: InputLayerDeps) {
     this.hub = new InputHub(
@@ -105,6 +138,9 @@ export class InputLayer implements UiSink {
       d.dpr,
     );
     installKeyText(() => this.keyTextState());
+    window.addEventListener('pointerdown', this.onPointerCapture, true);
+    window.addEventListener('click', this.onClickCapture, true);
+    window.addEventListener('contextmenu', this.onClickCapture, true);
     const kb = (navigator as Navigator & { keyboard?: { getLayoutMap?(): Promise<LayoutMap> } })
       .keyboard;
     kb?.getLayoutMap?.()
@@ -160,6 +196,16 @@ export class InputLayer implements UiSink {
       this.hub.consumeHeld(snap, nowMs);
       return;
     }
+    // a modal guidance card pauses the world and takes the pad (17.2, 18.5): A or B answers
+    // "知道了", Y "此后不提示这类", X expands; nothing it pressed reaches the game
+    const card = tutorialCardState();
+    if (card === 'modal') {
+      this.cardPad(snap, nowMs, true);
+      this.hub.consumeHeld(snap, nowMs);
+      return;
+    }
+    if (card === 'side') this.cardPad(snap, nowMs, false);
+    else this.cardPrev = null;
     if (snap || this.padConnected) {
       this.padConnected = !!snap;
       this.hub.padFrame(snap, nowMs);
@@ -177,7 +223,53 @@ export class InputLayer implements UiSink {
     this.hub.releaseAll();
   }
 
+  /**
+   * The guidance card on the pad. Modal: the card takes the pad (cardPadAnswer). Side card
+   * (it leaves the pad to the game): a long press of back answers "知道了"; the press's tap
+   * still reaches the game as usual.
+   */
+  private cardPad(snap: PadSnapshot | null, nowMs: number, modal: boolean): void {
+    const now = cardButtons(snap, this.hub.confirmButton, this.hub.backButton);
+    // the first frame only records what was already down (the press that led here)
+    const prev = this.cardPrev ?? now;
+    this.cardPrev = now;
+    if (modal) {
+      this.cardBackSince = null;
+      const answer = cardPadAnswer(prev, now);
+      if (answer) answerTutorialCard(answer);
+      return;
+    }
+    if (!now.back) {
+      this.cardBackSince = null;
+      return;
+    }
+    // only a fresh press counts (a back still held from before never answers the card)
+    if (!prev.back) this.cardBackSince = nowMs;
+    const since = this.cardBackSince;
+    if (since !== null && nowMs - since >= this.hub.settings.holdSeconds * 1000) {
+      this.cardBackSince = null;
+      answerTutorialCard('ok');
+    }
+  }
+
+  /**
+   * Open a ring from a HUD element (the party frame's right click opens that companion's
+   * orders, ux_and_onboarding.md 5.2): the mouse points, a click picks, a right click or Esc
+   * cancels. False when the ring has nothing to offer.
+   */
+  openRing(ring: RingId, target?: string): boolean {
+    return this.hub.openRing(ring, RING_OPENER_POINTER, target);
+  }
+
+  /** Whether a held action's key or button is down now (`dialogue.skip_read`). */
+  actionHeld(context: InputContext, action: string): boolean {
+    return this.hub.actionHeld(context, action);
+  }
+
   dispose(): void {
+    window.removeEventListener('pointerdown', this.onPointerCapture, true);
+    window.removeEventListener('click', this.onClickCapture, true);
+    window.removeEventListener('contextmenu', this.onClickCapture, true);
     this.kbm.dispose();
     this.hub.closeOsk();
     this.hub.closeRing();

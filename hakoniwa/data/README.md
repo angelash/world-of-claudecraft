@@ -15,7 +15,7 @@
 | `economy/` | 商品与材料、市场、配方、商路、经济参数 |
 | `crafting/` | 采集与生业：内核参数（`config.json`：层与上限、增长曲线、杰作概率、工站档、采集刷新与稀有事件、节流、工具种类、醉意）、采集点（`nodes.json`，`node_`）、工站（`stations.json`，`stn_`）、配方（`recipes.json`，`rcp_`）、人物的生业技能（`crafters.json`，铁匠修理读它）；采集点与工站只按地图 ID 与地点 ID 引用 |
 | `inventory/` | 物品实例层的同炉套组（`item_sets.json`，`set_`）与附纹（`enchants.json`，`ench_`）；物品本身仍由各系统的 `items` 表提供 |
-| `city/` | 旧哨村与门内庭院地图、建筑、建设用地（含剧情职能 `roles`）、官员、政策、城建物品职能（`config.json`：口粮、腐坏、慢耗、主粮、需求物资、余货） |
+| `city/` | 旧哨村与门内庭院地图、建筑、建设用地（含剧情职能 `roles`）、官员、政策、城建物品职能（`config.json`：口粮、腐坏、慢耗、主粮、需求物资、余货）；门内庭院的门、陈列与扩建档（`sites.json` 庭院一行的 `court` 块） |
 | `warfare/` | 兵种、英雄技能、战役场景 |
 | `strategy/` | 大陆省份图、国家、参数 |
 | `goddess/` | 六司人格卡（含神庭席位 `courtSeat`、剧情职能 `roles`、信物、触及方式）、造主、神权动作、天启、写定神行节点 `beats.json`、供品价目 `offerings.json`；女神大脑 `brain/`（人格权重表与各幕计划表、谋划、反应表、常数）；导演的菜单、规则表、台账交付与各幕限额（`director_*.json`） |

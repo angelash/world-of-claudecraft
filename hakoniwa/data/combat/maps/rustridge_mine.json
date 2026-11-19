@@ -203,6 +203,71 @@
       "count": 1,
       "radius": 1,
       "respawnMinutes": 12
+    },
+    {
+      "kind": "monster",
+      "id": "rm_beetle_west",
+      "ref": "rust_beetle",
+      "x": 9.5,
+      "y": 20.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60,
+      "requiresFlags": ["act.2.entered"]
+    },
+    {
+      "kind": "monster",
+      "id": "rm_beetle_east",
+      "ref": "rust_beetle",
+      "x": 54.5,
+      "y": 34.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60,
+      "requiresFlags": ["act.2.entered"]
+    },
+    {
+      "kind": "monster",
+      "id": "rm_ironbelly",
+      "ref": "ironbelly",
+      "x": 54.5,
+      "y": 42.5,
+      "count": 1,
+      "radius": 1,
+      "respawnMinutes": 2400,
+      "requiresFlags": ["act.2.entered"]
+    },
+    {
+      "kind": "monster",
+      "id": "rm_shed_beetles",
+      "ref": "rust_beetle",
+      "x": 8.5,
+      "y": 33.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 15,
+      "requiresFlags": [
+        "act.2.entered",
+        "dg.nest_rust_matron.stage",
+        "!dg.nest_rust_matron.cleared",
+        "!dg.nest_rust_matron.collapsed"
+      ]
+    },
+    {
+      "kind": "monster",
+      "id": "rm_rust_matron",
+      "ref": "rust_matron",
+      "x": 7.5,
+      "y": 37.5,
+      "count": 1,
+      "radius": 1,
+      "requiresFlags": [
+        "act.2.entered",
+        "dg.nest_rust_matron.stage",
+        "!dg.nest_rust_matron.cleared",
+        "!dg.nest_rust_matron.collapsed"
+      ],
+      "respawnMinutes": 1440
     }
   ],
   "exits": [

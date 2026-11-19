@@ -1,1 +1,163 @@
-[]
+[
+  {
+    "id": "ench_body_wpn_1",
+    "name": "砺锋",
+    "desc": "刻在武器上的一道砺锋纹，握着它的人更有力气。",
+    "slot": "wpn",
+    "tier": 1,
+    "stats": {
+      "str": 3
+    }
+  },
+  {
+    "id": "ench_body_chest_1",
+    "name": "筋骨",
+    "desc": "织进胸甲的一道筋骨纹，让人更耐打。",
+    "slot": "chest",
+    "tier": 1,
+    "stats": {
+      "sta": 4
+    }
+  },
+  {
+    "id": "ench_arcane_wpn_1",
+    "name": "灵引",
+    "desc": "刻在武器上的一道灵引纹，施法时灵素来得更顺。",
+    "slot": "wpn",
+    "tier": 1,
+    "stats": {
+      "int": 3
+    }
+  },
+  {
+    "id": "ench_arcane_head_1",
+    "name": "明识",
+    "desc": "刻在头盔或兜帽里的一道明识纹，让头脑更清楚。",
+    "slot": "head",
+    "tier": 1,
+    "stats": {
+      "int": 3
+    }
+  },
+  {
+    "id": "ench_flame_wpn_1",
+    "name": "余烬",
+    "desc": "刻在武器上的一道余烬纹，命中时偶尔迸出火星灼伤目标。",
+    "slot": "wpn",
+    "tier": 1,
+    "procs": [
+      {
+        "on": "hit",
+        "chance": 0.1,
+        "do": "dmg:fire:12"
+      }
+    ]
+  },
+  {
+    "id": "ench_flame_hands_1",
+    "name": "火手",
+    "desc": "织进手套的一道火手纹，出手更容易打中要害。",
+    "slot": "hands",
+    "tier": 1,
+    "stats": {
+      "crit": 0.5
+    }
+  },
+  {
+    "id": "ench_frost_wpn_1",
+    "name": "霜刃",
+    "desc": "刻在武器上的一道霜刃纹，命中时偶尔让目标的动作慢下来。",
+    "slot": "wpn",
+    "tier": 1,
+    "procs": [
+      {
+        "on": "hit",
+        "chance": 0.1,
+        "do": "slow:0.8:4"
+      }
+    ]
+  },
+  {
+    "id": "ench_frost_chest_1",
+    "name": "寒衣",
+    "desc": "织进胸甲的一道寒衣纹，让甲更硬。",
+    "slot": "chest",
+    "tier": 1,
+    "stats": {
+      "armor": 30
+    }
+  },
+  {
+    "id": "ench_light_wpn_1",
+    "name": "银光",
+    "desc": "刻在武器上的一道银光纹，打亡灵时偶尔迸出一点光。",
+    "slot": "wpn",
+    "tier": 1,
+    "procs": [
+      {
+        "on": "hit",
+        "when": "target.family=undead",
+        "chance": 0.2,
+        "do": "dmg:holy:15"
+      }
+    ]
+  },
+  {
+    "id": "ench_light_chest_1",
+    "name": "祈愿",
+    "desc": "织进胸甲的一道祈愿纹，让人心里更静。",
+    "slot": "chest",
+    "tier": 1,
+    "stats": {
+      "spi": 4
+    }
+  },
+  {
+    "id": "ench_shade_wpn_1",
+    "name": "噬影",
+    "desc": "刻在武器上的一道噬影纹，命中时偶尔替持有者回一点血。",
+    "slot": "wpn",
+    "tier": 1,
+    "procs": [
+      {
+        "on": "hit",
+        "chance": 0.08,
+        "do": "hot:6:4"
+      }
+    ]
+  },
+  {
+    "id": "ench_shade_feet_1",
+    "name": "无声步",
+    "desc": "织进鞋靴的一道无声步纹，脚步更轻，悄悄走动时更难被人听见。",
+    "slot": "feet",
+    "tier": 1,
+    "stats": {
+      "agi": 3
+    }
+  },
+  {
+    "id": "ench_life_wpn_1",
+    "name": "藤毒",
+    "desc": "刻在武器上的一道藤毒纹，命中时偶尔让目标中毒。",
+    "slot": "wpn",
+    "tier": 1,
+    "procs": [
+      {
+        "on": "hit",
+        "chance": 0.12,
+        "do": "dot:nature:5:6"
+      }
+    ]
+  },
+  {
+    "id": "ench_life_chest_1",
+    "name": "生息",
+    "desc": "织进胸甲的一道生息纹，让人更耐打，灰气也更难沾身。",
+    "slot": "chest",
+    "tier": 1,
+    "stats": {
+      "sta": 3
+    }
+  }
+]

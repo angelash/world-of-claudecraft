@@ -1,0 +1,27 @@
+{
+  "id": "ln_role_officer",
+  "slots": {
+    "react.self_recommend": [
+      "这件差事，能不能交给我试试？",
+      "我在这一行干了些年，自认能办好。",
+      "位子空着也是空着，不如让我来。"
+    ],
+    "topic.gen_advice": {
+      "K1": [
+        "依我看，先把{place}的路修好，别的事好办。",
+        "粮要先算，人要后排，急的事别插队。",
+        "下官斗胆一言：这件事拖不得。"
+      ]
+    },
+    "react.persuaded": ["您说得在理，我照办。"],
+    "react.unpersuaded": ["恕我直言，这样办会出事。"],
+    "react.thanked": ["分内之事。"],
+    "react.declined": ["这事超出我的权限，得您定。"],
+    "react.insult": ["我是来做事的，不是来挨骂的。"],
+    "bark.work": ["账对不上……再算一遍。", "这份请示今天得送出去。"],
+    "bark.worried": ["下面的人又在抱怨了。"],
+    "bark.tired": ["公文没完没了。"],
+    "greet.neutral": ["您有吩咐？"],
+    "farewell": ["下官告退。"]
+  }
+}

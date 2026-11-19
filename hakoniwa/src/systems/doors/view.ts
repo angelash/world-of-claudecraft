@@ -2,15 +2,27 @@
 // wing, end hall), hint and key progress. Hidden doors are left out unless asked for; what
 // a shown door discloses follows its hint level: a crack shows the first key only, a
 // glimpse the keys met or under way plus how many are left, a full glimpse (and any
-// openable, opened, closed or locked door) every key. Nothing here writes the world.
+// openable, opened, closed or locked door) every key. The door card's fields of
+// ux_and_onboarding.md 9.3 and 9.5 ride along: the danger band (five bands, the cracks on
+// the frame), the cost preview (blockage and fatigue the opening adds), the shown doors the
+// opening would shut, and per key the quest where it is found once the player knows it.
+// Nothing here writes the world.
 
 import type { ContentMap } from '../../core/contracts';
 import { type KeyText, type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
-import { blockageOf, blockageTier } from './costs';
+import { blockageOf, blockageTier, openCostNow } from './costs';
 import { grownSegments } from './hints';
-import { type KeyProgress, keyProgress } from './keys';
-import type { DoorCategory, DoorStatus, WingId } from './types';
+import { actNumber, type KeyProgress, keyProgress } from './keys';
+import {
+  DANGER_BANDS,
+  type DoorCategory,
+  type DoorDanger,
+  type DoorDef,
+  type DoorRuntime,
+  type DoorStatus,
+  type WingId,
+} from './types';
 
 /** Display name of a door category (a fresh text key each call; it ends up in views). */
 export function categoryName(category: DoorCategory): KeyText {
@@ -25,6 +37,20 @@ export function statusName(state: DoorStatus): KeyText {
 /** Display name of a wing (a fresh text key each call). */
 export function wingName(wing: WingId): KeyText {
   return tr(`sys.doors.wing.${wing}`);
+}
+
+/** Display name of a danger band (a fresh text key each call). */
+export function dangerName(band: DoorDanger): KeyText {
+  return tr(`sys.doors.danger.${band}`);
+}
+
+/** A door's danger band (none when its data names none) and its level 1 (none) to 5. */
+export function doorDanger(door: Pick<DoorDef, 'dangerBand'>): {
+  band: DoorDanger;
+  level: number;
+} {
+  const band = door.dangerBand && DANGER_BANDS.includes(door.dangerBand) ? door.dangerBand : 'none';
+  return { band, level: DANGER_BANDS.indexOf(band) + 1 };
 }
 
 /** One door in the corridor; labels are text keys in the kernel, strings once rendered. */
@@ -55,6 +81,16 @@ export interface DoorView<Text = TextParam> {
   keysLeft: number;
   /** a forbidden door (the draft wing's weight, counted in danger_doors_opened) */
   danger: boolean;
+  // The door card's fields (ux 9.3, 9.5). corridorView always fills them; they are optional
+  // only so a view built by hand (an interface fixture) may leave them out.
+  /** the danger band (catalog_doors.md 1.7; its display name: dangerName) */
+  dangerBand?: DoorDanger;
+  /** the band as 1 (none) to 5 (extreme): the cracks on the door frame (ux 9.2) */
+  dangerLevel?: number;
+  /** blockage and door fatigue the opening adds (ux 9.3; the seal never shows here) */
+  costPreview?: { clog: number; fatigue: number };
+  /** ids of the shown doors this one shuts when it opens (9.2: never an unseen one) */
+  exclusiveWith?: string[];
   closable: boolean;
 }
 
@@ -76,6 +112,58 @@ function disclose(keys: KeyProgress[], level: number): { keys: KeyProgress[]; le
   };
 }
 
+/** Is a door in sight in the corridor (shown, and not locked before it was ever shown)? */
+function inSight(rt: DoorRuntime | undefined): boolean {
+  const state = rt?.state ?? 'hidden';
+  if (state === 'hidden') return false;
+  return !(state === 'locked' && (rt?.hintLevel ?? 0) < 1);
+}
+
+/**
+ * The shown doors that opening `door` would lock or close now (thousand_doors.md 9.1, 9.2):
+ * the other members of its groups, by their own entry's mode (a one-way group's source,
+ * a freeze and a rack shut nothing; an act lock only in its act), still open to change,
+ * and in sight. Empty once the door itself is past opening.
+ */
+export function exclusionPreview(world: World, content: ContentMap, door: DoorDef): string[] {
+  const doors = world.slices.doors?.doors ?? {};
+  const own = doors[door.id]?.state ?? 'hidden';
+  if (own === 'opened' || own === 'locked' || own === 'closed') return [];
+  const groups = new Set((door.exclusive ?? []).map((e) => e.group));
+  if (groups.size === 0) return [];
+  const act = actNumber(world.meta.flags.act);
+  const out: string[] = [];
+  for (const other of content.doors ?? []) {
+    if (other.id === door.id) continue;
+    const rt = doors[other.id];
+    if (!inSight(rt) || rt?.state === 'locked' || rt?.state === 'closed') continue;
+    const hits = (other.exclusive ?? []).some((e) => {
+      if (!groups.has(e.group) || e.source) return false;
+      if (e.mode === 'lock' || e.mode === 'vanish') return rt?.state !== 'opened';
+      if (e.mode === 'actLock')
+        return rt?.state !== 'opened' && (e.act === undefined || e.act === act);
+      return e.mode === 'forceClose';
+    });
+    if (hits) out.push(other.id);
+  }
+  return out;
+}
+
+/** The quest states of a quest the player took up (outcomes such as a miss do not count). */
+const TAKEN_UP: readonly string[] = ['active', 'ready', 'done'] as const;
+
+/**
+ * A key's "where to find" quest (ux 9.3), once the player has taken that quest up: a quest
+ * the player never heard of is no link (14.1: unknown goals do not show). Only top-level
+ * keys carry links; the validator refuses one on a nested key.
+ */
+function withLink(world: World, key: DoorDef['keys'][number] | undefined, p: KeyProgress) {
+  const id = key?.link;
+  const status = id ? world.meta.flags[`quest.${id}`] : undefined;
+  if (!id || typeof status !== 'string' || !TAKEN_UP.includes(status)) return p;
+  return { ...p, link: { kind: 'quest' as const, id } };
+}
+
 export function corridorView(world: World, content: ContentMap, includeHidden = false): DoorView[] {
   const out: DoorView[] = [];
   for (const door of content.doors ?? []) {
@@ -85,7 +173,13 @@ export function corridorView(world: World, content: ContentMap, includeHidden = 
     // a door locked before it was ever shown stays out of sight (9.2: no word of the other)
     if (state === 'locked' && !includeHidden && (rt?.hintLevel ?? 0) < 1) continue;
     const level = includeHidden ? 4 : shownLevel(state, rt?.hintLevel);
-    const shown = disclose(level > 0 ? keyProgress(world, door, content) : [], level);
+    const progress =
+      level > 0
+        ? keyProgress(world, door, content).map((p, i) => withLink(world, door.keys[i], p))
+        : [];
+    const shown = disclose(progress, level);
+    const danger = doorDanger(door);
+    const cost = openCostNow(door, actNumber(world.meta.flags.act));
     const named = level >= 2;
     out.push({
       id: door.id,
@@ -107,6 +201,10 @@ export function corridorView(world: World, content: ContentMap, includeHidden = 
       keys: shown.keys,
       keysLeft: shown.left,
       danger: !!door.forbidden,
+      dangerBand: danger.band,
+      dangerLevel: danger.level,
+      costPreview: { clog: cost.blockage, fatigue: cost.fatigue },
+      exclusiveWith: exclusionPreview(world, content, door),
       closable: !!door.closable,
     });
   }

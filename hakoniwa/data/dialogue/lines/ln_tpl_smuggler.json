@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_smuggler",
+  "slots": {
+    "greet.neutral": ["路过的？别多问。", "嗯。", "夜路，不聊天。"],
+    "greet.cold": ["你看见什么了？", "走开。"],
+    "greet.warm": ["有货，要吗？", "你是自己人。"],
+    "farewell": ["你没见过我。", "走吧。"],
+    "unbelief.deny": ["那是谁派来的人。", "吹的。"],
+    "unbelief.explain": ["有人在背后撑他。", "那帮人早被打残了。"],
+    "unbelief.waver": ["这人……绕开走。", "别惹他。"],
+    "react.feat_seen": ["……走，换条路。", "惹不起。"],
+    "topic.gen_work": {
+      "K0": ["运货。什么货？别问。", "骡子和夜路。"]
+    },
+    "bark.travel": [
+      "轻点，别弄出响。",
+      {
+        "zh": "卫队？",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.night": ["夜里才好走。"],
+    "bark.worried": ["这趟要是被抓……"]
+  }
+}

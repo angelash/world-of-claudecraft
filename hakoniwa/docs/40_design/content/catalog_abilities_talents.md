@@ -241,6 +241,16 @@
 
 技能对照合计 123 条：编外者门技 7（2.1 加 2.2）、九职能基础技能族 86（2.3 到 2.11）、魔物与首领技能 30（2.12），7 + 86 + 30 = 123。
 
+### 2.13 同伴标志技能（1 条）
+
+同伴的标志技能（[同伴 6][cmp]）不随职能表，数据在 `data/party/abilities.json`，入队时授予；不在上面 123 条的对照之内（不是旧 ID 换号）。
+
+| 新 ID | 名 | 主人 | 效果摘要 | 规则 AI 何时用 |
+| --- | --- | --- | --- | --- |
+| `sk_yeyu_ravenswarm` | 鸦群 | 夜羽 | 射程 10，冷却 30 秒，幽相；命中（不掷伤害）对一名敌人施加 `aur_mon_blinded`（失明 3 秒，瘫痪类，受伤即醒）；首领护盾写明 `breakBy: ability`、`breakRef: sk_yeyu_ravenswarm` 的，这一扑落地即击碎（[战斗 10.4][cmb]，澱巨像的灰壳"鸦群扑面"） | 不进日常技能池（控制类）；三处会用：个人规则"护短"（玩家生命低于三成时对攻击玩家的敌人，[同伴 7.4][cmp]）、护盾写明由它击碎时、协助姿态的开场控制（对玩家没在打的那名敌人，[内置 AI 11.1][bai]） |
+
+数值（射程、冷却、失明 3 秒）沿用第一批（PK-M1-15）的取值，待用户确认（`docs/70_packets/pk_m1_21_companion_ai/progress.md` 需用户决定）。
+
 ## 3. 光环对照表
 
 ### 3.1 编外者门技内嵌光环（拆分登记，2 条）
@@ -453,6 +463,7 @@
 | 14 | `sk_lok_drainlife`（吸取生命） |
 
 12 级锚点时夜羽已会全部八招到 `sk_lok_drainlife`（14 级一行按锚点就位，不缺招）；`sk_lok_rainoffire`（20 级）在一幕用不上。
+标志技能"鸦群"`sk_yeyu_ravenswarm` 入队即有，不随等级，见第 2.13 节。
 
 ### 5.3 希雅（猎人，兽群流）
 
@@ -694,6 +705,7 @@
 [td]: ../systems/thousand_doors.md
 [doors]: catalog_doors.md
 [cmp]: ../systems/companions_and_party.md
+[bai]: ../systems/builtin_ai.md
 [best]: catalog_bestiary.md
 [dgc]: catalog_dungeons_bosses.md
 [a1]: ../../30_story/arcs/act1_borderstone.md

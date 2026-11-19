@@ -1,0 +1,48 @@
+{
+  "id": "ln_toma",
+  "speaker": "toma",
+  "slots": {
+    "greet.cold": ["嗯？", "……听不清。", "走开。"],
+    "greet.neutral": ["嗯。", "……听不清。", "敲钟的时辰还没到。"],
+    "greet.warm": ["嗯。你来了。", "上来坐。钟楼上风大，看得远。", "那瓶酒，还有吗？"],
+    "farewell": ["嗯。", "慢走。", "钟要响了。"],
+    "unbelief.deny": ["……我没看见，不说。", "听不清。"],
+    "unbelief.explain": ["嗯……运气。", "光在上。"],
+    "unbelief.waver": ["我看见了。从钟楼上。", "嗯。是真的。"],
+    "react.feat_seen": ["……嗯！", "看见了。"],
+    "react.gift_liked": ["好酒。……你想听什么？", "嗯。坐。"],
+    "react.insult": ["听不清。", "嗯。"],
+    "topic.gen_self": {
+      "neutral": ["托马。敲钟的。", "在钟楼上待了一辈子。"]
+    },
+    "topic.gen_work": {
+      "K0": ["敲钟。打扫。", "钟楼是镇上最高的地方。"]
+    },
+    "topic.self_toma_bell": {
+      "K0": ["这口钟比我老。", "钟一响，全镇都听得见。"]
+    },
+    "topic.secret_toma_watch": {
+      "K0": [
+        {
+          "zh": "代官夜里在后院小门见客。见了三回。",
+          "when": "quest.q_a1_s15_bell_tower"
+        },
+        {
+          "zh": "药草婆婆夜里去孤儿院，天亮前出来。……她提着药箱。",
+          "when": "quest.q_a1_s15_bell_tower"
+        }
+      ]
+    },
+    "topic.place_bs_chapel": {
+      "K0": ["礼拜堂。钟楼在上面。"]
+    },
+    "quest.q_a1_s15_bell_tower.offer": ["……听不清。好酒的味道，倒是闻得见。"],
+    "quest.q_a1_s15_bell_tower.progress": ["陪我敲一次钟。敲完了，我再说。"],
+    "quest.q_a1_s15_bell_tower.complete": [
+      "我不聋。钟楼上什么都看得见。",
+      "你想知道谁夜里在外面？我都记得。"
+    ],
+    "quest.q_a1_s15_bell_tower.after": ["嗯。以后有事，上来找我。"],
+    "bark.work": ["当……当……", "嗯。"]
+  }
+}

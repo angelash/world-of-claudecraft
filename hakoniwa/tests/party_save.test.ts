@@ -3,7 +3,8 @@
 // roster in every state the batch adds (in the party, standing by, resting, waiting at a
 // gate), a tactical order, the ironman switch, a beast companion and a ridden mount; and a
 // save from before the roster (members without a state, none of the new fields) loads,
-// counts its members as in the party and plays on.
+// counts its members as in the party and plays on; the chatter, fight and care records of
+// PK-M1-21 ride the same round trip.
 
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
@@ -102,6 +103,43 @@ describe('party save round trip', () => {
     expect(worldHash(loaded)).toBe(worldHash(live.world));
     const resumed = Engine.resume(loaded, live.content, live.systems);
     const ticks = 3 * TICKS_PER_GAME_HOUR + 7;
+    live.step(ticks);
+    resumed.step(ticks);
+    expect(worldHash(resumed.world)).toBe(worldHash(live.world));
+  });
+
+  it('keeps the chatter, the fight record and the care clocks (PK-M1-21) across a save', () => {
+    const live = busy();
+    withCtx(live, (ctx) => {
+      const s = ctx.world.slices.party;
+      s.fight = { on: false, count: 2, start: 10, downs: 0, hardStreak: 1 };
+      s.banter = {
+        played: { a1_forest_walk: 5 },
+        cut: { a1_mark: 1 },
+        pending: { a1_mark: 7 },
+        held: { a1_mark: true },
+        here: ['seal_ruins'],
+        pos: ['seal_ruins', 32.5, 17.5],
+        journey: 40,
+        camp: { night: 0, count: 1 },
+        talked: { night: 0, companionId: 'shiya' },
+        exposure: 200,
+      };
+      s.care = { bron: ctx.tick + 1000 };
+      const shiya = s.members.shiya;
+      if (shiya) {
+        shiya.stanceLast = 'stay';
+        shiya.treated = ctx.tick;
+      }
+    });
+    const { world: loaded } = migrateSnapshot(serializeWorld(live.world), RENAME_VERSION, {
+      owners: [],
+    });
+    expect(validateWorld(loaded, [])).toEqual([]);
+    expect(worldHash(loaded)).toBe(worldHash(live.world));
+    expect(loaded.slices.party.banter?.pending).toEqual({ a1_mark: 7 });
+    const resumed = Engine.resume(loaded, live.content, live.systems);
+    const ticks = 2 * TICKS_PER_GAME_HOUR + 3;
     live.step(ticks);
     resumed.step(ticks);
     expect(worldHash(resumed.world)).toBe(worldHash(live.world));

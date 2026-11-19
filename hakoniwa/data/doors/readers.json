@@ -1,0 +1,14 @@
+{
+  "priceBand": { "feature": "price_band", "spread": 0.2 },
+  "nightSight": { "feature": "night_sight", "radius": 12 },
+  "rumorSource": { "feature": "rumor_source" },
+  "springPurify": {
+    "feature": "spring_purify",
+    "places": [{ "mapId": "borderstone", "location": "north_spring" }],
+    "var": "a1_town_dian",
+    "amount": -10,
+    "min": 0,
+    "weekFlag": "act_week",
+    "when": "act == act1"
+  }
+}

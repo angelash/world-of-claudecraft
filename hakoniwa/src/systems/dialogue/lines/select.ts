@@ -16,7 +16,7 @@ import {
   chainPackIds,
   type FallbackLayers,
   lineKey,
-  ownSlotLines,
+  ownSlotSources,
   packById,
   type ResolvedSlot,
   type ResolveOptions,
@@ -147,10 +147,13 @@ export function selectLine(
   opts: SelectOptions = {},
 ): SelectResult | null {
   const days = opts.suppressDays ?? 0;
-  for (const packId of chainPackIds(npcId, opts)) {
+  // every source of every pack in chain order: an act override whose lines are all
+  // conditioned out gives way to the same pack's base slot before the next pack (7.3)
+  const sources = chainPackIds(npcId, opts).flatMap((packId) => {
     const pack = packById(content, packId);
-    const src = pack ? ownSlotLines(pack, slot, opts) : null;
-    if (!src) continue;
+    return pack ? ownSlotSources(pack, slot, opts) : [];
+  });
+  for (const src of sources) {
     const open = candidatesOf(src).filter((c) => admissible(c, ctx));
     if (open.length === 0) continue;
     if (opts.rotate) {

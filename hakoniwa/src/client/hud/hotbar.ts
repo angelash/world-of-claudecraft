@@ -50,6 +50,8 @@ export class Hotbar {
         },
         [key, name, cd, secs],
       );
+      // the onboarding outlines a slot by this name (src/client/tutorial/glow.ts)
+      root.dataset.hud = `hotbar_${i}`;
       this.slots.push({ root, key, name, cd, secs, title: label, height: '0%' });
     }
   }

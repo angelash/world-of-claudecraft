@@ -22,7 +22,8 @@
         {
           "action": "alarm",
           "params": {
-            "slot": "react.heresy_alarm"
+            "slot": "react.heresy_alarm",
+            "consequence": "accuse"
           }
         }
       ]
@@ -48,7 +49,8 @@
         {
           "action": "challenge",
           "params": {
-            "slot": "react.challenge"
+            "slot": "react.challenge",
+            "consequence": "omen"
           }
         }
       ]

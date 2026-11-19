@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_street_urchin",
+  "slots": {
+    "greet.neutral": ["你是谁呀？", "有糖吗？", "嘿。"],
+    "greet.cold": ["坏人！", "不理你。"],
+    "greet.warm": ["你来啦！", "陪我玩！"],
+    "farewell": ["拜拜！", "明天还来吗？"],
+    "unbelief.deny": ["大人说你吹牛。", "骗人！"],
+    "unbelief.explain": ["你是不是王子？", "你会魔法！"],
+    "unbelief.waver": ["哇！是真的！", "我要告诉大家！"],
+    "react.feat_seen": ["好厉害！", "再来一次！"],
+    "topic.gen_work": {
+      "K0": ["帮院长干活。", "跑腿，一跳两个铜子。"]
+    },
+    "bark.chat": [
+      "我们玩捉迷藏！",
+      {
+        "zh": "我饿了。",
+        "mood": ["worried"]
+      }
+    ],
+    "bark.wander": ["那边有好玩的！"],
+    "bark.sleep": ["……娘……"]
+  }
+}

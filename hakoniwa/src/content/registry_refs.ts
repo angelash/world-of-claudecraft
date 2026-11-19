@@ -64,7 +64,7 @@ export const CONDITION_FIELDS = new Set([
 /** String fields naming one flag the kernel reads. */
 const READ_NAME_FIELDS = new Set(['endOnFlag', 'pacifiedBy', 'removeOnFlag', 'from']);
 /** String fields naming one flag the kernel writes. */
-const WRITE_NAME_FIELDS = new Set(['storeAs', 'gazeFlag', 'yieldFlag', 'trustKey']);
+const WRITE_NAME_FIELDS = new Set(['storeAs', 'gazeFlag', 'yieldFlag', 'trustKey', 'countFlag']);
 /** Arrays of flag names the kernel reads. */
 const READ_LIST_FIELDS = new Set(['requiresFlags', 'evidenceFlags']);
 /** Arrays of conditions (persona hideWhen). */
@@ -194,6 +194,8 @@ export function collectFlagUses(content: ContentMap): {
     for (const [k, x] of Object.entries(o)) {
       const p = [...path, k];
       if (typeof x === 'string' && CONDITION_FIELDS.has(k)) {
+        // an item trigger's `when` has its own grammar (catalog_equipment.md 1.5), no flags
+        if (k === 'when' && path.includes('procs')) continue;
         condition(x, k, ctx, p);
       } else if (typeof x === 'string' && READ_NAME_FIELDS.has(k)) {
         if (k === 'from' && type !== 'copy' && type !== 'name') continue;

@@ -1,0 +1,16 @@
+{
+  "ui.hud.wheel.party.orders_for": "{name}的指令",
+  "ui.hud.wheel.party.pick_member": "给谁下令",
+  "ui.hud.wheel.party.single": "单人指令",
+  "ui.set.controls.action.ai_mark": "查看 AI 标记",
+  "ui.set.controls.action.cycle_next": "下一个样式",
+  "ui.set.controls.action.cycle_prev": "上一个样式",
+  "ui.set.controls.action.done": "照好了",
+  "ui.set.controls.action.randomize": "随机外貌",
+  "ui.set.controls.action.reset_look": "还原外貌",
+  "ui.set.controls.action.row_next": "下一项",
+  "ui.set.controls.action.row_prev": "上一项",
+  "ui.set.controls.action.turn_left": "向左转身",
+  "ui.set.controls.action.turn_right": "向右转身",
+  "ui.set.controls.context.creator_label": "灵镜"
+}

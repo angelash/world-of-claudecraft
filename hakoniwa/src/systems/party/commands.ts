@@ -2,7 +2,9 @@
 // the formation (7.2, 7.3, 3.3), gifts (8.4), the roster moves (2.5, 3.2: invite, stand by,
 // swap, wait at a gate), the one-way ironman switch (11.4), the story's hooks (a personal
 // line segment, a scripted grave injury, a reconciliation after the cold), taming and the
-// pact (thousand_doors.md 15.1, 15.2) and riding. Every refusal is a text key.
+// pact (thousand_doors.md 15.1, 15.2) and riding; the built-in AI's stance for a fight and
+// handing a stance back to it (builtin_ai.md 11.1), the reply to party chatter (11.3) and
+// visiting a resting companion (8.4). Every refusal is a text key.
 
 import { ok, reject } from '../../core';
 import type { CommandMap, CommandSource } from '../../core/contracts';
@@ -11,7 +13,9 @@ import { tr } from '../../core/text';
 import { liveUnit } from '../combat';
 import { countItem, itemDef, removeItem } from '../inventory';
 import { getEntity, playerEntity } from '../world';
+import { answerBanter, campTalk } from './banter';
 import { addBond, giftCounts, giftValue } from './bond';
+import { visit } from './care';
 import { companionDef, partyConfig } from './config';
 import { ironmanOff } from './ironman';
 import { ride } from './mounts';
@@ -27,6 +31,7 @@ import {
   stateOf,
 } from './roster';
 import { completeSegment } from './story';
+import { applyStance, stanceCommand } from './tactics';
 import { type Member, STANCES, TACTICS, type TacticKind } from './types';
 import { fall, partyFighting } from './wounds';
 
@@ -47,20 +52,67 @@ function orderable(ctx: SystemContext): Member[] {
 type Handlers = { [K in keyof CommandMap]?: CommandHandler<K> };
 
 export const commands: Handlers = {
-  'party.order'(ctx, d) {
+  'party.order'(ctx, d, source) {
     if (!STANCES.includes(d.order)) return reject('bad_order', tr('sys.party.reject.bad_order'));
     const list = d.companionId ? [member(ctx, d.companionId)] : orderable(ctx);
     if (list.length === 0 || !list[0] || list[0].temp)
       return reject('no_companion', tr('sys.party.reject.no_companion'));
     for (const m of list) {
       if (!m) continue;
-      m.order = d.order;
-      const e = getEntity(ctx.world, m.entityId);
-      if (d.order === 'stay' && e) m.stayAt = { mapId: e.mapId, x: e.x, y: e.y };
-      else delete m.stayAt;
-      ctx.emit('party.order', { companionId: m.id, order: d.order });
+      // the player's stance stands over the built-in AI's (builtin_ai.md 11.1)
+      if (source.type === 'player') m.stanceBy = 'player';
+      // the same stance again still re-anchors a stay spot and tells the client
+      const was = m.order;
+      applyStance(ctx, m, d.order);
+      if (was === d.order) ctx.emit('party.order', { companionId: m.id, order: d.order });
     }
     return ok();
+  },
+
+  'party.stance'(ctx, d, source) {
+    // the companion.tactics decision: the built-in AI or a model, never the player
+    if (source.type === 'player') return no('not_allowed');
+    const m = member(ctx, d.companionId);
+    if (!m || m.temp || m.pet) return no('no_companion');
+    // a model or a fallback answers for the companion its request named, never another
+    if ((source.type === 'ai' || source.type === 'fallback') && source.agentId !== m.id)
+      return no('not_allowed');
+    if (stateOf(m) !== 'party') return no('not_in_party');
+    if (!STANCES.includes(d.order)) return no('bad_order');
+    const code = stanceCommand(
+      ctx,
+      m,
+      d.order,
+      d.revision,
+      source.type === 'ai' ? 'ai' : 'builtin',
+    );
+    return code === null ? ok() : no(code);
+  },
+
+  'party.auto_stance'(ctx, d) {
+    const list = d.companionId ? [member(ctx, d.companionId)] : orderable(ctx);
+    const hit = list.filter((m): m is Member => !!m && !m.temp && !m.pet);
+    if (hit.length === 0) return no('no_companion');
+    for (const m of hit) {
+      if (d.on) delete m.stanceBy;
+      else m.stanceBy = 'player';
+    }
+    return ok();
+  },
+
+  'party.banter_reply'(ctx, d) {
+    const code = answerBanter(ctx, d.exchangeId, d.option);
+    return code === null ? ok() : no(code);
+  },
+
+  'party.visit'(ctx, d) {
+    const code = visit(ctx, d.companionId);
+    return code === null ? ok() : no(code);
+  },
+
+  'party.camp_talk'(ctx, d) {
+    const code = campTalk(ctx, d.companionId);
+    return code === null ? ok() : no(code);
   },
 
   'party.gift'(ctx, d) {

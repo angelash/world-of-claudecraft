@@ -1,0 +1,24 @@
+{
+  "id": "ln_tpl_adventurer_d",
+  "slots": {
+    "greet.neutral": ["嗯。新来的？", "今天有活吗？", "坐。"],
+    "greet.cold": ["有事？", "别跟我抢。"],
+    "greet.warm": ["你来了，正好缺人。", "喝一杯？"],
+    "farewell": ["走吧。", "小心点。"],
+    "unbelief.deny": ["吹的吧。", "我在这镇子待了五年，没见过这种事。"],
+    "unbelief.explain": ["前人打残了。", "有诈。"],
+    "unbelief.waver": ["……你怎么做到的？教教我。", "我不服。……好吧，有一点服。"],
+    "react.feat_seen": ["嚯！", "你……不简单。"],
+    "topic.gen_work": {
+      "K1": ["D 级，小镇的顶梁柱。说出来好听，钱不多。", "讨伐、护送，什么都干。"]
+    },
+    "bark.chat": [
+      {
+        "zh": "那个新人又出风头了。",
+        "mood": ["angry"]
+      }
+    ],
+    "bark.eat": ["吃完接活。"],
+    "bark.combat": ["稳住！"]
+  }
+}

@@ -25,10 +25,11 @@ import { type LineHistory, recordLine } from '../lines/history';
 import { selectLine } from '../lines/select';
 import { dayPartOf } from '../lines/trust';
 import { opinion, rumorLine, smallTalk, trustBand, varsFor } from '../replies';
+import { isScripted } from '../scripted';
 import { speakerLayers } from '../speak';
 import { inScope, isKnower } from '../topics/access';
 import { allTopics, topicById, topicsAsked, topicsOfSubject } from '../topics/graph';
-import { clueRefusal, lockedCluesIn } from '../topics/ledger';
+import { clueMisLine, clueRefusal, lockedCluesIn } from '../topics/ledger';
 import {
   REFUSALS_TO_END,
   redirectFor,
@@ -38,6 +39,7 @@ import {
   topicTitle,
 } from '../topics/talk';
 import type { TopicDef } from '../topics/types';
+import { onlyModifies } from './head';
 import type { ClassifyContext, ClassifyResult, EntityHit, IntentDef, ResponseStep } from './types';
 
 export interface RespondInput {
@@ -75,6 +77,8 @@ export interface RespondOutcome {
   refusedKey?: string;
   /** the third refusal of one topic in this talk: the person ends it (6.6) */
   refusedOut?: boolean;
+  /** what the R8 audit notification is about (a suspected spoiler names its clues, 6.6) */
+  audit?: { reason: 'suspected_spoiler'; clues: string[] };
 }
 
 function entityOf(entities: readonly EntityHit[], kinds: readonly string[]): EntityHit | undefined {
@@ -290,9 +294,11 @@ function sayFirst(
 }
 
 /**
- * Never confirm a locked clue the player named (6.6 rows 5, 6): a knower evades, anyone
- * else hears nonsense; the same clue pressed a third time in one talk ends it (the anti-loop
- * of 6.6), and asking it again costs patience like any refused question.
+ * Never confirm a locked clue the player named (6.6 rows 5, 6): a knower answers by the
+ * clue's ledger handling (topics/ledger.ts; a misdirection is said sincerely, not refused),
+ * anyone else hears nonsense; the same clue pressed a third time in one talk ends it (the
+ * anti-loop of 6.6), and asking it again costs patience like any refused question. A
+ * `forced` answer is the low-confidence case (6.6 last row): not known, whoever speaks.
  */
 function refuseClue(
   ctx: SystemContext,
@@ -301,7 +307,16 @@ function refuseClue(
   out: RespondOutcome,
   refusals: Record<string, number> | undefined,
   history: LineHistory | undefined,
+  forced?: 'unknown',
 ): void {
+  const { refusal, clue } = forced
+    ? { refusal: forced, clue: undefined }
+    : clueRefusal(ctx.content.ledgerRefusals, clues, npcRef);
+  const misLine = refusal === 'mis' && clue ? clueMisLine(ctx, npcRef, clue) : null;
+  if (misLine) {
+    out.line = misLine;
+    return;
+  }
   const key = `clue:${clues[0]?.id}`;
   out.refused = true;
   out.refusedKey = key;
@@ -318,7 +333,7 @@ function refuseClue(
     reactionLine(
       ctx,
       npcRef,
-      [`react.${clueRefusal(clues as never, npcRef)}`, 'react.unknown'],
+      [`react.${refusal === 'mis' ? 'evade' : refusal}`, 'react.unknown'],
       history,
     ) ?? tr('sys.dialogue.intent.fallback');
 }
@@ -371,6 +386,7 @@ function topicLine(
   const unfillable = new Set(
     [...FILL_SLOTS].filter((f) => f !== 'catch' && (vars[f] === undefined || vars[f] === '')),
   );
+  const act = ctx.flag('act');
   const r = selectLine(
     ctx.content,
     npcRef,
@@ -380,6 +396,8 @@ function topicLine(
     history,
     {
       ...speakerLayers(ctx, npcRef),
+      // the act override comes first inside its act (7.3 step 1)
+      act: typeof act === 'string' ? act : undefined,
       // the suppression windows of 7.7 (reactions 7 days), topics rotate instead
       suppressDays: history ? suppressionDays(slot) : 0,
       rotate: slot.startsWith('topic.'),
@@ -530,9 +548,20 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
       const template = subst(step.topic);
       const graph = graphTopics(ctx, npcRef, template, result, input.topic);
       const named = template.includes('{') ? namedTopics(ctx, npcRef, result) : [];
+      // the step's entity only modifies another ("遗迹里的神纹"): the head's topics first
+      const kind = /\{(person|place|event|lore)\}/.exec(step.topic ?? '')?.[1];
+      const clause = result.clauses[result.mainClause]?.clause;
+      const headFirst =
+        kind !== undefined &&
+        clause !== undefined &&
+        ctx.content.intentLexicon !== undefined &&
+        onlyModifies(clause.text, clause.entities, kind, ctx.content.intentLexicon);
+      const order = headFirst
+        ? [...named.filter((t) => !graph.includes(t)), ...graph]
+        : [...graph, ...named];
       // the place a "how do I get to" names (gen_directions points at it)
       const target = placeTarget(ctx, mainEntity(result));
-      const said = sayFirst(ctx, npcRef, [...graph, ...named], input.refusals, target);
+      const said = sayFirst(ctx, npcRef, order, input.refusals, target);
       if (said) {
         tookTopic(out, said);
         out.codes.push('R1');
@@ -696,7 +725,14 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
   if (!out.topic && def.group !== 'safety' && !out.codes.includes('R3')) {
     const clues = lockedCluesIn(ctx, result.normalized);
     if (clues.length > 0) {
-      refuseClue(ctx, npcRef, clues, out, input.refusals, history);
+      // unsure what was asked (below the threshold): rather not known than any reaction to
+      // the truth, and the round goes to the audit as a suspected spoiler (6.6 last row)
+      const unsure = result.main === 'unknown';
+      refuseClue(ctx, npcRef, clues, out, input.refusals, history, unsure ? 'unknown' : undefined);
+      if (unsure) {
+        if (!out.notify.includes('audit')) out.notify.push('audit');
+        out.audit = { reason: 'suspected_spoiler', clues: clues.map((c) => c.id) };
+      }
       out.codes.push('R3');
     }
   }
@@ -708,7 +744,20 @@ export function respondTo(ctx: SystemContext, input: RespondInput): RespondOutco
   if (out.line === '')
     out.line =
       reactionLine(ctx, npcRef, ['react.confused'], history) ?? tr('sys.dialogue.intent.fallback');
+  // a scripted speaker with no written answer gives his written evasion (Ash in act 1:
+  // "还不是时候", catalog_dialogue_lines_act1.md 0 item 4), never the kernel's ellipsis
+  if (
+    isScripted(ctx.content, npcRef, ctx.flag('act')) &&
+    keyOfLine(out.line) === 'sys.dialogue.intent.fallback'
+  )
+    out.line = reactionLine(ctx, npcRef, ['react.evade'], history) ?? out.line;
   return out;
+}
+
+function keyOfLine(line: TextParam): string | undefined {
+  return line && typeof line === 'object' && 'key' in line
+    ? (line as { key: string }).key
+    : undefined;
 }
 
 /** The player's spoken-word evidence weight, read by the belief summary (builtin_ai 6.5 R6). */

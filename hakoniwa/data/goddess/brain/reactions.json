@@ -81,9 +81,15 @@
       "once": "day",
       "then": [
         {
-          "action": "sample",
+          "action": "gaze",
           "params": {
-            "scale": "0.25"
+            "amount": "5"
+          }
+        },
+        {
+          "action": "memo",
+          "params": {
+            "note": "believers_exaggerate"
           }
         }
       ]

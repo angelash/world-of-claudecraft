@@ -42,6 +42,10 @@
       {
         "flag": "a1_cassian_appraise",
         "kind": "identity_pageless"
+      },
+      {
+        "flag": "a1_trial_light_public",
+        "kind": "identity_pageless"
       }
     ],
     "claims": {

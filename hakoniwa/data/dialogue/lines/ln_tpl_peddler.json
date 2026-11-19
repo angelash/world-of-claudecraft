@@ -1,0 +1,34 @@
+{
+  "id": "ln_tpl_peddler",
+  "slots": {
+    "greet.neutral": ["来看看，针线盐巴都有！", "客官，看看？", "外地的货，便宜！"],
+    "greet.cold": ["不买就别摸。", "走开走开。"],
+    "greet.warm": ["老主顾！给你算便宜！", "有新消息，也有新货。"],
+    "farewell": ["下个集日见！", "慢走！"],
+    "unbelief.deny": ["消息越离谱，越不值钱。", "吹的吧。"],
+    "unbelief.explain": ["传话的人吹过头了。", "有人在背后做局。"],
+    "unbelief.waver": ["要是真的……这消息值钱。", "你需不需要人帮你传传名声？"],
+    "react.feat_seen": ["哟！这能编进下一个镇子的故事里！", "好本事！"],
+    "topic.gen_work": {
+      "K0": ["跟着集日跑，这个镇子卖完去下一个。", "卖杂货，也卖消息。"]
+    },
+    "bark.vendor_call": ["针线盐巴！", "外地的好货！"],
+    "bark.travel": ["下个镇子还有多远。"],
+    "quest.q_a1_s12_copper_bell.offer": [
+      {
+        "zh": "我的铜铃被偷了！集上卖的，就那一个！谁看见了？",
+        "when": "act == 1",
+        "place": ["market"],
+        "strict": true
+      }
+    ],
+    "quest.q_a1_s12_copper_bell.complete": [
+      {
+        "zh": "铜铃找回来了！不是那个兽人小孩？……我错怪他了。",
+        "when": "act == 1",
+        "place": ["market"],
+        "strict": true
+      }
+    ]
+  }
+}

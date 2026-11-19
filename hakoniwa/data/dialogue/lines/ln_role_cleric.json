@@ -1,0 +1,20 @@
+{
+  "id": "ln_role_cleric",
+  "slots": {
+    "topic.gen_faith": {
+      "K1": ["光照着每一个人，只要你肯走到光里来。", "礼拜日来吧，不为别的，为心安。"]
+    },
+    "topic.gen_heal": ["外伤我能治，别的病……我会为你祈祷。", "坐下，让光看看你的伤。"],
+    "react.goddess_invoked": ["那名字不可随口呼唤。", "愿光听见你的祈求。"],
+    "react.miracle_awe": ["这是神迹……我得禀报上去。"],
+    "react.heresy_alarm": ["这不是光的作为。愿光庇护我们。"],
+    "react.identity_claim": ["这话不可乱说，孩子，光在听。"],
+    "react.bribe_refuse": ["光不收贿赂。把钱捐给穷人吧。"],
+    "react.insult": ["我会为你祈祷。"],
+    "bark.sermon": ["诸位，请静一静。", "光会看见的。"],
+    "bark.pray": ["愿光照着这座镇子。", "求光宽恕我的软弱。"],
+    "bark.holy_day": ["今天是礼拜日，别忘了来。"],
+    "greet.neutral": ["愿光照着你。"],
+    "farewell": ["去吧，光与你同行。"]
+  }
+}

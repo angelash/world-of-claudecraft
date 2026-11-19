@@ -105,6 +105,10 @@ const ARENA: MapDef = {
   legend: { '#': 'wall', '.': 'floor' },
   locations: [
     { id: 'zz_dense', name: '澱坑', kind: 'ruin', x: 50, y: 14, w: 4, h: 4, sediment: 4 },
+    // the guardian raven's hanging stones stand at map locations (PK-M1-30), round (20, 10)
+    { id: 'raven_stone_w', name: '悬石', kind: 'object', x: 17, y: 7, w: 1, h: 1 },
+    { id: 'raven_stone_e', name: '悬石', kind: 'object', x: 23, y: 7, w: 1, h: 1 },
+    { id: 'raven_stone_s', name: '悬石', kind: 'object', x: 20, y: 14, w: 1, h: 1 },
   ],
   spawns: [],
   exits: [],

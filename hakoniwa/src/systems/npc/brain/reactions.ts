@@ -20,6 +20,7 @@ import { bumpNeed } from '../needs';
 import { cardOf, personaById } from '../personas';
 import { adjustRelation, relationOf } from '../relations';
 import { bark } from './barks';
+import { applyConsequence } from './consequences';
 import type { ReactionRow } from './library';
 import { remember } from './memory_rules';
 import { beliefAboutPlayer } from './sense';
@@ -149,6 +150,15 @@ export function react(
   ctx.emit('npc.reaction', { npcId, row: row.id, eventKind: x.kind, subject: x.subject });
   const then = row.then[0];
   const slot = then?.params?.slot;
+  // the row's other consequence (5.6 "其他后果"; brain/consequences.ts), about the player only
+  if (x.subject === 'player')
+    applyConsequence(
+      ctx,
+      then?.params?.consequence,
+      npcId,
+      st.mapId,
+      then?.params?.amount !== undefined ? Number(then.params.amount) : undefined,
+    );
   // a stance row on the very observation that moved the stance: the transition is voiced
   // by the cognition-driven line (builtin_ai.md 5.7, "不可能。……好吧，可能。"), the row
   // only sets the behaviour

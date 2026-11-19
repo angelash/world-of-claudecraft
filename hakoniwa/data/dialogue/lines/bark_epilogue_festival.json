@@ -1,0 +1,118 @@
+{
+  "id": "bark_epilogue_festival",
+  "slots": {
+    "bark.crowd": [
+      {
+        "zh": "今天热闹！",
+        "mood": ["happy"]
+      },
+      "好久没这么安生了。",
+      {
+        "zh": "要是他们也能看到就好了。",
+        "mood": ["worried"]
+      },
+      "来，喝一杯。",
+      {
+        "zh": "孩子们又在唱那首歌了。",
+        "mood": ["happy"]
+      },
+      {
+        "zh": "日子还得过。",
+        "mood": ["calm"]
+      },
+      "那年的事，你还记得吗？",
+      {
+        "zh": "庆了一夜，累了。",
+        "mood": ["tired"]
+      },
+      {
+        "zh": "新铺子开张了！",
+        "mood": ["happy"]
+      },
+      {
+        "zh": "篝火点起来了。",
+        "when": "hour >= 19 OR hour < 6"
+      },
+      {
+        "zh": "走了的人，名字都刻在墙上了。",
+        "mood": ["worried"]
+      },
+      {
+        "zh": "今年的麦子收得好。",
+        "mood": ["happy"]
+      },
+      {
+        "zh": "神的事，神去管；我们的事，我们管。",
+        "mood": ["calm"]
+      },
+      {
+        "zh": "再来一曲！",
+        "mood": ["happy"]
+      },
+      {
+        "zh": "明天照常上工。",
+        "mood": ["calm"]
+      },
+      {
+        "zh": "没有神管了，也没塌。",
+        "when": "ending == release"
+      },
+      {
+        "zh": "碑上什么都没写，可我们知道。",
+        "when": "ending == release"
+      },
+      {
+        "zh": "还有好多事没做完，慢慢来。",
+        "when": "ending == release_unfinished"
+      },
+      {
+        "zh": "听说上面换了一位。……日子是不是更好了？",
+        "when": "ending == new_god"
+      },
+      {
+        "zh": "新神看着我们呢，说话小心。",
+        "when": "ending == new_god"
+      },
+      {
+        "zh": "光照着一切。……一切。",
+        "when": "ending == rule_eluen"
+      },
+      {
+        "zh": "又要打仗了，哪年不打？",
+        "when": "ending == rule_valda"
+      },
+      {
+        "zh": "什么都有价钱，连喘气都有。",
+        "when": "ending == rule_merca"
+      },
+      {
+        "zh": "林子长回来了，人少了。",
+        "when": "ending == rule_sylvie"
+      },
+      {
+        "zh": "每件事都被记下来了，连这一句。",
+        "when": "ending == rule_moira"
+      },
+      {
+        "zh": "门都开了，到处都是门。",
+        "when": "ending == janu_restored"
+      },
+      {
+        "zh": "门的那一位回来了……她会放手吗？",
+        "when": "ending == janu_restored"
+      },
+      {
+        "zh": "好像……什么都重来了一遍。",
+        "when": "ending == reclaim"
+      },
+      {
+        "zh": "我梦见过你，在很久以前。",
+        "when": "ending == reclaim"
+      },
+      {
+        "zh": "不管怎么说，今天是个好日子。",
+        "mood": ["happy"]
+      }
+    ]
+  }
+}

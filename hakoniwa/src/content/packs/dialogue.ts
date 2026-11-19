@@ -6,6 +6,7 @@
 
 import commissionsData from '../../../data/dialogue/commissions.json';
 import intentRulesData from '../../../data/dialogue/intents.json';
+import ledgerRefusalsData from '../../../data/dialogue/ledger_refusals.json';
 import legacyMap from '../../../data/dialogue/legacy_lines.json';
 import intentLexiconData from '../../../data/dialogue/lexicon.json';
 import prologueAnswersData from '../../../data/dialogue/prologue_answers.json';
@@ -32,6 +33,7 @@ import {
   reactionOptionProblems,
 } from '../../systems/dialogue/reaction_offers';
 import { topicProblems } from '../../systems/dialogue/topics/content';
+import { type LedgerRefusalRow, ledgerRefusalProblems } from '../../systems/dialogue/topics/ledger';
 import type { TopicDef } from '../../systems/dialogue/topics/types';
 import { NEED_KEYS } from '../../systems/npc/types';
 import { checkCondition, referencedVars } from '../../systems/quests/conditions';
@@ -247,6 +249,19 @@ export function validateDialogueContent(content: ContentMap): string[] {
             problems.push(`reaction option ${r.id}.${o.id}: reads unregistered variable ${v}`);
     }
   problems.push(...commissionRuleProblems(content));
+  // the per-clue refusals name lore rows and speakers (persons, companions, goddesses)
+  if (content.lore)
+    problems.push(
+      ...ledgerRefusalProblems(
+        content.ledgerRefusals,
+        content.lore,
+        new Set(
+          [content.npcs, content.companions, content.sceneSpeakers, content.goddesses].flatMap(
+            (rows) => (rows ?? []).map((r: { id: string }) => r.id),
+          ),
+        ),
+      ),
+    );
   return problems;
 }
 
@@ -308,6 +323,18 @@ const topicSchemas: TableSchema[] = topicsByFile.map(([file]) => ({
 
 const ruleSchemas: TableSchema[] = [
   {
+    table: 'ledgerRefusals',
+    label: '台账线索的解锁前处理',
+    file: 'dialogue/ledger_refusals.json',
+    idField: 'clue',
+    fields: [
+      { key: 'clue', label: '台账条目', type: 'ref', refTable: 'lore', required: true },
+      { key: 'by', label: '各人的处理', type: 'json', required: true },
+      { key: 'default', label: '其余知情者', type: 'string' },
+      { key: 'mis', label: '误导编号', type: 'string' },
+    ],
+  },
+  {
     table: 'reactionOptions',
     label: '反应表各行的对话选项',
     file: 'dialogue/reaction_options.json',
@@ -344,6 +371,7 @@ export const pack: ContentPack = {
     prologueAnswers: prologueAnswersData as unknown as PrologueAnswers,
     reactionOptions: reactionOptionsData as unknown as ReactionOptionsRow[],
     dialogueCommissions: commissionsData as unknown as CommissionRules,
+    ledgerRefusals: ledgerRefusalsData as unknown as LedgerRefusalRow[],
   },
   schemas: [...schemas, ...topicSchemas, ...ruleSchemas],
   validate: validateDialogueContent,

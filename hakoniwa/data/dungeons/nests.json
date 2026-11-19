@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "nest_furrow_rat_queen",
+    "name": "西田旧谷仓的鼠巢",
+    "act": "act1",
+    "mapId": "borderstone",
+    "location": "old_granary",
+    "lord": "furrow_rat_queen",
+    "head": "dian_rat",
+    "stage": 2,
+    "when": "act_week >= 4",
+    "choices": {
+      "nurture": {},
+      "destroy": {},
+      "purify": { "when": "door.vocation_druid OR has.cs_greybane_wash >= 3", "days": 3 }
+    }
+  },
+  {
+    "id": "nest_rust_matron",
+    "name": "锈岭废矿棚的虫巢",
+    "act": "act2",
+    "mapId": "rustridge_mine",
+    "location": "old_miner_shed",
+    "lord": "rust_matron",
+    "head": "rust_beetle",
+    "stage": 2,
+    "when": "act.2.entered",
+    "choices": { "nurture": {}, "destroy": {}, "purify": { "days": 7 } }
+  }
+]

@@ -1,10 +1,190 @@
 {
   "id": "ln_eluen",
   "speaker": "eluen",
-  "slots": {},
+  "slots": {
+    "react.oracle_instruct": [
+      "守好秩序。",
+      "警惕规格之外。",
+      "看好这座镇子。",
+      "清点你的信众。",
+      "按规格行事。",
+      "净化镇外的秽。"
+    ],
+    "greet.cold.avatar": [
+      {
+        "zh": "站好，样本。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "你又站到光面前了。说吧，简短。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "规格外的东西，也懂得来朝见？",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.neutral.avatar": [
+      {
+        "zh": "第五号。请站在光里。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "孩子，你来了。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "光在等你开口。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.warm.avatar": [
+      {
+        "zh": "回到光里来，孩子。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "你终于肯来了。很好，非常合乎规格。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "光记得每一个回来的人。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.cold.shrine": [
+      {
+        "zh": "你不该在这里。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "光看见你了。退下。",
+        "when": "act >= 3"
+      },
+      {
+        "zh": "在我的祭坛前，你要说什么？",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.neutral.shrine": [
+      {
+        "zh": "光听着。简洁一些。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "祈祷要合乎规格，孩子。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "说吧，我在。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.warm.shrine": [
+      {
+        "zh": "孩子，你肯跪下，这很好。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "光记下了你的虔诚。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "愿秩序与你同在。",
+        "when": "act >= 4"
+      }
+    ],
+    "farewell": [
+      "退下吧。",
+      {
+        "zh": "下一个。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "去吧，记住光的话。",
+        "when": "act >= 4"
+      }
+    ],
+    "topic.gen_self": {
+      "prologue": ["光与秩序之司。你只需要知道这个。", "我照看这座庭园，让它合乎规格。"]
+    },
+    "topic.gen_you": {
+      "prologue": ["你是一个登记错误。我正在确认这一点。", "一份多出来的样本。合格与否，光会量。"]
+    },
+    "topic.place_antechamber": {
+      "prologue": [
+        "神庭的候见厅。我们是照看你将要去的那座庭园的人。",
+        "你站的地方，本该只有四个人站过。"
+      ]
+    },
+    "topic.lore_hortus": {
+      "prologue": ["你不需要知道地图。合格的人会被带到该去的地方。"]
+    },
+    "topic.lore_judgment": {
+      "prologue": ["与你无关。", "一场考核。光会证明自己。"]
+    },
+    "topic.event_that_matter": {
+      "prologue": ["下一个问题。"]
+    },
+    "topic.lore_above": {
+      "prologue": ["不要用你的嘴提那一位。"]
+    },
+    "topic.self_number_five": {
+      "prologue": ["登记错误。"]
+    },
+    "topic.person_four_heroes": {
+      "prologue": ["勇者。合规格的那种。"]
+    },
+    "topic.self_way_home": {
+      "prologue": ["那不在本次面试的范围内。"]
+    },
+    "topic.place_sixth_chair": {
+      "prologue": ["那里从来没有椅子。"]
+    },
+    "react.anchor_a00": ["这不合规格。"],
+    "react.anchor_a01": ["距离审定只剩两年，我没有时间浪费在瑕疵品上。"],
+    "react.anchor_a02": ["去吧，庭间之隙会替我处理你。"],
+    "react.anchor_a09": ["上面从来不看过程。"],
+    "react.anchor_a11": ["那种连神都没有的荒地？"],
+    "react.beat_a0_appraise_discard": [
+      "最后一道手续。站好，孩子，光要看一看你。",
+      "样本有瑕疵。规格不明，无法登记。",
+      "我没有慌。",
+      "光不会说谎。光说你不合规格。",
+      "……带下去。"
+    ],
+    "react.evade": ["下一个。", "这个问题不合规格。"],
+    "react.deny": ["瑕疵就是瑕疵。", "我没有失态。"],
+    "react.insult": ["光记下了你的无礼。", "瑕疵品的话，不必当真。"],
+    "react.flattered": ["礼仪合格。仅此而已。", "赞美光是本分，不是功劳。"],
+    "react.threatened": ["你在威胁光？有趣的错误。", "光不会后退。"],
+    "react.joke": ["我不习惯玩笑。", "这句话没有意义。"],
+    "react.thanked": ["感恩是秩序的一部分。", "记住这份恩典的出处。"],
+    "react.nonsense": ["你在说胡话。", "这些词不在任何规格里。"],
+    "react.confused": ["重说一遍。说清楚。", "你的话缺了逻辑。"],
+    "react.goddess_invoked": ["不要在光面前呼唤别的名字。", "只有一种光值得呼唤。"],
+    "react.earth_talk": [
+      "那种连神都没有的地方，能有什么值得一提的东西？",
+      "无神之地的器物，不合规格。"
+    ],
+    "react.offering_silent": [
+      {
+        "zh": "光不收无页之人的供奉。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "把它献给有页的人吧。",
+        "when": "act >= 4"
+      }
+    ]
+  },
   "acts": {
     "act1": {
-      "react.honorific": ["光听见了，孩子。说吧，简洁一些，并且合乎规格。"]
+      "react.honorific": [
+        "光听见了，孩子。说吧，简洁一些，并且合乎规格。",
+        "光在听。是谁在边境呼唤？报上你的教区。",
+        "你的祈祷太长了，孩子。光只取其中合乎规格的部分。"
+      ]
     },
     "act3": {
       "react.honorific": [

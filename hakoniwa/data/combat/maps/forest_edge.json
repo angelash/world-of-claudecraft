@@ -349,6 +349,37 @@
       "y": 46.5,
       "count": 2,
       "radius": 2.5
+    },
+    {
+      "kind": "monster",
+      "id": "fe_deer_spring",
+      "ref": "greyelm_deer",
+      "x": 29.5,
+      "y": 47.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 160
+    },
+    {
+      "kind": "monster",
+      "id": "fe_boar_south_road",
+      "ref": "forest_boar",
+      "x": 35.5,
+      "y": 53.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 160
+    },
+    {
+      "kind": "monster",
+      "id": "fe_ashhorn_north",
+      "ref": "ashhorn_deer",
+      "x": 51.5,
+      "y": 12.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 200,
+      "requiresFlags": ["act.2.entered"]
     }
   ],
   "exits": [

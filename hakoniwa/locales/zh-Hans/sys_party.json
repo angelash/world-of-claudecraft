@@ -45,5 +45,16 @@
   "sys.party.reject.far": "离得太远",
   "sys.party.reject.not_bindable": "它没有力竭，或不是能结从契的存在",
   "sys.party.reject.no_place": "从者位已满",
-  "sys.party.reject.no_mount": "没有这种坐骑"
+  "sys.party.reject.no_mount": "没有这种坐骑",
+  "sys.party.reject.player_stance": "这位同伴的姿态由你指定",
+  "sys.party.reject.stale": "这一场战斗已经过去了",
+  "sys.party.reject.no_banter": "现在没有在说话的闲聊",
+  "sys.party.reject.not_resting": "这位同伴没在休养",
+  "sys.party.reject.visited": "这次休养已经探望过了",
+  "sys.party.prompt.tactics_situation": "一场战斗开始了：玩家生命 {hp}%，之前连着打了 {hard} 场苦战。为这名同伴选这一场的姿态。",
+  "sys.party.prompt.tactics_command": "party.stance：给同伴 {companion} 选姿态（assist 协助、stay 原地、follow 跟随），revision 填 {revision}。",
+  "sys.party.reject.not_night": "夜里宿营时才好说话",
+  "sys.party.reject.talked": "今晚已经和一位同伴谈过了",
+  "sys.party.reject.bond_low": "交情还浅，夜谈留待以后",
+  "sys.party.reject.far_from_rest": "要到休养的地方才能探望"
 }

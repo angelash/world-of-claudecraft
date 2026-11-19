@@ -10,8 +10,10 @@
 
 import { contentKey } from '../../core/content_key';
 import { t, tOr } from '../../shared_ui/i18n';
+import { evaluate, flagResolver } from '../../systems/quests/conditions';
 import { installedResolver } from '../assets/runtime';
 import type { GameAudio } from '../audio';
+import { cineCaption } from '../audio/cine_captions';
 import { confirmOpen } from '../hud/confirm_pop';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import type { Hud } from '../hud/hud';
@@ -27,6 +29,7 @@ import {
 import { AiFlagStore } from '../hud/story/ai_flags';
 import { pickable } from '../hud/story/cutscene_model';
 import { askConfirmChoice } from '../hud/story/cutscene_player';
+import { cueChanged, type DivineCue, divineCue } from '../hud/story/divine_audio';
 import type { InputDevice } from '../input/device';
 import { readGamepad } from '../input/gamepad_poller';
 import { lookFromEntity } from '../sprites/look';
@@ -52,6 +55,10 @@ export interface StoryInputHost {
   chooseScene(choiceId: string): void;
   /** a dialogue action while the spirit mirror is open; true when the mirror took it */
   creatorAction(action: string, device: InputDevice): boolean;
+  /** the spirit mirror is open: its own input context takes the keys (3.4.3) */
+  creatorOpen?(): boolean;
+  /** a long Y or Shift+Y: open the newest model line's AI mark (7.3); true when it opened */
+  aiMark?(): boolean;
 }
 
 export interface StoryWiringDeps {
@@ -96,6 +103,8 @@ export class StoryWiring implements StoryInputHost {
   private idle = false;
   /** the eavesdropping tier last handed to the audio */
   private listenTier: string | null = null;
+  /** the goddess theme and dream cue last sent to the audio (PK-M1-34) */
+  private divine: DivineCue | null = null;
   /** the last cutscene frame had every line of its node shown */
   private linesRead = true;
   /** the spirit mirror and the other `ui` interfaces (built once the HUD exists) */
@@ -119,7 +128,8 @@ export class StoryWiring implements StoryInputHost {
         // a motif laid over the running bed (2.7 `@乐 … 叠`); beds go through setCutscene
         if (c.mode === 'layer') d.audio()?.playStinger(c.id);
       },
-      sfx: (id) => d.audio()?.playSound(id, { group: 'cine' }),
+      // a written sound carries its sound caption (catalog_cutscenes.md 13.8)
+      sfx: (id) => d.audio()?.playSound(id, { group: 'cine', ...cineCaption(id) }),
       // no ambience override in the audio API yet: the location's beds keep playing (13.5)
       ambience: () => {},
       // a written silence reaches the audio through the director input of every frame
@@ -292,7 +302,49 @@ export class StoryWiring implements StoryInputHost {
       this.lastAudio = sig;
       this.d.audio()?.setCutscene(f.audio);
     }
+    this.sendDivine(f);
     return f;
+  }
+
+  /**
+   * The goddess on stage and the dream (audio_direction.md 5.1 rules 4, 5; PK-M1-34): her
+   * theme while she speaks a divine line, the dream track on a map whose reverb zone is a
+   * dream. The rule is divine_audio.ts; this only reads the view and sends on a change.
+   */
+  private sendDivine(f: StoryFrame): void {
+    const audio = this.d.audio();
+    if (!audio) return;
+    const v = this.d.view;
+    const content = v.content as unknown as {
+      goddesses?: { id: string; hiddenName?: string; revealWhen?: string }[];
+      atlas_maps?: { id: string; reverbZone?: string }[];
+    };
+    const flags = v.world.meta.flags;
+    const mapId = v.player()?.mapId ?? '';
+    const goddesses = content.goddesses ?? [];
+    const cue = divineCue(
+      f.cutscene
+        ? {
+            lines: f.cutscene.lines,
+            goddesses: new Set(goddesses.map((g) => g.id)),
+            reverbZone: content.atlas_maps?.find((m) => m.id === mapId)?.reverbZone ?? '',
+            // a goddess still under her hidden name keeps her theme back with it (the door
+            // woman before a6_name_spoken; audio_direction.md 4.1): read from her own record
+            muted: new Set(
+              goddesses
+                .filter(
+                  (g) =>
+                    g.hiddenName && g.revealWhen && !evaluate(g.revealWhen, flagResolver(flags)),
+                )
+                .map((g) => g.id),
+            ),
+          }
+        : null,
+    );
+    if (!cueChanged(this.divine, cue)) return;
+    if (this.divine?.divine !== cue.divine) audio.setDivine(cue.divine);
+    if ((this.divine?.dream ?? false) !== cue.dream) audio.setDream(cue.dream);
+    this.divine = cue;
   }
 
   feed(events: Parameters<StoryController['feed']>[0]): void {
@@ -333,6 +385,24 @@ export class StoryWiring implements StoryInputHost {
 
   creatorAction(action: string, device: InputDevice): boolean {
     return this.creator?.inputAction(action, device) ?? false;
+  }
+
+  creatorOpen(): boolean {
+    return this.creator?.open ?? false;
+  }
+
+  /** The prologue's eavesdrop tier now (P5: far, mid, near), null outside it (17.5 tut_p_listen). */
+  listenTierNow(): string | null {
+    return this.listenTier;
+  }
+
+  /**
+   * The AI mark of the newest model line (7.3). The dialogue panel (PK-M1-34/55) offers no
+   * entry for it yet: until it has `toggleAiMark`, the action answers false and falls through.
+   */
+  aiMark(): boolean {
+    const panel = this.d.hud()?.story.dialogue as { toggleAiMark?: () => boolean } | undefined;
+    return panel?.toggleAiMark?.() ?? false;
   }
 
   /** The scene's choices are on screen (number keys and the pad pick only what shows). */

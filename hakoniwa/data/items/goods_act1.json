@@ -1,0 +1,174 @@
+[
+  {
+    "id": "rl_door_fee_coin",
+    "name": "门资",
+    "kind": "lore",
+    "quality": 1,
+    "value": 2000,
+    "desc": "一枚中间有门形孔的古铜钱，背面刻着字，镇上没人认得。",
+    "tags": ["relic"]
+  },
+  {
+    "id": "rl_hidden_cradle",
+    "name": "藏纹摇篮",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "一只旧摇篮，底板里面刻着什么。",
+    "tags": ["relic"]
+  },
+  {
+    "id": "rl_rust_whistle_tag",
+    "name": "锈哨牌",
+    "kind": "lore",
+    "quality": 1,
+    "value": 3,
+    "desc": "一块生锈的铁牌，刻着一个哨字。",
+    "tags": ["relic"],
+    "stack": 12
+  },
+  {
+    "id": "rl_fallen_adventurer_badge",
+    "name": "无归者铜牌",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "一枚公会铜牌，背面刻着名字。可以交回公会分部，也可以亲手交给他的家人。",
+    "tags": ["relic", "fallen_badge"]
+  },
+  {
+    "id": "rl_evening_bell_tab",
+    "name": "预付酒账",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "一张发黄的预付酒账，抬头写着两个字。",
+    "tags": ["relic"]
+  },
+  {
+    "id": "lb_codex_of_light",
+    "name": "《光典》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 30,
+    "desc": "圣教的经典，每座礼拜堂的讲台上都摆着一本。开篇写着：太初无形，唯光照之。"
+  },
+  {
+    "id": "lb_wolfclan_oral",
+    "name": "狼族口传《一扇门的距离》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "狼族人家口口相传的故事，请希雅或葛恩讲给你听，你再记下来。开头是：很久以前，草原和海之间只隔一扇门。"
+  },
+  {
+    "id": "lb_border_ghost_tales",
+    "name": "《边石鬼话》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 5,
+    "desc": "镇上书商卖的廉价小册子，全是吓小孩的鬼话。"
+  },
+  {
+    "id": "lb_wall_walkers",
+    "name": "《穿墙的古人》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 10,
+    "desc": "一本童书，讲古人走进一座城的墙，又从另一座城的墙里走出来。孤儿院有一本被翻烂了。"
+  },
+  {
+    "id": "lb_farmers_almanac",
+    "name": "《耕时历》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 10,
+    "desc": "村里家家都有的农历，记着节气、星位与农时。页边有老农写的一句：九百年没错过一天。"
+  },
+  {
+    "id": "lb_guild_charter",
+    "name": "《公会宪章》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "冒险者公会发给成员的宪章，写着位阶、实绩认定与登记簿的规矩。"
+  },
+  {
+    "id": "lb_moonlit_kitchen",
+    "name": "《醉月亭灶记》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "醉月亭老板娘手写的菜谱，炖菜、黑麦面包、热葡萄酒的做法都在里面。"
+  },
+  {
+    "id": "lb_greybane_remedies",
+    "name": "《祛灰方》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "欧拉婆婆口述、孤儿院的大孩子记下的方子：怎么泡祛灰水，怎么退灰病的热，异兽肉怎么净。"
+  },
+  {
+    "id": "lb_otherworld_menu",
+    "name": "《异界菜单》",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "你在庭院小屋里一页页写下的菜谱，记的是你还记得的那些菜。"
+  },
+  {
+    "id": "tg_blessed_salt",
+    "name": "祝圣盐",
+    "kind": "goods",
+    "quality": 1,
+    "value": 10,
+    "desc": "礼拜堂祝过圣的盐，一包半斤。民间撒在门口驱秽，守墓与婚丧也都要用。",
+    "tags": ["staple", "church", "season:monster"]
+  },
+  {
+    "id": "tg_salt_warrant",
+    "name": "盐引",
+    "kind": "goods",
+    "quality": 1,
+    "value": 200,
+    "desc": "王室盐政发的贩运许可，一引准贩一百斤盐。没有引贩盐就是私盐。",
+    "tags": ["document", "license", "monopoly"]
+  },
+  {
+    "id": "tg_market_bulletin",
+    "name": "行情帖",
+    "kind": "goods",
+    "quality": 1,
+    "value": 100,
+    "desc": "商会分号随账送往总号的行情副本，一份记着一旬里十座城的价。",
+    "tags": ["document"]
+  },
+  {
+    "id": "tg_salvage_relic_lot",
+    "name": "拾荒遗物批",
+    "kind": "goods",
+    "quality": 1,
+    "value": 30000,
+    "desc": "拾荒者成批出手的旧货，开出来多是钥匙状的金属片与残门饰。教会严禁私藏门形器物。",
+    "tags": ["illegal"]
+  },
+  {
+    "id": "tg_coin_wheatsilver",
+    "name": "麦穗银",
+    "kind": "goods",
+    "quality": 1,
+    "value": 90,
+    "desc": "洛萨铸的银币，名义上值一银，兑换时只按九折算。",
+    "tags": ["currency"]
+  },
+  {
+    "id": "tg_coin_copper_ring",
+    "name": "铜环",
+    "kind": "goods",
+    "quality": 1,
+    "value": 1,
+    "desc": "平民用的小钱，一环约值一铜，一串百环约一银，只在本地花得出去。",
+    "tags": ["currency"]
+  }
+]

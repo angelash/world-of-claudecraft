@@ -24,6 +24,10 @@
       "base": "slime",
       "colors": ["#5c5a57", "#3a3836", "#8b8885", "#22201f"],
       "scale": 0.7
+    },
+    "mechanics": {
+      "ashPuddle": { "radius": 1.5, "slow": 0.3, "duration": 6 },
+      "componentTags": ["essence"]
     }
   },
   {
@@ -42,7 +46,8 @@
     "leash": 14,
     "mechanics": {
       "social": 4,
-      "flee": 0.2
+      "flee": 0.2,
+      "componentTags": ["bone"]
     },
     "loot": [
       {
@@ -77,7 +82,8 @@
     "abilities": ["sk_mon_peckeyes"],
     "mechanics": {
       "social": 4,
-      "pacifiedBy": "companion.yeyu.recruited"
+      "pacifiedBy": "companion.yeyu.recruited",
+      "componentTags": ["feather"]
     },
     "loot": [
       {
@@ -104,7 +110,8 @@
     "aggroRadius": 5,
     "leash": 18,
     "mechanics": {
-      "social": 5
+      "social": 5,
+      "componentTags": ["fang", "hide"]
     },
     "loot": [
       {
@@ -158,6 +165,10 @@
       "base": "wolf",
       "colors": ["#6e6a63", "#47443f", "#b33a2a", "#1a1a1a"],
       "scale": 1.15
+    },
+    "mechanics": {
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["fang", "hide"]
     }
   },
   {
@@ -173,7 +184,9 @@
     "leash": 18,
     "abilities": ["sk_mon_dianbite"],
     "mechanics": {
-      "social": 5
+      "social": 5,
+      "purifyTo": "grey_wolf",
+      "componentTags": ["fang"]
     },
     "loot": [
       {
@@ -209,7 +222,9 @@
     "aggroRadius": 4,
     "leash": 16,
     "mechanics": {
-      "passives": ["aur_mon_ashmane"]
+      "passives": ["aur_mon_ashmane"],
+      "charge": { "minRange": 4, "every": 10 },
+      "componentTags": ["fang"]
     },
     "loot": [
       {
@@ -255,7 +270,8 @@
       "base": "spider",
       "colors": ["#3a3f37", "#23261f", "#a9b29a", "#121410"],
       "scale": 0.85
-    }
+    },
+    "mechanics": { "componentTags": ["silk", "carapace"] }
   },
   {
     "id": "burrow_worm",
@@ -271,7 +287,8 @@
     "aggroRadius": 4,
     "leash": 14,
     "mechanics": {
-      "flee": 0.15
+      "flee": 0.15,
+      "componentTags": ["carapace"]
     },
     "loot": [
       {
@@ -350,7 +367,8 @@
     "appearance": {
       "base": "undead",
       "colors": ["#d8d0bc", "#9c947e", "#3c3a34", "#1d1c19"]
-    }
+    },
+    "mechanics": { "nightOnly": { "mode": "spawn" }, "componentTags": ["bone", "ash"] }
   },
   {
     "id": "waste_wraith",
@@ -380,7 +398,8 @@
     "appearance": {
       "base": "spirit",
       "colors": ["#9fb3c2", "#5e7180", "#e6eef3", "#2a343c"]
-    }
+    },
+    "mechanics": { "nightOnly": { "mode": "spawn" }, "componentTags": ["ash"] }
   },
   {
     "id": "black_ridge",
@@ -415,6 +434,10 @@
       "base": "bear",
       "colors": ["#1f1d1b", "#3d3833", "#7a6f64", "#0c0b0a"],
       "scale": 1.5
+    },
+    "mechanics": {
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["hide", "meat"]
     }
   },
   {
@@ -440,7 +463,8 @@
     "appearance": {
       "base": "spirit",
       "colors": ["#4b4f5a", "#2c2f36", "#a7adbd", "#15161a"]
-    }
+    },
+    "mechanics": { "componentTags": ["essence"] }
   },
   {
     "id": "crystal_mother",
@@ -475,7 +499,8 @@
           "name": "二次塌方",
           "onEnter": [{ "do": "cast", "ability": "sk_mon_cavein" }]
         }
-      ]
+      ],
+      "componentTags": ["carapace"]
     },
     "loot": [
       {
@@ -630,28 +655,28 @@
           "object": "stone_west",
           "name": "松动的悬石",
           "role": "breakable",
-          "offset": [-3, -3],
           "hp": 0.05,
           "radius": 4,
-          "effect": { "stagger": 3, "interrupt": true }
+          "effect": { "stagger": 3, "interrupt": true },
+          "at": "raven_stone_w"
         },
         {
           "object": "stone_east",
           "name": "松动的悬石",
           "role": "breakable",
-          "offset": [3, -3],
           "hp": 0.05,
           "radius": 4,
-          "effect": { "stagger": 3, "interrupt": true }
+          "effect": { "stagger": 3, "interrupt": true },
+          "at": "raven_stone_e"
         },
         {
           "object": "stone_south",
           "name": "松动的悬石",
           "role": "breakable",
-          "offset": [0, 4],
           "hp": 0.05,
           "radius": 4,
-          "effect": { "stagger": 3, "interrupt": true }
+          "effect": { "stagger": 3, "interrupt": true },
+          "at": "raven_stone_s"
         }
       ]
     },
@@ -701,7 +726,11 @@
         {
           "belowPct": 0.35,
           "name": "崩解",
-          "abilities": ["sk_mon_dianfist", "sk_mon_ashrain", "sk_mon_stomp"]
+          "abilities": ["sk_mon_dianfist", "sk_mon_ashrain", "sk_mon_stomp"],
+          "onEnter": [
+            { "do": "adds", "monster": "dian_dreg", "count": 2, "at": "ring" },
+            { "do": "say", "line": "（巨像身上的澱晶一块块剥落，落地就爬了起来。）" }
+          ]
         }
       ],
       "summon": [
@@ -734,7 +763,43 @@
       "presence": 4,
       "partySync": {
         "offset": 0
-      }
+      },
+      "componentTags": ["heart"],
+      "breakableParts": [
+        {
+          "id": "dian_core",
+          "hp": 0.1,
+          "phase": 2,
+          "onBreak": [
+            { "do": "stagger", "seconds": 6 },
+            { "do": "say", "line": "（胸口的石头裂开了。巨像晃了一晃。）" }
+          ]
+        }
+      ],
+      "terrain": [
+        { "object": "cover_north_gate", "role": "cover", "at": "cover_north_gate" },
+        { "object": "cover_eaves_1", "role": "cover", "at": "cover_eaves_1" },
+        { "object": "cover_eaves_2", "role": "cover", "at": "cover_eaves_2" },
+        { "object": "cover_eaves_3", "role": "cover", "at": "cover_eaves_3" },
+        {
+          "object": "orphanage_hut_1",
+          "name": "孤儿院的柴棚",
+          "role": "breakable",
+          "at": "orphanage_hut_1",
+          "hp": 0.03,
+          "radius": 2.5,
+          "effect": { "stagger": 2 }
+        },
+        {
+          "object": "orphanage_fence_1",
+          "name": "孤儿院前街的栅栏",
+          "role": "breakable",
+          "at": "orphanage_fence_1",
+          "hp": 0.03,
+          "radius": 2.5,
+          "effect": { "stagger": 2 }
+        }
+      ]
     },
     "loot": [
       {
@@ -1589,6 +1654,929 @@
       "base": "golem",
       "colors": ["#3e3b38", "#211f1d", "#7a736a", "#9fb0c4"],
       "scale": 1.1
+    }
+  },
+  {
+    "id": "field_hare",
+    "name": "田野兔",
+    "desc": "南坡与田埂上的野兔。兔子多的年景，麦子好。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 1,
+    "maxLevel": 3,
+    "speed": 4.4,
+    "aggroRadius": 0,
+    "leash": 14,
+    "mechanics": { "flee": 0.5, "componentTags": ["meat", "hide"] },
+    "loot": [{ "itemId": "hide", "chance": 0.7 }, { "itemId": "part_meat_t1", "chance": 0.8 }],
+    "appearance": {
+      "base": "hare",
+      "colors": ["#a08a6a", "#6e5a42", "#e8dcc6", "#2a221a"],
+      "scale": 0.6
+    }
+  },
+  {
+    "id": "greyelm_deer",
+    "name": "苍榆鹿",
+    "desc": "林地里成群的鹿，见人就跑。榆集的鹿皮多半出自它们。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 3,
+    "maxLevel": 7,
+    "speed": 5,
+    "aggroRadius": 0,
+    "leash": 16,
+    "mechanics": { "flee": 0.5, "social": 4, "componentTags": ["meat", "horn", "hide"] },
+    "loot": [
+      { "itemId": "hide", "chance": 0.8 },
+      { "itemId": "part_meat_t1", "chance": 0.8 },
+      { "itemId": "part_horn_t1", "chance": 0.3 }
+    ],
+    "appearance": {
+      "base": "deer",
+      "colors": ["#8a6e4c", "#5c4630", "#d8c4a4", "#241c14"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "forest_boar",
+    "name": "林猪",
+    "desc": "林缘与西田一带的野猪，拱田，也会低头冲人。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 3,
+    "maxLevel": 6,
+    "speed": 4.2,
+    "aggroRadius": 4,
+    "leash": 16,
+    "mechanics": {
+      "charge": { "minRange": 4, "every": 10 },
+      "componentTags": ["meat", "hide", "fang"]
+    },
+    "loot": [
+      { "itemId": "part_meat_t1", "chance": 0.9 },
+      { "itemId": "hide", "chance": 0.6 },
+      { "itemId": "boar_tusk", "chance": 0.4 }
+    ],
+    "appearance": {
+      "base": "boar",
+      "colors": ["#5e4a36", "#3a2c20", "#a89070", "#1a140e"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "ironpine_bear",
+    "name": "铁杉熊",
+    "desc": "铁杉林深处的大熊。熊冬眠时梦见山，醒着的时候别招它。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 12,
+    "speed": 4,
+    "aggroRadius": 4,
+    "leash": 18,
+    "abilities": ["sk_mon_maulswipe"],
+    "mechanics": {
+      "knockback": { "chance": 0.3, "distance": 3 },
+      "componentTags": ["meat", "fang", "hide"]
+    },
+    "loot": [
+      { "itemId": "part_meat_t1", "chance": 0.8 },
+      { "itemId": "part_fang_t1", "chance": 0.4 }
+    ],
+    "appearance": {
+      "base": "bear",
+      "colors": ["#3e3226", "#26201a", "#7a6a58", "#120e0a"],
+      "scale": 1.3
+    }
+  },
+  {
+    "id": "northern_elk",
+    "name": "北境驼鹿",
+    "desc": "从北边丘陵下来的大驼鹿。老人说，驼鹿过了界石线，就是灰年。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 10,
+    "maxLevel": 14,
+    "speed": 4.6,
+    "aggroRadius": 3,
+    "leash": 18,
+    "mechanics": {
+      "stomp": { "radius": 2.5, "every": 12, "duration": 1.5 },
+      "componentTags": ["meat", "horn", "hide"]
+    },
+    "appearance": {
+      "base": "elk",
+      "colors": ["#5a4632", "#3a2c1e", "#bfa888", "#1c140c"],
+      "scale": 1.4
+    }
+  },
+  {
+    "id": "ashhorn_deer",
+    "name": "灰角鹿",
+    "desc": "角是灰的，毛也是灰的。猎户说是迷路的鹿，被荒原的风吹灰了。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 6,
+    "maxLevel": 10,
+    "speed": 4.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "mechanics": {
+      "social": 4,
+      "knockback": { "chance": 0.25, "distance": 2 },
+      "purifyTo": "greyelm_deer",
+      "componentTags": ["horn", "hide", "meat"]
+    },
+    "loot": [
+      { "itemId": "hide", "chance": 0.6 },
+      { "itemId": "part_horn_t1", "chance": 0.5 },
+      { "itemId": "dian_shard", "chance": 0.4 },
+      { "itemId": "src_hollow_1", "chance": 0.1 }
+    ],
+    "money": [4, 10],
+    "appearance": {
+      "base": "deer",
+      "colors": ["#6c6a66", "#46443f", "#b0aca4", "#1e1d1b"],
+      "scale": 1.05
+    }
+  },
+  {
+    "id": "rust_beetle",
+    "name": "锈甲虫",
+    "desc": "矿区的头号害虫，背壳锈红。矿工说它吃铁，所以铁越挖越少。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 7,
+    "maxLevel": 11,
+    "speed": 3.2,
+    "aggroRadius": 4,
+    "leash": 16,
+    "mechanics": {
+      "social": 4,
+      "corrode": { "chance": 0.2, "amount": 0.1 },
+      "ambushEmerge": { "radius": 3, "firstHitMult": 1.5 },
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "part_carapace_t1", "chance": 0.5 },
+      { "itemId": "iron_ore", "chance": 0.2 },
+      { "itemId": "dian_shard", "chance": 0.45 }
+    ],
+    "money": [4, 10],
+    "appearance": {
+      "base": "beetle",
+      "colors": ["#8a4a2a", "#5a2e1a", "#c87a4a", "#2a160c"],
+      "scale": 0.9
+    }
+  },
+  {
+    "id": "greybrook_crayfish",
+    "name": "灰溪大螯虾",
+    "desc": "灰溪里的大螯虾。越大越不能吃，大个的会把洗衣妇拖下水。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 12,
+    "speed": 3,
+    "aggroRadius": 4,
+    "leash": 14,
+    "mechanics": {
+      "stunOnHit": { "chance": 0.12, "duration": 1 },
+      "canSwim": true,
+      "componentTags": ["carapace", "meat"]
+    },
+    "loot": [
+      { "itemId": "part_carapace_t1", "chance": 0.5 },
+      { "itemId": "part_meat_t1", "chance": 0.6 },
+      { "itemId": "dian_shard", "chance": 0.4 }
+    ],
+    "money": [5, 12],
+    "appearance": {
+      "base": "crab",
+      "colors": ["#6a6e72", "#44484c", "#a8aeb2", "#1c1e20"],
+      "scale": 0.9
+    }
+  },
+  {
+    "id": "oldwatch_sentinel",
+    "name": "旧哨亡卫",
+    "desc": "旧哨村废墟里夜里巡逻的亡兵。仗打完了，没人告诉他们。",
+    "family": "undead",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 7,
+    "maxLevel": 9,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 16,
+    "abilities": ["sk_mon_wail"],
+    "mechanics": {
+      "nightOnly": { "mode": "spawn" },
+      "demoralize": { "chance": 0.2 },
+      "componentTags": ["ash"]
+    },
+    "loot": [{ "itemId": "part_ash_t1", "chance": 0.5 }],
+    "money": [4, 10],
+    "appearance": {
+      "base": "skeleton",
+      "colors": ["#7a6e5c", "#4a4236", "#c8bca4", "#1a1612"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "gravefield_wisp",
+    "name": "坟火",
+    "desc": "墓园夜里飘着的一团灰火。镇上的人说，是死人不肯走。",
+    "family": "elemental",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 9,
+    "maxLevel": 12,
+    "speed": 3.4,
+    "aggroRadius": 4,
+    "leash": 14,
+    "school": "shadow",
+    "mechanics": {
+      "nightOnly": { "mode": "spawn" },
+      "smolder": { "chance": 0.2 },
+      "componentTags": ["essence"]
+    },
+    "loot": [{ "itemId": "crystal_small_raw", "chance": 0.4 }],
+    "money": [5, 12],
+    "appearance": {
+      "base": "wisp",
+      "colors": ["#8a8a86", "#5a5a56", "#d4d2c8", "#2a2a28"],
+      "scale": 0.7
+    }
+  },
+  {
+    "id": "greyroad_smuggler",
+    "name": "灰路走私者",
+    "desc": "在灰路上运灰晶的人。打不过就跑，跑不掉就讲价。",
+    "family": "humanoid",
+    "faction": "smugglers",
+    "act": "act1",
+    "minLevel": 6,
+    "maxLevel": 12,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "classId": "rogue",
+    "abilities": ["sk_mon_limepowder"],
+    "mechanics": { "flee": 0.2, "yieldAtPct": 0.3, "blind": { "chance": 0.25, "duration": 5 } },
+    "loot": [
+      { "itemId": "dian_shard", "chance": 0.6 },
+      { "itemId": "minor_healing_potion", "chance": 0.15 }
+    ],
+    "money": [9, 24],
+    "appearance": { "base": "human", "colors": ["#5c5448", "#36302a", "#d8b494", "#2a241e"] },
+    "race": "human"
+  },
+  {
+    "id": "waste_jackal",
+    "name": "荒原豺",
+    "desc": "沿着灰路成群跑的灰豺，专挑商队下口，还会叼走包里的干粮。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 14,
+    "speed": 4.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "mechanics": {
+      "social": 5,
+      "packFrenzy": { "amount": 0.1, "max": 0.3 },
+      "caravanRaid": true,
+      "pilfer": { "take": "consumable", "chance": 0.15 },
+      "componentTags": ["fang", "hide", "meat"]
+    },
+    "loot": [
+      { "itemId": "hide", "chance": 0.5 },
+      { "itemId": "part_fang_t1", "chance": 0.4 },
+      { "itemId": "dian_shard", "chance": 0.45 },
+      { "itemId": "src_hollow_1", "chance": 0.1 }
+    ],
+    "money": [5, 12],
+    "appearance": {
+      "base": "fox",
+      "colors": ["#7a7468", "#4c4840", "#b8b0a0", "#1e1c18"],
+      "scale": 0.9
+    }
+  },
+  {
+    "id": "bone_vulture",
+    "name": "骨鹫",
+    "desc": "跟着商队与战场盘旋的秃鹫，只啄死物。骨鹫跟着谁，谁就要死。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 10,
+    "maxLevel": 15,
+    "speed": 5,
+    "aggroRadius": 0,
+    "leash": 16,
+    "tags": ["flying"],
+    "mechanics": { "flee": 0.5, "componentTags": ["feather", "bone", "hide", "meat"] },
+    "loot": [{ "itemId": "part_bone_t2", "chance": 0.3 }],
+    "appearance": {
+      "base": "bird",
+      "colors": ["#4a3e34", "#2c241e", "#c8b8a0", "#141010"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "shard_louse",
+    "name": "晶虱",
+    "desc": "晶沟里的大虱子，咬人时会吃掉包里的碎晶。掘手说它是灰晶生的。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 9,
+    "maxLevel": 13,
+    "speed": 3.4,
+    "aggroRadius": 4,
+    "leash": 14,
+    "mechanics": {
+      "social": 6,
+      "crystalEat": { "items": ["dian_shard"], "chance": 0.2 },
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "part_carapace_t1", "chance": 0.3 },
+      { "itemId": "dian_shard", "chance": 0.7 }
+    ],
+    "money": [4, 10],
+    "appearance": {
+      "base": "beetle",
+      "colors": ["#8a8c90", "#5a5c60", "#c8ccd0", "#24262a"],
+      "scale": 0.7
+    }
+  },
+  {
+    "id": "waste_scavenger",
+    "name": "拾荒者",
+    "desc": "在灰村与晶沟里翻东西的人。不招惹他们，他们也不招惹你。",
+    "family": "humanoid",
+    "faction": "scavengers",
+    "act": "act1",
+    "minLevel": 5,
+    "maxLevel": 14,
+    "speed": 3.8,
+    "aggroRadius": 0,
+    "leash": 16,
+    "mechanics": { "flee": 0.3, "yieldAtPct": 0.4 },
+    "loot": [{ "itemId": "dian_shard", "chance": 0.3 }],
+    "money": [6, 18],
+    "appearance": { "base": "human", "colors": ["#6a6258", "#403a32", "#d0ac8c", "#2a2620"] },
+    "race": "human"
+  },
+  {
+    "id": "gully_digger",
+    "name": "晶沟掘手",
+    "desc": "在晶沟里私挖灰晶的人，结伙干活。挖灰晶的会得灰病。",
+    "family": "humanoid",
+    "faction": "diggers",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 14,
+    "speed": 3.6,
+    "aggroRadius": 0,
+    "leash": 16,
+    "mechanics": { "flee": 0.2, "yieldAtPct": 0.3, "social": 5 },
+    "loot": [{ "itemId": "dian_shard", "chance": 0.8 }],
+    "money": [8, 20],
+    "appearance": { "base": "human", "colors": ["#5a564e", "#38342e", "#c8a484", "#24201a"] },
+    "race": "human"
+  },
+  {
+    "id": "greyshard_fence",
+    "name": "灰晶黑商护卫",
+    "desc": "守着灰晶交货点的打手，下手很重。",
+    "family": "humanoid",
+    "faction": "smugglers",
+    "act": "act2",
+    "minLevel": 15,
+    "maxLevel": 20,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "classId": "warrior",
+    "abilities": ["sk_mon_cleave"],
+    "mechanics": { "yieldAtPct": 0.2 },
+    "loot": [{ "itemId": "crystal_small_raw", "chance": 0.5 }],
+    "money": [20, 40],
+    "appearance": { "base": "human", "colors": ["#3e3a36", "#24221e", "#c09c7c", "#141210"] },
+    "race": "human"
+  },
+  {
+    "id": "vein_grub",
+    "name": "晶脉蛆",
+    "desc": "啃食澱晶的白蛆，体内发光。矿工说跟着亮虫走就有矿。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 6,
+    "maxLevel": 9,
+    "speed": 2.8,
+    "aggroRadius": 3,
+    "leash": 14,
+    "mechanics": {
+      "deathThroes": { "radius": 1.5, "damage": { "base": 8, "perLevel": 2 }, "delay": 1.2 },
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "dian_shard", "chance": 0.7 },
+      { "itemId": "part_carapace_t1", "chance": 0.3 }
+    ],
+    "money": [3, 9],
+    "appearance": {
+      "base": "worm",
+      "colors": ["#d8dce0", "#9aa4b0", "#f4f8fc", "#4a5260"],
+      "scale": 0.7
+    }
+  },
+  {
+    "id": "grayroad_foreman",
+    "name": "灰路工头",
+    "desc": "带人看着走私营地的工头。打急了会认输，手里攥着一张运货单。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "oneeye",
+    "act": "act1",
+    "minLevel": 11,
+    "maxLevel": 11,
+    "rank": "elite",
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "classId": "rogue",
+    "abilities": ["sk_mon_limepowder"],
+    "mechanics": { "yieldAtPct": 0.3, "blind": { "chance": 0.25, "duration": 5 } },
+    "money": [40, 80],
+    "appearance": { "base": "human", "colors": ["#4c4034", "#2e2620", "#d4aa88", "#1a1612"] }
+  },
+  {
+    "id": "coinmouth_rat",
+    "name": "衔铜鼠",
+    "desc": "醉月亭地窖里的老鼠，会叼走人身上的铜板。镇上的人说醉月亭的耗子会算账。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 5,
+    "maxLevel": 7,
+    "hpMult": 0.8,
+    "dmgMult": 0.8,
+    "attackSpeed": 1.6,
+    "speed": 3.6,
+    "aggroRadius": 3,
+    "leash": 12,
+    "mechanics": {
+      "social": 4,
+      "pilfer": { "take": "coin", "amount": 1 },
+      "componentTags": ["bone"]
+    },
+    "loot": [{ "itemId": "dian_shard", "chance": 0.4 }, { "itemId": "src_pact_1", "chance": 0.15 }],
+    "money": [2, 6],
+    "appearance": {
+      "base": "rat",
+      "colors": ["#6a5a40", "#44382a", "#c8a050", "#1e1810"],
+      "scale": 0.6
+    }
+  },
+  {
+    "id": "tally_rat_crone",
+    "name": "记账鼠婆",
+    "desc": "蹲在旧钱箱上的大老鼠。有人碰箱子，它就把一窝衔铜鼠都叫出来。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 8,
+    "rank": "elite",
+    "speed": 3.4,
+    "aggroRadius": 4,
+    "leash": 12,
+    "mechanics": {
+      "desperateHeal": { "belowPct": 0.2, "pct": 0.25 },
+      "terrain": [
+        {
+          "object": "old_coin_chest",
+          "name": "旧钱箱",
+          "role": "interact",
+          "at": "moon_cellar_chest",
+          "effect": [{ "do": "adds", "monster": "coinmouth_rat", "count": 4, "at": "ring" }]
+        }
+      ],
+      "componentTags": ["bone"]
+    },
+    "loot": [
+      { "itemId": "src_pact_1", "chance": 1 },
+      { "itemId": "dian_shard", "chance": 1, "min": 2, "max": 2 }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "wolf",
+      "colors": ["#5a4c38", "#3a3026", "#d0b060", "#1a140e"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "glyph_shade",
+    "name": "门纹壁影",
+    "desc": "贴着回廊墙上的门形浮雕走的影子。见过它的人说，会失声三天。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 10,
+    "maxLevel": 13,
+    "speed": 3,
+    "aggroRadius": 4,
+    "leash": 16,
+    "school": "shadow",
+    "mechanics": { "phasesThroughObstacles": true, "componentTags": ["essence"] },
+    "loot": [
+      { "itemId": "src_hollow_1", "chance": 0.2 },
+      { "itemId": "crystal_small_raw", "chance": 0.5 }
+    ],
+    "money": [5, 12],
+    "appearance": {
+      "base": "wisp",
+      "colors": ["#3a3a40", "#22222a", "#7a7a88", "#0e0e12"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "ash_page_swarm",
+    "name": "灰页群",
+    "desc": "一团被灰托起来的焦纸，边缘像刀。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 12,
+    "maxLevel": 14,
+    "speed": 3.6,
+    "aggroRadius": 4,
+    "leash": 16,
+    "tags": ["swarm", "flying"],
+    "mechanics": {
+      "aoePulse": { "radius": 2.5, "every": 8, "damage": { "base": 10, "perLevel": 2 } },
+      "componentTags": ["essence"]
+    },
+    "loot": [{ "itemId": "crystal_small_raw", "chance": 0.4 }],
+    "money": [5, 12],
+    "appearance": {
+      "base": "wisp",
+      "colors": ["#c8bca0", "#8a7e64", "#efe6d0", "#3a3428"],
+      "scale": 0.8
+    }
+  },
+  {
+    "id": "ash_scroll_drift",
+    "name": "灰页之卷",
+    "desc": "灰烬室里漂出来的焦页卷成的一大团，占住了巢井。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 14,
+    "maxLevel": 14,
+    "rank": "boss",
+    "hpMult": 3.48,
+    "dmgMult": 1.2,
+    "xpMult": 2.5,
+    "speed": 3,
+    "aggroRadius": 6,
+    "leash": 24,
+    "school": "shadow",
+    "mechanics": {
+      "aoePulse": { "radius": 3, "every": 10, "damage": { "base": 14, "perLevel": 3 } },
+      "summon": [
+        { "atPct": 0.75, "monster": "ash_page_swarm", "count": 2 },
+        { "atPct": 0.5, "monster": "ash_page_swarm", "count": 2 }
+      ],
+      "enrage": { "belowPct": 0.5, "aura": "aur_st_enrage" },
+      "terrain": [
+        { "object": "vent_west", "name": "风口", "role": "interact", "offset": [-3, 0] },
+        { "object": "vent_east", "name": "风口", "role": "interact", "offset": [3, 0] },
+        { "object": "vent_south", "name": "风口", "role": "interact", "offset": [0, 3] }
+      ],
+      "resolve": [{ "way": "interact", "when": { "interacted": 3 } }],
+      "componentTags": ["essence"]
+    },
+    "loot": [
+      { "itemId": "crystal_medium_raw", "chance": 1 },
+      { "itemId": "src_hollow_1", "chance": 1 }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "ghost",
+      "colors": ["#b8ac90", "#7a6e58", "#e8dfc8", "#2e2a20"],
+      "scale": 1.5
+    }
+  },
+  {
+    "id": "red_sock",
+    "name": "红袜子",
+    "desc": "西田一带的老野猪，獠牙上挂过孩子的一只红袜子。它专拱晾着红布的人家。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 7,
+    "maxLevel": 7,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 4.4,
+    "aggroRadius": 5,
+    "leash": 20,
+    "mechanics": {
+      "charge": { "minRange": 4, "every": 10 },
+      "passives": ["aur_mon_thorns"],
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["fang"]
+    },
+    "loot": [
+      { "itemId": "boar_tusk", "chance": 1, "min": 2, "max": 2 },
+      { "itemId": "crystal_small_raw", "chance": 0.4 }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "boar",
+      "colors": ["#5c5a56", "#3a3836", "#b33a2a", "#1a1a18"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "three_toes",
+    "name": "三趾",
+    "desc": "一只后蹄少了一趾的灰角鹿，雪地里的蹄印只有三瓣。追它的人回不来。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 10,
+    "maxLevel": 10,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 5,
+    "aggroRadius": 5,
+    "leash": 22,
+    "mechanics": {
+      "lureFlee": true,
+      "knockback": { "chance": 0.3, "distance": 3 },
+      "purifyTo": "greyelm_deer",
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["horn", "hide", "meat"]
+    },
+    "loot": [
+      { "itemId": "part_horn_t1", "chance": 1, "min": 2, "max": 2 },
+      { "itemId": "hide", "chance": 0.6 },
+      { "itemId": "crystal_medium_raw", "chance": 0.4 },
+      { "itemId": "src_hollow_1", "chance": 0.1 }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "deer",
+      "colors": ["#6a6862", "#44423e", "#d0ccc0", "#1e1d1b"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "bell_weeper",
+    "name": "哭钟",
+    "desc": "暗月半夜，旧哨村废墟里会响起一口早已掉在地上的钟。",
+    "family": "undead",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 9,
+    "maxLevel": 9,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 20,
+    "abilities": ["sk_mon_wail"],
+    "mechanics": {
+      "nightOnly": { "mode": "spawn" },
+      "concuss": { "chance": 0.15, "duration": 2 },
+      "demoralize": { "chance": 0.2 },
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["ash"]
+    },
+    "loot": [{ "itemId": "part_ash_t1", "chance": 1, "min": 2, "max": 2 }],
+    "money": [20, 40],
+    "appearance": {
+      "base": "skeleton",
+      "colors": ["#7a6e5c", "#4a4236", "#c8a050", "#1a1612"],
+      "scale": 1.15
+    }
+  },
+  {
+    "id": "ironbelly",
+    "name": "铁胃",
+    "desc": "锈岭矿口外废棚里的大锈甲虫，一夜能啃穿一整车矿石。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 13,
+    "maxLevel": 13,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 20,
+    "mechanics": {
+      "corrode": { "chance": 0.25, "amount": 0.1 },
+      "stoneskin": { "every": 15, "absorb": { "base": 40, "perLevel": 6 } },
+      "ambushEmerge": { "radius": 3, "firstHitMult": 1.5 },
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "part_carapace_t1", "chance": 1, "min": 2, "max": 2 },
+      { "itemId": "iron_ore", "chance": 0.2 },
+      { "itemId": "crystal_medium_raw", "chance": 0.45 }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "beetle",
+      "colors": ["#7a3e22", "#4a2414", "#b8683a", "#22120a"],
+      "scale": 1.35
+    }
+  },
+  {
+    "id": "toll_taker",
+    "name": "收路钱的",
+    "desc": "灰路上领着豺群的老豺，脖子上挂着一枚铜牌。商队在断里程碑上放一条肉干，它就放行。",
+    "family": "beast",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 14,
+    "maxLevel": 14,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 4.8,
+    "aggroRadius": 5,
+    "leash": 22,
+    "mechanics": {
+      "social": 5,
+      "caravanRaid": true,
+      "pilfer": { "take": "consumable", "chance": 0.25 },
+      "packFrenzy": { "amount": 0.1, "max": 0.3 },
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["fang", "hide", "meat"]
+    },
+    "loot": [
+      { "itemId": "part_fang_t1", "chance": 1, "min": 2, "max": 2 },
+      { "itemId": "hide", "chance": 0.5 },
+      { "itemId": "crystal_medium_raw", "chance": 0.45 },
+      { "itemId": "src_hollow_1", "chance": 0.1 }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "fox",
+      "colors": ["#6e685c", "#46423a", "#b07a3a", "#1c1a16"],
+      "scale": 1.15
+    }
+  },
+  {
+    "id": "old_louse",
+    "name": "晶沟老虱",
+    "desc": "晶沟深处一只吃晶吃得像狗那么大的虱子，每年春天更大一圈。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 13,
+    "maxLevel": 13,
+    "rank": "rare",
+    "hpMult": 1.27,
+    "dmgMult": 1.07,
+    "xpMult": 1.5,
+    "speed": 3.2,
+    "aggroRadius": 5,
+    "leash": 20,
+    "mechanics": {
+      "crystalEat": { "items": ["dian_shard"], "chance": 0.35 },
+      "stoneskin": { "every": 15, "absorb": { "base": 40, "perLevel": 6 } },
+      "summon": [{ "atPct": 0.5, "monster": "shard_louse", "count": 2 }],
+      "rumorScale": { "perLevel": 0.06, "max": 0.3 },
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "part_carapace_t1", "chance": 1, "min": 2, "max": 2 },
+      { "itemId": "crystal_medium_raw", "chance": 0.7 }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "beetle",
+      "colors": ["#9a9ca0", "#62646a", "#dadee2", "#2a2c30"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "furrow_rat_queen",
+    "name": "垄沟鼠后",
+    "desc": "西田旧谷仓里的鼠后，身边总跟着一窝澱鼠。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 8,
+    "maxLevel": 8,
+    "rank": "boss",
+    "hpMult": 2.91,
+    "dmgMult": 1.2,
+    "xpMult": 2.5,
+    "speed": 3.4,
+    "aggroRadius": 5,
+    "leash": 20,
+    "abilities": ["sk_mon_dianbite"],
+    "mechanics": {
+      "summon": [
+        { "atPct": 0.75, "monster": "dian_rat", "count": 2 },
+        { "atPct": 0.5, "monster": "dian_rat", "count": 2 },
+        { "atPct": 0.25, "monster": "dian_rat", "count": 2 }
+      ],
+      "enrage": { "belowPct": 0.25, "aura": "aur_st_enrage" },
+      "componentTags": ["bone", "heart"]
+    },
+    "loot": [
+      { "itemId": "crystal_medium_raw", "chance": 1 },
+      { "itemId": "eq_furrow_queen_charm", "chance": 1 }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "bear",
+      "colors": ["#5a5650", "#3a3632", "#a09a90", "#1a1816"],
+      "scale": 1.4
+    }
+  },
+  {
+    "id": "rust_matron",
+    "name": "锈母",
+    "desc": "锈岭废矿棚底下的锈甲虫之母，壳厚得像门板。",
+    "family": "burrower",
+    "faction": "monster",
+    "act": "act1",
+    "minLevel": 13,
+    "maxLevel": 13,
+    "rank": "boss",
+    "hpMult": 3.48,
+    "dmgMult": 1.2,
+    "xpMult": 2.5,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 22,
+    "mechanics": {
+      "corrode": { "chance": 0.3, "amount": 0.1 },
+      "ambushEmerge": { "radius": 3, "firstHitMult": 1.5 },
+      "summon": [
+        { "atPct": 0.66, "monster": "rust_beetle", "count": 2 },
+        { "atPct": 0.33, "monster": "rust_beetle", "count": 2 }
+      ],
+      "componentTags": ["carapace"]
+    },
+    "loot": [
+      { "itemId": "crystal_medium_raw", "chance": 1 },
+      { "itemId": "eq_rustmatron_buckler", "chance": 1 }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "elemental",
+      "colors": ["#7a3a1e", "#4a2210", "#c0703c", "#200e06"],
+      "scale": 1.6
+    }
+  },
+  {
+    "id": "ashtide_vanguard",
+    "name": "灰潮先锋",
+    "desc": "从荒原深处涌出来的灰的人形，一路往前撞。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 50,
+    "maxLevel": 56,
+    "speed": 4.2,
+    "aggroRadius": 6,
+    "leash": 24,
+    "mechanics": { "charge": { "minRange": 4, "every": 10 }, "componentTags": ["essence"] },
+    "loot": [{ "itemId": "crystal_king_raw", "chance": 0.2 }],
+    "money": [40, 90],
+    "appearance": {
+      "base": "shade",
+      "colors": ["#4a4846", "#2a2826", "#8a8682", "#121110"],
+      "scale": 1.2
     }
   }
 ]

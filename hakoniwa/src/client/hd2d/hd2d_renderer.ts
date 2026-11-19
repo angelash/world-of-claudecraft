@@ -18,6 +18,7 @@ import { lampLit } from '../render/lighting';
 import type { MapContext } from '../render/map_context';
 import { type MarkerKind, markerMatrix } from '../render/markers';
 import { paintOverlays } from '../render/overlay_painter';
+import { worldCalm } from '../render/palette_modes';
 import type { HitBox, WorldRenderer } from '../render/renderer';
 import type { Scene, SceneEntity, SceneLight } from '../render/scene';
 import { MOOD_GRADES } from '../render/stage_direct';
@@ -103,8 +104,10 @@ export class Hd2dRenderer implements WorldRenderer {
   private lastView: ViewRequest | null = null;
   private readonly markers = new Map<MarkerKind, HTMLCanvasElement>();
   private readonly waterHi = linear(0xd8f0ff);
-  private readonly reducedMotion =
-    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** reduce flashing and shaking (18.8): the system preference, or the page's own switch */
+  private get reducedMotion(): boolean {
+    return worldCalm();
+  }
   private readonly raycaster = new THREE.Raycaster();
   private openness = new Map<string, number>();
   private sunDistance = 120;

@@ -2223,6 +2223,7 @@
       }
     ],
     "body": "fixture",
+    "scripted": ["act1"],
     "voice": {
       "rules": [
         "慢，长停顿",

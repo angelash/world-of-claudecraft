@@ -67,6 +67,7 @@ const ALIASES: Record<string, Archetype> = {
   drake: 'wolf',
   wyrm: 'wolf',
   deer: 'wolf',
+  elk: 'wolf',
   dog: 'wolf',
   fox: 'wolf',
   hound: 'wolf',
@@ -172,6 +173,8 @@ const BODY_OF_BASE: Readonly<Record<string, BodyType>> = {
   wolf: 'medium',
   boar: 'medium',
   deer: 'medium',
+  // a moose stands a head over the deer and draws on the large creature sheet
+  elk: 'large',
   dog: 'medium',
   hound: 'medium',
   bear: 'large',

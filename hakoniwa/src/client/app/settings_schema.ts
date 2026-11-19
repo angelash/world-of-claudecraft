@@ -79,6 +79,18 @@ export type FlashMode = (typeof FLASH_MODES)[number];
 export const CAPTION_MODES = ['off', 'important', 'all'] as const;
 export type CaptionMode = (typeof CAPTION_MODES)[number];
 
+/** Caption text size (18.4 caption style; the text size step multiplies it). */
+export const CAPTION_SIZES = ['small', 'standard', 'large', 'xlarge'] as const;
+export type CaptionSize = (typeof CAPTION_SIZES)[number];
+
+/** Caption backdrop opacity in percent (18.4 caption style). */
+export const CAPTION_BACKDROPS = [0, 50, 75, 100] as const;
+export type CaptionBackdrop = (typeof CAPTION_BACKDROPS)[number];
+
+/** Where the caption lines sit on the screen (18.4 caption style). */
+export const CAPTION_POSITIONS = ['bottom', 'top'] as const;
+export type CaptionPosition = (typeof CAPTION_POSITIONS)[number];
+
 /**
  * Text speed of dialogue and cutscenes (ux_and_onboarding.md 4.5, catalog_cutscenes.md 13.2):
  * characters per second, or the whole line at once.
@@ -143,6 +155,11 @@ export interface Accessibility {
   reduceFlashing: FlashMode;
   /** Every hold becomes press once to start, again to stop (18.5). */
   holdToToggle: boolean;
+  /** Caption style (18.4): text size, backdrop opacity, position, coloured important lines. */
+  captionSize: CaptionSize;
+  captionBackdrop: CaptionBackdrop;
+  captionPosition: CaptionPosition;
+  captionColors: boolean;
 }
 
 export type Volume = Record<BusId, number> & { background: BackgroundAudio };
@@ -496,6 +513,10 @@ function partFields(
             largeDialogue: { def: () => false, parse: bool },
             reduceFlashing: { def: () => 'system', parse: oneOf(FLASH_MODES) },
             holdToToggle: { def: () => false, parse: bool },
+            captionSize: { def: () => 'standard', parse: oneOf(CAPTION_SIZES) },
+            captionBackdrop: { def: () => 75, parse: oneOf(CAPTION_BACKDROPS) },
+            captionPosition: { def: () => 'bottom', parse: oneOf(CAPTION_POSITIONS) },
+            captionColors: { def: () => true, parse: bool },
           },
           (s) => issue(`accessibility.${s}`),
         ),
@@ -578,13 +599,17 @@ function inputFields(): { [K in keyof InputSettings]: Field<InputSettings[K]> } 
   };
 }
 
-function defaultAccessibility(): Accessibility {
+export function defaultAccessibility(): Accessibility {
   return {
     colorMode: 'standard',
     textScale: 1,
     largeDialogue: false,
     reduceFlashing: 'system',
     holdToToggle: false,
+    captionSize: 'standard',
+    captionBackdrop: 75,
+    captionPosition: 'bottom',
+    captionColors: true,
   };
 }
 

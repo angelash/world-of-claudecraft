@@ -233,7 +233,6 @@
           },
           {
             "speaker": "stranger",
-            "name": "醉汉",
             "kind": "say",
             "text": "……别关门……我还没到站呢……"
           }
@@ -316,7 +315,6 @@
           },
           {
             "speaker": "stranger",
-            "name": "醉汉",
             "kind": "say",
             "text": "嗯……到了？"
           },
@@ -327,7 +325,6 @@
           },
           {
             "speaker": "stranger",
-            "name": "醉汉",
             "kind": "say",
             "text": "……再坐一站……就一站……"
           }
@@ -541,13 +538,11 @@
         "lines": [
           {
             "speaker": "manager",
-            "name": "店长（电话留言）",
             "kind": "say",
             "text": "明早的货记得点一下，别又忘了。"
           },
           {
             "speaker": "manager",
-            "name": "店长（电话留言）",
             "kind": "say",
             "text": "还有，门口那只猫别喂了，喂了就赶不走了。"
           },
@@ -575,7 +570,6 @@
           },
           {
             "speaker": "clerk",
-            "name": "店员",
             "kind": "say",
             "text": "没零钱了，找你一颗糖行吗？"
           },
@@ -598,13 +592,11 @@
         "lines": [
           {
             "speaker": "manager",
-            "name": "店长（电话留言）",
             "kind": "say",
             "text": "明早的货记得点一下，别又忘了。"
           },
           {
             "speaker": "manager",
-            "name": "店长（电话留言）",
             "kind": "say",
             "text": "还有，门口那只猫别喂了，喂了就赶不走了。"
           },
@@ -685,7 +677,6 @@
           },
           {
             "speaker": "clerk",
-            "name": "店员",
             "kind": "say",
             "text": "天气预报说下到早上。……你要不要买把伞？最后一把了。"
           },
@@ -913,7 +904,6 @@
         "lines": [
           {
             "speaker": "nurse",
-            "name": "护士",
             "kind": "say",
             "text": "家属是吧？医生还在里面，结果出来会叫你。"
           }
@@ -936,7 +926,6 @@
           },
           {
             "speaker": "nurse",
-            "name": "护士",
             "kind": "say",
             "text": "去坐着等吧，站久了腿麻。"
           }
@@ -1050,7 +1039,6 @@
           },
           {
             "speaker": "worker",
-            "name": "搬家工人",
             "kind": "say",
             "text": "还有没有要搬的？车要走啦！"
           }
@@ -1104,7 +1092,6 @@
           },
           {
             "speaker": "worker",
-            "name": "搬家工人",
             "kind": "say",
             "text": "五分钟啊！钥匙别忘了交！"
           }
@@ -1234,8 +1221,9 @@
     "then": "cut_p_door_white",
     "restart": {
       "scene": "cut_p_earth",
-      "clear": ["p_*", "scene.cut_p_*"],
-      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"]
+      "clear": ["p_*", "scene.cut_p_*", "quest.q_p_*"],
+      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+      "resetPlayer": true
     }
   },
   {
@@ -1936,7 +1924,6 @@
           },
           {
             "speaker": "voice_neighbor",
-            "name": "隔壁的声音",
             "kind": "say",
             "text": "谢谢您，我会尽力。"
           },
@@ -1947,13 +1934,11 @@
           },
           {
             "speaker": "voice_young",
-            "name": "年轻的男声",
             "kind": "say",
             "text": "那个……外面候见厅里还有一个人，也是跟我们一起来的吗？"
           },
           {
             "speaker": "voice_elegant",
-            "name": "优雅的女声",
             "kind": "say",
             "text": "名单上只有四位，孩子。"
           }
@@ -2060,7 +2045,6 @@
           },
           {
             "speaker": "voice_neighbor",
-            "name": "隔壁的声音",
             "kind": "say",
             "text": "……谢谢您，我会尽力。"
           },
@@ -2071,13 +2055,11 @@
           },
           {
             "speaker": "voice_young",
-            "name": "年轻的男声",
             "kind": "say",
             "text": "……外面……还有一个人，也是跟我们一起来的吗？"
           },
           {
             "speaker": "voice_elegant",
-            "name": "优雅的女声",
             "kind": "say",
             "text": "名单上只有四位，孩子。"
           }
@@ -2105,8 +2087,9 @@
     "then": "cut_p_quarrel",
     "restart": {
       "scene": "cut_p_earth",
-      "clear": ["p_*", "scene.cut_p_*"],
-      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"]
+      "clear": ["p_*", "scene.cut_p_*", "quest.q_p_*"],
+      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+      "resetPlayer": true
     }
   },
   {
@@ -2259,7 +2242,6 @@
           },
           {
             "speaker": "curtain_voices",
-            "name": "帘幕后的声音",
             "kind": "say",
             "text": "四个……（听不清）……名额……按份额……（笑声）……野狗……",
             "when": "p_eavesdrop_level == 0"
@@ -2404,7 +2386,6 @@
           },
           {
             "speaker": "curtain_voices",
-            "name": "帘幕后的声音",
             "kind": "say",
             "text": "……第几号……名单上只有四个……杂质……处理掉……算谁的名额？",
             "when": "p_eavesdrop_level < 2"
@@ -2501,7 +2482,6 @@
           },
           {
             "speaker": "curtain_voices",
-            "name": "帘幕后的声音",
             "kind": "say",
             "text": "……审定……两年……只剩两年……碑上……「未」……尚未什么……",
             "when": "p_eavesdrop_level < 2"
@@ -2614,7 +2594,6 @@
           },
           {
             "speaker": "curtain_voices",
-            "name": "帘幕后的声音",
             "kind": "say",
             "text": "……那件事之后……神约……没说名字……（沉默）",
             "when": "p_eavesdrop_level < 2"
@@ -2704,7 +2683,6 @@
           },
           {
             "speaker": "curtain_voices",
-            "name": "帘幕后的声音",
             "kind": "say",
             "text": "……上面那位……在看什么……睡着了……（铃声）",
             "when": "p_eavesdrop_level < 2"
@@ -2722,8 +2700,9 @@
     "then": "cut_p_call",
     "restart": {
       "scene": "cut_p_earth",
-      "clear": ["p_*", "scene.cut_p_*"],
-      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"]
+      "clear": ["p_*", "scene.cut_p_*", "quest.q_p_*"],
+      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+      "resetPlayer": true
     }
   },
   {
@@ -3862,8 +3841,9 @@
     "then": "cut_p_interview",
     "restart": {
       "scene": "cut_p_earth",
-      "clear": ["p_*", "scene.cut_p_*"],
-      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"]
+      "clear": ["p_*", "scene.cut_p_*", "quest.q_p_*"],
+      "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+      "resetPlayer": true
     }
   },
   {
@@ -9128,6 +9108,7 @@
     "presentation": "staged",
     "summary": "你被判作瑕疵品，丢进了庭间之隙。坠落中，一个温柔的声音说：\"接住你了。\"",
     "start": "n12_gate",
+    "then": "cut_a1_wake",
     "nodes": [
       {
         "id": "n12_gate",

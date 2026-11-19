@@ -1,0 +1,189 @@
+[
+  {
+    "id": "a1_crow_meets_ron",
+    "cast": ["yeyu", "ron"],
+    "kind": "enter",
+    "at": "borderstone",
+    "when": "a1_yeyu_bound AND a1_guild_registered",
+    "priority": 2,
+    "speakers": ["ron", "yeyu", "ron", "yeyu", "ron"],
+    "replies": [{ "bond": { "yeyu": 1 } }, { "bond": { "ron": 1 } }, {}]
+  },
+  {
+    "id": "a1_ron_impossible",
+    "cast": ["ron", "yeyu"],
+    "kind": "event",
+    "on": "feat.catch_arrow",
+    "when": "a1_yeyu_bound",
+    "priority": 3,
+    "speakers": ["ron", "yeyu", "ron", "yeyu"]
+  },
+  {
+    "id": "a1_shiya_smells_yeyu",
+    "cast": ["shiya", "yeyu"],
+    "kind": "enter",
+    "at": "forest_edge",
+    "when": "a1_yeyu_bound AND trust.shiya >= 30",
+    "priority": 3,
+    "speakers": ["shiya", "yeyu", "shiya", "yeyu", "shiya"]
+  },
+  {
+    "id": "a1_forest_walk",
+    "cast": ["shiya", "ron"],
+    "kind": "travel",
+    "when": "trust.shiya >= 30",
+    "once": false,
+    "priority": 1,
+    "speakers": ["ron", "shiya", "ron", "shiya", "ron"]
+  },
+  {
+    "id": "a1_mine_morning",
+    "cast": ["ron", "yeyu"],
+    "kind": "event",
+    "when": "quest.q_a1_m06_mine",
+    "priority": 3,
+    "speakers": ["ron", "yeyu", "ron", "yeyu", "ron"],
+    "replies": [{ "bond": { "ron": 1 } }, { "bond": { "ron": -1 } }, { "bond": { "ron": 1 } }]
+  },
+  {
+    "id": "a1_split_ear",
+    "cast": ["shiya", "ron"],
+    "kind": "event",
+    "when": "quest.q_a1_m05_grey_wolf",
+    "priority": 3,
+    "speakers": ["shiya", "ron", "shiya", "ron", "shiya"]
+  },
+  {
+    "id": "a1_campfire_names",
+    "cast": ["ron", "shiya"],
+    "kind": "campfire",
+    "when": "trust.ron >= 40",
+    "once": false,
+    "priority": 2,
+    "speakers": ["shiya", "ron", "shiya", "ron", "shiya"],
+    "replies": [{ "bond": { "ron": 1 } }, { "bond": { "ron": -1 } }, { "bond": { "ron": 1 } }]
+  },
+  {
+    "id": "a1_campfire_letters",
+    "cast": ["yeyu"],
+    "kind": "campfire",
+    "when": "a1_dream_door_woman",
+    "priority": 3,
+    "speakers": ["yeyu", "yeyu", "yeyu", "yeyu"],
+    "replies": [{ "bond": { "yeyu": 1 } }, { "bond": { "yeyu": -2 } }, { "bond": { "yeyu": 1 } }]
+  },
+  {
+    "id": "a1_oola_medicine",
+    "cast": ["oola", "ron"],
+    "kind": "campfire",
+    "when": "trust.oola >= 40",
+    "once": false,
+    "priority": 2,
+    "speakers": ["oola", "ron", "oola", "ron", "oola"]
+  },
+  {
+    "id": "a1_oola_shiya_herbs",
+    "cast": ["oola", "shiya"],
+    "kind": "travel",
+    "when": "trust.oola >= 40",
+    "once": false,
+    "priority": 2,
+    "speakers": ["oola", "shiya", "oola", "shiya", "oola"]
+  },
+  {
+    "id": "a1_dris_after_duel",
+    "cast": ["dris", "ron"],
+    "kind": "event",
+    "when": "a1_dris_duel_won",
+    "priority": 2,
+    "speakers": ["dris", "ron", "dris", "ron", "dris"]
+  },
+  {
+    "id": "a1_hoard_returned",
+    "cast": ["yeyu", "ron"],
+    "kind": "event",
+    "when": "quest.q_a1_s13_yeyu_hoard",
+    "priority": 2,
+    "speakers": ["ron", "yeyu", "ron", "yeyu"]
+  },
+  {
+    "id": "a1_broken_door_slope",
+    "cast": ["yeyu", "shiya"],
+    "kind": "enter",
+    "at": "broken_gate_slope",
+    "when": "a1_yeyu_bound",
+    "priority": 3,
+    "speakers": ["shiya", "yeyu", "shiya", "yeyu"]
+  },
+  {
+    "id": "a1_dian_word",
+    "cast": ["yeyu", "ron"],
+    "kind": "event",
+    "when": "quest.q_a1_s14_grave_lights",
+    "priority": 2,
+    "speakers": ["yeyu", "ron", "yeyu", "ron"]
+  },
+  {
+    "id": "a1_trial_eve",
+    "cast": ["shiya", "ron", "yeyu"],
+    "kind": "event",
+    "when": "a1_witch_trial_started AND a1_oola_fate != cleared",
+    "priority": 4,
+    "speakers": ["shiya", "ron", "yeyu", "ron", "yeyu"],
+    "replies": [
+      { "bond": { "shiya": 1 } },
+      { "bond": { "ron": -1, "shiya": 1 } },
+      { "bond": { "shiya": -1 } }
+    ]
+  },
+  {
+    "id": "a1_tide_eve",
+    "cast": ["ron", "shiya", "yeyu"],
+    "kind": "act",
+    "when": "seal_unrest >= 80",
+    "priority": 4,
+    "speakers": ["yeyu", "shiya", "ron", "shiya", "ron"]
+  },
+  {
+    "id": "a1_after_tide",
+    "cast": ["ron", "shiya", "yeyu"],
+    "kind": "event",
+    "when": "a1_beast_tide_cleared",
+    "priority": 4,
+    "speakers": ["ron", "shiya", "ron", "yeyu", "ron"],
+    "replies": [
+      { "bond": { "ron": 2 } },
+      { "bond": { "ron": 1 } },
+      { "bond": { "shiya": 1, "ron": 1 } }
+    ]
+  },
+  {
+    "id": "a1_close_the_window",
+    "cast": ["ron", "yeyu"],
+    "kind": "event",
+    "when": "a1_martha_strike",
+    "priority": 3,
+    "speakers": ["ron", "yeyu", "ron", "yeyu"]
+  },
+  {
+    "id": "a1_mark",
+    "cast": ["yeyu"],
+    "kind": "event",
+    "when": "a1_dream_door_woman",
+    "priority": 3,
+    "speakers": ["yeyu", "yeyu"]
+  },
+  {
+    "id": "a1_act_end",
+    "cast": ["ron", "shiya", "yeyu"],
+    "kind": "act",
+    "when": "quest.q_a1_m13_letter == done",
+    "priority": 5,
+    "speakers": ["ron", "shiya", "ron", "yeyu", "ron"],
+    "replies": [
+      { "bond": { "ron": 1, "shiya": 1 } },
+      { "bond": { "shiya": -1 } },
+      { "bond": { "ron": 1 } }
+    ]
+  }
+]

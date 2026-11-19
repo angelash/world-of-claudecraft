@@ -11,7 +11,7 @@
 import { type CommandResult, type CommandSource, type FlagValue, ok, reject } from '../../core';
 import { contentText } from '../../core/content_key';
 import type { SystemContext } from '../../core/system';
-import { type KeyText, type TextRef, tr } from '../../core/text';
+import { type KeyText, type TextParam, type TextRef, tr } from '../../core/text';
 import { calendarAt, isNight, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { countItem } from '../inventory';
 import { registerModifier, TAGGED_TARGETS } from '../modifiers';
@@ -41,6 +41,12 @@ export interface GoddessActParams {
   targetId?: string;
   /** spoken text (oracle, dream, omen, request) */
   text?: string;
+  /**
+   * The slot of her own pack the text comes from (PK-M1-34): a kernel source names the
+   * slot instead of the sentence, and the executor draws the line when the act runs, so the
+   * kernel passes a text key (D-077) and never a sentence. A model may not set it.
+   */
+  slot?: string;
   /** request key (task request): flag request.<goddess>.<key> */
   key?: string;
   /** oracle side flag: only keys under oracle.<goddess>. are accepted */
@@ -295,7 +301,10 @@ export function validateAct(
       return { code: 'no_token', reason: tr('sys.goddess.reject.no_token') };
     }
   }
-  if ((a.id === 'oracle' || a.id === 'dream' || a.id === 'omen') && !p.text?.trim()) {
+  if (p.slot !== undefined && (source.type === 'ai' || a.slots?.[d.goddessId] !== p.slot)) {
+    return { code: 'no_text', reason: tr('sys.goddess.reject.no_text.act') };
+  }
+  if ((a.id === 'oracle' || a.id === 'dream' || a.id === 'omen') && !p.text?.trim() && !p.slot) {
     return { code: 'no_text', reason: tr('sys.goddess.reject.no_text.act') };
   }
   if (a.id === 'request' && !(p.key && /^[a-z0-9_]{1,32}$/.test(p.key))) {
@@ -323,11 +332,30 @@ export function validateAct(
   return null;
 }
 
-function line(ctx: SystemContext, def: GoddessDef, text: string, listenerId?: string): void {
+/**
+ * What she says in an act: the line drawn from her own pack when the act names a slot (a text
+ * key, PK-M1-34), else the act's own text, sanitized. Null when neither gives anything.
+ */
+function spoken(ctx: SystemContext, def: GoddessDef, p: GoddessActParams): TextParam | null {
+  if (p.slot) {
+    const drawn = goddessLine(ctx, def.id, p.slot);
+    if (drawn) return drawn;
+  }
+  const text = p.text?.trim() ? sanitizeText(p.text, ctx.world, ctx.content) : '';
+  return text === '' ? null : text;
+}
+
+function line(
+  ctx: SystemContext,
+  def: GoddessDef,
+  text: TextParam | null,
+  listenerId?: string,
+): void {
+  if (text === null) return;
   ctx.emit('dialogue.line', {
     speakerId: def.id,
     speakerName: displayName(ctx, def),
-    text: sanitizeText(text, ctx.world, ctx.content),
+    text,
     listenerId,
     kind: 'divine',
   });
@@ -406,7 +434,7 @@ export function executeAct(
       // the player hears the words where they are spoken (on the player's map), or to them
       const here = playerMap(ctx.world);
       if (target ? target.id === playerId || target.mapId === here : onPlayerMap)
-        line(ctx, def, p.text as string, target?.id);
+        line(ctx, def, spoken(ctx, def, p), target?.id);
       if (p.flag) ctx.setFlag(p.flag, p.value ?? true);
       note = target
         ? tr('sys.goddess.note.oracle_to', { who: target.name })
@@ -417,18 +445,19 @@ export function executeAct(
       const listener = p.targetId ?? playerId;
       toPlayer = listener === playerId;
       // a dream is heard only by its sleeper: the player reads only their own
-      if (toPlayer) line(ctx, def, p.text as string, listener);
+      if (toPlayer) line(ctx, def, spoken(ctx, def, p), listener);
       note = tr('sys.goddess.note.dream');
       isPublic = false;
       break;
     }
     case 'omen': {
       // the animals are seen where it happens (catalog 2.5): told only on the player's map
-      if (onPlayerMap)
+      const omen = onPlayerMap ? spoken(ctx, def, p) : null;
+      if (omen !== null)
         ctx.emit('dialogue.line', {
           speakerId: 'narrator',
           speakerName: '',
-          text: sanitizeText(p.text as string, ctx.world, ctx.content),
+          text: omen,
           kind: 'narrate',
         });
       ctx.setFlag(`omen.${mapId}`, ctx.tick);

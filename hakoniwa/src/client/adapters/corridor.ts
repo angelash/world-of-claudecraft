@@ -14,7 +14,7 @@ import {
   doorCosts,
   wingName,
 } from '../../systems/doors';
-import { ACT_WEEK_FLAG, questDef } from '../../systems/quests';
+import { ACT_WEEK_FLAG, questDefOf } from '../../systems/quests';
 import type {
   CorridorAdapter,
   CorridorData,
@@ -22,6 +22,7 @@ import type {
   QuestDetailAdapter,
 } from '../view/adapters';
 import type { GameView } from '../view/game_view';
+import { questTitleText } from '../view/quest_title';
 
 /** A content field in the active language, else the record's own value. */
 function contentField(table: string, id: string, field: string, value: string): string {
@@ -72,8 +73,11 @@ export function createQuestDetailAdapter(): QuestDetailAdapter {
   return {
     actWeek: (view) => intFlag(view.flag(ACT_WEEK_FLAG)),
     detail(view, questId): QuestDetail | null {
-      const content = view.content as { quests?: Parameters<typeof questDef>[0]['quests'] };
-      const def = content.quests ? questDef({ quests: content.quests }, questId) : undefined;
+      // content quests and run-time instances alike (a commission instance, PK-M1-47)
+      const def = questDefOf(
+        { content: { quests: view.content.quests ?? [] }, world: view.world as never },
+        questId,
+      );
       const slice = (
         view.world.slices as { quests?: { quests: Record<string, { path?: string }> } }
       ).quests;
@@ -94,7 +98,8 @@ export function createQuestDetailAdapter(): QuestDetailAdapter {
         });
       }
       return {
-        title: contentField('quests', def.id, 'title', def.title),
+        // an instance's title is its template's (QuestDef.textOf)
+        title: questTitleText(view, def.id),
         pathLabel,
         expiryWeek: def.expiry?.week ?? null,
       };

@@ -1,0 +1,68 @@
+{
+  "id": "ln_owen",
+  "speaker": "owen",
+  "slots": {
+    "greet.cold": ["这世道！又是来看笑话的？", "有事说事。", "走开，我没心情。"],
+    "greet.neutral": ["这位。南路的货，要不要？", "这世道！东西都被劫了。", "嗯。"],
+    "greet.warm": ["这位！多亏你，我的车还在。", "来，喝一杯，我请。", "你是边石镇唯一的好人。"],
+    "farewell": ["走好。南路别一个人走。", "这世道！小心。", "下回集日见。"],
+    "unbelief.deny": ["一个人打退一伙匪？这世道没这种事。", "吹的。"],
+    "unbelief.explain": ["那些匪准是喝醉了。", "碰巧。"],
+    "unbelief.waver": ["……那车上装了二十袋盐。你一只手扶起来的。", "我信你。这世道，我就信你。"],
+    "react.feat_seen": ["好！这世道总算有个能打的！", "这位……谢谢。"],
+    "react.gift_liked": ["这个……谢谢。我会还的。", "好东西。"],
+    "react.insult": ["这世道！连你也欺负人？", "滚。"],
+    "topic.gen_self": {
+      "neutral": ["欧文，独立行商。", "我跑南路十年了，从没这么倒霉过。"]
+    },
+    "topic.gen_work": {
+      "K1": [
+        "跑商。集日在盐巷摆摊，其余时间在路上。",
+        "商会独家的东西，我卖得便宜。所以他们……算了。"
+      ]
+    },
+    "topic.self_owen_caravan": {
+      "K1": ["三辆车，四个伙计。现在剩两辆车。", "我要让代官付出代价。"]
+    },
+    "topic.secret_owen_seal": {
+      "K1": [
+        {
+          "zh": "被劫那天，我看见匪徒的补给箱上，有代官府的火漆印。",
+          "when": "trust.owen >= 50"
+        },
+        {
+          "zh": "我请愿过。代官说\"已派卫队调查\"。卫队连门都没出。",
+          "when": "trust.owen >= 50"
+        }
+      ]
+    },
+    "quest.q_a1_s01_owen_wagon.offer": [
+      {
+        "zh": "我要再走一趟南路。你护送我？钱不多，可我会付。",
+        "when": "act_week >= 4"
+      }
+    ],
+    "quest.q_a1_s01_owen_wagon.accept": ["好！走大路还是小路，你定。"],
+    "quest.q_a1_s01_owen_wagon.decline": ["这世道！……好吧，我自己走。"],
+    "quest.q_a1_s01_owen_wagon.progress": [
+      "前面那片林子，上回就是在那儿被劫的。",
+      "小心，有动静！"
+    ],
+    "quest.q_a1_s01_owen_wagon.complete": [
+      "到了！货都在！这世道……还有好人。",
+      "那个活捉的匪徒，交给巴托。"
+    ],
+    "quest.q_a1_s01_owen_wagon.fail": ["又被劫了……这世道。我走了，不回来了。"],
+    "quest.q_a1_s01_owen_wagon.after": [
+      {
+        "zh": "我留下了。商会的独家，打破了。",
+        "when": "NOT a1_owen_left"
+      }
+    ],
+    "bark.vendor_call": ["南路的货！便宜！", "不经商会，便宜三成！"],
+    "bark.travel": ["这世道，路都不好走。"],
+    "topic.quest_owen_cart": {
+      "K0": ["南路上有匪，这世道！这位，我那车盐得有人护着走。", "二十袋盐，一袋都不能少。"]
+    }
+  }
+}

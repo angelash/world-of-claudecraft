@@ -6,8 +6,20 @@
     "profession": "mining",
     "tier": 1,
     "station": "smelter",
-    "inputs": [{ "itemId": "iron_ore", "count": 3 }, { "itemId": "charcoal", "count": 2 }],
-    "output": { "itemId": "iron_ingot", "count": 1 }
+    "inputs": [
+      {
+        "itemId": "iron_ore",
+        "count": 3
+      },
+      {
+        "itemId": "charcoal",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "iron_ingot",
+      "count": 1
+    }
   },
   {
     "id": "rcp_charcoal",
@@ -16,7 +28,1489 @@
     "profession": "logging",
     "tier": 1,
     "station": "racks",
-    "inputs": [{ "itemId": "wood", "count": 3 }],
-    "output": { "itemId": "charcoal", "count": 4 }
+    "inputs": [
+      {
+        "itemId": "wood",
+        "count": 3
+      }
+    ],
+    "output": {
+      "itemId": "charcoal",
+      "count": 4
+    }
+  },
+  {
+    "id": "rcp_smelt_copper",
+    "name": "炼铜",
+    "desc": "三份铜矿一份炭，炼出一锭铜。",
+    "family": "rcp_smelt_copper",
+    "profession": "mining",
+    "tier": 1,
+    "station": "smelter",
+    "inputs": [
+      {
+        "itemId": "mat_copper_ore",
+        "count": 3
+      },
+      {
+        "itemId": "charcoal",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "mat_copper_ingot",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_brick_lime_brick",
+    "name": "烧砖",
+    "desc": "四份黏土一份炭入窑，烧出四块砖。",
+    "family": "rcp_brick_lime",
+    "profession": "mining",
+    "tier": 1,
+    "station": "smelter",
+    "inputs": [
+      {
+        "itemId": "mat_clay",
+        "count": 4
+      },
+      {
+        "itemId": "charcoal",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "mat_fired_brick",
+      "count": 4
+    }
+  },
+  {
+    "id": "rcp_brick_lime_quicklime",
+    "name": "烧石灰",
+    "desc": "两份石料一份炭入窑，烧出三份生石灰。",
+    "family": "rcp_brick_lime",
+    "profession": "mining",
+    "tier": 1,
+    "station": "smelter",
+    "inputs": [
+      {
+        "itemId": "stone",
+        "count": 2
+      },
+      {
+        "itemId": "charcoal",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "mat_quicklime",
+      "count": 3
+    }
+  },
+  {
+    "id": "rcp_timber_works_pine_tar",
+    "name": "熬松焦油",
+    "desc": "三份松脂一份木材，熬出两份松焦油。",
+    "family": "rcp_timber_works",
+    "profession": "logging",
+    "tier": 1,
+    "station": "racks",
+    "inputs": [
+      {
+        "itemId": "mat_resin",
+        "count": 3
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "mat_pine_tar",
+      "count": 2
+    }
+  },
+  {
+    "id": "rcp_olive_press",
+    "name": "榨橄榄油",
+    "desc": "两份橄榄榨出一份橄榄油。",
+    "family": "rcp_olive_press",
+    "profession": "herbalism",
+    "tier": 1,
+    "station": "racks",
+    "inputs": [
+      {
+        "itemId": "mat_olive",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "mat_olive_oil",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_greybane_wash",
+    "name": "祛灰水",
+    "desc": "两份祛灰草加清水熬一锅，得一份祛灰水。欧拉教的第一件事。",
+    "family": "rcp_greybane_wash",
+    "profession": "alchemy",
+    "tier": 2,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "mat_greybane",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "cs_greybane_wash",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_tan_leather",
+    "name": "鞣革",
+    "desc": "两张生皮或狼皮，加栎皮与生石灰，鞣出一张皮革。",
+    "family": "rcp_tan_leather",
+    "profession": "leatherworking",
+    "tier": 1,
+    "station": "tannery",
+    "inputs": [
+      {
+        "itemId": "hide",
+        "count": 2,
+        "alt": ["wolf_pelt"]
+      },
+      {
+        "itemId": "mat_tannin_bark",
+        "count": 2
+      },
+      {
+        "itemId": "mat_quicklime",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "leather",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_spin_weave_cloth",
+    "name": "纺织",
+    "desc": "两份羊毛或亚麻，纺织成一匹布。",
+    "family": "rcp_spin_weave",
+    "profession": "tailoring",
+    "tier": 1,
+    "station": "loom",
+    "inputs": [
+      {
+        "itemId": "wool",
+        "count": 2,
+        "alt": ["mat_flax"]
+      }
+    ],
+    "output": {
+      "itemId": "cloth",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_spin_weave_rope",
+    "name": "搓麻绳",
+    "desc": "两份亚麻搓出两份麻绳。",
+    "family": "rcp_spin_weave",
+    "profession": "tailoring",
+    "tier": 1,
+    "station": "loom",
+    "inputs": [
+      {
+        "itemId": "mat_flax",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "mat_hemp_rope",
+      "count": 2
+    }
+  },
+  {
+    "id": "rcp_field_ration_hardtack",
+    "name": "黑麦硬饼",
+    "desc": "一份粮一份盐，烤成放一个月不坏的硬饼。",
+    "family": "rcp_field_ration",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1,
+        "alt": ["mat_frost_rye"]
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_rye_hardtack",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_sunset_herring",
+    "name": "落日咸鱼",
+    "desc": "一条鱼一份盐，腌成船上与围城中都不坏的咸鱼。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "fish",
+        "count": 1
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_sunset_herring",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_bell_bun",
+    "name": "钟声面包",
+    "desc": "一份粮加蜂蜜，烤成瓦伦堡的钟声面包。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "honey",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_bell_bun",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_scavenger_jerky",
+    "name": "拾荒肉干",
+    "desc": "一份兽肉一份盐，晾成拾荒者的肉干。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "part_meat_t1",
+        "count": 1
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_scavenger_jerky",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_ring_bread",
+    "name": "空心饼",
+    "desc": "一份粮加蜂蜜，烤成环形的空心饼。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "honey",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_ring_bread",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_holy_wafer",
+    "name": "圣饼",
+    "desc": "一份白面烤成薄薄的圣饼。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_holy_wafer",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_regional_dish_olive_loaf",
+    "name": "橄榄油面包",
+    "desc": "一份粮一份橄榄油，烤成朝圣路上的面包。",
+    "family": "rcp_regional_dish",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "mat_olive_oil",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_olive_loaf",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_moon_tavern_trio_stew",
+    "name": "醉月炖肉",
+    "desc": "两份肉一份霜黑麦，照醉月亭灶记炖一锅。",
+    "family": "rcp_moon_tavern_trio",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "meat",
+        "count": 2
+      },
+      {
+        "itemId": "mat_frost_rye",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_moon_stew",
+      "count": 1
+    },
+    "requires": "has.lb_moonlit_kitchen >= 1"
+  },
+  {
+    "id": "rcp_moon_tavern_trio_bread",
+    "name": "醉月亭黑麦面包",
+    "desc": "两份霜黑麦一份盐，照醉月亭灶记烤出松软的黑麦面包。",
+    "family": "rcp_moon_tavern_trio",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "mat_frost_rye",
+        "count": 2
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_rye_hardtack",
+      "count": 1
+    },
+    "requires": "has.lb_moonlit_kitchen >= 1"
+  },
+  {
+    "id": "rcp_earth_menu_dumplings",
+    "name": "饺子",
+    "desc": "面、肉与菜蔬包成一锅饺子。",
+    "family": "rcp_earth_menu",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "meat",
+        "count": 1
+      },
+      {
+        "itemId": "mat_vegetables",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_earth_dumplings",
+      "count": 1
+    },
+    "requires": "has.lb_otherworld_menu >= 1"
+  },
+  {
+    "id": "rcp_earth_menu_noodles",
+    "name": "汤面",
+    "desc": "面、盐与肉骨熬的汤，煮一大锅汤面。",
+    "family": "rcp_earth_menu",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      },
+      {
+        "itemId": "meat",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_earth_noodles",
+      "count": 1
+    },
+    "requires": "has.lb_otherworld_menu >= 1"
+  },
+  {
+    "id": "rcp_earth_menu_mayo",
+    "name": "白酱",
+    "desc": "油脂或橄榄油、盐与鸡蛋打成一罐白酱。",
+    "family": "rcp_earth_menu",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "tallow",
+        "count": 1,
+        "alt": ["mat_olive_oil"]
+      },
+      {
+        "itemId": "salt",
+        "count": 1
+      },
+      {
+        "itemId": "mat_egg",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_earth_mayo",
+      "count": 1
+    },
+    "requires": "has.lb_otherworld_menu >= 1"
+  },
+  {
+    "id": "rcp_earth_menu_hard_candy",
+    "name": "硬糖",
+    "desc": "把蜂蜜熬到能拉丝，冷成硬糖。",
+    "family": "rcp_earth_menu",
+    "profession": "cooking",
+    "tier": 1,
+    "station": "kitchens",
+    "inputs": [
+      {
+        "itemId": "honey",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_earth_hard_candy",
+      "count": 1
+    },
+    "requires": "has.lb_otherworld_menu >= 1"
+  },
+  {
+    "id": "rcp_healing_draught_minor",
+    "name": "次级治疗药水",
+    "desc": "两份药草一份净泉草，熬一瓶次级治疗药水。",
+    "family": "rcp_healing_draught",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "herb",
+        "count": 2
+      },
+      {
+        "itemId": "spring_herb",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "minor_healing_potion",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_healing_draught_salve",
+    "name": "草药膏",
+    "desc": "两份药草调一份油脂，做成外敷的草药膏。",
+    "family": "rcp_healing_draught",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "herb",
+        "count": 2
+      },
+      {
+        "itemId": "tallow",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_herb_salve",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_sediment_tonic_tea",
+    "name": "祛灰茶",
+    "desc": "祛灰草与净泉草泡成一壶祛灰茶。",
+    "family": "rcp_sediment_tonic",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "mat_greybane",
+        "count": 1
+      },
+      {
+        "itemId": "spring_herb",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_greybane_tea",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_poison_wolfsbane",
+    "name": "狼毒涂剂",
+    "desc": "狼毒草捣烂调进油脂，做成涂刃的狼毒剂。",
+    "family": "rcp_poison",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "mat_wolfsbane",
+        "count": 1
+      },
+      {
+        "itemId": "tallow",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_poison_wolfsbane",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_poison_bait",
+    "name": "兽用毒饵",
+    "desc": "腺囊、狼毒草或砒石拌进粮里，做成害兽的毒饵。",
+    "family": "rcp_poison",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "part_gland_t1",
+        "count": 1,
+        "alt": ["leech_ichor"]
+      },
+      {
+        "itemId": "mat_wolfsbane",
+        "count": 1,
+        "alt": ["mat_arsenic_stone"]
+      },
+      {
+        "itemId": "grain",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_poison_bait",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_poison_vermin_bait",
+    "name": "鼠饵",
+    "desc": "一份粮拌砒石，做成粮仓用的鼠饵。",
+    "family": "rcp_poison",
+    "profession": "alchemy",
+    "tier": 1,
+    "station": "apothecary",
+    "inputs": [
+      {
+        "itemId": "grain",
+        "count": 1
+      },
+      {
+        "itemId": "mat_arsenic_stone",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_vermin_bait",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_pick",
+    "name": "矿镐",
+    "desc": "一锭铁一份木材，打一把矿镐。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_pick_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_axe",
+    "name": "伐斧",
+    "desc": "一锭铁一份木材，打一把伐斧。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_axe_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_sickle",
+    "name": "药镰",
+    "desc": "一锭铁一份木材，打一把药镰。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_sickle_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_alembic",
+    "name": "炼金匣",
+    "desc": "玻璃配一锭铜，做一只炼金匣。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "glass",
+        "count": 1
+      },
+      {
+        "itemId": "mat_copper_ingot",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_alembic_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_hammer",
+    "name": "锻锤",
+    "desc": "一锭铁打一把锻锤。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_hammer_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_gather_tool_needle",
+    "name": "针线包",
+    "desc": "一锭铁打针，配一匹布，做一只针线包。",
+    "family": "rcp_gather_tool",
+    "profession": "engineering",
+    "tier": 1,
+    "station": "toolworks",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "cloth",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_tool_needle_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_scroll_light",
+    "name": "照明符",
+    "desc": "一张纸与一枚魔晶碎的粉，画一张照明符。",
+    "family": "rcp_scroll",
+    "profession": "inscription",
+    "tier": 1,
+    "station": "scribe_desk",
+    "inputs": [
+      {
+        "itemId": "paper",
+        "count": 1
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_light_charm",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_scroll_rest",
+    "name": "安息符",
+    "desc": "纸、冷灰与祛灰草，画一张安息符。",
+    "family": "rcp_scroll",
+    "profession": "inscription",
+    "tier": 1,
+    "station": "scribe_desk",
+    "inputs": [
+      {
+        "itemId": "paper",
+        "count": 1
+      },
+      {
+        "itemId": "part_ash_t1",
+        "count": 1
+      },
+      {
+        "itemId": "mat_greybane",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_rest_charm",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_scroll_ward_chalk",
+    "name": "结界粉",
+    "desc": "石英粉调兽骨灰，调一包结界粉。",
+    "family": "rcp_scroll",
+    "profession": "inscription",
+    "tier": 1,
+    "station": "scribe_desk",
+    "inputs": [
+      {
+        "itemId": "mat_quartz",
+        "count": 1
+      },
+      {
+        "itemId": "part_bone_t1",
+        "count": 1,
+        "alt": ["bone_shard"]
+      }
+    ],
+    "output": {
+      "itemId": "cs_ward_chalk_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_enchant_body_wpn_1",
+    "name": "附纹：砺锋",
+    "desc": "在武器上附一道浅档的砺锋纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_fang_t1",
+        "count": 3,
+        "alt": ["wolf_fang", "boar_tusk"]
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_body_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_body_chest_1",
+    "name": "附纹：筋骨",
+    "desc": "在胸甲上附一道浅档的筋骨纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_bone_t1",
+        "count": 4,
+        "alt": ["bone_shard"]
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 2
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_body_chest_1"
+  },
+  {
+    "id": "rcp_enchant_arcane_wpn_1",
+    "name": "附纹：灵引",
+    "desc": "在武器上附一道浅档的灵引纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "mat_quartz",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_arcane_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_arcane_head_1",
+    "name": "附纹：明识",
+    "desc": "在头盔上附一道浅档的明识纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "mat_quartz",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_arcane_head_1"
+  },
+  {
+    "id": "rcp_enchant_flame_wpn_1",
+    "name": "附纹：余烬",
+    "desc": "在武器上附一道浅档的余烬纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "ash_essence",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_flame_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_flame_hands_1",
+    "name": "附纹：火手",
+    "desc": "在手套上附一道浅档的火手纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "ash_essence",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_flame_hands_1"
+  },
+  {
+    "id": "rcp_enchant_frost_wpn_1",
+    "name": "附纹：霜刃",
+    "desc": "在武器上附一道浅档的霜刃纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_bone_t2",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_frost_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_frost_chest_1",
+    "name": "附纹：寒衣",
+    "desc": "在胸甲上附一道浅档的寒衣纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_bone_t1",
+        "count": 3,
+        "alt": ["bone_shard"]
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_frost_chest_1"
+  },
+  {
+    "id": "rcp_enchant_light_wpn_1",
+    "name": "附纹：银光",
+    "desc": "在武器上附一道浅档的银光纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "mat_silver_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_light_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_light_chest_1",
+    "name": "附纹：祈愿",
+    "desc": "在胸甲上附一道浅档的祈愿纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "spring_herb",
+        "count": 3
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_light_chest_1"
+  },
+  {
+    "id": "rcp_enchant_shade_wpn_1",
+    "name": "附纹：噬影",
+    "desc": "在武器上附一道浅档的噬影纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_ash_t1",
+        "count": 3
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_shade_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_shade_feet_1",
+    "name": "附纹：无声步",
+    "desc": "在靴子上附一道浅档的无声步纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_ash_t1",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_shade_feet_1"
+  },
+  {
+    "id": "rcp_enchant_life_wpn_1",
+    "name": "附纹：藤毒",
+    "desc": "在武器上附一道浅档的藤毒纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "part_gland_t1",
+        "count": 2,
+        "alt": ["leech_ichor"]
+      },
+      {
+        "itemId": "mat_silverleaf",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_small",
+        "count": 1
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_life_wpn_1"
+  },
+  {
+    "id": "rcp_enchant_life_chest_1",
+    "name": "附纹：生息",
+    "desc": "在胸甲上附一道浅档的生息纹。",
+    "family": "rcp_enchant",
+    "profession": "enchanting",
+    "tier": 2,
+    "station": "grain_table",
+    "stationTier": 2,
+    "inputs": [
+      {
+        "itemId": "mat_greybane",
+        "count": 3
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 3
+      }
+    ],
+    "op": "enchant",
+    "enchant": "ench_life_chest_1"
+  },
+  {
+    "id": "rcp_glass_blank",
+    "name": "吹玻璃坯",
+    "desc": "三份白砂两份炭，吹出一块玻璃坯。",
+    "family": "rcp_glass",
+    "profession": "jewelcrafting",
+    "tier": 1,
+    "station": "lapidary",
+    "inputs": [
+      {
+        "itemId": "mat_white_sand",
+        "count": 3
+      },
+      {
+        "itemId": "charcoal",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "glass",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_blade_t1_sword",
+    "name": "铁短剑",
+    "desc": "两锭铁、一份木材，打出一件铁短剑。",
+    "family": "rcp_blade",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 2
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_sword_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_sword_1_gang",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_blade_t1_sword2h",
+    "name": "铁阔剑",
+    "desc": "四锭铁、一张皮革，打出一件铁阔剑。",
+    "family": "rcp_blade",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 4
+      },
+      {
+        "itemId": "leather",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_sword2h_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_sword2h_1_feng",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_blade_t1_axe2h",
+    "name": "劈柴大斧",
+    "desc": "三锭铁、两份木材，打出一件劈柴大斧。",
+    "family": "rcp_blade",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 3
+      },
+      {
+        "itemId": "wood",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_axe2h_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_axe2h_1_feng",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_blade_t1_mace",
+    "name": "铁头棒",
+    "desc": "两锭铁、一份木材，打出一件铁头棒。",
+    "family": "rcp_blade",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 2
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_mace_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_mace_1_gang",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_blade_t1_mace2h",
+    "name": "木槌",
+    "desc": "三锭铁、两份木材，打出一件木槌。",
+    "family": "rcp_blade",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 3
+      },
+      {
+        "itemId": "wood",
+        "count": 2
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_mace2h_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_mace2h_1_gang",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_shield_t1_shield",
+    "name": "木圆盾",
+    "desc": "两份木材、一锭铁，打出一件木圆盾。",
+    "family": "rcp_shield",
+    "profession": "armorcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "wood",
+        "count": 2
+      },
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "eq_t1_shield_1",
+      "count": 1
+    },
+    "masterwork": {
+      "itemId": "eq_t1_shield_1_pan",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_arrowhead_t1_javelin",
+    "name": "铁投矛",
+    "desc": "一锭铁一份木材，打一支铁投矛。",
+    "family": "rcp_arrowhead",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 1
+      },
+      {
+        "itemId": "wood",
+        "count": 1
+      }
+    ],
+    "output": {
+      "itemId": "cs_javelin_t1",
+      "count": 1
+    }
+  },
+  {
+    "id": "rcp_refine_t1_weapon",
+    "name": "精炼兵器",
+    "desc": "两份铁锭一枚魔晶碎，把一件一阶的兵器精炼到 +1。",
+    "family": "rcp_refine",
+    "profession": "weaponcrafting",
+    "tier": 1,
+    "skill": 50,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 1
+      }
+    ],
+    "op": "refine",
+    "level": 1
+  },
+  {
+    "id": "rcp_refine_t1_armor",
+    "name": "精炼甲盾",
+    "desc": "两份铁锭一枚魔晶碎，把一件一阶的甲盾精炼到 +1。",
+    "family": "rcp_refine",
+    "profession": "armorcrafting",
+    "tier": 1,
+    "skill": 50,
+    "station": "forge",
+    "inputs": [
+      {
+        "itemId": "iron_ingot",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 1
+      }
+    ],
+    "op": "refine",
+    "level": 1
+  },
+  {
+    "id": "rcp_refine_t1_leather",
+    "name": "精炼皮具",
+    "desc": "两份皮革一枚魔晶碎，把一件一阶的皮具精炼到 +1。",
+    "family": "rcp_refine",
+    "profession": "leatherworking",
+    "tier": 1,
+    "skill": 50,
+    "station": "tannery",
+    "inputs": [
+      {
+        "itemId": "leather",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 1
+      }
+    ],
+    "op": "refine",
+    "level": 1
+  },
+  {
+    "id": "rcp_refine_t1_cloth",
+    "name": "精炼布衣",
+    "desc": "两份布一枚魔晶碎，把一件一阶的布衣精炼到 +1。",
+    "family": "rcp_refine",
+    "profession": "tailoring",
+    "tier": 1,
+    "skill": 50,
+    "station": "loom",
+    "inputs": [
+      {
+        "itemId": "cloth",
+        "count": 2
+      },
+      {
+        "itemId": "crystal_shard",
+        "count": 1
+      }
+    ],
+    "op": "refine",
+    "level": 1
   }
 ]

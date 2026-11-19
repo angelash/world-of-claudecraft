@@ -5,6 +5,7 @@
 // depending on systems other teams are still writing.
 
 import { describe, expect, it } from 'vitest';
+import { buildContent } from '../src/content';
 import type { ContentPack } from '../src/content/pack';
 import { pack as combatPack } from '../src/content/packs/combat';
 import { pack as doorsPack } from '../src/content/packs/doors';
@@ -120,8 +121,8 @@ function spawnNear(g: Engine, monsterId: string, level: number, dx = 1.2): strin
 }
 
 /** Move the player to an empty spot of the sigil hall, away from the corridor monsters. */
-function isolate(g: Engine): void {
-  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x: 32.5, y: 17.5 });
+function isolate(g: Engine, x = 32.5, y = 17.5): void {
+  g.queue('world.teleport', { entityId: 'player', mapId: 'seal_ruins', x, y });
   g.step(1);
 }
 
@@ -182,7 +183,8 @@ describe('combat formulas (classic originals)', () => {
 
 describe('combat content', () => {
   it('validates every combat, doors and party table', () => {
-    const content = merge(PACKS);
+    // the whole content: monster loot names materials of the economy and item packs (PK-M1-30)
+    const content = buildContent();
     expect(combatPack.validate?.(content)).toEqual([]);
     expect(doorsPack.validate?.(content)).toEqual([]);
     expect(partyPack.validate?.(content)).toEqual([]);
@@ -505,8 +507,8 @@ describe('combat chain', () => {
 });
 
 describe('the return through the door (power_system.md 9.8)', () => {
-  function killPlayer(g: Engine): void {
-    isolate(g);
+  function killPlayer(g: Engine, at?: { x: number; y: number }): void {
+    isolate(g, at?.x, at?.y);
     const id = spawnNear(g, 'black_ridge', 11, 1.1);
     const u = units(g).player;
     if (u) u.hp = 1;
@@ -521,7 +523,10 @@ describe('the return through the door (power_system.md 9.8)', () => {
       const h = ctx.world.slices.inventory.owners;
       h.player = { money: 1000, items: {}, equipped: {} };
     });
-    killPlayer(g);
+    // fall in the gate yard, well away from the sigil hall: reforming beside the bag would
+    // reclaim it at once (RECLAIM_RADIUS), and where the body comes to rest shifts with the
+    // monsters the maps spawn
+    killPlayer(g, { x: 32.5, y: 40.5 });
     const ret = events(g, 'combat.player_returned').at(-1);
     expect(ret?.data).toMatchObject({
       innerCourt: false,

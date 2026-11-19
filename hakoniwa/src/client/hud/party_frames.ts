@@ -1,7 +1,8 @@
 // Implements `ui_hud_party` (ux_and_onboarding.md 5.2): the painter of the party frames under
 // the player frame. Rows are persistent elements updated in place (every write elided, the
-// portrait drawn again only when the look changes); a click selects the member's entity. The rules
-// live in ./party_model.ts.
+// portrait drawn again only when the look changes); a click selects the member's entity, a right
+// click opens that member's order ring (5.2, `onOrders`, wired by the session to the input
+// layer's ring). The rules live in ./party_model.ts.
 
 import './party_frames.css';
 import { el, setClass, setText } from '../../shared_ui/dom';
@@ -49,27 +50,35 @@ class PartyRowView {
   private appearance: unknown = null;
   private debuffKey = '';
   entityId: string | null = null;
+  /** the companion this frame shows (its order ring targets it) */
+  companionId: string | null = null;
 
-  constructor(onSelect: (row: PartyRowView) => void) {
-    this.el = el('div', { className: 'hk-party-frame', attrs: { role: 'button' } }, [
-      this.portrait,
-      el('div', { className: 'hk-party-main' }, [
-        el('div', { className: 'hk-party-head' }, [this.name, this.order]),
-        this.hp.el,
-        this.res.el,
-        this.debuffs,
-        this.state,
-      ]),
-    ]);
+  constructor(onSelect: (row: PartyRowView) => void, onOrders: (row: PartyRowView) => boolean) {
+    this.el = el(
+      'div',
+      { className: 'hk-party-frame', attrs: { role: 'button', 'aria-haspopup': 'menu' } },
+      [
+        this.portrait,
+        el('div', { className: 'hk-party-main' }, [
+          el('div', { className: 'hk-party-head' }, [this.name, this.order]),
+          this.hp.el,
+          this.res.el,
+          this.debuffs,
+          this.state,
+        ]),
+      ],
+    );
     this.el.addEventListener('click', () => onSelect(this));
     this.el.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
-      onSelect(this);
+      // the member's own order ring (5.2); without one (no ring wired) a right click selects
+      if (!onOrders(this)) onSelect(this);
     });
   }
 
   update(row: PartyRow, entity: Readonly<Entity> | undefined, sprites: SpriteCache): void {
     this.entityId = row.entityId;
+    this.companionId = row.id;
     setText(this.name, row.name);
     setText(this.order, row.orderText);
     setClass(this.el, 'downed', row.downed);
@@ -121,6 +130,11 @@ class PartyRowView {
 export class PartyFrames {
   readonly el = el('div', { className: 'hk-party' });
   private readonly rows: PartyRowView[] = [];
+  /**
+   * A right click on a member's frame: open that member's order ring (5.2). The session sets
+   * it (the input layer's `openRing('party', companionId)`); true when a ring opened.
+   */
+  onOrders: ((companionId: string) => boolean) | null = null;
 
   constructor(
     private readonly sprites: SpriteCache,
@@ -135,9 +149,12 @@ export class PartyFrames {
     if (this.el.hidden === shown) this.el.hidden = !shown;
     if (!m || !shown) return;
     while (this.rows.length < m.rows.length) {
-      const row = new PartyRowView((r) => {
-        if (r.entityId) this.onSelect(r.entityId);
-      });
+      const row = new PartyRowView(
+        (r) => {
+          if (r.entityId) this.onSelect(r.entityId);
+        },
+        (r) => !!r.companionId && !!this.onOrders?.(r.companionId),
+      );
       this.rows.push(row);
       this.el.append(row.el);
     }

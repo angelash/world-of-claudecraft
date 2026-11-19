@@ -1,0 +1,1332 @@
+[
+  {
+    "id": "eq_t1_dagger_1",
+    "name": "铁匕首",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "一档铁砧上就能打的短匕，刃短，好藏。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "dagger",
+    "weapon": {
+      "min": 3,
+      "max": 6,
+      "speed": 1.7,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 1
+    },
+    "tags": ["dagger", "metal"]
+  },
+  {
+    "id": "eq_t1_dagger_2",
+    "name": "猎户短刀",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "猎户剥皮、割绳用的短刀，刀背厚，不容易崩口。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "dagger",
+    "weapon": {
+      "min": 4,
+      "max": 8,
+      "speed": 1.7,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 2
+    },
+    "tags": ["dagger", "metal"]
+  },
+  {
+    "id": "eq_t1_dagger_3",
+    "name": "双刃匕",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "两面开刃的匕首，适合贴身快刺。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "dagger",
+    "weapon": {
+      "min": 5,
+      "max": 10,
+      "speed": 1.7,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 4
+    },
+    "tags": ["dagger", "metal"]
+  },
+  {
+    "id": "eq_t1_sword_1",
+    "name": "铁短剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "量产的铁短剑，民兵与新手冒险者的第一把剑。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 4,
+      "max": 8,
+      "speed": 2.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1
+    },
+    "tags": ["sword", "metal"]
+  },
+  {
+    "id": "eq_t1_sword_2",
+    "name": "卫兵铁剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "卫队配发样式的铁剑，剑格朴素，结实耐用。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 6,
+      "max": 11,
+      "speed": 2.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["sword", "metal"]
+  },
+  {
+    "id": "eq_t1_sword_3",
+    "name": "量产长剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "铁匠铺按同一副模子打的长剑，一把和另一把几乎分不出来。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 7,
+      "max": 15,
+      "speed": 2.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 4
+    },
+    "tags": ["sword", "metal"]
+  },
+  {
+    "id": "eq_t1_sword2h_1",
+    "name": "铁阔剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "刃身宽厚的铁剑，要用两只手才挥得稳。",
+    "slot": "main_hand",
+    "level": 4,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 9,
+      "max": 18,
+      "speed": 3.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["sword", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_sword2h_2",
+    "name": "双手铁剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "剑柄加长到能握住两只手的铁剑，砍下去分量很足。",
+    "slot": "main_hand",
+    "level": 7,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 12,
+      "max": 23,
+      "speed": 3.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 4
+    },
+    "tags": ["sword", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_sword2h_3",
+    "name": "北境大剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "照北境样式打的大剑，柄上缠着防滑的皮绳。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 14,
+      "max": 27,
+      "speed": 3.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 5
+    },
+    "tags": ["sword", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_axe_1",
+    "name": "手斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "劈柴用的小斧，磨利了也能上阵。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 5,
+      "max": 10,
+      "speed": 2.8,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1
+    },
+    "tags": ["axe", "metal"]
+  },
+  {
+    "id": "eq_t1_axe_2",
+    "name": "伐木斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "伐木场常见的单手斧，斧刃厚实。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 7,
+      "max": 13,
+      "speed": 2.8,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["axe", "metal"]
+  },
+  {
+    "id": "eq_t1_axe_3",
+    "name": "战斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "斧刃更窄更长，是为砍人而不是砍树打的。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 8,
+      "max": 17,
+      "speed": 2.8,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 4
+    },
+    "tags": ["axe", "metal"]
+  },
+  {
+    "id": "eq_t1_axe2h_1",
+    "name": "劈柴大斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "柴房里那把大斧，抡起来要两只手。",
+    "slot": "main_hand",
+    "level": 4,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 9,
+      "max": 19,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["axe", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_axe2h_2",
+    "name": "长柄斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "斧柄加长的重斧，挥得远，收得慢。",
+    "slot": "main_hand",
+    "level": 7,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 12,
+      "max": 25,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 4
+    },
+    "tags": ["axe", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_axe2h_3",
+    "name": "双刃战斧",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "两面开刃的大斧，正手反手都能劈。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 15,
+      "max": 29,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 5
+    },
+    "tags": ["axe", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_mace_1",
+    "name": "铁头棒",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "木棒头上箍一圈铁，便宜，也打得疼。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 5,
+      "max": 9,
+      "speed": 2.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1
+    },
+    "tags": ["mace", "metal"]
+  },
+  {
+    "id": "eq_t1_mace_2",
+    "name": "铁锤",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "铁匠铺里拿来就能用的单手锤。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 6,
+      "max": 12,
+      "speed": 2.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["mace", "metal"]
+  },
+  {
+    "id": "eq_t1_mace_3",
+    "name": "钉头锤",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "锤头铆着一圈铁钉，专敲甲胄。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 8,
+      "max": 15,
+      "speed": 2.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 4
+    },
+    "tags": ["mace", "metal"]
+  },
+  {
+    "id": "eq_t1_mace2h_1",
+    "name": "木槌",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "打桩用的大木槌，抡起来要两只手。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 8,
+      "max": 17,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["mace", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_mace2h_2",
+    "name": "碎骨锤",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "锤头粗重的双手锤，名字说明了它的用处。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 11,
+      "max": 23,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 3
+    },
+    "tags": ["mace", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_mace2h_3",
+    "name": "大铁锤",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "整块铁打的大锤头，力气不够的人举不起来。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 15,
+      "max": 29,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 5
+    },
+    "tags": ["mace", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_polearm_1",
+    "name": "木枪",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "削尖再烤硬的木杆长枪，民兵操练用。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "polearm",
+    "weapon": {
+      "min": 7,
+      "max": 15,
+      "speed": 3.2,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 2
+    },
+    "tags": ["polearm", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_polearm_2",
+    "name": "铁头长枪",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "木杆装上铁枪头，能在野兽够到你之前先够到它。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "polearm",
+    "weapon": {
+      "min": 10,
+      "max": 20,
+      "speed": 3.2,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 3
+    },
+    "tags": ["polearm", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_polearm_3",
+    "name": "钩镰枪",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "枪头侧边带钩，能刺能拉，专把骑手与野兽拽下来。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "polearm",
+    "weapon": {
+      "min": 13,
+      "max": 26,
+      "speed": 3.2,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 5
+    },
+    "tags": ["polearm", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_fist_1",
+    "name": "皮指套",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "缝了厚皮垫的指套，护着指节打人。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "fist",
+    "weapon": {
+      "min": 3,
+      "max": 5,
+      "speed": 1.6,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 1
+    },
+    "tags": ["fist", "leather"]
+  },
+  {
+    "id": "eq_t1_fist_2",
+    "name": "铁指虎",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "套在指节上的铁环，一拳下去分量加倍。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "fist",
+    "weapon": {
+      "min": 4,
+      "max": 7,
+      "speed": 1.6,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 2
+    },
+    "tags": ["fist", "metal"]
+  },
+  {
+    "id": "eq_t1_fist_3",
+    "name": "钉拳套",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "拳面铆着短钉的拳套。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "fist",
+    "weapon": {
+      "min": 5,
+      "max": 9,
+      "speed": 1.6,
+      "range": 1.2
+    },
+    "stats": {
+      "agi": 4
+    },
+    "tags": ["fist", "metal"]
+  },
+  {
+    "id": "eq_t1_staff_1",
+    "name": "木法杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "一根顺手的长木杖，学法的人拿来稳住灵海。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "staff",
+    "weapon": {
+      "min": 4,
+      "max": 8,
+      "speed": 2.8,
+      "range": 1.2
+    },
+    "stats": {
+      "int": 2
+    },
+    "tags": ["staff", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_staff_3",
+    "name": "学徒杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "杖头嵌着一小块石英的学徒杖。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "staff",
+    "weapon": {
+      "min": 7,
+      "max": 13,
+      "speed": 2.8,
+      "range": 1.2
+    },
+    "stats": {
+      "int": 5
+    },
+    "tags": ["staff", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_wand_1",
+    "name": "铜头录杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "木杆包着铜头的短杖，施法时握着顺手。",
+    "slot": "main_hand",
+    "level": 4,
+    "weaponClass": "rod",
+    "weapon": {
+      "min": 3,
+      "max": 6,
+      "speed": 2.2,
+      "range": 1.2
+    },
+    "stats": {
+      "int": 2
+    },
+    "tags": ["wand", "wood"]
+  },
+  {
+    "id": "eq_t1_wand_2",
+    "name": "石英录杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "杖头嵌着石英的短杖，石英里看得见细细的纹。",
+    "slot": "main_hand",
+    "level": 7,
+    "weaponClass": "rod",
+    "weapon": {
+      "min": 4,
+      "max": 8,
+      "speed": 2.2,
+      "range": 1.2
+    },
+    "stats": {
+      "int": 3
+    },
+    "tags": ["wand", "wood"]
+  },
+  {
+    "id": "eq_t1_wand_3",
+    "name": "见习录杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 150,
+    "desc": "见习术者常用的短杖，杖身刻着练习用的纹路。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "rod",
+    "weapon": {
+      "min": 5,
+      "max": 9,
+      "speed": 2.2,
+      "range": 1.2
+    },
+    "stats": {
+      "int": 4
+    },
+    "tags": ["wand", "wood"]
+  },
+  {
+    "id": "eq_t1_bow_1",
+    "name": "短弓",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "一根木头弯成的短弓，射程不远，胜在好拉。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "bow",
+    "weapon": {
+      "min": 5,
+      "max": 9,
+      "speed": 2.6,
+      "range": 8
+    },
+    "stats": {
+      "agi": 2
+    },
+    "tags": ["bow", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_bow_3",
+    "name": "乡勇长弓",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "乡勇守村用的长弓，弓身比人还高。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "bow",
+    "weapon": {
+      "min": 8,
+      "max": 15,
+      "speed": 2.6,
+      "range": 8
+    },
+    "stats": {
+      "agi": 5
+    },
+    "tags": ["bow", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_crossbow_1",
+    "name": "木弩",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "木身木臂的简易弩，上弦慢，准头不差。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "crossbow",
+    "weapon": {
+      "min": 5,
+      "max": 11,
+      "speed": 3,
+      "range": 8
+    },
+    "stats": {
+      "agi": 2
+    },
+    "tags": ["crossbow", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_crossbow_2",
+    "name": "轻弩",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "弩臂包了铁片的轻弩，一个人就能上弦。",
+    "slot": "main_hand",
+    "level": 6,
+    "weaponClass": "crossbow",
+    "weapon": {
+      "min": 7,
+      "max": 15,
+      "speed": 3,
+      "range": 8
+    },
+    "stats": {
+      "agi": 3
+    },
+    "tags": ["crossbow", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_crossbow_3",
+    "name": "民兵弩",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 225,
+    "desc": "民兵守墙用的弩，力道足，装填要花点时间。",
+    "slot": "main_hand",
+    "level": 9,
+    "weaponClass": "crossbow",
+    "weapon": {
+      "min": 9,
+      "max": 19,
+      "speed": 3,
+      "range": 8
+    },
+    "stats": {
+      "agi": 5
+    },
+    "tags": ["crossbow", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_shield_1",
+    "name": "木圆盾",
+    "kind": "armor",
+    "quality": 1,
+    "value": 72,
+    "desc": "木板拼成的圆盾，挡得住一两下刀砍。",
+    "slot": "off_hand",
+    "level": 3,
+    "stats": {
+      "armor": 49,
+      "sta": 1
+    },
+    "tags": ["shield", "wood"]
+  },
+  {
+    "id": "eq_t1_shield_2",
+    "name": "铁边圆盾",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "盾沿包了一圈铁的圆盾，比木盾经砍。",
+    "slot": "off_hand",
+    "level": 6,
+    "stats": {
+      "armor": 88,
+      "sta": 2
+    },
+    "tags": ["shield", "metal"]
+  },
+  {
+    "id": "eq_t1_shield_3",
+    "name": "木鸢盾",
+    "kind": "armor",
+    "quality": 1,
+    "value": 72,
+    "desc": "上宽下尖的木盾，能护住半个身子。",
+    "slot": "off_hand",
+    "level": 9,
+    "stats": {
+      "armor": 127,
+      "sta": 3
+    },
+    "tags": ["shield", "wood"]
+  },
+  {
+    "id": "eq_t1_focus_1",
+    "name": "铜灯",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "握在副手的小铜灯，灯火能让人静下心来。",
+    "slot": "off_hand",
+    "level": 4,
+    "stats": {
+      "int": 1
+    },
+    "tags": ["focus", "metal"]
+  },
+  {
+    "id": "eq_t1_focus_2",
+    "name": "祷文册",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "抄满祷文的小册子，施法时拿在副手翻着。",
+    "slot": "off_hand",
+    "level": 6,
+    "stats": {
+      "int": 2
+    },
+    "tags": ["focus", "cloth"]
+  },
+  {
+    "id": "eq_t1_focus_3",
+    "name": "铜铃",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "摇起来声音很清的小铜铃，用来稳住呼吸与节拍。",
+    "slot": "off_hand",
+    "level": 9,
+    "stats": {
+      "int": 3
+    },
+    "tags": ["focus", "metal"]
+  },
+  {
+    "id": "eq_t1_cloth_head",
+    "name": "粗布兜帽",
+    "kind": "armor",
+    "quality": 1,
+    "value": 54,
+    "desc": "粗布缝的兜帽，挡风挡灰。",
+    "slot": "head",
+    "level": 6,
+    "armorClass": "cloth",
+    "stats": {
+      "armor": 19,
+      "int": 2
+    },
+    "tags": ["cloth"]
+  },
+  {
+    "id": "eq_t1_cloth_chest",
+    "name": "粗布袍",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "粗布长袍，施法者与学徒常穿。",
+    "slot": "chest",
+    "level": 6,
+    "armorClass": "cloth",
+    "stats": {
+      "armor": 25,
+      "int": 3
+    },
+    "tags": ["cloth"]
+  },
+  {
+    "id": "eq_t1_cloth_legs",
+    "name": "粗布裤",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "粗布缝的长裤，耐磨。",
+    "slot": "legs",
+    "level": 6,
+    "armorClass": "cloth",
+    "stats": {
+      "armor": 23,
+      "int": 3
+    },
+    "tags": ["cloth"]
+  },
+  {
+    "id": "eq_t1_cloth_hands",
+    "name": "布手套",
+    "kind": "armor",
+    "quality": 1,
+    "value": 54,
+    "desc": "薄布手套，不妨碍手指掐诀。",
+    "slot": "hands",
+    "level": 6,
+    "armorClass": "cloth",
+    "stats": {
+      "armor": 15,
+      "int": 2
+    },
+    "tags": ["cloth"]
+  },
+  {
+    "id": "eq_t1_cloth_feet",
+    "name": "布鞋",
+    "kind": "armor",
+    "quality": 1,
+    "value": 54,
+    "desc": "布面布底的便鞋，走路轻。",
+    "slot": "feet",
+    "level": 6,
+    "armorClass": "cloth",
+    "stats": {
+      "armor": 16,
+      "int": 2
+    },
+    "tags": ["cloth"]
+  },
+  {
+    "id": "eq_t1_leather_head",
+    "name": "皮帽",
+    "kind": "armor",
+    "quality": 1,
+    "value": 72,
+    "desc": "硝过的皮子缝的软帽。",
+    "slot": "head",
+    "level": 6,
+    "armorClass": "leather",
+    "stats": {
+      "armor": 30,
+      "agi": 2
+    },
+    "tags": ["leather"]
+  },
+  {
+    "id": "eq_t1_leather_legs",
+    "name": "皮裤",
+    "kind": "armor",
+    "quality": 1,
+    "value": 120,
+    "desc": "皮子缝的长裤，在灌木里也不容易刮破。",
+    "slot": "legs",
+    "level": 6,
+    "armorClass": "leather",
+    "stats": {
+      "armor": 36,
+      "agi": 3
+    },
+    "tags": ["leather"]
+  },
+  {
+    "id": "eq_t1_leather_hands",
+    "name": "皮手套",
+    "kind": "armor",
+    "quality": 1,
+    "value": 72,
+    "desc": "皮手套，握弓握刀都不打滑。",
+    "slot": "hands",
+    "level": 6,
+    "armorClass": "leather",
+    "stats": {
+      "armor": 24,
+      "agi": 2
+    },
+    "tags": ["leather"]
+  },
+  {
+    "id": "eq_t1_mail_head",
+    "name": "铁环头巾",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "铁环串成的头巾，护住头与脖颈。",
+    "slot": "head",
+    "level": 6,
+    "armorClass": "mail",
+    "stats": {
+      "armor": 44,
+      "str": 2
+    },
+    "tags": ["mail"]
+  },
+  {
+    "id": "eq_t1_mail_chest",
+    "name": "铁环衫",
+    "kind": "armor",
+    "quality": 1,
+    "value": 150,
+    "desc": "铁环一个扣一个串成的短衫，穿着沉，挡得住刀刃。",
+    "slot": "chest",
+    "level": 6,
+    "armorClass": "mail",
+    "stats": {
+      "armor": 58,
+      "str": 3
+    },
+    "tags": ["mail"]
+  },
+  {
+    "id": "eq_t1_mail_legs",
+    "name": "铁环裙",
+    "kind": "armor",
+    "quality": 1,
+    "value": 150,
+    "desc": "垂到膝盖的铁环裙，护住腿。",
+    "slot": "legs",
+    "level": 6,
+    "armorClass": "mail",
+    "stats": {
+      "armor": 52,
+      "str": 3
+    },
+    "tags": ["mail"]
+  },
+  {
+    "id": "eq_t1_mail_hands",
+    "name": "铁环手套",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "手背缀着铁环的手套。",
+    "slot": "hands",
+    "level": 6,
+    "armorClass": "mail",
+    "stats": {
+      "armor": 35,
+      "str": 2
+    },
+    "tags": ["mail"]
+  },
+  {
+    "id": "eq_t1_mail_feet",
+    "name": "铁环靴",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "靴面缀着铁环的皮靴。",
+    "slot": "feet",
+    "level": 6,
+    "armorClass": "mail",
+    "stats": {
+      "armor": 38,
+      "str": 2
+    },
+    "tags": ["mail"]
+  },
+  {
+    "id": "eq_t1_plate_head",
+    "name": "铁片盔",
+    "kind": "armor",
+    "quality": 1,
+    "value": 144,
+    "desc": "铁片缝在皮衬上的头盔，不是整块打的。",
+    "slot": "head",
+    "level": 6,
+    "armorClass": "plate",
+    "stats": {
+      "armor": 62,
+      "str": 2
+    },
+    "tags": ["plate"]
+  },
+  {
+    "id": "eq_t1_plate_chest",
+    "name": "铁片胸甲",
+    "kind": "armor",
+    "quality": 1,
+    "value": 240,
+    "desc": "一片片铁片缝在皮衬上的胸甲，不是整板，但够用。",
+    "slot": "chest",
+    "level": 6,
+    "armorClass": "plate",
+    "stats": {
+      "armor": 82,
+      "str": 3
+    },
+    "tags": ["plate"]
+  },
+  {
+    "id": "eq_t1_plate_legs",
+    "name": "铁片腿甲",
+    "kind": "armor",
+    "quality": 1,
+    "value": 240,
+    "desc": "铁片缝在皮衬上的腿甲。",
+    "slot": "legs",
+    "level": 6,
+    "armorClass": "plate",
+    "stats": {
+      "armor": 74,
+      "str": 3
+    },
+    "tags": ["plate"]
+  },
+  {
+    "id": "eq_t1_plate_hands",
+    "name": "铁片手甲",
+    "kind": "armor",
+    "quality": 1,
+    "value": 144,
+    "desc": "手背缝着铁片的护手。",
+    "slot": "hands",
+    "level": 6,
+    "armorClass": "plate",
+    "stats": {
+      "armor": 49,
+      "str": 2
+    },
+    "tags": ["plate"]
+  },
+  {
+    "id": "eq_t1_plate_feet",
+    "name": "铁片靴",
+    "kind": "armor",
+    "quality": 1,
+    "value": 144,
+    "desc": "靴面缝着铁片的重靴。",
+    "slot": "feet",
+    "level": 6,
+    "armorClass": "plate",
+    "stats": {
+      "armor": 53,
+      "str": 2
+    },
+    "tags": ["plate"]
+  },
+  {
+    "id": "eq_t1_sword_1_gang",
+    "name": "刚纹铁短剑",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 300,
+    "desc": "量产的铁短剑，民兵与新手冒险者的第一把剑。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 5,
+      "max": 9,
+      "speed": 2.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1,
+      "sta": 1
+    },
+    "tags": ["sword", "metal"]
+  },
+  {
+    "id": "eq_t1_sword2h_1_feng",
+    "name": "锋纹铁阔剑",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 450,
+    "desc": "刃身宽厚的铁剑，要用两只手才挥得稳。",
+    "slot": "main_hand",
+    "level": 4,
+    "weaponClass": "sword",
+    "weapon": {
+      "min": 10,
+      "max": 19,
+      "speed": 3.4,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 3
+    },
+    "tags": ["sword", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_axe2h_1_feng",
+    "name": "锋纹劈柴大斧",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 450,
+    "desc": "柴房里那把大斧，抡起来要两只手。",
+    "slot": "main_hand",
+    "level": 4,
+    "weaponClass": "axe",
+    "weapon": {
+      "min": 10,
+      "max": 21,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 3
+    },
+    "tags": ["axe", "two_hand", "metal"]
+  },
+  {
+    "id": "eq_t1_mace_1_gang",
+    "name": "刚纹铁头棒",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 300,
+    "desc": "木棒头上箍一圈铁，便宜，也打得疼。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 5,
+      "max": 10,
+      "speed": 2.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1,
+      "sta": 1
+    },
+    "tags": ["mace", "metal"]
+  },
+  {
+    "id": "eq_t1_mace2h_1_gang",
+    "name": "刚纹木槌",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 450,
+    "desc": "打桩用的大木槌，抡起来要两只手。",
+    "slot": "main_hand",
+    "level": 3,
+    "weaponClass": "mace",
+    "weapon": {
+      "min": 9,
+      "max": 19,
+      "speed": 3.6,
+      "range": 1.2
+    },
+    "stats": {
+      "str": 1,
+      "sta": 1
+    },
+    "tags": ["mace", "two_hand", "wood"]
+  },
+  {
+    "id": "eq_t1_shield_1_pan",
+    "name": "磐纹木圆盾",
+    "kind": "armor",
+    "quality": 2,
+    "value": 144,
+    "desc": "木板拼成的圆盾，挡得住一两下刀砍。",
+    "slot": "off_hand",
+    "level": 3,
+    "stats": {
+      "armor": 51,
+      "sta": 1
+    },
+    "tags": ["shield", "wood"]
+  },
+  {
+    "id": "eq_t1_trinket_1",
+    "name": "铜环",
+    "kind": "trinket",
+    "quality": 1,
+    "value": 180,
+    "desc": "一枚普通的铜环，戴久了会磨出光。",
+    "slot": "trinket",
+    "level": 6,
+    "stats": {
+      "sta": 2
+    },
+    "tags": ["metal"]
+  },
+  {
+    "id": "eq_t1_trinket_2",
+    "name": "石英坠",
+    "kind": "trinket",
+    "quality": 1,
+    "value": 180,
+    "desc": "打磨过的石英坠子，透光时能看见细纹。",
+    "slot": "trinket",
+    "level": 6,
+    "stats": {
+      "int": 2
+    }
+  },
+  {
+    "id": "eq_t1_trinket_3",
+    "name": "木雕护符",
+    "kind": "trinket",
+    "quality": 1,
+    "value": 180,
+    "desc": "洛萨人的习俗：出远门前带一枚木雕护符保平安。",
+    "slot": "trinket",
+    "level": 6,
+    "stats": {
+      "spi": 2
+    },
+    "tags": ["wood"]
+  },
+  {
+    "id": "eq_t1_trinket_4",
+    "name": "骨坠",
+    "kind": "trinket",
+    "quality": 1,
+    "value": 180,
+    "desc": "兽骨磨成的坠子，东坡的猎户常戴。",
+    "slot": "trinket",
+    "level": 6,
+    "stats": {
+      "agi": 2
+    },
+    "tags": ["bone"]
+  }
+]

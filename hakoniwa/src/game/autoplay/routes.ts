@@ -68,8 +68,17 @@ export function routeProblems(content: ContentMap, routes: AutoplayRoutes = ROUT
   const out: string[] = [];
   const scenes = content.scenes ?? [];
   const nodesWithId = (id: string) => scenes.flatMap((s) => s.nodes.filter((n) => n.id === id));
-  const choiceIds = (nodes: { choices?: { id: string }[] }[]) =>
-    new Set(nodes.flatMap((n) => (n.choices ?? []).map((c) => c.id)));
+  const choiceIds = (nodes: { choices?: { id: string }[]; present?: { trial: string } }[]) =>
+    new Set(
+      nodes.flatMap((n) => [
+        ...(n.choices ?? []).map((c) => c.id),
+        // a trial's present node also offers the trial's pieces (PK-M1-55, `piece:<id>`)
+        ...(
+          (n.present && content.trials?.find((t) => t.id === n.present?.trial)?.pieces) ??
+          []
+        ).map((p) => `piece:${p.id}`),
+      ]),
+    );
   const checkPrefer = (where: string, table: Record<string, string[]>) => {
     for (const [node, picks] of Object.entries(table)) {
       const nodes = nodesWithId(node);

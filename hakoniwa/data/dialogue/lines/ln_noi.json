@@ -1,0 +1,52 @@
+{
+  "id": "ln_noi",
+  "speaker": "noi",
+  "slots": {
+    "greet.cold": ["……", "走开。", "别看苔丝。"],
+    "greet.neutral": [
+      {
+        "zh": "你身上有一扇门。",
+        "first": true
+      },
+      "……嗯。",
+      "你来了。"
+    ],
+    "greet.warm": ["你来了。", "苔丝想见你。", "……坐。"],
+    "farewell": ["……嗯。", "别走北边。", "再来。"],
+    "unbelief.deny": ["我没看见。", "他们说的，不算。"],
+    "unbelief.explain": ["我看见了。就是那样。", "不是运气。"],
+    "unbelief.waver": ["你跟我们……一样？", "……我知道。"],
+    "react.feat_seen": ["……！", "我看见了。"],
+    "react.gift_liked": ["给苔丝的？……谢谢。", "嗯。"],
+    "react.insult": ["……", "坏人。"],
+    "topic.gen_self": {
+      "neutral": ["诺伊。", "我照顾苔丝。"]
+    },
+    "topic.gen_work": {
+      "K0": ["帮院长干活。", "看着苔丝。"]
+    },
+    "topic.self_noi_tess": {
+      "K0": ["苔丝爱唱歌。我不让她在外面唱。", "她是我妹妹。"]
+    },
+    "topic.secret_noi_mark": {
+      "K0": [
+        {
+          "zh": "……（他撩起头发）",
+          "when": "quest.q_a1_s19_door_in_you AND trust.noi >= 60"
+        },
+        {
+          "zh": "靠近北边会烫。别告诉神父。",
+          "when": "quest.q_a1_s19_door_in_you AND trust.noi >= 60"
+        }
+      ]
+    },
+    "quest.q_a1_s19_door_in_you.offer": ["你身上有一扇门。", "……跟我来。"],
+    "quest.q_a1_s19_door_in_you.progress": ["北泉。夜里去。"],
+    "quest.q_a1_s19_door_in_you.complete": ["你没告诉神父。……谢谢。"],
+    "bark.wander": ["……", "北泉的水……不对。"],
+    "bark.night": ["门……在那边。"],
+    "topic.faith_nameless": {
+      "K1": ["……开门的母亲。她睡着了。", "门总会开的。……别告诉神父。"]
+    }
+  }
+}

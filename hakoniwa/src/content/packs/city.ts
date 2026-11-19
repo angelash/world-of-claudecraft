@@ -7,6 +7,7 @@ import maps from '../../../data/city/maps.json';
 import officials from '../../../data/city/officials.json';
 import policies from '../../../data/city/policies.json';
 import sites from '../../../data/city/sites.json';
+import { courtConfigProblems } from '../../systems/city/court_tiers';
 import type {
   BuildingDef,
   CityConfig,
@@ -114,6 +115,12 @@ export const pack: ContentPack = {
           help: 'village_core：门内庭院的门在无处可回时通往的村落核心（全作唯一）',
         },
         { key: 'arrivalLocation', label: '庭院：门开向的地点', type: 'string' },
+        {
+          key: 'court',
+          label: '庭院：门、陈列与扩建档',
+          type: 'json',
+          help: '{ door: { tiles, reach, cooldownMinutes, switchTiles?, anchorTags? }, displayOwner, takeDownDays, tiers: [{ id, requiresFlags, display, buildingMax, buildingStorage }] }',
+        },
       ],
     },
     {
@@ -230,6 +237,7 @@ export const pack: ContentPack = {
       }
       if (sites.filter((s) => s.kind === 'court').length > 1)
         problems.push('city: more than one court site');
+      problems.push(...courtConfigProblems(content));
     }
     const cfg = content.city_config;
     if (cfg) {

@@ -87,7 +87,7 @@ export function initCity(ctx: SystemContext): void {
     }
     if (sdef.initialMoney > 0) addMoney(ctx, sdef.stockOwner, sdef.initialMoney, 'initial');
     site.storageUsed = storageUsed(ctx.world, sdef.stockOwner);
-    site.storageCap = storageCap(site, sdef, ctx.content);
+    site.storageCap = storageCap(site, sdef, ctx.content, ctx.world.meta.flags);
   }
 }
 
@@ -223,7 +223,7 @@ function runSite(ctx: SystemContext, site: SiteState, sdef: SiteDef, day: number
     syncSettlers(ctx, site, sdef);
   }
   site.storageUsed = storageUsed(ctx.world, sdef.stockOwner);
-  site.storageCap = storageCap(site, sdef, ctx.content);
+  site.storageCap = storageCap(site, sdef, ctx.content, ctx.world.meta.flags);
 }
 
 export function runDay(ctx: SystemContext, day: number): void {

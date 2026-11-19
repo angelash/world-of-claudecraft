@@ -534,6 +534,77 @@
       "radius": 2,
       "respawnMinutes": 1200,
       "requiresFlags": ["act.3.entered"]
+    },
+    {
+      "kind": "monster",
+      "id": "aw_jackal_road_w",
+      "ref": "waste_jackal",
+      "x": 34.5,
+      "y": 84.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 40
+    },
+    {
+      "kind": "monster",
+      "id": "aw_jackal_road_e",
+      "ref": "waste_jackal",
+      "x": 36.5,
+      "y": 92.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 40
+    },
+    {
+      "kind": "monster",
+      "id": "aw_louse_gully",
+      "ref": "shard_louse",
+      "x": 19.5,
+      "y": 90.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 30,
+      "level": [9, 13]
+    },
+    {
+      "kind": "monster",
+      "id": "aw_digger_camp",
+      "ref": "gully_digger",
+      "x": 24.5,
+      "y": 95.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 60
+    },
+    {
+      "kind": "monster",
+      "id": "aw_old_louse",
+      "ref": "old_louse",
+      "x": 28.5,
+      "y": 103.5,
+      "count": 1,
+      "radius": 1.5,
+      "respawnMinutes": 2400
+    },
+    {
+      "kind": "monster",
+      "id": "aw_smuggler_road",
+      "ref": "greyroad_smuggler",
+      "x": 12.5,
+      "y": 84.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60
+    },
+    {
+      "kind": "monster",
+      "id": "aw_scavenger_rim",
+      "ref": "waste_scavenger",
+      "x": 52.5,
+      "y": 101.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60
     }
   ],
   "exits": [

@@ -5,7 +5,7 @@
 // key recording, pad chords from pickers, option patches, export and import), the gameplay
 // page model, the help lines that follow the current device, and the web-safe window tab keys.
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { checkPatch, defaultSettings, GUIDANCE_LEVELS } from '../src/client/app/settings_schema';
@@ -62,8 +62,13 @@ import {
   stepTab,
 } from '../src/client/windows/settings/shell_model';
 
-const UI = JSON.parse(
-  readFileSync(join(__dirname, '..', 'locales', 'zh-Hans', 'ui.json'), 'utf8'),
+// every interface table (ui.json and the per-package ui_*.json files)
+const LOCALE_DIR = join(__dirname, '..', 'locales', 'zh-Hans');
+const UI = Object.assign(
+  {},
+  ...readdirSync(LOCALE_DIR)
+    .filter((f) => /^ui(_[a-z0-9_]+)?\.json$/.test(f))
+    .map((f) => JSON.parse(readFileSync(join(LOCALE_DIR, f), 'utf8'))),
 ) as Record<string, string>;
 
 const NO_FLAGS = {};
@@ -166,7 +171,10 @@ describe('controls page: contexts and labels (4.4, 1.5, 16.6)', () => {
         act: 'act6',
         a6_court_open: true,
       }),
-    ).toEqual([...INPUT_CONTEXTS]);
+    ).toEqual(INPUT_CONTEXTS.filter((c) => c !== 'creator'));
+    // the spirit mirror's keys show only while the prologue runs (3.4.3)
+    expect(visibleContexts({ act: 'prologue' })).toContain('creator');
+    expect(visibleContexts({ act: 'act1' })).not.toContain('creator');
   });
 
   it('shows window keys only for windows the player can open, the debug key only in dev', () => {

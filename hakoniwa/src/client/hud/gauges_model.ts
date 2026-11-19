@@ -9,6 +9,24 @@
 import { t } from '../../shared_ui/i18n';
 import type { ClientAdapters } from '../view/adapters';
 import { flagOn, type GameView } from '../view/game_view';
+import {
+  DIAN_KNOWN_FLAG,
+  SED_STAGE_FLAG,
+  SED_STAGES,
+  type SedStageName,
+  sedStageOf,
+} from '../view/mortal_terms';
+
+// the mortal-term flags and helpers live in ../view/mortal_terms.ts; re-exported for the
+// modules that read them from here
+export {
+  auraDisplayName,
+  DIAN_KNOWN_FLAG,
+  SED_STAGE_FLAG,
+  SED_STAGES,
+  type SedStageName,
+  sedStageOf,
+} from '../view/mortal_terms';
 
 /** Taint thresholds of the three taint states (spot, fever, crystallisation). */
 export const TAINT_THRESHOLDS = [20, 45, 75] as const;
@@ -18,8 +36,6 @@ export const GAUGE_MAX = 100;
 
 /** The registered flags the gauges read (world_state_registry.md). */
 export const TAINT_FLAG = 'player.taint';
-export const DIAN_KNOWN_FLAG = 'term.dian_known';
-
 export type GaugeId = 'blockage' | 'fatigue' | 'taint';
 
 export interface GaugeInput {
@@ -27,6 +43,12 @@ export interface GaugeInput {
   fatigue: number;
   taint: number;
   dianKnown: boolean;
+  /**
+   * The body's sickness stage (`player.sed_stage`), null when the flag is absent. The body's
+   * stage is not always the threshold the taint has passed (a spot heals below 15, a fever
+   * stays), so the state name follows it whenever it is there.
+   */
+  stage?: SedStageName | null;
 }
 
 export interface GaugeBar {
@@ -81,8 +103,11 @@ export function gaugesModel(i: GaugeInput): GaugeBar[] {
     });
   }
   const taint = clamp(i.taint);
-  if (taint > 0) {
-    const step = stepOf(taint, TAINT_THRESHOLDS);
+  const stage = i.stage ?? null;
+  // a sickness that outlasts its taint (a fever stays) keeps the bar up: it is the player's
+  // own state, never hidden (UX-6)
+  if (taint > 0 || (stage !== null && stage !== 'none')) {
+    const step = stage !== null ? SED_STAGES.indexOf(stage) : stepOf(taint, TAINT_THRESHOLDS);
     const label = t(i.dianKnown ? 'ui.hud.gauges.taint' : 'ui.hud.gauges.taint_mortal');
     out.push({
       id: 'taint',
@@ -117,5 +142,6 @@ export function gaugeInput(view: GameView, adapters: ClientAdapters): GaugeInput
     fatigue: num(mirror?.fatigue),
     taint: num(view.flag(TAINT_FLAG)),
     dianKnown: flagOn(view.flag(DIAN_KNOWN_FLAG)),
+    stage: sedStageOf(view.flag(SED_STAGE_FLAG)),
   };
 }

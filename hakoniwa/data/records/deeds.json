@@ -22,6 +22,46 @@
     "channels": ["key", "story"]
   },
   {
+    "id": "deed_grow_first_stance",
+    "name": "学来的架势",
+    "desc": "向持职的战士求教之后，你用学来的架势赢下了一场真刀真枪的战斗。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "bond"]
+  },
+  {
+    "id": "deed_grow_lone_track",
+    "name": "独猎",
+    "desc": "身边没有同伴，你独自追踪并猎获了一头异兽。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "cog"]
+  },
+  {
+    "id": "deed_grow_spared",
+    "name": "手下留命",
+    "desc": "击败一头被灰气侵蚀的生灵之后，你选择了不杀。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "bond"]
+  },
+  {
+    "id": "deed_grow_underestimated",
+    "name": "被低估者的一刻",
+    "desc": "你亲眼看见一个一直被人低估的人，迎来了属于自己的决定性一刻。",
+    "cls": "grow",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "bond"]
+  },
+  {
     "id": "deed_grow_dream_door",
     "name": "门口的女人",
     "desc": "兽潮次夜，你梦见一扇开着缝的门，门口站着一个女人。",
@@ -31,6 +71,17 @@
     "when": "a1_dream_door_woman",
     "reward": { "pillar": true },
     "channels": ["key", "story"]
+  },
+  {
+    "id": "deed_hunt_first_grey",
+    "name": "第一张灰斑狼皮",
+    "desc": "你第一次猎倒沾了灰气的狼，也剥下了一张完整的狼皮，皮上带着灰斑。",
+    "cls": "hunt",
+    "act": 1,
+    "fame": 5,
+    "stat": { "key": "kills.dian_wolf", "min": 1 },
+    "held": ["wolf_pelt"],
+    "channels": ["cog", "sed"]
   },
   {
     "id": "deed_hunt_tide_night",
@@ -43,6 +94,221 @@
     "channels": ["cog", "war"]
   },
   {
+    "id": "deed_hunt_colossus_seen",
+    "name": "巨像不是自己塌的",
+    "desc": "兽潮之夜，巨像倒下的时候，至少有四个信得过你的人亲眼看见。",
+    "cls": "hunt",
+    "act": 1,
+    "fame": 25,
+    "manual": true,
+    "when": "quest.q_a1_m12_tide == done",
+    "channels": ["cog"]
+  },
+  {
+    "id": "deed_rare_split_ear",
+    "name": "裂耳落名",
+    "desc": "你把裂耳的獠牙交给公会领了赏，这个名字从此落了地。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "held": ["split_ear_fang"],
+    "channels": ["key", "cog"]
+  },
+  {
+    "id": "deed_rare_black_ridge",
+    "name": "博罗没有冲过去",
+    "desc": "兽潮第一波里，你击倒了黑脊，博罗活了下来。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_rare_red_sock",
+    "name": "红袜子回家了",
+    "desc": "你把那只褪了色的红袜子，送还给西田磨坊人家的孩子。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_rare_three_toes",
+    "name": "接住的角",
+    "desc": "你净化了三趾，希雅接住了它脱落的灰角。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "bond"]
+  },
+  {
+    "id": "deed_rare_bell_weeper",
+    "name": "旧哨的钟又响了",
+    "desc": "你把村钟重新挂了起来，平平静静地送走了哭钟。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["manage", "cog"]
+  },
+  {
+    "id": "deed_rare_ironbelly",
+    "name": "一车铁",
+    "desc": "你讨伐了铁胃，把它那只啃铁的胃嵌进了领地的冶炼坊。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["manage", "key"]
+  },
+  {
+    "id": "deed_rare_toll_taker",
+    "name": "铜狗牌回家",
+    "desc": "你把那枚铜狗牌，还给了边石镇的遗孀薇尔玛。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog", "bond"]
+  },
+  {
+    "id": "deed_rare_old_louse",
+    "name": "老虱的肚子",
+    "desc": "你讨伐了晶沟老虱，把它的腹晶拿给掘手们看。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog", "craft"]
+  },
+  {
+    "id": "deed_rare_hushed",
+    "name": "压下去的名字",
+    "desc": "你先替村民辟了谣，等那只异名者的传闻平息下去，才去讨伐它。",
+    "cls": "rare",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog"]
+  },
+  {
+    "id": "deed_dg_old_mine_one_night",
+    "name": "一夜之间",
+    "desc": "一夜之间，你从塌方口一路走到了边石旧矿的晶脉。",
+    "cls": "dg",
+    "act": 1,
+    "fame": 5,
+    "manual": true,
+    "channels": ["cog"]
+  },
+  {
+    "id": "deed_dg_moon_cellar_untouched",
+    "name": "只看不碰",
+    "desc": "你清完了醉月亭的地窖，那只长木匣一直没碰。",
+    "cls": "dg",
+    "act": 1,
+    "fame": 0,
+    "manual": true,
+    "hidden": true,
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_exp_garden_guest",
+    "name": "庭院的客人",
+    "desc": "你第一次带着一位同伴，走进了门内的庭院。",
+    "cls": "exp",
+    "act": 1,
+    "fame": 5,
+    "manual": true,
+    "channels": ["bond", "divine"]
+  },
+  {
+    "id": "deed_col_earth_keepsakes",
+    "name": "那间屋子的门",
+    "desc": "从前那个世界带来的五件小东西，你都曾带在身边。",
+    "cls": "col",
+    "act": 0,
+    "fame": 10,
+    "held": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
+    "channels": ["collect", "story"]
+  },
+  {
+    "id": "deed_col_yeyu_shinies",
+    "name": "那不是收藏",
+    "desc": "夜羽窝里的亮东西凑齐了八件。她坚持说，那不是收藏。",
+    "cls": "col",
+    "act": 1,
+    "fame": 5,
+    "when": "col.col_yeyu_shinies.done",
+    "channels": ["bond", "collect"]
+  },
+  {
+    "id": "deed_col_fallen_badges",
+    "name": "带他们回家",
+    "desc": "阵亡冒险者的铜牌，你一枚一枚交回了分部，或交到他们家人的手里。",
+    "cls": "col",
+    "act": 1,
+    "fame": 25,
+    "when": "col.col_fallen_badges.done",
+    "reward": { "title": "title_col_bring_home" },
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_mgmt_craft_first_masterwork",
+    "name": "无记载者之作",
+    "desc": "你第一次做出了杰作，鉴定只显示“无记载者之作”。",
+    "cls": "mgmt",
+    "act": 1,
+    "fame": 5,
+    "manual": true,
+    "channels": ["key", "craft"]
+  },
+  {
+    "id": "deed_truth_brun_mark",
+    "name": "二十年前那个人手上",
+    "desc": "布伦看见了你手背上的纹。二十年前，他在另一个人的手上见过一样的。",
+    "cls": "truth",
+    "act": 1,
+    "fame": 10,
+    "hidden": true,
+    "when": "a1_bron_sees_mark",
+    "channels": ["story"]
+  },
+  {
+    "id": "deed_mortal_crystal_broke",
+    "name": "水晶坏了",
+    "desc": "登记时的鉴定水晶对着你什么也没显示，只写出“无记载”。莉娜说，这个月已经是第三次了。",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 5,
+    "when": "quest.q_a1_m03_register == done",
+    "reward": { "title": "title_street_crystal_breaker" },
+    "channels": ["cog"]
+  },
+  {
+    "id": "deed_mortal_dwarf_mechanism",
+    "name": "矮人机关",
+    "desc": "边石镇都在说旧矿道里有矮人的机关。巴尔加当众否认过，没有人信他。",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog", "bond"]
+  },
+  {
+    "id": "deed_mortal_new_crystal",
+    "name": "新的也坏了",
+    "desc": "六周后重测，新搬来的水晶照样只显示“无记载”。布伦抬起头：“别测了。”",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["key", "cog"]
+  },
+  {
     "id": "deed_mortal_window",
     "name": "只是去关窗",
     "desc": "兽潮过后，边石镇选定了它愿意相信的那个版本。",
@@ -51,6 +317,26 @@
     "fame": 10,
     "when": "a1_tide_credit IN (player, martha, light, self_collapse)",
     "channels": ["cog", "story"]
+  },
+  {
+    "id": "deed_mortal_ron_converted",
+    "name": "不可能。……好吧，可能。",
+    "desc": "罗恩的三个解释被一个一个推翻之后，他终于信了。",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog", "bond"]
+  },
+  {
+    "id": "deed_mortal_three_times",
+    "name": "第三次就不是运气",
+    "desc": "同一个地方，同一类事被人看见了第三次。“运气”这个说法再也站不住了。",
+    "cls": "mortal",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "channels": ["cog"]
   },
   {
     "id": "deed_hid_orphan_mark",
@@ -64,6 +350,17 @@
     "channels": ["bond", "story"]
   },
   {
+    "id": "deed_bond_first_believer",
+    "name": "第一个相信你的人",
+    "desc": "希雅信了你。在东坡，她是第一个。",
+    "cls": "bond",
+    "act": 1,
+    "fame": 10,
+    "manual": true,
+    "when": "trust.shiya >= 60",
+    "channels": ["bond", "key"]
+  },
+  {
     "id": "deed_bond_oola_cleared",
     "name": "药草婆婆平反",
     "desc": "魔女审判以平反收场，欧拉婆婆回到了她的药草铺。",
@@ -74,6 +371,28 @@
     "branch": { "when": "a1_oola_fate IN (convicted, fled, executed)" },
     "reward": { "pillar": true },
     "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_bond_brun_glove",
+    "name": "旧手套",
+    "desc": "布伦看见了你手背上的纹，没有声张，把他那只旧皮手套扔给了你。",
+    "cls": "bond",
+    "act": 1,
+    "fame": 10,
+    "when": "npc.bron.secret_kept == true",
+    "channels": ["bond", "cog"]
+  },
+  {
+    "id": "deed_bond_farewell",
+    "name": "送别",
+    "desc": "一位同伴倒下之后，再也没有回来。其余的人为这位同伴守了一夜。",
+    "cls": "bond",
+    "act": 1,
+    "fame": 0,
+    "hidden": true,
+    "when": "ironman AND (companion.yeyu.lost OR companion.shiya.lost OR companion.ron.lost OR companion.nera.lost OR companion.oola.lost)",
+    "reward": { "pillar": true },
+    "channels": ["bond"]
   },
   {
     "id": "deed_grow_doors_ten",

@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_hidden_gatefolk",
+  "slots": {
+    "greet.neutral": ["（低声）晚上好。", "你是路过的吧。", "嗯。"],
+    "greet.cold": ["你认错人了。", "（她缩回了手）"],
+    "greet.warm": ["门缝开着，进来。", "（低声）你来了。坐，别出声。"],
+    "farewell": ["门开着。", "别让人看见你从这里出去。"],
+    "unbelief.deny": ["外头传什么，我们不听。", "我没看见，就不说。"],
+    "unbelief.explain": ["也许……是母亲派来的人。", "我不猜。"],
+    "unbelief.waver": ["手上烫了一下。……是你吗？", "我好像梦见过你。"],
+    "react.feat_seen": ["（她捂住手背）……", "母亲……"],
+    "react.gatefolk_recognize": ["（低声）门开着呢。", "你也是认得路的人。"],
+    "topic.gen_work": {
+      "K0": ["干点粗活，不惹人注意。", "手套戴好，干什么都行。"]
+    },
+    "bark.home": ["夜里留门缝。", "敲三短一长。"],
+    "bark.fear": [
+      {
+        "zh": "他们在查手。",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.night": ["门开着，路很长。"]
+  }
+}

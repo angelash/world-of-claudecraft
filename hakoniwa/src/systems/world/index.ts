@@ -192,6 +192,15 @@ export function setEntityName(ctx: SystemContext, id: string, name: string): voi
   if (e && name.trim()) e.name = name.trim().slice(0, 24);
 }
 
+/**
+ * The player's look before the spirit mirror (PK-M1-34: re-choosing the opening puts it
+ * back, so the look of the run that was dropped does not stand while the mirror asks again).
+ */
+export const DEFAULT_PLAYER_APPEARANCE: Appearance = {
+  base: 'human',
+  colors: ['#3b4a6b', '#c9b38a', '#f1c9a5', '#2b2b2b'],
+};
+
 export function setAppearance(ctx: SystemContext, id: string, appearance: Appearance): void {
   const e = ctx.world.slices.world.entities[id];
   if (e) e.appearance = appearance;
@@ -428,7 +437,10 @@ export const system: GameSystem = {
       x: start.x,
       y: start.y,
       faction: 'player',
-      appearance: { base: 'human', colors: ['#3b4a6b', '#c9b38a', '#f1c9a5', '#2b2b2b'] },
+      appearance: {
+        base: DEFAULT_PLAYER_APPEARANCE.base,
+        colors: [...DEFAULT_PLAYER_APPEARANCE.colors],
+      },
       speed: 4.2,
       tags: ['player'],
     });

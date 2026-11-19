@@ -4,14 +4,26 @@
 // same one the runner uses, so a choice gated on `night` or `season` shows exactly when the
 // runner would accept it.
 
+import { contentText } from '../../core/content_key';
 import type { ContentMap } from '../../core/contracts';
 import { type TextParam, tr } from '../../core/text';
 import type { World } from '../../core/world';
+import { countItem } from '../inventory';
 import { evaluate } from '../quests/conditions';
 import { worldResolver } from '../quests/effects';
 import { presentable } from './court';
-import { COURT_END, EVIDENCE_PREFIX, nodeOf, openChoices, restartOpen, sceneDef } from './runner';
-import type { ScenePresentation, SceneWait, ShownLine, StageDirective } from './types';
+import {
+  COURT_END,
+  EVIDENCE_PREFIX,
+  nodeOf,
+  openChoices,
+  PIECE_PREFIX,
+  restartOpen,
+  sceneDef,
+  trialOf,
+} from './runner';
+import { visibleStage } from './stage_steps';
+import type { ScenePresentation, SceneWait, ShownLine, ShownStep } from './types';
 
 export interface SceneViewChoice {
   id: string;
@@ -49,8 +61,11 @@ export interface SceneView {
   summary: string;
   /** the act the scene belongs to ('' when it names none) */
   act: string;
-  /** the current node's stage directives (catalog_cutscenes.md 13.5) */
-  stage: StageDirective[];
+  /**
+   * the current node's stage directives (catalog_cutscenes.md 13.5), conditions already read
+   * and `at` counting the lines actually shown (stage_steps.ts)
+   */
+  stage: ShownStep[];
   /** the current node is an anchor (skipping stops here) */
   anchor: boolean;
   /** the interface a `ui` effect opened (waiting 'ui'), else null */
@@ -87,6 +102,24 @@ export function sceneView(
       ...(c.key ? { key: c.key } : {}),
       ...(c.timeout !== undefined ? { timeout: c.timeout } : {}),
     }));
+    // the held pieces of an act-1 trial, offered first (PK-M1-55; tut_a1_present)
+    const trial = trialOf(content, node);
+    if (trial) {
+      const shown = world.slices.scenes.trials?.[trial.id]?.shown ?? [];
+      const playerId = world.slices.world.playerId;
+      const pieces = trial.pieces
+        .filter((p) => countItem(world, playerId, p.item) > 0 && !shown.includes(p.id))
+        .map((p) => {
+          const item = content.items?.find((x) => x.id === p.item);
+          return {
+            id: `${PIECE_PREFIX}${p.id}`,
+            label: tr('sys.scenes.trial.present', {
+              name: item ? contentText('items', item) : p.item,
+            }),
+          };
+        });
+      choices = [...pieces, ...choices];
+    }
   } else if (run.waiting === 'court' && node.court) {
     const spec = node.court;
     const full = !!spec.limit && run.presented.length >= spec.limit;
@@ -121,7 +154,11 @@ export function sceneView(
     illustration: scene.illustration ?? null,
     summary: scene.summary ?? '',
     act: scene.act ?? '',
-    stage: (node.stage ?? []).map((d) => ({ ...d })),
+    stage: visibleStage(
+      node.stage,
+      (node.lines ?? []).map((l) => evaluate(l.when, resolve)),
+      (expr) => evaluate(expr, resolve),
+    ),
     anchor: !!node.anchor,
     ui: run.waiting === 'ui' ? (run.ui?.ui ?? null) : null,
     uiStoreAs: run.waiting === 'ui' ? (run.ui?.storeAs ?? '') : '',

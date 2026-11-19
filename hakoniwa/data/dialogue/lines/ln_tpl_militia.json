@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_militia",
+  "slots": {
+    "greet.neutral": ["嗯。今天轮到我值。", "你好。", "北边没动静。"],
+    "greet.cold": ["别挡着射界。", "外人别上栅子。"],
+    "greet.warm": ["兄弟！那一夜我们一起守的！", "来，坐。"],
+    "farewell": ["走吧。", "回见。"],
+    "unbelief.deny": ["没一起打过，不算。", "吹的。"],
+    "unbelief.explain": ["运气好。", "光保佑他。"],
+    "unbelief.waver": ["那一夜……我看见了。", "兄弟，你是真的。"],
+    "react.feat_seen": ["好！", "兄弟们，看见没有！"],
+    "topic.gen_work": {
+      "K0": ["平时种地，战时上栅子。", "长弓是我爹留下的。"]
+    },
+    "bark.patrol": [
+      "换岗了。",
+      {
+        "zh": "林子边有影子。",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.combat": ["放箭！", "守住！"],
+    "bark.work": ["箭羽要修。"]
+  }
+}

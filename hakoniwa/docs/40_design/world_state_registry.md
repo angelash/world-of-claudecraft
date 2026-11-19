@@ -573,7 +573,7 @@
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
 | `act` | `act_index` | 枚举 | `prologue`、`act1` 到 `act6`、`epilogue`；与数字比较按 0 到 7 | 新游戏；幕切换（quests 的 `act` 效果，`acts`） | 全部任务触发（`q`）、台账解锁（`lore`）、女神（`gd`）、门钥（`dr`） |
-| `act_week` | 无 | 整数 | 1 到 33（各幕周数：12、14、24、31、33、26） | quests 的幕时钟（内核日历：幕开始那一周置 1，此后每逢历法周首，即周第 1 日 0 点，加 1；写成旗标，跳时中照常推进；序章与终章不计周，进入时置 0） | 任务时间窗、纷争链、默认发展、`act_week` 窗口（任务目录）、传书 |
+| `act_week` | 无 | 整数 | 1 到 33（各幕周数：12、14、24、31、33、26） | quests 的幕时钟（内核日历：幕开始那一周置 1，此后每逢历法周首，即周第 1 日 0 点，加 1；写成旗标，跳时中照常推进；序章与终章不计周，进入时置 0） | 任务时间窗、纷争链、默认发展、`act_week` 窗口（任务目录）、传书、doors（北泉净化的每周一次） |
 | `day` | 无 | 整数 | ≥ 0 | 内核时钟 | 期限、冷却 |
 | `season` | 无 | 枚举 | `spring`、`summer`、`autumn`、`winter` | 内核日历（13 周一季） | 事件、产出、行军 |
 | `year` | 无 | 整数 | 998 起 | 内核日历 | 编年显示、事件 |
@@ -611,7 +611,7 @@
 | `breach_count` | `doors.breach` | 整数 | ≥ 0 | 破门之门每强开一扇门（[千门 10.2][td]） | 无貌者的镜像对白、事迹 |
 | `danger_doors_act3` | 无 | 整数 | 0 到 9 | doors 在第三幕开启禁门 | D-054 无主之制的解锁条件（[千门 6.4.6][td]） |
 | `gatebronze_smelted` | 无 | 整数 | ≥ 0 | 每熔一件带门铜合金的遗物加一（[遗物目录 1.5][relics]） | 阿什、学院学者与遗民长老、矮人炉工的反应；事迹 |
-| `church_suspicion` | 无 | 整数 | 0 到 100 | 第一幕桥段与魔女审判（`q` 的 `a1_m08_trial`、`gq_eluen_purge`）；cognition 目击 | 赛琳初始怀疑、教会定性 |
+| `church_suspicion` | 无 | 整数 | 0 到 100 | 第一幕桥段与魔女审判（`q` 的 `a1_m08_trial`、`gq_eluen_purge`）；cognition 目击；npc 反应表第 2 行（虔信者的指控进度，内置 AI 第 5.6 节） | 赛琳初始怀疑、教会定性 |
 | `church_verdict` | 无 | 枚举 | `clear`、`suspect`、`heresy_suspect`、`wanted`、`lost_lamb`、`heretic`、`demon_precursor` | 第二幕教会议政轮 | 第二、三幕审判与圣战 |
 | `village_autonomy` | 无 | 整数 | 0 到 100 | city（村落阶段每日） | `territory_autonomy` 的起点 |
 | `territory_autonomy` | 无 | 整数 | 0 到 100 | city（领地阶段每日） | 立国之门（`dr` 的 `founding`，D-044）、审期 |
@@ -811,7 +811,7 @@
 | `a1_lisa_nick` | `lisa_nick` | 枚举 | `married`、`broken`、`eloped` | A1-S10 | 瓦伦堡客串 |
 | `a1_vick_informant` | `vik.informant` | 布尔 | | A1-S10 | 账本证据 |
 | `a1_jed_exposed` | `jed.status` | 布尔 | | A1-S12 | 卫队 |
-| `a1_town_dian` | `town_dian` | 整数 | 0 到 100 | 镇内澱度（澱病线）：ailments 按幕周结算（第 1 周 15，北泉未处理时每周 +8，[第一幕 7.2][a1]）；任务效果（A1-M07 堵暗渠 -20） | 北区后遗症；ailments 病例 `sed_case.lin` 的发病条件 |
+| `a1_town_dian` | `town_dian` | 整数 | 0 到 100 | 镇内澱度（澱病线）：ailments 按幕周结算（第 1 周 15，北泉未处理时每周 +8，[第一幕 7.2][a1]）；任务效果（A1-M07 堵暗渠 -20）；doors（借形之门的北泉净化，每周一次 -10，`data/doors/readers.json`） | 北区后遗症；ailments 病例 `sed_case.lin` 的发病条件 |
 | `a1_tide_credit` | `rumor.tide_attribution` | 枚举 | `player`、`martha`、`light`、`self_collapse` | tide 兽潮归功 | 瓦伦堡第一印象 |
 | `a1_count_letter` | `count_letter.variant` | 枚举 | `a`、`b`、`c`、`d` | 伯爵来信 | 伯爵府态度 |
 | `a1_janu_dream_answer` | `janu.first_dream_answer` | 枚举 | `like`、`unsure`、`dislike` | 兽潮次夜的梦（`s1`） | 第六幕回扣 |
@@ -1020,7 +1020,7 @@
 | `quest.<任务>` | `quest.<现有 ID>`（第 6.2 节） | 枚举 | `inactive`、`active`、`ready`、`done`、`failed`、`expired`、`by_other`（由他人先完成） | quests | 任务触发（`q`）、`pc` |
 | `quest.<任务>.choice` | 无 | 枚举 | 抉择选项 ID | quests | 后续阶段 |
 | `scene.<场景>.seen` | 无 | 标记 | 场景 ID | scenes | 重播、事迹 |
-| `feature.<功能>` | 无 | 标记 | `door_corridor`、`servant`、`tide_sight`、`appraise_talent`、`inner_court`、`company`、`village`、`city`、`rts`、`slg`、`restraint`、`false_record`、`board`（公会登记后委托板可用）、`sight`（神之视线显性化，第二幕）、`beyond_door`、`messenger`、`awaken_talent`、`travel_gate`、`travel_gate_advanced`、`echoes`、`clear_flow`、`resonance`、`dominion`、`soul_ferry`、`thousand_paths`、`breach`、`ascent`、`true_name`、`last_door`（[千门 8][td]）、`continent_map`（大陆地图界面，`cut_a3_map` 段二）、`dual_pulse` 与 `triple_pulse`（双脉之门初阶与进阶：同时驱动两池、三池，[战斗 4.3](systems/combat_and_classes.md)） | doors、quests 与过场的 `feature` 效果 | 界面、`data/city/*.json`、`data/world/atlas_routes.json`、千军之门（`dr`）、战斗的当架池（`src/systems/combat/pools.ts`） |
+| `feature.<功能>` | 无 | 标记 | `door_corridor`、`servant`、`tide_sight`、`appraise_talent`、`inner_court`、`company`、`village`、`city`、`rts`、`slg`、`restraint`、`false_record`、`board`（公会登记后委托板可用）、`sight`（神之视线显性化，第二幕）、`beyond_door`、`messenger`、`awaken_talent`、`travel_gate`、`travel_gate_advanced`、`echoes`、`clear_flow`、`resonance`、`dominion`、`soul_ferry`、`thousand_paths`、`breach`、`ascent`、`true_name`、`last_door`（[千门 8][td]）、`continent_map`（大陆地图界面，`cut_a3_map` 段二）、`dual_pulse` 与 `triple_pulse`（双脉之门初阶与进阶：同时驱动两池、三池，[战斗 4.3](systems/combat_and_classes.md)）、`doorsense`（瑕之门的纹感，[门目录 5.2](content/catalog_doors.md)）、`court_expansion_1`（仓廪之门的庭院扩建一档，[千门 13][td]）、`craft_mining`、`craft_logging`、`craft_herbalism`、`craft_alchemy`、`craft_cooking`、`craft_leatherworking`、`craft_weaponcrafting`（七扇第一幕生业之门的层一，[千门 14][td]）、`price_band`、`night_sight`、`rumor_source`（前世之门算盘、夜灯、笔记的开局差异，[序章 2.2](../30_story/arcs/prologue_antechamber.md)）、`spring_purify`（借形之门的北泉净化，[一幕 7.2](../30_story/arcs/act1_borderstone.md)） | doors、quests 与过场的 `feature` 效果 | 界面、`data/city/*.json`、`data/world/atlas_routes.json`、千军之门（`dr`）、战斗的当架池（`src/systems/combat/pools.ts`） |
 | `companion.<人>.recruited` | 无 | 标记 | 人物 ID | party 与 quests 的 `companion` 效果 | `dr`、导演菜单（`gd`）、`s1`、`s25`、`sc`、`se`、`sep`、战场（`data/warfare/scenarios.json`）、魔物（`data/combat/monsters.json`） |
 | `companion.<人>.state` | 无 | 枚举 | `active`、`resting`、`injured`、`left`、`dead` | party | 随行、战线 |
 | `companion.<人>.injured_until` | 无 | 整数 | 游戏日 | party | 归队 |
@@ -1044,6 +1044,7 @@
 | `ai.focus.<人>` | `npc.focus.<人>` | 整数 | 人物 ID | npc 分级推理 | 调试 |
 | `sediment.<地图>` | 无 | 小数 | 地图 ID；澱值 | goddess 澱结算 | 魔物生成、城建 |
 | `omen.<地图>` | 无 | 时刻 | tick | goddess 预兆 | 事件前兆 |
+| `omen.<地图>.law` | 无 | 时刻 | tick | npc 反应表第 4 行（卫兵或官员盘查，内置 AI 第 5.6 节） | 审判或逮捕事件链的预兆步（"逮捕前先有盘查"，内置 AI 第 8.6 节） |
 | `intel.merca.<情报>` | 无 | 标记 | 情报 ID（`gd` 的 `merca_intel.json`） | goddess 梅尔卡情报交易 | 女神 |
 | `revelation.<天启>` | 无 | 标记 | 天启 ID（`gd` 的 `revelations.json`） | goddess 天启 | 任务（`q`） |
 | `request.<司>.<请托>` | 无 | 文本 | 请托文本（经净化）；非空即"已发布" | goddess 神权动作 `request` | 女神请托任务的触发（`q`） |
@@ -1074,7 +1075,7 @@
 | 规范名 | 别名 | 类型 | 范围或取值 | 首次写入 | 读取处 |
 | --- | --- | --- | --- | --- | --- |
 | `quest.<任务>.stage` | `quest_stage.<任务>` | 枚举 | 当前阶段代号 | quests | 台词 `when` 条件（`progress` 槽的版本） |
-| `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号（最近一次达成的、带解法代号的目标或抉择选项） | quests | 日志"还有别的做法"、传闻版本 |
+| `quest.<任务>.path` | `quest_path.<任务>` | 枚举 | 完成时走过的解法代号（最近一次达成的、带解法代号的目标或抉择选项） | quests；过场 `cut_a1_ash_glimpse`（A1-M01 在灰烬室的低头、搭话、出手） | 日志"还有别的做法"、传闻版本 |
 | `dispute.<任务>.stage` | 无 | 枚举 | 纷争链的任务 ID；当前阶段代号（纷争运行数据的阶段表，取已到周且条件成立的最后一个） | disputes（纷争运行器） | 台词与传闻的版本（任务、场景的条件） |
 | `dispute.<任务>.escalation` | 无 | 整数 | 0 到 3；当前阶段的升级档，结算后归 0 | disputes（纷争运行器） | 导演张力计的社会紧张（director） |
 | `dispute.<任务>.choice.<决策点>` | 无 | 枚举 | 纷争链的任务 ID、决策点代号；点名的人物所选的选项代号（选择者经命令作答，到点由内置效用兜底） | disputes（纷争运行器） | 纷争结局（纷争链任务的结局条件）、兽潮之夜的行动判定 |
@@ -1230,6 +1231,8 @@
 | `a1_trial_evidence` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 审判时出示了物证（北泉灰水，暗渠） |
 | `a1_trial_testimony` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 审判时有证词（伊莎、托马、格蕾塔任一） |
 | `a1_trial_debate` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 公开辩论成立（陈述不是空白） |
+| `a1_trial_points` | 无 | 出口 | 整数 | 0 到 4；默认 0 | `cut_a1_trial`（`compute trial_verdict`，出示核心按审判表计成立的项数，多名证人只计一项） | `cut_a1_trial`（判决分支） | 魔女审判成立的举证项数：物证、证词、拆穿、辩论 |
+| `a1_trial_light_public` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial`（卡西安在广场当众说出此前礼拜堂的圣光鉴定） | cognition（身份暴露 `identity_pageless`，在玩家所在处） | 圣光照不进玩家的事在审判时当众传开（礼拜堂里私下照过的那次不算当众） |
 | `a1_trial_speech` | 无 | 出口 | 文本 | 至多 200 字；空白记 `silent` | `cut_a1_trial` | `cut_a1_trial` | 玩家在审判台上的陈述原话 |
 | `a1_trial_brawl` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial`；无人到场的审判由 disputes（纷争运行器）按 A1-D02 的决策点博罗冲台写入 | quests（A1-D02 冲突结局：伤亡与礼拜堂受损） | 审判冲突发生；内核据此结算伤亡与礼拜堂受损 |
 | `a1_tess_covered` | 无 | 标记 | 标记 | 默认假 | `cut_a1_trial` | `cut_a1_trial` | 玩家抢在苔丝说漏之前护住了她 |
@@ -1248,6 +1251,7 @@
 | `a1_core_choice_made` | 无 | 标记 | 标记 | 默认假 | `cut_a1_tide` | `cut_a1_tide` | 澱核段已播 |
 | `a1_martha_drink` | 无 | 标记 | 标记 | 默认假 | `cut_a1_martha`；tide 黎明兜底 | 玛莎的台词（第一幕 8.5 的隐性盟友） | 玛莎请了那杯不收钱的酒（第一幕 8.5 的隐性盟友） |
 | `a1_dream_free_question` | 无 | 出口 | 文本 | 至多 80 字；默认空 | `cut_a1_dream` | 雅努的题面（有模型时）、第六幕回扣 | 梦中玩家最后一次自由提问的原话 |
+| `a1_janu_dream_words` | 无 | 出口 | 文本 | 至多 80 字；默认空 | `cut_a1_dream` | 第六幕回扣 | 梦中"那个镇子，你喜欢吗"玩家自己作答的原话；归入 `a1_janu_dream_answer` 的三值之一 |
 | `a1_court_first_visit` | 无 | 标记 | 标记 | 默认假 | `cut_a1_mark` | 门内庭院的复苏点说明（界面，只给一次） | 门内庭院首访（复苏点说明已给出） |
 | `a1_isa_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S20`（`q_a1_s20_nun_testimony` 完成时置真）；伊莎亲眼看见孩子有危险时由节点任务置真；无人介入时由 disputes（纷争运行器）按 A1-D02 的决策点置真 | `cut_a1_tide`、`cut_a1_trial` | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险） |
 | `a1_toma_will_testify` | 无 | 标记 | 标记 | 默认假 | 任务目录（前）`A1-S15`（`q_a1_s15_bell_tower` 完成时置真） | `cut_a1_trial` | 托马肯开口（S15 完成） |

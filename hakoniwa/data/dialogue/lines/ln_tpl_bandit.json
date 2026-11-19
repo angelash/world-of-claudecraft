@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_bandit",
+  "slots": {
+    "greet.neutral": ["站住！把钱留下！", "哟，路过的？", "别动。"],
+    "greet.cold": ["找死？", "滚。"],
+    "greet.warm": ["头儿认你，我们也认。", "喝酒！"],
+    "farewell": ["滚吧。", "下回别让我碰见。"],
+    "unbelief.deny": ["一个人？哈！", "吹的。"],
+    "unbelief.explain": ["那队人早被打残了。", "运气。"],
+    "unbelief.waver": ["你……你把头儿打趴下了？", "我们认输。"],
+    "react.feat_seen": ["跑！", "这、这不是人！"],
+    "topic.gen_work": {
+      "K0": ["劫道。头儿说了，不杀平民。", "没活干，就干这个。"]
+    },
+    "bark.camp": ["酒呢？", "头儿什么时候回来。"],
+    "bark.combat": [
+      "上！",
+      {
+        "zh": "撤，撤！",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.patrol": ["路上有车。"]
+  }
+}

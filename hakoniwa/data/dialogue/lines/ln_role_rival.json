@@ -1,0 +1,22 @@
+{
+  "id": "ln_role_rival",
+  "slots": {
+    "react.rival_taunt": [
+      "又是你？上回的账还没算完。",
+      "有本事跟我比一场。",
+      "别以为大家夸你两句，你就真是个人物了。"
+    ],
+    "react.rival_concede": ["……我输了。这回算你的。", "输了就是输了，我认。"],
+    "react.feat_seen": ["哼，这算什么，我也能。", "下回我做得比你更好。"],
+    "react.flattered": ["少来，你是想让我松劲吧。"],
+    "react.insult": ["你再说一遍？出来！"],
+    "react.helped": ["你帮我？……别以为我会领情。"],
+    "react.saved": ["欠你一条命。这事我们以后再算。"],
+    "react.thanked": ["别谢我，我不是为了你。"],
+    "bark.see_player": ["他来了。", "哼。"],
+    "bark.angry": ["等着瞧。"],
+    "greet.cold": ["你来干什么？"],
+    "greet.neutral": ["又见面了。"],
+    "farewell": ["下回别让我碰见。"]
+  }
+}

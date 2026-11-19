@@ -133,29 +133,45 @@ export function ownSlotLines(
   slot: string,
   opts: ResolveOptions,
 ): ResolvedSlot | null {
+  return ownSlotSources(pack, slot, opts)[0] ?? null;
+}
+
+/**
+ * Every source of `slot` inside one pack, nearest first (builtin_ai 7.3 steps 1 to 3): the
+ * act override over the shortened names, then the base slot over the shortened names. A
+ * selector that finds every line of one source conditioned out moves to the next source of
+ * the same pack before it leaves the pack ("第一个有可用句子的来源"): an act override made only
+ * of first-meeting or conditioned lines must not hide the speaker's own base lines.
+ */
+export function ownSlotSources(pack: LinePack, slot: string, opts: ResolveOptions): ResolvedSlot[] {
   const chain = slotChain(slot);
+  const out: ResolvedSlot[] = [];
   if (opts.act) {
     const over = pack.acts?.[opts.act];
     if (over) {
       for (const s of chain) {
         const hit = pickVersion(over[s], opts.version, opts.versionBy);
-        if (hit?.lines.some(isLine))
-          return {
+        if (hit?.lines.some(isLine)) {
+          out.push({
             packId: pack.id,
             slot: s,
             act: opts.act,
             version: hit.version,
             lines: hit.lines,
-          };
+          });
+          break;
+        }
       }
     }
   }
   for (const s of chain) {
     const hit = pickVersion(pack.slots[s], opts.version, opts.versionBy);
-    if (hit?.lines.some(isLine))
-      return { packId: pack.id, slot: s, version: hit.version, lines: hit.lines };
+    if (hit?.lines.some(isLine)) {
+      out.push({ packId: pack.id, slot: s, version: hit.version, lines: hit.lines });
+      break;
+    }
   }
-  return null;
+  return out;
 }
 
 export interface FallbackLayers {
@@ -165,10 +181,14 @@ export interface FallbackLayers {
   template?: string;
   /** social class id */
   socialClass?: string;
+  /** only the speaker's own pack: a scripted speaker in its scripted act (../scripted.ts) */
+  ownOnly?: boolean;
 }
 
 /** The pack ids of the fallback chain for a speaker, in order (builtin_ai 7.3). */
 export function chainPackIds(npcId: string, layers: FallbackLayers = {}): string[] {
+  // a scripted speaker says only its own written lines (../scripted.ts)
+  if (layers.ownOnly) return [npcPackId(npcId)];
   return [
     npcPackId(npcId),
     ...(layers.roles ?? []).map(rolePackId),
@@ -194,8 +214,7 @@ export function slotSources(
   for (const id of chainPackIds(npcId, opts)) {
     const pack = packById(content, id);
     if (!pack) continue;
-    const hit = ownSlotLines(pack, slot, opts);
-    if (hit) out.push(hit);
+    out.push(...ownSlotSources(pack, slot, opts));
   }
   return out;
 }

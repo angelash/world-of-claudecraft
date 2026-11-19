@@ -5,8 +5,9 @@ import type { SettingsPart, SyncPatch, SyncSettings } from '../app/settings_sche
 import type { QualityId } from '../hd2d/quality';
 import type { ClientSaves, SaveBlock, SlotId } from '../hud/save_slots';
 import type { TrackerState } from '../hud/tracker_model';
-import type { ClientAdapters } from '../view/adapters';
+import type { ClientAdapters, EvidenceNoteStore } from '../view/adapters';
 import type { GameCommands, GameView } from '../view/game_view';
+import type { HelpSource } from './help_model';
 import type { WindowId } from './window_registry';
 
 export interface SessionActions {
@@ -81,4 +82,10 @@ export interface WindowContext {
   prefs: WindowPrefs;
   /** the quests and the door the HUD tracker follows (client session state, ui_hud_tracker) */
   tracker: TrackerState;
+  /** the guidance cards and the glossary of the help window (17.7; the tutorial store) */
+  help?: HelpSource;
+  /** the player's notes on evidence, kept in the save's client segment (6.3.11) */
+  evidenceNotes?: EvidenceNoteStore;
+  /** replay a seen cutscene read-only (6.3.2 recollection page); absent until the story offers one */
+  replayScene?: (sceneId: string) => void;
 }

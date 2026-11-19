@@ -12,6 +12,7 @@ import type { Engine } from '../src/core';
 import type { FlagValue } from '../src/core/contracts';
 import type { QuestDef } from '../src/systems/quests';
 import { type SceneDef, type SceneNode, sceneView } from '../src/systems/scenes';
+import { DEFAULT_PLAYER_APPEARANCE } from '../src/systems/world';
 import { narrativeContent, narrativeGame, playScene, recordLines } from './narrative_harness';
 
 const content = narrativeContent();
@@ -113,9 +114,11 @@ describe('the seven prologue scenes', () => {
       expect(s.presentation, s.id).toBe(s.id === 'cut_p_interview' ? 'theater' : 'staged');
       if (i < SCENES.length - 1) expect(s.then).toBe(SCENES[i + 1]);
     }
-    // the last scene hands over to act 1 by its act change (act 1's intro plays from there)
+    // the last scene hands over to act 1 (PK-M1-34): it chains into act 1's first cutscene and
+    // changes the act; the act's own request of that intro is dropped while it already plays
     const last = scene('cut_p_discard');
-    expect(last.then).toBeUndefined();
+    expect(last.then).toBe('cut_a1_wake');
+    expect(content.acts.find((a) => a.id === 'act1')?.introScene).toBe(last.then);
     expect(last.onEnd).toEqual([{ type: 'act', act: 'act1' }]);
     // the interview and the judgement are staged in the interview hall
     expect([scene('cut_p_interview').mapId, scene('cut_p_interview').location]).toEqual([
@@ -134,12 +137,14 @@ describe('the seven prologue scenes', () => {
     ]);
   });
 
-  it('offers the re-choice of the opening from P1 to P6 only, and keeps the chosen name', () => {
+  it('offers the re-choice of the opening from P1 to P6 only, resetting quests and player', () => {
     for (const id of SCENES.slice(0, 4)) {
       const r = scene(id).restart;
       expect(r?.scene, id).toBe('cut_p_earth');
       expect(r?.until, id).toBeUndefined();
-      expect(r?.clear, id).toEqual(['p_*', 'scene.cut_p_*']);
+      // the prologue quests and the player's name and look go back too (PK-M1-34, plan row)
+      expect(r?.clear, id).toEqual(['p_*', 'scene.cut_p_*', 'quest.q_p_*']);
+      expect(r?.resetPlayer, id).toBe(true);
       expect(r?.take, id).toEqual([
         'relic_badge',
         'relic_receipt',
@@ -383,7 +388,7 @@ describe('the prologue played', () => {
     expect(lines.some((l) => l.text === '够了。剩下的，光会替我看。')).toBe(false);
   });
 
-  it('keeps the name the player gave when the opening is chosen again during the call', () => {
+  it('forgets the name, the look and the prologue quests when the opening is chosen again', () => {
     const g = narrativeGame({ stub: false });
     g.step(1);
     const step = (e: Engine) => {
@@ -407,12 +412,31 @@ describe('the prologue played', () => {
     g.step(1);
     const v = sceneView(g.world, g.content);
     expect([v?.sceneId, v?.nodeId]).toEqual(['cut_p_earth', 'n1_opening']);
-    // the prologue's own flags and the seen flags of its scenes are gone; the name stays (the
-    // call asks again and overwrites it, and the player entity keeps the same name meanwhile)
+    // the prologue's own flags and the seen flags of its scenes are gone
     expect(g.world.meta.flags.p_earth_opening).toBeUndefined();
     expect(g.world.meta.flags.p_mirror_done).toBeUndefined();
     expect(g.world.meta.flags['scene.cut_p_quarrel.seen']).toBeUndefined();
     expect(g.world.slices.scenes.seen).not.toContain('cut_p_door_white');
-    expect(g.world.meta.flags['player.name']).toBe('阿门');
+    // the name and the look: flag and entity agree, both back to the defaults (the call asks
+    // the name again; the mirror asks the look again)
+    expect(g.world.meta.flags['player.name']).toBeUndefined();
+    expect(g.world.meta.flags.p_appearance).toBeUndefined();
+    const player = g.world.slices.world.entities[g.world.slices.world.playerId];
+    expect(player?.name).toBe('?');
+    expect(player?.appearance).toEqual(DEFAULT_PLAYER_APPEARANCE);
+    // the prologue quests: only what the replayed opening has started again, nothing of the
+    // stages the dropped run had reached
+    const started = Object.keys(g.world.slices.quests.quests).filter((id) => id.startsWith('q_p_'));
+    for (const id of started) expect(g.world.slices.quests.quests[id]?.stage, id).toBe(0);
+    // a stage flag exists only for a quest the replay started again, and names its first stage
+    for (const k of Object.keys(g.world.meta.flags).filter((x) =>
+      /^quest\.q_p_[a-z0-9_]+\.stage$/.test(x),
+    )) {
+      const id = k.slice('quest.'.length, -'.stage'.length);
+      expect(started, k).toContain(id);
+      expect(g.world.meta.flags[k], k).toBe(
+        g.content.quests.find((q) => q.id === id)?.stages[0]?.id,
+      );
+    }
   });
 });

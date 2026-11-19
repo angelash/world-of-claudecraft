@@ -1,0 +1,35 @@
+{
+  "id": "ln_knut_naumann",
+  "speaker": "knut_naumann",
+  "slots": {
+    "greet.cold": ["不修。滚。", "你是代官的人？", "刀放下再说话。"],
+    "greet.neutral": ["修什么？", "刀钝了？拿来。", "嗯。"],
+    "greet.warm": ["你那把刀，我给你磨好了。", "坐。锤子先放一放。", "你来了。今天的铁不错。"],
+    "farewell": ["刀钝了别怪铁。", "走吧。", "别砍不该砍的东西。"],
+    "unbelief.deny": ["吹的。", "一刀？刀没那么快。"],
+    "unbelief.explain": ["那东西被人打残了。", "你的刀好。不是你好。"],
+    "unbelief.waver": ["你的刀口……砍过硬东西。很硬的东西。", "行，我认。"],
+    "react.feat_seen": ["好刀法。", "……让我看看你的刃。"],
+    "react.gift_liked": ["好铁。谢了。", "磨刀石。正缺。"],
+    "react.insult": ["再说一遍，我用锤子跟你说。", "滚。"],
+    "topic.gen_self": {
+      "neutral": ["克努特。修刀的。", "以前给人修军械。现在修什么都行。"]
+    },
+    "topic.gen_work": {
+      "K1": ["修补、冷锻。长枪、刀、农具。", "刀钝了别怪铁，怪你砍了不该砍的东西。"]
+    },
+    "topic.self_knut_naumann_repair": {
+      "K1": ["冷锻比热锻慢，可是结实。", "我的矛头，对灰鬼格外利。运气好吧。"]
+    },
+    "topic.secret_knut_naumann_greystone": {
+      "K1": [
+        {
+          "zh": "我往铁里掺一点荒原捡的灰石。打出来的东西好使。……别问为什么，我也不知道。",
+          "when": "trust.knut_naumann >= 40"
+        }
+      ]
+    },
+    "bark.work": ["叮。叮。", "再淬一回。"],
+    "bark.camp": ["刀擦干净再睡。"]
+  }
+}

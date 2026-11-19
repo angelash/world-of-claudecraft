@@ -31,6 +31,7 @@ describe('default contextual key map', () => {
       'global',
       'field',
       'dialogue',
+      'creator',
       'window',
       'corridor',
       'lord',

@@ -14,6 +14,7 @@ import type { CourtSeat, GoddessDef, VoluntaryCue } from '../goddess/types';
 import { countItem } from '../inventory';
 import { evaluate, flagResolver, truthy } from '../quests/conditions';
 import { registerCompute } from '../quests/effects';
+import { judgePresentation, type PresentPiece } from './present';
 import type { CourtDefenseDef, CourtState, DefenseLine, EvidenceDef, Verdict } from './types';
 
 export const LINES: readonly DefenseLine[] = ['fact', 'just', 'need'];
@@ -103,6 +104,18 @@ export interface PresentResult {
   mitigated: boolean;
 }
 
+/**
+ * An act-6 evidence record as a piece of the shared presentation core (present.ts, PK-M1-55):
+ * the tribunal is the goddess, the point is the defense line (or mitigate).
+ */
+export function courtPiece(ev: EvidenceDef): PresentPiece {
+  return {
+    id: ev.id,
+    item: ev.item,
+    targets: ev.targets.map((t) => ({ tribunal: t.goddess, point: t.line, strength: t.strength })),
+  };
+}
+
 /** Present one piece of evidence to a goddess; returns what happened (pure on the slice). */
 export function presentEvidence(
   ctx: SystemContext,
@@ -113,9 +126,19 @@ export function presentEvidence(
   const def = ctx.content.courtDefenses.find((d) => d.goddess === goddess);
   const flags = ctx.world.meta.flags;
   const shown = court.presented[goddess] ?? [];
+  // the shared core judges whether it bears on her (the caller already checked holding and
+  // repeats through presentable(); the judgement here is hit or wrong)
+  const judged = judgePresentation(courtPiece(ev), goddess, { shown }, () => true);
   court.presented[goddess] = [...shown, ev.id];
   const res: PresentResult = { hit: false, newlyBroken: [], mitigated: false };
   if (!def) return res;
+  if (judged.outcome !== 'hit') {
+    // a piece that bears on nothing of hers (the deflection, act6 3.3): her lines stand, the
+    // piece counts as shown; the slice keeps the shape it always had (her strength record)
+    court.strength[goddess] = court.strength[goddess] ?? { fact: 0, just: 0, need: 0 };
+    ctx.setFlag(`evidence.${ev.id}.shown`, true);
+    return res;
+  }
   const before = brokenLines(court, def, flags, ctx.content);
   const ledger = ledgerTotals(ctx.world);
   const s = court.strength[goddess] ?? { fact: 0, just: 0, need: 0 };

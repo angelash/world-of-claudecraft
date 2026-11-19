@@ -38,7 +38,8 @@ import type {
   WorldMarks,
 } from '../view/adapters';
 import { contentNames } from '../view/content_names';
-import type { GameView } from '../view/game_view';
+import { flagOn, type GameView } from '../view/game_view';
+import { auraDisplayName, DIAN_KNOWN_FLAG } from '../view/mortal_terms';
 
 const RESOURCE_COLORS: Record<string, string> = {
   mana: '#4a7ee0',
@@ -79,9 +80,12 @@ export function unitFrameData(
         max: r.max,
         color: RESOURCE_COLORS[r.kind],
       }));
+    // the sickness auras carry the mortal word until the player hears the real one (D-030)
+    const stages = view.content.ailmentsConfig?.stages;
+    const dianKnown = flagOn(view.flag(DIAN_KNOWN_FLAG));
     data.auras = u.auras.map((a) => ({
       id: a.id,
-      name: contentNames.aura(a.id, a.name),
+      name: auraDisplayName(a.id, contentNames.aura(a.id, a.name), stages, dianKnown),
       harmful: a.kind === 'debuff',
       remaining: a.remaining,
       stacks: a.stacks,

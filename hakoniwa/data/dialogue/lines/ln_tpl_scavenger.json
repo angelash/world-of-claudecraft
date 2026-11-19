@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_scavenger",
+  "slots": {
+    "greet.neutral": ["你也来捡东西？", "嗯。", "灰底下有好东西。"],
+    "greet.cold": ["这片是我的。", "别跟着我。"],
+    "greet.warm": ["你来了。我捡到个好东西，给你看。", "坐，喝口水。"],
+    "farewell": ["灰暴来了就躲。", "走吧。"],
+    "unbelief.deny": ["荒原上没那种人。", "吹的。"],
+    "unbelief.explain": ["运气好。", "灰里的东西在帮他。"],
+    "unbelief.waver": ["你在灰暴里走路像散步……带上我。", "我跟着你走。"],
+    "react.feat_seen": ["嚯……", "你不怕灰？"],
+    "topic.gen_work": {
+      "K0": ["白天捡，夜里躲。", "灰底下埋的都是别人的东西。"]
+    },
+    "bark.work": [
+      "这块铁片……好看。",
+      {
+        "zh": "灰暴要来了。",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.ashfall": ["快找地方躲！"],
+    "bark.night": ["夜里别出去。"]
+  }
+}

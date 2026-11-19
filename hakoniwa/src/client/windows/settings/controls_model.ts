@@ -53,6 +53,8 @@ const LATER_ACTS = new Set(['act2', 'act3', 'act4', 'act5', 'act6', 'epilogue'])
 
 /** The flags that open a context's mode (1.5); contexts not listed are always shown. */
 const CONTEXT_GATES: Partial<Record<InputContext, (f: Flags) => boolean>> = {
+  // the spirit mirror is a prologue interface (3.4.3): its keys show while the prologue runs
+  creator: (f) => String(f.act ?? '') === 'prologue',
   corridor: (f) => flagOn(f['feature.door_corridor']),
   lord: (f) => flagOn(f['feature.city']) || flagOn(f['feature.village']),
   battle: (f) => flagOn(f['feature.rts']),

@@ -16,13 +16,12 @@ import {
   edgeArrows,
   type GroundWarning,
   showsCastBar,
-  THREAT_NAME_COLOR,
-  WARNING_COLORS,
   wantsEdgeArrow,
   warningPolygons,
 } from './combat_marks';
 import { FLOAT_COLORS } from './floating_text';
 import { type MarkerKind, markerBob } from './markers';
+import { activePalette } from './palette_modes';
 import type { Scene, SceneEntity } from './scene';
 
 export interface OverlayFrame {
@@ -37,12 +36,16 @@ export interface OverlayFrame {
   viewport: { w: number; h: number };
 }
 
-const NAME_COLOR: Record<string, string> = {
-  self: '#f4ecd4',
-  hostile: '#ff8a78',
-  friendly: '#b8f0a8',
-  neutral: '#f4e08a',
-};
+/** Overhead name colour by relation in the active colour-vision palette (18.2). */
+function nameColor(relation: string): string {
+  const n = activePalette().names;
+  return relation === 'self' ||
+    relation === 'hostile' ||
+    relation === 'friendly' ||
+    relation === 'neutral'
+    ? n[relation]
+    : '#ffffff';
+}
 
 const FONT = 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
 
@@ -76,7 +79,7 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
       c.font = `${size}px ${FONT}`;
       c.lineWidth = Math.max(2, Math.round(3 * dpr));
       c.strokeStyle = 'rgba(16,12,24,0.85)';
-      c.fillStyle = it.marks.threat ? THREAT_NAME_COLOR : (NAME_COLOR[it.relation] ?? '#ffffff');
+      c.fillStyle = it.marks.threat ? activePalette().names.threat : nameColor(it.relation);
       c.strokeText(it.name, head.x, head.y);
       c.fillText(it.name, head.x, head.y);
       top = head.y - size - 2 * dpr;
@@ -249,7 +252,8 @@ function paintWarning(
   f: OverlayFrame,
   dpr: number,
 ): void {
-  const col = w.hostile ? WARNING_COLORS.hostile : WARNING_COLORS.friendly;
+  const pal = activePalette().warnings;
+  const col = w.hostile ? pal.hostile : pal.friendly;
   const trace = (poly: readonly { x: number; y: number }[]) => {
     c.beginPath();
     poly.forEach((p, i) => {

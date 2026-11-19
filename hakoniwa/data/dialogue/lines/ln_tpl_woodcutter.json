@@ -1,0 +1,30 @@
+{
+  "id": "ln_tpl_woodcutter",
+  "slots": {
+    "greet.neutral": ["嗯，你好。", "别往伐区里走，树倒了砸人。", "早。"],
+    "greet.cold": ["外人别进伐区。", "干活呢。"],
+    "greet.warm": ["来了！坐木头上歇会儿。", "喝口水。"],
+    "farewell": ["走吧，小心。", "回见。"],
+    "unbelief.deny": ["一个人清狼窝？不可能。", "吹的。"],
+    "unbelief.explain": ["那窝狼早被人打残了。", "运气好。"],
+    "unbelief.waver": ["我看见了……行吧。", "你也许真是条汉子。"],
+    "react.feat_seen": ["好！", "嚯！"],
+    "topic.gen_work": {
+      "K0": ["砍树、运木头、烧炭。", "伐区越往里，魔物越多。"]
+    },
+    "bark.work": [
+      "顺山倒！",
+      {
+        "zh": "锯了一上午。",
+        "mood": ["tired"]
+      }
+    ],
+    "bark.chat": [
+      {
+        "zh": "东坡那帮人又挪了记号。",
+        "mood": ["angry"]
+      }
+    ],
+    "bark.eat": ["吃饭吃饭。"]
+  }
+}

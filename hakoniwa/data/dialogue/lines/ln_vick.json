@@ -1,0 +1,47 @@
+{
+  "id": "ln_vick",
+  "speaker": "vick",
+  "slots": {
+    "greet.cold": ["这位，按章程办。", "税务所今日不受理。", "请出去。"],
+    "greet.neutral": ["这位，有何公干？", "按章程办。请说。", "嗯。"],
+    "greet.warm": ["这位，请坐。……你说的那件事，我想好了。", "这位，我们可以谈谈。私下。", "茶？"],
+    "farewell": ["这位，慢走。", "按章程办。", "告辞。"],
+    "unbelief.deny": ["无据可查之事，不予采信。", "这位，公文上没有这件事。"],
+    "unbelief.explain": ["恐怕是有人在背后安排。", "依我看，是误报。"],
+    "unbelief.waver": ["这位……也许我该重新考虑立场。", "你到底站在哪一边？"],
+    "react.feat_seen": ["……这需要记录在案。", "这位，真是了不得。"],
+    "react.gift_liked": ["这位太客气了。", "好纸。谢谢。"],
+    "react.insult": ["这位，请注意言辞。", "我会记下来的。"],
+    "topic.gen_self": {
+      "neutral": ["维克，代官书记官。", "公文、税簿、告示，都出自我手。"]
+    },
+    "topic.gen_work": {
+      "K1": ["记账，起草告示。按章程办。", "代官府的每一笔，都要有据可查。"]
+    },
+    "topic.self_vick_chapter": {
+      "K1": ["章程就是护身符。按章程办，就不会出错。", "我想离开边石镇。去城里。"]
+    },
+    "topic.secret_vick_ledger": {
+      "K1": [
+        {
+          "zh": "……代官有第二本账。我誊了一份。为了自保。",
+          "when": "a1_vick_informant"
+        },
+        {
+          "zh": "给你。你要保证我的安全。",
+          "when": "a1_vick_informant"
+        }
+      ]
+    },
+    "quest.q_a1_s10_lisa_bundle.progress": [
+      "婚约是佩德答应的。按章程，没什么不妥。",
+      {
+        "zh": "……我也不是非娶她不可。",
+        "when": "a1_vick_informant"
+      }
+    ],
+    "quest.q_a1_s11_otto_will.progress": ["遗嘱是舅舅亲手写的。……这位，你见过原件？"],
+    "bark.work": ["这一笔……对上了。", "按章程办。"],
+    "bark.shop": ["纸又涨价了。"]
+  }
+}

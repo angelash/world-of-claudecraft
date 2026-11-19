@@ -1,0 +1,61 @@
+/* ui_pop_tutorial and the 亮 outline (ux_and_onboarding.md 6.4, 17.2; tokens of 1.4). */
+.hk-tut-card {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  width: min(440px, 90vw);
+  padding: 16px 18px 12px;
+  background: rgba(20, 17, 30, 0.94);
+  border: 1px solid rgba(63, 168, 138, 0.8);
+  border-radius: 12px;
+  color: var(--hk-text);
+  z-index: 70;
+  pointer-events: auto;
+}
+.hk-tut-card.side {
+  left: auto;
+  right: 16px;
+  top: 38%;
+  transform: none;
+  width: min(340px, 80vw);
+}
+.hk-tut-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.hk-tut-para {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.hk-tut-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.hk-tut-glow {
+  outline: 2px solid #3fa88a;
+  outline-offset: 2px;
+  animation: hk-tut-pulse 700ms ease-in-out 2;
+}
+.hk-tut-glow-static {
+  outline: 4px solid #3fa88a;
+  outline-offset: 2px;
+}
+@keyframes hk-tut-pulse {
+  0%,
+  100% {
+    outline-color: rgba(63, 168, 138, 0.2);
+  }
+  50% {
+    outline-color: rgba(63, 168, 138, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-tut-glow {
+    animation: none;
+    outline-width: 4px;
+  }
+}

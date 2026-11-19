@@ -748,6 +748,8 @@ describe('door node', () => {
       events,
     );
     expect(placed.ok, t(placed.reason)).toBe(true);
+    // the court opens from a closed door: the old granary's door on the outpost map
+    run(engine, 'world.teleport', { entityId: 'player', mapId: SITE, x: 35.5, y: 36.5 }, events);
     expect(run(engine, 'city.enter_court', {}, events).ok).toBe(true);
     // not linked yet: the order cannot reach the outpost from the court
     expect(

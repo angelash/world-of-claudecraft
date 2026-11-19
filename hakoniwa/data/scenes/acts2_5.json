@@ -7,14 +7,6 @@
     "nodes": [
       {
         "id": "road",
-        "effects": [
-          {
-            "type": "add",
-            "key": "seal_looseness",
-            "amount": 5,
-            "max": 100
-          }
-        ],
         "lines": [
           {
             "speaker": "narrator",
@@ -304,14 +296,6 @@
     "nodes": [
       {
         "id": "title",
-        "effects": [
-          {
-            "type": "add",
-            "key": "seal_looseness",
-            "amount": 10,
-            "max": 100
-          }
-        ],
         "lines": [
           {
             "speaker": "narrator",
@@ -621,14 +605,6 @@
     "nodes": [
       {
         "id": "map",
-        "effects": [
-          {
-            "type": "add",
-            "key": "seal_looseness",
-            "amount": 10,
-            "max": 100
-          }
-        ],
         "lines": [
           {
             "speaker": "narrator",
@@ -1273,14 +1249,6 @@
     "nodes": [
       {
         "id": "title",
-        "effects": [
-          {
-            "type": "add",
-            "key": "seal_looseness",
-            "amount": 15,
-            "max": 100
-          }
-        ],
         "lines": [
           {
             "speaker": "narrator",

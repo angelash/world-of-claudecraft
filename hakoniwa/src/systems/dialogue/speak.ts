@@ -19,6 +19,7 @@ import { type LineHistory, newLineHistory, recordLine } from './lines/history';
 import { COMMON_PACK_ID, type FallbackLayers, type VersionBy } from './lines/packs';
 import { selectLine } from './lines/select';
 import type { Mood, PlaceKind } from './lines/types';
+import { isScripted } from './scripted';
 import type { DialogueSlice } from './types';
 
 /** Bark keys kept per speaker (3 game days of barks fit easily). */
@@ -57,6 +58,7 @@ export function placeKindOf(ctx: SystemContext, st: NpcState): PlaceKind | undef
 /** The fallback layers of a speaker: functional roles, resident template, social class. */
 export function speakerLayers(ctx: SystemContext, speaker: string): FallbackLayers {
   const p = personaById(ctx.content, speaker);
+  if (p && isScripted(ctx.content, speaker, ctx.flag('act'))) return { ownOnly: true };
   if (p) return { roles: p.roles ?? [], socialClass: p.class };
   const r = ctx.world.slices.npc.residents[speaker];
   if (r) {

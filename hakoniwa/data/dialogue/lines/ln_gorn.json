@@ -1,0 +1,52 @@
+{
+  "id": "ln_gorn",
+  "speaker": "gorn",
+  "slots": {
+    "greet.cold": ["人族。有事？", "东坡不欢迎闹事的。", "规矩就是规矩。"],
+    "greet.neutral": ["人族。", "祖灵在上。来了。", "坐。"],
+    "greet.warm": ["朋友。坐。", "你帮了东坡。东坡记着。", "熏肉刚好。"],
+    "farewell": ["走好。", "祖灵在上。", "规矩记着。"],
+    "unbelief.deny": ["传闻。我不听。", "人族的嘴。"],
+    "unbelief.explain": ["我没看见，不算。", "让希雅去看。她鼻子准。"],
+    "unbelief.waver": ["希雅说你是真的。她不撒谎。", "我看见了。我认。"],
+    "react.feat_seen": ["强。", "……好。"],
+    "react.gift_liked": ["好盐。谢谢。", "东坡记着这份情。"],
+    "react.insult": ["再说一遍。", "我能忍。别逼我。"],
+    "topic.gen_self": {
+      "neutral": ["葛恩。东坡猎户的头。", "我守着林约，守着东坡。"]
+    },
+    "topic.gen_work": {
+      "K0": ["巡林界，管东坡的人。", "皮货卖到镇上，总被压价。"]
+    },
+    "topic.self_gorn_pact": {
+      "K0": ["林约刻在约树上。人族和兽人一起刻的。", "百年了。人族忘了，树没忘。"]
+    },
+    "topic.secret_gorn_leg": {
+      "K0": [
+        {
+          "zh": "腿伤？两年前替一个人族猎人挡了魔物。",
+          "when": "trust.gorn >= 60"
+        },
+        {
+          "zh": "他后来说，魔物是我们引来的。……我能忍。",
+          "when": "trust.gorn >= 60"
+        }
+      ]
+    },
+    "topic.lore_wolf_saying": {
+      "K1": [
+        {
+          "zh": "老话说，草原和海之间只隔一扇门。祖灵说的。",
+          "when": "trust.gorn >= 40"
+        }
+      ]
+    },
+    "quest.q_a1_s04_pact_oak.offer": ["约树上的字，人族不认。我要抄本。公会有。"],
+    "quest.q_a1_s04_pact_oak.progress": ["侯克那个人，要问对问题。"],
+    "quest.q_a1_s04_pact_oak.complete": ["抄本。字对得上。祖灵在上。", "你帮了东坡。"],
+    "quest.q_a1_s04_pact_oak.after": ["有了林约，人族就得讲规矩。"],
+    "quest.q_a1_m05_grey_wolf.offer": ["北边的狼不对。希雅去了。你也去。"],
+    "bark.work": ["林界的记号又被人挪了。"],
+    "bark.patrol": ["这边没事。", "风往东吹，好。"]
+  }
+}

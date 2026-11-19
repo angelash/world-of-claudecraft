@@ -1,0 +1,172 @@
+/* Accessibility (ux_and_onboarding.md 18.2, 18.3, 18.8; art_pipeline.md 2.11, 2.12): the
+   colour-vision token overrides and their DOM readers, the text size, larger dialogue text and
+   the calm rules of "reduce flashing and shaking". src/client/app/accessibility.ts writes the
+   attributes, classes and variables these rules hang off (src/client/app/access_apply_model.ts
+   lists them); the world canvas reads the same hues from src/client/render/palette_modes.ts.
+   Every rule here sheds decoration only: nothing a player acts on is hidden or delayed (UX-6),
+   and every semantic colour keeps its shape (ring gaps and line types, hatching and the warning
+   outline, the quality name colour beside its quality word). */
+
+/* ---- semantic tokens (1.4); the colour-vision modes replace these only (18.2) ---- */
+
+:root {
+  --hk-rel-self: #4fb3ff;
+  --hk-rel-friend: #5ccb7a;
+  --hk-rel-neutral: #e8d25a;
+  --hk-rel-hostile: #e5534b;
+  --hk-warn-enemy: #f06a3a;
+  --hk-warn-ally: #3fc1b0;
+  --hk-q-0: #9d9d9d;
+  --hk-q-1: #f0ece4;
+  --hk-q-2: #6ee05a;
+  --hk-q-3: #5aa2ff;
+  --hk-q-4: #c27aff;
+  --hk-q-5: #ff9a3a;
+  --hk-text-scale: 1;
+  --hk-dlg-scale: 1;
+}
+
+:root[data-color-mode="red_green"] {
+  --hk-rel-hostile: #d94fc1;
+  --hk-rel-friend: #3fb6e8;
+  --hk-warn-enemy: #f0a030;
+  --hk-warn-ally: #4f7fe8;
+  --hk-q-2: #8fc8f0;
+  --hk-q-4: #f0b040;
+}
+
+:root[data-color-mode="blue_yellow"] {
+  --hk-rel-neutral: #c8c8c8;
+  --hk-warn-ally: #30c8a0;
+  --hk-q-3: #c060b0;
+}
+
+/* The DOM readers of the tokens: item names by quality, and the unit frames' name by relation
+   (player, target, focus and party frames share `.hk-frame` with a `rel-*` class). */
+.hk-q0 {
+  color: var(--hk-q-0);
+}
+.hk-q1 {
+  color: var(--hk-q-1);
+}
+.hk-q2 {
+  color: var(--hk-q-2);
+}
+.hk-q3 {
+  color: var(--hk-q-3);
+}
+.hk-q4 {
+  color: var(--hk-q-4);
+}
+.hk-q5 {
+  color: var(--hk-q-5);
+}
+.hk-frame.rel-self .hk-frame-name {
+  color: var(--hk-rel-self);
+}
+.hk-frame.rel-hostile .hk-frame-name {
+  color: var(--hk-rel-hostile);
+}
+.hk-frame.rel-friendly .hk-frame-name {
+  color: var(--hk-rel-friend);
+}
+.hk-frame.rel-neutral .hk-frame-name {
+  color: var(--hk-rel-neutral);
+}
+
+/* ---- high contrast (18.2): opaque panels, pure white text, 2 px borders ---- */
+
+:root[data-color-mode="high_contrast"] {
+  --hk-bg: #000000;
+  --hk-bg-solid: #000000;
+  --hk-panel-border: #ffffff;
+  --hk-text: #ffffff;
+  --hk-muted: #e6e6e6;
+}
+:root[data-color-mode="high_contrast"] .hk-panel,
+:root[data-color-mode="high_contrast"] .hk-window,
+:root[data-color-mode="high_contrast"] .hk-dlg2-panel,
+:root[data-color-mode="high_contrast"] .hk-confirm-card {
+  background: #000000;
+  border-width: 2px;
+  border-color: #ffffff;
+}
+:root[data-color-mode="high_contrast"] .hk-btn {
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+}
+:root[data-color-mode="high_contrast"] :focus-visible {
+  outline: 2px solid #3fa88a;
+  outline-offset: 2px;
+}
+
+/* ---- text size (18.3) ----
+   One mechanism: `zoom` on the interface's top-level containers, so px sizes, icons and
+   spacing grow together and a text never doubles its scale. The body font size stays fixed;
+   the containers are disjoint (none nests in another), and the world canvas never scales. A
+   window scales its title bar and body, not its frame, so its dragged position stays put. */
+:root:not([data-text-size="standard"]) .hk-hud-tl,
+:root:not([data-text-size="standard"]) .hk-hud-tr,
+:root:not([data-text-size="standard"]) .hk-hud-bl,
+:root:not([data-text-size="standard"]) .hk-hud-br,
+:root:not([data-text-size="standard"]) .hk-hud-tc,
+:root:not([data-text-size="standard"]) .hk-hud-bc > :not(.hk-dlg2),
+:root:not([data-text-size="standard"]) .hk-notify-top,
+:root:not([data-text-size="standard"]) .hk-notify-stack,
+:root:not([data-text-size="standard"]) .hk-bn,
+:root:not([data-text-size="standard"]) .hk-window-title,
+:root:not([data-text-size="standard"]) .hk-window-body,
+:root:not([data-text-size="standard"]) .hk-wheel,
+:root:not([data-text-size="standard"]) .hk-tut-card,
+:root:not([data-text-size="standard"]) .hk-confirm-card,
+:root:not([data-text-size="standard"]) .hk-boot-card,
+:root:not([data-text-size="standard"]) .hk-newgame-card {
+  zoom: var(--hk-text-scale);
+}
+
+/* Dialogue and cutscene text: the text size, one step larger when asked (18.3). Only the text
+   regions grow (the panels keep their width, already 92vw on small screens, so they never run
+   off the screen); the dialogue panel sits outside every zoom above, so nothing scales twice. */
+:root .hk-dlg2-lines,
+:root .hk-dlg2-options,
+:root .hk-cut-lines,
+:root .hk-cut-choices {
+  zoom: var(--hk-dlg-scale);
+}
+
+/* ---- reduce flashing and shaking (18.8) ----
+   Only pulses, shakes and flashes stop; fades stay fades (the cutscene fade is already 0.2 s
+   soft under the player's own flag, catalog_cutscenes.md 13.8), and a moving thing simply
+   arrives without its wobble. The system "reduce motion" rules in each stylesheet do the same
+   for the system preference; these rules carry the page's own switch. */
+:root.hk-calm .hk-cut.shake-1,
+:root.hk-calm .hk-cut.shake-2,
+:root.hk-calm .hk-cut.shake-3,
+:root.hk-calm .hk-cut-door.wind .hk-cut-door-wind,
+:root.hk-calm .hk-cut-door.reappear,
+:root.hk-calm .hk-court-mirror,
+:root.hk-calm .hk-notify {
+  animation: none;
+}
+/* the tutorial's two outline pulses become a static thick outline (17.2 "亮") */
+:root.hk-calm .hk-tut-glow {
+  animation: none;
+  outline-width: 4px;
+}
+/* the coin's spin becomes a still outline (5.2 ui_hud_coin) */
+:root.hk-calm .hk-coin-badge.spin {
+  animation: none;
+  outline: 2px solid #e8cf8a;
+  outline-offset: 2px;
+}
+/* the hint bar's 400 ms fade-out stays (a fade, not a flash) */
+
+/* ---- sound captions and the notifications (18.4, 5.4) ----
+   The caption box (src/client/audio/caption_painter.ts) sits at z 0 in the field: the
+   notification areas stack above it, so a caption can never cover a notification the player
+   acts on; during a cutscene the captions rise over the cutscene layer at the top edge. */
+.hk-notify-top,
+.hk-notify-stack {
+  z-index: 1;
+}

@@ -622,9 +622,177 @@
         "w": 2,
         "h": 2,
         "tags": ["building", "indoor_layer"]
+      },
+      {
+        "id": "old_granary",
+        "name": "西田旧谷仓",
+        "kind": "field",
+        "x": 20,
+        "y": 55,
+        "w": 4,
+        "h": 4,
+        "sediment": 2,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "north_spring_square",
+        "name": "北泉小广场",
+        "kind": "plaza",
+        "x": 33,
+        "y": 31,
+        "w": 9,
+        "h": 4,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "orphanage_street",
+        "name": "孤儿院前街",
+        "kind": "plaza",
+        "x": 33,
+        "y": 24,
+        "w": 15,
+        "h": 1,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "cover_north_gate",
+        "name": "北门门洞",
+        "kind": "gate",
+        "x": 48,
+        "y": 22,
+        "w": 4,
+        "h": 3,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "cover_eaves_1",
+        "name": "孤儿院的屋檐",
+        "kind": "plaza",
+        "x": 34,
+        "y": 31,
+        "w": 6,
+        "h": 1,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "cover_eaves_2",
+        "name": "礼拜堂的屋檐",
+        "kind": "plaza",
+        "x": 41,
+        "y": 24,
+        "w": 6,
+        "h": 1,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "cover_eaves_3",
+        "name": "北屋的屋檐",
+        "kind": "plaza",
+        "x": 34,
+        "y": 34,
+        "w": 7,
+        "h": 1,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "orphanage_hut_1",
+        "name": "孤儿院的柴棚",
+        "kind": "work",
+        "x": 33,
+        "y": 26,
+        "w": 1,
+        "h": 1,
+        "tags": ["open", "no_roof"]
+      },
+      {
+        "id": "orphanage_fence_1",
+        "name": "孤儿院前街的栅栏",
+        "kind": "work",
+        "x": 40,
+        "y": 24,
+        "w": 1,
+        "h": 1,
+        "tags": ["open", "no_roof"]
       }
     ],
-    "spawns": [],
+    "spawns": [
+      {
+        "kind": "monster",
+        "id": "bs_granary_rats",
+        "ref": "dian_rat",
+        "x": 21.5,
+        "y": 57.5,
+        "count": 4,
+        "radius": 2,
+        "respawnMinutes": 15,
+        "requiresFlags": [
+          "dg.nest_furrow_rat_queen.stage",
+          "!dg.nest_furrow_rat_queen.cleared",
+          "!dg.nest_furrow_rat_queen.collapsed"
+        ]
+      },
+      {
+        "kind": "monster",
+        "id": "bs_furrow_rat_queen",
+        "ref": "furrow_rat_queen",
+        "x": 21.5,
+        "y": 56.5,
+        "count": 1,
+        "radius": 1,
+        "requiresFlags": [
+          "dg.nest_furrow_rat_queen.stage",
+          "!dg.nest_furrow_rat_queen.cleared",
+          "!dg.nest_furrow_rat_queen.collapsed"
+        ],
+        "respawnMinutes": 1440
+      },
+      {
+        "kind": "monster",
+        "id": "bs_cellar_rats",
+        "ref": "dian_rat",
+        "x": 7.5,
+        "y": 69.5,
+        "count": 4,
+        "radius": 1.5,
+        "respawnMinutes": 60,
+        "requiresFlags": [
+          "quest.q_a1_m04_hunt",
+          "!dg.dg_moon_cellar.cleared",
+          "!dg.dg_moon_cellar.collapsed",
+          "!a1_bell_tab_seen"
+        ]
+      },
+      {
+        "kind": "monster",
+        "id": "bs_cellar_coin_rats",
+        "ref": "coinmouth_rat",
+        "x": 8.5,
+        "y": 72.5,
+        "count": 4,
+        "radius": 1.5,
+        "requiresFlags": [
+          "quest.q_a1_s17_moon_cellar",
+          "!dg.dg_moon_cellar.cleared",
+          "!dg.dg_moon_cellar.collapsed",
+          "!a1_bell_tab_seen"
+        ]
+      },
+      {
+        "kind": "monster",
+        "id": "bs_cellar_crone",
+        "ref": "tally_rat_crone",
+        "x": 11.5,
+        "y": 73.5,
+        "count": 1,
+        "radius": 1,
+        "requiresFlags": [
+          "quest.q_a1_s17_moon_cellar",
+          "!dg.dg_moon_cellar.cleared",
+          "!dg.dg_moon_cellar.collapsed",
+          "!a1_bell_tab_seen"
+        ]
+      }
+    ],
     "exits": [
       {
         "id": "to_borderstone_north",

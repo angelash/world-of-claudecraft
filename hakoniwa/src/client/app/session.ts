@@ -74,12 +74,14 @@ import {
 } from '../view/game_view';
 import { registerWindows, type WindowId, WindowManager } from '../windows';
 import type { ClientSettings, DisplayView, WindowPrefs } from '../windows/window_context';
+import { applyAccessibility, systemReducedMotion } from './accessibility';
+import { Act1Wiring } from './act1_wiring';
 import { FixedStepClock, framesToRun, SPEEDS, type Speed } from './clock';
 import { EventRouter } from './event_router';
 import { HudExtras } from './hud_extras';
 import { pageStorage } from './platform_wiring';
 import { PlayerInput, type PlayerInputHost } from './player_input';
-import type { LocalSettings, StoredView } from './settings_schema';
+import type { LocalSettings, StoredView, SyncSettings } from './settings_schema';
 import { StoryWiring } from './story_wiring';
 import { ThumbnailCapture } from './thumbnail';
 import { WorldPresenter } from './world_presenter';
@@ -101,6 +103,8 @@ export interface SessionOptions {
   hooks?: SessionHooks;
   /** first message-log line (for example "loaded slot 2") */
   greeting?: string;
+  /** the loaded save's client segment (guidance, tracking, notes; ux_and_onboarding.md 17.8) */
+  clientSegment?: unknown;
   /** replace this session with a loaded save */
   loadWorld(loaded: LoadedSave, greeting: string): void;
   toTitle(): void;
@@ -165,6 +169,12 @@ export class GameSession implements PlayerInputHost {
   private readonly router: EventRouter;
   /** party, focus, notifications, hint bar and rumble (PK-M1-22) */
   private readonly extras: HudExtras;
+  /** the act-1 windows' availability, the onboarding, the field and tide panels, the coin and
+   * the save's client segment (PK-M1-23) */
+  private readonly act1: Act1Wiring;
+  /** the accessibility settings and the system motion preference last applied (18) */
+  private appliedAccess: Readonly<SyncSettings> | null = null;
+  private appliedMotion = false;
   /** live map, sediment fade, combat marks and the scene's stage (PK-M1-24) */
   private readonly world: WorldPresenter;
   private readonly unsubscribe: () => void;
@@ -215,8 +225,7 @@ export class GameSession implements PlayerInputHost {
       closeConversation: () => this.actions.closeConversation(),
       storage: pageStorage(window),
       // built before the windows: read them only when a frame asks
-      held: () =>
-        this.clock.paused || !!this.windows?.holdsWorld || confirmOpen() || exitChoiceOpen(),
+      held: () => this.clock.paused || this.worldHeld(),
     });
     const a = opts.adapters;
 
@@ -238,6 +247,8 @@ export class GameSession implements PlayerInputHost {
       onWarPrompt: () => this.windows.show('battle'),
       onSelect: (id) => this.select(id),
       onOpenWindow: (id) => this.windows.show(id as WindowId),
+      onCoin: () => this.act1.openOffer(),
+      onTideClose: (night) => this.act1.closeTide(night),
     });
     this.world = new WorldPresenter(opts.root, this.view, a);
     this.extras = new HudExtras({
@@ -249,10 +260,32 @@ export class GameSession implements PlayerInputHost {
       // a loose line sits over the field: notifications and hints keep going (5.1, 5.4)
       talking: () => !!a.conversation?.conversation(this.view),
       conversing: () => !!a.conversation?.conversation(this.view),
+      hintContext: (base) => this.act1.hintContext(base),
     });
+    this.act1 = new Act1Wiring({
+      view: this.view,
+      adapters: a,
+      hud: this.hud,
+      root: opts.root,
+      tracker: this.tracker,
+      sync: () => opts.prefs.sync,
+      updateSync: (patch) => opts.prefs.updateSync(patch),
+      queue: (cmds) => this.queue(cmds),
+      isOpen: (id) => this.windows?.isOpen(id) ?? false,
+      inScene: () => this.inScene(),
+      talking: () => !!a.conversation?.conversation(this.view),
+      selection: () => this.selection,
+      canSave: () => this.saveBlockNow() === null,
+      listenTier: () => this.story.listenTierNow(),
+      notify: (n) => this.extras.notify(n, performance.now()),
+      kv: pageStorage(window),
+    });
+    this.act1.restore(opts.clientSegment);
+    opts.saves.setClientSegment(() => this.act1.segment());
 
     this.windows = new WindowManager(opts.root, {
-      flags: () => this.view.flags(),
+      // the world's flags plus the act-1 discovery keys (window_unlocks.ts)
+      flags: () => this.act1.availFlags(),
       devMode: opts.devMode,
     });
     this.windows.onChange = () => this.refreshHud(true);
@@ -265,6 +298,8 @@ export class GameSession implements PlayerInputHost {
       settings: opts.settings,
       prefs: opts.prefs,
       tracker: this.tracker,
+      help: this.act1.help(),
+      evidenceNotes: this.act1.notes,
       actions: {
         saveTo: (slot) => this.saveTo(slot),
         loadFrom: (slot) => this.loadFrom(slot),
@@ -317,10 +352,13 @@ export class GameSession implements PlayerInputHost {
     this.unsubscribe = opts.engine.onEvents((events) => {
       this.router.handle(events, performance.now());
       this.story.feed(events);
+      this.act1.events(events, performance.now());
     });
     this.audio = this.startAudio();
 
     this.input = this.bindInput();
+    // a right click on a companion's party frame opens that companion's order ring (5.2)
+    this.hud.party.onOrders = (id) => this.input.openRing('party', id);
 
     window.addEventListener('resize', this.onResize);
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -386,6 +424,8 @@ export class GameSession implements PlayerInputHost {
     document.removeEventListener('visibilitychange', this.onVisibility);
     document.removeEventListener('webglcontextrestored', this.onContextRestored, true);
     this.unsubscribe();
+    this.opts.saves.setClientSegment(null);
+    this.act1.dispose();
     this.story.dispose();
     this.world.dispose();
     this.stopAudio();
@@ -592,7 +632,8 @@ export class GameSession implements PlayerInputHost {
     this.input.frame(now);
     // An interface mode (the corridor, 9.1), settings, saves, the menu, help and a confirm popup
     // hold the world still (ux_and_onboarding.md 1.3).
-    const scale = this.windows.holdsWorld || confirmOpen() || exitChoiceOpen() ? 0 : this.timeScale;
+    // a modal guidance card holds it too (17.2)
+    const scale = this.worldHeld() ? 0 : this.timeScale;
     const { steps, alpha } = this.clock.advance(dt * scale);
     const ranSteps = framesToRun(steps, !!this.engine.clockStep());
     for (let i = 0; i < ranSteps; i++) {
@@ -614,6 +655,17 @@ export class GameSession implements PlayerInputHost {
     const mode = this.windows.modeOpen;
     if (mode && this.inScene()) this.windows.close(mode);
     if (now - this.lastHud >= HUD_INTERVAL_MS) this.refreshHud(false, now);
+  }
+
+  /**
+   * Whatever holds the world still (1.3, 17.2): a mode, settings, saves, the menu, help, a
+   * confirm or exit popup, or a modal guidance card. The step, the story layer and the frame
+   * scheduler all read this one answer.
+   */
+  private worldHeld(): boolean {
+    return (
+      !!this.windows?.holdsWorld || confirmOpen() || exitChoiceOpen() || !!this.act1?.holdsWorld()
+    );
   }
 
   /**
@@ -731,7 +783,7 @@ export class GameSession implements PlayerInputHost {
     const inScene = this.inScene();
     // Paused, or a scene panel over the world: idle animation, weather and water hold still;
     // a staged scene (a shot, a light, a weather or a motion on stage) keeps the world moving.
-    const held = this.windows.holdsWorld || confirmOpen() || exitChoiceOpen();
+    const held = this.worldHeld();
     const quiet = this.clock.paused || held || (inScene && !stage.staged);
     let exitHint: { x: number; y: number; text: string } | null = null;
     // a gate with several ways out says how many (exit_choice_model.ts)
@@ -864,7 +916,7 @@ export class GameSession implements PlayerInputHost {
       pid,
       map ? (a.mapMarkers?.markers(v, map.id) ?? []) : [],
     );
-    this.hud.menuBar.update(v.flags(), (id) => this.windows.isOpen(id));
+    this.hud.menuBar.update(this.act1.availFlags(), (id) => this.windows.isOpen(id));
     this.hud.gauges.update(gaugesModel(gaugeInput(v, a)));
     const short = window.innerHeight < 900;
     this.hud.tracker.update(buildTracker(v, a, this.tracker, short ? TRACK_MAX_SHORT : TRACK_MAX));
@@ -880,6 +932,16 @@ export class GameSession implements PlayerInputHost {
     );
     this.hud.banner.update(now);
     this.extras.refresh(now);
+    this.act1.refresh(now);
+    // colour mode, text size, reduced motion (18): written again whenever the settings change
+    const motion = systemReducedMotion();
+    if (sync !== this.appliedAccess || motion !== this.appliedMotion) {
+      this.appliedAccess = sync;
+      this.appliedMotion = motion;
+      // the world palette and calm flag changed: redraw the world picture (18.2, 18.8)
+      if (applyAccessibility(document.documentElement, sync, motion))
+        this.frames.invalidate('quality');
+    }
     this.hud.setPaused(this.clock.paused);
     this.renderStory();
     this.windows.update();
@@ -1022,6 +1084,8 @@ export class GameSession implements PlayerInputHost {
   }
 
   private audioFrame(now: number): void {
+    // a pad-only player starts the audio with the first button press (18.5)
+    if (this.act1.padUnlocks()) this.audio.unlock();
     const player = this.view.player();
     const r = this.renderer;
     const prefs = this.prefs();

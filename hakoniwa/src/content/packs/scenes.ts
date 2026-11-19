@@ -9,10 +9,16 @@ import defenses from '../../../data/scenes/defenses.json';
 import endings from '../../../data/scenes/endings.json';
 import epilogue from '../../../data/scenes/epilogue.json';
 import evidence from '../../../data/scenes/evidence.json';
+import lore from '../../../data/scenes/lore.json';
+import loreItems from '../../../data/scenes/lore_items.json';
 import maps from '../../../data/scenes/maps.json';
 import prologue from '../../../data/scenes/prologue.json';
 import speakers from '../../../data/scenes/speakers.json';
+import trials from '../../../data/scenes/trials.json';
 import type { ContentMap } from '../../core/contracts';
+import { defaultRegistry } from '../../core/registry';
+import type { ItemDef } from '../../systems/inventory/types';
+import type { TrialDef } from '../../systems/scenes/trial';
 import {
   type CourtDefenseDef,
   type EpilogueEntry,
@@ -20,6 +26,7 @@ import {
   SCENE_CHOICE_KEYS,
   type SceneDef,
   type SpeakerDef,
+  STAGE_TRANSITIONS,
 } from '../../systems/scenes/types';
 import type { WorldStart } from '../../systems/world';
 import type { MapDef } from '../../systems/world/types';
@@ -62,6 +69,7 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
       if (c.hidden && c.key === undefined && c.timeout === undefined)
         out.push(`${at}: hidden choice ${c.id} has neither a key nor a timeout`);
     }
+    out.push(...stageTimingProblems(n, at));
     for (const d of n.stage ?? []) {
       if ((d.op === 'listen' || d.op === 'door') && !d.flag)
         out.push(`${at}: stage ${d.op} names no flag`);
@@ -82,8 +90,14 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
       )
         out.push(`${at}: input turns need whole soft >= 1 and hard >= soft`);
       if (tu && !n.input.agentId) out.push(`${at}: input turns need an answerer (agentId)`);
+      out.push(...briefProblems(n.input.improv, `${at} input`));
+      for (const l of n.input.anchor ?? []) out.push(...conditionProblems(l.when, `${at} anchor`));
+      for (const x of n.input.extract ?? [])
+        if (!x.key || !x.values?.length) out.push(`${at}: input extract needs a key and values`);
       const cl = n.input.classify;
       if (cl) {
+        if (cl.by !== undefined && n.input.agentId)
+          out.push(`${at}: classify by only applies to an input with no answerer`);
         const target = scene.nodes.find((x) => x.id === cl.node);
         if (!target) out.push(`${at}: classify -> unknown node ${cl.node}`);
         for (const c of [...cl.choices, ...(cl.fallback !== undefined ? [cl.fallback] : [])]) {
@@ -92,6 +106,17 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
         }
       }
     }
+    if (n.present && !content.trials?.some((x) => x.id === n.present?.trial))
+      out.push(`${at}: present names unknown trial ${n.present.trial}`);
+    for (const piece of content.trials?.find((x) => x.id === n.present?.trial)?.pieces ?? [])
+      if (piece.to && !ids.has(piece.to))
+        out.push(`${at}: trial piece ${piece.id} lands on unknown node ${piece.to}`);
+    if (n.present && n.court) out.push(`${at}: a node presents at a trial or a court, not both`);
+    if (n.present && n.input) out.push(`${at}: a present node cannot also take free input`);
+    // after the last piece the node still needs a way out: a choice with no condition, or two
+    // whose conditions cover each other (the trial's done and silent)
+    if (n.present && !(n.choices ?? []).some((c) => !c.when) && (n.choices ?? []).length < 2)
+      out.push(`${at}: a present node needs a choice that is always open, or a covering pair`);
     if (n.court) {
       if (!ids.has(n.court.to)) out.push(`${at}: court -> unknown ${n.court.to}`);
       if (!content.courtDefenses.some((d) => d.goddess === n.court?.goddess)) {
@@ -100,10 +125,109 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
     }
   }
   out.push(...sceneExtraProblems(scene, content));
+  out.push(...triggerProblems(scene, content));
+  for (const n of scene.nodes)
+    out.push(...briefProblems(n.improv, `scene ${scene.id} node ${n.id} improv`));
   return out;
 }
 
 const BARK_TRIGGERS = ['wave_spawned', 'wave_cleared', 'boss_phase', 'boss_defeated'];
+
+/** Stage timing (`at`, `when`) and the directives added for act 1 (PK-M1-34). */
+function stageTimingProblems(n: SceneDef['nodes'][number], at: string): string[] {
+  const out: string[] = [];
+  const lines = n.lines?.length ?? 0;
+  for (const d of n.stage ?? []) {
+    if (d.at !== undefined && !(Number.isInteger(d.at) && d.at >= 0 && d.at <= lines))
+      out.push(`${at}: stage ${d.op} at ${d.at} is not a line index (0 to ${lines})`);
+    out.push(...conditionProblems(d.when, `${at} stage ${d.op}`));
+    if (d.op === 'transition' && !(STAGE_TRANSITIONS as readonly string[]).includes(d.kind))
+      out.push(`${at}: stage transition kind ${String(d.kind)} is unknown`);
+    if (d.op === 'still' && !/^art_bg_cut_[a-z0-9_]+$/.test(d.id ?? ''))
+      out.push(`${at}: stage still ${String(d.id)} is not an art_bg_cut_ id`);
+  }
+  return out;
+}
+
+/** An improvisation brief: lists of words, no empty entries. */
+function briefProblems(
+  b: { meaningKeys?: string[]; forbidden?: string[] } | undefined,
+  at: string,
+) {
+  const out: string[] = [];
+  for (const [k, list] of [
+    ['meaningKeys', b?.meaningKeys],
+    ['forbidden', b?.forbidden],
+  ] as const)
+    if (list?.some((w) => typeof w !== 'string' || !w.trim()))
+      out.push(`${at}: ${k} has an empty word`);
+  return out;
+}
+
+/** An act-1 trial table (PK-M1-55): items exist, points are the trial's, a rebuttal per outcome. */
+export function trialProblems(t: TrialDef, content: ContentMap): string[] {
+  const out: string[] = [];
+  const at = `trial ${t.id}`;
+  if (!(Number.isInteger(t.clears) && t.clears >= 1 && t.clears <= t.points.length))
+    out.push(`${at}: clears must be a whole number from 1 to the number of points`);
+  const ids = new Set<string>();
+  for (const p of t.pieces) {
+    if (ids.has(p.id)) out.push(`${at}: duplicate piece ${p.id}`);
+    ids.add(p.id);
+    if (!content.items?.some((i) => i.id === p.item))
+      out.push(`${at} piece ${p.id}: unknown item ${p.item}`);
+    for (const x of p.targets)
+      if (x.tribunal === t.id && !t.points.includes(x.point))
+        out.push(`${at} piece ${p.id}: point ${x.point} is not one of the trial's`);
+    for (const [point, flag] of Object.entries(p.writes ?? {}))
+      if (!p.targets.some((x) => x.tribunal === t.id && x.point === point))
+        out.push(`${at} piece ${p.id}: writes ${flag} for a point it does not prove`);
+    out.push(...effectProblems(p.effects, `${at} piece ${p.id}`, content));
+  }
+  for (const on of ['wrong', 'forged'] as const)
+    if (!t.rebuttals.some((r) => r.on === on)) out.push(`${at}: no rebuttal for ${on}`);
+  const speakers = new Set([
+    ...(content.goddesses ?? []).map((g) => g.id),
+    ...(content.sceneSpeakers ?? []).map((s) => s.id),
+    ...((content as unknown as { npcs?: { id: string }[] }).npcs ?? []).map((n) => n.id),
+    'narrator',
+  ]);
+  for (const r of t.rebuttals) {
+    out.push(...effectProblems(r.effects, `${at} rebuttal ${r.on}`, content));
+    if (!speakers.has(r.speaker)) out.push(`${at} rebuttal ${r.on}: unknown speaker ${r.speaker}`);
+  }
+  for (const point of Object.keys(t.pointFlags ?? {}))
+    if (!t.points.includes(point))
+      out.push(`${at}: pointFlags names ${point}, not one of the trial's`);
+  // the flags the trial writes are registry names (writes, pointFlags, countFlag)
+  const registry = defaultRegistry();
+  const names = [
+    ...t.pieces.flatMap((p) => Object.values(p.writes ?? {})),
+    ...Object.values(t.pointFlags ?? {}),
+    ...(t.countFlag ? [t.countFlag] : []),
+  ];
+  for (const name of names)
+    if (!registry.resolve(name)) out.push(`${at}: ${name} is not a registered variable`);
+  return out;
+}
+
+/** Self-requests of a scene: a condition, and a known place. */
+function triggerProblems(scene: SceneDef, content: ContentMap): string[] {
+  const out: string[] = [];
+  for (const [i, t] of (scene.triggers ?? []).entries()) {
+    const at = `scene ${scene.id} trigger ${i}`;
+    if (!t.when) out.push(`${at}: has no condition`);
+    out.push(...conditionProblems(t.when, at));
+    if (t.location && !t.mapId) out.push(`${at}: a location needs its map`);
+    if (t.mapId) {
+      const map = content.maps?.find((m) => m.id === t.mapId);
+      if (!map) out.push(`${at}: unknown map ${t.mapId}`);
+      else if (t.location && !map.locations.some((l) => l.id === t.location))
+        out.push(`${at}: unknown location ${t.location} on ${t.mapId}`);
+    }
+  }
+  return out;
+}
 
 /** Segments, combat barks and the restart offer (catalog_cutscenes.md 13.6). */
 function sceneExtraProblems(scene: SceneDef, content: ContentMap): string[] {
@@ -152,11 +276,21 @@ export const pack: ContentPack = {
   tables: {
     maps: maps as unknown as MapDef[],
     worldStarts,
-    scenes: [...prologue, ...act1, ...act2to5, ...court, ...endings] as unknown as SceneDef[],
+    scenes: [
+      ...prologue,
+      ...act1,
+      ...lore,
+      ...act2to5,
+      ...court,
+      ...endings,
+    ] as unknown as SceneDef[],
+    // the lore items of the history's in-game documents (history.md 12; PK-M1-34)
+    items: loreItems as unknown as ItemDef[],
     sceneSpeakers: speakers as unknown as SpeakerDef[],
     evidence: evidence as unknown as EvidenceDef[],
     courtDefenses: defenses as unknown as CourtDefenseDef[],
     epilogue: epilogue as unknown as EpilogueEntry[],
+    trials: trials as unknown as TrialDef[],
   },
   schemas: [
     {
@@ -257,6 +391,12 @@ export const pack: ContentPack = {
     }
     for (const e of content.epilogue)
       problems.push(...conditionProblems(e.when, `epilogue ${e.id}`));
+    const trialIds = new Set<string>();
+    for (const tr of content.trials ?? []) {
+      if (trialIds.has(tr.id)) problems.push(`trial ${tr.id}: duplicate id`);
+      trialIds.add(tr.id);
+      problems.push(...trialProblems(tr, content));
+    }
     for (const s of content.sceneSpeakers)
       problems.push(...conditionProblems(s.revealWhen, `speaker ${s.id}`));
     return problems;

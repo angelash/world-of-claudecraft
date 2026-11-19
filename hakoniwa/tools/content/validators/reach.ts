@@ -51,6 +51,9 @@ export function reachableScenes(
     if (r.quest && !quests.has(r.quest)) continue;
     add(r.value);
   }
+  // a scene with triggers requests itself while its act plays (src/systems/scenes/triggers.ts)
+  for (const s of rows<{ id: string; act?: string; triggers?: unknown[] }>(content, 'scenes'))
+    if (s.triggers?.length && (!s.act || acts.has(s.act))) add(s.id);
   while (queue.length) {
     const from = queue.shift() as string;
     for (const u of refs) if (u.table === 'scenes' && u.row === from) add(u.value);

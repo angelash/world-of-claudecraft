@@ -1,13 +1,37 @@
 // Inventory and equipment window: purse, eight equipment slots, bag grouped by kind.
-// Equip, unequip and use go through the inventory system's commands. The DOM is rebuilt
-// only when the holding actually changed.
+// Equip, unequip and use go through the inventory system's commands. A piece with its own
+// record shows its durability, the maker's signature, its sediment grain and whether the
+// attributes have lapsed (ux_and_onboarding.md 6.2.2). The DOM is rebuilt only when the
+// holding actually changed.
 
+import './inventory.css';
+import { contentKey } from '../../core/content_key';
 import { clear, el } from '../../shared_ui/dom';
-import { t } from '../../shared_ui/i18n';
+import { t, tOr } from '../../shared_ui/i18n';
 import type { EquipSlot } from '../../systems/inventory';
-import { buildInventoryView } from './inventory_view';
+import { flagOn } from '../view/game_view';
+import { buildInventoryView, type InstanceLine } from './inventory_view';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
+
+/** A person's display name for a maker's signature (named people, then companions). */
+function personName(ctx: WindowContext, id: string): string {
+  for (const table of ['npcs', 'companions'] as const) {
+    const rec = (ctx.view.content[table] as { id: string; name: string }[] | undefined)?.find(
+      (r) => r.id === id,
+    );
+    if (rec) return tOr(contentKey(table, id, 'name'), rec.name);
+  }
+  return id;
+}
+
+/** The notes of a piece with its own record, one small line; lapsed pieces are marked. */
+function instanceNotes(line: InstanceLine): HTMLElement {
+  return el('div', {
+    className: `hk-inv-inst${line.lapsed ? ' lapsed' : ''}`,
+    text: line.notes.join('  '),
+  });
+}
 
 export function inventoryWindow(ctx: WindowContext): WindowContent {
   const root = el('div', { className: 'hk-inv' });
@@ -16,10 +40,14 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
   const render = () => {
     const owner = ctx.view.playerId();
     const holding = ctx.view.holding(owner);
-    const sig = JSON.stringify(holding);
+    const dianKnown = flagOn(ctx.view.flag('term.dian_known'));
+    const sig = JSON.stringify([holding, dianKnown]);
     if (sig === lastSig) return;
     lastSig = sig;
-    const v = buildInventoryView(holding, (id) => ctx.view.itemDef(id));
+    const v = buildInventoryView(holding, (id) => ctx.view.itemDef(id), {
+      personName: (id) => personName(ctx, id),
+      dianKnown,
+    });
     clear(root);
     root.append(
       el('div', { className: 'hk-inv-money' }, [
@@ -51,6 +79,7 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
                   },
                 })
               : null,
+            s.instance ? instanceNotes(s.instance) : null,
           ]),
         ),
       ),
@@ -92,6 +121,33 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
             ],
           ),
         );
+        // each piece with its own record: its notes and its own equip button (the command
+        // takes the instance, so the player chooses which sword goes on)
+        for (const inst of it.instances) {
+          root.append(
+            el('div', { className: 'hk-inv-row hk-inv-inst-row' }, [
+              instanceNotes(inst),
+              it.actions.includes('equip')
+                ? el('button', {
+                    className: 'hk-btn hk-btn-small',
+                    text: t('ui.win.inventory.equip'),
+                    attrs: { type: 'button' },
+                    on: {
+                      click: () =>
+                        ctx.commands.queue('inventory.equip', {
+                          ownerId: owner,
+                          itemId: it.id,
+                          instanceId: inst.instanceId,
+                        }),
+                    },
+                  })
+                : null,
+            ]),
+          );
+        }
+        for (const note of it.parts) {
+          root.append(el('div', { className: 'hk-inv-inst', text: note }));
+        }
       }
     }
   };

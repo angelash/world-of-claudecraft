@@ -27,6 +27,7 @@
       { "type": "feature", "feature": "door_corridor" }
     ],
     "seal": "micro",
+    "dangerBand": "none",
     "unrest": "none",
     "rankValue": 2,
     "jam": "never",
@@ -43,7 +44,7 @@
     "wing": "hall_front",
     "main": true,
     "hint": "门上挂着一把算盘，珠子还在响。",
-    "desc": "前世的案头功夫：算得清账，也算得准出手的时机。智力、精神与命中略升。",
+    "desc": "前世的案头功夫：算得清账，也算得准出手的时机。智力、精神与命中略升；交易时看得出货物大致的进价。",
     "keys": [
       {
         "type": "flag",
@@ -52,9 +53,13 @@
         "label": "那一页上，你做案头工作"
       }
     ],
-    "effects": [{ "type": "stats", "stats": { "int": 3, "spi": 2, "hit": 1 } }],
+    "effects": [
+      { "type": "stats", "stats": { "int": 3, "spi": 2, "hit": 1 } },
+      { "type": "feature", "feature": "price_band" }
+    ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -70,7 +75,7 @@
     "wing": "hall_front",
     "main": true,
     "hint": "门边亮着一盏夜灯。",
-    "desc": "前世的夜班：惯于黑夜的眼睛与反应。敏捷与闪避略升。",
+    "desc": "前世的夜班：惯于黑夜的眼睛与反应。敏捷与闪避略升；夜里看得更远。",
     "keys": [
       {
         "type": "flag",
@@ -79,9 +84,13 @@
         "label": "那一页上，你上夜班"
       }
     ],
-    "effects": [{ "type": "stats", "stats": { "agi": 3, "dodge": 2 } }],
+    "effects": [
+      { "type": "stats", "stats": { "agi": 3, "dodge": 2 } },
+      { "type": "feature", "feature": "night_sight" }
+    ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -109,6 +118,7 @@
     "effects": [{ "type": "abilities", "abilities": ["sk_door_firstaid"] }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -136,6 +146,7 @@
     "effects": [{ "type": "abilities", "abilities": ["sk_door_fieldmend"] }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -151,7 +162,7 @@
     "wing": "hall_front",
     "main": true,
     "hint": "门缝里塞着一页写满字的纸。",
-    "desc": "前世读书写字的人：灵海更宽。智力略升。",
+    "desc": "前世读书写字的人：灵海更宽。智力略升；听来的传闻记得是谁说的，也记得它可能走了样。",
     "keys": [
       {
         "type": "flag",
@@ -160,9 +171,13 @@
         "label": "那一页上，你读书写字"
       }
     ],
-    "effects": [{ "type": "stats", "stats": { "int": 4, "spi": 1 } }],
+    "effects": [
+      { "type": "stats", "stats": { "int": 4, "spi": 1 } },
+      { "type": "feature", "feature": "rumor_source" }
+    ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -178,13 +193,18 @@
     "wing": "hall_front",
     "main": true,
     "hint": "门后飘出饭菜的香味。",
-    "desc": "前世厨者的手艺：习得热饭。",
+    "desc": "前世厨者的手艺：习得热饭；庖厨之门一开始就开着，身上带着《异界菜单》的前三页。",
     "keys": [
       { "type": "flag", "key": "p_past_life_door", "equals": "hearth", "label": "那一页上，你做饭" }
     ],
-    "effects": [{ "type": "abilities", "abilities": ["sk_door_heartymeal"] }],
+    "effects": [
+      { "type": "abilities", "abilities": ["sk_door_heartymeal"] },
+      { "type": "door", "doorId": "craft_cooking" },
+      { "type": "item", "itemId": "lb_otherworld_menu" }
+    ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -215,6 +235,7 @@
     ],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -242,6 +263,7 @@
     "effects": [{ "type": "stats", "stats": { "spi": 3, "sta": 2 } }],
     "exclusive": [{ "group": "X1", "mode": "lock" }],
     "seal": "micro",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false,
@@ -259,16 +281,24 @@
     "desc": "看见他人的灵压，以等级区间加可信度评估强弱。",
     "keys": [
       {
-        "type": "count",
-        "event": "combat.presence_felt",
-        "where": { "entityId": "player" },
-        "atLeast": { "gap": 3 },
-        "count": 1,
-        "label": "在远高于自己的威压下保持清醒"
+        "type": "any",
+        "label": "在远高于自己的威压下保持清醒",
+        "of": [
+          {
+            "type": "count",
+            "event": "combat.presence_felt",
+            "where": { "entityId": "player" },
+            "atLeast": { "gap": 3 },
+            "count": 1,
+            "label": "在远高于自己的威压下保持清醒"
+          },
+          { "type": "deed", "deed": "deed_grow_stand_before_ash", "label": "在灰里站住了（事迹）" }
+        ]
       }
     ],
     "effects": [{ "type": "feature", "feature": "tide_sight" }],
     "seal": "micro",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -286,9 +316,16 @@
     "desc": "净化一个被澱侵蚀的存在，与它缔结从者契约。",
     "keys": [
       {
-        "type": "flag",
-        "key": "boss.guardian_raven.defeated",
-        "label": "让守护巨鸦力竭，然后伸出手"
+        "type": "any",
+        "label": "让守护巨鸦力竭，然后伸出手",
+        "of": [
+          {
+            "type": "flag",
+            "key": "boss.guardian_raven.defeated",
+            "label": "让守护巨鸦力竭，然后伸出手"
+          },
+          { "type": "deed", "deed": "deed_grow_spared", "label": "手下留命（事迹）" }
+        ]
       }
     ],
     "effects": [
@@ -296,6 +333,7 @@
       { "type": "feature", "feature": "servant" }
     ],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true,
@@ -331,6 +369,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "appraise_talent" }],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -353,6 +392,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "inner_court" }],
     "seal": "medium",
+    "dangerBand": "none",
     "unrest": "none",
     "rankValue": 2,
     "jam": "never",
@@ -374,15 +414,27 @@
       {
         "type": "any",
         "need": 2,
-        "label": "学到的架势，在真刀真枪里赢下来（三取二）",
+        "label": "学到的架势，在真刀真枪里赢下来（四取二）",
         "of": [
           {
-            "type": "item",
-            "itemId": "crystal_carapace",
-            "label": "晶背之母的甲壳（巴尔加能打一把好剑）"
+            "type": "any",
+            "label": "晶背之母的甲壳（巴尔加能打一把好剑）",
+            "of": [
+              {
+                "type": "item",
+                "itemId": "crystal_carapace",
+                "label": "晶背之母的甲壳（巴尔加能打一把好剑）"
+              },
+              {
+                "type": "flag",
+                "key": "door_key.vocation_warrior.barga_crystalback_sword",
+                "label": "巴尔加用甲壳打成的晶背剑"
+              }
+            ]
           },
           { "type": "flag", "key": "boss.split_ear.defeated", "label": "与裂耳的一对一" },
-          { "type": "flag", "key": "boss.seg_oneeye_duel.defeated", "label": "单挑独眼团的瑟格" }
+          { "type": "flag", "key": "boss.seg_oneeye_duel.defeated", "label": "单挑独眼团的瑟格" },
+          { "type": "deed", "deed": "deed_grow_first_stance", "label": "学来的架势（事迹）" }
         ]
       }
     ],
@@ -402,6 +454,7 @@
       { "type": "stats", "stats": { "str": 3, "sta": 2 } }
     ],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -455,6 +508,7 @@
       { "type": "stats", "stats": { "agi": 3 } }
     ],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -469,7 +523,7 @@
     "wing": "vocations",
     "tendency": "breath",
     "hint": "息。",
-    "desc": "德鲁伊技能族的基础部分：不来自圣光的治愈与少量净澱。",
+    "desc": "德鲁伊技能族的基础部分：不来自圣光的治愈与少量净澱；每周可以在北泉把泉里的灰解开一些。",
     "keys": [
       {
         "type": "alt",
@@ -485,9 +539,25 @@
           }
         ]
       },
-      { "type": "item", "itemId": "spring_herb", "label": "鹿泉的净泉草" },
-      { "type": "visit", "mapId": "forest_edge", "location": "deer_spring", "label": "到过鹿泉" },
-      { "type": "flag", "key": "a1_spring_source_found", "label": "找到病童的病根（北泉的灰）" }
+      {
+        "type": "item",
+        "itemId": "spring_herb",
+        "label": "鹿泉的净泉草",
+        "link": "q_a1_s23_deer_spring"
+      },
+      {
+        "type": "visit",
+        "mapId": "forest_edge",
+        "location": "deer_spring",
+        "label": "到过鹿泉",
+        "link": "q_a1_s23_deer_spring"
+      },
+      {
+        "type": "flag",
+        "key": "a1_spring_source_found",
+        "label": "找到病童的病根（北泉的灰）",
+        "link": "q_a1_m07_spring"
+      }
     ],
     "effects": [
       { "type": "pool", "resource": "mana", "base": 80 },
@@ -501,10 +571,12 @@
           "sk_dru_entanglingroots"
         ]
       },
-      { "type": "stats", "stats": { "int": 2, "spi": 2 } }
+      { "type": "stats", "stats": { "int": 2, "spi": 2 } },
+      { "type": "feature", "feature": "spring_purify" }
     ],
     "exclusive": [{ "group": "X2", "mode": "actLock", "act": 1, "until": 3 }],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -519,7 +591,15 @@
     "wing": "vocations",
     "hint": "门在发烫。",
     "desc": "汲取澱化为力量：暗火与汲取。代价是加速淤塞。",
-    "keys": [{ "type": "item", "itemId": "dian_core", "consume": true, "label": "握住澱核" }],
+    "keys": [
+      {
+        "type": "item",
+        "itemId": "dian_core",
+        "consume": true,
+        "label": "握住澱核",
+        "link": "q_a1_m12_tide"
+      }
+    ],
     "effects": [
       { "type": "pool", "resource": "mana", "base": 80 },
       {
@@ -540,6 +620,8 @@
       { "group": "X3", "mode": "lock" }
     ],
     "seal": "medium",
+    "dangerBand": "high",
+    "openCost": { "blockage": 10, "act": 1 },
     "forbidden": true,
     "rankValue": 2,
     "jam": "never",
@@ -564,6 +646,7 @@
       { "type": "feature", "feature": "restraint" }
     ],
     "seal": "micro",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -590,6 +673,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "false_record" }],
     "seal": "small",
+    "dangerBand": "medium",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -615,6 +699,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "beyond_door" }],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -655,6 +740,7 @@
       { "type": "stats", "stats": { "agi": 3 } }
     ],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -695,6 +781,7 @@
       { "type": "stats", "stats": { "int": 3 } }
     ],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -732,6 +819,7 @@
       { "type": "stats", "stats": { "spi": 3 } }
     ],
     "seal": "small",
+    "dangerBand": "medium",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -753,6 +841,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "city" }],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -775,6 +864,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "company" }],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -795,6 +885,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "messenger" }],
     "seal": "small",
+    "dangerBand": "none",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -818,6 +909,7 @@
       { "type": "flag", "key": "npc.ron.awakened", "value": true }
     ],
     "seal": "medium",
+    "dangerBand": "medium",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -851,6 +943,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "travel_gate" }],
     "seal": "medium",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -877,6 +970,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "travel_gate_advanced" }],
     "seal": "medium",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -914,6 +1008,7 @@
       { "type": "stats", "stats": { "str": 2, "sta": 2 } }
     ],
     "seal": "small",
+    "dangerBand": "medium",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -937,6 +1032,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "rts" }],
     "seal": "large",
+    "dangerBand": "none",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -958,6 +1054,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "echoes" }],
     "seal": "medium",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "never",
     "closable": false
@@ -995,6 +1092,7 @@
     ],
     "exclusive": [{ "group": "X3", "mode": "lock" }],
     "seal": "medium",
+    "dangerBand": "low",
     "rankValue": 1,
     "jam": "combat",
     "closable": true
@@ -1021,6 +1119,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "resonance" }],
     "seal": "large",
+    "dangerBand": "medium",
     "unrest": "ruins",
     "rankValue": 1,
     "jam": "combat",
@@ -1055,6 +1154,7 @@
       { "type": "stats", "stats": { "int": 2, "sta": 2 } }
     ],
     "seal": "small",
+    "dangerBand": "low",
     "rankValue": 2,
     "jam": "combat",
     "closable": true
@@ -1079,6 +1179,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "slg" }],
     "seal": "large",
+    "dangerBand": "none",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -1098,6 +1199,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "soul_ferry" }],
     "seal": "large",
+    "dangerBand": "high",
     "forbidden": true,
     "rankValue": 2,
     "jam": "never",
@@ -1122,6 +1224,7 @@
     ],
     "effects": [{ "type": "feature", "feature": "thousand_paths" }],
     "seal": "extreme",
+    "dangerBand": "medium",
     "rankValue": 2,
     "jam": "never",
     "closable": true
@@ -1139,6 +1242,7 @@
     "keys": [{ "type": "flag", "key": "a5_blood_for_key", "label": "以澱或血代替钥匙" }],
     "effects": [{ "type": "feature", "feature": "breach" }],
     "seal": "extreme",
+    "dangerBand": "extreme",
     "forbidden": true,
     "rankValue": 2,
     "jam": "never",
@@ -1159,6 +1263,7 @@
     "keys": [{ "type": "flag", "key": "a5_revelation_trial", "label": "天启：审期至。六司归庭。" }],
     "effects": [{ "type": "feature", "feature": "ascent" }],
     "seal": "extreme",
+    "dangerBand": "none",
     "rankValue": 2,
     "jam": "never",
     "closable": false,
@@ -1179,6 +1284,7 @@
     "keys": [{ "type": "flag", "key": "a6_name_spoken", "label": "得知第六位女神的名字" }],
     "effects": [{ "type": "feature", "feature": "true_name" }],
     "seal": "extreme",
+    "dangerBand": "high",
     "forbidden": true,
     "rankValue": 2,
     "jam": "never",
@@ -1199,6 +1305,7 @@
     "effects": [{ "type": "feature", "feature": "dominion" }],
     "exclusive": [{ "group": "X5", "mode": "lock" }],
     "seal": "extreme",
+    "dangerBand": "extreme",
     "forbidden": true,
     "rankValue": 2,
     "jam": "never",
@@ -1218,7 +1325,591 @@
     "effects": [{ "type": "feature", "feature": "last_door" }],
     "exclusive": [{ "group": "X5", "mode": "lock" }],
     "seal": "none",
+    "dangerBand": "none",
     "rankValue": 0,
+    "jam": "never",
+    "closable": false
+  },
+  {
+    "id": "craft_mining",
+    "name": "掘脉之门",
+    "code": "door_craft_mining",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把镐。",
+    "desc": "掘脉的生业：能在矿脉采矿，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "有人教你看矿脉",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_mining",
+                "mentors": ["barga"],
+                "label": "巴尔加教你看矿脉"
+              },
+              {
+                "type": "taught",
+                "door": "craft_mining",
+                "mentors": ["grinda_hammerseal"],
+                "label": "巴尔加不在时，另一位矿匠教你看矿脉"
+              },
+              {
+                "type": "taught",
+                "door": "craft_mining",
+                "mentors": ["herbert_crystaltooth"],
+                "label": "巴尔加不在时，老矿工教你看矿脉"
+              }
+            ]
+          },
+          {
+            "type": "count",
+            "event": "gather.done",
+            "where": { "entityId": "player", "itemId": "iron_ore" },
+            "count": 20,
+            "label": "在锈岭铁脉采够二十份铁矿",
+            "sum": "count"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_mining" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "有人教你看矿脉",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_mining",
+            "mentors": ["barga"],
+            "label": "巴尔加教你看矿脉"
+          },
+          {
+            "type": "taught",
+            "door": "craft_mining",
+            "mentors": ["grinda_hammerseal"],
+            "label": "巴尔加不在时，另一位矿匠教你看矿脉"
+          },
+          {
+            "type": "taught",
+            "door": "craft_mining",
+            "mentors": ["herbert_crystaltooth"],
+            "label": "巴尔加不在时，老矿工教你看矿脉"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "craft_logging",
+    "name": "樵伐之门",
+    "code": "door_craft_logging",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把斧。",
+    "desc": "樵伐的生业：能在林子里伐木，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_logging",
+            "mentors": ["gaspar", "nick"],
+            "label": "伐木场的人教你下斧"
+          },
+          {
+            "type": "count",
+            "event": "gather.done",
+            "where": { "entityId": "player", "itemId": "wood" },
+            "count": 20,
+            "label": "伐够二十份木材，一棵也不越林约",
+            "sum": "count"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_logging" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "taught",
+        "door": "craft_logging",
+        "mentors": ["gaspar", "nick"],
+        "label": "伐木场的人教你下斧"
+      }
+    ]
+  },
+  {
+    "id": "craft_herbalism",
+    "name": "撷草之门",
+    "code": "door_craft_herbalism",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把药镰。",
+    "desc": "撷草的生业：能采草药，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "有人带你认得祛灰草",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_herbalism",
+                "mentors": ["oola"],
+                "label": "欧拉婆婆亲口告诉你祛灰草长在哪里"
+              },
+              {
+                "type": "taught",
+                "door": "craft_herbalism",
+                "mentors": ["rosa_oldwatch"],
+                "label": "欧拉婆婆不在时，另一位药草师傅带你认草"
+              },
+              {
+                "type": "taught",
+                "door": "craft_herbalism",
+                "mentors": ["baishan"],
+                "label": "欧拉婆婆不在时，草原的药师带你认草"
+              }
+            ],
+            "when": "a1_oola_fate AND a1_oola_fate != cleared"
+          },
+          {
+            "type": "count",
+            "event": "gather.done",
+            "where": { "entityId": "player", "itemId": "mat_greybane" },
+            "count": 10,
+            "label": "采够十份祛灰草",
+            "sum": "count"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_herbalism" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "有人带你认得祛灰草",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_herbalism",
+            "mentors": ["oola"],
+            "label": "欧拉婆婆亲口告诉你祛灰草长在哪里"
+          },
+          {
+            "type": "taught",
+            "door": "craft_herbalism",
+            "mentors": ["rosa_oldwatch"],
+            "label": "欧拉婆婆不在时，另一位药草师傅带你认草"
+          },
+          {
+            "type": "taught",
+            "door": "craft_herbalism",
+            "mentors": ["baishan"],
+            "label": "欧拉婆婆不在时，草原的药师带你认草"
+          }
+        ],
+        "when": "a1_oola_fate AND a1_oola_fate != cleared"
+      }
+    ]
+  },
+  {
+    "id": "craft_alchemy",
+    "name": "炼剂之门",
+    "code": "door_craft_alchemy",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一只蒸馏瓶。",
+    "desc": "炼剂的生业：能熬药、配剂，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "有人教你熬祛灰草水",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_alchemy",
+                "mentors": ["oola"],
+                "label": "欧拉婆婆教你熬祛灰草水"
+              },
+              {
+                "type": "taught",
+                "door": "craft_alchemy",
+                "mentors": ["dorothea_mercy"],
+                "label": "欧拉婆婆不在时，另一位药师教你熬药"
+              },
+              {
+                "type": "taught",
+                "door": "craft_alchemy",
+                "mentors": ["rosa_oldwatch"],
+                "label": "欧拉婆婆不在时，另一位药草师傅教你熬药"
+              }
+            ],
+            "when": "a1_oola_fate AND a1_oola_fate != cleared"
+          },
+          {
+            "type": "count",
+            "event": "craft.done",
+            "where": { "entityId": "player", "itemId": "cs_greybane_wash" },
+            "count": 10,
+            "label": "熬成十份祛灰水",
+            "sum": "count"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_alchemy" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "有人教你熬祛灰草水",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_alchemy",
+            "mentors": ["oola"],
+            "label": "欧拉婆婆教你熬祛灰草水"
+          },
+          {
+            "type": "taught",
+            "door": "craft_alchemy",
+            "mentors": ["dorothea_mercy"],
+            "label": "欧拉婆婆不在时，另一位药师教你熬药"
+          },
+          {
+            "type": "taught",
+            "door": "craft_alchemy",
+            "mentors": ["rosa_oldwatch"],
+            "label": "欧拉婆婆不在时，另一位药草师傅教你熬药"
+          }
+        ],
+        "when": "a1_oola_fate AND a1_oola_fate != cleared"
+      }
+    ]
+  },
+  {
+    "id": "craft_cooking",
+    "name": "庖厨之门",
+    "code": "door_craft_cooking",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把勺。",
+    "desc": "庖厨的生业：能掌勺做菜，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "醉月亭的灶上有人带你做一道菜",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_cooking",
+                "mentors": ["martha", "ped"],
+                "label": "醉月亭的灶上有人带你做一道菜"
+              },
+              {
+                "type": "taught",
+                "door": "craft_cooking",
+                "mentors": ["waltrud_koch"],
+                "label": "醉月亭的人不在时，瓦伦堡的厨娘带你掌勺"
+              }
+            ]
+          },
+          {
+            "type": "flag",
+            "key": "door_key.craft_cooking.dora_dish",
+            "label": "让朵拉把你做的菜吃完"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_cooking" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "醉月亭的灶上有人带你做一道菜",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_cooking",
+            "mentors": ["martha", "ped"],
+            "label": "醉月亭的灶上有人带你做一道菜"
+          },
+          {
+            "type": "taught",
+            "door": "craft_cooking",
+            "mentors": ["waltrud_koch"],
+            "label": "醉月亭的人不在时，瓦伦堡的厨娘带你掌勺"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "craft_leatherworking",
+    "name": "鞣革之门",
+    "code": "door_craft_leatherworking",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把刮刀。",
+    "desc": "鞣革的生业：能鞣皮制革，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "东坡的猎户教你鞣皮",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_leatherworking",
+                "mentors": ["boro", "gorn"],
+                "label": "东坡的猎户教你鞣皮"
+              },
+              {
+                "type": "taught",
+                "door": "craft_leatherworking",
+                "mentors": ["wiebke_gerber"],
+                "label": "东坡的猎户不在时，皮匠教你鞣皮"
+              }
+            ]
+          },
+          {
+            "type": "count",
+            "event": "craft.done",
+            "where": { "entityId": "player", "itemId": "leather" },
+            "count": 5,
+            "label": "先用祛灰草水泡过，再鞣好五张皮",
+            "sum": "count"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_leatherworking" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "东坡的猎户教你鞣皮",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_leatherworking",
+            "mentors": ["boro", "gorn"],
+            "label": "东坡的猎户教你鞣皮"
+          },
+          {
+            "type": "taught",
+            "door": "craft_leatherworking",
+            "mentors": ["wiebke_gerber"],
+            "label": "东坡的猎户不在时，皮匠教你鞣皮"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "craft_weaponcrafting",
+    "name": "锻兵之门",
+    "code": "door_craft_weaponcrafting",
+    "category": "craft",
+    "act": 1,
+    "segment": 1,
+    "wing": "crafts",
+    "hint": "门上挂着一把锤。",
+    "desc": "锻兵的生业：能锻造兵器，技能随层长到上限。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "师傅教一次，再亲手做够数",
+        "of": [
+          {
+            "type": "alt",
+            "label": "巴尔加带你一起打一把剑",
+            "of": [
+              {
+                "type": "taught",
+                "door": "craft_weaponcrafting",
+                "mentors": ["barga"],
+                "label": "巴尔加带你一起打一把剑"
+              },
+              {
+                "type": "taught",
+                "door": "craft_weaponcrafting",
+                "mentors": ["knut_naumann"],
+                "label": "巴尔加不在时，另一位铁匠带你打剑"
+              },
+              {
+                "type": "taught",
+                "door": "craft_weaponcrafting",
+                "mentors": ["grinda_hammerseal"],
+                "label": "巴尔加不在时，矮人铁匠带你打剑"
+              }
+            ]
+          },
+          {
+            "type": "flag",
+            "key": "door_key.vocation_warrior.barga_crystalback_sword",
+            "label": "与巴尔加一起打成的晶背剑"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "craft_weaponcrafting" }],
+    "seal": "micro",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "combat",
+    "closable": true,
+    "reveal": [
+      {
+        "type": "alt",
+        "label": "巴尔加带你一起打一把剑",
+        "of": [
+          {
+            "type": "taught",
+            "door": "craft_weaponcrafting",
+            "mentors": ["barga"],
+            "label": "巴尔加带你一起打一把剑"
+          },
+          {
+            "type": "taught",
+            "door": "craft_weaponcrafting",
+            "mentors": ["knut_naumann"],
+            "label": "巴尔加不在时，另一位铁匠带你打剑"
+          },
+          {
+            "type": "taught",
+            "door": "craft_weaponcrafting",
+            "mentors": ["grinda_hammerseal"],
+            "label": "巴尔加不在时，矮人铁匠带你打剑"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "garden_granary",
+    "name": "仓廪之门",
+    "code": "door_garden_granary",
+    "category": "domain",
+    "act": 1,
+    "segment": 1,
+    "wing": "court",
+    "hint": "门后有谷香，门闩是一根晾衣杆。",
+    "desc": "门内庭院扩建一档：庭格放大到五乘五，多出仓廪、晾架与第二间屋，陈列柜六位。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "庭院里救过一回人，又备足了木料",
+        "of": [
+          {
+            "type": "flag",
+            "key": "door_key.garden_granary.court_heal",
+            "label": "第一次让同伴在庭院里养好伤"
+          },
+          {
+            "type": "flag",
+            "key": "door_key.garden_granary.timber",
+            "label": "为仓廪备足两百份木材"
+          }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "court_expansion_1" }],
+    "seal": "small",
+    "dangerBand": "none",
+    "rankValue": 1,
+    "jam": "never",
+    "closable": false,
+    "reveal": [{ "type": "door", "doorId": "inner_garden", "label": "门内庭院已开" }]
+  },
+  {
+    "id": "truth_flaw",
+    "name": "瑕之门",
+    "code": "door_truth_flaw",
+    "category": "truth",
+    "act": 1,
+    "segment": 1,
+    "wing": "grey",
+    "hint": "门板上有一道细细的裂，形状像你手背上的纹。",
+    "desc": "你的纹与那个孩子的胎记同形。靠近带门纹的人与物时，手背会发热。",
+    "keys": [
+      {
+        "type": "all",
+        "label": "梦、旧手套与孩子手上的纹",
+        "of": [
+          { "type": "flag", "key": "a1_dream_door_woman", "label": "梦见门口的女人" },
+          { "type": "flag", "key": "a1_bron_sees_mark", "label": "布伦看见了你手背上的纹" },
+          { "type": "flag", "key": "a1_orphan_mark_seen", "label": "亲眼看见孤儿院孩子的胎记" }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "doorsense" }],
+    "seal": "small",
+    "dangerBand": "none",
+    "rankValue": 1,
     "jam": "never",
     "closable": false
   }

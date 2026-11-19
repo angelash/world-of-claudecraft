@@ -1,0 +1,24 @@
+{
+  "id": "ln_role_general",
+  "slots": {
+    "react.request_battle": [
+      "敌人就在{dir}，让我去。",
+      "再拖下去，士气就散了。打吧。",
+      "给我{num}人，天亮前拿下{place}。"
+    ],
+    "topic.gen_advice": {
+      "K1": ["兵不在多，在吃得饱、站得住。", "先看地形，再看人。"]
+    },
+    "topic.gen_danger": {
+      "K1": ["{place}那边有敌人的斥候，最近别单独出营。", "北边的路不好走，带足干粮。"]
+    },
+    "react.feat_seen": ["好！这一下能抵十个兵。", "你在战场上也是这样吗？"],
+    "react.thanked": ["谢什么，打仗本来就是我的活。"],
+    "bark.patrol": ["换岗！", "火把别灭。"],
+    "bark.combat": ["稳住阵脚！", "左翼压上！", "弓手，放！"],
+    "bark.victory": ["收兵，清点伤亡。"],
+    "bark.flee": ["交替后撤，别乱！"],
+    "bark.camp": ["吃完早点睡，明天有仗。"],
+    "greet.neutral": ["有军情？"]
+  }
+}

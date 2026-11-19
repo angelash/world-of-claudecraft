@@ -1,10 +1,20 @@
 {
   "scenes": {
     "prefer": {
-      "choose": ["evidence"],
+      "defense": [
+        "piece:spring_water",
+        "debunk",
+        "witness_bron",
+        "witness_isa",
+        "witness_toma",
+        "witness_greta",
+        "debate",
+        "done"
+      ],
       "after_valda": ["duel"],
       "after_merca": ["outlet"],
       "janu_ask": ["tavi", "ash", "let_go"],
+      "ask": ["who", "caught", "where", "want", "ash", "why", "enough"],
       "patron": ["none"],
       "face": ["redeem", "destroy"],
       "eska": ["ours"],

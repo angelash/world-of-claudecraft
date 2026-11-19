@@ -30,6 +30,7 @@ import {
   type FunctionalRole,
   NEED_KEYS,
 } from '../types';
+import { REACTION_CONSEQUENCES } from './consequences';
 
 /** A response curve as data: a shape with its parameters, or explicit [x, y] nodes. */
 export type CurveSpec =
@@ -330,9 +331,14 @@ export function brainProblems(
   );
   for (const row of brain.reactions) {
     if ('when' in row) out.push(`reaction ${row.id}: write the condition as cond, not when`);
-    for (const t of row.then)
+    for (const t of row.then) {
       if (!opts.reactionActions.has(t.action))
         out.push(`reaction ${row.id}: unknown behaviour ${t.action}`);
+      // the other consequence of a row (brain/consequences.ts, PK-M1-55)
+      const c = t.params?.consequence;
+      if (c !== undefined && !(REACTION_CONSEQUENCES as readonly string[]).includes(c))
+        out.push(`reaction ${row.id}: unknown consequence ${c}`);
+    }
   }
   return out;
 }

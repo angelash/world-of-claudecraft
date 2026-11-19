@@ -150,7 +150,8 @@
       "div_sylvie_beast_guide": 5,
       "request": 4,
       "weather": 3,
-      "calamity": 0.2
+      "calamity": 0.2,
+      "div_sylvie_bless": 4
     },
     "multipliers": {
       "protective": 1.5,
@@ -158,7 +159,15 @@
     },
     "acts": {
       "act1": {
-        "menu": ["omen", "dream", "div_sylvie_beast_guide", "weather", "request", "div_all_gaze"],
+        "menu": [
+          "omen",
+          "dream",
+          "div_sylvie_beast_guide",
+          "weather",
+          "request",
+          "div_all_gaze",
+          "div_sylvie_bless"
+        ],
         "budget": 120,
         "reserve": 5500,
         "schemes": ["div_plan_sylvie_watch_child"]

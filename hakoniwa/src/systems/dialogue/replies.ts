@@ -21,6 +21,7 @@ import type { EntityHit, IntentId } from './intent/types';
 import { newLineHistory } from './lines/history';
 import { dayPartOf, trustBandOf } from './lines/trust';
 import type { TrustBand } from './lines/types';
+import { isScripted } from './scripted';
 import { diaryPhrase, memoryPhrase, speak } from './speak';
 import { pickLine } from './templates';
 
@@ -53,6 +54,20 @@ function line(
   npcRef: string,
   extra: Record<string, TextParam> = {},
 ): TextParam {
+  // a scripted speaker never uses the shared rule templates (./scripted.ts): the slot the
+  // old key moved to (data/dialogue/legacy_lines.json) is read from his own pack instead
+  if (isScripted(ctx.content, npcRef, ctx.flag('act'))) {
+    const src = ctx.content.legacyLines?.keys[key];
+    const said = src
+      ? speak(ctx, {
+          speaker: npcRef,
+          slot: src.slot,
+          vars: { ...varsFor(ctx, npcRef), ...extra },
+          version: src.version,
+        })
+      : null;
+    return said?.text ?? tr('sys.dialogue.intent.fallback');
+  }
   const p = personaById(ctx.content, npcRef);
   const text = pickLine(
     ctx.content,
@@ -277,6 +292,7 @@ export function answer(
     refusedKey: outcome.refusedKey,
     refusedOut: !!outcome.refusedOut,
     entities: result.entities,
+    ...(outcome.audit ? { audit: outcome.audit } : {}),
   };
 }
 
@@ -308,6 +324,8 @@ export interface AnswerResult {
   refusedKey?: string;
   /** the third refusal of one topic in this talk ended it */
   refusedOut?: boolean;
+  /** what the audit notification is about (a suspected spoiler and its clues, 6.6) */
+  audit?: { reason: string; clues: string[] };
   /** the entities the classifier found (people named to the player) */
   entities?: EntityHit[];
 }

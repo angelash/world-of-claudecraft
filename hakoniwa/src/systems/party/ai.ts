@@ -10,28 +10,26 @@
 //   5 duty      tank, heal, damage by role under the stance (7.2: follow answers only what
 //               hits it, assist fights fully, passive holds fire, stay fights from its spot);
 //   6 follow    back to its place in the formation (3.3).
-// The tree draws no random numbers: the same situation gives the same act. Combat
-// tuning by personality and the party chatter belong to the built-in AI package (PK-M1-21).
+// The tree draws no random numbers: the same situation gives the same act. The avoid layer
+// lives in ./danger.ts; the stance and the opening move of a fight in ./tactics.ts; the
+// party chatter in ./banter.ts (PK-M1-21).
+// Personality tunes the layers it owns (7.4): the retreat line reads caution, a companion
+// that holds people dear (protect 80 or over) peels what strikes the player before taking
+// the player's own target, and a `spare` rule keeps a companion from firing at the kinds it
+// will not kill (Shiya and a fleeing beast).
 
 import type { SystemContext } from '../../core/system';
-import {
-  canAttack,
-  castAs,
-  difficultyMods,
-  liveUnit,
-  pickAbility,
-  setAutoAttack,
-  telegraphsOn,
-  unitOf,
-} from '../combat';
+import { canAttack, castAs, liveUnit, pickAbility, setAutoAttack, unitOf } from '../combat';
 import { abilityDef, monsterDef } from '../combat/defs';
 import { deriveStats } from '../combat/stats';
 import type { AiUse, Unit } from '../combat/types';
 import { entitiesNear, getEntity, orderMove, teleportEntity } from '../world';
 import type { Entity } from '../world/types';
 import { partyConfig } from './config';
+import { avoid as avoidDanger, dangerAt, heedsOf, safeSpotBy } from './danger';
 import { stateOf } from './roster';
-import type { CompanionAi, CompanionRole, Member, PartyConfig, Tactic } from './types';
+import { openingOf } from './tactics';
+import type { CompanionAi, CompanionRole, Member, OpeningKind, PartyConfig, Tactic } from './types';
 import { slotNear, tryGetUp } from './wounds';
 
 /** What the brain reads of a companion card (a beast companion has a role only). */
@@ -43,6 +41,8 @@ export interface Profile {
 }
 
 const RANGED_ROLES = new Set<CompanionRole>(['ranged', 'caster', 'healer']);
+/** A companion with this much `protect` peels what strikes the player first (7.4). */
+export const PROTECT_FIRST = 80;
 /** Ability uses a companion never picks on its own (crowd control waits for its rules). */
 const SKIP: AiUse[] = ['cc'];
 const SUPPORT_USES: AiUse[] = ['defensive', 'emergency', 'heal', 'hot', 'shield'];
@@ -154,6 +154,27 @@ function breakShield(b: Brain, target: Unit): boolean {
   return false;
 }
 
+/** How far a companion looks for a shield one of its skills breaks. */
+const SHIELD_SIGHT = 12;
+
+/**
+ * Any shield in sight that one of the companion's skills breaks (10.4): the key act of the
+ * fight, whatever the companion's own target (a guard at the player's side, a holder of a
+ * spot). Nearest first, ties by id. Returns whether it cast.
+ */
+function breakAnyShield(b: Brain): boolean {
+  const { ctx, u, e } = b;
+  const near = entitiesNear(ctx.world, e.mapId, e.x, e.y, SHIELD_SIGHT)
+    .map((ne) => ({ ne, d: Math.hypot(ne.x - e.x, ne.y - e.y) }))
+    .sort((a, c) => a.d - c.d || (a.ne.id < c.ne.id ? -1 : a.ne.id > c.ne.id ? 1 : 0));
+  for (const { ne } of near) {
+    const t = unitOf(ctx.world, ne.id);
+    if (!t?.boss?.shields || !liveUnit(ctx.world, t.id) || !canAttack(ctx.world, u, t)) continue;
+    if (breakShield(b, t)) return true;
+  }
+  return false;
+}
+
 /** Fight a target: swing at it, use a skill on it, close in unless anchored. */
 function engageTarget(b: Brain, target: Unit, anchor: { x: number; y: number } | null): void {
   const { ctx, u, e } = b;
@@ -165,7 +186,38 @@ function engageTarget(b: Brain, target: Unit, anchor: { x: number; y: number } |
   const te = getEntity(ctx.world, target.id);
   if (!te) return;
   const reach = RANGED_ROLES.has(b.prof.role) ? 6 : e.radius + te.radius + 0.8;
-  if (Math.hypot(te.x - e.x, te.y - e.y) > reach) walk(b, te.x, te.y, Math.max(0.5, reach * 0.8));
+  const d = Math.hypot(te.x - e.x, te.y - e.y);
+  if (d <= reach) return;
+  // where the approach ends: short of the target on the companion's side; never into a
+  // hostile warning or a hazard zone (combat 10.3, 10.6), the companion waits outside
+  const stop = Math.max(0.5, reach * 0.8);
+  const ax = te.x + ((e.x - te.x) / d) * stop;
+  const ay = te.y + ((e.y - te.y) / d) * stop;
+  const heed = heedsOf(ctx, b.m);
+  if (
+    dangerAt(ctx.world, u, e.mapId, ax, ay, heed) &&
+    !dangerAt(ctx.world, u, e.mapId, e.x, e.y, heed)
+  )
+    return;
+  walk(b, te.x, te.y, stop);
+}
+
+/**
+ * Whether a personal rule spares a target (7.4 `spare`): a monster of one of the rule's
+ * families, or only while it flees when the rule says so.
+ */
+export function spares(prof: Profile, family: string | undefined, fleeing: boolean): boolean {
+  for (const r of prof.ai?.rules ?? []) {
+    if (r.kind !== 'spare' || !family || !r.families.includes(family)) continue;
+    if (!r.fleeing || fleeing) return true;
+  }
+  return false;
+}
+
+function spared(b: Brain, t: Unit): boolean {
+  if (!b.prof.ai?.rules?.some((r) => r.kind === 'spare')) return false;
+  const family = monsterDef(b.ctx.content, t.monsterId)?.family;
+  return spares(b.prof, family, t.ai?.state === 'flee');
 }
 
 // ---------------------------------------------------------------------------
@@ -326,114 +378,20 @@ function orders(b: Brain): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// layer 4: avoid
-
-/** The tile pairs of a warning hold the companion's tile. */
-function inside(cells: readonly number[], x: number, y: number): boolean {
-  const tx = Math.floor(x);
-  const ty = Math.floor(y);
-  for (let i = 0; i + 1 < cells.length; i += 2)
-    if (cells[i] === tx && cells[i + 1] === ty) return true;
-  return false;
-}
+// layer 4: avoid (./danger.ts)
 
 function avoid(b: Brain): boolean {
-  const { ctx, e, m } = b;
-  const warnings = telegraphsOn(ctx.world, e.mapId);
-  if (warnings.length === 0) {
-    if (m.danger) delete m.danger;
-    return false;
-  }
-  const mods = difficultyMods(ctx.world);
-  const ordered = m.tactic?.kind === 'spread' || m.tactic?.kind === 'goto';
-  const delay = Math.round(mods.companionReactSec * 20);
-  const live = new Set(warnings.map((w) => w.id));
-  for (const id of Object.keys(m.danger ?? {})) if (!live.has(id)) delete m.danger?.[id];
-  for (const w of warnings) {
-    if (w.mark) {
-      if (w.mark.targetId === b.u.id && reactToMark(b, w, ordered, delay)) return true;
-      continue;
-    }
-    if (!inside(w.cells, e.x, e.y)) continue;
-    // a boss's big move on the hard difficulty waits for the player's order (7.5)
-    if (w.tier === 'lethal' && mods.companionAvoidNeedsOrder && !ordered) continue;
-    const seen = firstSeen(m, w.id, ctx.tick);
-    if (ctx.tick - seen < delay) continue;
-    const out = safeSpot(w.cells, e.x, e.y);
-    if (!out) continue;
-    m.pathAt = 0;
-    walk(b, out.x, out.y, 0.3);
-    return true;
-  }
-  return false;
-}
-
-/** The tick the member first stood in a warning (the reaction delay counts from it). */
-function firstSeen(m: Member, id: string, tick: number): number {
-  if (!m.danger) m.danger = {};
-  const seen = m.danger[id];
-  if (seen !== undefined) return seen;
-  m.danger[id] = tick;
-  return tick;
-}
-
-/**
- * A boss marked this companion (10.5): after the reaction delay a spread or chase mark
- * takes it out of the others' reach, a stack mark brings it to the player. A mark whose
- * data says `needsOrder` waits for a spread or move order.
- */
-function reactToMark(
-  b: Brain,
-  w: ReturnType<typeof telegraphsOn>[number],
-  ordered: boolean,
-  delay: number,
-): boolean {
-  const mark = w.mark;
-  if (!mark) return false;
-  const caster = unitOf(b.ctx.world, w.casterId);
-  const def = monsterDef(b.ctx.content, caster?.monsterId ?? null)?.mechanics?.marks?.find(
-    (x) => x.ability === w.abilityId,
-  );
-  if (def?.needsOrder && !ordered) return false;
-  const seen = firstSeen(b.m, w.id, b.ctx.tick);
-  if (b.ctx.tick - seen < delay) return false;
-  const { e, pe } = b;
-  const dx = e.x - pe.x;
-  const dy = e.y - pe.y;
-  const d = Math.hypot(dx, dy);
-  if (mark.kind === 'stack') {
-    if (d <= 1.2) return false;
-    walk(b, pe.x, pe.y, 0.8);
-    return true;
-  }
-  const want = mark.radius + 1;
-  if (d >= want) return false;
-  const ux = d > 0.01 ? dx / d : 1;
-  const uy = d > 0.01 ? dy / d : 0;
-  b.m.pathAt = 0;
-  walk(b, pe.x + ux * want, pe.y + uy * want, 0.5);
-  return true;
-}
-
-/** The nearest tile centre outside the warning, searching rings out to four tiles. */
-function safeSpot(cells: readonly number[], x: number, y: number) {
-  const tx = Math.floor(x);
-  const ty = Math.floor(y);
-  for (let r = 1; r <= 4; r++) {
-    let best: { x: number; y: number; d: number } | null = null;
-    for (let dx = -r; dx <= r; dx++) {
-      for (let dy = -r; dy <= r; dy++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const cx = tx + dx + 0.5;
-        const cy = ty + dy + 0.5;
-        if (inside(cells, cx, cy)) continue;
-        const d = Math.hypot(cx - x, cy - y);
-        if (!best || d < best.d) best = { x: cx, y: cy, d };
-      }
-    }
-    if (best) return best;
-  }
-  return null;
+  return avoidDanger({
+    ctx: b.ctx,
+    m: b.m,
+    u: b.u,
+    e: b.e,
+    pe: b.pe,
+    walk: (x, y, arrive) => {
+      b.m.pathAt = 0;
+      walk(b, x, y, arrive);
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -456,17 +414,38 @@ function focusTarget(b: Brain): Unit | null {
   return t.duel && t.duel !== b.u.duel ? null : t;
 }
 
+/**
+ * The duty layer's target (7.1 输出): the player's target, then what strikes the healer,
+ * then the nearest foe striking the party; a companion that holds people dear (protect
+ * PROTECT_FIRST or over, 7.4) first peels what strikes the player. The follow stance only
+ * answers what strikes the companion itself (7.2). A `spare` rule passes over its kinds.
+ */
 function chooseTarget(b: Brain, anchor: { x: number; y: number } | null): Unit | null {
   const { ctx, u, e, m } = b;
   const focus = focusTarget(b);
   if (focus) return focus;
-  if (m.order === 'follow') return attackersOf(ctx, u, e, new Set([u.id]), 8)[0] ?? null;
+  const ok = (t: Unit) => !spared(b, t);
+  if (m.order === 'follow') {
+    // a guard the built-in AI set to follow (11.1: the guarding stance) answers what
+    // strikes the player too; a follow the player ordered answers only what strikes the
+    // companion (7.2)
+    if (m.stanceBy !== 'player' && (b.prof.ai?.protect ?? 0) >= PROTECT_FIRST) {
+      const guard = attackersOf(ctx, u, e, new Set([b.pu.id]), 8).find(ok);
+      if (guard) return guard;
+    }
+    return attackersOf(ctx, u, e, new Set([u.id]), 8).find(ok) ?? null;
+  }
   const reach = RANGED_ROLES.has(b.prof.role) ? 6 : 2;
   const near = (t: Unit) => {
+    if (!ok(t)) return false;
     if (!anchor) return true;
     const te = getEntity(ctx.world, t.id);
     return !!te && Math.hypot(te.x - anchor.x, te.y - anchor.y) <= reach + 1;
   };
+  if ((b.prof.ai?.protect ?? 0) >= PROTECT_FIRST) {
+    const peel = attackersOf(ctx, u, e, new Set([b.pu.id]), 12).find(near);
+    if (peel) return peel;
+  }
   const pt = unitOf(ctx.world, b.pu.target);
   const engaged = b.pu.autoAttack || !!b.pu.cast || b.pu.combatUntil > ctx.tick;
   const free = !pt?.duel || pt.duel === u.duel;
@@ -479,8 +458,60 @@ function chooseTarget(b: Brain, anchor: { x: number; y: number } | null): Unit |
     near(pt)
   )
     return pt;
+  const healers = new Set(
+    b.party.filter((p) => p.id !== u.id && healerOf(b, p.id)).map((p) => p.id),
+  );
+  if (healers.size > 0) {
+    const onHealer = attackersOf(ctx, u, e, healers, 12).find(near);
+    if (onHealer) return onHealer;
+  }
   const ids = new Set(b.party.map((p) => p.id));
   return attackersOf(ctx, u, e, ids, 12).find(near) ?? null;
+}
+
+/** Whether a party unit is a healer companion (its card's role). */
+function healerOf(b: Brain, unitId: string): boolean {
+  const ref = getEntity(b.ctx.world, unitId)?.ref;
+  const card = ref ? (b.ctx.content.companions ?? []).find((c) => c.id === ref) : undefined;
+  return card?.role === 'healer';
+}
+
+/**
+ * The opening move of the fight (builtin_ai.md 11.1): assist opens with an opener on the
+ * target or control on a second foe, stay with a buff, follow by stepping to the player's
+ * side. One act; a move that finds nothing to do lapses. Returns whether it acted.
+ */
+function opening(b: Brain, kind: OpeningKind, target: Unit | null): boolean {
+  const { ctx, u, m } = b;
+  if (kind === 'close') {
+    const s = slotNear(b.pe, b.n);
+    if (Math.hypot(b.e.x - s.x, b.e.y - s.y) <= 2) {
+      delete m.opening;
+      return false;
+    }
+    walk(b, s.x, s.y, 0.6);
+    return true;
+  }
+  if (kind === 'buff') {
+    delete m.opening;
+    const pick = pickAbility(ctx, u, null, {
+      allies: b.party,
+      skip: only(['buff', 'shield', 'hot']),
+    });
+    return castPick(b, pick);
+  }
+  delete m.opening;
+  if (!target) return false;
+  const burst = pickAbility(ctx, u, target, { allies: b.party, skip: only(['opener']) });
+  if (castPick(b, burst)) return true;
+  // control on a foe the player is not fighting (7.1 控: the loose one)
+  const ids = new Set(b.party.map((p) => p.id));
+  for (const foe of attackersOf(ctx, u, b.e, ids, 10)) {
+    if (foe.id === target.id || foe.id === b.pu.target || spared(b, foe)) continue;
+    const cc = pickAbility(ctx, u, foe, { allies: b.party, skip: only(['cc']) });
+    if (cc && cc.targetId === foe.id && castPick(b, cc)) return true;
+  }
+  return false;
 }
 
 function duty(b: Brain): boolean {
@@ -509,8 +540,14 @@ function duty(b: Brain): boolean {
       if (taunt && taunt.targetId === foe.id && castPick(b, taunt)) break;
     }
   }
+  // a shield only this companion's skill breaks comes before anything else (10.4)
+  if (b.fighting && breakAnyShield(b)) return true;
   const anchor = anchorOf(b);
   const target = chooseTarget(b, anchor);
+  // the opening move comes first, with or without a target of its own (11.1): a guard
+  // steps to the player, a cautious one buffs, only the burst needs a foe
+  const open = b.fighting ? openingOf(ctx, m) : null;
+  if (open && (open !== 'burst' || target) && opening(b, open, target)) return true;
   if (!target) {
     if (u.autoAttack) setAutoAttack(ctx, u.id, false);
     return false;
@@ -531,7 +568,9 @@ function spreadFactor(b: Brain): number {
 function follow(b: Brain): boolean {
   const anchor = anchorOf(b);
   if (anchor) {
-    if (Math.hypot(b.e.x - anchor.x, b.e.y - anchor.y) > 1.5) walk(b, anchor.x, anchor.y, 0.5);
+    // a held spot in danger (another's spread circle, a warning): safe ground near it instead
+    const s = safeSlot(b, anchor, anchor);
+    if (Math.hypot(b.e.x - s.x, b.e.y - s.y) > 1.5) walk(b, s.x, s.y, 0.5);
     return true;
   }
   let lead: Entity = b.pe;
@@ -540,12 +579,32 @@ function follow(b: Brain): boolean {
     const pe = getEntity(b.ctx.world, t.targetId);
     if (pe?.alive && pe.mapId === b.e.mapId) lead = pe;
   }
-  const s =
+  const slot =
     b.ctx.world.slices.party.formation === 'ring'
       ? ringSlot(lead, b.n, spreadFactor(b))
       : slotNear(lead, b.n, spreadFactor(b));
+  // a slot in a hostile warning or a hazard zone: hold safe ground near the lead rather than
+  // walk through the danger to it (10.6); from far away, the nearest safe ground to the slot
+  const s = safeSlot(b, slot, lead);
   if (Math.hypot(b.e.x - s.x, b.e.y - s.y) > 2.5) walk(b, s.x, s.y, 0.6);
   return true;
+}
+
+/** How near the lead a companion on safe ground holds when its slot is in danger. */
+const HOLD_NEAR = 6;
+
+function safeSlot(
+  b: Brain,
+  s: { x: number; y: number },
+  lead: { x: number; y: number },
+): { x: number; y: number } {
+  const heed = heedsOf(b.ctx, b.m);
+  const bad = (x: number, y: number) => dangerAt(b.ctx.world, b.u, b.e.mapId, x, y, heed);
+  if (!bad(s.x, s.y)) return s;
+  const here = { x: b.e.x, y: b.e.y };
+  if (!bad(here.x, here.y) && Math.hypot(here.x - lead.x, here.y - lead.y) <= HOLD_NEAR)
+    return here;
+  return safeSpotBy(bad, s.x, s.y) ?? here;
 }
 
 function ringSlot(pe: Entity, n: number, spread: number) {

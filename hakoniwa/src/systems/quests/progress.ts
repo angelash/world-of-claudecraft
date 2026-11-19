@@ -63,6 +63,30 @@ export function startQuest(ctx: SystemContext, id: string): boolean {
   return true;
 }
 
+/**
+ * Forget the progress of these quests (PK-M1-34, for "re-choose the opening": the scenes
+ * system clears the opening's flags, and the quests those flags stood for must go back to
+ * unstarted, or the log keeps the stages of the run that was dropped). The flag is the
+ * scenes system's to clear; this only drops the progress record and its order entry.
+ */
+export function resetQuests(ctx: SystemContext, ids: readonly string[]): string[] {
+  const slice = ctx.world.slices.quests;
+  const gone: string[] = [];
+  for (const id of ids) {
+    if (!slice.quests[id]) continue;
+    delete slice.quests[id];
+    gone.push(id);
+  }
+  if (gone.length === 0) return gone;
+  slice.order = slice.order.filter((id) => !gone.includes(id));
+  // the scenes the restart forgot are not seen for the quests either (a `scene` objective of a
+  // reset quest must wait for the replay, not complete at once)
+  const seen = ctx.world.slices.scenes?.seen;
+  if (seen) slice.scenesSeen = slice.scenesSeen.filter((id) => seen.includes(id));
+  markDirty(ctx);
+  return gone;
+}
+
 /** Enter a stage by index (the next one, or a failure branch's target). */
 export function enterStage(ctx: SystemContext, def: QuestDef, q: QuestProgress, idx: number): void {
   const stage = def.stages[idx];

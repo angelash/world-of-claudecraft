@@ -250,6 +250,13 @@ export interface DivineActionDef {
   seen?: ActionSeen;
   /** narrate and manifest: the goddess line slot spoken (her pack ln_<goddess>) */
   slot?: string;
+  /**
+   * Per goddess, the slot of her own pack the spoken text comes from (PK-M1-34; the
+   * catalog's 1.1 rule that her words live in ln_<goddess>, not in this table): the oracle,
+   * dream and omen text of the no-model planner and Janu's night round. `lines` stays as the
+   * fallback for a goddess with no pack of her own.
+   */
+  slots?: Record<string, string>;
   /** narrate: the modifiers' word (TAGGED_TARGETS), unless the command names one */
   tag?: string;
 }

@@ -680,6 +680,9 @@ function runEffect(
     }
     case 'aura':
       if (enemy && !landed) return;
+      // a debuff that lands is a hit of its ability: a shield it names breaks (10.4
+      // `breakBy: ability`; Yeyu's ravens on the colossus's ash shell, PK-M1-21)
+      if (enemy) abilityHitShield(ctx, t, def.id, caster);
       applyAura(ctx, t, f.aura, caster, {
         powerMult: f.perComboMult ? 1 + f.perComboMult * Math.max(0, combo - 1) : 1,
         school: def.school ?? 'physical',

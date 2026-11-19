@@ -29,7 +29,27 @@ import type { BattleView, Formation } from '../../systems/warfare';
 import type { Entity } from '../../systems/world/types';
 import type { EntityMarks, GroundWarning } from '../render/combat_marks';
 import type { MarkerKind } from '../render/markers';
+import type {
+  BeastsAdapter,
+  BoardAdapter,
+  CraftAdapter,
+  DungeonAdapter,
+  GatherAdapter,
+  PartyRosterAdapter,
+} from './adapters_field';
+import type {
+  CodexAdapter,
+  DeedsAdapter,
+  EvidenceAdapter,
+  LettersAdapter,
+} from './adapters_records';
+import type { TideAdapter } from './adapters_tide';
 import type { ClientCommand, GameView } from './game_view';
+
+// The act-1 windows' adapters (PK-M1-23) live in their own facet files, re-exported here.
+export * from './adapters_field';
+export * from './adapters_records';
+export * from './adapters_tide';
 
 export type Commands = ClientCommand[];
 
@@ -501,4 +521,16 @@ export interface ClientAdapters {
   strategy?: StrategyAdapter;
   goddess?: GoddessAdapter;
   appraise?: AppraiseAdapter;
+  // PK-M1-23: the act-1 windows (ux_and_onboarding.md 6.3) and the tide-night panel
+  board?: BoardAdapter;
+  craft?: CraftAdapter;
+  gather?: GatherAdapter;
+  dungeon?: DungeonAdapter;
+  beasts?: BeastsAdapter;
+  partyRoster?: PartyRosterAdapter;
+  deeds?: DeedsAdapter;
+  codex?: CodexAdapter;
+  letters?: LettersAdapter;
+  evidence?: EvidenceAdapter;
+  tide?: TideAdapter;
 }

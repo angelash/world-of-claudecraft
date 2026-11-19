@@ -1,0 +1,19 @@
+{
+  "id": "ln_class_beastkin",
+  "slots": {
+    "greet.cold": ["人族。有事？", "（嗅了嗅）你来做什么。"],
+    "greet.neutral": ["你好。", "（点头）来了。"],
+    "greet.warm": ["朋友。坐。", "祖灵在上，又见面了。"],
+    "farewell": ["走好。", "风会给你带路。"],
+    "unbelief.deny": ["传闻？我不听传闻。", "人族的嘴，我不信。"],
+    "unbelief.explain": ["我没看见，就不算。", "让我亲眼看。"],
+    "unbelief.waver": ["你身上的味道……不一样。", "我闻得出来，你不是普通人。"],
+    "react.feat_seen": ["强。", "（尾巴竖起来）好！"],
+    "react.insult": ["再说一次。", "嘴别那么脏。"],
+    "react.gift_liked": ["好肉。谢谢。", "这个我留着。"],
+    "react.identity_pressure": ["（低吼）你身上有压人的东西。"],
+    "topic.gen_faith": {
+      "K0": ["我们拜林子的母亲，也拜祖灵。"]
+    }
+  }
+}

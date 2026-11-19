@@ -1,0 +1,52 @@
+{
+  "id": "ln_kas_ropebridge",
+  "speaker": "kas_ropebridge",
+  "slots": {
+    "greet.cold": ["过桥两个铜，带刀五个。", "不过就别站在桥头。", "你是独眼团的人？"],
+    "greet.neutral": [
+      {
+        "zh": "今天过去九个，回来七个。你是第十个。",
+        "first": true
+      },
+      "过桥？两个铜。",
+      "嗯。"
+    ],
+    "greet.warm": [
+      "你又来了。今天过去的人，我数给你听。",
+      "你过桥，不收钱。",
+      "坐，绳子我刚换过。"
+    ],
+    "farewell": ["过去的人，记得回来。", "我数着呢。", "走稳了。"],
+    "unbelief.deny": ["我没看见，不算。", "吹的人我见多了。"],
+    "unbelief.explain": ["你身上带着什么东西吧。", "运气。"],
+    "unbelief.waver": [
+      "你过去的时候背着两个人。回来的时候也是。……怎么做到的？",
+      "我数清楚了，是你。"
+    ],
+    "react.feat_seen": ["我数到了。你一个人。", "好！"],
+    "react.gift_liked": ["新绳子？谢谢。", "面包……谢谢。"],
+    "react.insult": ["过桥加钱。", "走开。"],
+    "topic.gen_self": {
+      "neutral": ["卡斯。守绳桥的。", "我记得每个过桥的人，还有他们背的东西。"]
+    },
+    "topic.gen_work": {
+      "K0": ["守桥，收钱，数人。", "灰溪的水，冬天也不结冰。"]
+    },
+    "topic.self_kas_ropebridge_count": {
+      "K0": ["今天过去九个，回来七个。你是第十个。", "少了的那两个，我也记着。"]
+    },
+    "topic.secret_kas_ropebridge_father": {
+      "K0": [
+        {
+          "zh": "我爹是被独眼团杀的。我守桥，是为了数清他们还剩几个人。",
+          "when": "trust.kas_ropebridge >= 60"
+        }
+      ]
+    },
+    "topic.place_ropebridge": {
+      "K0": ["断桥。绳桥是我爹搭的。", "灰溪对面就是荒原。"]
+    },
+    "bark.work": ["一个，两个……", "绳子要松了。"],
+    "bark.night": ["夜里没人过桥。……有的话，更要数清楚。"]
+  }
+}

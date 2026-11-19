@@ -384,6 +384,11 @@ export const pack: ContentPack = {
       if (b.slot && !packSlots(b.goddess).has(b.slot))
         problems.push(`beat ${b.id}: no line for ${b.slot} in ln_${b.goddess}`);
     }
+    // the per-goddess pack slots an action's words come from (PK-M1-34)
+    for (const a of content.divineActions ?? [])
+      for (const [goddess, slot] of Object.entries(a.slots ?? {}))
+        if (!packSlots(goddess).has(slot))
+          problems.push(`action ${a.id}: no line for ${slot} in ln_${goddess}`);
     for (const sc of content.goddessSchemes ?? [])
       for (const [name, bind] of Object.entries(sc.bind)) {
         if (typeof bind === 'string') continue;

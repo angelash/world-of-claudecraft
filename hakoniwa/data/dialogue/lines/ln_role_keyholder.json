@@ -1,0 +1,20 @@
+{
+  "id": "ln_role_keyholder",
+  "slots": {
+    "react.evade": ["你问的那东西，我这儿没有。", "这不是能随便拿出来说的。"],
+    "react.hint": ["想要的东西，得先配得上。", "我等的人，得先让我看看。"],
+    "react.declined": ["时候没到，我不给。", "你还差一样。"],
+    "react.promise_noted": ["说定了，你办到，我就交出来。"],
+    "react.persuaded": ["……好吧。你够格了。"],
+    "react.bribe_refuse": ["这东西用钱买不到。"],
+    "react.threatened": ["你抢得走东西，抢不走用法。"],
+    "topic.gen_past": {
+      "warm": ["这东西在我手里很多年了。", "有人托我守着，我就守着。"]
+    },
+    "bark.worried": ["最近总有人打听……", "得换个地方藏。"],
+    "bark.home": ["门锁好了。"],
+    "greet.neutral": ["你是为那件东西来的？"],
+    "greet.warm": ["你又来了。我开始相信你了。"],
+    "farewell": ["想好了再来。"]
+  }
+}

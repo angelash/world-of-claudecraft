@@ -8,7 +8,7 @@
 // after the weather; rings, the threat ring and the fog cap follow the fairness list
 // (fairness.ts). Switch tiles fade between the old and the new ground (switch_fade.ts).
 
-import { inRingGap, RING_COLORS, type RingStyle, silhouetteColor } from '../hd2d/ground_marks';
+import { inRingGap, type RingStyle, ringColor, silhouetteColor } from '../hd2d/ground_marks';
 import type { StandeePlacement } from '../hd2d/layout';
 import type { QualitySettings } from '../hd2d/quality';
 import { propColorsOf } from '../hd2d/style_packs';
@@ -31,6 +31,7 @@ import { MOVE_PULSE_MS } from './frame_signals';
 import type { MapContext } from './map_context';
 import { markerMatrix } from './markers';
 import { paintOverlays } from './overlay_painter';
+import { worldCalm } from './palette_modes';
 import type { HitBox, WorldRenderer } from './renderer';
 import { dissolveLevel, roofPixels } from './roofs';
 import type { LightMood, Scene, SceneEntity, SceneLight } from './scene';
@@ -78,8 +79,10 @@ export class FlatWorldRenderer implements WorldRenderer {
   private readonly dissolve: HTMLCanvasElement[] = [];
   private fog: HTMLCanvasElement | null = null;
   private boxes: HitBox[] = [];
-  private readonly reducedMotion =
-    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** reduce flashing and shaking (18.8): the system preference, or the page's own switch */
+  private get reducedMotion(): boolean {
+    return worldCalm();
+  }
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -593,7 +596,7 @@ export class FlatWorldRenderer implements WorldRenderer {
   /** A pixel ring by style; the hostile one breaks on the diagonals (ground_marks.ts). */
   private ring(lx: number, ly: number, width: number, style: RingStyle, alpha: number): void {
     const w = this.wctx;
-    w.fillStyle = toCss(RING_COLORS[style], alpha);
+    w.fillStyle = toCss(ringColor(style), alpha);
     const rx = width / 2;
     const ry = Math.max(2, Math.round(width / 5));
     for (let a = 0; a < 48; a++) {

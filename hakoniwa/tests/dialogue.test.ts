@@ -348,7 +348,17 @@ describe('free text through the npc.dialogue role', () => {
     g.step(1);
     g.queue('dialogue.say', { text: '你好' });
     g.step(2);
-    expect(['你好。', '嗯，你好。']).toContain(lines(g).at(-1)?.text);
+    // Lina greets from her own pack since the act-1 lines landed (builtin_ai 7.3 step 2)
+    const greet = (key: string) =>
+      (
+        (CONTENT.linePacks.find((p) => p.id === 'ln_lina')?.slots[key] ?? []) as (
+          | string
+          | { zh: string }
+        )[]
+      ).map((l) => (typeof l === 'string' ? l : l.zh));
+    expect([...greet('greet.neutral'), ...greet('greet.cold'), ...greet('greet.warm')]).toContain(
+      lines(g).at(-1)?.text,
+    );
     g.queue('dialogue.say', { text: '   ' });
     g.step(1);
     expect(lastResult(g, 'dialogue.say')).toMatchObject({

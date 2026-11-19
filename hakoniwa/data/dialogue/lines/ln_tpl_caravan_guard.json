@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_caravan_guard",
+  "slots": {
+    "greet.neutral": ["站住。……哦，路过的。", "嗯。", "跟商队一起走？"],
+    "greet.cold": ["离车远点。", "别打货的主意。"],
+    "greet.warm": ["你来了！上回多亏你。", "一起走吧，安全。"],
+    "farewell": ["路上小心。", "走好。"],
+    "unbelief.deny": ["本地 B 级都不一定行。你？", "吹的。"],
+    "unbelief.explain": ["那帮匪早被人打残了。", "你是哪家的护卫，装成新人？"],
+    "unbelief.waver": ["你救了我。……我认。", "好身手。"],
+    "react.feat_seen": ["好！", "这……是真本事。"],
+    "topic.gen_work": {
+      "K0": ["护车，日薪三到五银。魔物季翻倍。", "活着把货送到，就是本事。"]
+    },
+    "bark.travel": [
+      "打起精神。",
+      {
+        "zh": "林子里有动静。",
+        "mood": ["fear"]
+      }
+    ],
+    "bark.patrol": ["前面没事。"],
+    "bark.camp": ["轮流守夜。"]
+  }
+}

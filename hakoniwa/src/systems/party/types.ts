@@ -57,11 +57,14 @@ export type CompanionRole = 'tank' | 'healer' | 'melee' | 'ranged' | 'caster';
  * of its health and something hits the player, use `ability` on that attacker whatever
  * the stance. `shield`: allies carrying one of `tags` are defended even under the passive
  * stance (children, the remnants). `retreat`: the retreat line of the survival layer.
+ * `spare`: never picks a target of these monster families (while it flees, with
+ * `fleeing`): Shiya does not shoot a fleeing beast.
  */
 export type CompanionRule =
   | { kind: 'guard'; below: number; ability: string }
   | { kind: 'shield'; tags: string[] }
-  | { kind: 'retreat'; below: number };
+  | { kind: 'retreat'; below: number }
+  | { kind: 'spare'; families: string[]; fleeing?: boolean };
 
 /** The personality weights of the behaviour tree (7.4), 0 to 100 each. */
 export interface CompanionAi {
@@ -218,6 +221,164 @@ export interface PartyConfig {
   retainers: { requires: string; slots: number; fatigue: number };
   /** temporary companions walk with the player for these objective kinds */
   tempObjectives: string[];
+  /** the built-in AI's stance choice per fight (builtin_ai.md 11.1); absent: the defaults */
+  tactics?: TacticsConfig;
+  /** party chatter (builtin_ai.md 11.3; companions_and_party.md 10.1); absent: the defaults */
+  banter?: BanterConfig;
+  /** grave injuries of named people outside the party (progression_and_pacing.md 10.1) */
+  care?: { npcDays: number };
+}
+
+/**
+ * The stance score of builtin_ai.md 11.1: affinity (the 7.4 weight / 100) times `weight`;
+ * `state` toward assist when the party is full of health and mana, toward stay when
+ * potions or mana run low or after `hardStreak` hard fights in a row; `protect` toward
+ * follow when the player enters a fight under `protectBelow` of health; `foes` toward
+ * assist when every known foe is at or under the player's grey level, toward stay with a
+ * boss or an elite among them; `inertia` for the stance held. The thresholds that read
+ * "full", "low" and "hard" are proposals (docs/70_packets/pk_m1_21_companion_ai).
+ */
+export interface TacticsConfig {
+  /** the built-in AI picks stances for companions the player gave none */
+  auto: boolean;
+  weight: number;
+  state: number;
+  protect: number;
+  foes: number;
+  inertia: number;
+  protectBelow: number;
+  hardStreak: number;
+  /** "full": every member at least this share of health, and of mana for mana users */
+  fullHp: number;
+  fullMana: number;
+  /** "low": the mana users' mean share under this, or fewer healing items than `lowPotions` */
+  lowMana: number;
+  lowPotions: number;
+  /** a hard fight: someone went down, or the party ended it under this mean health share */
+  hardHp: number;
+  /** foes within this many tiles of the player are the known foes */
+  sight: number;
+  /** seconds of the opening move (11.1) before the companion fights as usual */
+  openingSec: number;
+}
+
+/** The pacing of party chatter (builtin_ai.md 11.3; companions_and_party.md 8.2, 10.1). */
+export interface BanterConfig {
+  /** the least bond of each companion in the cast (8.2: no chatter before 相识, 20) */
+  minBond: number;
+  /** the least bond for a camp talk (8.2: 营地谈话 opens at 同行, 40) */
+  campTalkBond: number;
+  /** seconds between the lines of an exchange */
+  lineSec: number;
+  /** seconds a reply point waits for the player's answer */
+  replySec: number;
+  /** ticks between two exchanges outside travel and the campfire (10.1: 10 real minutes) */
+  exploreGap: number;
+  /** ticks of journey per travel exchange (10.1: one per 30 game minutes of travel) */
+  travelGap: number;
+  /** exchanges at most per campfire night (10.1: one to three) */
+  campfireMax: number;
+  /** how much a played repeatable exchange recovers per game day (freshness, 11.3) */
+  freshPerDay: number;
+  /** the weight of an exchange tied to what just happened (relevance, 11.3) */
+  relevance: number;
+  /** map roles walked as a journey (the region map stands in for them until PK-M1-17) */
+  journeyRoles: string[];
+}
+
+/** What starts an exchange (builtin_ai.md 11.3). */
+export type BanterKind = 'enter' | 'event' | 'travel' | 'campfire' | 'relation' | 'act';
+export const BANTER_KINDS: readonly BanterKind[] = [
+  'enter',
+  'event',
+  'travel',
+  'campfire',
+  'relation',
+  'act',
+];
+
+/**
+ * One party exchange (builtin_ai.md 11.3, 18 `PartyExchange`): its lines are the slot
+ * `party.<id>` of the line pack ln_party (PK-M1-29): first the spoken lines, one per entry
+ * of `speakers`, then the reply labels, one per entry of `replies`.
+ */
+export interface BanterDef {
+  id: string;
+  /** the persons on stage (1 to 3), all in the party (a temporary companion counts) */
+  cast: string[];
+  kind: BanterKind;
+  /** enter: a map id or a location id of the player's map */
+  at?: string;
+  /** event: an event key besides the condition turning true (`feat.<kind>`, `boss.defeated`) */
+  on?: string;
+  /** reveal-ledger condition */
+  when?: string;
+  /** once a game (default) or again */
+  once?: boolean;
+  /** story-bound chatter ranks above idle chatter */
+  priority: number;
+  /** the speaker of each spoken line, in order */
+  speakers: string[];
+  /** the reply point: the bond change of each option (companions_and_party.md 8.4) */
+  replies?: { bond?: Record<string, number> }[];
+}
+
+/** The party's chatter state (builtin_ai.md 18: the exchanges already heard). */
+export interface BanterState {
+  /** exchange id: the tick it was last played to the end */
+  played: Record<string, number>;
+  /** exchange id: times it was cut short (11.3: twice and it is void) */
+  cut?: Record<string, number>;
+  /** exchanges voided after their second cut */
+  void?: string[];
+  /** the exchange playing now */
+  running?: {
+    id: string;
+    /** the next line to say */
+    line: number;
+    /** the tick the next line is due */
+    next: number;
+    /** waiting for the reply until this tick (after the last line) */
+    replyUntil?: number;
+    kind: BanterKind;
+  };
+  /** event exchanges waiting for a calm moment, with the tick they were raised */
+  pending?: Record<string, number>;
+  /** conditions of repeatable event exchanges that held at the last look (rising edge) */
+  held?: Record<string, boolean>;
+  /** the places the player stands in now: the map id and the location ids */
+  here?: string[];
+  /** the player's spot at the last look (a journey counts while the player moves) */
+  pos?: [string, number, number];
+  /** the tick the last exchange outside travel and the campfire began */
+  lastAt?: number;
+  /** ticks of journey since the last travel exchange */
+  journey?: number;
+  /** the night (the game day it began on) of the last campfire and the exchanges at it */
+  camp?: { night: number; count: number };
+  /** the camp talk of a night (8.4): the night and the companion the player sat with */
+  talked?: { night: number; companionId: string };
+  /** a talk or a scene holds the stage (11.3: either breaks an exchange in) */
+  talk?: boolean;
+  scene?: boolean;
+  /** ticks of travel and campfire with companions in the party (alive metric 12) */
+  exposure?: number;
+}
+
+/** The built-in AI's per-fight bookkeeping (builtin_ai.md 11.1, 18: the tendency). */
+export interface FightState {
+  /** a fight is going on */
+  on: boolean;
+  /** fights begun so far (the revision of companion.tactics requests) */
+  count: number;
+  /** the tick the current or last fight began */
+  start: number;
+  /** party members gone down in the current fight */
+  downs: number;
+  /** hard fights in a row up to the last one */
+  hardStreak: number;
+  /** companions the player rescued in this fight (the 8.4 bond, once a fight) */
+  rescued?: string[];
 }
 
 /** Where a roster member is (3.2). */
@@ -291,7 +452,22 @@ export interface Member {
   outTick?: number;
   /** a scripted spot that overrides everything (7.1 layer 2) */
   scripted?: { mapId: string; x: number; y: number };
+  /** the player chose this stance: the built-in AI leaves it (builtin_ai.md 11.1) */
+  stanceBy?: 'player';
+  /** the stance before the built-in AI's pick for the current fight (back to it after) */
+  stanceBase?: PartyOrder;
+  /** the stance the built-in AI or a model gave for the last fight (the inertia term) */
+  stanceLast?: PartyOrder;
+  /** the tick a heal last landed on the member (the light wound's treatment, 10.1) */
+  treated?: number;
+  /** the grave injury (its tick in `wounds`) the player has already visited (8.4) */
+  visited?: number;
+  /** the opening move of the current fight (11.1) and the tick it lapses */
+  opening?: { kind: OpeningKind; until: number };
 }
+
+/** The first act of a fight by stance (builtin_ai.md 11.1). */
+export type OpeningKind = 'burst' | 'buff' | 'close';
 
 export interface PartySlice {
   members: Record<string, Member>;
@@ -301,6 +477,12 @@ export interface PartySlice {
   formation?: 'wedge' | 'ring' | 'spread';
   /** the mount ridden (an item id the player holds) */
   mount?: string;
+  /** the built-in AI's fight bookkeeping (absent on saves before PK-M1-21) */
+  fight?: FightState;
+  /** party chatter (absent on saves before PK-M1-21) */
+  banter?: BanterState;
+  /** named people outside the party gravely hurt: person id to the tick they are well */
+  care?: Record<string, number>;
 }
 
 declare module '../../core/contracts' {
@@ -312,6 +494,7 @@ declare module '../../core/contracts' {
     partyConfig: PartyConfig;
     pets: PetDef[];
     mounts: MountDef[];
+    partyBanter: BanterDef[];
   }
   interface EventMap {
     'party.joined': { companionId: string; entityId: string };
@@ -339,6 +522,41 @@ declare module '../../core/contracts' {
     'party.rule': { companionId: string; rule: CompanionRule['kind']; targetId: string };
     /** the mount ridden changed */
     'party.mount': { mountId: string | null };
+    /**
+     * The built-in AI chose a companion's stance and opening move for a fight (builtin_ai.md
+     * 11.1); `fight` is the fight count, the revision of the companion.tactics request.
+     */
+    'party.tactics': {
+      companionId: string;
+      order: PartyOrder;
+      opening: OpeningKind;
+      fight: number;
+      by: 'builtin' | 'ai';
+    };
+    /** a line of party chatter (17.3: speaker and line, for the talk log) */
+    'party.banter': {
+      exchangeId: string;
+      kind: BanterKind;
+      /** the line's index in the slot party.<exchangeId> of ln_party */
+      line: number;
+      speakerId: string;
+      text: TextParam;
+    };
+    /** the player sat with a companion at the fire (8.4) */
+    'party.camp_talk': { companionId: string; night: number };
+    /** the reply point of an exchange: the player may answer until `until` (a tick) */
+    'party.banter_ask': { exchangeId: string; options: TextParam[]; until: number };
+    /**
+     * An exchange ended: `done` (to its last line or the reply), `cut` (combat, a talk or a
+     * scene broke in; it starts again later), `void` (cut twice, never again); `reply` is the
+     * option the player chose.
+     */
+    'party.banter_end': {
+      exchangeId: string;
+      kind: BanterKind;
+      outcome: 'done' | 'cut' | 'void';
+      reply?: number;
+    };
   }
   interface CommandMap {
     /** companionId omitted: every member */
@@ -379,6 +597,20 @@ declare module '../../core/contracts' {
     'party.release': { companionId: string };
     /** ride a mount the player owns, or none */
     'party.ride': { mountId: string | null };
+    /**
+     * The built-in AI or a model sets a companion's stance for the fight `revision` (the
+     * companion.tactics decision, builtin_ai.md 11.1); never the player, whose stance is
+     * `party.order` and which this never overrides.
+     */
+    'party.stance': { companionId: string; order: PartyOrder; revision: number };
+    /** hand a companion's stance back to the built-in AI (on), or keep the current one */
+    'party.auto_stance': { companionId?: string; on: boolean };
+    /** answer the reply point of the exchange playing now (builtin_ai.md 11.3) */
+    'party.banter_reply': { exchangeId: string; option: number };
+    /** visit a companion resting from a grave injury (8.4: +1 bond, once per injury) */
+    'party.visit': { companionId: string };
+    /** sit with one companion at a camp before sleep (8.4: +1 bond, one a night) */
+    'party.camp_talk': { companionId: string };
   }
 }
 

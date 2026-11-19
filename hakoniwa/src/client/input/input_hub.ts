@@ -87,12 +87,41 @@ export interface GameSink {
   orbit(dx: number, dy: number): void;
   textTarget(): TextTarget | null;
   submitText(text: string): void;
-  ringSectors(ring: RingId): RingSector[];
-  ringChoose(ring: RingId, id: string): void;
+  /** The sectors of a ring; `target` names whom it acts for (a companion, party_ring.ts). */
+  ringSectors(ring: RingId, target?: string): RingSector[];
+  /**
+   * A sector was picked. A follow-up ring to open answers (the party ring's "single order",
+   * then the member), else nothing.
+   */
+  ringChoose(ring: RingId, id: string, target?: string): RingFollow | undefined | void;
+  /** The title of a ring opened for a target (undefined: the ring's own title). */
+  ringTitle?(ring: RingId, target?: string): string | undefined;
   /** A ring opened or closed (the world slows in a fight while one is open). */
   ringOpen(open: boolean): void;
   deviceChanged(device: InputDevice): void;
 }
+
+/** The ring a pick opens next (radial.ts RadialState.target). */
+export interface RingFollow {
+  ring: RingId;
+  target: string;
+}
+
+/**
+ * Openers of rings no held button closes: a click on the HUD (`pointer`, picked with the
+ * mouse) and a follow-up ring (`pad:chain`, picked with the stick and A). Both stay open
+ * until a pick or a cancel, like a ring under hold-to-toggle.
+ */
+export const RING_OPENER_POINTER = 'pointer';
+export const RING_OPENER_CHAIN = 'pad:chain';
+
+/**
+ * Actions read as held state (actionHeld), never dispatched: skipping read lines lasts as
+ * long as its key or button is down (the story layer polls it each frame). `skip_read` has no
+ * default binding until the story controller reads the read table (src/client/app/read_log.ts);
+ * the hub already treats it as held state wherever a binding names it.
+ */
+export const HELD_ACTIONS: ReadonlySet<string> = new Set(['dialogue.skip_read']);
 
 /** What changed for the painters. */
 export type HubChange = 'device' | 'osk' | 'radial' | 'cursor' | 'layers';
@@ -141,6 +170,11 @@ const REPEATABLE: ReadonlySet<string> = new Set([
   'focus_next',
   'option_prev',
   'option_next',
+  // the spirit mirror's rows and options (3.4.3)
+  'row_prev',
+  'row_next',
+  'cycle_prev',
+  'cycle_next',
   'zoom_in',
   'zoom_out',
   'camera_turn_left',
@@ -184,6 +218,8 @@ export class InputHub {
   private padId: string | null = null;
   /** KeyboardEvent.code to the movement action it holds */
   private keysHeld = new Map<string, string>();
+  /** every key and mouse-button code down now (held actions read it) */
+  private codesDown = new Set<string>();
   private padMove: Intent = ZERO;
   private sentMove: Intent = ZERO;
   private presses = new Map<PadButton, Press>();
@@ -255,12 +291,32 @@ export class InputHub {
     return contextStack(this.game.surface(), this.device);
   }
 
+  /**
+   * Whether a held action's key or button is down now (`dialogue.skip_read`): the story layer
+   * polls it each frame. Only while the action is live in the current stack.
+   */
+  actionHeld(context: InputContext, action: string): boolean {
+    const stack = this.stack();
+    if (!stack.includes(context) || !actionLive(stack, context, action)) return false;
+    return heldNow(
+      {
+        kbm: this.kbm,
+        pad: this.pad,
+        codes: this.codesDown,
+        padDown: (b) => this.reader.isDown(b),
+      },
+      context,
+      action,
+    );
+  }
+
   // -------------------------------------------------------------------------
   // keyboard and mouse
 
   /** A key or mouse-button chord; true when it was an input binding (prevent the default). */
   key(chord: KeyChord, phase: 'down' | 'up', repeat = false): boolean {
     if (phase === 'up') return this.keyUp(chord);
+    this.codesDown.add(chord.code);
     if (this.devices.key()) this.deviceChanged();
     if (this.osk) this.closeOsk();
     // an open ring: Esc cancels it; with hold-to-toggle its own key picks
@@ -288,6 +344,8 @@ export class InputHub {
     if (hits.length === 0 && chord.code === 'NumpadEnter')
       hits = actionsForChord(this.kbm, stack, { ...chord, code: 'Enter' });
     if (hits.length === 0) return false;
+    // a held action is state, not an event (actionHeld): the key is taken, nothing runs
+    if (hits.some((h) => HELD_ACTIONS.has(`${h.context}.${h.action}`))) return true;
     if (repeat) {
       const r = hits.find((h) => REPEATABLE.has(h.action));
       if (r) this.dispatch(r.context, r.action, 'kbm');
@@ -305,6 +363,7 @@ export class InputHub {
   }
 
   private keyUp(chord: KeyChord): boolean {
+    this.codesDown.delete(chord.code);
     let used = false;
     if (this.keysHeld.delete(chord.code)) {
       this.updateMove();
@@ -327,7 +386,7 @@ export class InputHub {
   pointer(x: number, y: number, travel: number, nowMs = this.lastNow ?? 0): void {
     if (this.devices.pointer(travel, nowMs)) this.deviceChanged();
     const r = this.radial;
-    if (r?.opener.startsWith('key:')) {
+    if (r && (r.opener.startsWith('key:') || r.opener === RING_OPENER_POINTER)) {
       const v = this.ui.viewport();
       this.setRadial(pointMouse(r, x - v.w / 2, y - v.h / 2, this.moreLabel()));
     }
@@ -486,23 +545,29 @@ export class InputHub {
   private padHold(button: PadButton): void {
     const p = this.presses.get(button);
     if (!p?.deferred || p.comboed) return;
-    const stack = this.stack();
+    if (this.fireHold(this.stack(), button, true)) p.holdFired = true;
+  }
+
+  /** Fire the long press of `button` in its owning contexts (rings only when `rings`). */
+  private fireHold(stack: readonly InputContext[], button: PadButton, rings: boolean): boolean {
     for (const { context, action, x } of this.live(stack, this.owners(stack, button))) {
       if (x.kind !== 'button' || x.chord.button !== button || !x.chord.hold || x.chord.with)
         continue;
       const ring = RING_OF[`${context}.${action}`];
       if (ring) {
-        if (this.openRingFor(ring, `pad:${button}`)) {
-          p.holdFired = true;
-          return;
-        }
+        if (rings && this.openRingFor(ring, `pad:${button}`)) return true;
         continue;
       }
-      if (this.dispatch(context, action, 'pad')) {
-        p.holdFired = true;
-        return;
-      }
+      if (this.dispatch(context, action, 'pad')) return true;
     }
+    return false;
+  }
+
+  /** Whether the owning contexts give `button` a tap of its own (not only a long press). */
+  private hasTap(stack: readonly InputContext[], button: PadButton): boolean {
+    for (const { x } of this.live(stack, this.owners(stack, button)))
+      if (isTap(x, button)) return true;
+    return false;
   }
 
   private padUp(button: PadButton): void {
@@ -519,6 +584,10 @@ export class InputHub {
         return;
       }
     }
+    // hold-to-toggle (18.5): a button whose owners give it only a long press (the corridor's
+    // door opening) does it on a tap; a ring keeps opening on the long press, held open
+    if (this.holdToToggle && !this.hasTap(stack, button) && this.fireHold(stack, button, false))
+      return;
     this.fireTap(stack, button);
   }
 
@@ -664,6 +733,8 @@ export class InputHub {
 
   /** Run one action: window and display actions on the UI side, the rest in the game. */
   dispatch(context: InputContext, action: string, device: InputDevice): boolean {
+    // held actions are polled (actionHeld); their press owns the button and runs nothing
+    if (HELD_ACTIONS.has(`${context}.${action}`)) return true;
     if (context === 'window') {
       if (action === 'cursor_toggle') return this.toggleCursor();
       const run = WINDOW_ACTIONS[action];
@@ -749,13 +820,45 @@ export class InputHub {
   // -------------------------------------------------------------------------
   // radial menus
 
-  private openRingFor(ring: RingId, opener: string): boolean {
-    const sectors = this.game.ringSectors(ring);
+  /**
+   * Open a ring from outside the bindings: a HUD element (the party frame's right click opens
+   * that companion's orders, ux_and_onboarding.md 5.2), with `pointer` as the opener: it
+   * stays open, the mouse points, a left click picks and a right click or Esc cancels
+   * (pointerButton). False when the ring has nothing to offer. Replaces an open ring.
+   */
+  openRing(ring: RingId, opener: string = RING_OPENER_POINTER, target?: string): boolean {
+    this.closeRing();
+    const sticky = opener === RING_OPENER_POINTER || opener === RING_OPENER_CHAIN;
+    return this.openRingFor(ring, opener, target, sticky || this.holdToToggle);
+  }
+
+  private openRingFor(
+    ring: RingId,
+    opener: string,
+    target?: string,
+    sticky = this.holdToToggle,
+  ): boolean {
+    const sectors = this.game.ringSectors(ring, target);
     if (sectors.length === 0) return false;
-    this.radial = openRing(ring, sectors, opener, this.holdToToggle);
+    const title = this.game.ringTitle?.(ring, target);
+    this.radial = openRing(ring, sectors, opener, sticky, target, title);
     this.game.ringOpen(true);
     this.setPadMove(ZERO);
     this.ui.changed('radial');
+    return true;
+  }
+
+  /**
+   * A mouse button while a ring opened by key or by the HUD is open: the left button picks
+   * the pointed sector (nothing pointed cancels), the right button cancels. True when a ring
+   * took the click (the click then reaches nothing else).
+   */
+  pointerButton(button: number): boolean {
+    const r = this.radial;
+    if (!r || r.opener.startsWith('pad:')) return false;
+    if (button === 0) this.pick();
+    else if (button === 2) this.closeRing();
+    else return false;
     return true;
   }
 
@@ -786,7 +889,14 @@ export class InputHub {
     }
     if (res.type === 'none' && r.sticky) return;
     this.closeRing();
-    if (res.type === 'pick') this.game.ringChoose(r.ring, res.id);
+    if (res.type !== 'pick') return;
+    const next = this.game.ringChoose(r.ring, res.id, r.target);
+    // a follow-up ring (the party ring's "single order", then the member) opens at once,
+    // picked with the stick and A on the pad, with the mouse otherwise
+    if (next) {
+      const opener = this.device === 'pad' ? RING_OPENER_CHAIN : RING_OPENER_POINTER;
+      this.openRingFor(next.ring, opener, next.target, true);
+    }
   }
 
   closeRing(): void {
@@ -864,12 +974,42 @@ export class InputHub {
    */
   releaseAll(): void {
     this.keysHeld.clear();
+    this.codesDown.clear();
     this.presses.clear();
     for (const b of this.reader.held()) this.presses.set(b, CONSUMED());
     this.padMove = ZERO;
     this.updateMove();
     this.closeRing();
   }
+}
+
+// -------------------------------------------------------------------------
+// held actions
+
+export interface HeldSource {
+  kbm: ContextKeymap;
+  pad: PadKeymap;
+  /** key and mouse-button codes down now */
+  codes: ReadonlySet<string>;
+  /** whether a pad button is down now */
+  padDown(button: PadButton): boolean;
+}
+
+/**
+ * Whether an action's key or pad button is down now, through the effective bindings (so it
+ * follows rebinding): a key chord counts when its key is down (modifiers are not checked: a
+ * held Ctrl is the chord of the Ctrl key itself); a pad chord when its button is down, and
+ * its modifier with it.
+ */
+export function heldNow(src: HeldSource, context: InputContext, action: string): boolean {
+  const k = src.kbm[context]?.[action];
+  for (const c of [k?.primary, k?.secondary]) if (c && src.codes.has(c.code)) return true;
+  const p = src.pad[context]?.[action];
+  for (const x of [p?.primary, p?.secondary]) {
+    if (x?.kind !== 'button') continue;
+    if (src.padDown(x.chord.button) && (!x.chord.with || src.padDown(x.chord.with))) return true;
+  }
+  return false;
 }
 
 function isTap(x: PadBinding | undefined, button: PadButton): boolean {

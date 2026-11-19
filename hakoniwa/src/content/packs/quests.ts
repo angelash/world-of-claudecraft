@@ -30,6 +30,8 @@ const COMPUTE_FNS = new Set([
   'act5_outcome',
   'review_score',
   'tide_attribution',
+  // the act-1 trial's verdict count (src/systems/scenes/trial.ts, PK-M1-55)
+  'trial_verdict',
 ]);
 
 /** Problems in one condition expression (empty when fine). */

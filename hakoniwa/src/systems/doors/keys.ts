@@ -31,6 +31,11 @@ export interface KeyProgress {
   started?: boolean;
   /** whether the corridor shows this key at the door's hint level (set by the view) */
   shown?: boolean;
+  /**
+   * where to find it (the door card's "去哪里找", ux_and_onboarding.md 9.3): the quest the
+   * key's data names, set by the view once the player knows that quest
+   */
+  link?: { kind: 'quest'; id: string };
 }
 
 /** Story act as a number: prologue 0, act1 to act6, epilogue 7 (default act 1). */
@@ -418,7 +423,9 @@ export function countEvent(
       if (k.type !== 'count' || k.event !== kind || !matches(k, data)) return;
       if (countBlocked(world, door, path)) return;
       const key = `${door.id}:${path}`;
-      slice.counters[key] = (slice.counters[key] ?? 0) + 1;
+      const add = k.sum === undefined ? 1 : data[k.sum];
+      if (typeof add !== 'number' || !(add > 0)) return;
+      slice.counters[key] = (slice.counters[key] ?? 0) + add;
     };
     walkKeys(door.keys, '', count);
     if (door.reveal) walkKeys(door.reveal, 'r', count);

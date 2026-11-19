@@ -1,7 +1,195 @@
 {
   "id": "ln_sylvie",
   "speaker": "sylvie",
-  "slots": {},
+  "slots": {
+    "react.oracle_instruct": [
+      "……林子里有东西醒了。别进去。",
+      "……别砍那棵树。",
+      "……幼鹿还小。这一季，别进鹿泉。",
+      "……风向变了。早点回家。",
+      "……灰从北边来。看好孩子们。"
+    ],
+    "react.dream_vision": [
+      "……林子在喘气。",
+      "……北边的风里，有灰。",
+      "……那个孩子。替我看着。",
+      "……叶子落得比往年早。冬天会很长。",
+      "……别让猎人进鹿泉。这一季不行。"
+    ],
+    "react.omen_beast": [
+      "林间的鸟群一下子全飞了起来，往南边去了。",
+      "一头鹿站在路边，看了你很久，才转身跑开。",
+      "鸦群忽然从树梢惊起，绕着林子飞了三圈。",
+      "一群老鼠贴着墙根，往镇子外面跑。",
+      "远处一头半鹿半狼的兽站了一下，转眼就不见了。"
+    ],
+    "greet.cold.avatar": [
+      {
+        "zh": "……",
+        "when": "act == 0"
+      },
+      {
+        "zh": "……你来了。站远些。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "风不想见你。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.neutral.avatar": [
+      {
+        "zh": "……嗯。",
+        "when": "act == 0"
+      },
+      {
+        "zh": "远来的人。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "……坐吧。草是软的。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.warm.avatar": [
+      {
+        "zh": "远来的人，春天跟着你来了。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "……又见面了。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "你身上有林子的味道。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.cold.shrine": [
+      {
+        "zh": "……水很浑。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "今天，不听。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "……走吧。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.neutral.shrine": [
+      {
+        "zh": "……风停了一下。我在听。慢慢说。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "说吧。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "泉边很静。",
+        "when": "act >= 4"
+      }
+    ],
+    "greet.warm.shrine": [
+      {
+        "zh": "你来看泉了。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "……谢谢你来。",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "花开了一朵，你看见了吗。",
+        "when": "act >= 4"
+      }
+    ],
+    "farewell": [
+      "……去吧。",
+      "冬天会来。冬天总会来。",
+      {
+        "zh": "……路上小心。",
+        "when": "act >= 4"
+      }
+    ],
+    "topic.gen_self": {
+      "prologue": ["生命……与循环。", "……一个看着花开花落的人。"],
+      "act4": [
+        {
+          "zh": "我守着林子，守着泉。……守得不太好。",
+          "when": "act >= 4"
+        },
+        {
+          "zh": "叫我希尔薇就好。",
+          "when": "act >= 4"
+        }
+      ]
+    },
+    "topic.gen_you": {
+      "prologue": ["……还会回来吗，那个？", "你也会疼。"],
+      "act4": [
+        {
+          "zh": "远来的人。……你会让他们自己过冬吗？",
+          "when": "act >= 4"
+        },
+        {
+          "zh": "你身上没有页。我看得见你，看得很清楚。",
+          "when": "act >= 4"
+        }
+      ]
+    },
+    "topic.place_antechamber": {
+      "prologue": ["……一个等的地方。"]
+    },
+    "topic.lore_hortus": {
+      "prologue": ["那里有四季。"]
+    },
+    "topic.lore_judgment": {
+      "prologue": ["……也许是，尚未学会。"]
+    },
+    "topic.event_that_matter": {
+      "prologue": ["……别说了。"]
+    },
+    "topic.lore_above": {
+      "prologue": ["……或者在等我们自己停下来。"]
+    },
+    "topic.self_number_five": {
+      "prologue": ["……嗯。"]
+    },
+    "topic.person_four_heroes": {
+      "prologue": ["他们会累的。"]
+    },
+    "topic.self_way_home": {
+      "prologue": ["……冬天的时候，会更想吗？"]
+    },
+    "topic.place_sixth_chair": {
+      "prologue": ["……什么椅子。"]
+    },
+    "react.anchor_a08": ["……别相信我们任何一个。包括我。"],
+    "react.evade": ["……", "季节还没到。"],
+    "react.insult": ["……你很累。", "嗯。"],
+    "react.flattered": ["……花不需要夸。", "嗯。"],
+    "react.threatened": ["火会烧完，草会长回来。", "……你不会的。"],
+    "react.joke": ["……（她笑了一下）", "嗯，有意思。"],
+    "react.thanked": ["……不用。", "嗯。"],
+    "react.nonsense": ["……听不懂。", "风也听不懂。"],
+    "react.confused": ["……慢慢说。", "再说一遍。"],
+    "react.goddess_invoked": ["……别喊那么大声。", "名字很重。"],
+    "react.earth_talk": ["那边……有树吗？", "那边的冬天冷吗。"],
+    "react.doors_warn": [
+      {
+        "zh": "你开了多少扇门？",
+        "when": "act >= 4"
+      },
+      {
+        "zh": "……门开得太多，风会变。",
+        "when": "act >= 4"
+      }
+    ]
+  },
   "acts": {
     "act4": {
       "react.honorific": ["……风停了一下。我在听。慢慢说。"]

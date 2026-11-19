@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { buildFrame, frameKey } from '../assets/runtime';
 import { MOVE_PULSE_MS } from '../render/frame_signals';
+import { paletteVersion } from '../render/palette_modes';
 import type { PlacementOverlay, SceneEntity } from '../render/scene';
 import type { SpriteFrame } from '../sprites/generate';
 import type { PixelMatrix } from '../sprites/pixels';
@@ -18,8 +19,8 @@ import { groundQuad, type MeshData, standeeMesh } from './geometry';
 import {
   markPx,
   markSize,
-  RING_COLORS,
   type RingStyle,
+  ringColor,
   ringMark,
   shadowMark,
   silhouetteColor,
@@ -163,13 +164,14 @@ export class EntityLayer {
 
   /** A cached mark texture and its material (one per style and pixel size). */
   private mark(style: RingStyle | 'shadow', wPx: number, hPx: number): Mark {
-    const key = `${style}:${wPx}x${hPx}`;
+    // ring colours follow the colour-vision palette: a mode change builds new materials
+    const key = `${style}:${wPx}x${hPx}:${style === 'shadow' ? 0 : paletteVersion()}`;
     let m = this.marks.get(key);
     if (!m) {
       const pixels: PixelMatrix =
         style === 'shadow' ? shadowMark(wPx, hPx) : ringMark(wPx, hPx, style);
       const tex = pixelTexture(pixels, false);
-      const color = style === 'shadow' ? 0x14101e : (RING_COLORS[style as RingStyle] ?? 0xffffff);
+      const color = style === 'shadow' ? 0x14101e : ringColor(style as RingStyle);
       const opacity = style === 'shadow' ? 0.32 : style === 'hover' ? 0.6 : 0.95;
       m = { tex, mat: markMaterial(tex, color, opacity), w: wPx / 16, d: hPx / 16 };
       this.marks.set(key, m);

@@ -214,7 +214,7 @@
 | `ui_set_controls` | 操作与改键 | `src/client/windows/settings/controls_model.ts`、`controls_page.ts` | 4.4 | M1 |
 | `ui_set_gameplay` | 游戏性 | `src/client/windows/settings/gameplay_model.ts`、`gameplay_page.ts`（文字速度、自动推进、引导级别、难度只读；其余项在 PK-M1-57） | 4.5 | M1 |
 | `ui_set_llm` | 大模型 | `src/client/windows/settings/llm_page.ts`（大模型开关，屏 A 到屏 J 在 PK-M1-02） | 4.6 | M1 |
-| `ui_set_access` | 无障碍 | 无 | 4.7 | M1 |
+| `ui_set_access` | 无障碍 | `src/client/windows/settings/access_model.ts`、`access_page.ts`；应用在 `src/client/app/accessibility.ts`、`access_apply_model.ts`、`src/client/access.css`（PK-M1-23） | 4.7 | M1 |
 | `ui_set_language` | 语言 | `src/client/windows/settings/language_page.ts` | 4.8 | M1（1.x 加语言） |
 | `ui_set_data` | 存档、云存档与隐私 | 无 | 4.9 | M1 |
 
@@ -239,11 +239,11 @@
 | `ui_hud_prompt` | 交互提示 | 覆盖层文字 | 5.2 | M1 |
 | `ui_hud_menubar` | 菜单栏 | `src/client/hud/menu_bar.ts` | 5.2 | M1 |
 | `ui_hud_gaze` | 注视计量 | 无 | 5.2 | M2 |
-| `ui_hud_coin` | 梅尔卡硬币角标 | 无 | 5.2 | M1 |
+| `ui_hud_coin` | 梅尔卡硬币角标 | `src/client/hud/coin_badge_model.ts`、`coin_badge.ts`（女神窗口的"使用硬币"发 `goddess.coin`） | 5.2 | M1 |
 | `ui_hud_warprompt` | 战事提示 | `banner.ts` 的 `WarPrompt` | 5.2 | M2 |
-| `ui_hud_dungeon` | 场地状态条（迷宫、试炼） | 无 | 5.2 | M1 |
-| `ui_hud_hint` | 引导提示条 | `src/client/hud/hint_model.ts`、`hint_bar.ts`（只有移动与交谈两条首次提示；全部 `tut_` 在 PK-M1-23） | 17.2 | M1 |
-| `ui_hud_wheel` | 环形菜单 | 无 | 16.5 | M1 |
+| `ui_hud_dungeon` | 场地状态条（迷宫、试炼） | `src/client/hud/dungeon_bar_model.ts`、`dungeon_bar.ts`（迷宫；澱巢与女神试炼的规则块未做） | 5.2 | M1 |
+| `ui_hud_hint` | 引导提示条 | `src/client/hud/hint_model.ts`、`hint_bar.ts`；序章与第一幕的 `tut_` 与 `tut_any_` 由 `src/client/tutorial/` 经它出条 | 17.2 | M1 |
+| `ui_hud_wheel` | 环形菜单 | `src/client/input/radial.ts`、`src/client/hud/radial_menu.ts`；队伍指令环的单人指令 `src/client/input/party_ring.ts`（从队伍框右键打开） | 16.5 | M1 |
 | `ui_ovl_nameplate` | 名字与头顶标记 | `src/client/render/overlay_painter.ts`、`markers.ts` | 5.3 | M1 |
 | `ui_ovl_speech` | 发言气泡 | `src/client/render/bubbles.ts` | 5.3 | M1 |
 | `ui_ovl_thought` | 心声气泡 | `bubbles.ts` | 5.3 | M1 |
@@ -263,12 +263,12 @@
 | 编号 | 名称 | 现有 | 目标 | 里程碑 |
 | --- | --- | --- | --- | --- |
 | `ui_win_character` | 角色与技能 | `character_window.ts` | 6.2.1 | M1 |
-| `ui_win_inventory` | 背包与装备 | `inventory_window.ts`、`inventory_view.ts` | 6.2.2 | M1 |
+| `ui_win_inventory` | 背包与装备 | `inventory_window.ts`、`inventory_view.ts`（实例的耐久、署名、澱纹档与"属性失效"） | 6.2.2 | M1 |
 | `ui_win_doors` | 千门回廊（打开即进入 `ui_mode_corridor`） | `story_windows.ts`（模式窗口，`window_registry.ts` 的 `mode`） | 9 | M1 |
 | `ui_win_quests` | 任务 | `story_windows.ts`、`quest_log_model.ts` | 6.2.4、14 | M1 |
 | `ui_win_rumors` | 传闻簿与声望 | `social_windows.ts` | 6.2.5、15 | M1 |
 | `ui_win_map` | 地图 | `map_window.ts` | 6.2.6 | M1 |
-| `ui_win_party` | 同伴 | `social_windows.ts` | 6.2.7 | M1 |
+| `ui_win_party` | 同伴 | `src/client/windows/field/party_window.ts`、`party_window_model.ts`（名册、指令、铁人开关） | 6.2.7 | M1 |
 | `ui_win_company` | 商会 | `economy_windows.ts` | 6.2.8 | M2 |
 | `ui_win_territory` | 领地与门内庭院 | `territory_window.ts` | 6.2.9、10 | M1（庭院页）、M2 |
 | `ui_win_battle` | 战场（打开即进入 `ui_mode_battle`） | `battle_window.ts`、`battle_model.ts` | 11 | M2 |
@@ -276,21 +276,21 @@
 | `ui_win_goddess` | 女神与神之记录 | `social_windows.ts` | 6.2.12 | M1 |
 | `ui_win_saves` | 存档 | `simple_windows.ts`、`src/client/hud/save_list.ts`、`save_slots.ts` | 6.2.13 | M1 |
 | `ui_win_menu` | 菜单 | `simple_windows.ts` | 6.2.14 | M1 |
-| `ui_win_help` | 帮助与术语表 | `help_model.ts`、`help_window.ts`（按键随设备重画；术语表在 PK-M1-23） | 6.2.15、17.7 | M1 |
+| `ui_win_help` | 帮助与术语表 | `help_model.ts`、`help_window.ts`（按键随设备重画；引导卡与术语表页读 `src/client/tutorial/`） | 6.2.15、17.7 | M1 |
 | `ui_win_trade` | 交易与修理 | `economy_windows.ts` | 6.2.16 | M1 |
 | `ui_win_settings` | 设置（游戏中打开 `ui_scr_settings`） | `settings_window.ts`、`settings/` | 4 | M1 |
 | `ui_win_debug` | 世界状态与旗标（开发构建） | `debug_window.ts` | 6.2.18 | M0 |
-| `ui_win_deeds` | 事迹与称号 | 无 | 6.3.1 | M1 |
-| `ui_win_codex` | 图鉴与收藏 | 无 | 6.3.2 | M1 |
-| `ui_win_craft` | 生业与制作 | 无 | 6.3.3 | M1 |
-| `ui_win_gather` | 采集 | 无 | 6.3.4 | M1 |
-| `ui_win_beasts` | 兽伴与坐骑 | 无 | 6.3.5 | M1 |
+| `ui_win_deeds` | 事迹与称号 | `src/client/windows/records/deeds_window.ts`、`deeds_model.ts` | 6.3.1 | M1 |
+| `ui_win_codex` | 图鉴与收藏 | `src/client/windows/records/codex_window.ts`、`codex_model.ts`（回想页的重播待过场播放器的只读入口） | 6.3.2 | M1 |
+| `ui_win_craft` | 生业与制作 | `src/client/windows/field/craft_window.ts`、`craft_model.ts` | 6.3.3 | M1 |
+| `ui_win_gather` | 采集 | `src/client/windows/field/craft_window.ts`（采集面板）、`craft_model.ts`（垂纶在 M2） | 6.3.4 | M1 |
+| `ui_win_beasts` | 兽伴与坐骑 | `src/client/windows/field/dungeon_window.ts`（兽伴页）、`beasts_model.ts` | 6.3.5 | M1 |
 | `ui_win_atlas` | 世界图与区域图 | 无 | 6.3.6 | M2 |
-| `ui_win_board` | 委托板 | 无 | 6.3.7 | M1 |
-| `ui_win_letters` | 传书 | 无 | 6.3.8 | M1 |
+| `ui_win_board` | 委托板 | `src/client/windows/field/board_window.ts`、`board_model.ts`；`BoardAdapter` 在 `src/client/view/adapters_field.ts` | 6.3.7 | M1 |
+| `ui_win_letters` | 传书 | `src/client/windows/records/letters_window.ts`、`letters_model.ts`（寄出在信使之门之后） | 6.3.8 | M1 |
 | `ui_win_market` | 商队与市场 | 无 | 6.3.9 | M2 |
-| `ui_win_dungeon` | 迷宫状态 | 无 | 6.3.10 | M1 |
-| `ui_win_evidence` | 证物、史料与审庭准备 | 无 | 6.3.11 | M1（证物）、M3（审庭准备） |
+| `ui_win_dungeon` | 迷宫状态 | `src/client/windows/field/dungeon_window.ts`、`dungeon_model.ts` | 6.3.10 | M1 |
+| `ui_win_evidence` | 证物、史料与审庭准备 | `src/client/windows/records/evidence_window.ts`、`evidence_model.ts`（证物与史料页；审庭准备在 M3） | 6.3.11 | M1（证物）、M3（审庭准备） |
 | `ui_win_council` | 议事与报告 | 无 | 6.3.12 | M2 |
 | `ui_win_army` | 军队与将领 | 无 | 6.3.13 | M2 |
 
@@ -316,7 +316,7 @@
 | `ui_pop_charcard` | 人物卡 | 无 | 6.4 | M1 |
 | `ui_pop_quote` | 报价明细 | 无 | 6.4 | M1 |
 | `ui_pop_prayer` | 祈祷 | 无 | 6.4 | M1 |
-| `ui_pop_offer` | 梅尔卡往来账与供奉 | `social_windows.ts` 的供奉段 | 6.4 | M1 |
+| `ui_pop_offer` | 梅尔卡往来账与供奉 | `src/client/hud/offer_pop_model.ts`、`offer_pop.ts`（硬币角标打开）；`social_windows.ts` 的供奉段 | 6.4 | M1 |
 | `ui_pop_wait` | 等待与睡眠 | 无 | 6.4 | M1 |
 | `ui_pop_death` | 死亡回顾 | 无 | 6.4 | M1 |
 | `ui_pop_outcome` | 结局卡（"后来发生了什么"） | 无 | 6.4 | M1 |
@@ -324,7 +324,7 @@
 | `ui_pop_interpret` | 解读提示 | 无 | 6.4 | M2 |
 | `ui_pop_naming` | 命名（兽伴、聚落、国家、门标） | 无 | 6.4 | M1 |
 | `ui_pop_error` | 错误 | 消息里一行 | 6.4 | M1 |
-| `ui_pop_tutorial` | 引导卡 | 无 | 17.2 | M1 |
+| `ui_pop_tutorial` | 引导卡 | `src/client/tutorial/card_model.ts`、`card_pop.ts` | 17.2 | M1 |
 | `ui_pop_deja` | 带走的记忆（回收结局挑选下一期的既视条目） | 无 | 8.7 | M3 |
 
 ### 2.5 补充编号（设置子页、弹层与覆盖层）
@@ -1844,7 +1844,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 | `tut_p_camera` | 第一次移动后 10 秒 | 转镜头、缩放、街景与俯视 | 条 | 是 | 转动一次或 20 秒 |
 | `tut_p_interact` | 第一次走近可交互物（手机、路人） | 交互键与交互提示 | 条、亮（交互提示） | 是 | 交互一次 |
 | `tut_p_mirror` | P4 走近灵镜 | 外貌界面的分页、随机与还原 | 卡 | 是 | 点"照好了" |
-| `tut_p_listen` | P5 争吵开始后 30 秒一直在"远"档 | 靠近帘幕听得更清楚（偷听的三档距离） | 叙（声音变清楚）、条 | 是 | 进入中档或该段结束 |
+| `tut_p_listen` | P5 争吵开始前选了远档（长椅，或咳嗽后转远；档位由那一次姿态选择决定，不按站位实时计算，[prologue_antechamber.md](../30_story/arcs/prologue_antechamber.md) 第 3.1 节） | 偷听分远、中、近三档，档位由争吵开始前的一次姿态选择决定 | 叙（声音模糊）、条 | 是 | 偷听段结束 |
 | `tut_p_name` | P6 叫号 | 文字输入；可以不报名字（记作"无名氏"） | 叙（莫伊拉问名）、亮（输入框） | 是 | 提交或拒绝 |
 | `tut_p_answer` | P7 第一个问题 | 自由回答与预设回答两种方式、字数上限；无模型时为选项 | 卡 | 是 | 回答一次 |
 | `tut_p_restart` | 序章里第一次打开菜单 | 序章不能存档；P1 到 P6 可以重选开场 | 亮（菜单项） | 是 | 看到即完成 |
@@ -2344,7 +2344,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 | 文本检查 | 缺键、占位不一致、禁用字符、长度上限、阶段条件、按幕扫描被禁之名 |
 | 键位检查 | 默认键位在同一情境内无冲突；每个动作在键鼠与手柄上各至少有一个绑定；扫描文本里写死的键名（例如"按 E"），必须用 `{key:}` |
 | 窗口检查 | `WINDOW_DEFS` 每项都有 `ui_` 编号、空与错误状态的文本键、帮助条目 |
-| 引导检查 | 每个 `tut_` 的触发只引用注册过的旗标或事件种类；每个步骤都有完成条件 |
+| 引导检查 | 每个 `tut_` 的触发只引用注册过的旗标或事件种类；每个步骤都有完成条件；每个触发与完成用到的客户端信号有产出方或写明所等的包；`tut.*` 文本的长度上限（`node tools/tutorial/check.ts`） |
 | 截图检查 | 每个界面在 1280×720、1920×1080、2560×1440 下，简体中文与 `qps-wide` 各一张，每种色觉模式各一张；文字溢出检测（文本节点的滚动宽度大于可见宽度即失败） |
 | 对比度检查 | 每种色觉模式下令牌对的对比度（文字 4.5:1，图形 3:1） |
 | 输入回放 | 用合成的键鼠与手柄事件，经输入层驱动从序章到第一幕的关键路径（补充现有只用命令的自动玩家），证明两种设备都"全程可玩" |

@@ -11,7 +11,9 @@
 // ledger's per-act lists (reveal_ledger.md 8) name what stays locked for the whole act, so
 // a text visible in act N may use what that act reveals, never what a later act does. A
 // revealed name (a field shown once the row's revealWhen holds) is judged in a world where
-// that condition holds.
+// that condition holds, and no earlier than the latest act its condition's flags belong to
+// (a name revealed by an act-6 flag is first seen in act 6, even when its row is referenced
+// from act 1).
 //
 // ./ledger_reviewed.json lists reviewed hits in files outside this layer's reach; each one
 // warns until its milestone and blocks from then on, and an entry matching no hit is stale.
@@ -89,6 +91,24 @@ export function actWorld(content: ContentMap, n: number): FlagWorld {
   return { meta: { flags } };
 }
 
+/**
+ * The latest act a condition's flags are registered for (its earliest possible truth): a gate
+ * on an act-6 flag cannot hold before act 6. -1 when no flag of it carries an act.
+ */
+export function gateAct(content: ContentMap, expr: string): number {
+  if (checkCondition(expr) !== null) return -1;
+  const data = (content as { registry?: ReturnType<typeof registryData> }).registry;
+  const registry = !data || data === registryData() ? defaultRegistry() : new FlagRegistry(data);
+  let latest = -1;
+  for (const c of comparisons(expr)) {
+    if (c.op === 'truthy' || c.op === '==' || c.op === '>=' || c.op === '>' || c.op === 'IN') {
+      const v = registry.data.vars.find((x) => x.name === c.name);
+      if (v && typeof v.act === 'number' && v.act > latest) latest = v.act;
+    }
+  }
+  return latest;
+}
+
 /** A world where `expr` holds, built on `world` (unchanged when it cannot be satisfied). */
 export function worldWhere(world: FlagWorld, expr: string): FlagWorld {
   if (checkCondition(expr) !== null) return world;
@@ -127,7 +147,11 @@ export function ledgerFindings(
   for (const t of playerTexts(input.content, undefined, idFieldsOf(input.packs))) {
     if (typeof t.value !== 'string' || t.value === '') continue;
     const own = t.act === undefined ? Number.NaN : actIndex(t.act);
-    const n = Number.isNaN(own) ? acts.of(t.table, t.row) : Math.max(own, acts.of(t.table, t.row));
+    const seen = Number.isNaN(own)
+      ? acts.of(t.table, t.row)
+      : Math.max(own, acts.of(t.table, t.row));
+    // a gated text is seen no earlier than the act of the flags its gate waits for
+    const n = t.gate ? Math.max(seen, gateAct(input.content, t.gate)) : seen;
     const world = t.gate ? worldWhere(worldAt(n), t.gate) : worldAt(n);
     const strict = findLeaks(t.value, world, ledger.strict);
     const broad = findLeaks(t.value, world, ledger.broad).filter((h) => !strict.includes(h));

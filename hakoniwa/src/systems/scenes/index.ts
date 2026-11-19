@@ -24,12 +24,18 @@ import {
   resolveTimeouts,
   type UiDoneData,
 } from './runner';
+import { runTriggers } from './triggers';
 import type { CourtDefenseDef, EpilogueEntry, EvidenceDef, SceneDef, SpeakerDef } from './types';
 
 export * from './barks';
 export * from './court';
 export * from './epilogue';
+export * from './improv';
+export * from './present';
 export * from './runner';
+export * from './stage_steps';
+export * from './trial';
+export * from './triggers';
 export * from './types';
 export * from './ui_results';
 export * from './view';
@@ -44,6 +50,8 @@ declare module '../../core/contracts' {
     evidence: EvidenceDef[];
     courtDefenses: CourtDefenseDef[];
     epilogue: EpilogueEntry[];
+    /** act-1 trials (data/scenes/trials.json; PK-M1-55) */
+    trials: import('./trial').TrialDef[];
   }
   interface EventMap {
     'scene.started': { sceneId: string; title: string };
@@ -56,6 +64,21 @@ declare module '../../core/contracts' {
     'scene.segment': { sceneId: string; segment: string };
     /** the opening was chosen again: the flags cleared, the scene that plays */
     'scene.restarted': { sceneId: string; to: string; cleared: string[] };
+    /** a piece was presented at an act-1 trial and how it landed (PK-M1-55) */
+    'trial.presented': {
+      trial: string;
+      piece: string;
+      outcome: import('./present').PresentOutcome;
+      proved: string[];
+    };
+    /**
+     * A free answer was sorted into a choice whose effects alone were settled
+     * (SceneInput.classify with `settle`): not a scene.choice, so the backlog keeps the
+     * player's own words instead of a written option they never picked.
+     */
+    'scene.classified': { nodeId: string; choiceId: string };
+    /** a model answer missed a meaning key or said a forbidden word: the written lines stood */
+    'scene.improv_refused': { sceneId: string; nodeId: string };
   }
   interface CommandMap {
     'scenes.start': { sceneId: string };
@@ -90,6 +113,8 @@ export const system: GameSystem = {
   tick(ctx) {
     resolveTimeouts(ctx);
     choiceTimeouts(ctx);
+    // scenes that request themselves (triggers.ts): only while nothing plays
+    runTriggers(ctx);
     // The opening act's intro scene (the prologue) starts on the first tick (listeners
     // attach after creation).
     if (ctx.tick === 1) {

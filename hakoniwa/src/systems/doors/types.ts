@@ -46,6 +46,13 @@ export type SealTier = (typeof SEAL_TIERS)[number];
 /** How a door moves seal_unrest (6.4.4): the act rule, never, or the ruins-key rule. */
 export type UnrestRule = 'default' | 'none' | 'ruins';
 
+/**
+ * The five danger bands of a door (catalog_doors.md 1.7: none, low, medium, high, extreme),
+ * the cracks on the door frame of the corridor (ux_and_onboarding.md 9.2).
+ */
+export const DANGER_BANDS = ['none', 'low', 'medium', 'high', 'extreme'] as const;
+export type DoorDanger = (typeof DANGER_BANDS)[number];
+
 /** The six prologue tendencies (prologue_antechamber.md 4.8; registry p_hint.<tendency>). */
 export const TENDENCIES = ['blade', 'beast', 'breath', 'pact', 'shadow', 'spirit'] as const;
 export type Tendency = (typeof TENDENCIES)[number];
@@ -79,9 +86,13 @@ export interface ExclusiveEntry {
 
 /**
  * A key condition (thousand_doors.md 5.1, 21.2): sixteen primitives and four combinators.
- * Every key carries a short label for the corridor view (content text).
+ * Every key carries a short label for the corridor view (content text) and may name the
+ * quest where it is found (`link`, the door card's "where to find", ux_and_onboarding.md
+ * 9.3, 9.5), shown once the player knows that quest.
  */
-export type KeyCond =
+export type KeyCond = KeyCondCore & { link?: string };
+
+type KeyCondCore =
   /** a deed was granted (flag deed.<id>, written by the records system) */
   | { type: 'deed'; deed: string; label: string }
   /**
@@ -94,6 +105,11 @@ export type KeyCond =
       where?: Record<string, FlagValue>;
       atLeast?: Record<string, number>;
       count: number;
+      /**
+       * add this numeric field of the event instead of one per event (a gather of three ore
+       * counts three, catalog_doors.md 5.6 "采够二十份")
+       */
+      sum?: string;
       label: string;
     }
   /** a flag is truthy, equals a value, or (numbers) is at least `min` */
@@ -156,6 +172,11 @@ export const COUNTABLE_EVENTS = [
   'world.map_changed',
   'door.opened',
   'feature.unlocked',
+  // the craft doors' counts (catalog_doors.md 5.6: gather or make so many, PK-M1-49 emits them)
+  'gather.done',
+  'craft.done',
+  // the granary door's history key: a companion healed back to standby (catalog_doors 5.5)
+  'party.recovered',
 ] as const;
 
 /** The sixteen primitives and four combinators a key may be (5.1). */
@@ -191,7 +212,50 @@ export type DoorEffect =
   /** sets feature.<name> = true and emits feature.unlocked */
   | { type: 'feature'; feature: string }
   | { type: 'flag'; key: string; value: FlagValue }
-  | { type: 'item'; itemId: string; count?: number; equip?: boolean };
+  | { type: 'item'; itemId: string; count?: number; equip?: boolean }
+  /**
+   * opens another door as part of this one (thousand_doors.md 14, last line: the hearth
+   * past life's cooking door, layer one, open from the start): that door's effects, its
+   * flag and the opened state, with no rank value, no seal, no counts and no exclusion;
+   * closing the giver leaves it open, as an item given stays
+   */
+  | { type: 'door'; doorId: string };
+
+/** What opening a door costs the player at once (thousand_doors.md 6.2, 6.3; ux 9.3). */
+export interface DoorOpenCost {
+  /** blockage points (the act 1 abyss door: +10, 6.2) */
+  blockage?: number;
+  /** door fatigue points */
+  fatigue?: number;
+  /** only an opening in this act costs it (6.2: "第一幕握住澱核"); any act when absent */
+  act?: number;
+}
+
+/**
+ * The readers of door features that need numbers or places (PK-M1-56), one record in
+ * data/doors/readers.json. Every reader stays silent while its `feature` flag is false.
+ */
+export interface DoorReaders {
+  /** the abacus past life: the rough purchase-price band while trading (prologue 2.2) */
+  priceBand?: { feature: string; spread: number };
+  /** the nightlight past life: the sight radius at night, in tiles (prologue 2.2) */
+  nightSight?: { feature: string; radius: number };
+  /** the notes past life: a rumour names its teller and "may be distorted" (prologue 2.2) */
+  rumorSource?: { feature: string };
+  /**
+   * the shapeshift door: purify a sediment spring (act1_borderstone.md 7.2), `amount` on the
+   * variable `var`, once per value of `weekFlag`, while `when` holds, inside one of `places`
+   */
+  springPurify?: {
+    feature: string;
+    places: { mapId: string; location: string }[];
+    var: string;
+    amount: number;
+    min?: number;
+    weekFlag: string;
+    when?: string;
+  };
+}
 
 export interface DoorDef {
   id: string;
@@ -225,6 +289,10 @@ export interface DoorDef {
   seal: SealTier;
   /** forbidden-door weight: +4 seal points, counts in danger_doors_opened (6.4) */
   forbidden?: boolean;
+  /** danger band (catalog_doors.md 1.7, 6); the content validator requires it */
+  dangerBand?: DoorDanger;
+  /** blockage and fatigue the opening adds at once (shown as the door card's cost preview) */
+  openCost?: DoorOpenCost;
   /** seal_unrest rule (6.4.4), default `default` */
   unrest?: UnrestRule;
   /** door-rank value 0, 1 or 2 (4.2) */
@@ -309,6 +377,15 @@ export interface DoorsSlice {
   /** live play ticks since the last door opened or became openable (the drought, 17.4) */
   drought?: number;
   lastOpenTick?: number;
+  /**
+   * what each opened door has given: `ability:<id>`, `feature:<name>`, `door:<id>` (written
+   * at the opening and by the catch-up, cleared by the closing). The catch-up gives an
+   * effect only while it is missing here (a save from before the door's data named it,
+   * PK-M1-26's abyss summon), so each is given once and never again
+   */
+  granted?: Record<string, string[]>;
+  /** the purified spring's last week, `<act>:<week>` (one purification a week, PK-M1-56) */
+  purifiedWeek?: string;
 }
 
 declare module '../../core/contracts' {
@@ -319,6 +396,8 @@ declare module '../../core/contracts' {
     doors: DoorDef[];
     /** door rank thresholds: entry r - 1 is the rank-value sum that reaches rank r (4.3) */
     door_rank_curve?: { thresholds: number[] };
+    /** numbers and places of the door feature readers (PK-M1-56) */
+    door_readers?: DoorReaders;
   }
   interface EventMap {
     'doors.state': { doorId: string; from: DoorStatus; to: DoorStatus };
@@ -331,9 +410,13 @@ declare module '../../core/contracts' {
     'doors.hint': { doorId: string; channel: HintChannel; level: number; text: TextParam };
     /** the seal stage rose (6.4.3); for kernel subscribers and the goddess GM only */
     'seal.stage_up': { stage: number; from: number };
+    /** the shapeshift door purified a spring (act1_borderstone.md 7.2) */
+    'doors.purified': { mapId: string; location: string; var: string; from: number; to: number };
   }
   interface CommandMap {
     'doors.open': { doorId: string };
     'doors.close': { doorId: string };
+    /** purify the spring the player stands at (the shapeshift door's reader) */
+    'doors.purify': Record<string, never>;
   }
 }

@@ -244,6 +244,12 @@ export interface PersonaCard {
    * spawns an NPC entity of its own (catalog_characters_lotha.md 2.1: Ash, Yeyu).
    */
   body?: PersonaBody;
+  /**
+   * Acts (act flag values) in which this person says only the lines written in their own
+   * pack: no fallback layer, no rule template, no model wording (src/systems/dialogue/
+   * scripted.ts; catalog_dialogue_lines_act1.md 0 item 4: Ash in act 1).
+   */
+  scripted?: string[];
 }
 
 /** Who owns the entity of a persona whose body another system spawns. */
@@ -633,6 +639,11 @@ export interface NpcSlice {
   watch?: WatchZone[];
   /** proactive approaches on the player's map in one game hour (the per-screen cap) */
   approaches?: { hour: number; count: number };
+  /**
+   * The reaction consequences applied today (brain/consequences.ts, PK-M1-55): `accuse:<npc>`
+   * and `omen:<map>` to the day index; absent on worlds saved before them.
+   */
+  consequences?: Record<string, number>;
 }
 
 export interface PlanSlotData {
@@ -713,6 +724,8 @@ declare module '../../core/contracts' {
     };
     /** A reaction-table row fired for an NPC (builtin_ai.md 5.6). */
     'npc.reaction': { npcId: string; row: string; eventKind: string; subject: string };
+    /** a reaction row left a consequence (builtin_ai 5.6: accusation progress, an omen step) */
+    'npc.consequence': { npcId: string; consequence: 'accuse' | 'omen'; mapId: string };
     /** A brain-driven bark (builtin_ai.md 7.6) was said on the player's map. */
     'npc.barked': { npcId: string; context: string; mapId: string };
   }

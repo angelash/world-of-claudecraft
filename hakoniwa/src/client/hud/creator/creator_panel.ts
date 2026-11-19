@@ -1,9 +1,10 @@
 // Implements `ui_mode_creator`, the spirit mirror (ux_and_onboarding.md 3.4.3): the standee
 // preview on the left (turnable through four views), the page tabs (body, face, hair, outfit)
-// and their option rows of cells on the right, "随机", "还原" and "照好了" at the bottom. Mouse
-// and keyboard: the arrows move between rows and cells, Tab between pages, Enter closes; the
-// pad reaches it through the dialogue actions (creator_wiring.ts). Writes are elided. Thin
-// painter over creator_model.ts.
+// and their option rows of cells on the right, "随机", "还原" and "照好了" at the bottom. Keyboard
+// and pad both run through the `creator` input context (contexts.ts, pad_bindings.ts): its
+// actions reach the mirror as CreatorAction through creator_wiring.ts, so every control is
+// reachable without a pointer and Tab stays the focus key of the panel's own buttons (18.5).
+// Writes are elided. Thin painter over creator_model.ts.
 
 import './creator.css';
 import { el, setClass, setText } from '../../../shared_ui/dom';
@@ -28,37 +29,6 @@ export class CreatorPanel {
   private readonly doneBtn: HTMLButtonElement;
   private sig = '';
   private previewSig = '';
-  private readonly onKey = (ev: KeyboardEvent) => {
-    if (this.el.hidden) return;
-    const a: CreatorAction | 'done' | null =
-      ev.code === 'ArrowLeft'
-        ? { type: 'cycle', delta: -1 }
-        : ev.code === 'ArrowRight'
-          ? { type: 'cycle', delta: 1 }
-          : ev.code === 'ArrowUp'
-            ? { type: 'row', delta: -1 }
-            : ev.code === 'ArrowDown'
-              ? { type: 'row', delta: 1 }
-              : ev.code === 'Tab'
-                ? { type: 'page', delta: ev.shiftKey ? -1 : 1 }
-                : ev.code === 'Enter' || ev.code === 'NumpadEnter'
-                  ? 'done'
-                  : ev.code === 'KeyR'
-                    ? { type: 'random', rand: Math.random }
-                    : ev.code === 'Backspace'
-                      ? { type: 'reset' }
-                      : ev.code === 'KeyQ'
-                        ? { type: 'turn', delta: -1 }
-                        : ev.code === 'KeyE'
-                          ? { type: 'turn', delta: 1 }
-                          : null;
-    if (!a) return;
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    if (a === 'done') this.h.done();
-    else this.h.act(a);
-  };
-
   constructor(private readonly h: CreatorHandlers) {
     const btn = (className: string, on: () => void) =>
       el('button', {
@@ -93,15 +63,25 @@ export class CreatorPanel {
       ],
     );
     this.el.hidden = true;
-    window.addEventListener('keydown', this.onKey, true);
   }
 
   dispose(): void {
-    window.removeEventListener('keydown', this.onKey, true);
+    // the keys come through the `creator` input context (creator_wiring.ts): nothing to undo
   }
 
   get open(): boolean {
     return !this.el.hidden;
+  }
+
+  /**
+   * Press the panel control the keyboard focus is on (Enter on a focused tab, cell or bottom
+   * button presses it, 18.5); false when the focus is elsewhere.
+   */
+  activateFocused(): boolean {
+    const a = typeof document !== 'undefined' ? document.activeElement : null;
+    if (this.el.hidden || !(a instanceof HTMLButtonElement) || !this.el.contains(a)) return false;
+    a.click();
+    return true;
   }
 
   /**

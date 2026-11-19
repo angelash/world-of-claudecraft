@@ -1,0 +1,124 @@
+{
+  "id": "ln_dris",
+  "speaker": "dris",
+  "slots": {
+    "greet.cold": ["F 级的，又来捡漏？", "让开，C 级的活你接不了。", "哼。"],
+    "greet.neutral": ["喂。", "又是你。有事？", "板上那个活别跟我抢。"],
+    "greet.warm": [
+      "喂……喝一杯？我请。就这一次。",
+      "你来了。……今天打算干什么？",
+      "后院的新木桩，比那根老的结实。要不要试试？"
+    ],
+    "farewell": ["走吧。", "别死在外头，丢公会的脸。", "下回再比。"],
+    "unbelief.deny": ["那是我们打残的。", "运气罢了。", "F 级、Lv1、没职能？你吹给谁听。"],
+    "unbelief.explain": [
+      "那窝东西前几天我们队打残了，你捡了个漏。",
+      "又捡我们的漏。",
+      "碰巧罢了，换我也行。"
+    ],
+    "unbelief.waver": [
+      "那根木桩……是朽了。肯定是朽了。",
+      "你那一下……别以为我服了。",
+      "……下回，我再跟你比。"
+    ],
+    "react.feat_seen": ["运气。纯粹运气。", "……哼，这次算你厉害。"],
+    "react.gift_liked": ["好刀石！……我是说，凑合能用。", "给我的？我、我不缺。……放下吧。"],
+    "react.gift_plain": ["嗯。", "凑合。"],
+    "react.gift_disliked": ["你拿这个打发 C 级？", "不要。"],
+    "react.insult": ["你说谁？出来，后院！", "F 级的也敢跟我这么说话？"],
+    "topic.gen_self": {
+      "neutral": ["德里斯，C 级。镇上最强的冒险者。……之一。", "我迟早升 B 级，离开这个乡下。"]
+    },
+    "topic.gen_work": {
+      "K1": ["接讨伐委托。清狼窝、杀精英，C 级的活。", "镇上的事大多是我们队摆平的。"]
+    },
+    "topic.self_dris_rank": {
+      "K1": ["B 级考核在瓦伦堡。我要去。我要让他们看看。", "在这种地方待一辈子？我不要。"]
+    },
+    "topic.secret_dris_ron_plan": {
+      "K1": [
+        {
+          "zh": "……我升 C 级那次，主意是罗恩出的。别告诉他我说了。",
+          "when": "a1_dris_duel_won AND trust.dris >= 50"
+        },
+        {
+          "zh": "他胆子小，脑子好使。我两样都缺一半。",
+          "when": "a1_dris_duel_won AND trust.dris >= 50"
+        }
+      ]
+    },
+    "topic.person_ron": {
+      "K0": ["罗恩？胆小鬼。……不过他那个脑子，有时候还行。"]
+    },
+    "topic.lore_guild_ranks": {
+      "K1": ["C 级要独立讨伐精英，你连 E 都不是。", "B 级以上，乡下见不着。"]
+    },
+    "react.thanked": ["别谢我，我不是为你。", "哼。"],
+    "react.helped": ["……欠你一个面子。", "我自己也能行。不过……谢了。"],
+    "react.saved": ["你……救我？别跟人说。", "这条命，我记着。"],
+    "react.recruit_yes": ["跟你走？行。工钱照 C 级算。", "走吧。别拖我后腿。"],
+    "react.recruit_terms": ["日薪三到五银，C 级的价，少一个铜子都不行。", "先说好，打头阵的是我。"],
+    "react.recruit_later": ["等我把手上这个委托交了。", "等你升了 E 级再说。"],
+    "react.recruit_no": ["我跟一个 F 级走？笑话。", "不去。"],
+    "react.rival_taunt": ["有本事再比一场。", "别以为大家夸你两句，你就真是个人物了。"],
+    "react.rival_concede": ["……我输了。这回算你的。", "木桩是朽的。可我也输了。"],
+    "react.flattered": ["那当然。", "你总算说了句实话。"],
+    "react.boast": ["你吹？我也会吹。", "嘴上功夫谁不会。"],
+    "quest.q_a1_s16_c_rank_face.offer": [
+      "F 级的，敢不敢去后院比一场？让大家看看你那水晶是不是真坏了。",
+      "不敢？那就承认你是靠运气。"
+    ],
+    "quest.q_a1_s16_c_rank_face.accept": ["好。别哭。", "木桩前面，规矩是点到为止。"],
+    "quest.q_a1_s16_c_rank_face.decline": ["我就知道。胆小鬼。", "怕了吧。"],
+    "quest.q_a1_s16_c_rank_face.complete": [
+      {
+        "zh": "……木桩断了。早就朽了。我早就说该换了。",
+        "when": "a1_dris_duel_won"
+      },
+      {
+        "zh": "哼，C 级就是 C 级。……你让我？你敢让我？",
+        "when": "NOT a1_dris_duel_won"
+      }
+    ],
+    "quest.q_a1_s16_c_rank_face.after": [
+      {
+        "zh": "下回再比。新木桩是铁木的。",
+        "when": "a1_dris_duel_won"
+      },
+      {
+        "zh": "你欠我一个面子……不对，是我欠你的。别说了。",
+        "when": "NOT a1_dris_duel_won"
+      }
+    ],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "C 级的跟我上！别让 F 级的抢了风头！",
+        "when": "a1_beast_tide_started"
+      },
+      {
+        "zh": "这东西……比狼窝大多了……",
+        "when": "a1_beast_tide_started"
+      }
+    ],
+    "quest.q_a1_m12_tide.after": [
+      {
+        "zh": "那天你也在。我看见了。……我不说。",
+        "when": "a1_beast_tide_cleared"
+      }
+    ],
+    "bark.combat": ["看我的！", "C 级的本事，看好了！"],
+    "bark.hurt": ["呃……小伤。", "别看我，我没事！"],
+    "bark.victory": ["我打残的。记清楚。", "赢了，没悬念。"],
+    "bark.ally_down": ["喂，起来！别装死！", "谁倒了？我去！"],
+    "bark.flee": ["退……战术后撤！", "不是跑，是换个地方打！"],
+    "bark.work": ["刀要磨。C 级的刀不能钝。"],
+    "bark.chat": ["那窝狼是我们打残的，你们信不信？"],
+    "bark.eat": ["醉月亭的炖菜，C 级都吃两碗。"],
+    "topic.quest_c_rank_duel": {
+      "K0": [
+        "F 级的，公会后院那根木桩，你敢不敢跟我站一回？",
+        "我是 C 级。面子这东西，输一次就没了。"
+      ]
+    }
+  }
+}

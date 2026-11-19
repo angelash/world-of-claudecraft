@@ -33,13 +33,15 @@ export class RadialMenu {
     }
     const more = t('ui.hud.wheel.more');
     const sectors = pageSectors(s.sectors, s.page, more);
-    const sig = `${s.ring}/${s.page}/${s.highlight}/${sectors.map((x) => x.id).join(',')}`;
+    const sig = `${s.ring}/${s.title ?? ''}/${s.page}/${s.highlight}/${sectors.map((x) => x.id).join(',')}`;
     if (sig === this.sig) return;
     this.sig = sig;
     this.el.hidden = false;
-    setText(this.title, t(`ui.hud.wheel.title.${s.ring}`));
+    // a ring opened for one target names it ("the orders of X", input/party_ring.ts)
+    const title = s.title ?? t(`ui.hud.wheel.title.${s.ring}`);
+    setText(this.title, title);
     setText(this.hint, s.highlight === null ? t('ui.hud.wheel.cancel') : '');
-    this.el.setAttribute('aria-label', t(`ui.hud.wheel.title.${s.ring}`));
+    this.el.setAttribute('aria-label', title);
     clear(this.ring);
     sectors.forEach((sector, i) => {
       // sector 0 straight up, then clockwise

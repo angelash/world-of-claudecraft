@@ -10,12 +10,15 @@
 // character (when no data file scan runs). Warning: the same source text in three or more
 // packs (7.10). The registry (V4) checks the `when` conditions and the ledger (V5) runs the
 // leak scan over the line text fields of ./player_text.ts. A topic slot names a topic of
-// the topic graph (data/dialogue/topics/). Not checked yet, because their data does not
-// exist yet: quest ids, the per-speaker coverage and minimum counts of 7.8, the
-// misdirection table, catchphrase density.
+// the topic graph (data/dialogue/topics/). The per-speaker coverage of 7.8 (catalog 1.5):
+// a required slot missing from a speaker's own pack is an error, a slot or a pack short of
+// its line count a warning (src/systems/dialogue/lines/coverage.ts), with the categories as
+// the batches written through LINES_STAGE write them. Not checked yet, because their data
+// does not exist yet: quest ids, the misdirection table, catchphrase density.
 
 import { findForbidden } from '../../../src/editor/checks/rules';
 import {
+  coverageFindings,
   FILL_SLOTS,
   fillSlotsOf,
   isActId,
@@ -26,6 +29,7 @@ import {
   PLACE_KINDS,
   slotPackProblem,
   slotProblem,
+  speakerCategories,
   type VersionedLines,
   versionedFamily,
   versionProblem,
@@ -259,6 +263,36 @@ export function unregisteredTopicFindings(
   return out;
 }
 
+/**
+ * The last act whose line batch is written (catalog_dialogue_lines.md 10.2: M1 writes the
+ * prologue and act 1); a companion who joins later is checked as the person they are now.
+ */
+export const LINES_STAGE = 1;
+
+/**
+ * Coverage findings the gate reports as warnings at the M1 stage (a gate decision, listed in
+ * the PK-M1-29 packet). The goddess packs (PK-M1-34) landed with the act-1 batch of
+ * catalog_dialogue_lines_act1.md 2, so their findings are errors again; the list stays as the
+ * seam for the next batch that lands behind its check.
+ */
+const PROVISIONAL: readonly ((f: { category: string; slot?: string }) => boolean)[] = [];
+
+/** Coverage findings of builtin_ai 7.8 as data gate findings. */
+export function coverageGateFindings(
+  content: ValidationInput['content'],
+  stage = LINES_STAGE,
+): Finding[] {
+  return coverageFindings(content.linePacks ?? [], speakerCategories(content, { stage })).map(
+    (f) => ({
+      level: stage <= LINES_STAGE && PROVISIONAL.some((p) => p(f)) ? 'warning' : f.level,
+      table: 'linePacks',
+      row: f.pack,
+      path: f.slot ?? '',
+      message: `linePacks:${f.pack} coverage: ${f.message}`,
+    }),
+  );
+}
+
 /** The line pack findings of a validation input (part of V8). */
 export function linesFindings(input: Pick<ValidationInput, 'content' | 'files'>): Finding[] {
   const goddesses = new Set((input.content.goddesses ?? []).map((g) => g.id));
@@ -269,5 +303,6 @@ export function linesFindings(input: Pick<ValidationInput, 'content' | 'files'>)
       forbidden: input.files.size === 0,
     }),
     ...(input.content.topics ? unregisteredTopicFindings(packs, input.content.topics) : []),
+    ...coverageGateFindings(input.content),
   ];
 }

@@ -1,0 +1,67 @@
+{
+  "id": "ln_gaspar",
+  "speaker": "gaspar",
+  "slots": {
+    "greet.cold": ["外乡人，别在伐区乱转。", "干活！别挡道！", "你又是东坡那边的人？"],
+    "greet.neutral": ["外乡人。有事？", "伐区今天进北边，别跟着。", "嗯。"],
+    "greet.warm": [
+      "你来了！我那个工人，多亏你。",
+      "喝一杯？我请。",
+      "外乡人……好吧，你不算外乡人了。"
+    ],
+    "farewell": ["走吧，别被树砸了。", "干活了！", "回头见。"],
+    "unbelief.deny": ["吹出来的。", "一个人？林子里的狼会吃了你。"],
+    "unbelief.explain": ["那窝狼肯定被人打残了。", "运气。"],
+    "unbelief.waver": ["我亲眼看见了……行，我认。", "你跟东坡那帮人一起打的？……哼。"],
+    "react.feat_seen": ["好家伙！", "你……行啊。"],
+    "react.gift_liked": ["好斧刃！谢了！", "酒？兄弟们今晚有口福了。"],
+    "react.insult": ["你找打？", "嘴巴干净点！"],
+    "topic.gen_self": {
+      "neutral": ["加斯帕，伐木场的工头。", "三十个工人跟着我吃饭。"]
+    },
+    "topic.gen_work": {
+      "K0": ["砍树、运木头。东林深处的老木最值钱。", "许可证是花了大价钱买的。"]
+    },
+    "topic.self_gaspar_workers": {
+      "K0": ["我的人，一个都不能少。", "谁动我的工人，我跟谁拼。"]
+    },
+    "topic.secret_gaspar_brother": {
+      "K0": [
+        {
+          "zh": "我弟弟八年前在林子里被狼咬死。那天东坡的人在附近。",
+          "when": "trust.gaspar >= 50"
+        },
+        {
+          "zh": "……也许不是他们引的。也许。",
+          "when": "trust.gaspar >= 50 AND a1_forest_accord == restored"
+        }
+      ]
+    },
+    "topic.person_shiya": {
+      "K0": [
+        "狗坡的丫头？哼。",
+        {
+          "zh": "东坡的丫头。……她箭射得准。",
+          "when": "a1_forest_accord == restored"
+        }
+      ]
+    },
+    "quest.q_a1_s07_hurt_logger.offer": ["我的一个工人被狼咬了，在林子里！谁去把他背回来？"],
+    "quest.q_a1_s07_hurt_logger.accept": ["往北，跟着血迹走！快！"],
+    "quest.q_a1_s07_hurt_logger.complete": ["他活下来了。……外乡人，我欠你一个情。"],
+    "quest.q_a1_s07_hurt_logger.fail": ["晚了……他没撑住。"],
+    "quest.q_a1_s07_hurt_logger.after": ["我这辈子第一次欠外人的情。"],
+    "quest.q_a1_d04_forest_dispute.after": [
+      {
+        "zh": "林约……行，按林约来。",
+        "when": "a1_forest_accord == restored"
+      },
+      {
+        "zh": "东坡的人走了。伐区清静了。……也冷清了。",
+        "when": "a1_forest_accord == broken"
+      }
+    ],
+    "bark.work": ["顺山倒！", "一、二、三，拉！"],
+    "bark.chat": ["东坡那帮人又进伐区了。"]
+  }
+}

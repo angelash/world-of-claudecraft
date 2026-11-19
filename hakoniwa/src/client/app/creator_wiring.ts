@@ -4,8 +4,9 @@
 // the player's appearance, once the node's lines are read, and closing it sends
 // `scenes.ui_done` with the look and its assembled appearance. An interface the client does not
 // build yet is closed at once with no result, so a scene never waits on it. Everything comes
-// from the scene view; the pad drives the mirror through the dialogue actions, the keyboard
-// through the panel's own keys. Thin glue: the rules are in src/client/hud/creator/.
+// from the scene view; both devices drive the mirror through the `creator` input context
+// (contexts.ts, pad_bindings.ts), which takes the input while it is open (3.4.3), so the
+// scene behind it never sees a press. Thin glue: the rules are in src/client/hud/creator/.
 
 import type { SceneView } from '../../systems/scenes';
 import { installedResolver } from '../assets/runtime';
@@ -42,22 +43,27 @@ export interface CreatorWiringDeps {
   queue(cmds: readonly ClientCommand[] | null | undefined): void;
   /** where the mirror's element goes (the story overlay) */
   mount(el: HTMLElement): void;
+  /** the chance the mirror's "random" draws from (tests pass their own) */
+  random?: () => number;
 }
 
 /**
- * Dialogue actions on the pad while the mirror is open (it has no input context of its own
- * yet): the d-pad walks the rows, A and R3 cycle the option forward and back, RB and the right
- * stick turn the page, X draws at random, Y says "照好了".
+ * The `creator` context's actions (16.3 "灵镜"): the rows and the focused row's options, the
+ * pages on the shoulder buttons, the preview's turn, random, restore and "照好了". `random`
+ * needs a source of chance, so it is built per press from the caller's `rand`.
  */
-const PAD_ACTIONS: Readonly<Record<string, CreatorAction | 'done'>> = {
-  option_prev: { type: 'row', delta: -1 },
-  option_next: { type: 'row', delta: 1 },
-  advance: { type: 'cycle', delta: 1 },
-  hide_text: { type: 'cycle', delta: -1 },
-  reach_out: { type: 'page', delta: 1 },
-  recall: { type: 'page', delta: -1 },
-  auto_advance: { type: 'random', rand: Math.random },
-  free_input: 'done',
+export const CREATOR_ACTIONS: Readonly<Record<string, CreatorAction | 'done' | 'random'>> = {
+  row_prev: { type: 'row', delta: -1 },
+  row_next: { type: 'row', delta: 1 },
+  cycle_prev: { type: 'cycle', delta: -1 },
+  cycle_next: { type: 'cycle', delta: 1 },
+  page_prev: { type: 'page', delta: -1 },
+  page_next: { type: 'page', delta: 1 },
+  turn_left: { type: 'turn', delta: -1 },
+  turn_right: { type: 'turn', delta: 1 },
+  randomize: 'random',
+  reset_look: { type: 'reset' },
+  done: 'done',
 };
 
 interface UiWait {
@@ -195,16 +201,20 @@ export class CreatorWiring {
   }
 
   /**
-   * A dialogue action while the mirror is open; true when the mirror took it. The keyboard's
-   * keys reach the panel directly (creator_panel.ts), so their dialogue actions are swallowed.
+   * An input action while the mirror is open; true when the mirror took it. Both devices send
+   * the `creator` context's actions (3.4.3); a dialogue action (a scene key still held as the
+   * mirror opens) is swallowed, so nothing reaches the scene behind it.
    */
   inputAction(action: string, device: InputDevice): boolean {
     if (!this.state) return false;
-    if (device !== 'pad') return true;
-    const a = PAD_ACTIONS[action];
+    const a = CREATOR_ACTIONS[action];
+    // Enter on a focused panel control presses that control (a tab, a cell, "随机"); with the
+    // focus elsewhere it says "照好了"
+    if (a === 'done' && device === 'kbm' && this.panel.activateFocused()) return true;
     if (a === 'done') this.done();
+    else if (a === 'random') this.act({ type: 'random', rand: this.d.random ?? Math.random });
     else if (a) this.act(a);
-    // the other actions do nothing over the mirror
+    // an action of another context does nothing over the mirror, and goes no further
     return true;
   }
 }

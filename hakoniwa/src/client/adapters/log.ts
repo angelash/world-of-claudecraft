@@ -6,6 +6,7 @@ import { t } from '../../shared_ui/i18n';
 import type { BannerAdapter, BannerView, LogAdapter } from '../view/adapters';
 import { contentNames } from '../view/content_names';
 import type { GameView } from '../view/game_view';
+import { companionName, questTitleText } from '../view/quest_title';
 
 type Line = { text: string; category: string } | null;
 
@@ -75,7 +76,12 @@ export function formatSystemEvent(view: GameView, ev: AnyWorldEvent): Line {
     case 'combat.revived':
       return ev.data.entityId === me ? { text: t('ui.hud.log.revived'), category: 'system' } : null;
     case 'quest.started':
-      return { text: t('ui.hud.log.quest_started', { title: ev.data.title }), category: 'story' };
+      return {
+        text: t('ui.hud.log.quest_started', {
+          title: questTitleText(view, ev.data.questId, ev.data.title),
+        }),
+        category: 'story',
+      };
     case 'quest.stage':
       return ev.data.desc
         ? { text: t('ui.hud.log.quest_stage', { desc: ev.data.desc }), category: 'story' }
@@ -83,12 +89,16 @@ export function formatSystemEvent(view: GameView, ev: AnyWorldEvent): Line {
     case 'quest.ready': {
       const turnIn = ev.data.turnIn;
       const who = view.content.npcs?.find((p) => p.id === turnIn)?.name ?? turnIn;
-      const title =
-        view.content.quests?.find((q) => q.id === ev.data.questId)?.title ?? ev.data.questId;
+      const title = questTitleText(view, ev.data.questId);
       return { text: t('ui.hud.log.quest_ready', { title, who }), category: 'story' };
     }
     case 'quest.completed':
-      return { text: t('ui.hud.log.quest_done', { title: ev.data.title }), category: 'story' };
+      return {
+        text: t('ui.hud.log.quest_done', {
+          title: questTitleText(view, ev.data.questId, ev.data.title),
+        }),
+        category: 'story',
+      };
     case 'doors.state':
       if (ev.data.to === 'openable')
         return {
@@ -99,16 +109,17 @@ export function formatSystemEvent(view: GameView, ev: AnyWorldEvent): Line {
       return null;
     case 'party.joined':
       return {
-        text: t('ui.hud.log.joined', { name: nameOf(view, ev.data.entityId) }),
+        // a join on standby has no entity yet: name by the companion id (PK-M1-15 request 5)
+        text: t('ui.hud.log.joined', {
+          name: companionName(view, ev.data.companionId, ev.data.entityId),
+        }),
         category: 'story',
       };
-    case 'party.left': {
-      const name = view.content.companions?.find((c) => c.id === ev.data.companionId)?.name;
+    case 'party.left':
       return {
-        text: t('ui.hud.log.left', { name: name ?? ev.data.companionId }),
+        text: t('ui.hud.log.left', { name: companionName(view, ev.data.companionId) }),
         category: 'story',
       };
-    }
     case 'cognition.appraised':
       return ev.data.observerId === me
         ? {

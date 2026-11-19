@@ -138,7 +138,12 @@ describe('every exit, spawn and named place is reachable on foot (map_briefs.md 
       const reached = (x: number, y: number) =>
         Number.isFinite(d[Math.floor(y) * m.width + Math.floor(x)] as number);
       for (const e of m.exits) expect(reached(e.x, e.y), `exit ${e.id}`).toBe(true);
-      for (const s of m.spawns) expect(reached(s.x, s.y), `spawn ${s.id}`).toBe(true);
+      // a spawn inside an indoor layer (the cellar) is reached by the entry command, not on foot
+      const indoor = (NOT_WALKED[id] ?? []).map((lid) => at(m, lid));
+      const inside = (x: number, y: number) =>
+        indoor.some((l) => x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.h);
+      for (const s of m.spawns)
+        if (!inside(s.x, s.y)) expect(reached(s.x, s.y), `spawn ${s.id}`).toBe(true);
       const unreached = m.locations
         .filter((l) => {
           for (let y = l.y; y < l.y + l.h; y++)
@@ -315,6 +320,8 @@ describe('local sediment hot spots (map_briefs.md 1.2 and the act 1 briefs)', ()
         if (l.sediment !== undefined) spots[`${id}.${l.id}`] = l.sediment;
     expect(spots).toEqual({
       'borderstone.north_spring': 2,
+      // the west field's old granary holds the furrow rat queen's nest (PK-M1-30; nests need two)
+      'borderstone.old_granary': 2,
       'borderstone_north.south_of_line': 1,
       'seal_ruins.sigil_hall': 2,
       'seal_ruins.corridor': 3,

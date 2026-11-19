@@ -212,11 +212,25 @@ describe('chosen doors', () => {
     walk(join(__dirname, '..', 'data'));
     walk(join(__dirname, '..', 'src', 'systems'));
     const all = texts.join(String.fromCharCode(10));
+    const content = buildContent();
+    // the door keys quests write through their key effect (door_key.<door>.<key>)
+    const questKeys = new Set<string>();
+    const findKeys = (v: unknown): void => {
+      if (Array.isArray(v)) for (const x of v) findKeys(x);
+      else if (v && typeof v === 'object') {
+        const o = v as { type?: unknown; doorId?: unknown; keyId?: unknown };
+        if (o.type === 'key' && typeof o.doorId === 'string' && typeof o.keyId === 'string')
+          questKeys.add(`door_key.${o.doorId}.${o.keyId}`);
+        for (const x of Object.values(o)) findKeys(x);
+      }
+    };
+    findKeys(content.quests);
     const written = (key: string) =>
       all.includes(`"key": "${key}"`) ||
       all.includes(`setFlag('${key}'`) ||
       all.includes(`"${key}": `) ||
       /^(boss|bond|trust|companion|feature|door|quest|war|econ|city|slg)\./.test(key) ||
+      questKeys.has(key) ||
       ['territory_autonomy', 'yeyu_letters', 'remnants', 'ending'].includes(key);
     const keys: { door: string; key: string; danger: boolean }[] = [];
     const visit = (
@@ -227,11 +241,19 @@ describe('chosen doors', () => {
         keys.push({ door: door.id, key: k.key, danger: !!door.forbidden });
       for (const sub of (k.of ?? []) as { type: string; key?: string }[]) visit(door, sub);
     };
-    const content = buildContent();
     for (const door of content.doors) for (const k of door.keys) visit(door, k);
-    // the danger doors whose rite is not in the first round yet (soul ferry, breach) excepted
+    // the danger doors whose rite is not in the first round yet (soul ferry, breach) excepted;
+    // and the door keys a quest writes once PK-M1-33 imports it (door_key.<door>.<key>,
+    // registry 8.7): Dora finishing the dish, the granary's court healing and two hundred
+    // timbers (A1-S39); a quest's key effect writes door_key.<door>.<key> at run time, and
+    // the A1-S02 sword key is one of those (quests.json `type: key`)
+    const PENDING_QUEST_KEYS = [
+      'door_key.craft_cooking.dora_dish',
+      'door_key.garden_granary.timber',
+      'door_key.garden_granary.court_heal',
+    ];
     const missing = keys
-      .filter((k) => !written(k.key) && !k.danger)
+      .filter((k) => !written(k.key) && !k.danger && !PENDING_QUEST_KEYS.includes(k.key))
       .map((k) => `${k.door}:${k.key}`);
     expect(missing).toEqual([]);
   });

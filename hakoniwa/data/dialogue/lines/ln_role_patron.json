@@ -1,0 +1,20 @@
+{
+  "id": "ln_role_patron",
+  "slots": {
+    "react.call_favor": ["你还欠我一个人情，现在该还了。", "我出过钱、出过面，这回轮到你。"],
+    "react.belief_exploit": ["你的本事，加上我的门路，能做成大事。", "我押你一注。别让我赔。"],
+    "topic.gen_advice": {
+      "K1": ["在这地方办事，先找对人，再找对时候。", "名声比钱难攒。别为一点小利坏了它。"]
+    },
+    "react.promise_noted": ["好，这件事我给你担保。"],
+    "react.decline": ["这事我不方便出面。", "我能帮你的就这些了。"],
+    "react.cheated": ["拿了我的钱就翻脸？以后谁还敢帮你。"],
+    "react.thanked": ["谢就不必了，记着就行。"],
+    "react.ask_help": ["我有件事，只有你能办。"],
+    "bark.work": ["这笔账得重新算。"],
+    "bark.chat": ["最近谁在往上走，谁在往下掉？"],
+    "greet.neutral": ["来了？坐。"],
+    "greet.warm": ["我正打算找你。"],
+    "farewell": ["有消息就来告诉我。"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "ln_role_witness",
+  "slots": {
+    "react.evade": ["那天的事……我记不太清了。", "别在这儿问，人多。", "我说了，谁来保我？"],
+    "react.deny": ["我什么都没看见。", "你找错人了。"],
+    "react.persuaded": ["……好，我说。可你得护着我。", "你说得对，再不说就没人说了。"],
+    "react.unpersuaded": ["我还有家人，我不能说。"],
+    "react.threatened": [
+      {
+        "zh": "我什么都不知道！别逼我！",
+        "mood": ["fear"]
+      }
+    ],
+    "react.promise_noted": ["你答应过的，别让我后悔。"],
+    "react.helped": ["你帮了我，我就信你一回。"],
+    "topic.gen_past": {
+      "warm": ["我看见过一些事，一直没跟人说。", "那天晚上，我就在那儿。"]
+    },
+    "bark.fear": ["有人在跟着我？", "别回头，走快点。"],
+    "bark.worried": ["东西藏好了没有……"],
+    "greet.cold": ["你又来问那件事？"],
+    "greet.neutral": ["你……找我有事？"]
+  }
+}

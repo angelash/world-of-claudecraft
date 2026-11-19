@@ -16,6 +16,7 @@ import { personaById } from '../npc/personas';
 import { setConversing, touchConversation } from '../npc/ports';
 import { relationBand, relationOf } from '../npc/relations';
 import { addressOf, varsFor } from './replies';
+import { isScripted } from './scripted';
 import type { DialogueSession, SessionLine, SessionOption } from './types';
 
 export const TALK_RANGE = 2.5;
@@ -117,7 +118,8 @@ export function requestReply(
   s.pending = true;
   const data = { sessionId: s.id, npcId: s.npcId, text: fallbackText, revision: s.rev };
   const p = personaById(ctx.content, s.npcRef);
-  if (!p) {
+  // a scripted speaker's written line goes out as it is: no model wording (./scripted.ts)
+  if (!p || isScripted(ctx.content, s.npcRef, ctx.flag('act'))) {
     ctx.dispatch('dialogue.reply', data, systemSource('dialogue'));
     return;
   }

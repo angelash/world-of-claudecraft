@@ -80,6 +80,12 @@ function act1(seed = 5, flags: Record<string, string | number | boolean> = {}): 
   return g;
 }
 
+/** The slot of a pack line's text key (the key without its line index), or null. */
+function slotOf(text: unknown): string | null {
+  const key = (text as { key?: unknown } | undefined)?.key;
+  return typeof key === 'string' ? key.replace(/\.\d+$/, '') : null;
+}
+
 function beat(g: Engine, code: string) {
   return beatReport({ world: g.world, content: g.content }).find((b) => b.code === code);
 }
@@ -149,10 +155,12 @@ describe('the coin trade (catalog 9, DB-A1-01)', () => {
     expect(beat(g, 'DB-A1-01')).toMatchObject({ state: 'done', by: 'observed' });
     // the narration of the scene and her own line, both content text
     const said = linesSince(g, t0).map((e) => (e.kind === 'dialogue.line' ? e.data : null));
-    expect(said.map((l) => l?.text)).toEqual([
-      { key: contentKey('divineBeats', 'div_beat_a1_coin_first', 'narration') },
-      { key: 'c.line_packs.ln_merca.slots.react_coin_first.0' },
-    ]);
+    // a line of her own coin-first slot (the batch has several; the seeded draw picks one)
+    expect(said[0]?.text).toEqual({
+      key: contentKey('divineBeats', 'div_beat_a1_coin_first', 'narration'),
+    });
+    expect(said).toHaveLength(2);
+    expect(slotOf(said[1]?.text)).toBe('c.line_packs.ln_merca.slots.react_coin_first');
     expect(said[1]?.speakerId).toBe('merca');
     const manifest = g.world.slices.goddess.ledger.at(-1);
     expect(manifest).toMatchObject({ goddess: 'merca', seen: true, origin: 'beat' });
@@ -161,9 +169,9 @@ describe('the coin trade (catalog 9, DB-A1-01)', () => {
     g.queue('goddess.coin', {});
     g.step(1);
     const greet = linesSince(g, t1).find((e) => e.kind === 'dialogue.line');
-    expect(greet?.kind === 'dialogue.line' && greet.data.text).toEqual({
-      key: 'c.line_packs.ln_merca.slots.greet_neutral_coin.0',
-    });
+    expect(slotOf(greet?.kind === 'dialogue.line' ? greet.data.text : undefined)).toBe(
+      'c.line_packs.ln_merca.slots.greet_neutral_coin',
+    );
     // an offering of Earth: 6 points, twice for the first of its kind, at the 0.8 rate
     g.queue('pk20.give', { item: 'otherworld_sweets', count: 2 });
     g.queue('goddess.offer', { itemId: 'otherworld_sweets', want: 'blessing' });
@@ -376,8 +384,12 @@ describe('act 1 written acts (DB-A1)', () => {
     g.step(2);
     // sleep the eight hours of the quest, then the dream plays
     for (let i = 0; i < 20 && !g.world.slices.scenes.current; i++) g.step(TICKS_PER_GAME_HOUR);
-    expect(g.world.slices.scenes.current?.sceneId).toBe('a1_dream');
-    playScene(g);
+    expect(g.world.slices.scenes.current?.sceneId).toBe('cut_a1_dream');
+    // the dream's question menu reopens until the player stops asking (cut_a1_dream `ask`):
+    // ask the written questions, then `enough`; the free question never closes the menu
+    playScene(g, (_s, node, ids) =>
+      node === 'ask' ? (ids.find((id) => id !== 'free') ?? 'enough') : undefined,
+    );
     g.step(2);
     expect(g.world.meta.flags.a1_dream_door_woman).toBe(true);
     expect(beat(g, 'DB-A1-05')).toMatchObject({ state: 'done', by: 'observed' });

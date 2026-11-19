@@ -42,6 +42,8 @@ export class MenuBar {
           attrs: { type: 'button' },
           on: { click: () => this.onToggle(def.id) },
         });
+        // the onboarding outlines a menu button by this name (src/client/tutorial/glow.ts)
+        b.dataset.hud = `menu_${def.id}`;
         this.buttons.set(def.id, b);
         this.el.append(b);
       }

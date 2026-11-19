@@ -1230,8 +1230,9 @@ describe('19.2 duelWatch and duel.ended: the one-on-one duel', () => {
     const g = makeGame();
     toArena(g, 5);
     withCtx(g, (ctx) => setLevel(ctx, unit(g, 'player'), 12));
-    const seg = monster(g, 'seg_oneeye_duel', 12, 8);
-    const gang = monster(g, 'oneeye_bandit', 10, 12);
+    // both out of their alert circles: the duel has to start before anyone is pulled in
+    const seg = monster(g, 'seg_oneeye_duel', 12, 16);
+    const gang = monster(g, 'oneeye_bandit', 10, 24);
     const full = deriveStats(g.world, g.content, seg).maxHp;
     g.queue('combat.duel', { opponentId: seg.id });
     g.step(1);

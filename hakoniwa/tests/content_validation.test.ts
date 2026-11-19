@@ -50,7 +50,7 @@ import {
   summonOnlyMonsters,
   tierForLevel,
 } from '../tools/content/validators/balance';
-import { ledgerFindings, worldWhere } from '../tools/content/validators/ledger';
+import { gateAct, ledgerFindings, worldWhere } from '../tools/content/validators/ledger';
 import { nameFindings } from '../tools/content/validators/names';
 import { namespaceFindings, namespaceOf } from '../tools/content/validators/namespace';
 import { reachFindings } from '../tools/content/validators/reach';
@@ -369,6 +369,18 @@ describe('V5 reveal ledger', () => {
     expect(acts.of('epilogue', 'rel_god_janu')).toBe(7);
     expect(acts.of('scenes', 'cut_p_earth')).toBe(0);
     expect(acts.of('monsters', 'faceless_king')).toBeGreaterThanOrEqual(5);
+  });
+
+  it('judges a gated text no earlier than the act of the flags its gate waits for', () => {
+    // Janu's title waits for a6_name_spoken: an act-1 scene naming her as the dream's answerer
+    // makes her row visible in act 1, but the gated title is first seen in act 6
+    expect(gateAct(real.content, 'a6_name_spoken')).toBe(6);
+    expect(gateAct(real.content, 'a6_name_spoken AND act == act1')).toBe(6);
+    expect(gateAct(real.content, 'not a registered flag at all')).toBe(-1);
+    const janu = ledgerFindings(real, []).filter(
+      (f) => f.level === 'error' && f.table === 'goddesses' && f.row === 'janu',
+    );
+    expect(janu).toEqual([]);
   });
 });
 

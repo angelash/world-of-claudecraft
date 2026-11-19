@@ -12,6 +12,7 @@ import {
   type SyncSettings,
 } from '../../app/settings_schema';
 import { defaultInputSettings } from '../../input/input_settings';
+import { accessDefaultsPatch } from './access_model';
 import { audioDefaultsPatch } from './audio_model';
 
 /** The pages of 4.1, in tab order. */
@@ -108,6 +109,8 @@ export function pageDefaultsPatch(
       };
     case 'gameplay':
       return { gameplay: defaultGameplay() };
+    case 'access':
+      return accessDefaultsPatch();
     case 'language':
       return { language: 'zh-Hans' };
     default:
@@ -122,6 +125,7 @@ export function hasPageDefaults(page: SettingsPageId): boolean {
     page === 'audio' ||
     page === 'controls' ||
     page === 'gameplay' ||
+    page === 'access' ||
     page === 'language'
   );
 }

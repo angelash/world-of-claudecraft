@@ -6,6 +6,7 @@
 
 import { unitOf } from '../../systems/combat';
 import { focusModel, toggleFocus } from '../hud/focus_model';
+import type { HintContext } from '../hud/hint_model';
 import type { Hud } from '../hud/hud';
 import { lightNotice, type NotifyContext, type NotifySpec } from '../hud/notify_model';
 import { partyModel } from '../hud/party_model';
@@ -25,6 +26,8 @@ export interface HudExtrasHost {
   talking(): boolean;
   /** a conversation with someone is open (the talk hint is done) */
   conversing(): boolean;
+  /** the onboarding's say over the hint bar (its level, its in-scene bars; PK-M1-23) */
+  hintContext?(base: HintContext): HintContext;
 }
 
 export class HudExtras {
@@ -96,7 +99,15 @@ export class HudExtras {
         talkableNear: !!a.interact?.nearestTalkable(v),
         talking: this.h.conversing(),
       },
-      { guidance: this.h.sync().gameplay.guidance, combat: ctx.combat, held: ctx.held },
+      this.hintCtx({
+        guidance: this.h.sync().gameplay.guidance,
+        combat: ctx.combat,
+        held: ctx.held,
+      }),
     );
+  }
+
+  private hintCtx(base: HintContext): HintContext {
+    return this.h.hintContext ? this.h.hintContext(base) : base;
   }
 }

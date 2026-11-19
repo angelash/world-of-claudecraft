@@ -225,6 +225,50 @@
       "count": 2,
       "radius": 1,
       "respawnMinutes": 120
+    },
+    {
+      "kind": "monster",
+      "id": "sr_glyph_corridor_w",
+      "ref": "glyph_shade",
+      "x": 24.5,
+      "y": 13.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
+    },
+    {
+      "kind": "monster",
+      "id": "sr_glyph_corridor_e",
+      "ref": "glyph_shade",
+      "x": 39.5,
+      "y": 13.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
+    },
+    {
+      "kind": "monster",
+      "id": "sr_pages_stairs",
+      "ref": "ash_page_swarm",
+      "x": 45.5,
+      "y": 20.5,
+      "count": 2,
+      "radius": 1.5,
+      "respawnMinutes": 320,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
+    },
+    {
+      "kind": "monster",
+      "id": "sr_spirit_hall",
+      "ref": "dian_spirit",
+      "x": 32.5,
+      "y": 22.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
     }
   ],
   "exits": [

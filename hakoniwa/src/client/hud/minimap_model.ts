@@ -3,6 +3,7 @@
 
 import { tileAt } from '../../systems/world/grid';
 import type { MapDef, TileKind } from '../../systems/world/types';
+import { activePalette } from '../render/palette_modes';
 import type { Relation } from '../render/scene';
 import { createMatrix, type PixelMatrix, type Rgb, setPixel } from '../sprites/pixels';
 
@@ -41,6 +42,7 @@ export function minimapScale(mapW: number, mapH: number, boxW: number, boxH: num
   return s >= 1 ? Math.floor(s) : s;
 }
 
+/** Dot colours in the standard palette (minimap and map window). */
 export const DOT_COLORS: Record<Relation | 'exit', string> = {
   self: '#ffffff',
   hostile: '#ff5a48',
@@ -48,3 +50,8 @@ export const DOT_COLORS: Record<Relation | 'exit', string> = {
   neutral: '#f0d050',
   exit: '#f2c94c',
 };
+
+/** A dot colour in the active colour-vision palette (18.2; ../render/palette_modes.ts). */
+export function dotColor(kind: Relation | 'exit' | 'danger'): string {
+  return activePalette().dots[kind];
+}

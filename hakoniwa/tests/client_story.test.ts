@@ -900,13 +900,14 @@ describe('scene view presentation fields', () => {
     const engine = createGame({ seed: 20261115 });
     const view = createGameView(engine);
     engine.step(3);
-    // the prologue's scenes carry their presentation (PK-M1-27); act 1's intro has none yet
+    // the prologue's and act 1's scenes carry their presentation (PK-M1-27, PK-M1-34); act 2's
+    // intro has none yet
     engine.world.slices.scenes.current = null;
     engine.world.slices.scenes.queue = [];
-    engine.queue('scenes.start', { sceneId: 'act1_intro' });
+    engine.queue('scenes.start', { sceneId: 'act2_intro' });
     engine.step(1);
     const sv = createAdapters().scene?.scene(view);
-    expect(sv?.sceneId).toBe('act1_intro');
+    expect(sv?.sceneId).toBe('act2_intro');
     expect(sv).toMatchObject({ presentation: 'theater', illustration: null, anchor: false });
     expect(sv?.stage).toEqual([]);
     expect(typeof sv?.summary).toBe('string');

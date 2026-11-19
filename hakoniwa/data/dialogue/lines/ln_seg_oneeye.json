@@ -1,0 +1,71 @@
+{
+  "id": "ln_seg_oneeye",
+  "speaker": "seg_oneeye",
+  "slots": {
+    "greet.cold": ["滚，这是独眼团的地盘。", "你是代官的狗？", "再走一步，我就不客气了。"],
+    "greet.neutral": ["你就是那个 F 级的？", "有话说，没话滚。", "坐。不准动刀。"],
+    "greet.warm": ["你来了。坐，喝酒。", "强者的话，我听。", "弟兄们，这是我认的人。"],
+    "farewell": ["滚吧。", "下回见，要么是朋友，要么是敌人。", "走好。"],
+    "unbelief.deny": ["F 级？笑话。", "吹出来的名声，我见多了。"],
+    "unbelief.explain": ["那帮人一定是被前头的人打残了。", "运气。荒原上运气用完的人，都死了。"],
+    "unbelief.waver": ["你那一刀……我看清了。", "强。我认。"],
+    "react.feat_seen": ["好！是条汉子。", "你……有本事。"],
+    "react.gift_liked": ["好酒。弟兄们有口福了。", "这刀不错。"],
+    "react.insult": ["你找死。", "出来，单挑。"],
+    "topic.gen_self": {
+      "neutral": ["瑟格。独眼团的头。", "我的人，我护着。别人的命，我不随便拿。"]
+    },
+    "topic.gen_work": {
+      "K1": ["讨生活。从那些老爷手里讨。", "团规：不杀平民。谁坏规矩，我砍谁。"]
+    },
+    "topic.self_seg_oneeye_oldwatch": {
+      "K1": ["旧哨村被烧那年，领主的援兵没来。", "我这只眼，也是在魔物季丢的。援兵也没来。"]
+    },
+    "topic.secret_seg_oneeye_letters": {
+      "K1": [
+        {
+          "zh": "代官的信，我都留着。当保险。",
+          "when": "a1_seg_duel_won"
+        },
+        {
+          "zh": "你赢了。拿去吧。",
+          "when": "a1_seg_duel_won"
+        }
+      ]
+    },
+    "topic.event_old_watch_908": {
+      "K1": ["九百零八年。村子烧了一夜。我祖上就在里面。"]
+    },
+    "quest.q_a1_d01_tax_and_bandits.progress": [
+      {
+        "zh": "想跟我谈？先打赢我。",
+        "when": "act_week >= 6"
+      },
+      {
+        "zh": "你赢了。说吧，你要什么。",
+        "when": "a1_seg_duel_won"
+      }
+    ],
+    "quest.q_a1_d01_tax_and_bandits.after": [
+      {
+        "zh": "镇外巡队。哼，名字难听，活还行。",
+        "when": "a1_oneeye_fate == absorbed"
+      },
+      {
+        "zh": "……（他没再说话）",
+        "when": "a1_oneeye_fate == destroyed"
+      }
+    ],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "弟兄们，守南门！这回不是为了领主！",
+        "when": "a1_beast_tide_started AND a1_oneeye_fate == absorbed"
+      }
+    ],
+    "bark.camp": ["酒呢？", "别吵，守夜的守好。"],
+    "bark.combat": ["独眼团，上！"],
+    "topic.quest_seg_duel": {
+      "K0": ["规矩就是规矩：单挑，谁赢谁说话。我这边的人认这个。", "输了就认。你呢？"]
+    }
+  }
+}

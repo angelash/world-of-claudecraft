@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "set_dg_seal_ruins",
+    "name": "余烬门守",
+    "desc": "封门遗迹守门人留下的旧衣。凑齐时，衣里的余烬会在危急时替穿戴者挡下一阵。",
+    "bonuses": [
+      { "pieces": 2, "stats": { "sta": 5 } },
+      { "pieces": 3, "stats": { "str": 3, "agi": 3, "sta": 3, "int": 3, "spi": 3 } },
+      {
+        "pieces": 4,
+        "procs": [{ "on": "low_hp", "chance": 1, "icd": 300, "do": "aura:aur_ember_door@self" }]
+      }
+    ]
+  },
+  {
+    "id": "set_barga_forge",
+    "name": "晶背炉",
+    "desc": "巴尔加为配得上的人打的一炉锁甲。和他打的晶背剑一起用时，同炉的东西会彼此共鸣。",
+    "bonuses": [
+      { "pieces": 2, "stats": { "str": 6, "sta": 6 } },
+      { "pieces": 3, "stats": { "crit": 1 } },
+      { "pieces": 5, "procs": [{ "on": "hit", "chance": 0.08, "do": "dmg:physical:Lv×2" }] }
+    ]
+  }
+]

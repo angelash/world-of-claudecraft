@@ -8,6 +8,7 @@ import type { AnyCommand } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { type TextParam, tr } from '../../core/text';
 import { calendarAt } from '../../core/time';
+import { isScripted } from '../dialogue/scripted';
 import { speak as speakSlot } from '../dialogue/speak';
 import { pickLine } from '../dialogue/templates';
 import { currentWeather, getEntity } from '../world';
@@ -212,7 +213,9 @@ function speakLine(
   if (!text) return;
   a.sayRev += 1;
   const data = { npcId: a.id, toId: b.id, text, revision: a.sayRev };
-  if (pa && a.tier === 1 && ctx.tick - a.lastSayTick >= SAY_AI_COOLDOWN) {
+  // a scripted speaker's written line goes out as it is (dialogue/scripted.ts)
+  const scripted = isScripted(ctx.content, a.id, ctx.flag('act'));
+  if (pa && a.tier === 1 && !scripted && ctx.tick - a.lastSayTick >= SAY_AI_COOLDOWN) {
     a.lastSayTick = ctx.tick;
     const fallback: AnyCommand[] = [{ kind: 'npc.say', data, source: systemSource('npc') }];
     ctx.ai.request({

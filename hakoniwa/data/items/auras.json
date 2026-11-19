@@ -1,0 +1,171 @@
+[
+  {
+    "id": "aur_item_herbsalve",
+    "name": "草药膏",
+    "desc": "敷着草药膏：每 2 秒回复 12 点生命，共 10 秒。",
+    "kind": "buff",
+    "duration": 10,
+    "periodic": { "every": 2, "heal": { "base": 12 } }
+  },
+  {
+    "id": "aur_item_greybanetea",
+    "name": "祛灰茶",
+    "desc": "一日之内，从环境里沾上的灰气 -30%。",
+    "kind": "buff",
+    "duration": 1440
+  },
+  {
+    "id": "aur_item_ashveil",
+    "name": "灰巾",
+    "desc": "一日之内，在不到浓灰的地方从环境里沾上的灰气 -50%。",
+    "kind": "buff",
+    "duration": 1440
+  },
+  {
+    "id": "aur_item_ashsachet",
+    "name": "祛灰香囊",
+    "desc": "七日之内，发灰斑的风险：孩童 -50%，成人 -20%。",
+    "kind": "buff",
+    "duration": 10080
+  },
+  {
+    "id": "aur_item_ryehardtack",
+    "name": "黑麦硬饼",
+    "desc": "饱食：耐力 +3。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 3 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_moonstew",
+    "name": "醉月炖肉",
+    "desc": "饱食：精神 +3，生命回复 +50%。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "spi": 3 },
+    "mods": { "hpRegen": 0.5 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_sunsetherring",
+    "name": "落日咸鱼",
+    "desc": "饱食：耐力 +2。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 2 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_bellbun",
+    "name": "钟声面包",
+    "desc": "饱食：精神 +2。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "spi": 2 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_scavengerjerky",
+    "name": "拾荒肉干",
+    "desc": "饱食：耐力 +3。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 3 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_ringbread",
+    "name": "空心饼",
+    "desc": "饱食：精神 +2。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "spi": 2 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_oliveloaf",
+    "name": "橄榄油面包",
+    "desc": "饱食：耐力 +2、精神 +2。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 2, "spi": 2 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_holywafer",
+    "name": "圣饼",
+    "desc": "有页的信徒当日光佑检定 +1。",
+    "kind": "buff",
+    "duration": 1440
+  },
+  {
+    "id": "aur_item_earthdumplings",
+    "name": "饺子",
+    "desc": "饱食：耐力 +3、精神 +3。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 3, "spi": 3 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_earthnoodles",
+    "name": "汤面",
+    "desc": "饱食：耐力 +3，生命回复 +30%。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 3 },
+    "mods": { "hpRegen": 0.3 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_hardcandy",
+    "name": "硬糖",
+    "desc": "受到恐惧的时间 -20%。",
+    "kind": "buff",
+    "duration": 1800
+  },
+  {
+    "id": "aur_item_northryeale",
+    "name": "北境黑麦酒",
+    "desc": "耐力 +3、霜相抗性 +5。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "sta": 3 }
+  },
+  {
+    "id": "aur_item_ale",
+    "name": "麦酒",
+    "desc": "精神 +2。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "spi": 2 }
+  },
+  {
+    "id": "aur_item_otherworldsweets",
+    "name": "异界甜点",
+    "desc": "饱食：精神 +3。",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "spi": 3 },
+    "group": "food"
+  },
+  {
+    "id": "aur_item_guardcharm",
+    "name": "护身符纸",
+    "desc": "吸收下一次伤害，至多 45 点。",
+    "kind": "buff",
+    "duration": 0,
+    "absorb": { "base": 45 }
+  },
+  {
+    "id": "aur_st_physic_poison",
+    "name": "药毒",
+    "desc": "疗程没过又灌了一回药：到这个疗程结束前，受到的治疗少两成。",
+    "kind": "debuff",
+    "category": "state",
+    "duration": 360,
+    "mods": { "healingTaken": -0.2 },
+    "dispellable": false
+  }
+]

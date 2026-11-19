@@ -8,7 +8,6 @@
 
 import { t } from '../../shared_ui/i18n';
 import { enemiesNear, unitOf } from '../../systems/combat';
-import type { PartyOrder } from '../../systems/party';
 import { screenIntentToWorld } from '../hd2d/view';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import { gateAction, gateExits } from '../hud/exit_choice_model';
@@ -19,10 +18,17 @@ import { promptFor } from '../hud/story/prologue_stage';
 import type { InputSurface } from '../input/actions';
 import type { InputContext } from '../input/contexts';
 import type { InputDevice } from '../input/device';
-import type { GameSink, TextTarget } from '../input/input_hub';
+import type { GameSink, RingFollow, TextTarget } from '../input/input_hub';
 import { defaultInputSettings, type InputSettings } from '../input/input_settings';
 import { type Intent, isZero } from '../input/keymap';
 import type { RingId } from '../input/pad_bindings';
+import {
+  type PartyRingMember,
+  partyRingMembers,
+  partyRingPick,
+  partyRingSectors,
+  partyRingTitle,
+} from '../input/party_ring';
 import { nextTarget } from '../input/picking';
 import { RING_TIME_SCALE, type RingSector } from '../input/radial';
 import {
@@ -98,6 +104,12 @@ const WINDOW_ACTIONS: Readonly<Record<string, WindowId>> = {
   win_company: 'company',
   win_territory: 'territory',
   win_strategy: 'strategy',
+  // the act-1 windows (PK-M1-23)
+  win_deeds: 'deeds',
+  win_codex: 'codex',
+  win_craft: 'craft',
+  win_beasts: 'beasts',
+  win_letters: 'letters',
 };
 
 /** The window ring (16.5): page one, then the rest once their features open. */
@@ -109,14 +121,19 @@ const WINDOW_RING: readonly WindowId[] = [
   'map',
   'party',
   'rumors',
+  // page two (16.5): deeds, codex, livelihoods, letters, goddesses, beasts, then later acts
+  'deeds',
+  'codex',
+  'craft',
+  'letters',
   'goddess',
+  'beasts',
+  'dungeon',
+  'evidence',
   'company',
   'territory',
   'strategy',
 ];
-
-/** The party ring: the orders the party system takes (16.5). */
-const PARTY_ORDERS: readonly PartyOrder[] = ['follow', 'assist', 'passive', 'stay'];
 
 /** Target cycling range: the combat adapter's Tab list (CombatAdapter.nextEnemy). */
 export const CYCLE_RANGE = 20;
@@ -197,6 +214,8 @@ export class PlayerInput implements GameSink {
       windows: this.s.windows.anyOpen,
       placing: !!this.s.placing,
       corridor: this.s.windows.modeOpen === 'doors',
+      // the spirit mirror's own context (3.4.3)
+      creator: !!this.s.story?.creatorOpen?.(),
     };
   }
 
@@ -402,6 +421,8 @@ export class PlayerInput implements GameSink {
       this.s.queue(cmds);
       return;
     }
+    // a commission board or a gathering node in reach opens its panel (6.3.7, 6.3.4)
+    if (this.openPlacePanel()) return;
     // the soft target last: talking and exits in reach come first
     const soft = this.softTarget;
     if (ia && soft) {
@@ -570,6 +591,9 @@ export class PlayerInput implements GameSink {
       case 'corridor':
         // the corridor mode (ux_and_onboarding.md 9) runs in the window manager
         return this.s.windows.modeAction?.(action) ?? false;
+      case 'creator':
+        // the spirit mirror (3.4.3) takes the creator context's actions
+        return this.s.story?.creatorAction(action, device) ?? false;
       default:
         // lord, battle, continent, travel and court run in their own windows until their
         // modes are built (act 2 and later)
@@ -618,6 +642,8 @@ export class PlayerInput implements GameSink {
   private dialogueAction(action: string, device: InputDevice): boolean {
     // the spirit mirror takes the dialogue actions while it is open (PK-M1-54)
     if (this.s.story?.creatorAction(action, device)) return true;
+    // a long Y or Shift+Y: the newest model line's AI mark (7.3)
+    if (action === 'ai_mark') return this.s.story?.aiMark?.() ?? false;
     if (action === 'advance') return this.advance(device);
     // a keyed scene choice (the prologue's reach-out key, PK-M1-54)
     if (this.keyedChoice(action)) return true;
@@ -647,6 +673,11 @@ export class PlayerInput implements GameSink {
     }
     const win = WINDOW_ACTIONS[action];
     if (win) {
+      // a window not open yet says so in one light line, never as an empty shell (6.1)
+      if (!s.windows.isOpen(win) && !s.windows.available(win)) {
+        s.notifyLight?.(t('ui.common.not_yet'));
+        return true;
+      }
       s.windows.toggle(win);
       return true;
     }
@@ -768,7 +799,22 @@ export class PlayerInput implements GameSink {
     this.s.queue([{ kind: 'inventory.use', data: { ownerId: this.v.playerId(), itemId } }]);
   }
 
-  ringSectors(ring: RingId): RingSector[] {
+  private ringMembers(): PartyRingMember[] {
+    // named through the content table, like the party frames (not the raw view name)
+    return partyRingMembers(this.s.adapters.party?.companions(this.v) ?? []);
+  }
+
+  /** The board, node or station panel where the player stands; false when none is in reach. */
+  private openPlacePanel(): boolean {
+    const a = this.s.adapters;
+    if (a.board?.boardHere(this.v) && this.s.windows.show('board')) return true;
+    if ((a.gather?.nodes(this.v).length ?? 0) > 0 && this.s.windows.show('gather')) return true;
+    // a station opens the livelihoods window (6.3.3: 站到工站前)
+    if ((a.craft?.stations(this.v).length ?? 0) > 0 && this.s.windows.show('craft')) return true;
+    return false;
+  }
+
+  ringSectors(ring: RingId, target?: string): RingSector[] {
     switch (ring) {
       case 'windows':
         return WINDOW_RING.filter((id) => this.s.windows.available(id)).map((id) => ({
@@ -778,28 +824,35 @@ export class PlayerInput implements GameSink {
       case 'items':
         return this.consumables().map((c) => ({ id: c.id, label: c.name }));
       case 'party':
-        if ((this.s.adapters.party?.companions(this.v) ?? []).length === 0) return [];
-        return PARTY_ORDERS.map((o) => ({ id: o, label: t(`sys.party.order.${o}`) }));
+        // the whole party, or one companion (a HUD frame, or the single-order sector)
+        return partyRingSectors(this.ringMembers(), target);
       default:
         return [];
     }
   }
 
-  ringChoose(ring: RingId, id: string): void {
+  ringChoose(ring: RingId, id: string, target?: string): RingFollow | undefined {
     switch (ring) {
       case 'windows':
         if ((WINDOW_RING as readonly string[]).includes(id)) this.s.windows.show(id as WindowId);
-        return;
+        return undefined;
       case 'items':
         this.useItem(id);
-        return;
-      case 'party':
-        if ((PARTY_ORDERS as readonly string[]).includes(id))
-          this.s.queue(this.s.adapters.party?.order(this.v, undefined, id as PartyOrder));
-        return;
+        return undefined;
+      case 'party': {
+        const pick = partyRingPick(this.ringMembers(), id, target);
+        if (pick.type === 'next') return { ring: 'party', target: pick.target };
+        if (pick.type === 'order')
+          this.s.queue(this.s.adapters.party?.order(this.v, pick.companionId, pick.order));
+        return undefined;
+      }
       default:
-        return;
+        return undefined;
     }
+  }
+
+  ringTitle(ring: RingId, target?: string): string | undefined {
+    return ring === 'party' ? partyRingTitle(this.ringMembers(), target) : undefined;
   }
 
   ringOpen(open: boolean): void {

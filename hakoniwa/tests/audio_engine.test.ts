@@ -88,7 +88,7 @@ import {
   audioPatch,
 } from '../src/client/windows/settings/audio_model';
 import { t } from '../src/shared_ui/i18n';
-import { IMPORT_VERSION } from '../tools/assets/core/meta';
+import { AUDIO_IMPORT_VERSION } from '../tools/assets/core/import_versions';
 
 const OFF = Number.NEGATIVE_INFINITY;
 
@@ -650,10 +650,10 @@ describe('audio manifest (9.2, 9.3)', () => {
         rec,
         { ...rec, id: 'mus_r', status: 'review', file: 'audio/music/mus_r.ogg' },
       ],
-      '/assets/processed/audio/music/mus_a.json': meta({ importVersion: IMPORT_VERSION }),
+      '/assets/processed/audio/music/mus_a.json': meta({ importVersion: AUDIO_IMPORT_VERSION }),
       '/assets/processed/audio/music/mus_r.json': meta({
         id: 'mus_r',
-        importVersion: IMPORT_VERSION,
+        importVersion: AUDIO_IMPORT_VERSION,
       }),
     };
     const fetchJson = async (u: string) => {

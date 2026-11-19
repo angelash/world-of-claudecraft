@@ -287,6 +287,51 @@
       "count": 1,
       "radius": 2,
       "respawnMinutes": 120
+    },
+    {
+      "kind": "monster",
+      "id": "id_deer_outer",
+      "ref": "greyelm_deer",
+      "x": 39.5,
+      "y": 102.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 30,
+      "requiresFlags": ["a1_beast_season"]
+    },
+    {
+      "kind": "monster",
+      "id": "id_bear_outer",
+      "ref": "ironpine_bear",
+      "x": 81.5,
+      "y": 96.5,
+      "count": 1,
+      "radius": 3,
+      "respawnMinutes": 60,
+      "requiresFlags": ["a1_beast_season"]
+    },
+    {
+      "kind": "monster",
+      "id": "id_ashhorn_crag",
+      "ref": "ashhorn_deer",
+      "x": 60.5,
+      "y": 10.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 40,
+      "level": [8, 10],
+      "requiresFlags": ["a1_beast_season"]
+    },
+    {
+      "kind": "monster",
+      "id": "id_elk_north",
+      "ref": "northern_elk",
+      "x": 87.5,
+      "y": 16.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 60,
+      "requiresFlags": ["act.2.entered"]
     }
   ],
   "exits": [

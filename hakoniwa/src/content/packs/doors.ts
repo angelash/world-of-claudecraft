@@ -1,17 +1,22 @@
 // Doors pack: the Thousand Doors (power_system.md 9.9 canon doors plus the prologue's
-// past-life doors) and the door-rank curve. Data lives in data/doors/doors.json and
-// data/doors/rank_curve.json (written by tools/doors/rank_curve.ts). The validator carries
-// the eight content rules of thousand_doors.md 21.6 besides the reference checks.
+// past-life doors), the door-rank curve and the feature readers' numbers and places. Data
+// lives in data/doors/doors.json, data/doors/rank_curve.json (written by
+// tools/doors/rank_curve.ts) and data/doors/readers.json. The validator carries the eight
+// content rules of thousand_doors.md 21.6 besides the reference checks, and the door card's
+// fields (danger band, opening cost, key links) and the readers' record (PK-M1-56).
 
 import doors from '../../../data/doors/doors.json';
 import rankCurveData from '../../../data/doors/rank_curve.json';
+import readersData from '../../../data/doors/readers.json';
 import type { ContentMap } from '../../core/contracts';
 import { defaultRegistry } from '../../core/registry';
 import { rankCurve } from '../../systems/doors/rank';
 import {
   COUNTABLE_EVENTS,
+  DANGER_BANDS,
   type DoorCategory,
   type DoorDef,
+  type DoorReaders,
   EXCLUSIVE_MODES,
   KEY_TYPES,
   type KeyCond,
@@ -61,6 +66,7 @@ export const pack: ContentPack = {
   tables: {
     doors: doors as unknown as DoorDef[],
     door_rank_curve: rankCurveData as unknown as { thresholds: number[] },
+    door_readers: readersData as unknown as DoorReaders,
   },
   schemas: [
     {
@@ -86,18 +92,27 @@ export const pack: ContentPack = {
           key: 'keys',
           label: '钥',
           type: 'json',
-          help: 'deed、count、flag、trial、item、trust、bond、taught、choice、visit、dungeon、rank、know、time、door、cond；组合 all、any（need）、seq、alt（替钥，when）',
+          help: 'deed、count、flag、trial、item、trust、bond、taught、choice、visit、dungeon、rank、know、time、door、cond；组合 all、any（need）、seq、alt（替钥，when）；可带 link（去哪里找的任务 ID）',
         },
         { key: 'reveal', label: '显影条件', type: 'json' },
         {
           key: 'effects',
           label: '效果',
           type: 'json',
-          help: 'abilities、stats、pool、passive、feature、flag、item',
+          help: 'abilities、stats、pool、passive、feature、flag、item、door（随本门一起开的门）',
         },
         { key: 'exclusive', label: '互斥（group、mode、act、until、source）', type: 'json' },
         { key: 'seal', label: '松动档', type: 'enum', options: [...SEAL_TIERS], required: true },
         { key: 'forbidden', label: '禁门', type: 'boolean' },
+        {
+          key: 'dangerBand',
+          label: '危险档',
+          type: 'enum',
+          options: [...DANGER_BANDS],
+          required: true,
+          help: '门目录 1.7：无、低、中、高、极',
+        },
+        { key: 'openCost', label: '开门代价（blockage、fatigue、act）', type: 'json' },
         {
           key: 'unrest',
           label: '遗迹躁动规则',
@@ -197,6 +212,51 @@ function forbiddenNames(content: ContentMap): string[] {
   return [...out];
 }
 
+/** The readers' record (data/doors/readers.json): numbers in range, places and names real. */
+export function validateReaders(
+  content: ContentMap,
+  registry: ReturnType<typeof defaultRegistry> = defaultRegistry(),
+): string[] {
+  const out: string[] = [];
+  const r = content.door_readers;
+  if (!r) return out;
+  const features = new Set<string>();
+  for (const d of content.doors ?? [])
+    for (const f of d.effects) if (f.type === 'feature') features.add(f.feature);
+  const named = (what: string, feature: string | undefined) => {
+    if (!feature || !features.has(feature))
+      out.push(`door readers ${what}: feature ${String(feature)} is given by no door`);
+  };
+  if (r.priceBand) {
+    named('priceBand', r.priceBand.feature);
+    if (!(r.priceBand.spread > 0 && r.priceBand.spread < 1))
+      out.push('door readers priceBand: spread not between 0 and 1');
+  }
+  if (r.nightSight) {
+    named('nightSight', r.nightSight.feature);
+    if (!(r.nightSight.radius > 0)) out.push('door readers nightSight: radius not above 0');
+  }
+  if (r.rumorSource) named('rumorSource', r.rumorSource.feature);
+  const p = r.springPurify;
+  if (p) {
+    named('springPurify', p.feature);
+    if (!p.amount || !Number.isFinite(p.amount)) out.push('door readers springPurify: no amount');
+    if (p.places.length === 0) out.push('door readers springPurify: no place');
+    // as with visit keys, a map outside the loaded packs is not judged here
+    const maps = new Map((content.maps ?? []).map((m) => [m.id, m]));
+    for (const place of p.places) {
+      const map = maps.get(place.mapId);
+      if (map && !map.locations.some((l) => l.id === place.location))
+        out.push(`door readers springPurify: map ${place.mapId} has no ${place.location}`);
+    }
+    for (const name of [p.var, p.weekFlag])
+      if (!registry.resolve(name)) out.push(`door readers springPurify: unregistered ${name}`);
+    if (p.when && checkCondition(p.when) !== null)
+      out.push(`door readers springPurify: condition does not parse: ${p.when}`);
+  }
+  return out;
+}
+
 export function validateDoors(content: ContentMap): string[] {
   const problems: string[] = [];
   const all = content.doors ?? [];
@@ -216,12 +276,17 @@ export function validateDoors(content: ContentMap): string[] {
   );
   const registry = defaultRegistry();
   const hidden = forbiddenNames(content);
+  const questList = (content as { quests?: { id: string }[] }).quests;
+  const questIds = questList ? new Set(questList.map((q) => q.id)) : null;
 
   const checkKeys = (door: DoorDef, keys: readonly KeyCond[]) => {
     walk(keys, (k) => {
       if (!k.label) problems.push(`door ${door.id}: key without label`);
       if (!(KEY_TYPES as readonly string[]).includes(k.type))
         problems.push(`door ${door.id}: unknown key type ${String(k.type)}`);
+      // the door card's "where to find" names a quest of the content
+      if (k.link !== undefined && questIds && !questIds.has(k.link))
+        problems.push(`door ${door.id}: key link ${k.link} is no quest`);
       switch (k.type) {
         case 'item':
           if (!items.has(k.itemId)) problems.push(`door ${door.id}: unknown item ${k.itemId}`);
@@ -246,6 +311,8 @@ export function validateDoors(content: ContentMap): string[] {
             problems.push(
               `door ${door.id}: count key on ${k.event}, an event doors does not count`,
             );
+          if (k.sum !== undefined && !/^[a-z][A-Za-z0-9_]*$/.test(k.sum))
+            problems.push(`door ${door.id}: count sum field ${k.sum} is no field name`);
           break;
         case 'visit':
           if (k.location) {
@@ -310,6 +377,21 @@ export function validateDoors(content: ContentMap): string[] {
       problems.push(`door ${door.id}: a forbidden-category door without the forbidden weight`);
     if (door.tendency && !(TENDENCIES as readonly string[]).includes(door.tendency))
       problems.push(`door ${door.id}: unknown tendency ${door.tendency}`);
+    // the danger band of catalog_doors.md 1.7 (the corridor's cracks, ux 9.2)
+    if (!door.dangerBand || !(DANGER_BANDS as readonly string[]).includes(door.dangerBand))
+      problems.push(`door ${door.id}: danger band missing or unknown`);
+    for (const [k, v] of Object.entries(door.openCost ?? {})) {
+      const n = typeof v === 'number' ? v : Number.NaN;
+      const ok = k === 'act' ? Number.isInteger(n) && n >= 0 && n <= 7 : n >= 0 && n <= 100;
+      if ((k !== 'blockage' && k !== 'fatigue' && k !== 'act') || !ok)
+        problems.push(`door ${door.id}: open cost ${k} out of range or unknown`);
+    }
+    // a link shows on a top-level key only (the corridor view maps keys by position)
+    for (const k of door.keys)
+      if ('of' in k)
+        walk(k.of, (sub) => {
+          if (sub.link !== undefined) problems.push(`door ${door.id}: link on a nested key`);
+        });
     checkKeys(door, door.keys);
     if (door.reveal) checkKeys(door, door.reveal);
     // rule 3: a door that hangs on one person, or on a branch deed, has a substitute
@@ -348,8 +430,16 @@ export function validateDoors(content: ContentMap): string[] {
         problems.push(`door ${door.id}: unknown aura ${f.aura}`);
       if (f.type === 'item' && !items.has(f.itemId))
         problems.push(`door ${door.id}: unknown item ${f.itemId}`);
+      if (f.type === 'door') {
+        const target = all.find((d) => d.id === f.doorId);
+        if (!target || f.doorId === door.id)
+          problems.push(`door ${door.id}: door effect on unknown or own door ${f.doorId}`);
+        else if (target.effects.some((e) => e.type === 'door'))
+          problems.push(`door ${door.id}: door effect on ${f.doorId}, which gives a door itself`);
+      }
     }
   }
+  problems.push(...validateReaders(content, registry));
   for (const [group, members] of groups)
     if (members.length < 2) problems.push(`exclusion group ${group}: only one door`);
   // rule 8: the rank curve file is the formula's

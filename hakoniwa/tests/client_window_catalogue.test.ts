@@ -51,9 +51,9 @@ const DESIGN_WINDOWS = [
 ];
 
 describe('window catalogue (23.2 window check)', () => {
-  it('lists the 31 windows of 2.3: 18 built, 13 planned, ids unique', () => {
-    expect(WINDOW_DEFS).toHaveLength(18);
-    expect(PLANNED_WINDOWS).toHaveLength(13);
+  it('lists the 31 windows of 2.3: 27 built (the act-1 nine, PK-M1-23), 4 planned, ids unique', () => {
+    expect(WINDOW_DEFS).toHaveLength(27);
+    expect(PLANNED_WINDOWS).toHaveLength(4);
     expect(ALL_WINDOWS.map((w) => w.uiId).sort()).toEqual([...DESIGN_WINDOWS].sort());
     expect(new Set(ALL_WINDOWS.map((w) => w.uiId)).size).toBe(31);
   });

@@ -5,7 +5,11 @@
     "desc": "锈岭矿口南坡的铁脉。",
     "kind": "ore",
     "tier": 1,
-    "yields": [{ "itemId": "iron_ore", "count": [1, 3] }],
+    "yields": [
+      { "itemId": "iron_ore", "count": [1, 3] },
+      { "itemId": "mat_copper_ore", "count": 1, "chance": 0.5 },
+      { "itemId": "mat_fieldstone", "count": 1, "chance": 0.5 }
+    ],
     "places": [{ "mapId": "borderstone_north", "location": "mine_camp" }]
   },
   {
@@ -14,7 +18,10 @@
     "desc": "边石镇东面林缘的铁杉林，越过林约界线伐木会惹出事端。",
     "kind": "wood",
     "tier": 1,
-    "yields": [{ "itemId": "wood", "count": [1, 3] }],
+    "yields": [
+      { "itemId": "wood", "count": [1, 3] },
+      { "itemId": "mat_resin", "count": 1, "chance": 0.5 }
+    ],
     "places": [{ "mapId": "forest_edge", "location": "logging_site" }]
   },
   {
@@ -28,5 +35,79 @@
       { "itemId": "herb", "count": 1, "chance": 0.5 }
     ],
     "places": [{ "mapId": "borderstone", "location": "north_spring" }]
+  },
+  {
+    "id": "node_lotha_oldmine_copper",
+    "name": "边石旧矿铜脉",
+    "desc": "旧矿下层北壁的铜脉，夹着石英。矿道里边采边有魔物。",
+    "kind": "ore",
+    "tier": 1,
+    "yields": [
+      { "itemId": "mat_copper_ore", "count": [1, 3] },
+      { "itemId": "mat_quartz", "count": 1, "chance": 0.5 }
+    ],
+    "places": [{ "mapId": "dg_old_mine", "location": "copper_vein" }],
+    "taint": 0
+  },
+  {
+    "id": "node_lotha_silverleaf_meadow",
+    "name": "银叶草甸",
+    "desc": "镇南缓坡的草甸，银叶草长得最密，也有菘蓝与野亚麻。",
+    "kind": "herb",
+    "tier": 1,
+    "yields": [
+      { "itemId": "mat_silverleaf", "count": [1, 2] },
+      { "itemId": "herb", "count": 1, "chance": 0.5 },
+      { "itemId": "mat_woad", "count": 1, "chance": 0.5 },
+      { "itemId": "mat_flax", "count": 1, "chance": 0.5 }
+    ],
+    "places": [{ "mapId": "borderstone", "location": "silverleaf_meadow" }]
+  },
+  {
+    "id": "node_lotha_greybane_hollow",
+    "name": "祛灰草洼",
+    "desc": "界石线以南的洼地，祛灰草长在哪里，只有欧拉知道。",
+    "kind": "herb",
+    "tier": 2,
+    "yields": [{ "itemId": "mat_greybane", "count": [1, 2] }],
+    "places": [{ "mapId": "borderstone_north", "location": "greybane_hollow" }]
+  },
+  {
+    "id": "node_lotha_glowcap_grove",
+    "name": "磷光林",
+    "desc": "铁杉林深处的一片林子，夜里菌子发光。只在夜里采得到，林中有魔物。",
+    "kind": "herb",
+    "tier": 2,
+    "yields": [{ "itemId": "mat_glowcap", "count": [1, 2] }],
+    "places": [{ "mapId": "ironhemlock_deep", "location": "glowcap_grove" }],
+    "when": "night",
+    "taint": 0
+  },
+  {
+    "id": "node_lotha_rim_nest",
+    "name": "北境灰窝残迹",
+    "desc": "清理过的巢留下的灰窝土。采三次就空了；不收走，巢会再长出来。",
+    "kind": "special",
+    "profession": "mining",
+    "tier": 1,
+    "yields": [
+      { "itemId": "mat_nest_residue", "count": [1, 3] },
+      { "itemId": "dian_shard", "count": 1, "chance": 0.5 }
+    ],
+    "places": [{ "mapId": "borderstone_north", "location": "rim_nest" }],
+    "uses": 3,
+    "taint": 2
+  },
+  {
+    "id": "node_waste_crystal_gully",
+    "name": "晶沟",
+    "desc": "荒原外缘的晶沟，碎晶随手可拾。私采违法，走私者在这里扎营。",
+    "kind": "ore",
+    "tier": 1,
+    "yields": [
+      { "itemId": "dian_shard", "count": [1, 3] },
+      { "itemId": "crystal_small_raw", "count": 1, "chance": 0.5 }
+    ],
+    "places": [{ "mapId": "ash_waste", "location": "crystal_gully" }]
   }
 ]

@@ -33,6 +33,7 @@ import {
 import { installKeyText } from '../input/glyphs';
 import { startMenuPad } from '../input/menu_pad';
 import type { ClientCommand } from '../view/game_view';
+import { applyAccessibility, systemReducedMotion } from './accessibility';
 import { createAdapters } from './adapters_wiring';
 import { AiBridge } from './ai_bridge';
 import { BootScreen } from './boot_screen';
@@ -255,6 +256,7 @@ async function startWith(
     settings: ai,
     prefs: settings,
     greeting,
+    clientSegment: from?.header.client,
     loadWorld: (loaded: LoadedSave, line: string) =>
       void startWith(() => resume(loaded.world), loadedLine(line, loaded), loaded),
     toTitle: () => void exitToTitle(),
@@ -291,6 +293,9 @@ async function start(): Promise<void> {
     holdToToggle: settings.sync.accessibility.holdToToggle,
     swapConfirmBack: settings.sync.input.swapConfirmBack,
   });
+  // Colour mode, text size and reduced motion (18) from the first screen on; a session writes
+  // them again whenever the settings change.
+  applyAccessibility(document.documentElement, settings.sync, systemReducedMotion());
   // The AI bridge keeps its model settings in the local part's llm partition, through the
   // settings store so every write of that part goes through one queue.
   ai = new AiBridge(kv, {

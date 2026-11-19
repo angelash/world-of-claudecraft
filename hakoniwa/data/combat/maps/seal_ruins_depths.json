@@ -122,6 +122,33 @@
       "y": 24,
       "w": 5,
       "h": 4
+    },
+    {
+      "id": "raven_stone_w",
+      "name": "西壁的悬石",
+      "kind": "object",
+      "x": 30,
+      "y": 13,
+      "w": 1,
+      "h": 1
+    },
+    {
+      "id": "raven_stone_e",
+      "name": "东壁的悬石",
+      "kind": "object",
+      "x": 35,
+      "y": 11,
+      "w": 1,
+      "h": 1
+    },
+    {
+      "id": "raven_stone_s",
+      "name": "南壁的悬石",
+      "kind": "object",
+      "x": 33,
+      "y": 19,
+      "w": 1,
+      "h": 1
     }
   ],
   "spawns": [
@@ -184,6 +211,48 @@
       "radius": 2,
       "respawnMinutes": 400,
       "requiresFlags": ["boss.guardian_raven.defeated"]
+    },
+    {
+      "kind": "monster",
+      "id": "sd_dreg_hole",
+      "ref": "dian_dreg",
+      "x": 16.5,
+      "y": 30.5,
+      "count": 2,
+      "radius": 1,
+      "respawnMinutes": 120
+    },
+    {
+      "kind": "monster",
+      "id": "sd_glyph_channel",
+      "ref": "glyph_shade",
+      "x": 30.5,
+      "y": 30.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
+    },
+    {
+      "kind": "monster",
+      "id": "sd_pages_chamber",
+      "ref": "ash_page_swarm",
+      "x": 23.5,
+      "y": 24.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active"]
+    },
+    {
+      "kind": "monster",
+      "id": "sd_ash_scroll_drift",
+      "ref": "ash_scroll_drift",
+      "x": 33,
+      "y": 15.5,
+      "count": 1,
+      "radius": 1,
+      "requiresFlags": ["act.3.entered", "dg.dg_seal_ruins.active", "companion.yeyu.recruited"]
     }
   ],
   "exits": [

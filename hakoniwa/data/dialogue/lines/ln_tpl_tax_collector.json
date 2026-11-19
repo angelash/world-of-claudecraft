@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_tax_collector",
+  "slots": {
+    "greet.neutral": ["交税的？名字。", "这位，有何事？", "账簿在这儿。"],
+    "greet.cold": ["欠税的，先补上。", "别磨蹭。"],
+    "greet.warm": ["这位，您的账一向清楚。", "请坐。"],
+    "farewell": ["按时缴纳。", "下个集日再来。"],
+    "unbelief.deny": ["账上没有这一笔。", "无据可查。"],
+    "unbelief.explain": ["有诈。", "背后有人。"],
+    "unbelief.waver": ["账……对得上。怪了。", "我认账。"],
+    "react.feat_seen": ["……这要记一笔。", "嗯。"],
+    "topic.gen_work": {
+      "K0": ["收税，集日收过路税，货值的二到五个百分点。", "账对不上，上面要我的命。"]
+    },
+    "bark.work": [
+      "这一笔对上了。",
+      {
+        "zh": "又少报了一亩。",
+        "mood": ["angry"]
+      }
+    ],
+    "bark.shop": ["税单在这儿。"],
+    "greet.neutral.day": ["集日，收税。"]
+  }
+}

@@ -240,6 +240,80 @@
       "count": 2,
       "radius": 3,
       "respawnMinutes": 20
+    },
+    {
+      "kind": "monster",
+      "id": "bp_smuggler_road",
+      "ref": "greyroad_smuggler",
+      "x": 60.5,
+      "y": 30.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 60
+    },
+    {
+      "kind": "monster",
+      "id": "bp_jackal_w",
+      "ref": "waste_jackal",
+      "x": 40.5,
+      "y": 30.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 40,
+      "level": [8, 12]
+    },
+    {
+      "kind": "monster",
+      "id": "bp_jackal_e",
+      "ref": "waste_jackal",
+      "x": 80.5,
+      "y": 70.5,
+      "count": 3,
+      "radius": 3,
+      "respawnMinutes": 40,
+      "level": [8, 12]
+    },
+    {
+      "kind": "monster",
+      "id": "bp_crayfish_creek",
+      "ref": "greybrook_crayfish",
+      "x": 75.5,
+      "y": 50.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 40
+    },
+    {
+      "kind": "monster",
+      "id": "bp_vulture_sky",
+      "ref": "bone_vulture",
+      "x": 50.5,
+      "y": 20.5,
+      "count": 2,
+      "radius": 4,
+      "respawnMinutes": 60
+    },
+    {
+      "kind": "monster",
+      "id": "bp_toll_taker",
+      "ref": "toll_taker",
+      "x": 66.5,
+      "y": 43.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 2400
+    },
+    {
+      "kind": "monster",
+      "id": "bp_fence_cellar",
+      "ref": "greyshard_fence",
+      "x": 40.5,
+      "y": 64.5,
+      "count": 2,
+      "radius": 1.5,
+      "respawnMinutes": 60,
+      "level": [15, 20],
+      "requiresFlags": ["act.2.entered"]
     }
   ],
   "exits": [

@@ -51,6 +51,7 @@ import { stepTransits } from './routes';
 import { ACT_NAMES } from './schedule';
 import { spawnAll, syncPresence } from './spawn';
 import './skip';
+import { onTidePhase } from './brain/tide_rows';
 import { recomputeTiers } from './tiers';
 import { ACTIVITIES, type NpcState, type PlanState } from './types';
 import { devotionOf, spendable } from './wallet';
@@ -215,6 +216,9 @@ export const system: GameSystem = {
     },
     'dispute.decision_opened'(ctx, e) {
       onDecisionOpened(ctx, e.data);
+    },
+    'tide.phase'(ctx, e) {
+      onTidePhase(ctx, e.data);
     },
     'dispute.decided'(ctx, e) {
       onDecided(ctx, e.data);

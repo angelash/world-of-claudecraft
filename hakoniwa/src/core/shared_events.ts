@@ -65,7 +65,19 @@ declare module './contracts' {
      * intent raised a notification (guard, clergy, goddess, audit) toward a system that
      * has not subscribed yet (PK-M1-18). Dialogue owns the fact; nothing consumes it today.
      */
-    'dialogue.notified': { npcId: string; npcRef: string; notify: string; intent: string };
+    'dialogue.notified': {
+      npcId: string;
+      npcRef: string;
+      notify: string;
+      intent: string;
+      /**
+       * an audit's reason: suspected_spoiler, a locked clue named in words the classifier
+       * did not understand (builtin_ai.md 6.6)
+       */
+      reason?: string;
+      /** the lore ids the audited words named */
+      clues?: string[];
+    };
     /** A line to show in the conversation box and the log (any system may emit). */
     'dialogue.line': {
       speakerId: string;

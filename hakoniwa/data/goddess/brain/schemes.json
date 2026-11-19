@@ -82,6 +82,7 @@
     "goddess": "merca",
     "title": "魔物季的盐与药",
     "when": "act == 1 AND act_week >= 3",
+    "unless": "dispute.q_a1_d03_salt_and_potions.ending",
     "value": {
       "circulation": 0.7,
       "alliance_wealth": 0.5
@@ -105,6 +106,11 @@
               "factor": 1.2,
               "days": 14
             }
+          },
+          {
+            "on": "intel",
+            "etaHours": 336,
+            "condition": "intel.merca.salt_hoard"
           }
         ]
       }

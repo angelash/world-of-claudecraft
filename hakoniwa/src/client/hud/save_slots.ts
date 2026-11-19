@@ -12,6 +12,7 @@ import type { ContentMap } from '../../core/contracts';
 import {
   AUTO_SLOTS,
   buildVersions,
+  type ClientSegmentData,
   contentVersionOf,
   deserializeWorld,
   IRONMAN_SLOT,
@@ -86,7 +87,7 @@ export interface SlotMeta {
   aiPreset: string | null;
   /** an ironman run's save (5.9) */
   ironman: boolean;
-  /** difficulty at save time, from the slot's client extras (null when not kept here) */
+  /** difficulty at save time: the header's summary, else the slot's client extras (older saves) */
   difficulty: Difficulty | null;
   /** thumbnail data URL from the slot's client extras */
   thumb: string | null;
@@ -128,7 +129,7 @@ export function slotMeta(rec: SlotRecord): SlotMeta | null {
     playSeconds: num(s.playSeconds),
     aiPreset: typeof s.aiPreset === 'string' && s.aiPreset ? s.aiPreset : null,
     ironman: h.flags.ironman || rec.slot === IRONMAN_SLOT,
-    difficulty: null,
+    difficulty: isDifficulty(s.difficulty) ? s.difficulty : null,
     thumb: null,
   };
 }
@@ -225,6 +226,17 @@ const LEGACY_SLOTS: Record<string, SlotId> = {
   '6': 'manual_06',
 };
 
+/** The client segment of a save request, or nothing when there is none (a failed read too). */
+function clientPart(read: (() => ClientSegmentData | null) | null): { client?: ClientSegmentData } {
+  try {
+    const seg = read?.() ?? null;
+    return seg ? { client: seg } : {};
+  } catch (err) {
+    console.warn('[saves] client segment skipped', err);
+    return {};
+  }
+}
+
 export class ClientSaves {
   private cache: Partial<Record<SlotId, SlotMeta>> = {};
   private broken: Partial<Record<SlotId, SlotProblem>> = {};
@@ -234,6 +246,8 @@ export class ClientSaves {
   private readonly extras: SlotExtrasStore;
   /** play time of the attached run before this session, and when this session began */
   private play = { base: 0, since: 0 };
+  /** the interface's segment of the next save (the session's guidance, tracking and notes) */
+  private client: (() => ClientSegmentData | null) | null = null;
 
   constructor(private readonly opts: ClientSavesOptions) {
     this.extras = new SlotExtrasStore(opts.extras ?? null);
@@ -275,7 +289,7 @@ export class ClientSaves {
       if (!m) continue;
       const ex = this.extras.get(r.slot, m);
       if (ex) {
-        m.difficulty = ex.difficulty ?? null;
+        m.difficulty ??= ex.difficulty ?? null;
         m.thumb = ex.thumb ?? null;
       }
       headers.set(r.slot, { runId: m.runId, savedAt: m.savedAt });
@@ -329,6 +343,15 @@ export class ClientSaves {
   detach(): void {
     this.source = null;
     this.saver = null;
+    this.client = null;
+  }
+
+  /**
+   * Where every save of the attached run reads the interface's segment (ux_and_onboarding.md
+   * 17.8): the guidance level, the steps seen and done, the tracked quests, evidence notes.
+   */
+  setClientSegment(read: (() => ClientSegmentData | null) | null): void {
+    this.client = read;
   }
 
   /** Manual slots this build offers to fill (3.5). */
@@ -377,7 +400,9 @@ export class ClientSaves {
         level: playerLevel(world),
         playSeconds: this.playSeconds(),
         aiPreset: world.ai.mode === 'off' ? 'off' : (this.opts.aiPreset?.() ?? 'custom'),
+        ...(isDifficulty(difficulty) ? { difficulty } : {}),
       },
+      ...clientPart(this.client),
     });
     if (!res.ok) throw new SaveFailed(res.code, res.reason);
     this.extras.begin(slot, {

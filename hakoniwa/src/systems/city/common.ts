@@ -3,6 +3,7 @@
 import type { ContentMap, FlagValue } from '../../core/contracts';
 import { calendarAt } from '../../core/time';
 import type { InventorySlice } from '../inventory';
+import { courtTier } from './court_tiers';
 import {
   type BuildingDef,
   type BuildingInstance,
@@ -177,15 +178,18 @@ export function storageUsed(
   return n;
 }
 
+/** Storage of a site: the stage base plus its active buildings (the court tier's storage). */
 export function storageCap(
   site: SiteState,
   def: SiteDef,
   content: Pick<ContentMap, 'city_buildings'>,
+  flags: Readonly<Record<string, FlagValue>>,
 ): number {
   let cap = stageCaps(def, site.stage).storageBase;
+  const tier = courtTier(def, flags);
   for (const b of site.buildings) {
     if (b.status !== 'active') continue;
-    cap += buildingDef(content, b.defId)?.storage ?? 0;
+    cap += tier?.buildingStorage[b.defId] ?? buildingDef(content, b.defId)?.storage ?? 0;
   }
   return cap;
 }

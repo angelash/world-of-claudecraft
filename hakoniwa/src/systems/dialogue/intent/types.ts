@@ -151,6 +151,11 @@ export interface IntentLexicon {
   particles: string;
   /** clause connectives (builtin_ai 6.3 step 2) */
   split: string[];
+  /**
+   * the whole text between a modifier entity and its head ("X的Y", "X里的Y"): an entity
+   * followed by one of these and then another entity only modifies it (6.3 step 3, head.ts)
+   */
+  modifierLinks?: string[];
   /** title words stripped from content names to derive the short names players type */
   affixes: { prefix: string[]; suffix: string[]; joiner: string };
   /** words that refer back to the last entity of the conversation (6.3 step 6) */

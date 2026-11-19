@@ -118,10 +118,10 @@ describe('the honorific (catalog 10, rows 01 and 02)', () => {
     const wake = g.world.ai.pending.find(
       (r) => r.role === 'goddess.dialogue' && r.agentId === 'merca',
     );
-    expect(wake?.fallback[0]?.data).toMatchObject({
-      goddessId: 'merca',
-      text: { key: 'c.line_packs.ln_merca.acts.act1.react_honorific.0' },
-    });
+    expect(wake?.fallback[0]?.data).toMatchObject({ goddessId: 'merca' });
+    // a line of her act-1 honorific answer (the batch has two; the seeded draw picks one)
+    const wakeKey = (wake?.fallback[0]?.data as { text?: { key?: string } } | undefined)?.text?.key;
+    expect(wakeKey).toMatch(/^c\.line_packs\.ln_merca\.acts\.act1\.react_honorific\.\d+$/);
     expect(fired(g)).toEqual(['div_react_all_01']);
     const gaze = g.world.slices.goddess.goddesses.merca?.gaze ?? 0;
     expect(gaze).toBeGreaterThanOrEqual(15);
@@ -148,7 +148,9 @@ describe('the honorific (catalog 10, rows 01 and 02)', () => {
       const told = narrations(g, at);
       expect(told[0]).toEqual({ key: `sys.goddess.narrate.silent.${id}` });
       if (id === 'moira')
-        expect(told[1]).toEqual({ key: 'c.line_packs.ln_moira.slots.react_quote.0' });
+        expect((told[1] as { key?: string } | undefined)?.key).toMatch(
+          /^c\.line_packs\.ln_moira\.slots\.react_quote\.\d+$/,
+        );
     }
     // act-1 gaze caps hold (valda 10)
     expect(g.world.slices.goddess.goddesses.valda?.gaze).toBeLessThanOrEqual(10);
@@ -283,7 +285,7 @@ const SCENARIOS: Record<string, () => Engine> = {
     g.queue('flag.set', { key: 'a1_martha_strike', value: true });
     g.step(TICKS_PER_GAME_DAY * 8);
     // a scene plays: the player is busy
-    g.queue('scenes.start', { sceneId: 'a1_dream' });
+    g.queue('scenes.start', { sceneId: 'cut_a1_dream' });
     g.step(TICKS_PER_GAME_HOUR + 1);
     g.world.slices.scenes.current = null;
     g.world.slices.scenes.queue = [];

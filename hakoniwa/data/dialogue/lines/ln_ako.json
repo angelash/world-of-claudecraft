@@ -1,0 +1,46 @@
+{
+  "id": "ln_ako",
+  "speaker": "ako",
+  "slots": {
+    "greet.cold": ["喂，看什么看！", "我又没偷！", "走开！"],
+    "greet.neutral": ["喂！你是那个 F 级的？", "我才不是小孩！", "干嘛？"],
+    "greet.warm": ["喂！你来了！带我去打猎！", "我姐说你很厉害。我也很厉害！", "嘿嘿。"],
+    "farewell": ["喂，下次带我去！", "走吧走吧。", "我才不送你。"],
+    "unbelief.deny": ["骗人！", "我姐才厉害！"],
+    "unbelief.explain": ["你肯定是运气好！", "再来一次我才信！"],
+    "unbelief.waver": ["哇……你教我！", "真的假的……真的！"],
+    "react.feat_seen": ["哇！好厉害！", "我也要学！"],
+    "react.gift_liked": ["给我的？嘿嘿！", "苹果！……不是偷的哦！"],
+    "react.insult": ["你才是！", "我告诉我姐！"],
+    "topic.gen_self": {
+      "neutral": ["我是阿柯！希雅是我姐！", "我十二岁了，不是小孩！"]
+    },
+    "topic.gen_work": {
+      "K0": ["我帮我姐剥皮！", "我在林子里跑得最快！"]
+    },
+    "topic.self_ako_grownup": {
+      "K0": ["等我长大，我要当东坡的头！", "大人都把我当小孩。"]
+    },
+    "topic.secret_ako_witness": {
+      "K0": [
+        {
+          "zh": "我看见杰德进骰子屋了。好几回。",
+          "when": "act_week >= 4 AND trust.ako >= 40"
+        },
+        {
+          "zh": "没人问我啊！",
+          "when": "act_week >= 4"
+        }
+      ]
+    },
+    "quest.q_a1_s03_dice_house.offer": [
+      {
+        "zh": "他们说我偷了铜铃！我没有！是杰德！他天天去骰子屋！",
+        "when": "act_week >= 5"
+      }
+    ],
+    "quest.q_a1_s12_copper_bell.progress": ["我拿过一个苹果，就一个！铜铃不是我！"],
+    "bark.wander": ["盐巷今天有糖人！", "我才不怕狼！"],
+    "bark.chat": ["我姐最厉害了！"]
+  }
+}

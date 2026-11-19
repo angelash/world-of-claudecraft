@@ -73,6 +73,15 @@ function configProblems(c: AilmentsConfig | undefined, auraIds: Set<string>): st
   if (!isNum(c.relapseChance) || c.relapseChance < 0 || c.relapseChance > 1)
     out.push(`${at}: relapseChance must be a chance 0..1`);
   if (!isNum(c.earlyTaint) || c.earlyTaint < 0) out.push(`${at}: earlyTaint must be 0 or more`);
+  if (
+    c.portionTaint !== undefined &&
+    !(
+      Array.isArray(c.portionTaint) &&
+      c.portionTaint.length === 3 &&
+      c.portionTaint.every((v) => isNum(v) && v >= 0)
+    )
+  )
+    out.push(`${at}: portionTaint needs the taint of a light, mid and heavy portion`);
   const kinds = (c.injuries ?? []).map((i) => i.id);
   if ([...kinds].sort().join(',') !== [...INJURY_KINDS].sort().join(','))
     out.push(`${at}: injuries must be exactly ${INJURY_KINDS.join(', ')}`);

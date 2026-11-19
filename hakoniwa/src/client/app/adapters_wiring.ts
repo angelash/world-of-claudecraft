@@ -15,7 +15,21 @@ import {
   createStrategyAdapter,
   createTerritoryAdapter,
 } from '../adapters/domain';
+import {
+  createBeastsAdapter,
+  createBoardAdapter,
+  createCraftAdapter,
+  createDungeonAdapter,
+  createGatherAdapter,
+  createPartyRosterAdapter,
+} from '../adapters/field';
 import { createBannerAdapter, createLogAdapter } from '../adapters/log';
+import {
+  createCodexAdapter,
+  createDeedsAdapter,
+  createEvidenceAdapter,
+  createLettersAdapter,
+} from '../adapters/records';
 import {
   createConversationAdapter,
   createDoorsAdapter,
@@ -28,6 +42,7 @@ import {
   createSceneAdapter,
   createTradeAdapter,
 } from '../adapters/social';
+import { createTideAdapter } from '../adapters/tide';
 import type { ClientAdapters } from '../view/adapters';
 
 export function createAdapters(): ClientAdapters {
@@ -56,5 +71,16 @@ export function createAdapters(): ClientAdapters {
     strategy: createStrategyAdapter(),
     goddess: createGoddessAdapter(),
     appraise: createAppraiseAdapter(),
+    board: createBoardAdapter(),
+    craft: createCraftAdapter(),
+    gather: createGatherAdapter(),
+    dungeon: createDungeonAdapter(),
+    beasts: createBeastsAdapter(),
+    partyRoster: createPartyRosterAdapter(),
+    deeds: createDeedsAdapter(),
+    codex: createCodexAdapter(),
+    letters: createLettersAdapter(),
+    evidence: createEvidenceAdapter(),
+    tide: createTideAdapter(),
   };
 }

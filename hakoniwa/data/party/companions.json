@@ -86,6 +86,11 @@
         {
           "kind": "shield",
           "tags": ["child", "remnant"]
+        },
+        {
+          "kind": "spare",
+          "families": ["beast"],
+          "fleeing": true
         }
       ]
     },

@@ -31,6 +31,25 @@
     "immuneToModifiers": true,
     "caps": {
       "court": { "population": 0, "policySlots": 0, "storageBase": 200 }
+    },
+    "court": {
+      "door": { "tiles": ["door"], "reach": 1.5, "cooldownMinutes": 0 },
+      "displayOwner": "site:inner_court:display",
+      "takeDownDays": 1,
+      "tiers": [
+        {
+          "id": "initial",
+          "display": [{ "id": "shelf", "slots": 3 }],
+          "buildingMax": { "court_garden": 3 }
+        },
+        {
+          "id": "granary",
+          "requiresFlags": ["feature.court_expansion_1"],
+          "display": [{ "id": "cabinet", "slots": 6 }],
+          "buildingMax": { "court_garden": 5 },
+          "buildingStorage": { "court_store": 1200 }
+        }
+      ]
     }
   }
 ]

@@ -1,0 +1,51 @@
+{
+  "id": "ln_ped",
+  "speaker": "ped",
+  "slots": {
+    "greet.cold": ["客人，面包卖完了。", "有事？我忙着呢。", "嗯。"],
+    "greet.neutral": ["新出炉的！客人要几个？", "早！今天的面包好。", "客人，买面包吗？"],
+    "greet.warm": ["客人！给你留了最好的一个！", "来，尝尝新做的甜饼。", "谢谢你照顾莉莎。"],
+    "farewell": ["慢走，明天早点来。", "面包趁热吃。", "客人走好。"],
+    "unbelief.deny": ["那种事，听听就算了。", "我只管做面包。"],
+    "unbelief.explain": ["运气好吧。", "光保佑他。"],
+    "unbelief.waver": ["你……你是好人吧？", "我信你。"],
+    "react.feat_seen": ["哎呀！", "光在上……"],
+    "react.gift_liked": ["面粉！好面粉！谢谢！", "这……太客气了。"],
+    "react.insult": ["别、别这样……", "我只是做面包的。"],
+    "topic.gen_self": {
+      "neutral": ["佩德，面包师。", "半夜和面，清早出炉。"]
+    },
+    "topic.gen_work": {
+      "K0": ["做面包，卖面包，交税。", "井税、面包税……都要交。"]
+    },
+    "topic.self_ped_bread": {
+      "K0": ["黑面包三个铜子，白面包五个。……最近涨了。", "镇上第一缕炊烟是我家的。"]
+    },
+    "topic.event_bakery_engagement": {
+      "K0": [
+        "维克求亲……他是书记官，莉莎嫁过去不吃苦。",
+        {
+          "zh": "莉莎嫁给尼克了。……也好，也好。",
+          "when": "a1_lisa_nick == married"
+        }
+      ]
+    },
+    "quest.q_a1_s10_lisa_bundle.progress": ["我也是为莉莎好。……代官那边，我惹不起。"],
+    "quest.q_a1_d07_bakery_betrothal.after": [
+      {
+        "zh": "女儿高兴，我就高兴。",
+        "when": "a1_lisa_nick == married"
+      },
+      {
+        "zh": "她走了……连句话都没留。",
+        "when": "a1_lisa_nick == eloped"
+      },
+      {
+        "zh": "她不说话了。我做错了吗？",
+        "when": "a1_lisa_nick == broken"
+      }
+    ],
+    "bark.work": ["和面，和面。", "炉子要热透。"],
+    "bark.morning": ["新出炉的！"]
+  }
+}

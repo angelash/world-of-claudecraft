@@ -43,7 +43,8 @@ export type ComputeFn =
   | 'ending'
   | 'act5_outcome'
   | 'review_score'
-  | 'tide_attribution';
+  | 'tide_attribution'
+  | 'trial_verdict';
 
 export type EffectBody =
   /** set a world flag */

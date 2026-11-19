@@ -177,6 +177,25 @@
       "y": 38.5,
       "count": 1,
       "radius": 1
+    },
+    {
+      "kind": "monster",
+      "id": "om_grub_vein",
+      "ref": "vein_grub",
+      "x": 27.5,
+      "y": 20.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 30
+    },
+    {
+      "kind": "monster",
+      "id": "om_foreman",
+      "ref": "grayroad_foreman",
+      "x": 40.5,
+      "y": 16.5,
+      "count": 1,
+      "radius": 1
     }
   ],
   "exits": [

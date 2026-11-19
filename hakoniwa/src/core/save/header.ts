@@ -122,7 +122,18 @@ export interface SaveSummary {
   playSeconds?: number;
   /** AI preset name, never an address or a key (5.10) */
   aiPreset?: string;
+  /** the run's difficulty at save time (the slot list's badge, ux_and_onboarding.md 3.5) */
+  difficulty?: string;
 }
+
+/**
+ * The interface's own part of a save (ux_and_onboarding.md 17.8: guidance, tracking, notes):
+ * opaque to the kernel, never read by a load, bounded by CLIENT_SEGMENT_LIMIT.
+ */
+export type ClientSegmentData = Readonly<Record<string, unknown>>;
+
+/** Largest client segment a header carries (JSON characters). */
+export const CLIENT_SEGMENT_LIMIT = 32_768;
 
 /** The five version numbers of 5.5 (container is fixed by this build). */
 export interface SaveVersions {
@@ -152,6 +163,8 @@ export interface SlotHeaderDraft extends SaveVersions {
   flags: SaveFlags;
   summary: SaveSummary;
   files: SaveFiles;
+  /** the interface's segment (guidance, tracking, notes), absent in older saves */
+  client?: ClientSegmentData;
 }
 
 export interface SlotHeader extends SlotHeaderDraft {
@@ -272,6 +285,16 @@ function isFlags(v: unknown): v is SaveFlags {
   );
 }
 
+/** An opaque client segment: a plain object whose JSON stays under the limit. */
+function isClientSegment(v: unknown): boolean {
+  if (!isObj(v)) return false;
+  try {
+    return JSON.stringify(v).length <= CLIENT_SEGMENT_LIMIT;
+  } catch {
+    return false;
+  }
+}
+
 /** Shape check of a draft, without the commit fields. */
 export function isHeaderDraft(v: unknown): v is SlotHeaderDraft {
   if (!isObj(v)) return false;
@@ -293,6 +316,8 @@ export function isHeaderDraft(v: unknown): v is SlotHeaderDraft {
     isObj(v.summary) &&
     isStr(v.summary.act, 64) &&
     isStr(v.summary.map, 128) &&
+    (v.summary.difficulty === undefined || isStr(v.summary.difficulty, 16)) &&
+    (v.client === undefined || isClientSegment(v.client)) &&
     isObj(files) &&
     isFileRef(files.snapshot) &&
     Array.isArray(files.segments) &&

@@ -186,6 +186,16 @@ describe('C46: crystal drops by tier', () => {
         'faceless_soldier',
         'sewer_sludge',
         'waste_ghoul',
+        // the act-1 bestiary batch (PK-M1-30): new level-10+ monsters, and the named ones
+        // (three_toes, ironbelly, toll_taker, old_louse) one tier up (catalog_bestiary.md 2.7)
+        'ash_page_swarm',
+        'ashtide_vanguard',
+        'glyph_shade',
+        'greyshard_fence',
+        'ironbelly',
+        'old_louse',
+        'three_toes',
+        'toll_taker',
       ].sort(),
     );
   });

@@ -155,15 +155,23 @@ describe('save round trip', () => {
     const g = resumeGame(w, { seed: 20261115, aiMode: 'off' });
     g.step(2);
     const s = readRecords(g.world);
-    // the sample's world: registered, the tide held, the dream seen; Oola convicted
+    // the sample's world: registered, the tide held, the dream seen; Oola convicted; the act 1
+    // deeds of PK-M1-32 that read what the sample already shows: the registration's broken
+    // crystal, Bron's mark and glove, the split ear's fang in the bag
     expect(Object.keys(s?.deeds ?? {}).sort()).toEqual([
+      'deed_bond_brun_glove',
       'deed_grow_dream_door',
       'deed_grow_registered',
       'deed_hunt_tide_night',
+      'deed_mortal_crystal_broke',
+      'deed_rare_split_ear',
+      'deed_truth_brun_mark',
     ]);
     expect(Object.keys(s?.titles ?? {}).sort()).toEqual([
       'title_guild_f_handwritten',
+      'title_street_crystal_breaker',
       'title_street_f_oddball',
+      'title_wrong_witch_accomplice',
     ]);
     // the codex starts from what the save already shows: the scenes seen, the items held
     const seen = Object.keys(w.meta.flags).filter(

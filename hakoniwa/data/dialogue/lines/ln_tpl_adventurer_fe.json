@@ -1,0 +1,25 @@
+{
+  "id": "ln_tpl_adventurer_fe",
+  "slots": {
+    "greet.neutral": ["新来的？板上没好活了。", "嗯，又见面了。", "一起组队？"],
+    "greet.cold": ["F 级的，别抢我的委托。", "走开。"],
+    "greet.warm": ["兄弟！上回多亏你！", "来，喝一杯！"],
+    "farewell": ["活着回来。", "下回组队。"],
+    "unbelief.deny": ["你？F 级、Lv1？哈。", "吹牛不上税。"],
+    "unbelief.explain": ["捡了别人的漏吧。", "你是不是跟公会串通了？"],
+    "unbelief.waver": ["你救了我……行，我服。", "你到底是什么级别？"],
+    "react.feat_seen": ["好家伙！", "这手我学不会。"],
+    "topic.gen_work": {
+      "K0": ["清老鼠、采草、送信。F 级的活。", "攒够钱买瓶药水。"]
+    },
+    "bark.chat": [
+      "板上又是清老鼠的。",
+      {
+        "zh": "升 E 级了！",
+        "mood": ["happy"]
+      }
+    ],
+    "bark.eat": ["炖菜，两碗。"],
+    "bark.combat": ["上啊！"]
+  }
+}

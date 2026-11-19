@@ -259,25 +259,30 @@ describe('the act 1 main line', () => {
     });
     set(g, { act_week: 8 });
     expect(flags(g)['quest.q_a1_m09_trial']).toBe('done');
-    expect(g.world.slices.scenes.current?.sceneId).not.toBe('a1_oola_trial');
-    expect(g.world.slices.scenes.queue).not.toContain('a1_oola_trial');
+    expect(g.world.slices.scenes.current?.sceneId).not.toBe('cut_a1_trial');
+    expect(g.world.slices.scenes.queue).not.toContain('cut_a1_trial');
     expect(flags(g).a1_oola_fate).toBe('convicted');
     expect(flags(g).a1_oola_jailbroken).toBeUndefined();
   });
 
-  it('A1-M09: the jailbreak of the trial scene marks Oola as jailbroken for the dispute', () => {
+  it('A1-M09: a jailbreak before the trial settles the quest without the full trial', () => {
+    // The jailbreak is A1-D02.f at night (act1_borderstone.md 4.2), not a choice of the trial
+    // scene. cut_a1_trial reads a1_oola_jailbroken for its short empty-stage version (PK-M1-34);
+    // the quest's request still skips the scene once a fate exists (a PK-M1-33 request: drop
+    // that guard so the short version plays).
     const g = act1(7, { a1_witch_trial_started: true });
     teleport(g, 'borderstone', 'plaza');
     cmd(g, 'quests.choose', { questId: 'q_a1_m09_trial', optionId: 'appeared' });
+    set(g, { a1_oola_jailbroken: true, a1_oola_fate: 'fled' });
     set(g, { act_week: 8 });
-    expect(flags(g)['quest.q_a1_m09_trial.stage']).toBe('verdict');
-    playScene(g, (scene, _node, ids) =>
-      scene === 'a1_oola_trial' && ids.includes('jailbreak') ? 'jailbreak' : undefined,
-    );
     g.step(12);
     expect(flags(g).a1_oola_fate).toBe('fled');
-    expect(flags(g).a1_oola_jailbroken).toBe(true);
     expect(flags(g)['quest.q_a1_m09_trial']).toBe('done');
+    // the short version is the scene's own branch for this case
+    const route = CONTENT.scenes
+      .find((s) => s.id === 'cut_a1_trial')
+      ?.nodes.find((n) => n.id === 'route');
+    expect(route?.branch?.[0]).toEqual({ when: 'a1_oola_jailbroken', to: 'empty' });
   });
 
   it('A1-M12 opens on the omens or the night, never on the trial', () => {

@@ -1,0 +1,61 @@
+{
+  "id": "ln_barto",
+  "speaker": "barto",
+  "slots": {
+    "greet.cold": ["别惹事。", "有事报卫队，没事走开。", "嗯。"],
+    "greet.neutral": ["你好。北门今天没事。", "别惹事，我就谢天谢地了。", "有事？"],
+    "greet.warm": ["你来了。坐，喝口水。", "谢谢你。我家里人……都好。", "嗯，你来了就安心点。"],
+    "farewell": ["别惹事。", "天黑前回来。", "走好。"],
+    "unbelief.deny": ["传闻罢了。", "卫队没接到报告。"],
+    "unbelief.explain": ["他们一定是喝醉了。荒原的匪，哪个不喝。", "运气好。"],
+    "unbelief.waver": ["……那几个人身上没酒味。", "我看见了。我不说。"],
+    "react.feat_seen": ["你……好身手。", "带走，醒醒酒。……他们没喝？"],
+    "react.gift_liked": ["给孩子的？谢谢你。", "好刀。卫队正缺。"],
+    "react.insult": ["别惹事。", "我累了，不想跟你吵。"],
+    "topic.gen_self": {
+      "neutral": ["巴托，镇卫队长。", "十二个民兵，都得活着回家。"]
+    },
+    "topic.gen_work": {
+      "K1": ["守北门，巡栅子，抓贼。", "代官说什么，卫队就做什么。……大多数时候。"]
+    },
+    "topic.self_barto_militia": {
+      "K1": ["十二个人，十二张嘴，十二个家。", "杰德那小子……算了。"]
+    },
+    "topic.secret_barto_tax": {
+      "K1": [
+        {
+          "zh": "讨伐税……一个铜板都没用在讨伐上。我知道。",
+          "when": "trust.barto >= 60"
+        },
+        {
+          "zh": "我老婆和两个女儿在镇上。代官知道。",
+          "when": "trust.barto >= 60"
+        }
+      ]
+    },
+    "topic.event_drunk_bandits": {
+      "K0": ["一伙醉匪撞上了新人。就这样。"]
+    },
+    "quest.q_a1_s21_captain_home.offer": [
+      {
+        "zh": "我……我想让家里人先躲一躲。能帮我吗？",
+        "when": "act_week >= 8"
+      }
+    ],
+    "quest.q_a1_s21_captain_home.accept": ["醉月亭或者公会石屋。哪里都行，只要不是我家。"],
+    "quest.q_a1_s21_captain_home.complete": ["她们安全了。……谢谢。"],
+    "quest.q_a1_s21_captain_home.after": ["现在我可以守北门了。守到最后。"],
+    "quest.q_a1_m12_tide.progress": [
+      {
+        "zh": "北门！关门！弓手上墙！",
+        "when": "a1_beast_tide_started"
+      },
+      {
+        "zh": "守住！我家里人不在这条街上，我不退！",
+        "when": "a1_beast_tide_started AND quest.q_a1_s21_captain_home"
+      }
+    ],
+    "bark.patrol": ["栅子又松了。", "北边没动静。"],
+    "bark.tired": ["两天没合眼了。"]
+  }
+}

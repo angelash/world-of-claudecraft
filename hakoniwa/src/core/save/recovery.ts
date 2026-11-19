@@ -382,6 +382,8 @@ async function saveRecovered(
       trigger: 'recovery',
       flags: { recovered: true },
       summary: summaryOf(engine.world, like),
+      // the interface's segment (guidance, tracking, notes) survives a recovery
+      ...(like?.client ? { client: like.client } : {}),
     },
   );
   if (!res.ok) throw new RecoveryError(`saving the recovered world failed: ${res.reason}`);

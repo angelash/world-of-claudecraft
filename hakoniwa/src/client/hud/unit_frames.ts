@@ -52,12 +52,15 @@ export class UnitFrame {
   constructor(
     private readonly cls: string,
     private readonly sprites: SpriteCache,
+    /** the onboarding's name for this frame's aura row (src/client/tutorial/glow.ts) */
+    aurasHud?: string,
   ) {
     this.portrait = el('div', { className: 'hk-portrait' });
     this.nameEl = el('div', { className: 'hk-frame-name' });
     this.subEl = el('div', { className: 'hk-frame-sub' });
     this.noteEl = el('div', { className: 'hk-frame-note' });
     this.auras = el('div', { className: 'hk-frame-auras' });
+    if (aurasHud) this.auras.dataset.hud = aurasHud;
     this.el = el('div', { className: `hk-frame ${cls}` }, [
       this.portrait,
       el('div', { className: 'hk-frame-main' }, [

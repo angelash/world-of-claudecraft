@@ -32,6 +32,8 @@ export interface InputSurface {
   placing: boolean;
   /** the corridor mode is open (ux_and_onboarding.md 9): its context takes the input */
   corridor?: boolean;
+  /** the spirit mirror is open (`ui_mode_creator`, 3.4.3): its context takes the input */
+  creator?: boolean;
 }
 
 export const IDLE_SURFACE: InputSurface = {
@@ -44,6 +46,9 @@ export const IDLE_SURFACE: InputSurface = {
 
 /** The active contexts, first wins. */
 export function contextStack(s: InputSurface, device: InputDevice): InputContext[] {
+  // the spirit mirror is a mode over its scene (3.4.3): it takes every input but the global
+  // keys, so the scene's advance and options never reach the panel behind it
+  if (s.creator) return ['creator', 'global'];
   if (s.scene) return ['dialogue', 'global'];
   if (s.corridor) return ['corridor', 'global'];
   if (s.windows && device === 'pad') return ['window', 'global'];
@@ -60,6 +65,8 @@ export const TALK_OVER_FIELD: ReadonlySet<string> = new Set([
   'option_prev',
   'option_next',
   'free_input',
+  // the AI mark of a generated line (7.3) is reachable wherever generated talk shows
+  'ai_mark',
   ...Array.from({ length: 9 }, (_, i) => `option_${i + 1}`),
 ]);
 

@@ -1,0 +1,46 @@
+{
+  "id": "ln_ed",
+  "speaker": "ed",
+  "slots": {
+    "greet.cold": ["年轻人，墓地不是玩的地方。", "走吧，别吵着死人。", "嗯？"],
+    "greet.neutral": ["年轻人。夜里别往坡上去。", "你来扫墓？", "坐吧，我给你讲个故事。"],
+    "greet.warm": [
+      "年轻人，你又来看我这个老头子了。",
+      "来，喝口热茶。死人不会跟你抢。",
+      "我又想起一个鬼故事，你要不要听？"
+    ],
+    "farewell": ["年轻人，天黑前离开。", "别回头。", "走好，死人会保佑你的。"],
+    "unbelief.deny": ["活人哪能做到那种事。", "那是鬼干的。"],
+    "unbelief.explain": ["他一定是鬼。活人哪有半夜从荒原回来的。", "是死人在帮他。"],
+    "unbelief.waver": ["你……你是活人吧？", "我摸摸你的手……是热的。"],
+    "react.feat_seen": ["鬼！……不对，是活人。", "年轻人，你不怕鬼吗？"],
+    "react.gift_liked": ["蜡烛！夜里给死人点着。谢谢你。", "年轻人，你心好。"],
+    "react.insult": ["小心死人听见。", "唉。"],
+    "topic.gen_self": {
+      "neutral": ["埃德，守墓的。", "我守了四十年墓，见过的死人比活人多。"]
+    },
+    "topic.gen_work": {
+      "K0": ["挖坟、填坟、点蜡烛。", "让死人安息，是活人的事。"]
+    },
+    "topic.self_ed_ghosts": {
+      "K0": ["乌鸦是给死人引路的。你听说过吗？", "灰色的鬼火……那是死人在找路。"]
+    },
+    "topic.danger_graveyard_wisp": {
+      "K0": ["米洛的坟上，夜里有灰色的鬼火。我亲眼看见的。", "撒盐，撒盐能驱鬼。"]
+    },
+    "topic.event_old_watch_908": {
+      "K0": ["我祖上有亲戚死在旧哨村。那年村子烧了一夜。"]
+    },
+    "quest.q_a1_s14_grave_lights.offer": ["年轻人，米洛的坟上闹鬼。你敢不敢去看看？"],
+    "quest.q_a1_s14_grave_lights.accept": ["带上盐。夜里去。"],
+    "quest.q_a1_s14_grave_lights.progress": [
+      "你看见了吗？灰色的……",
+      "盐！盐在商会买，可现在盐贵……"
+    ],
+    "quest.q_a1_s14_grave_lights.complete": ["鬼火散了？……那孩子安息了吧。"],
+    "quest.q_a1_s14_grave_lights.after": ["死者身上带着灰。……那是什么鬼？"],
+    "quest.q_a1_s22_broken_door_slope.after": ["他从荒原回来居然没死。一定是鬼放他回来的。"],
+    "bark.work": ["挖深一点，让他睡得踏实。"],
+    "bark.night": ["夜里别往坡上去。"]
+  }
+}

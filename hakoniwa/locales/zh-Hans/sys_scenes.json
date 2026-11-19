@@ -23,5 +23,8 @@
   "sys.scenes.epilogue.heading_year": "【{subject}】审定后第{year}年：",
   "sys.scenes.epilogue.historian": "凡人史官",
   "sys.scenes.epilogue.ledger": "神之账本",
-  "sys.scenes.prompt.resolve": "数据 {runId, revision, lines:[{speaker, text}], choiceId?, done?}：说出这一段的台词；有分类任务时给出 choiceId；多轮对话里这一轮说完了就给 done: true（extra 里 wrapUp 为真时要收尾并给 done）。"
+  "sys.scenes.prompt.resolve": "数据 {runId, revision, lines:[{speaker, text}], choiceId?, done?}：说出这一段的台词；有分类任务时给出 choiceId；多轮对话里这一轮说完了就给 done: true（extra 里 wrapUp 为真时要收尾并给 done）。",
+  "sys.scenes.trial.present": "（出示：{name}）",
+  "sys.scenes.trial.present_line": "（你把{name}举了起来。）",
+  "sys.scenes.trial.landed": "人群安静了一下。"
 }
