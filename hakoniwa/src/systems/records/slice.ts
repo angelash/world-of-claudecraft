@@ -75,6 +75,10 @@ export const RECORDS_ID_FIELDS: readonly IdField[] = [
   { path: 'codex.memories.@keys', kind: 'scene' },
   { path: 'notes.@keys', kind: 'codex' },
   { path: 'letters.@keys', kind: 'letter' },
+  { path: 'xp.settled.@keys', kind: 'xpReward' },
+  { path: 'xp.vista.id', kind: 'xpReward' },
+  { path: 'xp.vista.mapId', kind: 'map' },
+  { path: 'xp.position.mapId', kind: 'map' },
 ];
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
@@ -165,5 +169,39 @@ export function validateRecordsSlice(slice: unknown): string[] {
   if (typeof s.worn === 'string' && isObj(s.titles) && !isObj(s.titles[s.worn]))
     out.push('worn is not a held title');
   if (typeof s.content !== 'string') out.push('content is not a fingerprint');
+  if (s.xp !== undefined) {
+    if (!isObj(s.xp) || !isObj(s.xp.settled)) out.push('xp is not a reward ledger');
+    else {
+      for (const [id, r] of Object.entries(s.xp.settled)) {
+        if (!isObj(r) || !isTick(r.tick) || !isTick(r.amount))
+          out.push(`xp ${id} is not a settlement`);
+      }
+      const v = s.xp.vista;
+      if (
+        v !== undefined &&
+        (!isObj(v) ||
+          typeof v.id !== 'string' ||
+          !isTick(v.since) ||
+          typeof v.mapId !== 'string' ||
+          typeof v.x !== 'number' ||
+          !Number.isFinite(v.x) ||
+          typeof v.y !== 'number' ||
+          !Number.isFinite(v.y))
+      )
+        out.push('xp vista is not a dwell');
+      const p = s.xp.position;
+      if (
+        p !== undefined &&
+        (!isObj(p) ||
+          typeof p.mapId !== 'string' ||
+          typeof p.x !== 'number' ||
+          !Number.isFinite(p.x) ||
+          typeof p.y !== 'number' ||
+          !Number.isFinite(p.y) ||
+          typeof p.act !== 'string')
+      )
+        out.push('xp position is not a position');
+    }
+  }
   return out;
 }

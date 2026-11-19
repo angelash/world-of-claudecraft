@@ -32,12 +32,7 @@ import {
   questLog,
 } from '../src/systems/quests';
 import { attachSkipHandlers } from '../src/systems/travel/skip_registry';
-import {
-  NARRATIVE_SYSTEMS,
-  narrativeContent,
-  otherTeamsStub,
-  playScene,
-} from './narrative_harness';
+import { NARRATIVE_SYSTEMS, narrativeContent, otherTeamsStub } from './narrative_harness';
 
 declare module '../src/core/contracts' {
   interface CommandMap {
@@ -180,13 +175,13 @@ describe('the act 1 main line', () => {
       ?.stages.find((s) => s.id === 'colossus');
     const unrest = colossus?.onComplete?.filter((e) => 'key' in e && e.key === 'seal_unrest');
     expect(unrest).toEqual([
-      { type: 'flag', key: 'seal_unrest', value: 30 },
+      { type: 'flag', key: 'seal_unrest', value: 30, when: 'NOT a1_beast_tide_started' },
       {
         type: 'add',
         key: 'seal_unrest',
         amount: 10,
         max: 100,
-        when: 'a1_dian_trade == player_controls',
+        when: 'NOT a1_beast_tide_started AND a1_dian_trade == player_controls',
       },
     ]);
   });
@@ -247,7 +242,7 @@ describe('the act 1 main line', () => {
     expect(flags(b).a1_culvert_sealed).toBeUndefined();
   });
 
-  it('A1-M09: a trial already held without the player plays no second trial', () => {
+  it('A1-M09: a trial already held plays its short aftermath without judging again', () => {
     const g = act1(7, { a1_witch_trial_started: true });
     expect(quest(g, 'q_a1_m09_trial')?.status).toBe('active');
     teleport(g, 'borderstone', 'plaza');
@@ -258,18 +253,17 @@ describe('the act 1 main line', () => {
       a1_oola_fate: 'convicted',
     });
     set(g, { act_week: 8 });
-    expect(flags(g)['quest.q_a1_m09_trial']).toBe('done');
-    expect(g.world.slices.scenes.current?.sceneId).not.toBe('cut_a1_trial');
-    expect(g.world.slices.scenes.queue).not.toContain('cut_a1_trial');
+    expect(flags(g)['quest.q_a1_m09_trial']).toBe('active');
+    expect([g.world.slices.scenes.current?.sceneId, ...g.world.slices.scenes.queue]).toContain(
+      'cut_a1_trial',
+    );
     expect(flags(g).a1_oola_fate).toBe('convicted');
     expect(flags(g).a1_oola_jailbroken).toBeUndefined();
   });
 
-  it('A1-M09: a jailbreak before the trial settles the quest without the full trial', () => {
+  it('A1-M09: a jailbreak before the trial waits for the empty-stage scene', () => {
     // The jailbreak is A1-D02.f at night (act1_borderstone.md 4.2), not a choice of the trial
-    // scene. cut_a1_trial reads a1_oola_jailbroken for its short empty-stage version (PK-M1-34);
-    // the quest's request still skips the scene once a fate exists (a PK-M1-33 request: drop
-    // that guard so the short version plays).
+    // scene. The quest now lets the short empty-stage version play to the end.
     const g = act1(7, { a1_witch_trial_started: true });
     teleport(g, 'borderstone', 'plaza');
     cmd(g, 'quests.choose', { questId: 'q_a1_m09_trial', optionId: 'appeared' });
@@ -277,7 +271,7 @@ describe('the act 1 main line', () => {
     set(g, { act_week: 8 });
     g.step(12);
     expect(flags(g).a1_oola_fate).toBe('fled');
-    expect(flags(g)['quest.q_a1_m09_trial']).toBe('done');
+    expect(flags(g)['quest.q_a1_m09_trial']).toBe('active');
     // the short version is the scene's own branch for this case
     const route = CONTENT.scenes
       .find((s) => s.id === 'cut_a1_trial')

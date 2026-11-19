@@ -161,6 +161,7 @@ export const pack: ContentPack = {
         json('stats', '属性'),
         json('statsPerLevel', '每级属性'),
         json('mods', '修正'),
+        json('prevention', '环境累积与灰斑风险预防'),
         { key: 'slow', label: '减速比例', type: 'number', min: 0, max: 1 },
         json('absorb', '吸收盾'),
       ],

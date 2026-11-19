@@ -10,12 +10,14 @@ import { actionButton, empty, progress, rebuilder } from '../kit';
 import { placeholderWindow } from '../simple_windows';
 import type { WindowContext } from '../window_context';
 import type { WindowContent } from '../window_manager';
+import { partyInteractions } from './party_interactions';
 import { partyWindowModel } from './party_window_model';
 
 export function partyWindow(ctx: WindowContext): WindowContent {
   const ad = ctx.adapters.partyRoster;
   if (!ad) return placeholderWindow();
   const root = el('div', { className: 'hk-party' });
+  const interactions = partyInteractions(ctx);
   const update = rebuilder(
     root,
     () =>
@@ -105,5 +107,11 @@ export function partyWindow(ctx: WindowContext): WindowContent {
       }
     },
   );
-  return { el: root, update };
+  return {
+    el: el('div', {}, [root, interactions.el]),
+    update: () => {
+      update();
+      interactions.update?.();
+    },
+  };
 }

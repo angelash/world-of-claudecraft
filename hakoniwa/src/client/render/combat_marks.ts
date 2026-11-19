@@ -15,6 +15,9 @@ export interface CastMark {
   progress: number;
   /** false draws the shield border (4.2) */
   interruptible: boolean;
+  /** Cosmetic school frame, sourced from the same ability and clock as this cast. */
+  school?: string;
+  elapsedMs?: number;
 }
 
 /** Per-entity combat marks the session hands to the scene. */

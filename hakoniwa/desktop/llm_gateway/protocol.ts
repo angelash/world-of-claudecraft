@@ -9,6 +9,7 @@ import type {
   ProblemCode,
   ProviderErrorClass,
 } from '../../src/ai/contracts';
+import { checkKeyText } from '../key_entry/rules';
 
 /** Key status as the game sees it (llm_providers.md 7.2): never the key, at most its last four. */
 export interface KeyStatus {
@@ -24,6 +25,8 @@ export type LedgerWindow = 'hour' | 'day' | 'run';
 export type ToGateway =
   | { kind: 'request'; spec: LlmCallSpec }
   | { kind: 'abort'; requestId: string }
+  | { kind: 'scope'; id: number; runId: string }
+  | { kind: 'suspend'; id: number }
   | { kind: 'secret.put'; id: number; connectionId: string; target: string; secret: string }
   | { kind: 'secret.has'; id: number; connectionId: string }
   | { kind: 'secret.clear'; id: number; connectionId: string }
@@ -56,6 +59,8 @@ const isConn = (v: unknown): v is string => typeof v === 'string' && CONNECTION_
 const KEYS: Record<ToGateway['kind'], readonly string[]> = {
   request: ['kind', 'spec'],
   abort: ['kind', 'requestId'],
+  scope: ['kind', 'id', 'runId'],
+  suspend: ['kind', 'id'],
   'secret.put': ['kind', 'id', 'connectionId', 'target', 'secret'],
   'secret.has': ['kind', 'id', 'connectionId'],
   'secret.clear': ['kind', 'id', 'connectionId'],
@@ -78,6 +83,10 @@ export function parseToGateway(raw: unknown): { ok: true; msg: ToGateway } | { o
   if (Object.keys(raw).some((k) => !allowed.includes(k))) return { ok: false };
   const m = raw;
   switch (kind) {
+    case 'scope':
+      return isId(m.id) && typeof m.runId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(m.runId)
+        ? { ok: true, msg: m as unknown as ToGateway }
+        : { ok: false };
     case 'request':
       return isObj(m.spec) ? { ok: true, msg: m as unknown as ToGateway } : { ok: false };
     case 'abort':
@@ -91,7 +100,8 @@ export function parseToGateway(raw: unknown): { ok: true; msg: ToGateway } | { o
         TARGET.test(m.target) &&
         typeof m.secret === 'string' &&
         m.secret.length > 0 &&
-        m.secret.length <= MAX_SECRET
+        m.secret.length <= MAX_SECRET &&
+        checkKeyText(m.secret).ok
         ? { ok: true, msg: m as unknown as ToGateway }
         : { ok: false };
     case 'secret.has':
@@ -115,6 +125,7 @@ export function parseToGateway(raw: unknown): { ok: true; msg: ToGateway } | { o
         ? { ok: true, msg: m as unknown as ToGateway }
         : { ok: false };
     case 'wipe':
+    case 'suspend':
       return isId(m.id) ? { ok: true, msg: m as unknown as ToGateway } : { ok: false };
   }
 }

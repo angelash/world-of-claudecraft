@@ -155,6 +155,8 @@ export interface PetDef {
   cap: number;
   /** keeps what the player left behind when the player goes through the door (3.6 item 7) */
   guardsBag?: boolean;
+  /** Accepted and preferred foods; unlisted food is refused before inventory spends it. */
+  food?: { liked: string[]; accepted: string[] };
 }
 
 /** A mount (catalog_creatures_mounts.md 10; travel_and_exploration.md 2.4). */
@@ -441,7 +443,14 @@ export interface Member {
   /** a temporary companion: an NPC walking with the player for a quest objective */
   temp?: { questId: string; stage: string };
   /** a beast companion (half-pact) or a retainer (pact): its species and the bag it guards */
-  pet?: { species: string; kind: 'half' | 'retainer'; monsterId: string; guarding?: string };
+  pet?: {
+    species: string;
+    kind: 'half' | 'retainer';
+    monsterId: string;
+    guarding?: string;
+    /** Satiety in deterministic ticks; absent on earlier saves. */
+    fedUntil?: number;
+  };
   /** level, experience and the ailments body kept while the member is out of the world (3.2) */
   level?: number;
   xp?: number;
@@ -498,6 +507,7 @@ declare module '../../core/contracts' {
   }
   interface EventMap {
     'party.joined': { companionId: string; entityId: string };
+    'party.fed': { companionId: string; entityId: string; itemId: string; until: number };
     'party.left': { companionId: string };
     'party.bond': { companionId: string; bond: number; delta: number; reason: string };
     'party.order': { companionId: string; order: PartyOrder };

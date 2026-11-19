@@ -53,6 +53,7 @@ export interface DoorKeyRow {
   met: boolean;
   /** "已得" or "未得": the key's state in words */
   mark: string;
+  questId?: string;
 }
 
 export interface DoorCard {
@@ -72,6 +73,8 @@ export interface DoorCard {
   hint: string;
   /** the danger as text ('' for a door that is not forbidden) */
   danger: string;
+  cost: string;
+  excluded: string[];
   canOpen: boolean;
   canClose: boolean;
   /** why it cannot open now ('' when it can, or it is open) */
@@ -202,7 +205,11 @@ function compareDoors(a: CorridorDoorView, b: CorridorDoorView): number {
   );
 }
 
-function card(d: CorridorDoorView, st: CorridorState): DoorCard {
+function card(
+  d: CorridorDoorView,
+  st: CorridorState,
+  doors: readonly CorridorDoorView[],
+): DoorCard {
   const shape = doorShape(d);
   const known = d.state === 'opened' || d.state === 'closed';
   const refused = st.refused && st.refused.doorId === d.id ? st.refused.reason : '';
@@ -221,11 +228,22 @@ function card(d: CorridorDoorView, st: CorridorState): DoorCard {
         : k.label,
       met: k.met,
       mark: t(k.met ? 'ui.mode.corridor.key_met' : 'ui.mode.corridor.key_unmet'),
+      ...(k.link?.kind === 'quest' ? { questId: k.link.id } : {}),
     })),
     keysLeft: keysLeftShown(d) > 0 ? t('ui.mode.corridor.keys_left', { n: keysLeftShown(d) }) : '',
     effect: known ? (d.desc ?? '') : '',
     hint: known ? '' : d.hint,
-    danger: d.danger ? t('ui.win.doors.danger') : '',
+    danger:
+      d.dangerBand && d.dangerBand !== 'none'
+        ? t(`sys.doors.danger.${d.dangerBand}`)
+        : d.danger
+          ? t('ui.win.doors.danger')
+          : '',
+    cost: d.costPreview ? t('ui.mode.corridor.card.cost', d.costPreview) : '',
+    excluded: (d.exclusiveWith ?? []).map((id) => {
+      const other = doors.find((door) => door.id === id && door.nameShown);
+      return other?.name ?? t('ui.mode.corridor.unnamed');
+    }),
     canOpen: d.state === 'openable',
     canClose: d.state === 'opened' && d.closable,
     refusal: refused || refusalOf(d),
@@ -285,7 +303,7 @@ export function corridorModel(data: CorridorData, st: CorridorState): CorridorMo
       count: all.filter((d) => passesFilter(d, id)).length,
     })),
     sections,
-    card: sel ? card(sel, st) : null,
+    card: sel ? card(sel, st, data.doors) : null,
     mirror: mirrorOf(data.mirror),
     empty:
       shown.length > 0

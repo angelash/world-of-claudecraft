@@ -5,6 +5,7 @@
 
 import './newgame.css';
 import { clear, el } from '../../shared_ui/dom';
+import { t } from '../../shared_ui/i18n';
 import { askConfirm } from '../hud/confirm_pop';
 import {
   DEFAULT_CHOICES,
@@ -16,6 +17,8 @@ import {
 export interface NewGameHandlers {
   start(choices: NewGameChoices): void;
   back(): void;
+  /** The shared model connection/settings flow; never required to start a run. */
+  modelSettings?(): void;
 }
 
 /** Below this much free browser storage the page warns that saving may fail (3.4.2). */
@@ -127,6 +130,18 @@ export class NewGameScreen {
           el('div', { className: 'hk-newgame-label', text: m.model.title }),
           el('div', { text: m.model.text }),
           el('div', { className: 'hk-muted', text: m.model.note }),
+          this.h.modelSettings
+            ? el('button', {
+                className: 'hk-btn hk-btn-small',
+                text: t(
+                  this.env.ai.preset === 'off'
+                    ? 'ui.scr.first.connect'
+                    : 'ui.win.menu.open_settings',
+                ),
+                attrs: { type: 'button' },
+                on: { click: () => this.h.modelSettings?.() },
+              })
+            : null,
         ]),
         ...m.warnings.map((w) => el('div', { className: 'hk-newgame-warning', text: w })),
         el('div', { className: 'hk-newgame-actions' }, [

@@ -304,6 +304,8 @@ describe('crafting (2.4 to 2.6, 7.1)', () => {
       itemId: 'x_ingot',
       count: 1,
       quality: 1,
+      masterwork: false,
+      signedInputs: false,
     });
     expect(skillOf(t.g.world, 'player', 'mining')).toBe(1);
     t.standAt('yard');

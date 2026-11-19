@@ -44,6 +44,8 @@ export interface HkBridge {
     /** Streams body deltas to onDelta; resolves with the receipt (never rejects). */
     request(spec: LlmCallSpec, onDelta?: (text: string) => void): Promise<LlmCallResult>;
     abort(requestId: string): void;
+    /** A lineage hint namespaces request ids; it cannot reset spending caps. */
+    scope: Call<'llmScope'>;
     secretEnter: Call<'llmSecretEnter', KeyStatus>;
     secretHas: Call<'llmSecretHas', KeyStatus>;
     secretClear: Call<'llmSecretClear', KeyStatus>;
@@ -146,6 +148,7 @@ export function createHkBridge(
         });
       },
       abort: (requestId) => ipc.send(HK_NAMES.llmAbort, { requestId }),
+      scope: call(HK_NAMES.llmScope),
       secretEnter: call(HK_NAMES.llmSecretEnter),
       secretHas: call(HK_NAMES.llmSecretHas),
       secretClear: call(HK_NAMES.llmSecretClear),

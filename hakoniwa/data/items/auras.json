@@ -12,21 +12,24 @@
     "name": "祛灰茶",
     "desc": "一日之内，从环境里沾上的灰气 -30%。",
     "kind": "buff",
-    "duration": 1440
+    "duration": 1440,
+    "prevention": { "exposure": { "multiplier": 0.7 } }
   },
   {
     "id": "aur_item_ashveil",
     "name": "灰巾",
     "desc": "一日之内，在不到浓灰的地方从环境里沾上的灰气 -50%。",
     "kind": "buff",
-    "duration": 1440
+    "duration": 1440,
+    "prevention": { "exposure": { "multiplier": 0.5, "belowGrade": 3 } }
   },
   {
     "id": "aur_item_ashsachet",
     "name": "祛灰香囊",
     "desc": "七日之内，发灰斑的风险：孩童 -50%，成人 -20%。",
     "kind": "buff",
-    "duration": 10080
+    "duration": 10080,
+    "prevention": { "spot": { "adult": 0.8, "child": 0.5 } }
   },
   {
     "id": "aur_item_ryehardtack",

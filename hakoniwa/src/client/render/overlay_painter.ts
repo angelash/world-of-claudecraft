@@ -23,6 +23,7 @@ import { FLOAT_COLORS } from './floating_text';
 import { type MarkerKind, markerBob } from './markers';
 import { activePalette } from './palette_modes';
 import type { Scene, SceneEntity } from './scene';
+import { paintSurfaceEffects } from './surface_effects';
 
 export interface OverlayFrame {
   dpr: number;
@@ -57,6 +58,7 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
   c.textBaseline = 'alphabetic';
   c.lineJoin = 'round';
 
+  paintSurfaceEffects(c, scene, f);
   for (const w of scene.warnings) paintWarning(c, w, f, dpr);
 
   for (const it of scene.items) {

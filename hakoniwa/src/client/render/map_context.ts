@@ -7,6 +7,7 @@
 
 import type { SkyPack } from '../../systems/world/atlas';
 import type { MapDef } from '../../systems/world/types';
+import { assetRevision } from '../assets/runtime';
 import { buildLayout, type SceneLayout } from '../hd2d/layout';
 import { skyPackFor } from '../hd2d/sky';
 import { type StylePack, stylePackFor } from '../hd2d/style_packs';
@@ -31,7 +32,7 @@ export function buildMapContext(
   const pack = stylePackFor(map);
   return {
     map,
-    key: `${map.id}|${opts.switchKey ?? ''}`,
+    key: `${map.id}|${opts.switchKey ?? ''}|art:${assetRevision()}`,
     pack,
     layout: buildLayout(map, pack),
     roofs: roofsForMap(map),

@@ -52,6 +52,8 @@ export interface LocationDef extends Rect {
    */
   kind: string;
   tags?: string[];
+  /** Declared discovery points (travel_and_exploration.md 6.2), never inferred from names. */
+  discovery?: { kind: 'map' | 'landmark' | 'vista' | 'secret'; act?: number };
   /**
    * Local sediment hot spot: the canon level (0 to 5, critical 6) inside this rectangle,
    * overriding the map's (map_briefs.md 1.2; sedimentAt)

@@ -18,7 +18,15 @@ import { answerTutorialCard, tutorialCardState } from '../tutorial/card_pop';
 import { type CardButtons, cardButtons, cardPadAnswer } from './card_pad';
 import type { ContextKeyOverrides, InputContext } from './contexts';
 import { resolveContextKeymap } from './contexts';
-import { type FocusMove, type FocusRect, moveFocus } from './focus_nav';
+import {
+  cancelNativeModal,
+  DomPadNavigation,
+  inputAvailable,
+  inputControls,
+  moveDomFocus,
+  nativeModalScope,
+} from './dom_navigation';
+import type { FocusMove } from './focus_nav';
 import type { PadSnapshot } from './gamepad';
 import { readGamepad } from './gamepad_poller';
 import { installKeyText, type KeyTextState, type LayoutMap } from './glyphs';
@@ -82,6 +90,8 @@ export class InputLayer implements UiSink {
   private topWindow: Element | null = null;
   private optionSig = '';
   private settingsSig = '';
+  private nativeModal: HTMLDialogElement | null = null;
+  private readonly modalPad = new DomPadNavigation((element) => this.setFocus(element));
   private stackSeen: readonly InputContext[] = ['field', 'global'];
   /** the pad's guidance-card route (cardPad): buttons down last frame, the B hold start */
   private cardPrev: CardButtons | null = null;
@@ -95,6 +105,7 @@ export class InputLayer implements UiSink {
    */
   private readonly onPointerCapture = (ev: PointerEvent) => {
     this.swallowClick = false;
+    if (nativeModalScope()) return;
     if (ev.button !== 0 && ev.button !== 2) return;
     if (!this.hub.pointerButton(ev.button)) return;
     ev.preventDefault();
@@ -190,6 +201,19 @@ export class InputLayer implements UiSink {
   /** Every animation frame: poll the pad, keep the pad's focus and option cursor shown. */
   frame(nowMs: number): void {
     const snap = readGamepad();
+    const modal = nativeModalScope();
+    if (modal !== this.nativeModal) {
+      this.nativeModal = modal;
+      this.hub.releaseAll();
+      this.hub.consumeHeld(snap, nowMs);
+    }
+    this.modalPad.frame(modal, snap, nowMs, this.hub.confirmButton, this.hub.backButton, () => {
+      if (modal) cancelNativeModal(modal);
+    });
+    if (modal) {
+      this.hub.consumeHeld(snap, nowMs);
+      return;
+    }
     if (confirmOpen() || exitChoiceOpen()) {
       // the confirm popup (and the gate's destination chooser) read the pad themselves (6.4);
       // nothing they pressed reaches the game, even a button still held when one closes
@@ -285,8 +309,9 @@ export class InputLayer implements UiSink {
   private frontWindow(): HTMLElement | null {
     let best: HTMLElement | null = null;
     let z = Number.NEGATIVE_INFINITY;
-    for (const w of this.d.windowsRoot.querySelectorAll<HTMLElement>('.hk-window')) {
-      const wz = Number(w.style.zIndex || 0);
+    for (const w of this.d.root.querySelectorAll<HTMLElement>('.hk-window, [data-input-window]')) {
+      if (!inputAvailable(w)) continue;
+      const wz = Number(getComputedStyle(w).zIndex) || 0;
       if (wz >= z) {
         z = wz;
         best = w;
@@ -296,9 +321,7 @@ export class InputLayer implements UiSink {
   }
 
   private focusables(scope: Element): HTMLElement[] {
-    return [...scope.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-      (e) => e.getClientRects().length > 0,
-    );
+    return inputControls(scope);
   }
 
   /**
@@ -352,25 +375,13 @@ export class InputLayer implements UiSink {
   focusMove(move: FocusMove): boolean {
     const scope = this.frontWindow();
     if (!scope) return false;
-    const list = this.focusables(scope);
-    if (list.length === 0) return false;
-    const rects: FocusRect[] = list.map((e, i) => {
-      const r = e.getBoundingClientRect();
-      return { id: String(i), x: r.left, y: r.top, w: r.width, h: r.height };
-    });
-    const active = document.activeElement as HTMLElement | null;
-    const cur = active ? list.indexOf(active) : -1;
-    const next = moveFocus(rects, cur >= 0 ? String(cur) : null, move);
-    const e = next === null ? undefined : list[Number(next)];
-    if (!e) return false;
-    this.setFocus(e);
-    return true;
+    return moveDomFocus(scope, move, (element) => this.setFocus(element));
   }
 
   focusActivate(): boolean {
     const scope = this.frontWindow();
     const a = document.activeElement as HTMLElement | null;
-    if (!scope || !a || !scope.contains(a)) return false;
+    if (!scope || !a || !this.focusables(scope).includes(a)) return false;
     a.click();
     return true;
   }

@@ -7,11 +7,9 @@
 // Disposed as a whole on map change.
 
 import * as THREE from 'three';
-import type { DecorKind, SignKind } from '../../systems/world/look';
 import { TILE_PX } from '../render/camera';
-import { decorSprite, shopSignSprite } from '../render/decor_art';
+import { placedSprite } from '../render/decor_art';
 import type { MapContext } from '../render/map_context';
-import { propSprite } from '../render/tile_art';
 import { createMatrix, getPixel, type PixelMatrix, setPixel } from '../sprites/pixels';
 import { boxMesh, groundQuad, type MeshData, roofMesh, standeeMesh, wallMesh } from './geometry';
 import { paintGround, waterMask } from './ground';
@@ -113,7 +111,7 @@ export function buildStaticScene(
     const H = b.look.wallHeight;
     const col = materialColors(pack, b.look.wall);
     const seed = b.locationId.length * 31 + b.rect.x * 7 + b.rect.y;
-    const atlas = paintWallAtlas(b.look.wall, col, H, pack.windowGlow, seed);
+    const atlas = paintWallAtlas(b.look.wall, col, H, pack.windowGlow, seed, undefined, pack.id);
     const colorTex = track(pixelTexture(atlas.color));
     const emisTex = track(pixelTexture(atlas.emissive));
     const dissolve = createDissolve(
@@ -176,7 +174,9 @@ export function buildStaticScene(
     if (b.look.chimney) {
       const brick = materialColors(pack, 'brick');
       const chimTex = track(
-        pixelTexture(plainTile(paintWallAtlas('brick', brick, 1, 0, seed).color)),
+        pixelTexture(
+          plainTile(paintWallAtlas('brick', brick, 1, 0, seed, undefined, pack.id).color),
+        ),
       );
       chimTex.wrapS = THREE.RepeatWrapping;
       chimTex.wrapT = THREE.RepeatWrapping;
@@ -234,6 +234,8 @@ export function buildStaticScene(
       H,
       0,
       3,
+      undefined,
+      pack.id,
     );
     const tex = track(pixelTexture(atlas.color));
     const mat = track(litMaterial(shared, { map: tex, alphaTest: 0.5, switchRole }));
@@ -259,12 +261,7 @@ export function buildStaticScene(
   const instanced: THREE.InstancedMesh[] = [];
   for (const list of bySprite.values()) {
     const p0 = list[0] as StandeePlacement;
-    const sprite =
-      p0.source === 'tree' || p0.source === 'rock'
-        ? propSprite(p0.source, p0.variant, colors)
-        : p0.source === 'sign'
-          ? shopSignSprite(p0.kind as SignKind)
-          : decorSprite(p0.kind as DecorKind, p0.variant);
+    const sprite = placedSprite(p0, pack.id, colors);
     if (!sprite) continue;
     const tex = track(pixelTexture(sprite.matrix));
     const quad = standeeQuad(sprite.matrix.w, sprite.matrix.h, sprite.anchorX, sprite.anchorY);

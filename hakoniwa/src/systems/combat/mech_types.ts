@@ -253,6 +253,8 @@ export interface MonsterRegistryFields {
   nameInherit?: boolean;
   ambushEmerge?: { radius: number; firstHitMult: number };
   purifyTo?: string;
+  /** Named remains shed on purification, without kill experience or generic kill loot. */
+  purifyItems?: { itemId: string; count: number; companion?: string }[];
   corpseRise?: { into: string; chance: number; minSediment?: number };
   cropBlight?: { rate: number };
   caravanRaid?: boolean;
@@ -397,7 +399,13 @@ declare module '../../core/contracts' {
       needsOrder?: boolean;
     };
     /** a beast was purified back to its kind (11 `purifyTo`; settled as `purify`, 10.7) */
-    'combat.purified': { entityId: string; from: string; to: string; newId: string };
+    'combat.purified': {
+      casterId: string;
+      entityId: string;
+      from: string;
+      to: string;
+      newId: string;
+    };
     /** a ground warning went away: it hit, its cast broke, or its zone ran out */
     'combat.telegraph_ended': {
       id: string;

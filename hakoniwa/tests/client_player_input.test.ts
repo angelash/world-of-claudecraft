@@ -63,6 +63,34 @@ describe('free text', () => {
 });
 
 describe('back, menu and Start (1.3, 16.3)', () => {
+  it('Esc opens the pause menu during a running prologue scene', () => {
+    const h = inputHarness();
+    for (let i = 0; i < 3; i++) h.keyFrame();
+    expect(sceneView(h.engine.world, h.engine.content)).not.toBeNull();
+    h.press({ code: 'Escape' });
+    expect(h.open).toEqual(['menu']);
+    expect(h.player.surface().scene).toBeNull();
+    expect(h.hub.stack()).toContain('window');
+    h.press({ code: 'Escape' });
+    expect(h.open).toEqual([]);
+    expect(h.player.surface().scene).not.toBeNull();
+  });
+  it('Start opens an operable menu over the prologue and returns to its scene', () => {
+    const h = inputHarness();
+    for (let i = 0; i < 3; i++) h.keyFrame();
+    const before = sceneView(h.engine.world, h.engine.content);
+    expect(before).not.toBeNull();
+    h.tap('start');
+    expect(h.open).toEqual(['menu']);
+    expect(h.player.surface().scene).toBeNull();
+    expect(h.hub.stack()).toEqual(['window', 'global']);
+    h.tap('down');
+    expect(h.ui.log).toContain('focus:down');
+    expect(sceneView(h.engine.world, h.engine.content)?.nodeId).toBe(before?.nodeId);
+    h.tap('start');
+    expect(h.open).toEqual([]);
+    expect(h.player.surface().scene).not.toBeNull();
+  });
   it('B closes the front window, then clears the target, then stops', () => {
     const h = base;
     h.host.windows.show('quests');

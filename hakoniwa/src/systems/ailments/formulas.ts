@@ -113,6 +113,8 @@ export interface DayInput {
   /** its rank (the `tier` tag, 0 for the first mortal rank) */
   tier: number;
   frail: boolean;
+  /** preventive aura multiplier on spot onset only (adult/child already selected) */
+  spotRisk?: number;
 }
 
 /**
@@ -148,7 +150,9 @@ export function stepBody(
   }
   const next = nextStage(cfg, body.stage);
   if (next) {
-    const p = onsetChance(next, body.taint) * onsetFactor(cfg, input.tier, input.frail);
+    const prevention = next.id === 'spot' ? (input.spotRisk ?? 1) : 1;
+    const p =
+      onsetChance(next, body.taint) * onsetFactor(cfg, input.tier, input.frail) * prevention;
     if (p > 0 && roll() < p) {
       body.stage = next.id;
       body.since = input.day;

@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Engine } from '../src/core';
 import type { FlagValue } from '../src/core/contracts';
+import { tSource } from '../src/shared_ui/i18n';
 import type { QuestDef } from '../src/systems/quests';
 import { type SceneDef, type SceneNode, sceneView } from '../src/systems/scenes';
 import { DEFAULT_PLAYER_APPEARANCE } from '../src/systems/world';
@@ -218,7 +219,7 @@ describe('the prologue played', () => {
     g.onEvents((events) => {
       for (const e of events) {
         if (e.kind === 'quest.started') order.push(`quest:${e.data.questId}`);
-        if (e.kind === 'dialogue.line') order.push(`line:${String(e.data.text)}`);
+        if (e.kind === 'dialogue.line') order.push(`line:${tSource(e.data.text)}`);
       }
     });
     g.step(1);

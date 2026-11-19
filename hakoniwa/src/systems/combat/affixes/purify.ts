@@ -6,12 +6,14 @@
 //   kill experience (it is a resolution, not a kill), and `combat.purified` reports it.
 
 import type { SystemContext } from '../../../core/system';
+import { addItem } from '../../inventory';
 import { getEntity } from '../../world';
 import { resolutionHolds, resolveBoss } from '../boss/resolve';
 import { monsterDef } from '../defs';
 import { despawn, spawnMonster } from '../spawning';
 import { deriveStats } from '../stats';
 import type { Unit } from '../types';
+import { isPartySide, unitOf } from '../units';
 
 export function purifyHit(ctx: SystemContext, caster: Unit, t: Unit): boolean {
   const def = monsterDef(ctx.content, t.monsterId);
@@ -30,7 +32,24 @@ export function purifyHit(ctx: SystemContext, caster: Unit, t: Unit): boolean {
   const at = { mapId: e.mapId, x: e.x, y: e.y };
   despawn(ctx, t.id);
   const back = spawnMonster(ctx, to, at.mapId, at.x, at.y, { side: 'neutral', level: t.level });
+  for (const item of isPartySide(ctx.world, caster) ? (def.mechanics?.purifyItems ?? []) : []) {
+    const member = item.companion ? ctx.world.slices.party?.members[item.companion] : undefined;
+    const catcher = member ? getEntity(ctx.world, member.entityId) : undefined;
+    const catcherUnit = member ? unitOf(ctx.world, member.entityId) : undefined;
+    if (
+      item.companion &&
+      (!catcher?.alive ||
+        catcher.mapId !== at.mapId ||
+        (member?.state ?? 'party') !== 'party' ||
+        !catcherUnit ||
+        catcherUnit.hp <= 0 ||
+        catcherUnit.downed)
+    )
+      continue;
+    addItem(ctx, ctx.world.slices.world.playerId, item.itemId, item.count, 'purification');
+  }
   ctx.emit('combat.purified', {
+    casterId: caster.id,
     entityId: t.id,
     from: def.id,
     to,

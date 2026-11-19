@@ -29,6 +29,7 @@ export interface EventSinks {
   closeWindow(id: WindowId): void;
   /** a notification for ui_hud_notify (ux_and_onboarding.md 5.4) */
   notify?(n: NotifySpec): void;
+  playerPopup?(event: AnyWorldEvent): void;
 }
 
 export class EventRouter {
@@ -62,6 +63,7 @@ export class EventRouter {
     let notes: NotifyEventContext | undefined;
     const inScene = () => !!a.scene?.scene(v);
     for (const ev of events) {
+      this.sinks.playerPopup?.(ev);
       // Scene lines live in the scene panel; the log keeps everything else.
       const line = ev.kind === 'dialogue.line' && inScene() ? null : formatEvent(ev, ctx);
       if (line) this.sinks.log(line);

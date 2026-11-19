@@ -5,6 +5,7 @@
 // plus the combat, npc and cognition queries.
 
 import type { AnyWorldEvent } from '../../core/contracts';
+import { TICK_HZ } from '../../core/time';
 import { hasText, t, tOr } from '../../shared_ui/i18n';
 import { appraisalLog, lastAppraisal, pressureSense } from '../../systems/cognition';
 import type { AbilityDef, MonsterDef } from '../../systems/combat';
@@ -280,7 +281,13 @@ export function worldMarks(
       progress = c.channel ? 1 - k : k;
     }
     const cast = c
-      ? { progress, interruptible: interruptibleNow(w, view.content as never, u) }
+      ? {
+          progress,
+          interruptible: interruptibleNow(w, view.content as never, u),
+          ...(def?.school
+            ? { school: def.school, elapsedMs: (Math.max(0, tick - c.start) * 1000) / TICK_HZ }
+            : {}),
+        }
       : null;
     const threat = hostile && u.target === playerId;
     const rank = u.monsterId ? rowById(content.monsters, u.monsterId)?.rank : undefined;

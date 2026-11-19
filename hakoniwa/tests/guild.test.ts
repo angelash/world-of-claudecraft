@@ -120,10 +120,21 @@ describe('commission formulas (catalog 2.3, 2.4)', () => {
     cmm_a1_waste_bones: [865, 380],
     cmm_a1_boar_westfield: [200, 170],
     cmm_a1_spider_valley: [215, 170],
+    cmm_a1_field_hares: [70, 45],
+    cmm_a1_south_road_escort: [310, 260],
+    cmm_a1_grave_wisps: [235, 455],
+    cmm_a1_mine_pests: [280, 390],
+    cmm_a1_bone_vulture: [1080, 800],
+    cmm_a1_jackal_road: [1080, 615],
   };
 
   it('reproduces the pay and experience of catalog 5.6 for every template in data', () => {
-    expect(Object.keys(TABLE).sort()).toEqual(BASE.commissions.map((c) => c.id).sort());
+    expect(Object.keys(TABLE).sort()).toEqual(
+      BASE.commissions
+        .filter((c) => !c.bounty)
+        .map((c) => c.id)
+        .sort(),
+    );
     for (const [id, [pay, xp]] of Object.entries(TABLE)) {
       expect(basePay(CFG, tpl(id)), `${id} pay`).toBe(pay);
       expect(baseXp(CFG, tpl(id)), `${id} xp`).toBe(xp);
@@ -380,9 +391,8 @@ describe('boards and instancing', () => {
       expect(up.length).toBeLessThanOrEqual(6);
       expect(up.some((p) => p.template === 'cmm_a1_night_watch')).toBe(false);
     }
-    expect(postingsOf(t, NOTICE_BOARD).every((p) => p.template === 'cmm_a1_bandit_writ')).toBe(
-      true,
-    );
+    for (const p of postingsOf(t, NOTICE_BOARD))
+      expect(['cmm_a1_bandit_writ', 'cmm_a1_bounty_named']).toContain(p.template);
     // one posting of a template per board at a time; display numbers GC-<rank>-<nnn>
     for (const board of [GUILD_BOARD, NOTICE_BOARD]) {
       const up = postingsOf(t, board).map((p) => p.template);
@@ -406,7 +416,11 @@ describe('boards and instancing', () => {
   });
 
   it('posts the night watch in weeks 8 and 9 only, at most five times', () => {
-    const t = game();
+    // Pin this window contract independently of the growing template pool: a random
+    // sample of a larger board is not a decisive proof that the watch is unavailable.
+    const t = guildGame({
+      content: { ...BASE, commissions: [tpl('cmm_a1_night_watch')] },
+    });
     const seen = new Set<number>();
     for (let w = 0; w < 11; w++) {
       nextWeek(t);

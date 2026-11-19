@@ -287,6 +287,12 @@ export interface AuraMods {
   doorSkillCooldown?: number;
 }
 
+/** Preventive item effects; multipliers reduce only environmental gains or spot onset. */
+export interface AuraPrevention {
+  exposure?: { multiplier: number; belowGrade?: number };
+  spot?: { adult: number; child: number };
+}
+
 export interface AuraDef {
   id: string;
   name: string;
@@ -335,6 +341,8 @@ export interface AuraDef {
   miscast?: number;
   /** two-handed weapons cannot be used (a maimed arm, 9.4) */
   noTwoHand?: boolean;
+  /** prevention from consumables (catalog_consumables_magitools.md 3.6) */
+  prevention?: AuraPrevention;
 }
 
 export interface ClassBase {
@@ -611,6 +619,20 @@ export interface MonsterBrain {
   despawnAt: number;
 }
 
+/** A drink in progress; absent on saves written before consumable channels. */
+export interface ItemConsumption {
+  itemId: string;
+  started: number;
+  until: number;
+  amount: number;
+  applied: number;
+  mapId: string;
+  x: number;
+  y: number;
+}
+
+export type FoodConsumption = Omit<ItemConsumption, 'amount' | 'applied'> & { auraId: string };
+
 export interface Unit {
   id: string;
   classId: string | null;
@@ -630,6 +652,10 @@ export interface Unit {
   cds: Record<string, number>;
   gcd: number;
   cast: CastState | null;
+  /** independent from the food aura slot; interrupted by actual movement or damage */
+  drinking?: ItemConsumption;
+  /** completes its food aura only after 18 uninterrupted seconds */
+  eating?: FoodConsumption;
   /** monsters: attacker id -> threat */
   threat: Record<string, number>;
   target: string | null;
@@ -879,7 +905,12 @@ declare module '../../core/contracts' {
     };
     'combat.level_up': { entityId: string; level: number; tier: number };
     'combat.boss_phase': { entityId: string; bossId: string; phase: number; name: string };
-    'combat.boss_defeated': { entityId: string; bossId: string; yielded: boolean };
+    'combat.boss_defeated': {
+      entityId: string;
+      bossId: string;
+      yielded: boolean;
+      killerId?: string;
+    };
     'combat.player_returned': {
       fromMap: string;
       x: number;

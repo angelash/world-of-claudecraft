@@ -1,0 +1,137 @@
+.hk-boot:has(.hk-title-scene) {
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: clamp(20px, 5vw, 72px);
+  isolation: isolate;
+}
+
+.hk-title-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  background: #11131c;
+  pointer-events: none;
+}
+
+.hk-title-scene > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hk-title-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(2px);
+  z-index: 2;
+  transition: opacity 0.6s;
+}
+
+.hk-title-cover.ready {
+  opacity: 0;
+}
+
+.hk-boot:has(.hk-title-scene)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(0deg, #080b13f5 0%, #080b13b8 35%, #080b1340 75%);
+  pointer-events: none;
+}
+
+.hk-boot:has(.hk-title-scene) .hk-boot-card {
+  max-width: min(440px, 100%);
+  background: #111723d9;
+  border-color: #8a7354;
+  text-align: left;
+}
+
+.hk-first-run {
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #090c16c9;
+}
+
+.hk-first-run-card {
+  box-sizing: border-box;
+  width: min(680px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: clamp(18px, 4vw, 34px);
+  background: var(--hk-panel, #171d29);
+  color: var(--hk-text, #f1e9db);
+  border: 1px solid #a38c65;
+  box-shadow: 0 18px 70px #0009;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hk-first-run h2 {
+  margin: 8px 0 22px;
+  color: #e6d0a4;
+}
+.hk-first-run .hk-row {
+  flex-wrap: wrap;
+}
+
+.hk-first-ai {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hk-first-preview {
+  padding: 22px 12px;
+  min-height: 76px;
+  border-block: 1px solid #a38c6544;
+}
+
+.hk-first-vision-sample {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 90px;
+  padding: 16px;
+  background: #0b101a;
+}
+
+.hk-first-sample-ring {
+  width: 28px;
+  height: 28px;
+  border: 3px solid;
+  border-radius: 50%;
+  transform: scaleY(0.6);
+}
+
+.hk-first-sample-warning {
+  width: 80px;
+  height: 40px;
+  border: 2px solid;
+  border-radius: 50%;
+}
+
+@media (max-width: 600px) {
+  .hk-first-ai {
+    grid-template-columns: 1fr;
+  }
+  .hk-boot:has(.hk-title-scene) {
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-title-cover {
+    transition: none;
+  }
+}

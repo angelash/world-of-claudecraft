@@ -37,6 +37,7 @@ class Bar {
 
 export class UnitFrame {
   readonly el: HTMLElement;
+  onPortrait?: () => void;
   private portrait: HTMLElement;
   private nameEl: HTMLElement;
   private subEl: HTMLElement;
@@ -56,6 +57,19 @@ export class UnitFrame {
     aurasHud?: string,
   ) {
     this.portrait = el('div', { className: 'hk-portrait' });
+    this.portrait.setAttribute('role', 'button');
+    this.portrait.setAttribute('tabindex', '0');
+    this.portrait.setAttribute('aria-label', t('ui.pop.charcard.title'));
+    this.portrait.addEventListener('click', (event) => {
+      event.stopPropagation();
+      this.onPortrait?.();
+    });
+    this.portrait.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.onPortrait?.();
+    });
     this.nameEl = el('div', { className: 'hk-frame-name' });
     this.subEl = el('div', { className: 'hk-frame-sub' });
     this.noteEl = el('div', { className: 'hk-frame-note' });

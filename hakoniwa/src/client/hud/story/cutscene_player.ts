@@ -29,6 +29,10 @@ const RETRY_MS = 1500;
 export class CutscenePlayer {
   readonly el: HTMLElement;
   private readonly still = el('div', { className: 'hk-cut-still' });
+  private readonly transition = el('div', {
+    className: 'hk-cut-transition',
+    attrs: { 'aria-hidden': 'true' },
+  });
   private readonly busts = el('div', { className: 'hk-cut-busts' });
   private readonly left: PortraitView;
   private readonly right: PortraitView;
@@ -135,6 +139,7 @@ export class CutscenePlayer {
     ]);
     this.el = el('div', { className: 'hk-cut', attrs: { role: 'dialog', 'aria-live': 'polite' } }, [
       this.still,
+      this.transition,
       el('div', { className: 'hk-cut-bar top' }),
       el('div', { className: 'hk-cut-bar bottom' }),
       this.door,
@@ -188,6 +193,7 @@ export class CutscenePlayer {
     setClass(this.el, 'skipping', m.skipping);
     setClass(this.el, 'with-letter', !!m.letter);
     this.paintStill(m);
+    this.paintTransition(m);
     this.paintBusts(m);
     this.paintCaptions(m);
     setText(this.title, m.title);
@@ -233,10 +239,23 @@ export class CutscenePlayer {
 
   private paintStill(m: CutsceneModel): void {
     const src = m.presentation === 'illustration' ? m.still : null;
+    setClass(this.still, 'vignette', m.presentation === 'illustration' && !src);
     if (src === this.stillSrc) return;
     this.stillSrc = src;
     this.still.style.backgroundImage = src ? `url("${src}")` : '';
-    setClass(this.still, 'vignette', m.presentation === 'illustration' && !src);
+  }
+
+  private paintTransition(m: CutsceneModel): void {
+    const tr = m.transition;
+    this.transition.hidden = !tr;
+    if (!tr) return;
+    // A dissolve is also the fallback when the door mask is unavailable. This cover sits
+    // behind the lines, choices and evidence buttons and never takes pointer input.
+    setClass(this.transition, 'door-wipe', tr.kind === 'door_wipe');
+    const cover = Math.sin(Math.PI * tr.progress);
+    this.transition.style.opacity = tr.kind === 'dissolve' ? String(cover) : '1';
+    const gap = `${(1 - cover) * 50}%`;
+    this.transition.style.setProperty('--wipe-gap', gap);
   }
 
   private paintBusts(m: CutsceneModel): void {
@@ -308,6 +327,9 @@ export class CutscenePlayer {
   }
 
   private paintChoices(m: CutsceneModel): void {
+    if (m.choices.some((c) => c.id.startsWith('piece:')))
+      this.choices.setAttribute('data-hud', 'scene_evidence');
+    else this.choices.removeAttribute('data-hud');
     const sig = m.choices.map((c) => `${c.id}|${c.label}|${c.confirm ? 1 : 0}`).join('\n');
     if (sig === this.choiceSig) return;
     this.choiceSig = sig;

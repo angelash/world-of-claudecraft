@@ -77,6 +77,21 @@ export function menuWindow(ctx: WindowContext): WindowContent {
       });
     }),
   ]);
+  if (ctx.adapters.scene?.scene(ctx.view)?.restartable) {
+    const restart = item(t('ui.mode.cutscene.restart'), () => {
+      void askConfirm({
+        title: t('ui.mode.cutscene.restart_title'),
+        body: t('ui.mode.cutscene.restart_body'),
+        irreversible: true,
+      }).then((yes) => {
+        // The command validates the current scene again if a queued transition won.
+        if (!yes || !ctx.adapters.scene?.scene(ctx.view)?.restartable) return;
+        ctx.commands.queue('scenes.restart', {});
+        ctx.actions.closeWindow('menu');
+      });
+    });
+    root.insertBefore(restart, root.lastElementChild);
+  }
   return { el: root };
 }
 

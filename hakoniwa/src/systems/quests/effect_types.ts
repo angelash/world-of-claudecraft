@@ -68,7 +68,7 @@ export type EffectBody =
   /** start a quest */
   | { type: 'quest'; quest: string }
   /** give the player an item */
-  | { type: 'item'; item: string; count?: number }
+  | { type: 'item'; item: string; count?: number; purified?: boolean }
   /** take an item from the player (silently ignored when missing) */
   | { type: 'take'; item: string; count?: number }
   /** money in copper (negative spends what the player has) */
@@ -110,7 +110,9 @@ export type EffectBody =
    * a key event (catalog_quests_acts1_3.md 1.6): the quest grants one key of a door; the
    * doors system decides the door (flag door_key.<doorId>.<keyId> = keyKind, event quest.key)
    */
-  | { type: 'key'; doorId: string; keyKind: KeyKind; keyId: string };
+  | { type: 'key'; doorId: string; keyKind: KeyKind; keyId: string }
+  /** ask the records owner to grant an authored manual deed */
+  | { type: 'deed'; deed: string };
 
 export type Effect = EffectBody & { when?: string };
 
@@ -144,6 +146,7 @@ export const EFFECT_TYPES: readonly EffectType[] = [
   'compute',
   'line',
   'key',
+  'deed',
   'ui',
 ];
 

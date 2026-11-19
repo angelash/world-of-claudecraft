@@ -8,5 +8,6 @@
   "sys.quests.reject.no_option": "没有这个选项",
   "sys.quests.label.accept": "接受任务：{title}",
   "sys.quests.label.turn_in": "交付任务：{title}",
-  "sys.quests.name.you": "你"
+  "sys.quests.name.you": "你",
+  "sys.quests.reject.choice_cost": "所需的钱或材料不足，物品未扣除。"
 }

@@ -21,6 +21,7 @@ import { noteTreated, onInjuryFlag, onRecovered, onSlept, onWounded, tickCare } 
 import { commands } from './commands';
 import { companionDef, partyConfig } from './config';
 import { enrolBodies, onCrystalDue } from './exposure';
+import { installFeedingGate, onFedItem } from './feeding';
 import { onCompanionKillXp, onPlayerXp } from './growth';
 import { ironmanWritten } from './ironman';
 import { mountItemChanged } from './mounts';
@@ -39,6 +40,9 @@ import {
   snapHealth,
   tickClocks,
 } from './wounds';
+
+// Effect executors are installed for both fresh games and direct save resumes.
+installFeedingGate();
 
 export { banterState } from './banter';
 export { banterMetric } from './banter_metric';
@@ -140,6 +144,9 @@ export const system: GameSystem = {
   commands,
 
   on: {
+    'item.used'(ctx, ev) {
+      onFedItem(ctx, ev.data);
+    },
     'flag.changed'(ctx, ev) {
       const key = ev.data.key;
       const hit = RECRUIT.exec(key);

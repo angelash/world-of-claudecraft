@@ -33,8 +33,9 @@ export const GROUP_RULES: Readonly<Record<ConsumableGroup, GroupRule>> = {
   cd_elixir_battle: { inCombat: true, gcd: true },
   cd_elixir_guard: { inCombat: true, gcd: true },
   cd_special: { perItem: true, inCombat: 'item', gcd: true },
-  cd_food: { inCombat: false, gcd: false },
-  cd_drink: { inCombat: false, gcd: false },
+  // Reserve each independent slot until its item.used event settles at this tick's end.
+  cd_food: { shared: 1, inCombat: false, gcd: false },
+  cd_drink: { shared: 1, inCombat: false, gcd: false },
   cd_sed: { shared: 6 * TICKS_PER_GAME_HOUR, inCombat: false, gcd: false, earlyUse: true },
   cd_charm: { perItem: true, movement: 30 * TICKS_PER_GAME_MINUTE, inCombat: 'item', gcd: true },
   cd_throw: { shared: sec(30), inCombat: true, gcd: true },
@@ -65,6 +66,11 @@ export function useTimers(def: ItemDef, ownerId: string, targetId?: string): Use
   const rule = group ? GROUP_RULES[group] : undefined;
   if (!group || !rule) return [];
   const out: UseTimer[] = [];
+  // The party owner receives item.used after commands have drained. Reserve the beast
+  // for this tick so two valid queued feeds cannot spend two portions before satiety.
+  if (def.use?.effect === 'feed' && targetId) {
+    out.push({ holder: targetId, key: 'use:feed@target', ticks: 1 });
+  }
   if (rule.shared) out.push({ holder: ownerId, key: `use:${group}`, ticks: rule.shared });
   // the person treated waits, whoever treats them next (catalog_consumables_magitools 2.1)
   if (rule.perTarget) {

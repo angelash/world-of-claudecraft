@@ -233,6 +233,17 @@ function triggerProblems(scene: SceneDef, content: ContentMap): string[] {
 function sceneExtraProblems(scene: SceneDef, content: ContentMap): string[] {
   const out: string[] = [];
   const at = `scene ${scene.id}`;
+  if (scene.keepPosition !== undefined && typeof scene.keepPosition !== 'boolean')
+    out.push(`${at}: keepPosition must be boolean`);
+  if (scene.keepPosition === true) {
+    if (!scene.mapId || !scene.location) out.push(`${at}: keepPosition needs a map and location`);
+    else {
+      const map = content.maps?.find((m) => m.id === scene.mapId);
+      if (!map) out.push(`${at}: keepPosition names unknown map ${scene.mapId}`);
+      else if (!map.locations.some((l) => l.id === scene.location))
+        out.push(`${at}: keepPosition names unknown location ${scene.location} on ${scene.mapId}`);
+    }
+  }
   const marked = new Set(scene.nodes.flatMap((n) => (n.segment ? [n.segment] : [])));
   const segIds = new Set<string>();
   for (const s of scene.segments ?? []) {
@@ -305,6 +316,7 @@ export const pack: ContentPack = {
         { key: 'act', label: '幕', type: 'string' },
         { key: 'mapId', label: '地图', type: 'ref', refTable: 'maps' },
         { key: 'location', label: '地点', type: 'string' },
+        { key: 'keepPosition', label: '保留入场站位', type: 'boolean' },
         { key: 'start', label: '起始节点', type: 'string' },
         { key: 'nodes', label: '节点', type: 'json' },
         { key: 'onEnd', label: '结束时效果', type: 'json' },

@@ -33,6 +33,7 @@ import {
 import { installKeyText } from '../input/glyphs';
 import { startMenuPad } from '../input/menu_pad';
 import type { ClientCommand } from '../view/game_view';
+import { LlmSettingsWindow } from '../windows/llm';
 import { applyAccessibility, systemReducedMotion } from './accessibility';
 import { createAdapters } from './adapters_wiring';
 import { AiBridge } from './ai_bridge';
@@ -85,6 +86,21 @@ let ai: AiBridge;
 let session: GameSession | null = null;
 let boot: BootScreen | null = null;
 let newGame: NewGameScreen | null = null;
+let modelSettings: LlmSettingsWindow | null = null;
+
+function openModelSettings(kind?: 'cloud' | 'local'): void {
+  modelSettings ??= new LlmSettingsWindow(root, host, () => {
+    void host.settings
+      .get('local')
+      .then((result) => {
+        if (!result.ok || !result.value?.llm) return;
+        settings.updateLocal({ llm: result.value.llm as Record<string, unknown> });
+        ai.setSettings(result.value.llm);
+      })
+      .catch((error) => console.warn('[models] settings refresh failed', error));
+  });
+  void modelSettings.open(kind);
+}
 
 function errorText(err: unknown): string {
   return String((err as Error)?.message ?? err);
@@ -121,6 +137,20 @@ function showTitle(): void {
     },
     config.devMode,
     config.seed,
+    {
+      firstRun: {
+        prefs: settings,
+        done: settings.local.onboardingDone,
+        complete: () => settings.updateLocal({ onboardingDone: true }),
+        desktop: host.kind === 'desktop',
+        connect: openModelSettings,
+      },
+      scene: {
+        quality: settings.local.quality,
+        calm: settings.sync.accessibility.reduceFlashing === 'on' || systemReducedMotion(),
+        storage: pageKv,
+      },
+    },
   );
 }
 
@@ -135,6 +165,7 @@ function showNewGame(seed?: number): void {
       ironmanSlotTaken: saves.has('ironman') || saves.problems().ironman !== undefined,
     },
     {
+      modelSettings: () => openModelSettings(),
       back: () => {
         newGame?.dispose();
         newGame = null;
@@ -247,6 +278,9 @@ async function startWith(
   // A new run's opening commands go in before the first tick, so its replay starts the same.
   for (const c of run.commands ?? []) engine.queue(c.kind, c.data as never);
   saves.attach(engine, from ?? null, { ironman: run.ironman });
+  if (host.llm.route === 'gateway' && saves.runId) {
+    await host.llm.gateway.scope({ runId: saves.runId });
+  }
   session = new GameSession({
     engine,
     root,
@@ -255,6 +289,7 @@ async function startWith(
     saves,
     settings: ai,
     prefs: settings,
+    openModelSettings: () => openModelSettings(),
     greeting,
     clientSegment: from?.header.client,
     loadWorld: (loaded: LoadedSave, line: string) =>

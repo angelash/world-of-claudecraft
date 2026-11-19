@@ -25,7 +25,7 @@ import {
   TILE_PX,
 } from './camera';
 import { ctx2d, ensureSize, makeCanvas, matrixToCanvas } from './canvas_util';
-import { decorSprite, shopSignSprite } from './decor_art';
+import { placedSprite } from './decor_art';
 import { FOG_ALPHA_CAP, flashAlpha, particleAlpha } from './fairness';
 import { MOVE_PULSE_MS } from './frame_signals';
 import type { MapContext } from './map_context';
@@ -36,7 +36,7 @@ import type { HitBox, WorldRenderer } from './renderer';
 import { dissolveLevel, roofPixels } from './roofs';
 import type { LightMood, Scene, SceneEntity, SceneLight } from './scene';
 import { MOOD_GRADES } from './stage_direct';
-import { bakeGround, propSprite, WATER_FRAMES } from './tile_art';
+import { bakeGround, WATER_FRAMES } from './tile_art';
 import { fogNoise, lightningFlash, moteParticles, weatherParticles } from './weather_fx';
 
 const VOID_COLOR = '#101018';
@@ -631,12 +631,7 @@ export class FlatWorldRenderer implements WorldRenderer {
     let p = this.props.get(key);
     if (!p) {
       const pack = this.ctxMap?.pack;
-      const s =
-        pl.source === 'tree' || pl.source === 'rock'
-          ? propSprite(pl.source, pl.variant, pack ? propColorsOf(pack) : undefined)
-          : pl.source === 'sign'
-            ? shopSignSprite(pl.kind as Parameters<typeof shopSignSprite>[0])
-            : decorSprite(pl.kind as Parameters<typeof decorSprite>[0], pl.variant);
+      const s = placedSprite(pl, pack?.id ?? '', pack ? propColorsOf(pack) : undefined);
       if (!s) return null;
       p = { canvas: matrixToCanvas(s.matrix), ax: s.anchorX, ay: s.anchorY };
       this.props.set(key, p);

@@ -151,6 +151,7 @@
 | [progress_log.md](60_production/progress_log.md) | 进度日志：按日期记录完成的实施包与已提交的部分交付，带提交号，只追加 |
 | [slice_gap_audit.md](60_production/slice_gap_audit.md) | 序章与第一幕差距盘点：内容缺口、基建缺口与落点包、现有数据与设计的冲突 |
 | [issue_backlog.md](60_production/issue_backlog.md) | 问题清单：先开发内容、测试放最后期间延后的测试与验证问题、素材接入问题，每行带证据与建议去处 |
+| [parallel_m1_execution_20261119.md](60_production/parallel_m1_execution_20261119.md) | 序章与第一幕并行实施的任务所有权、验收与实际检查记录 |
 | [reviewers/README.md](60_production/reviewers/README.md) | 审查角色清单：八个领域角色与两个通用角色的审查范围、检查清单、何时必须派出，报告格式与派发矩阵 |
 
 ## 70 实施包

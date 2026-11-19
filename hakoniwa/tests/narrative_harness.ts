@@ -1,6 +1,6 @@
 // Test harness for the narrative systems (goddess, director, quests, scenes). It builds
-// the real content and runs the real engine with the kernel systems plus the four
-// narrative systems, and a stand-in for the systems owned by other teams (combat,
+// the real content and runs the real engine with the narrative and travel systems,
+// and a stand-in for the systems owned by other teams (combat,
 // dialogue, warfare, city, strategy): it answers their script-trigger flags the way the
 // conventions describe, so a scripted player can walk the whole story without a model.
 
@@ -11,12 +11,19 @@ import type { GameSystem, SystemContext } from '../src/core/system';
 import { TICKS_PER_GAME_HOUR } from '../src/core/time';
 import { t } from '../src/shared_ui/i18n';
 import { system as director } from '../src/systems/director';
+import { system as disputes } from '../src/systems/disputes';
 import { system as goddess } from '../src/systems/goddess';
-import { system as inventory } from '../src/systems/inventory';
+import { addItem, countItem, system as inventory } from '../src/systems/inventory';
 import { system as modifiers } from '../src/systems/modifiers';
 import { type QuestDef, system as quests } from '../src/systems/quests';
+import { NEVER, ticksToClockEvent } from '../src/systems/quests/act_clock';
+import { calendarTerms } from '../src/systems/quests/calendar_terms';
+import { evaluate, flagResolver } from '../src/systems/quests/conditions';
 import { system as scenes, sceneView } from '../src/systems/scenes';
-import { system as world } from '../src/systems/world';
+import { system as tide } from '../src/systems/tide';
+import { canWait, MAX_WAIT_HOURS, skipState, system as travel } from '../src/systems/travel';
+import { attachSkipHandlers } from '../src/systems/travel/skip_registry';
+import { nearestWalkable, playerEntity, system as world } from '../src/systems/world';
 import type { MapDef } from '../src/systems/world/types';
 
 declare module '../src/core/contracts' {
@@ -27,6 +34,8 @@ declare module '../src/core/contracts' {
     'stub.battle': { scenario: string; victor: 'player' | 'enemy' };
     'stub.door': { doorId: string };
     'stub.feat': { tier: number };
+    'stub.supply': { item: string; count: number };
+    'stub.persuade': { npc: string };
   }
 }
 
@@ -87,6 +96,16 @@ export const otherTeamsStub: GameSystem = {
   id: 'zz_other_teams',
   order: 990,
   commands: {
+    // Explicit fixtures for the omitted economy/gathering and dialogue domains. These
+    // do not belong to the real-game playthrough: that suite uses only player commands.
+    'stub.supply'(ctx, d) {
+      addItem(ctx, ctx.world.slices.world.playerId, d.item, d.count, 'narrative_fixture');
+      return ok();
+    },
+    'stub.persuade'(ctx, d) {
+      ctx.emit('dialogue.persuaded', { npcId: `npc_${d.npc}`, npcRef: d.npc, ok: true });
+      return ok();
+    },
     'stub.talk'(ctx, d) {
       ctx.emit('player.talked', { npcId: `npc_${d.npc}`, npcRef: d.npc });
       return ok();
@@ -156,7 +175,7 @@ export const otherTeamsStub: GameSystem = {
   },
 };
 
-export const NARRATIVE_SYSTEMS: GameSystem[] = [
+export const NARRATIVE_SYSTEMS: GameSystem[] = attachSkipHandlers([
   world,
   modifiers,
   inventory,
@@ -164,12 +183,16 @@ export const NARRATIVE_SYSTEMS: GameSystem[] = [
   director,
   quests,
   scenes,
-];
+  travel,
+]);
 
 export function narrativeGame(
   opts: { seed?: number; aiMode?: AiMode; stub?: boolean } = {},
 ): Engine {
-  const systems = opts.stub === false ? NARRATIVE_SYSTEMS : [...NARRATIVE_SYSTEMS, otherTeamsStub];
+  const systems =
+    opts.stub === false
+      ? NARRATIVE_SYSTEMS
+      : attachSkipHandlers([...NARRATIVE_SYSTEMS, disputes, tide, otherTeamsStub]);
   return Engine.create(opts.seed ?? 20261115, narrativeContent(), systems, {
     aiMode: opts.aiMode ?? 'off',
   });
@@ -201,14 +224,19 @@ export type ChoicePolicy = (
   choices: string[],
 ) => string | undefined;
 
-/** Play the current scene to its end with a choice policy (first visible choice by default). */
+/** Play the current scene with a policy, otherwise try each visible choice before repeating. */
 export function playScene(engine: Engine, policy?: ChoicePolicy, maxSteps = 2000): void {
+  const tried = new Map<string, Set<string>>();
   for (let i = 0; i < maxSteps; i++) {
     const v = sceneView(engine.world, engine.content);
     if (!v) return;
     if (v.waiting === 'choice' || v.waiting === 'court') {
       const ids = v.choices.map((c) => c.id);
-      const pick = policy?.(v.sceneId, v.nodeId, ids) ?? ids[0];
+      const key = `${v.sceneId}/${v.nodeId}`;
+      const used = tried.get(key) ?? new Set<string>();
+      const pick = policy?.(v.sceneId, v.nodeId, ids) ?? ids.find((id) => !used.has(id)) ?? ids[0];
+      if (pick) used.add(pick);
+      tried.set(key, used);
       engine.queue('scenes.choose', { choiceId: pick as string });
     } else if (v.waiting === 'input') {
       engine.queue('scenes.input', { text: '' });
@@ -222,15 +250,21 @@ export function playScene(engine: Engine, policy?: ChoicePolicy, maxSteps = 2000
     }
     engine.step(1);
   }
-  throw new Error('scene did not end');
+  const current = sceneView(engine.world, engine.content);
+  throw new Error(
+    `scene did not end: ${current?.sceneId}/${current?.nodeId}/${current?.waiting} at tick ${engine.tick}`,
+  );
 }
 
 /** Satisfy the current objectives of every active quest the way a player would. */
 export function actOnQuests(engine: Engine): void {
   const slice = engine.world.slices.quests;
+  const holds = (condition: string | undefined) =>
+    evaluate(condition, flagResolver(engine.world.meta.flags, calendarTerms(engine.tick)));
   for (const def of engine.content.quests as QuestDef[]) {
     const q = slice.quests[def.id];
     if (!q && def.giver) {
+      if (def.act !== engine.world.meta.flags.act || !holds(def.trigger)) continue;
       engine.queue('stub.talk', { npc: def.giver });
       engine.queue('quests.accept', { questId: def.id });
       continue;
@@ -260,6 +294,16 @@ export function actOnQuests(engine: Engine): void {
         case 'talk':
           engine.queue('stub.talk', { npc: o.npc });
           break;
+        case 'deliver': {
+          const missing =
+            (o.count ?? 1) - countItem(engine.world, engine.world.slices.world.playerId, o.item);
+          if (missing > 0) engine.queue('stub.supply', { item: o.item, count: missing });
+          engine.queue('stub.talk', { npc: o.npc });
+          break;
+        }
+        case 'persuade':
+          if (holds(o.when)) engine.queue('stub.persuade', { npc: o.npc });
+          break;
         case 'kill':
           for (let k = 0; k < o.count; k++) {
             engine.queue('stub.kill', {
@@ -281,7 +325,10 @@ export function actOnQuests(engine: Engine): void {
           engine.queue('stub.door', { doorId: o.doorId });
           break;
         case 'choice':
-          engine.queue('quests.choose', { questId: def.id, optionId: o.options[0]?.id ?? '' });
+          engine.queue('quests.choose', {
+            questId: def.id,
+            optionId: o.options.find((option) => holds(option.when))?.id ?? '',
+          });
           break;
         case 'wait':
           engine.step(((o.hours ?? 0) + (o.days ?? 0) * 24) * TICKS_PER_GAME_HOUR + 20);
@@ -301,6 +348,57 @@ export function playThrough(engine: Engine, policy?: ChoicePolicy, rounds = 400)
     else {
       actOnQuests(engine);
       engine.step(3);
+      const running = skipState(engine.world);
+      if (running) {
+        while (skipState(engine.world)) engine.step(1);
+        continue;
+      }
+      // The act clock is gameplay now. A paused story does not advance a week through
+      // hundreds of three-tick polling rounds; wait by the same logged command a player uses.
+      const active = engine.content.quests.filter(
+        (def) =>
+          def.kind === 'main' && engine.world.slices.quests.quests[def.id]?.status === 'active',
+      );
+      const stalledOnClock = active.every((def) => {
+        const q = engine.world.slices.quests.quests[def.id];
+        const objectives = q ? (def.stages[q.stage]?.objectives ?? []) : [];
+        return objectives.every(
+          (o, i) => q?.met[i] || o.optional || o.type === 'wait' || o.type === 'flag',
+        );
+      });
+      if (!stalledOnClock || engine.world.slices.scenes.current) continue;
+      const ticks = ticksToClockEvent(engine.world);
+      const hours =
+        ticks < NEVER
+          ? Math.max(1, Math.min(MAX_WAIT_HOURS, Math.ceil(ticks / TICKS_PER_GAME_HOUR)))
+          : 1;
+      const playerId = engine.world.slices.world.playerId;
+      const check = canWait(engine, playerId);
+      if (!check.ok) {
+        // This domain-isolated driver already teleports reach objectives in lieu of a
+        // movement planner. Move its fixture out of a dungeon before asking to wait;
+        // never bypass the real clock's place rules or write the tick/act_week directly.
+        if (check.code === 'place' || check.code === 'sediment') {
+          const hub = engine.content.atlas_maps.find((m) => m.role === 'hub');
+          const map = engine.content.maps.find((m) => m.id === hub?.id);
+          const point = map ? nearestWalkable(map, map.width / 2, map.height / 2) : null;
+          if (map && point && playerEntity(engine.world)?.mapId !== map.id) {
+            engine.queue('world.teleport', { entityId: playerId, mapId: map.id, ...point });
+            engine.step(1);
+          }
+        }
+        continue;
+      }
+      engine.queue('time.skip', { hours, mode: 'long', kind: 'wait' });
+      engine.step(1);
+      const waiting = skipState(engine.world);
+      if (waiting) while (skipState(engine.world)) engine.step(1);
     }
   }
+  const active = Object.values(engine.world.slices.quests.quests)
+    .filter((q) => q.status === 'active')
+    .map((q) => `${q.id}:${q.stage}`);
+  throw new Error(
+    `narrative driver spent ${rounds} rounds at tick ${engine.tick}, act ${engine.world.meta.flags.act}, week ${engine.world.meta.flags.act_week}, wait ${JSON.stringify(canWait(engine, engine.world.slices.world.playerId))}, active ${active.join(', ')}`,
+  );
 }

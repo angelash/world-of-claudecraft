@@ -320,7 +320,12 @@ describe('experience (17.5 成长)', () => {
     g.queue('combat.attack', { on: true, targetId: id });
     for (let i = 0; i < 200 && ents(g)[id]?.alive; i++) g.step(1);
     return events(g, 'combat.xp')
-      .filter((e) => e.data.entityId === 'player' && String(e.data.reason).startsWith('kill:'))
+      .filter(
+        (e) =>
+          e.data.entityId === 'player' &&
+          typeof e.data.reason === 'string' &&
+          e.data.reason.startsWith('kill:'),
+      )
       .reduce((n, e) => n + e.data.amount, 0);
   }
 
@@ -380,7 +385,9 @@ describe('experience (17.5 成长)', () => {
     g.queue('combat.attack', { on: true, targetId: id });
     for (let i = 0; i < 200 && ents(g)[id]?.alive; i++) g.step(1);
     const xp = events(g, 'combat.xp').filter((e) => e.data.entityId === 'companion_shiya');
-    const base = xp.find((e) => String(e.data.reason).startsWith('kill:'));
+    const base = xp.find(
+      (e) => typeof e.data.reason === 'string' && e.data.reason.startsWith('kill:'),
+    );
     const top = xp.find((e) => e.data.reason === 'catchup');
     expect(base?.data.amount ?? 0).toBeGreaterThan(0);
     expect(top?.data.amount).toBe(Math.round((base?.data.amount ?? 0) * 2));

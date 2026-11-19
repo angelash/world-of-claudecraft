@@ -295,6 +295,19 @@ export class AudioDirector {
       context = 'cutscene';
       id = input.cutscene.silence ? null : input.cutscene.music;
       layers = openLayers(input.cutscene.layers);
+      // An unwritten track yields to the speaker or the dream, still above combat. An
+      // explicit track and a written silence retain the shot list's highest priority.
+      if (!input.cutscene.silence && !input.cutscene.music) {
+        if (input.divine) {
+          context = 'divine';
+          id = input.divine.music;
+          layers = [0, 0, OFF];
+        } else if (input.dream) {
+          context = 'dream';
+          id = 'mus_cue_dream_door';
+          layers = [0, 0, 0];
+        }
+      }
     } else if (input.boss) {
       context = 'boss';
       id = input.boss.music;

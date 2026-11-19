@@ -68,6 +68,8 @@ export function effectProblems(
       case 'take':
         if (!content.items?.some((it) => it.id === e.item))
           out.push(`${at}: unknown item ${e.item}`);
+        if (e.type === 'item' && e.purified !== undefined && typeof e.purified !== 'boolean')
+          out.push(`${at}: purified must be boolean`);
         break;
       case 'act':
         if (!content.acts?.some((a) => a.id === e.act)) out.push(`${at}: unknown act ${e.act}`);
@@ -86,6 +88,11 @@ export function effectProblems(
       case 'key':
         out.push(...keyEffectProblems(e, at, content));
         break;
+      case 'deed': {
+        const def = content.deeds?.find((d) => d.id === e.deed);
+        if (!def?.manual) out.push(`${at}: unknown or non-manual deed ${e.deed}`);
+        break;
+      }
       case 'ui':
         if (!(UI_EFFECT_IDS as readonly string[]).includes(e.ui))
           out.push(`${at}: unknown interface ${e.ui}`);

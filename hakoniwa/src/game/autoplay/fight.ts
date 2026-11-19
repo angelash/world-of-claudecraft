@@ -9,6 +9,8 @@ import type { World } from '../../core/world';
 import { abilityBar, isHostile, unitView } from '../../systems/combat';
 import { checkAbility } from '../../systems/combat/abilities';
 import type { AbilityDef, Unit } from '../../systems/combat/types';
+import { canAttack } from '../../systems/combat/units';
+import { stateOf } from '../../systems/party/roster';
 import { getEntity, playerEntity } from '../../systems/world';
 import type { Entity } from '../../systems/world/types';
 
@@ -37,7 +39,9 @@ function alive(world: World, id: string): boolean {
 export function friendlyIds(world: World): Set<string> {
   const out = new Set<string>([world.slices.world.playerId]);
   const members = world.slices.party?.members ?? {};
-  for (const m of Object.values(members)) out.add(m.entityId);
+  for (const m of Object.values(members)) {
+    if (stateOf(m) === 'party' && m.entityId) out.add(m.entityId);
+  }
   return out;
 }
 
@@ -52,6 +56,7 @@ export function attackers(world: World, radius = 18): string[] {
   const out: { id: string; d: number }[] = [];
   for (const u of Object.values(unitsOf(world))) {
     if (u.side !== 'enemy' || !alive(world, u.id)) continue;
+    if (u.ai?.state === 'evade' || u.ai?.state === 'yielded') continue;
     const e = getEntity(world, u.id);
     if (!e || e.mapId !== p.mapId) continue;
     const engaged =
@@ -99,7 +104,7 @@ export function huntable(
     if (!u.attackable || !alive(world, u.id)) continue;
     const e = getEntity(world, u.id);
     if (!e || e.mapId !== p.mapId) continue;
-    if (!isHostile(world, me.id, u.id)) continue;
+    if (!isHostile(world, me.id, u.id) || !canAttack(world, me, u)) continue;
     if (u.level - me.level > maxLevelGap) continue;
     if (u.ai?.state === 'yielded') continue;
     if (!match(e, u)) continue;
@@ -135,6 +140,7 @@ export function companionInNeed(
   const p = playerEntity(world);
   let best: { id: string; frac: number } | null = null;
   for (const m of Object.values(world.slices.party?.members ?? {})) {
+    if (stateOf(m) !== 'party') continue;
     if (!m.entityId || !alive(world, m.entityId)) continue;
     const e = getEntity(world, m.entityId);
     if (!e || !p || e.mapId !== p.mapId) continue;
@@ -266,7 +272,7 @@ export function chooseAbility(
 export function selfHeal(
   world: World,
   content: ContentMap,
-  opts: { shield?: boolean } = {},
+  opts: { shield?: boolean; defensive?: boolean } = {},
 ): { abilityId: string; targetId?: string } | null {
   const pid = world.slices.world.playerId;
   const me = unitsOf(world)[pid];
@@ -279,7 +285,14 @@ export function selfHeal(
   for (const d of defs) {
     const use = d.ai ?? 'filler';
     if (d.target !== 'self' && d.target !== 'party' && d.target !== 'ally') continue;
-    if (use !== 'heal' && use !== 'emergency' && use !== 'hot' && use !== 'shield') continue;
+    if (
+      use !== 'heal' &&
+      use !== 'emergency' &&
+      use !== 'hot' &&
+      use !== 'shield' &&
+      !(opts.defensive && use === 'defensive')
+    )
+      continue;
     if (use === 'shield' && opts.shield === false) continue;
     if ((use === 'hot' || use === 'shield') && hasAura(me, auraOf(d))) continue;
     return { abilityId: d.id, targetId: d.target === 'ally' ? pid : undefined };
@@ -295,6 +308,8 @@ export function fightCommands(
 ): CombatCommand[] {
   const me = unitsOf(world)[world.slices.world.playerId];
   if (!me) return [];
+  const target = unitsOf(world)[targetId];
+  if (!target || !canAttack(world, me, target)) return [];
   const out: CombatCommand[] = [];
   if (me.target !== targetId) out.push({ kind: 'combat.target', data: { targetId } });
   if (!me.autoAttack || me.target !== targetId) {
@@ -333,7 +348,7 @@ export function companionsReady(world: World, content: ContentMap, minHealth = 0
   if (!p) return true;
   for (const m of Object.values(world.slices.party?.members ?? {})) {
     // only those walking with the party count (a roster may also hold standby or resting ones)
-    if (((m as { state?: string }).state ?? 'party') !== 'party') continue;
+    if (stateOf(m) !== 'party') continue;
     // one in the party with no body in the world is not standing with it
     const u = m.entityId ? unitsOf(world)[m.entityId] : undefined;
     const e = m.entityId ? getEntity(world, m.entityId) : undefined;
@@ -360,8 +375,10 @@ function weakened(content: ContentMap, u: Unit): boolean {
 /** What the party can take on at once, in pullCost units. */
 export function partyStrength(world: World): number {
   let n = 1.7;
+  const player = playerEntity(world);
   for (const m of Object.values(world.slices.party?.members ?? {})) {
-    if (alive(world, m.entityId)) n += 0.9;
+    if (stateOf(m) !== 'party' || !alive(world, m.entityId)) continue;
+    if (getEntity(world, m.entityId)?.mapId === player?.mapId) n += 0.9;
   }
   return n;
 }

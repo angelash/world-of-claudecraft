@@ -228,6 +228,8 @@ export interface WindowSettings {
 
 export interface LocalSettings {
   version: number;
+  /** This installation completed or explicitly skipped the first-run pages. */
+  onboardingDone: boolean;
   quality: QualityId;
   /** null until the player moves the camera: the session picks a size-based default. */
   view: StoredView | null;
@@ -572,6 +574,7 @@ function partFields(
     frameCap: { def: () => 60, parse: oneOf(FRAME_CAPS) },
     installId: { def: () => null, parse: nullable(parseInstallId) },
     audioDevice: { def: () => null, parse: nullable(parseAudioDevice) },
+    onboardingDone: { def: () => false, parse: bool },
     llm: { def: () => ({}), parse: parseLlm },
   };
   return local;

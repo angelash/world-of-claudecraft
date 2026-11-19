@@ -177,7 +177,7 @@ export function mirrorNest(ctx: SystemContext, id: string, st: NestState): void 
   mirror(ctx, `${base}.stage`, st.stage);
   mirror(ctx, `${base}.phase`, nestPhase(st));
   mirror(ctx, `${base}.choice`, st.choice);
-  mirror(ctx, `${base}.cleared`, st.cleared);
+  if (ctx.flag(`dg.${id}.cleared`) !== st.cleared) ctx.setFlag(`dg.${id}.cleared`, st.cleared);
   if (st.collapsed) mirror(ctx, `${base}.collapsed`, true);
 }
 
@@ -235,24 +235,34 @@ export function addActivity(
  * The core boss died (or a script says the dungeon is cleared): activity falls, the clock
  * stops, and it counts as a clearing sweep.
  */
-export function clearDungeon(ctx: SystemContext, def: DungeonDef, st: DungeonState): void {
+export function clearDungeon(
+  ctx: SystemContext,
+  def: DungeonDef,
+  st: DungeonState,
+  credit: { victimId?: string; killerId?: string } = {},
+): void {
   const cfg = dungeonConfig(ctx.content);
   if (!cfg || st.collapsed || st.purified) return;
   st.cleared = true;
   st.overflowAt = -1;
   sweep(ctx, st);
-  ctx.emit('dungeon.cleared', { id: def.id, kind: 'dungeon' });
+  ctx.emit('dungeon.cleared', { id: def.id, kind: 'dungeon', ...credit });
   addActivity(ctx, def, st, cfg.activity.coreKill);
   mirrorDungeon(ctx, def.id, st);
 }
 
 /** The nest's lord or head died (or a script cleared it): the growth window starts over. */
-export function clearNest(ctx: SystemContext, def: NestDef, st: NestState): void {
+export function clearNest(
+  ctx: SystemContext,
+  def: NestDef,
+  st: NestState,
+  credit: { victimId?: string; killerId?: string } = {},
+): void {
   if (!st.live || st.collapsed || st.purified || st.matured) return;
   st.cleared = true;
   st.clearedTick = ctx.tick;
   st.since = ctx.tick;
-  ctx.emit('dungeon.cleared', { id: def.id, kind: 'nest' });
+  ctx.emit('dungeon.cleared', { id: def.id, kind: 'nest', ...credit });
   mirrorNest(ctx, def.id, st);
 }
 

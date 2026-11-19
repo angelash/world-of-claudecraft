@@ -82,6 +82,8 @@ export interface GameSystem {
   order: number;
   /** Create this system's slice on a fresh world. */
   init?(ctx: SystemContext): void;
+  /** Backfill this owner's loaded state once, before any resumed command or tick. */
+  resume?(ctx: SystemContext): void;
   tick?(ctx: SystemContext): void;
   commands?: { [K in CommandKind]?: CommandHandler<K> };
   on?: { [K in EventKind]?: EventHandler<K> };

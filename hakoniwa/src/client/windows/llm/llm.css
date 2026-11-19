@@ -1,0 +1,73 @@
+.hk-llm-dialog {
+  box-sizing: border-box;
+  color: var(--hk-text, #e3d5b8);
+  background: var(--hk-panel, #211f1b);
+  border: 1px solid var(--hk-border, #897147);
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  overflow: auto;
+}
+.hk-llm-dialog::backdrop {
+  background: rgb(0 0 0 / 72%);
+}
+.hk-llm-dialog header,
+.hk-llm-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.hk-llm-dialog h2 {
+  margin: 0;
+  font:
+    600 24px "Noto Serif SC",
+    "Songti SC",
+    serif;
+}
+.hk-llm-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.hk-llm-card {
+  border-top: 1px solid #5c503b;
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.hk-llm-card p {
+  font-size: 13px;
+  color: var(--hk-muted, #b5ac99);
+}
+.hk-llm-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 9px 0;
+  font-size: 14px;
+}
+.hk-llm-field input:not([type="checkbox"]),
+.hk-llm-field select {
+  width: 58%;
+  min-width: 0;
+  color: inherit;
+  background: #151512;
+  border: 1px solid #65593f;
+  padding: 6px;
+}
+.hk-llm-status {
+  min-height: 1.5em;
+}
+.hk-llm-results {
+  grid-column: 1 / -1;
+}
+@media (max-width: 620px) {
+  .hk-llm-body {
+    grid-template-columns: 1fr;
+  }
+  .hk-llm-dialog {
+    padding: 16px;
+  }
+}

@@ -9,18 +9,23 @@ import type { Engine } from '../../core/engine';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
 import { courtSite } from '../../systems/city/common';
 import { unitView, xpProgress } from '../../systems/combat';
+import { MELEE_RANGE } from '../../systems/combat/defs';
 import { catchUpActive } from '../../systems/combat/progression';
+import { deriveStats } from '../../systems/combat/stats';
 import { currentConversation } from '../../systems/dialogue';
 import { corridorView } from '../../systems/doors';
 import { holdingOf } from '../../systems/inventory';
+import { stateOf } from '../../systems/party/roster';
 import { openingActId } from '../../systems/quests/act_order';
 import { evaluate, flagResolver } from '../../systems/quests/conditions';
 import type { Objective, QuestDef } from '../../systems/quests/types';
 import { sceneView } from '../../systems/scenes';
-import { canWait, MAX_SKIP_HOURS, skipState } from '../../systems/travel';
+import { canWait, MAX_WAIT_HOURS, skipState } from '../../systems/travel';
+import { hostileInReach } from '../../systems/travel/rest';
 import { pendingScenario } from '../../systems/warfare';
-import { mapById, playerEntity } from '../../systems/world';
+import { findPath, mapById, playerEntity, walkMap } from '../../systems/world';
 import type { Entity } from '../../systems/world/types';
+import { helpfulBreakable } from './boss_objects';
 import { clockExtras, clockWait, waitsOnClock, windowOpenIn } from './clock';
 import { DomainPlanner } from './domains';
 import {
@@ -30,6 +35,7 @@ import {
   fightCommands,
   friendlyIds,
   gapBetween,
+  hostilesAround,
   huntable,
   partyStrength,
   playerHasAura,
@@ -40,11 +46,14 @@ import {
   unitLevel,
 } from './fight';
 import { gearUpgrade } from './goods';
-import { insideLocation, locationPoint, nextLeg } from './nav';
+import { WarningAvoidance } from './hazards';
+import { maintainGear } from './maintenance';
+import { insideLocation, locationPoint, nextLeg, reachableExits } from './nav';
 import { modelObjectivePlan } from './objective_plan';
 import { upcomingWaveBosses } from './prepare';
 import { gatedObjective } from './quest_gates';
 import { ReachMemory } from './reach';
+import { bossLurePoint, localRecoveryPoint, safeRecoveryExits } from './recovery';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
 
@@ -133,6 +142,10 @@ export class Autoplayer {
   private chasing: string | null = null;
   /** the last heal tried instead of running (one per losing spell) */
   private healTriedAt = -1_000_000;
+  private leavingScene = false;
+  private packRetreat: { mapId: string; bossId: string; x: number; y: number } | null = null;
+  private readonly noticeWaitAt: Record<string, number> = {};
+  private readonly warnings = new WarningAvoidance();
 
   constructor(
     readonly engine: Engine,
@@ -167,6 +180,7 @@ export class Autoplayer {
           )
             this.reach.mark(this.walkFor, e.tick);
         } else if (e.kind === 'entity.died' && e.data.id === engine.world.slices.world.playerId) {
+          this.packRetreat = null;
           this.deaths++;
           const killerId = e.data.killerId;
           const killer = killerId ? engine.world.slices.world.entities[killerId] : undefined;
@@ -298,12 +312,60 @@ export class Autoplayer {
     const domain = this.domains.urgent();
     if (domain !== null) return domain;
     // a skip from an earlier wait() is running: ride it out rather than second-guess it;
-    // the kernel's own interrupts (travel_and_exploration.md 7.4) end it on anything that
-    // needs a decision, and only then does the rest of think() see the world again
+    // the kernel advances a whole coarse step for step(1). Let think() run again after
+    // that boundary so an interrupt does not spend the cancelled skip's remaining hours.
     const running = skipState(this.world);
-    if (running) return Math.max(1, running.endTick - this.engine.tick);
+    if (running) return 1;
     const p = this.player();
     if (!p) return IDLE_STEP;
+    if (this.warnings.avoid(this)) return THINK;
+    if (this.leavingScene) {
+      this.leavingScene = false;
+      // An encounter scene may place the player inside an idle boss's whole guard
+      // pack. Back out before attacking, then approach from outside their alerts.
+      const boss = huntable(
+        this.world,
+        (_e, u) => this.content.monsters.find((m) => m.id === u.monsterId)?.rank === 'boss',
+      ).find((id) => {
+        const e = this.world.slices.world.entities[id];
+        return (
+          !!e &&
+          Math.hypot(e.x - p.x, e.y - p.y) < 6 &&
+          hostilesAround(this.world, e.mapId, e.x, e.y, 6) > partyStrength(this.world) * 2
+        );
+      });
+      const map = walkMap(this, p.mapId);
+      const exit =
+        map && boss
+          ? reachableExits(map, this.flags, p).sort(
+              (a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
+            )[0]
+          : undefined;
+      const body = boss ? this.world.slices.world.entities[boss] : undefined;
+      const point = map && body && exit ? bossLurePoint(this, map, p, body, exit) : null;
+      if (point && boss) this.packRetreat = { mapId: p.mapId, bossId: boss, ...point };
+    }
+    if (this.packRetreat) {
+      const dest = this.packRetreat;
+      if (!p.alive || p.mapId !== dest.mapId) this.packRetreat = null;
+      else {
+        this.intent = { what: 'separate the boss from its guard pack' };
+        this.send({ kind: 'combat.stop', data: {} });
+        this.partyOrder('passive');
+        if (Math.hypot(p.x - dest.x, p.y - dest.y) > 1.2) {
+          this.moveOnMap(dest.x, dest.y);
+          return THINK;
+        }
+        this.stopMoving();
+        const pursuing = attackers(this.world);
+        if (pursuing.some((id) => id !== dest.bossId)) {
+          this.packRetreat = null;
+          const fled = this.flee();
+          if (fled !== null) return fled;
+        }
+        this.packRetreat = null;
+      }
+    }
     if (p.mapId === courtSite(this.content)?.mapId) {
       this.intent = { what: 'leave the inner court' };
       this.send({ kind: 'city.leave_court', data: {} });
@@ -320,10 +382,17 @@ export class Autoplayer {
         // one heal per losing spell: a heal that did not turn the race is not tried again soon
         const tried = this.engine.tick - this.healTriedAt < HEAL_RETRY;
         const heal =
-          !this.fleeing && hp > 0.2 && !tried ? selfHeal(this.world, this.content) : null;
+          !this.fleeing && hp > 0.2 && !tried
+            ? selfHeal(this.world, this.content, { defensive: true })
+            : null;
         if (heal) {
           this.healTriedAt = this.engine.tick;
-          this.intent = { what: 'heal before running' };
+          this.intent = {
+            what:
+              this.content.abilities.find((a) => a.id === heal.abilityId)?.ai === 'defensive'
+                ? 'defend before running'
+                : 'heal before running',
+          };
           this.send({ kind: 'combat.cast', data: heal });
           return THINK;
         }
@@ -358,6 +427,8 @@ export class Autoplayer {
         return 2;
       }
     }
+    const upkeep = maintainGear(this);
+    if (upkeep !== null) return upkeep;
     // monsters about to notice us: take them one at a time on our terms
     const strength = partyStrength(this.world);
     const close = this.reachable(huntable(this.world, (e) => e.kind === 'monster', 3)).filter(
@@ -389,7 +460,7 @@ export class Autoplayer {
     // a skip queued by an earlier wait() is now running (commands land the tick after
     // they are sent): ride it out, the same kernel entry a player's own wait uses (D-071)
     const running = skipState(this.world);
-    if (running) return Math.max(1, running.endTick - this.engine.tick);
+    if (running) return 1;
     const danger = huntable(this.world, (e) => e.kind === 'monster').some((id) => {
       const e = this.world.slices.world.entities[id];
       return !!e && Math.hypot(e.x - p.x, e.y - p.y) <= 14;
@@ -398,7 +469,7 @@ export class Autoplayer {
     // stepping tick by tick; the companions stand down too (same as always)
     if (!danger && ticks >= TICKS_PER_GAME_HOUR && canWait(this, p.id).ok) {
       this.partyOrder('passive');
-      const hours = Math.min(MAX_SKIP_HOURS, Math.max(1, Math.floor(ticks / TICKS_PER_GAME_HOUR)));
+      const hours = Math.min(MAX_WAIT_HOURS, Math.max(1, Math.floor(ticks / TICKS_PER_GAME_HOUR)));
       this.send({ kind: 'time.skip', data: { hours, kind: 'wait', mode: 'long' } });
       return 1;
     }
@@ -407,7 +478,9 @@ export class Autoplayer {
 
   /** Give the companions an order once (they keep it until told otherwise). */
   partyOrder(order: 'assist' | 'passive'): void {
-    const members = Object.values(this.world.slices.party?.members ?? {});
+    const members = Object.values(this.world.slices.party?.members ?? {}).filter(
+      (m) => stateOf(m) === 'party',
+    );
     if (members.length === 0 || members.every((m) => m.order === order)) return;
     this.send({ kind: 'party.order', data: { order } });
   }
@@ -416,6 +489,7 @@ export class Autoplayer {
   // scenes
 
   private playScene(sv: NonNullable<ReturnType<typeof sceneView>>): number {
+    this.leavingScene = true;
     this.intent = { what: `scene ${sv.sceneId}/${sv.nodeId}` };
     if (sv.waiting === 'choice' || sv.waiting === 'court') {
       const ids = sv.choices.map((c) => c.id);
@@ -468,7 +542,7 @@ export class Autoplayer {
     const p = this.player();
     if (!p) return 'blocked';
     if (p.mapId !== mapId) {
-      const leg = nextLeg(this.content.maps, this.flags, p.mapId, mapId);
+      const leg = nextLeg(this.content.maps, this.flags, p.mapId, mapId, p);
       if (!leg) return 'blocked';
       const ex = leg.exit.x + 0.5;
       const ey = leg.exit.y + 0.5;
@@ -510,17 +584,56 @@ export class Autoplayer {
   // fighting
 
   fight(targetId: string, why: string): number {
+    const boss = [targetId, ...attackers(this.world)].find((id) => {
+      const u = this.world.slices.combat.units[id];
+      return this.content.monsters.find((m) => m.id === u?.monsterId)?.rank === 'boss';
+    });
+    const object = boss ? helpfulBreakable(this.world, this.content, boss) : null;
+    if (object) targetId = object;
     const p = this.player();
     const t = this.world.slices.world.entities[targetId];
     if (!p || !t) return THINK;
     this.intent = { what: `fight ${t.ref ?? t.id} (${why})` };
-    this.fightingRef = t.ref;
+    this.fightingRef = (boss ? this.world.slices.world.entities[boss]?.ref : undefined) ?? t.ref;
     this.partyOrder('assist');
     const conv = currentConversation(this.world);
     if (conv) this.send({ kind: 'dialogue.close', data: {} });
     const gap = gapBetween(p, t);
+    const target = this.world.slices.combat.units[targetId];
+    const monster = this.content.monsters.find((m) => m.id === target?.monsterId);
+    // Let a melee enemy come away from its pack once it has noticed the party.
+    // Walking all the way into its home pulls every nearby group at the same time.
+    const friends = friendlyIds(this.world);
+    const staggered = target?.auras.some(
+      (a) => a.id === 'aur_st_stagger' && a.expires > this.engine.tick,
+    );
+    let notice = false;
+    if (monster?.rank === 'boss' && target?.ai?.state === 'idle') {
+      const radius =
+        (monster.aggroRadius ?? 5) +
+        Math.max(
+          -(monster.aggroRadius ?? 5) / 2,
+          Math.min((monster.aggroRadius ?? 5) / 2, (target.level - (this.me()?.level ?? 1)) * 0.25),
+        );
+      if (Math.hypot(t.x - p.x, t.y - p.y) < radius - 0.25) {
+        const map = walkMap(this, p.mapId);
+        const at = this.noticeWaitAt[targetId] ?? this.engine.tick;
+        this.noticeWaitAt[targetId] = at;
+        notice = this.engine.tick - at <= 20 && !!map && findPath(map, p, t) !== null;
+      }
+    }
+    const waitingForPull =
+      gap > 0.9 &&
+      (monster?.range ?? 0) <= 2 &&
+      (notice ||
+        staggered ||
+        (target?.ai?.state === 'chase' &&
+          (!!t.move || (!!target.cast && target.cast.end > this.engine.tick)) &&
+          (friends.has(target.target ?? '') ||
+            Object.keys(target.threat).some((id) => friends.has(id)))));
     this.chasing = targetId;
-    if (gap > 0.9) this.walkTo(t.mapId, t.x, t.y, 0.5);
+    if (waitingForPull) this.stopMoving();
+    else if (gap > 0.9) this.walkTo(t.mapId, t.x, t.y, 0.5);
     else if (p.move) this.stopMoving();
     this.chasing = null;
     for (const c of fightCommands(this.world, this.content, targetId)) {
@@ -560,10 +673,9 @@ export class Autoplayer {
   /** Run for the nearest exit: a new map drops every pursuer. Null when there is none. */
   private flee(): number | null {
     const p = this.player();
-    const map = p ? mapById(this.content, p.mapId) : undefined;
+    const map = p ? walkMap(this, p.mapId) : undefined;
     if (!p || !map) return null;
-    const exits = map.exits
-      .filter((x) => !x.requiresFlags?.some((f) => !this.flags[f]))
+    const exits = reachableExits(map, this.flags, p)
       .map((x) => ({ x, d: Math.hypot(x.x + 0.5 - p.x, x.y + 0.5 - p.y) }))
       .sort((a, b) => a.d - b.d);
     const exit = exits[0];
@@ -615,6 +727,25 @@ export class Autoplayer {
         return this.rest(`${why}: rest before the next pull`);
       }
       return this.fight(target, why);
+    }
+    // A named target on its bounded evade walk cannot be struck. Following it home
+    // would pull its guards again before the player has recovered from the last pull.
+    if (
+      refs &&
+      Object.values(this.world.slices.combat.units).some((u) => {
+        const e = this.world.slices.world.entities[u.id];
+        return (
+          e?.alive &&
+          e.mapId === mapId &&
+          !!e.ref &&
+          refs.includes(e.ref) &&
+          u.ai?.state === 'evade'
+        );
+      })
+    ) {
+      this.intent = { what: `${why}: wait for the target to return home` };
+      this.stopMoving();
+      return 20;
     }
     // nothing alive here: walk to the spawn that holds them and wait for a respawn
     const map = mapById(this.content, mapId);
@@ -830,7 +961,7 @@ export class Autoplayer {
         return this.hunt(o, why);
       }
       case 'choice': {
-        const opt = o.options[0];
+        const opt = o.options.find((option) => this.holds(option.when));
         if (!opt) return null;
         if (o.npc) return this.talk(o.npc, `quests:choice:${def.id}:${opt.id}`, why);
         this.intent = { what: why };
@@ -884,21 +1015,34 @@ export class Autoplayer {
   rest(why: string): number {
     const p = this.player();
     this.intent = { what: why };
-    if (!p) return 40;
-    const danger = huntable(this.world, (e) => e.kind === 'monster', 6).some((id) => {
-      const e = this.world.slices.world.entities[id];
-      return !!e && Math.hypot(e.x - p.x, e.y - p.y) <= 9;
-    });
-    const map = mapById(this.content, p.mapId);
+    if (!p?.alive) return 40;
+    const danger = hostileInReach(this, p);
+    const map = walkMap(this, p.mapId);
     if (danger && map && map.exits.length > 0) {
-      const exit = [...map.exits].sort(
+      const exit = safeRecoveryExits(this, map, p).sort(
         (a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
       )[0];
-      if (exit && Math.hypot(exit.x + 0.5 - p.x, exit.y + 0.5 - p.y) > 2.5) {
+      if (exit) {
         this.intent = { what: `${why} (backing off)` };
-        this.moveOnMap(exit.x + 0.5, exit.y + 0.5);
+        if (Math.hypot(exit.x + 0.5 - p.x, exit.y + 0.5 - p.y) <= 1.5) {
+          this.send({ kind: 'world.use_exit', data: { entityId: p.id, exitId: exit.id } });
+        } else {
+          this.moveOnMap(exit.x + 0.5, exit.y + 0.5);
+        }
         return THINK;
       }
+    }
+    if (danger && map) {
+      const point = localRecoveryPoint(this, map, p);
+      if (point) {
+        this.intent = { what: `${why} (find room to rest)` };
+        this.moveOnMap(point.x, point.y);
+        return THINK;
+      }
+    }
+    if (!danger) {
+      const upkeep = maintainGear(this, { nearbyOnly: true });
+      if (upkeep !== null) return upkeep;
     }
     this.stopMoving();
     // heal up with spells rather than wait for it (keeps half the mana for the fight)
@@ -934,13 +1078,13 @@ export class Autoplayer {
   /** Of several attackers, the one closest to dying (fewer swings at us sooner). */
   private weakest(ids: string[]): string {
     let best = ids[0] as string;
-    let bestFrac = Number.POSITIVE_INFINITY;
+    let bestHp = Number.POSITIVE_INFINITY;
     for (const id of ids.slice(0, 4)) {
       const v = unitView(this.world, this.content, id);
-      const frac = v && v.maxHp > 0 ? v.hp / v.maxHp : 1;
-      if (frac < bestFrac - 0.05) {
+      const hp = v?.hp ?? Number.POSITIVE_INFINITY;
+      if (hp < bestHp) {
         best = id;
-        bestFrac = frac;
+        bestHp = hp;
       }
     }
     return best;
@@ -959,11 +1103,14 @@ export class Autoplayer {
     return use === 'heal' || use === 'emergency' || use === 'hot' || use === 'shield';
   }
 
-  /** A unit within two tiles of the player (edge to edge). */
+  /** A unit within the player's real weapon reach, even when its tile is unreachable. */
   private atHand(id: string): boolean {
     const p = this.player();
     const e = this.world.slices.world.entities[id];
-    return !!p && !!e && gapBetween(p, e) <= 2;
+    const u = this.world.slices.combat.units[this.world.slices.world.playerId];
+    if (!p || !e || !u) return false;
+    const weapon = deriveStats(this.world, this.content, u).weapon;
+    return gapBetween(p, e) <= (weapon.range > 0 ? weapon.range : MELEE_RANGE);
   }
 
   /** Of these targets, the ones the player has not just failed to walk to (reach.ts). */
@@ -991,8 +1138,12 @@ export class Autoplayer {
     if (level > 0 && def?.mechanics?.partySync) level = Math.max(level, def.minLevel);
     if (level === 0) return true;
     // an outsider alone needs a clear margin over a boss and its adds; companions close it
-    const party = Object.keys(this.world.slices.party?.members ?? {}).length;
-    const margin = Math.max(-2, 4 - 2 * party);
+    const mapId = this.player()?.mapId;
+    const party = Object.values(this.world.slices.party?.members ?? {}).filter(
+      (m) =>
+        stateOf(m) === 'party' && this.world.slices.world.entities[m.entityId]?.mapId === mapId,
+    ).length;
+    const margin = def?.tier === 'tutorial' ? 0 : Math.max(-2, 4 - 2 * party);
     const losses = this.lossesTo[ref] ?? 0;
     return xpProgress(this.world).level >= level + margin + Math.min(losses, 4);
   }
@@ -1035,7 +1186,7 @@ export class Autoplayer {
     let best: { id: string; cost: number; score: number } | null = null;
     for (const [id, v] of [...pulls].sort((a, b) => a[0].localeCompare(b[0]))) {
       const hops =
-        id === p.mapId ? 0 : (nextLeg(this.content.maps, this.flags, p.mapId, id)?.hops ?? 99);
+        id === p.mapId ? 0 : (nextLeg(this.content.maps, this.flags, p.mapId, id, p)?.hops ?? 99);
       if (hops >= 99) continue;
       const score = Math.max(v.cost, strength * 0.8) * 4 + hops - Math.min(v.n, 8) * 0.25;
       if (!best || score < best.score) best = { id, cost: v.cost, score };

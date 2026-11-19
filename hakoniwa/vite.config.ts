@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type PluginOption, runnerImport } from 'vite';
+import { releaseMediaPlugin } from './tools/assets/release_pack';
 import { releaseBundleGuard } from './tools/release_bundle';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -60,7 +61,9 @@ export default defineConfig(async ({ command, mode }) => {
     const devApi = await loadDevApi(root);
     if (devApi) plugins.push(devApi);
   }
-  if (command === 'build' && target === 'desktop') plugins.push(releaseBundleGuard());
+  if (command === 'build' && target === 'desktop') {
+    plugins.push(releaseMediaPlugin(resolve(root, 'assets')), releaseBundleGuard());
+  }
   return {
     root,
     publicDir: resolve(root, 'public'),

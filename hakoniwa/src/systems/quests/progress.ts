@@ -12,6 +12,7 @@ import { playerEntity } from '../world';
 import { currentActId } from './act_order';
 import { applyEffects, conditionHolds } from './effects';
 import { questDefOf } from './instances';
+import { matchesQuestNpc } from './npc_matches';
 import {
   atPlace,
   FAILED,
@@ -329,6 +330,10 @@ export function scanAvailability(ctx: SystemContext): void {
 export function offerable(ctx: SystemContext, npc: string): QuestDef[] {
   const slice = ctx.world.slices.quests;
   return ctx.content.quests.filter(
-    (d) => d.giver === npc && !slice.quests[d.id] && available(ctx, d),
+    (d) =>
+      d.giver !== undefined &&
+      matchesQuestNpc(ctx.content, d.giver, npc) &&
+      !slice.quests[d.id] &&
+      available(ctx, d),
   );
 }

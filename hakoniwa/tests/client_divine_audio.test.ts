@@ -5,13 +5,88 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cueChanged, divineCue, goddessTheme } from '../src/client/hud/story/divine_audio';
+import { AudioDirector, type DirectorInput } from '../src/client/audio/audio_director';
+import {
+  cueChanged,
+  divineCue,
+  divineLines,
+  goddessTheme,
+} from '../src/client/hud/story/divine_audio';
 import { narrativeContent } from './narrative_harness';
 
 const GODS = new Set(['eluen', 'merca', 'janu']);
 const line = (speakerId: string, kind = 'divine') => ({ speakerId, kind });
 
+function directorInput(over: Partial<DirectorInput>): DirectorInput {
+  return {
+    nowMs: 0,
+    location: null,
+    night: false,
+    view: 'personal',
+    cutscene: { music: null, silence: false },
+    boss: null,
+    combat: { hostiles: [], playerLevel: 1, wave: false },
+    divine: null,
+    dream: false,
+    tension: { aware: false, sediment: 0, wild: false, flag: 0 },
+    dialogueOpen: false,
+    paused: false,
+    combatMusic: true,
+    ...over,
+  };
+}
+
+describe('unscripted music during a cutscene', () => {
+  it('hears a goddess or the dream when the scene specifies no track', () => {
+    const d = new AudioDirector();
+    let f = d.update(directorInput({ divine: { music: 'mus_god_eluen' }, dream: true }));
+    expect(f.context).toBe('divine');
+    expect(f.music.id).toBe('mus_god_eluen');
+    expect(f.ducks).toContain('oracle_theme');
+    f = d.update(directorInput({ dream: true }));
+    expect(f.context).toBe('dream');
+    expect(f.music.id).toBe('mus_cue_dream_door');
+  });
+
+  it('retains the priority of explicit scene music and written silence', () => {
+    const d = new AudioDirector();
+    const extra = { divine: { music: 'mus_god_eluen' }, dream: true };
+    let f = d.update(
+      directorInput({ ...extra, cutscene: { music: 'mus_written', silence: false, layers: 1 } }),
+    );
+    expect(f.context).toBe('cutscene');
+    expect(f.music.id).toBe('mus_written');
+    f = d.update(directorInput({ ...extra, cutscene: { music: null, silence: true } }));
+    expect(f.context).toBe('cutscene');
+    expect(f.music.id).toBeNull();
+  });
+});
+
 describe('divine and dream cues', () => {
+  it('hears an oracle from the loose dialogue model as well as a scene', () => {
+    const lines = divineLines({
+      cutscene: null,
+      dialogue: { mode: 'loose', speakerId: 'merca', looseKind: 'divine' },
+    });
+    expect(lines).toEqual([line('merca')]);
+    expect(divineCue({ lines: lines ?? [], goddesses: GODS, reverbZone: '' }).divine).toBe(
+      'mus_god_merca',
+    );
+    expect(
+      divineLines({
+        cutscene: { lines: [line('eluen')] },
+        dialogue: { mode: 'loose', speakerId: 'merca', looseKind: 'divine' },
+      }),
+    ).toEqual([line('eluen')]);
+    expect(divineLines({ cutscene: null, dialogue: null })).toBeNull();
+    expect(
+      divineLines({
+        cutscene: null,
+        dialogue: { mode: 'talk', speakerId: 'merca', looseKind: '' },
+      }),
+    ).toBeNull();
+  });
+
   it('her theme while she is the last to speak a divine line', () => {
     expect(
       divineCue({

@@ -7,6 +7,7 @@
 
 import { tileAt } from '../../systems/world/grid';
 import type { MapDef, TileKind } from '../../systems/world/types';
+import { groundSurface } from '../assets/surface_art';
 import { mix, shadeRamp } from '../sprites/palette';
 import {
   bayer4,
@@ -311,10 +312,41 @@ export function bakeGround(map: MapDef, frame = 0, opts: BakeOptions = {}): Pixe
   const water = rampOf('water', ramps);
   const deep = rampOf('deep_water', ramps);
   const faceRamp = [0x55524f, 0x6f6c68, 0x7c7975, 0x4a4744];
+  const art = new Map<string, PixelMatrix>();
+  const texture = (kind: TileKind, x: number, y: number): PixelMatrix => {
+    const base = tileTexture(kind, tileVariant(x, y, salt), frame, ramps);
+    const surface = groundSurface(map, kind, x, y);
+    if (!surface) return base;
+    const sheet = surface.pixels;
+    const ox = ((x % 4) + 4) % 4;
+    const oy = ((y % 4) + 4) % 4;
+    const key = `${surface.id}:${ox}:${oy}:${kind}:${tileVariant(x, y, salt)}`;
+    const hit = art.get(key);
+    if (hit) return hit;
+    const tex = createMatrix(S, S);
+    // Transparent holes retain the existing terrain; neighbour dithering samples this same
+    // composite so an empty art pixel can never erase collision-readable ground.
+    tex.rgba.set(base.rgba);
+    for (let py = 0; py < S; py++) {
+      for (let px = 0; px < S; px++) {
+        const sx = Math.floor(((ox * S + px) * sheet.w) / (S * 4));
+        const sy = Math.floor(((oy * S + py) * sheet.h) / (S * 4));
+        const si = (sy * sheet.w + sx) * 4;
+        const di = (py * S + px) * 4;
+        const alpha = (sheet.rgba[si + 3] ?? 0) / 255;
+        for (let c = 0; c < 3; c++)
+          tex.rgba[di + c] = Math.round(
+            (sheet.rgba[si + c] ?? 0) * alpha + (tex.rgba[di + c] ?? 0) * (1 - alpha),
+          );
+      }
+    }
+    art.set(key, tex);
+    return tex;
+  };
   for (let ty = 0; ty < map.height; ty++) {
     for (let tx = 0; tx < map.width; tx++) {
       const kind = tileAt(map, tx, ty);
-      const tex = tileTexture(kind, tileVariant(tx, ty, salt), frame, ramps);
+      const tex = texture(kind, tx, ty);
       blit(out, tex, tx * S, ty * S);
       const myP = SOFT_PRIORITY[kind];
       const neigh: [number, number, 'n' | 's' | 'w' | 'e'][] = [
@@ -329,7 +361,7 @@ export function bakeGround(map: MapDef, frame = 0, opts: BakeOptions = {}): Pixe
           const nk = tileAt(map, tx + dx, ty + dy);
           const np = SOFT_PRIORITY[nk];
           if (np === undefined || np <= myP || groundUnder(nk) === groundUnder(kind)) continue;
-          const ntex = tileTexture(nk, tileVariant(tx + dx, ty + dy, salt), frame, ramps);
+          const ntex = texture(nk, tx + dx, ty + dy);
           for (let d = 0; d < EDGE_DITHER.length; d++) {
             for (let i = 0; i < S; i++) {
               const px = side === 'w' ? d : side === 'e' ? S - 1 - d : i;

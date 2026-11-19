@@ -1,0 +1,78 @@
+.hk-player-popup {
+  box-sizing: border-box;
+  position: absolute;
+  right: 22px;
+  top: 150px;
+  z-index: 38;
+  width: min(390px, calc(100vw - 32px));
+  max-height: calc(100dvh - 180px);
+  overflow: auto;
+  padding: 18px;
+  color: var(--hk-text, #f1e9db);
+  background: var(--hk-panel, #171d29);
+  border: 1px solid #a38c65;
+  box-shadow: 0 14px 48px #000a;
+  pointer-events: auto;
+  overflow-wrap: anywhere;
+}
+
+.hk-player-popup[hidden] {
+  display: none;
+}
+.hk-player-popup-title {
+  margin: 0;
+  font-size: 18px;
+}
+.hk-player-popup-body > canvas {
+  float: left;
+  margin: 0 14px 12px 0;
+  image-rendering: pixelated;
+}
+.hk-player-popup-body > footer {
+  clear: both;
+  margin-top: 18px;
+}
+.hk-player-popup .hk-row {
+  flex-wrap: wrap;
+}
+.hk-player-popup.appraisal {
+  top: 170px;
+  right: 44px;
+  z-index: 39;
+}
+.hk-player-popup.death_review {
+  top: 130px;
+  right: 50%;
+  transform: translateX(50%);
+  z-index: 40;
+}
+.hk-appraisal-reading {
+  padding: 20px 12px;
+  font-size: 26px;
+  color: #ead2a1;
+}
+.hk-appraisal-reading.vague {
+  background: repeating-linear-gradient(
+    0deg,
+    #d1ba8133,
+    #d1ba8133 1px,
+    transparent 1px,
+    transparent 5px
+  );
+}
+.hk-death-hit {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  border-bottom: 1px solid #a38c6533;
+  padding: 5px 0;
+}
+
+@media (max-width: 600px) {
+  .hk-player-popup,
+  .hk-player-popup.appraisal {
+    right: 16px;
+    top: 110px;
+    max-height: calc(100dvh - 140px);
+  }
+}

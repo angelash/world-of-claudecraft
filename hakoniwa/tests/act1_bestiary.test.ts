@@ -72,13 +72,7 @@ const ROWS: [string, string, string, number, number][] = [
 const RANK: Record<string, string> = { n: 'normal', e: 'elite', r: 'rare', b: 'boss' };
 
 /** Species the maps cannot hold yet (a hub town, a quest gate, the act 5 battle line). */
-const UNPLACED = [
-  'gravefield_wisp',
-  'oldwatch_sentinel',
-  'bell_weeper',
-  'red_sock',
-  'ashtide_vanguard',
-];
+const UNPLACED = ['oldwatch_sentinel', 'bell_weeper', 'red_sock', 'ashtide_vanguard'];
 
 function placed(id: string): boolean {
   if (content.maps.some((m) => m.spawns.some((s) => s.kind === 'monster' && s.ref === id)))
@@ -125,6 +119,7 @@ describe('the act-1 bestiary rows (bestiary 3 to 6, dungeon catalog 3.1)', () =>
     expect([mon('rust_matron').hpMult, mon('rust_matron').dmgMult]).toEqual([3.48, 1.2]);
     expect(mon('furrow_rat_queen').tier).toBeUndefined();
     expect(mon('furrow_rat_queen').loot?.map((l) => l.itemId)).toEqual([
+      'rat_queen_heart',
       'crystal_medium_raw',
       'eq_furrow_queen_charm',
     ]);

@@ -63,6 +63,7 @@ describe('window.hk bridge', () => {
         'models',
         'onProblem',
         'request',
+        'scope',
         'secretClear',
         'secretEnter',
         'secretHas',

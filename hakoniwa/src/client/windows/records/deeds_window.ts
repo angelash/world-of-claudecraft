@@ -5,6 +5,7 @@
 
 import { el } from '../../../shared_ui/dom';
 import { t } from '../../../shared_ui/i18n';
+import { ArtIcon } from '../../hud/art_icon';
 import { actionButton, badge, empty, rebuilder, tabs } from '../kit';
 import { placeholderWindow } from '../simple_windows';
 import type { WindowContext } from '../window_context';
@@ -13,8 +14,12 @@ import { type DeedRow, type DeedsTab, deedsModel, type TitleRow, wearTarget } fr
 import './records.css';
 
 function deedCard(r: DeedRow): HTMLElement {
+  const icon = new ArtIcon(24);
+  // The picture can name a hidden accomplishment as readily as its title.
+  icon.show('deed', r.earned ? r.id : null);
   return el('div', { className: `hk-card hk-deed${r.earned ? ' earned' : ' unearned'}` }, [
     el('div', { className: 'hk-card-head' }, [
+      icon.el,
       el('strong', { text: r.label }),
       el('span', { className: 'hk-row-inline' }, [
         r.feat ? badge(t('ui.win.deeds.feat')) : null,

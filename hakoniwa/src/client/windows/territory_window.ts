@@ -5,6 +5,7 @@
 
 import { clear, el } from '../../shared_ui/dom';
 import { formatMoney, t } from '../../shared_ui/i18n';
+import { courtPanel } from './court_panel';
 import { actionButton, badge, empty, kv, rebuilder } from './kit';
 import { placeholderWindow } from './simple_windows';
 import type { WindowContext } from './window_context';
@@ -13,6 +14,7 @@ import type { WindowContent } from './window_manager';
 export function territoryWindow(ctx: WindowContext): WindowContent {
   const ad = ctx.adapters.territory;
   if (!ad) return placeholderWindow();
+  const court = courtPanel(ctx);
   const select = el('select', {
     className: 'hk-input',
     attrs: { 'aria-label': t('ui.win.territory.site') },
@@ -48,14 +50,6 @@ export function territoryWindow(ctx: WindowContext): WindowContent {
       };
     },
     (d) => {
-      if (d.court) {
-        body.append(
-          el('div', { className: 'hk-row' }, [
-            actionButton(ctx, t('ui.win.territory.enter_court'), () => ad.enterCourt(ctx.view)),
-            actionButton(ctx, t('ui.win.territory.leave_court'), () => ad.leaveCourt(ctx.view)),
-          ]),
-        );
-      }
       if (!d.site) {
         body.append(empty(t('ui.win.territory.empty_state')));
         return;
@@ -166,11 +160,13 @@ export function territoryWindow(ctx: WindowContext): WindowContent {
   );
   return {
     el: el('div', { className: 'hk-territory' }, [
+      court.el,
       el('div', { className: 'hk-row' }, [select]),
       body,
     ]),
     update: () => {
       fillSites();
+      court.update?.();
       render();
     },
   };

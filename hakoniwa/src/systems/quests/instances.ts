@@ -13,29 +13,34 @@ import type { TextParam } from '../../core/text';
 import type { QuestDef, QuestsSlice } from './types';
 
 type InstanceWorld = { slices: { quests: QuestsSlice } };
-type QuestLookup = { content: { quests: QuestDef[] }; world: InstanceWorld };
+type QuestLookup = {
+  content: { quests?: QuestDef[] };
+  world: { slices: { quests?: QuestsSlice } };
+};
+type QuestRegistration = { content: { quests: QuestDef[] }; world: InstanceWorld };
 
 /** The instance definitions of a world, by quest id (empty when there are none). */
-export function questInstances(world: InstanceWorld): Readonly<Record<string, QuestDef>> {
+export function questInstances(world: QuestLookup['world']): Readonly<Record<string, QuestDef>> {
   return world.slices.quests?.instances ?? {};
 }
 
 /** A quest's definition: the content's, else a run-time instance's. */
 export function questDefOf(ctx: QuestLookup, id: string): QuestDef | undefined {
-  return ctx.content.quests.find((q) => q.id === id) ?? questInstances(ctx.world)[id];
+  return ctx.content.quests?.find((q) => q.id === id) ?? questInstances(ctx.world)[id];
 }
 
 /** Every quest definition: the content's in content order, then the instances in insertion order. */
 export function allQuestDefs(ctx: QuestLookup): QuestDef[] {
+  const authored = ctx.content.quests ?? [];
   const inst = Object.values(questInstances(ctx.world));
-  return inst.length === 0 ? ctx.content.quests : [...ctx.content.quests, ...inst];
+  return inst.length === 0 ? authored : [...authored, ...inst];
 }
 
 /**
  * Register a built quest. False (nothing kept) when the id is taken by a content quest or
  * by another instance: ids are never reused, so a closed quest cannot come back.
  */
-export function addQuestInstance(ctx: QuestLookup, def: QuestDef): boolean {
+export function addQuestInstance(ctx: QuestRegistration, def: QuestDef): boolean {
   const slice = ctx.world.slices.quests;
   if (ctx.content.quests.some((q) => q.id === def.id)) return false;
   if (slice.instances?.[def.id] || slice.quests[def.id]) return false;

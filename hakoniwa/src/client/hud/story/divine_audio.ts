@@ -30,6 +30,16 @@ export interface DivineInputs {
   muted?: ReadonlySet<string>;
 }
 
+/** Visible speakers from the actual story models, including an oracle outside a scene. */
+export function divineLines(frame: {
+  cutscene: { lines: DivineInputs['lines'] } | null;
+  dialogue: { mode: string; speakerId: string; looseKind: string } | null;
+}): DivineInputs['lines'] | null {
+  if (frame.cutscene) return frame.cutscene.lines;
+  const line = frame.dialogue;
+  return line?.mode === 'loose' ? [{ speakerId: line.speakerId, kind: line.looseKind }] : null;
+}
+
 /** The theme id of a goddess by the audio naming rule (audio_direction.md 4.1). */
 export function goddessTheme(goddess: string): string {
   return `mus_god_${goddess}`;

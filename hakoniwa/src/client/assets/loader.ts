@@ -6,18 +6,18 @@
 // Development builds also load `review` records (loadedStatuses in ./types.ts), so generated
 // art shows before approval; ?assets=approved shows only approved art, as release would.
 //
-// This is the DOM side (Image, canvas, fetch); the rules live in the pure resolver. It serves
-// the development build only: the dev server hands out assets/ as files, so whatever
+// This is the DOM side (Image, canvas, fetch); the rules live in the pure resolver. In
+// development the dev server hands out assets/ as files, so whatever
 // `npm run assets:import` writes shows up on the next reload, and nothing of the manifest
-// (tools, seeds, reviewers, notes) or of unapproved art is bundled. Release builds keep the
-// placeholder until the atlas pages and their slim manifest replace this per-file loading
-// (development plan PK-M1-04). Processed results made by another import version, or from
+// (tools, seeds, reviewers, notes) or of unapproved art is bundled. Release reads its slim
+// approved-media pack. Atlas streaming remains a PK-M1-04 concern. Results from another import version, or from
 // another source file than the manifest records, are stale and skipped, as `assets:atlas` does.
 
 import { ART_ALIASES } from '../../../tools/assets/core/aliases';
 import { IMPORT_VERSION } from '../../../tools/assets/core/meta';
 import { makeCanvas } from '../render/canvas_util';
 import type { PixelMatrix } from '../sprites/pixels';
+import { loadReleaseArt } from './release_loader';
 import { AssetResolver } from './resolver';
 import { installAssets, type SheetPixels } from './runtime';
 import {
@@ -141,12 +141,20 @@ export async function loadAssets(
 
 /**
  * Load and install the approved art. The app bootstrap awaits this once before the first
- * frame (the one-line wiring belongs in src/client/app/main.ts). Development builds only;
+ * frame (the one-line wiring belongs in src/client/app/main.ts). Release reads its slim pack;
  * never throws: on any failure the placeholder stays.
  */
 export async function installApprovedArt(): Promise<void> {
-  if (!import.meta.env.DEV) return;
   try {
+    if (!import.meta.env.DEV) {
+      const { resolver, pixels } = await loadReleaseArt({
+        fetchJson: fetchJsonDefault,
+        decode: decodeDefault,
+        aliases: ART_ALIASES,
+      });
+      installAssets(resolver, pixels);
+      return;
+    }
     const procedural = forceProcedural(window.location.search, true);
     const statuses = loadedStatuses(window.location.search, import.meta.env.DEV);
     const { resolver, pixels } = await loadAssets({ procedural, statuses });

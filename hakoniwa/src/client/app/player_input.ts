@@ -83,6 +83,8 @@ export interface PlayerInputHost {
   worldPoint(sx: number, sy: number): { x: number; y: number } | null;
   pick(sx: number, sy: number): string | null;
   renderStory(): void;
+  closePlayerPopup?(): boolean;
+  playerPopupOpen?(): boolean;
   cancelPlacement(): void;
   confirmPlacement(): void;
   saveTo(slot: 'quick'): void;
@@ -207,15 +209,16 @@ export class PlayerInput implements GameSink {
   surface(): InputSurface {
     const sv = this.s.adapters.scene?.scene(this.v);
     const conversation = this.conversationOpen();
+    const menu = this.s.windows.isOpen('menu');
     return {
-      scene: sv ? sceneMode(sv.waiting) : null,
+      scene: sv && !menu ? sceneMode(sv.waiting) : null,
       talk: conversation || !!this.s.loose.current,
       conversation,
-      windows: this.s.windows.anyOpen,
+      windows: this.s.windows.anyOpen || !!this.s.playerPopupOpen?.(),
       placing: !!this.s.placing,
       corridor: this.s.windows.modeOpen === 'doors',
       // the spirit mirror's own context (3.4.3)
-      creator: !!this.s.story?.creatorOpen?.(),
+      creator: !menu && !!this.s.story?.creatorOpen?.(),
     };
   }
 
@@ -557,12 +560,19 @@ export class PlayerInput implements GameSink {
       s.cancelPlacement();
       return true;
     }
+    if (s.closePlayerPopup?.()) return true;
     if (s.windows.closeTop()) {
       s.story?.spendBack();
       return true;
     }
     if (s.story?.back()) return true;
-    if (a.scene?.scene(this.v)) return openMenu;
+    if (a.scene?.scene(this.v)) {
+      if (openMenu) {
+        s.story?.spendBack();
+        s.windows.show('menu');
+      }
+      return openMenu;
+    }
     if (a.conversation?.conversation(this.v) || s.loose.current) {
       this.closeConversation();
       return true;
@@ -616,8 +626,7 @@ export class PlayerInput implements GameSink {
           s.cancelPlacement();
           return true;
         }
-        // a scene panel covers the windows: Start waits like Esc does
-        if (s.inScene()) return true;
+        if (s.inScene()) s.story?.spendBack();
         s.windows.show('menu');
         return true;
       case 'back':

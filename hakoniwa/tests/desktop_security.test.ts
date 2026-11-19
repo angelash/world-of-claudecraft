@@ -502,6 +502,7 @@ describe('2.3 channel whitelist', () => {
       'hk:llm.test',
       'hk:llm.ledger',
       'hk:llm.wipe',
+      'hk:llm.scope',
       'hk:llm.problem',
       'hk:steam.achieve',
       'hk:steam.stat',

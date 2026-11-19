@@ -22,7 +22,14 @@ export type Objective = (
       type: 'choice';
       /** offered when talking to this NPC; without npc it is chosen from the quest log */
       npc?: string;
-      options: { id: string; label: string; effects?: Effect[]; path?: string }[];
+      options: {
+        id: string;
+        label: string;
+        when?: string;
+        cost?: { money?: number; items?: { item: string; count: number }[] };
+        effects?: Effect[];
+        path?: string;
+      }[];
     }
   | { type: 'build'; defId?: string; count: number }
   | { type: 'battle'; scenario: string; onLose?: Effect[] }
@@ -58,7 +65,35 @@ export type Objective = (
   /** gather.done events (the gathering system, PK-M1-49) */
   | { type: 'gather'; item?: string; node?: string; count: number }
   /** craft.done events (the crafting system, PK-M1-49) */
-  | { type: 'craft'; item?: string; recipe?: string; count: number; quality?: number }
+  | {
+      type: 'craft';
+      item?: string;
+      recipe?: string;
+      profession?: string;
+      families?: string[];
+      count: number;
+      quality?: number;
+      masterwork?: boolean;
+      signedInput?: boolean;
+      when?: string;
+    }
+  /** an actual successful item use, optionally on a named target or the player's beast */
+  | {
+      type: 'use';
+      item?: string;
+      effect?: string;
+      targetRef?: string;
+      pet?: boolean;
+      count: number;
+    }
+  /** one of these companions or beasts has actually joined the player's roster */
+  | { type: 'recruit'; companions: string[] }
+  /** the party's feeding executor accepted and applied a meal to the player's beast */
+  | { type: 'feed'; companions?: string[]; count: number }
+  /** a real combat purification replaced the named monster */
+  | { type: 'purify'; monster: string }
+  /** a commission actually settled by the guild, with an optional cargo animal held */
+  | { type: 'commission'; kind?: string; carrying?: string; count: number }
   /** economy.traded by the player: side, item, market, unit price cap (buy) or floor (sell) */
   | {
       type: 'trade';
@@ -187,6 +222,11 @@ export const OBJECTIVE_TYPES: readonly Objective['type'][] = [
   'rescue',
   'gather',
   'craft',
+  'use',
+  'recruit',
+  'feed',
+  'purify',
+  'commission',
   'trade',
   'accompany',
 ];

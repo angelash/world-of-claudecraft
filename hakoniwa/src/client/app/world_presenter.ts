@@ -6,6 +6,7 @@
 
 import type { AtlasMapDef } from '../../systems/world/atlas';
 import type { Entity, MapDef } from '../../systems/world/types';
+import { assetRevision } from '../assets/runtime';
 import type { AnimSample } from '../render/anim_state';
 import { type EntityMarks, type GroundWarning, NO_MARKS } from '../render/combat_marks';
 import { buildMapContext, type MapContext } from '../render/map_context';
@@ -25,6 +26,7 @@ export class WorldPresenter {
   /** the tick and map the marks were read for: they change with the world, not per frame */
   private marksAt = '';
   private picture: StagePicture | null = null;
+  private artRevision = assetRevision();
 
   constructor(
     root: HTMLElement,
@@ -43,6 +45,7 @@ export class WorldPresenter {
   contextFor(map: MapDef, now: number): MapContext {
     const live = liveMapOf(map, this.view.flags());
     this.switches.update(map, live.closed, now);
+    this.artRevision = assetRevision();
     return buildMapContext(live.map, { switchKey: live.key, atlasSky: this.atlasSky(map.id) });
   }
 
@@ -52,7 +55,10 @@ export class WorldPresenter {
    */
   switchChange(content: MapDef, now: number): MapContext | null {
     const live = liveMapOf(content, this.view.flags());
-    if (!this.switches.update(content, live.closed, now)) return null;
+    const switched = this.switches.update(content, live.closed, now);
+    const revision = assetRevision();
+    if (!switched && revision === this.artRevision) return null;
+    this.artRevision = revision;
     return buildMapContext(live.map, { switchKey: live.key, atlasSky: this.atlasSky(content.id) });
   }
 

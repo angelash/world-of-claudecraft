@@ -288,6 +288,32 @@ function setPlayerHealth(g: Engine, frac: number): void {
 }
 
 describe('autoplayer: heals in a losing fight and while it rests', () => {
+  it('uses the available door dodge before fleeing when no healing spell exists', () => {
+    const g = withParty();
+    const pid = g.world.slices.world.playerId;
+    withCtx(g, (ctx) => grantAbility(ctx, pid, 'sk_door_step'));
+    const bot = new Autoplayer(g);
+    quietAround(g);
+    foeOnPlayer(g, 30);
+    setPlayerHealth(g, 0.4);
+    const ledger = (bot as unknown as { ledger: { tick: number; dealt: number; taken: number }[] })
+      .ledger;
+    ledger.push({ tick: g.tick, dealt: 1, taken: 100000 });
+    expect(abilityBar(g.world, g.content).find((a) => a.id === 'sk_door_step')?.usable).toBe(true);
+    expect(selfHeal(g.world, g.content)).toBeNull();
+    expect(selfHeal(g.world, g.content, { defensive: true })).toEqual({
+      abilityId: 'sk_door_step',
+      targetId: undefined,
+    });
+    bot.think();
+    expect(g.world.inbox).toContainEqual(
+      expect.objectContaining({ kind: 'combat.cast', data: { abilityId: 'sk_door_step' } }),
+    );
+    g.step(1);
+    expect(g.world.slices.combat.units[pid]?.auras.some((a) => a.id === 'aur_door_dodge')).toBe(
+      true,
+    );
+  });
   it('in a losing fight it casts one heal before it runs, holds while it casts, and does not retry at once', () => {
     const g = withParty();
     const pid = g.world.slices.world.playerId;

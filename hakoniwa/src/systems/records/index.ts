@@ -13,6 +13,7 @@ import { contentText } from '../../core/content_key';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
+import { unitOf } from '../combat';
 import { addItem } from '../inventory';
 import { evaluate, flagResolver } from '../quests/conditions';
 import { registerSkipHandler } from '../travel/skip_registry';
@@ -48,6 +49,7 @@ import {
   type TitleDef,
 } from './types';
 import { contentSignature, watchOf } from './watch';
+import { firstDungeonClear, firstVictory, tickDiscoveries, xpLedger } from './xp';
 
 export * from './book';
 export * from './codex';
@@ -56,6 +58,8 @@ export * from './slice';
 export * from './types';
 export * from './view';
 export * from './watch';
+export * from './xp';
+export * from './xp_types';
 
 declare module '../../core/contracts' {
   interface WorldSlices {
@@ -165,8 +169,16 @@ export const system: GameSystem & {
   idFields: RECORDS_ID_FIELDS,
   init(ctx) {
     ctx.world.slices.records = emptyRecordsSlice();
+    if (ctx.content.xpRewards) xpLedger(ctx);
   },
-  tick: settle,
+  resume(ctx) {
+    if (ctx.content.xpRewards) xpLedger(ctx);
+  },
+  tick(ctx) {
+    settle(ctx);
+    if (ctx.content.xpRewards) xpLedger(ctx);
+    if (ctx.tick % 10 === 0 || ctx.world.slices.records.xp?.vista) tickDiscoveries(ctx);
+  },
   commands: {
     'records.deed.grant'(ctx, data, source) {
       if (!RECORDING_SOURCES.has(source.type)) return notAllowed();
@@ -353,8 +365,25 @@ export const system: GameSystem & {
       if (!s.codex.monsters[m.ref]) discover(ctx, s, 'monsters', m.ref, { count: 0 });
     },
     'combat.kill'(ctx, e) {
+      if (e.data.monsterId) firstVictory(ctx, e.data.victimId, e.data.monsterId, e.data.killerId);
       if (!e.data.monsterId || !isPlayerSide(ctx, e.data.killerId)) return;
       discover(ctx, recordsSlice(ctx.world), 'monsters', e.data.monsterId);
+    },
+    'combat.boss_defeated'(ctx, e) {
+      if (!e.data.yielded) return;
+      const victim = unitOf(ctx.world, e.data.entityId);
+      firstVictory(
+        ctx,
+        e.data.entityId,
+        e.data.bossId,
+        e.data.killerId ?? victim?.tapped ?? undefined,
+      );
+    },
+    'dungeon.cleared'(ctx, e) {
+      firstDungeonClear(ctx, e.data);
+    },
+    'world.map_changed'(ctx, e) {
+      if (e.data.id === ctx.world.slices.world.playerId) tickDiscoveries(ctx);
     },
     'inventory.changed'(ctx, e) {
       if (e.data.delta <= 0 || e.data.ownerId !== ctx.world.slices.world?.playerId) return;

@@ -40,6 +40,7 @@ import type {
   ItemSetDef,
   ProcOn,
 } from './types';
+import { checkUseEffect } from './use_effects';
 import { checkUseGate } from './use_gate';
 import { GROUP_RULES, startUseTimers, useWait } from './use_groups';
 
@@ -98,6 +99,7 @@ export {
   validateInventorySlice,
 } from './slice';
 export * from './types';
+export * from './use_effects';
 export * from './use_gate';
 export { GROUP_RULES, type GroupRule, groupReadyAt, useWait } from './use_groups';
 export * from './workshop';
@@ -280,8 +282,10 @@ export const system: GameSystem & {
       if (!def.use) return reject('not_usable', tr('sys.inventory.reject.not_usable'));
       const h = holding(ctx, d.ownerId);
       if (!canUse(h, def)) return reject('missing', tr('sys.inventory.reject.missing.bag'));
+      const effect = checkUseEffect(ctx, d, def);
+      if (!effect.ok) return reject(effect.code, effect.reason);
       // the combat side's item gate (14.1): in-combat bans, the global cooldown, a downed user
-      const gate = checkUseGate(ctx, d.ownerId, d.itemId, source);
+      const gate = checkUseGate(ctx, d.ownerId, d.itemId, source, d.targetId);
       if (!gate.ok) return reject(gate.code, gate.reason);
       const slice = ctx.world.slices.inventory;
       const wait = useWait(slice, d.ownerId, def, ctx.tick, d.targetId);

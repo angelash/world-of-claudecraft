@@ -3,6 +3,7 @@
 
 import type { FlagValue } from '../../core/contracts';
 import { openingActId } from './act_order';
+import { evaluate, flagResolver } from './conditions';
 import { objectiveNeed, objectiveProgress } from './objectives';
 import type { ActDef, QuestDef, QuestKind, QuestStatus, QuestsSlice } from './types';
 
@@ -81,7 +82,9 @@ export function questView(
             optional: !!o.optional,
             options:
               o.type === 'choice' && !o.npc
-                ? o.options.map((x) => ({ id: x.id, label: x.label }))
+                ? o.options
+                    .filter((x) => evaluate(x.when, flagResolver(world.meta.flags)))
+                    .map((x) => ({ id: x.id, label: x.label }))
                 : undefined,
           }))
         : [],

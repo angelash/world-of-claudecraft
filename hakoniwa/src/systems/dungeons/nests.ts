@@ -73,7 +73,7 @@ export function growNest(ctx: SystemContext, def: NestDef, st: NestState): void 
  */
 export function nestDeath(
   ctx: SystemContext,
-  d: { ref?: string; mapId: string; x: number; y: number },
+  d: { id?: string; killerId?: string; ref?: string; mapId: string; x: number; y: number },
 ): void {
   const cfg = dungeonConfig(ctx.content);
   if (!cfg || !d.ref) return;
@@ -85,6 +85,7 @@ export function nestDeath(
     const byLord = d.ref === def.lord && st.stage >= cfg.nest.lordStage;
     if (!byHead && !byLord) continue;
     const l = locationOf(mapById(ctx.content, def.mapId), def.location);
-    if (l && inRect(l, d.x, d.y, cfg.nest.clearMargin)) clearNest(ctx, def, st);
+    if (l && inRect(l, d.x, d.y, cfg.nest.clearMargin))
+      clearNest(ctx, def, st, { victimId: d.id, killerId: d.killerId });
   }
 }

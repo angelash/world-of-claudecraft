@@ -13,7 +13,7 @@ import { goddessContext } from '../goddess/planning';
 import { goddessDef } from '../goddess/state';
 import { countItem, removeItem } from '../inventory';
 import type { Effect } from '../quests/effect_types';
-import { applyEffects, conditionHolds, teleportPlayer } from '../quests/effects';
+import { applyEffects, conditionHolds } from '../quests/effects';
 import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
 import { resetQuests } from '../quests/progress';
 import { defaultKind, fillText, speakerName } from '../quests/speakers';
@@ -22,6 +22,7 @@ import { ruleAnswer } from './answer_port';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
 import { briefKept, extractValues } from './improv';
+import { placePlayerForScene } from './placement';
 import { presentAtTrial, type TrialDef, trialOffers } from './trial';
 import type {
   RoundEnd,
@@ -178,7 +179,7 @@ export function startScene(ctx: SystemContext, sceneId: string): void {
     startedTick: ctx.tick,
   };
   slice.current = run;
-  if (scene.mapId) teleportPlayer(ctx, scene.mapId, scene.location);
+  placePlayerForScene(ctx, scene);
   ctx.emit('scene.started', { sceneId, title: scene.title });
   enterNode(ctx, run, scene, scene.start, 0);
 }

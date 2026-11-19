@@ -799,6 +799,7 @@
     "act": "act1",
     "mapId": "seal_ruins_depths",
     "location": "nest_shaft",
+    "keepPosition": true,
     "presentation": "staged",
     "summary": "遗迹的守护兽，一只被灰气侵蚀的巨鸦，从巢井里扑了下来。",
     "start": "route",

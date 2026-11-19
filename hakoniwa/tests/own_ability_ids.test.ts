@@ -476,7 +476,7 @@ describe('a save written before the renumbering', () => {
     return { g, monster };
   }
 
-  async function saveAndLoad(w: World, renameVersion: number): Promise<World> {
+  async function saveAndLoad(w: World, renameVersion: number, table?: RenameTable): Promise<World> {
     const backend = new ContainerBackend(new MemoryStorage(), {
       now: () => 0,
       writer: { id: 'w-test', name: 'test' },
@@ -493,7 +493,7 @@ describe('a save written before the renumbering', () => {
     );
     if (!res.ok) throw new Error(res.reason);
     const owners = SYSTEMS as unknown as SliceOwner[];
-    return (await loadSlot(backend, 'quick', createMigrator({ owners }))).world;
+    return (await loadSlot(backend, 'quick', createMigrator({ owners, table }))).world;
   }
 
   it('the combat system declares where its slice holds ids', () => {
@@ -502,6 +502,11 @@ describe('a save written before the renumbering', () => {
       'aura units.*.auras.*.id',
       'ability units.*.cds.@keys',
       'ability units.*.cast.abilityId',
+      'item units.*.drinking.itemId',
+      'map units.*.drinking.mapId',
+      'item units.*.eating.itemId',
+      'aura units.*.eating.auraId',
+      'map units.*.eating.mapId',
       'ability units.*.abilities.*',
       'ability units.*.phaseAbilities.*',
       'ability units.*.rack.*',
@@ -517,6 +522,38 @@ describe('a save written before the renumbering', () => {
       'aura telegraphs.*.aura',
       'monster terrain.*.monsterId',
     ]);
+  });
+
+  it('renames active food and drink ids while retaining their saved progress', async () => {
+    const g = makeGame();
+    const p = units(g.world).player;
+    if (!p) throw new Error('missing player');
+    const progress = { started: 1, until: 361, mapId: 'old_terrace', x: 5.5, y: 6.5 };
+    p.drinking = { ...progress, itemId: 'old_water', amount: 76, applied: 19 };
+    p.eating = { ...progress, itemId: 'old_meal', auraId: 'old_food_buff' };
+    const table: RenameTable = {
+      version: 1,
+      entries: [
+        { since: 1, kind: 'item', from: 'old_water', to: 'cs_well_water_t1' },
+        { since: 1, kind: 'item', from: 'old_meal', to: 'cs_ring_bread' },
+        { since: 1, kind: 'aura', from: 'old_food_buff', to: 'aur_item_ringbread' },
+        { since: 1, kind: 'map', from: 'old_terrace', to: 'seal_ruins' },
+      ],
+    };
+    const w = await saveAndLoad(g.world, 0, table);
+    expect(units(w).player?.drinking).toEqual({
+      ...progress,
+      mapId: 'seal_ruins',
+      itemId: 'cs_well_water_t1',
+      amount: 76,
+      applied: 19,
+    });
+    expect(units(w).player?.eating).toEqual({
+      ...progress,
+      mapId: 'seal_ruins',
+      itemId: 'cs_ring_bread',
+      auraId: 'aur_item_ringbread',
+    });
   });
 
   it('loads with the new ids in the combat slice and the combat events', async () => {

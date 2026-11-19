@@ -15,6 +15,7 @@
 import type {
   StageDirective,
   StageLightPreset,
+  StageTransition,
   StageWeatherPreset,
 } from '../../../systems/scenes/types';
 
@@ -28,6 +29,8 @@ export type StageCamera = Extract<StageDirective, { op: 'camera' }> & { start: n
 export const SILENCE_DB = -24;
 /** Music enters over this many milliseconds by default (2.7: two-second crossfade). */
 export const MUSIC_CROSS_MS = 2000;
+/** A brief picture transition; reading and choices stay available over it. */
+export const STAGE_TRANSITION_MS = 800;
 
 /** The thin audio seam of the cutscene player (PK-M1-06 implements it). */
 export interface CutsceneAudio {
@@ -90,6 +93,10 @@ export interface StageState {
   mirror: { map: string; start: number; until: number } | null;
   /** figures doing a staged motion, one each */
   motions: { who: string; action: string; start: number }[];
+  /** An inserted full-screen illustration, carried until `still_end` or the scene ends. */
+  still: string | null;
+  /** Picture-only transition, below subtitles and choices. Calm mode makes it a cut. */
+  transition: { kind: Exclude<StageTransition, 'cut'>; start: number; until: number } | null;
 }
 
 export function emptyStage(): StageState {
@@ -109,6 +116,8 @@ export function emptyStage(): StageState {
     weather: null,
     mirror: null,
     motions: [],
+    still: null,
+    transition: null,
   };
 }
 
@@ -127,15 +136,24 @@ export function enterNode(
   now: number,
   calm: boolean,
 ): { state: StageState; audio: AudioCall[] } {
+  return applyStage({ ...prev, captions: [], letter: null, shake: 0 }, directives, now, calm);
+}
+
+/** Apply cues that become due while reading, retaining this node's earlier captions. */
+export function applyStage(
+  prev: StageState,
+  directives: readonly StageDirective[],
+  now: number,
+  calm: boolean,
+): { state: StageState; audio: AudioCall[] } {
   const s: StageState = {
     ...prev,
     busts: [...prev.busts],
     motions: [...prev.motions],
     mirror: prev.mirror && prev.mirror.until > now ? prev.mirror : null,
-    captions: [],
-    letter: null,
-    shake: 0,
+    captions: [...prev.captions],
     fade: prev.fade && prev.fade.until > now ? prev.fade : null,
+    transition: prev.transition && prev.transition.until > now ? prev.transition : null,
   };
   const audio: AudioCall[] = [];
   for (const d of directives) {
@@ -228,6 +246,22 @@ export function enterNode(
           ...s.motions.filter((m) => m.who !== d.who),
           { who: d.who, action: d.action, start: now },
         ];
+        break;
+      case 'still':
+        s.still = d.id;
+        break;
+      case 'still_end':
+        s.still = null;
+        break;
+      case 'transition':
+        s.transition =
+          calm || d.kind === 'cut'
+            ? null
+            : {
+                kind: d.kind === 'door_wipe' ? 'door_wipe' : 'dissolve',
+                start: now,
+                until: now + STAGE_TRANSITION_MS,
+              };
         break;
       default:
         break;

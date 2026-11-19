@@ -111,7 +111,12 @@ export class Engine {
     opts: EngineOptions = {},
   ): Engine {
     if (opts.aiMode) world.ai.mode = opts.aiMode;
-    return new Engine(world, content, systems, opts);
+    const engine = new Engine(world, content, systems, opts);
+    const pending: AnyWorldEvent[] = [];
+    const ctx = engine.makeContext(pending);
+    for (const s of engine.systems) s.resume?.(ctx);
+    engine.drain(ctx, pending);
+    return engine;
   }
 
   /**

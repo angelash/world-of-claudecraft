@@ -78,6 +78,8 @@ export interface StoryProbe {
   act: string;
   /** what the open scene waits for, null without a scene */
   waiting: string | null;
+  /** IDs of the visible choices; act-1 trials offer evidence as piece choices. */
+  choiceIds?: readonly string[];
   /** a choice picked by its own key is offered (the prologue's fall, P15 "伸手") */
   keyed: boolean;
   /** an irreversible choice is offered (a key choice, 7.4) */
@@ -133,7 +135,9 @@ export class StorySignals {
     else if (this.last.keyed) out.add('fall_ended');
     if (p.keyChoice) out.add('key_choice');
     else if (this.last.keyChoice) out.add('key_choice_made');
-    const court = p.waiting === 'court';
+    const court =
+      p.waiting === 'court' ||
+      (p.waiting === 'choice' && !!p.choiceIds?.some((id) => id.startsWith('piece:')));
     if (court) out.add('evidence_prompt');
     else if (this.lastCourt) out.add('evidence_shown');
     if (p.listen === 'far') out.add('listen_far');

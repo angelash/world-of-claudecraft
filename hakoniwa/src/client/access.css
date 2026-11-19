@@ -86,7 +86,10 @@
 :root[data-color-mode="high_contrast"] .hk-panel,
 :root[data-color-mode="high_contrast"] .hk-window,
 :root[data-color-mode="high_contrast"] .hk-dlg2-panel,
-:root[data-color-mode="high_contrast"] .hk-confirm-card {
+:root[data-color-mode="high_contrast"] .hk-confirm-card,
+:root[data-color-mode="high_contrast"] .hk-player-popup,
+:root[data-color-mode="high_contrast"] .hk-first-run-card,
+:root[data-color-mode="high_contrast"] .hk-llm-dialog {
   background: #000000;
   border-width: 2px;
   border-color: #ffffff;
@@ -121,7 +124,10 @@
 :root:not([data-text-size="standard"]) .hk-tut-card,
 :root:not([data-text-size="standard"]) .hk-confirm-card,
 :root:not([data-text-size="standard"]) .hk-boot-card,
-:root:not([data-text-size="standard"]) .hk-newgame-card {
+:root:not([data-text-size="standard"]) .hk-newgame-card,
+:root:not([data-text-size="standard"]) .hk-player-popup > *,
+:root:not([data-text-size="standard"]) .hk-first-run-card > :not(.hk-first-preview),
+:root:not([data-text-size="standard"]) .hk-llm-dialog > * {
   zoom: var(--hk-text-scale);
 }
 

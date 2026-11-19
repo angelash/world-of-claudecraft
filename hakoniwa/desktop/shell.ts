@@ -300,7 +300,7 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
   const limiter = new RateLimiter(now);
   const gateway = createGatewayClient({
     spawn: () =>
-      electron.utilityProcess.fork(opts.gatewayEntry, [], {
+      electron.utilityProcess.fork(opts.gatewayEntry, [app.getPath('userData')], {
         serviceName: 'Hakoniwa Model Gateway',
       }),
     onProblem: (push) => {
@@ -403,7 +403,10 @@ export function startShell(electron: ShellElectron, opts: ShellOptions): ShellHa
     });
     registerKeyEntryChannels({ electron, limiter, log, keyEntry });
 
-    electron.powerMonitor.on('suspend', () => push({ kind: 'suspend' }));
+    electron.powerMonitor.on('suspend', () => {
+      void gateway.call('suspend', {});
+      push({ kind: 'suspend' });
+    });
     electron.powerMonitor.on('resume', () => push({ kind: 'resume' }));
 
     win = createGameWindow(electron, build, opts, log, push, settings, () =>

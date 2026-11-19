@@ -32,6 +32,7 @@ import type { LetterCard } from './letter_card';
 import type { SpeakerRef } from './portrait_plan';
 import { AutoAdvance, HoldWatch, LineReader, textLength } from './reading';
 import {
+  applyStage,
   type CutsceneAudio,
   cutsceneDirectorInput,
   emptyStage,
@@ -39,6 +40,7 @@ import {
   playAudio,
   type StageState,
 } from './stage';
+import { StageTimeline } from './stage_timeline';
 
 export interface StoryActions {
   /** queue scenes.advance */
@@ -63,6 +65,8 @@ export interface StoryInput {
   /** Esc or the pad's back button is down this frame (the skip hold) */
   skipKeyDown: boolean;
   resolver: AssetResolver;
+  /** Current region's backdrop, when available, for a missing illustration. */
+  backdrop?: string | null;
   /** a person's display name (bust plates) */
   nameOf: (id: string) => string;
   /** a letter step's card */
@@ -121,6 +125,7 @@ export class StoryController {
   private readonly auto = new AutoAdvance(false);
   private readonly skipHold = new HoldWatch();
   private stage: StageState = emptyStage();
+  private readonly stageTimeline = new StageTimeline();
   /** scene run and node the stage was last entered for */
   private stageKey = '';
   private sceneId = '';
@@ -334,9 +339,12 @@ export class StoryController {
       this.sceneId = '';
       this.stage = emptyStage();
       this.stageKey = '';
-      this.hidden = false;
-      this.letterOpen = null;
       this.sceneReader.reset();
+      this.autoFired = '';
+      this.letterOpen = null;
+      this.hidden = false;
+      this.backlogOpen = false;
+      this.hidden = false;
       this.audio.release();
     }
   }
@@ -355,12 +363,23 @@ export class StoryController {
       this.sceneId = run;
       this.stage = emptyStage();
       this.stageKey = '';
+      this.sceneReader.reset();
+      this.autoFired = '';
+      this.letterOpen = null;
+      this.hidden = false;
+      this.backlogOpen = false;
     }
-    // Enter the node's stage once per node.
+    let skipCues = !!this.skipping;
+    // Enter once, then release timed cues from the reader's cursor below.
     const nodeKey = `${v.sceneId}/${v.nodeId}`;
     if (nodeKey !== this.stageKey) {
       this.stageKey = nodeKey;
-      const entered = enterNode(this.stage, v.stage, now, i.calm);
+      const entered = enterNode(
+        this.stage,
+        this.stageTimeline.begin(v.stage),
+        now,
+        i.calm || skipCues,
+      );
       this.stage = entered.state;
       if (!this.skipping) playAudio(this.audio, entered.audio);
       else
@@ -371,7 +390,7 @@ export class StoryController {
       // a skip reads past letters (they are no choice and no anchor)
       this.letterOpen = this.skipping ? null : this.stage.letter;
     }
-    const letter = this.letterOpen ? i.letter(this.letterOpen) : null;
+    let letter = this.letterOpen ? i.letter(this.letterOpen) : null;
     if (this.letterOpen && !letter) this.letterOpen = null;
     // While the letter is read the lines wait; they type afresh once it closes.
     const letterMark = this.letterOpen ? '|letter' : '';
@@ -380,9 +399,13 @@ export class StoryController {
     this.sceneReader.sync(pageKey, this.letterOpen ? [] : sceneLengths(v), now);
     const held = this.skipHold.update(i.skipKeyDown, now, i.holdToToggle);
     if (held) this.skip(now);
+    skipCues ||= !!this.skipping;
     if (this.skipping) this.skipStep(v, now);
     if (this.skipping) this.sceneReader.completeAll(now);
     const reader = this.sceneReader.state(now, i.speed);
+    if (!i.held) this.stageAtReader(now, i.speed, i.calm, skipCues, v.waiting === 'resolve');
+    letter = this.letterOpen ? i.letter(this.letterOpen) : null;
+    if (!letter) this.letterOpen = null;
     // Auto advance: never through choices, input, letters or the backlog (13.2).
     const waitsForPlayer = v.waiting !== 'advance';
     // a fade covers the text: auto advance waits until it lifts (13.2)
@@ -402,13 +425,21 @@ export class StoryController {
         this.autoFired = stepKey;
         this.actions.advanceScene();
       }
+      // Auto may have exposed a new line on this very frame. Its picture and sound start
+      // with it, rather than one frame later (a screenshot may already show that line).
+      this.stageAtReader(now, i.speed, i.calm, skipCues, v.waiting === 'resolve');
+      letter = this.letterOpen ? i.letter(this.letterOpen) : null;
+      if (!letter) this.letterOpen = null;
     }
+    if (i.calm && (this.stage.transition || this.stage.shake))
+      this.stage = { ...this.stage, transition: null, shake: 0 };
     const model = cutsceneModel({
       scene: v,
       reader: this.sceneReader.state(now, i.speed),
       stage: this.stage,
       now,
       resolver: i.resolver,
+      backdrop: i.backdrop,
       playerId: i.playerId,
       nameOf: i.nameOf,
       letter,
@@ -428,6 +459,24 @@ export class StoryController {
       audio: cutsceneDirectorInput(true, this.stage, now),
       listen: model.listen,
     };
+  }
+
+  /** Release exactly the cues reached by the current reading cursor. */
+  private stageAtReader(
+    now: number,
+    speed: TextSpeed,
+    calm: boolean,
+    skipping: boolean,
+    pendingReply: boolean,
+  ): void {
+    if (this.letterOpen) return;
+    const reader = this.sceneReader.state(now, speed);
+    const due = this.stageTimeline.take(reader.line, reader.allDone && !pendingReply);
+    if (!due.length) return;
+    const applied = applyStage(this.stage, due, now, calm || skipping);
+    this.stage = applied.state;
+    playAudio(this.audio, skipping ? applied.audio.filter((c) => c.op === 'music') : applied.audio);
+    if (!skipping && due.some((d) => d.op === 'letter')) this.letterOpen = this.stage.letter;
   }
 
   /** One skip step: advance once per node until something the player must see. */

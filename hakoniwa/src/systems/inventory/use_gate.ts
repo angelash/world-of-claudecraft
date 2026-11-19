@@ -14,7 +14,12 @@ import type { TextRef } from '../../core/text';
 export type UseGateResult = { ok: true } | { ok: false; code: string; reason: TextRef };
 
 /** Whether `ownerId` may use `itemId` now as the gate's owner sees it. */
-export type UseGate = (ctx: SystemContext, ownerId: string, itemId: string) => UseGateResult;
+export type UseGate = (
+  ctx: SystemContext,
+  ownerId: string,
+  itemId: string,
+  targetId?: string,
+) => UseGateResult;
 
 /** The system whose own use command already ran the gate before dispatching the use. */
 export const GATED_SYSTEM = 'combat';
@@ -37,7 +42,8 @@ export function checkUseGate(
   ownerId: string,
   itemId: string,
   source: CommandSource,
+  targetId?: string,
 ): UseGateResult {
   if (!gate || (source.type === 'system' && source.system === GATED_SYSTEM)) return { ok: true };
-  return gate(ctx, ownerId, itemId);
+  return gate(ctx, ownerId, itemId, targetId);
 }

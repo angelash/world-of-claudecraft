@@ -638,5 +638,51 @@
     "desc": "欧拉婆婆用炭条画的一张图：林缘深处有一眼泉，泉边画着一株草。",
     "stack": 1,
     "tags": []
+  },
+  {
+    "id": "nm_faded_red_sock",
+    "name": "褪色的红袜子",
+    "kind": "trinket",
+    "slot": "trinket",
+    "quality": 2,
+    "value": 0,
+    "desc": "红袜子獠牙上挂过的孩子袜子。西田磨坊人家的莲娜认得它。",
+    "tags": ["named", "quest", "t1"]
+  },
+  {
+    "id": "nm_brass_dog_tag",
+    "name": "铜狗牌",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "收路钱的旧项圈上挂着的铜牌，刻着死在灰路上的走私者的名字。",
+    "tags": ["named", "quest"]
+  },
+  {
+    "id": "nm_louse_belly_crystal",
+    "name": "老虱腹晶",
+    "kind": "material",
+    "quality": 2,
+    "value": 0,
+    "desc": "与甲质长在一起的灰晶，介于小晶与中晶。它不是渊契之门要的那块大晶。",
+    "tags": ["named", "crystal", "quest", "t1"]
+  },
+  {
+    "id": "nm_three_toes_antler",
+    "name": "三趾的灰角",
+    "kind": "material",
+    "quality": 2,
+    "value": 0,
+    "desc": "三趾留下的灰角。它可以成为良品长弓的弓臂。",
+    "tags": ["named", "horn", "t2"]
+  },
+  {
+    "id": "rat_queen_heart",
+    "name": "鼠后之心",
+    "kind": "material",
+    "quality": 2,
+    "value": 0,
+    "desc": "垄沟鼠后的专名部件，配方按二阶的心来使用。",
+    "tags": ["named", "heart", "t2"]
   }
 ]

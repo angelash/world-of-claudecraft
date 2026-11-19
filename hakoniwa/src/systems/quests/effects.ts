@@ -152,7 +152,14 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       startQuest(ctx, e.quest);
       return;
     case 'item':
-      addItem(ctx, playerId, e.item, e.count ?? 1, 'story');
+      addItem(
+        ctx,
+        playerId,
+        e.item,
+        e.count ?? 1,
+        'story',
+        e.purified ? { purified: true } : undefined,
+      );
       return;
     case 'take':
       removeItem(ctx, playerId, e.item, e.count ?? 1, 'story');
@@ -213,6 +220,9 @@ export function applyEffect(ctx: SystemContext, e: Effect): void {
       // the event; opening stays its decision (quests_and_events.md 3.4)
       ctx.setFlag(keyFlag(e.doorId, e.keyId), e.keyKind);
       ctx.emit('quest.key', { doorId: e.doorId, keyKind: e.keyKind, keyId: e.keyId });
+      return;
+    case 'deed':
+      ctx.dispatch('records.deed.grant', { deedId: e.deed });
       return;
     case 'line': {
       const flags = ctx.world.meta.flags;

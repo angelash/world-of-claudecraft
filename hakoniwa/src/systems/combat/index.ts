@@ -26,6 +26,7 @@ import { classDef, monsterDef, REGEN_EVERY } from './defs';
 import { difficultyWritten, syncDifficulty } from './difficulty';
 import { settleDuels, startDuel } from './duel';
 import { COMBAT_ID_FIELDS } from './id_fields';
+import { stopConsumption, tickConsumption } from './item_consumption';
 import { onItemProc, syncGearAuras } from './item_procs';
 import { onItemUsed, useItemGate } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
@@ -165,6 +166,7 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
       }
       tickAuras(ctx, u);
       if (!liveUnit(ctx.world, id)) continue;
+      if (u.drinking || u.eating) tickConsumption(ctx, u);
       if (u.interact)
         tickInteract(ctx, u, (boss, actions, path) => runActions(ctx, boss, actions, path));
       if (u.cast) {
@@ -278,7 +280,7 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
     'combat.use_item'(ctx, d, source) {
       const a = actor(ctx, undefined, source);
       if (!a.ok) return reject(a.code, a.reason);
-      const gate = useItemGate(ctx, a.u, d.itemId);
+      const gate = useItemGate(ctx, a.u, d.itemId, d.targetId);
       if (!gate.ok) return reject(gate.code, tr(`sys.combat.reject.item.${gate.code}`));
       ctx.dispatch(
         'inventory.use',
@@ -307,6 +309,11 @@ export const system: GameSystem & { idFields: typeof COMBAT_ID_FIELDS } = {
   },
 
   on: {
+    'combat.damage'(ctx, ev) {
+      if (ev.data.amount <= 0 && ev.data.absorbed <= 0) return;
+      const u = unitOf(ctx.world, ev.data.targetId);
+      if (u && (u.drinking || u.eating)) stopConsumption(u);
+    },
     'world.entity_spawned'(ctx, ev) {
       if (ev.data.kind === 'npc') unitForNpc(ctx, ev.data.id);
     },

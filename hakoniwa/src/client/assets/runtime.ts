@@ -24,6 +24,7 @@ const NO_PIXELS: SheetPixels = { get: () => undefined };
 
 let resolver = AssetResolver.empty();
 let pixels: SheetPixels = NO_PIXELS;
+let revision = 0;
 /** Resolved art per look and frame, so a standee shown every frame resolves once. */
 let memo = new WeakMap<SpriteLook, Map<string, ArtHit | null>>();
 
@@ -32,6 +33,12 @@ export function installAssets(r: AssetResolver, p: SheetPixels): void {
   resolver = r;
   pixels = p;
   memo = new WeakMap();
+  revision++;
+}
+
+/** Static picture caches rebuild even if a reinstall reused the resolver and asset ids. */
+export function assetRevision(): number {
+  return revision;
 }
 
 /** Back to no art (tests). */
@@ -59,7 +66,7 @@ function resolveArt(look: SpriteLook, anim: AnimName, dir: Dir, frame: number): 
   const f = s.frame;
   // The same art frame can be shown with different effects (a hit flashes, a block does not).
   const fx = frameEffects(look.archetype, anim, frame);
-  const key = `art:${f.assetId}#${f.index}${f.flipX ? 'm' : ''}:${fx.alpha}:${fx.flash}@${look.key}`;
+  const key = `art:${f.assetId}#${f.index}${f.flipX ? 'm' : ''}:${fx.alpha}:${fx.flash}@${look.key}:r${revision}`;
   return { key, frame: f, sheet };
 }
 

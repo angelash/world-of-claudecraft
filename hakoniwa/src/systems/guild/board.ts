@@ -13,12 +13,14 @@ import type { SystemContext } from '../../core/system';
 import { tr } from '../../core/text';
 import { calendarAt, TICKS_PER_GAME_DAY, weekIndexOf } from '../../core/time';
 import { addMoney, holdingOf, spendMoney } from '../inventory';
-import { registerModifier } from '../modifiers';
+import { applyModifiers as modifierValue, registerModifier } from '../modifiers';
+import { npcsOnMap } from '../npc/queries';
 import { isInParty } from '../party/view';
 import { currentActId } from '../quests/act_order';
 import { actIndex } from '../quests/conditions';
 import { conditionHolds } from '../quests/effects';
 import { addQuestInstance, dropQuestInstance, questDefOf } from '../quests/instances';
+import { matchesQuestNpc } from '../quests/npc_matches';
 import { atPlace } from '../quests/objectives';
 import { isClosed } from '../quests/outcomes';
 import { startQuest } from '../quests/progress';
@@ -334,13 +336,35 @@ export function post(
   } else if (g.type === 'talk') {
     const to = g.to.filter((x) => x !== giver);
     recipient = rng.pick(to.length > 0 ? to : g.to);
+  } else if (g.type === 'escort') {
+    const people = g.people.flatMap((ref) => {
+      if (ctx.content.npcs?.some((n) => n.id === ref)) return [ref];
+      if (!ctx.world.slices.npc) return [];
+      return npcsOnMap(ctx.world, ctx.content, board.mapId)
+        .filter((n) => !n.gone && matchesQuestNpc(ctx.content, ref, n.id))
+        .map((n) => n.id);
+    });
+    if (people.length === 0) return null;
+    recipient = rng.pick(people);
   }
   const days = rng.int(t.days[0], t.days[1]);
   const serial = (s.serial[t.rank] ?? 0) + 1;
   s.serial[t.rank] = serial;
   const { id, display } = instanceId(t.rank, serial);
   const urgent = urgentNow(ctx, t.id, board);
-  const pay = postingPay(cfg, t, urgent);
+  const pay = t.bounty
+    ? Math.round(
+        t.bounty.base +
+          t.bounty.perRumor *
+            Math.max(
+              0,
+              Math.min(
+                t.bounty.maxRumor,
+                modifierValue(ctx.world, 'monster', `rumor:${target}`, 0),
+              ),
+            ),
+      )
+    : postingPay(cfg, t, urgent);
   const reward = opts.payCap !== undefined ? Math.max(0, Math.min(pay, opts.payCap)) : pay;
   const day = today(ctx);
   const p: Posting = {

@@ -417,6 +417,27 @@ describe('V6 numeric bands', () => {
     expect(tierForLevel(35)).toBe(4);
   });
 
+  it('judges tiered crafting tools at their catalog price without exempting raw materials', () => {
+    const input = withTables({
+      items: [
+        { id: 'cs_tool_pick_t1', kind: 'goods', tags: ['tool'], value: 80 },
+        { id: 'cs_tool_hammer_t2', kind: 'goods', tags: ['tool'], value: 600 },
+        { id: 'cs_tool_needle_t3', kind: 'goods', tags: ['tool'], value: 5000 },
+        { id: 'cs_tool_quill_t4', kind: 'goods', tags: ['tool'], value: 50000 },
+        { id: 'cs_tool_rod_t5', kind: 'goods', tags: ['tool'], value: 400000 },
+        { id: 'cs_tool_axe_t1', kind: 'goods', tags: ['tool'], value: 10 },
+        { id: 'part_fang_t1', kind: 'material', tags: ['tool'], value: 80 },
+      ],
+    });
+    const itemWarnings = balanceFindings(input)
+      .filter((f) => f.table === 'items')
+      .map((f) => f.message);
+    expect(itemWarnings).toEqual([
+      'items:cs_tool_axe_t1: value 10 differs from the T1 crafting tool price 80 copper',
+      'items:part_fang_t1: value 80 outside the T1 material band 2 to 20 copper',
+    ]);
+  });
+
   it('judges monsters at the act the content places them: warns at M0, blocks from M1', () => {
     const inferred = <F extends { message: string }>(fs: F[]) =>
       fs.filter((f) => f.message.includes('act inferred'));

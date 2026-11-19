@@ -20,6 +20,8 @@ import { deriveStats } from './stats';
 import type { AuraCategory, DispelType, DropBag, ResourceKind, Side, Unit } from './types';
 import { canAttack, isHostilePair, knownAbilities, liveUnit, unitOf } from './units';
 
+export { isPartySide } from './units';
+
 export interface UnitView {
   id: string;
   name: string;

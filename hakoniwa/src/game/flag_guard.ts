@@ -96,7 +96,7 @@ function guardedContext(
 }
 
 /**
- * Wrap the systems so every handler (init, tick, skip, commands, events) gets the guarded
+ * Wrap the systems so every handler (init, resume, tick, skip, commands, events) gets the guarded
  * context. Already guarded systems are returned as they are.
  */
 export function guardSystems(
@@ -120,6 +120,10 @@ export function guardSystems(
     if (s.init) {
       const init = s.init;
       out.init = (ctx) => init(wrap(ctx, id));
+    }
+    if (s.resume) {
+      const resume = s.resume;
+      out.resume = (ctx) => resume(wrap(ctx, id));
     }
     if (s.tick) {
       const tick = s.tick;

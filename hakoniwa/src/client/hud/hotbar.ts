@@ -8,12 +8,14 @@ import { el, setClass, setText } from '../../shared_ui/dom';
 import { t } from '../../shared_ui/i18n';
 import { HOTBAR_SIZE } from '../input/contexts';
 import type { HotbarSlotView } from '../view/adapters';
+import { ArtIcon } from './art_icon';
 import type { HotbarLayout } from './hotbar_model';
 
 interface SlotEls {
   root: HTMLElement;
   key: HTMLElement;
   name: HTMLElement;
+  icon: ArtIcon;
   cd: HTMLElement;
   secs: HTMLElement;
   title: string;
@@ -37,6 +39,7 @@ export class Hotbar {
     for (let i = 1; i <= HOTBAR_SIZE; i++) {
       const key = el('span', { className: 'hk-slot-key' });
       const name = el('span', { className: 'hk-slot-name', text: t('ui.hud.hotbar.empty') });
+      const icon = new ArtIcon(24);
       const cd = el('span', { className: 'hk-slot-cd' });
       const secs = el('span', { className: 'hk-slot-secs' });
       const label = t('ui.hud.hotbar.slot', { n: i });
@@ -48,11 +51,11 @@ export class Hotbar {
           attrs: { type: 'button', 'aria-label': label },
           on: { click: () => onPress(i) },
         },
-        [key, name, cd, secs],
+        [key, icon.el, name, cd, secs],
       );
       // the onboarding outlines a slot by this name (src/client/tutorial/glow.ts)
       root.dataset.hud = `hotbar_${i}`;
-      this.slots.push({ root, key, name, cd, secs, title: label, height: '0%' });
+      this.slots.push({ root, key, icon, name, cd, secs, title: label, height: '0%' });
     }
   }
 
@@ -88,6 +91,7 @@ export class Hotbar {
       const v = views.find((x) => x.slot === i + 1);
       setText(s.key, layout.keys[i] ?? '');
       setText(s.name, v?.abilityId ? v.name : t('ui.hud.hotbar.empty'));
+      s.icon.show('skill', v?.abilityId ?? null);
       setClass(s.root, 'empty', !v?.abilityId);
       setClass(s.root, 'unusable', !!v?.abilityId && !v.usable);
       const pct = v && v.cooldownTotal > 0 ? Math.min(1, v.cooldown / v.cooldownTotal) : 0;

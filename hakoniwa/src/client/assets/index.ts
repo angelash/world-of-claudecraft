@@ -3,7 +3,7 @@
 // none: an id that the manifest does not list, or lists as review, rework, rejected or
 // retired, always draws the placeholder. The pure layer (types, resolver, sprite_source,
 // frames, runtime) is Node-tested and registered in CLIENT_PURE_CORES; the loader reads the
-// manifest and decodes images in the browser (development builds until the atlas pages).
+// manifest and decodes images in the browser; release reads its slim approved-media pack.
 
 export { installApprovedArt, type LoadOptions, loadAssets } from './loader';
 export {

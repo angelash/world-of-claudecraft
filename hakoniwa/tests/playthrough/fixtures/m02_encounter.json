@@ -1,0 +1,2303 @@
+{
+  "seed": 20261115,
+  "source": "Real seed-20261115 M02 command replay snapshots; player unit/gear from tick 2370",
+  "samples": [
+    {
+      "tick": 2410,
+      "units": [
+        {
+          "id": "monster_10",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2441,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_11",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2451,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_12",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 10.5,
+            "pullX": 35.5,
+            "pullY": 10.5,
+            "wanderAt": 2483,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_13",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 11.5,
+            "pullX": 35.5,
+            "pullY": 11.5,
+            "wanderAt": 2492,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_14",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 32.5,
+            "homeY": 11.5,
+            "pullX": 32.5,
+            "pullY": 11.5,
+            "wanderAt": 2519,
+            "pathAt": 0,
+            "goalX": 32.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_15",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.54906238771234,
+          "y": 11.313889561873053,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 33.5,
+            "homeY": 10.5,
+            "pullX": 33.5,
+            "pullY": 10.5,
+            "wanderAt": 2476,
+            "pathAt": 0,
+            "goalX": 33.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_16",
+          "ref": "guardian_raven",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 34.19816933039841,
+          "y": 15.740375137104753,
+          "move": {
+            "path": [
+              {
+                "x": 33.5,
+                "y": 16.5
+              },
+              {
+                "x": 33.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              },
+              {
+                "x": 32.5,
+                "y": 19.5
+              },
+              {
+                "x": 32.5,
+                "y": 20.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 20.352729249492317
+            },
+            "arriveRadius": 1.65
+          },
+          "intent": null,
+          "hp": 180,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 15.5,
+            "pullX": 34.60418727992495,
+            "pullY": 15.298617936074299,
+            "wanderAt": 2455,
+            "pathAt": 2415,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2426,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "player",
+          "ref": null,
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 20.352729249492317,
+          "move": null,
+          "intent": null,
+          "hp": 116,
+          "level": 3,
+          "target": "monster_16",
+          "threat": {},
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_door_strike": 2111,
+            "sk_door_step": 1551
+          },
+          "gcd": 2021,
+          "ai": null,
+          "auras": [
+            {
+              "id": "aur_door_mirror",
+              "sourceId": "player",
+              "expires": 0,
+              "stacks": 1,
+              "lvl": 2,
+              "seq": 23,
+              "origin": "door:awaken"
+            }
+          ],
+          "swingAt": 1994
+        }
+      ],
+      "terrain": [
+        {
+          "id": "object_1",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_west",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_2",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_east",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 11.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_3",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_south",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 19.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        }
+      ]
+    },
+    {
+      "tick": 2478,
+      "units": [
+        {
+          "id": "player",
+          "ref": null,
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 20.352729249492317,
+          "move": null,
+          "intent": null,
+          "hp": 116,
+          "level": 3,
+          "target": "monster_16",
+          "threat": {},
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_door_strike": 2111,
+            "sk_door_step": 1551
+          },
+          "gcd": 2021,
+          "ai": null,
+          "auras": [
+            {
+              "id": "aur_door_mirror",
+              "sourceId": "player",
+              "expires": 0,
+              "stacks": 1,
+              "lvl": 2,
+              "seq": 23,
+              "origin": "door:awaken"
+            }
+          ]
+        },
+        {
+          "id": "monster_16",
+          "ref": "guardian_raven",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.36921139153282,
+          "y": 16.607875763834098,
+          "move": null,
+          "intent": null,
+          "hp": 180,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": {
+            "abilityId": "sk_mon_featherstorm",
+            "targetId": "monster_16",
+            "start": 2476,
+            "end": 2506,
+            "x": 33.36921139153282,
+            "y": 16.607875763834098,
+            "warned": true
+          },
+          "cds": {},
+          "gcd": 2506,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 15.5,
+            "pullX": 34.60418727992495,
+            "pullY": 15.298617936074299,
+            "wanderAt": 2455,
+            "pathAt": 2480,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2496,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_10",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2538,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_11",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.97421356237311,
+          "y": 13.5,
+          "move": {
+            "path": [
+              {
+                "x": 30.5,
+                "y": 13.5
+              }
+            ],
+            "goal": {
+              "x": 30.36052987641489,
+              "y": 13.23116661199645
+            },
+            "arriveRadius": 0.3
+          },
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2544,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_12",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 10.5,
+            "pullX": 35.5,
+            "pullY": 10.5,
+            "wanderAt": 2483,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_13",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 11.5,
+            "pullX": 35.5,
+            "pullY": 11.5,
+            "wanderAt": 2492,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_14",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 32.5,
+            "homeY": 11.5,
+            "pullX": 32.5,
+            "pullY": 11.5,
+            "wanderAt": 2519,
+            "pathAt": 0,
+            "goalX": 32.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_15",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.115827189325515,
+          "y": 11.390748282124774,
+          "move": {
+            "path": [
+              {
+                "x": 32.5,
+                "y": 11.5
+              }
+            ],
+            "goal": {
+              "x": 32.686466958564694,
+              "y": 11.245076752490478
+            },
+            "arriveRadius": 0.3
+          },
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 33.5,
+            "homeY": 10.5,
+            "pullX": 33.5,
+            "pullY": 10.5,
+            "wanderAt": 2628,
+            "pathAt": 0,
+            "goalX": 33.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": []
+        }
+      ],
+      "terrain": [
+        {
+          "id": "object_1",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_west",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true,
+          "unitTarget": null
+        },
+        {
+          "id": "object_2",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_east",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 11.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true,
+          "unitTarget": null
+        },
+        {
+          "id": "object_3",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_south",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 19.5,
+          "state": "broken",
+          "hp": 0,
+          "alive": false,
+          "unitTarget": null
+        }
+      ]
+    },
+    {
+      "tick": 2490,
+      "units": [
+        {
+          "id": "player",
+          "ref": null,
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 18.042729249492307,
+          "move": {
+            "path": [
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 33.5,
+                "y": 16.5
+              }
+            ],
+            "goal": {
+              "x": 33.36921139153282,
+              "y": 16.607875763834098
+            },
+            "arriveRadius": 0.2
+          },
+          "intent": null,
+          "hp": 116,
+          "level": 3,
+          "target": "monster_16",
+          "threat": {},
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_door_strike": 2608,
+            "sk_door_step": 1551
+          },
+          "gcd": 2518,
+          "ai": null,
+          "auras": [
+            {
+              "id": "aur_door_mirror",
+              "sourceId": "player",
+              "expires": 0,
+              "stacks": 1,
+              "lvl": 2,
+              "seq": 23,
+              "origin": "door:awaken"
+            }
+          ]
+        },
+        {
+          "id": "monster_16",
+          "ref": "guardian_raven",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.36921139153282,
+          "y": 16.607875763834098,
+          "move": null,
+          "intent": null,
+          "hp": 151,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 30
+          },
+          "autoAttack": true,
+          "cast": {
+            "abilityId": "sk_mon_featherstorm",
+            "targetId": "monster_16",
+            "start": 2476,
+            "end": 2506,
+            "x": 33.36921139153282,
+            "y": 16.607875763834098,
+            "warned": true
+          },
+          "cds": {},
+          "gcd": 2506,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 15.5,
+            "pullX": 34.60418727992495,
+            "pullY": 15.298617936074299,
+            "wanderAt": 2455,
+            "pathAt": 2480,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2496,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_10",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.72,
+          "move": {
+            "path": [
+              {
+                "x": 30.5,
+                "y": 14.5
+              },
+              {
+                "x": 30.5,
+                "y": 15.5
+              },
+              {
+                "x": 31.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.252729249492308
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 30.5,
+            "pullY": 13.5,
+            "wanderAt": 2538,
+            "pathAt": 2497,
+            "goalX": 32.5,
+            "goalY": 18.252729249492308,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_11",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.43055750949629,
+          "y": 13.554495094972285,
+          "move": {
+            "path": [
+              {
+                "x": 30.5,
+                "y": 14.5
+              },
+              {
+                "x": 30.5,
+                "y": 15.5
+              },
+              {
+                "x": 31.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.252729249492308
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 30.41444304025519,
+            "pullY": 13.335086061700913,
+            "wanderAt": 2544,
+            "pathAt": 2497,
+            "goalX": 32.5,
+            "goalY": 18.252729249492308,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_12",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.34443650813896,
+          "y": 10.65556349186104,
+          "move": {
+            "path": [
+              {
+                "x": 34.5,
+                "y": 11.5
+              },
+              {
+                "x": 34.5,
+                "y": 12.5
+              },
+              {
+                "x": 33.5,
+                "y": 13.5
+              },
+              {
+                "x": 32.5,
+                "y": 14.5
+              },
+              {
+                "x": 32.5,
+                "y": 15.5
+              },
+              {
+                "x": 32.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.252729249492308
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 35.5,
+            "homeY": 10.5,
+            "pullX": 35.5,
+            "pullY": 10.5,
+            "wanderAt": 2616,
+            "pathAt": 2497,
+            "goalX": 32.5,
+            "goalY": 18.252729249492308,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_13",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.34443650813896,
+          "y": 13.65556349186104,
+          "move": {
+            "path": [
+              {
+                "x": 34.5,
+                "y": 14.5
+              },
+              {
+                "x": 34.5,
+                "y": 15.5
+              },
+              {
+                "x": 33.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.252729249492308
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 35.5,
+            "homeY": 11.5,
+            "pullX": 35.5,
+            "pullY": 13.5,
+            "wanderAt": 2492,
+            "pathAt": 2497,
+            "goalX": 32.5,
+            "goalY": 18.252729249492308,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_14",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.34443650813896,
+          "y": 13.65556349186104,
+          "move": {
+            "path": [
+              {
+                "x": 32.5,
+                "y": 14.5
+              },
+              {
+                "x": 32.5,
+                "y": 15.5
+              },
+              {
+                "x": 32.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.252729249492308
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 11.5,
+            "pullX": 33.5,
+            "pullY": 13.5,
+            "wanderAt": 2519,
+            "pathAt": 2497,
+            "goalX": 32.5,
+            "goalY": 18.252729249492308,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        },
+        {
+          "id": "monster_15",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.960223518569954,
+          "y": 11.484631156372815,
+          "move": {
+            "path": [
+              {
+                "x": 33.5,
+                "y": 11.5
+              },
+              {
+                "x": 33.5,
+                "y": 12.5
+              },
+              {
+                "x": 33.5,
+                "y": 13.5
+              },
+              {
+                "x": 32.5,
+                "y": 14.5
+              },
+              {
+                "x": 32.5,
+                "y": 15.5
+              },
+              {
+                "x": 32.5,
+                "y": 16.5
+              },
+              {
+                "x": 32.5,
+                "y": 17.5
+              },
+              {
+                "x": 32.5,
+                "y": 18.5
+              }
+            ],
+            "goal": {
+              "x": 32.5,
+              "y": 18.46272924949231
+            },
+            "arriveRadius": 1.1949999999999998
+          },
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 1
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "chase",
+            "homeX": 33.5,
+            "homeY": 10.5,
+            "pullX": 32.52040176185927,
+            "pullY": 11.472108284341022,
+            "wanderAt": 2628,
+            "pathAt": 2496,
+            "goalX": 32.5,
+            "goalY": 18.46272924949231,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2508,
+            "despawnAt": 0
+          },
+          "auras": []
+        }
+      ],
+      "terrain": [
+        {
+          "id": "object_1",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_west",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true,
+          "unitTarget": null
+        },
+        {
+          "id": "object_2",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_east",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 11.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true,
+          "unitTarget": null
+        },
+        {
+          "id": "object_3",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_south",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 19.5,
+          "state": "broken",
+          "hp": 0,
+          "alive": false,
+          "unitTarget": null
+        }
+      ]
+    },
+    {
+      "tick": 2518,
+      "units": [
+        {
+          "id": "monster_10",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2538,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_11",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 30.41444304025519,
+          "y": 13.335086061700913,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2544,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_12",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 10.5,
+            "pullX": 35.5,
+            "pullY": 10.5,
+            "wanderAt": 2616,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_13",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 34.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 11.5,
+            "pullX": 35.5,
+            "pullY": 11.5,
+            "wanderAt": 2607,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_14",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 13.5,
+          "move": null,
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 32.5,
+            "homeY": 11.5,
+            "pullX": 32.5,
+            "pullY": 11.5,
+            "wanderAt": 2519,
+            "pathAt": 0,
+            "goalX": 32.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_15",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.52040176185927,
+          "y": 11.472108284341022,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 33.5,
+            "homeY": 10.5,
+            "pullX": 33.5,
+            "pullY": 10.5,
+            "wanderAt": 2628,
+            "pathAt": 0,
+            "goalX": 33.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_16",
+          "ref": "guardian_raven",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 18.454442255082075,
+          "move": null,
+          "intent": null,
+          "hp": 170,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 11
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_mon_featherstorm": 2706
+          },
+          "gcd": 2506,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 15.5,
+            "pullX": 34.60418727992495,
+            "pullY": 15.298617936074299,
+            "wanderAt": 2455,
+            "pathAt": 2522,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2526,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 2557
+        },
+        {
+          "id": "player",
+          "ref": null,
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 20.352729249492317,
+          "move": null,
+          "intent": null,
+          "hp": 104,
+          "level": 3,
+          "target": "monster_16",
+          "threat": {
+            "monster_16": 12
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_door_strike": 2111,
+            "sk_door_step": 1551
+          },
+          "gcd": 2021,
+          "ai": null,
+          "auras": [
+            {
+              "id": "aur_door_mirror",
+              "sourceId": "player",
+              "expires": 0,
+              "stacks": 1,
+              "lvl": 2,
+              "seq": 23,
+              "origin": "door:awaken"
+            }
+          ],
+          "swingAt": 2555
+        }
+      ],
+      "terrain": [
+        {
+          "id": "object_1",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_west",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_2",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_east",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 11.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_3",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_south",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 19.5,
+          "state": "broken",
+          "hp": 0,
+          "alive": false
+        }
+      ]
+    },
+    {
+      "tick": 2706,
+      "units": [
+        {
+          "id": "monster_10",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 31.5,
+          "y": 11.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2715,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_11",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 31.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 31.5,
+            "homeY": 11.5,
+            "pullX": 31.5,
+            "pullY": 11.5,
+            "wanderAt": 2717,
+            "pathAt": 0,
+            "goalX": 31.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_12",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 34.5,
+          "y": 9.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 10.5,
+            "pullX": 35.5,
+            "pullY": 10.5,
+            "wanderAt": 2895,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_13",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 10.5,
+          "move": null,
+          "intent": null,
+          "hp": 76,
+          "level": 4,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 35.5,
+            "homeY": 11.5,
+            "pullX": 35.5,
+            "pullY": 11.5,
+            "wanderAt": 2782,
+            "pathAt": 0,
+            "goalX": 35.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_14",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 31.5,
+          "y": 11.5,
+          "move": null,
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 32.5,
+            "homeY": 11.5,
+            "pullX": 32.5,
+            "pullY": 11.5,
+            "wanderAt": 2712,
+            "pathAt": 0,
+            "goalX": 32.5,
+            "goalY": 11.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_15",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 11.5,
+          "move": null,
+          "intent": null,
+          "hp": 62,
+          "level": 3,
+          "target": null,
+          "threat": {},
+          "autoAttack": false,
+          "cast": null,
+          "cds": {},
+          "gcd": 0,
+          "ai": {
+            "state": "idle",
+            "homeX": 33.5,
+            "homeY": 10.5,
+            "pullX": 33.5,
+            "pullY": 10.5,
+            "wanderAt": 2785,
+            "pathAt": 0,
+            "goalX": 33.5,
+            "goalY": 10.5,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 0,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 0
+        },
+        {
+          "id": "monster_16",
+          "ref": "guardian_raven",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 18.454442255082075,
+          "move": null,
+          "intent": null,
+          "hp": 142,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 39
+          },
+          "autoAttack": true,
+          "cast": {
+            "abilityId": "sk_mon_featherstorm",
+            "targetId": "monster_16",
+            "start": 2706,
+            "end": 2736,
+            "x": 32.5,
+            "y": 18.454442255082075,
+            "warned": true
+          },
+          "cds": {
+            "sk_mon_featherstorm": 2706
+          },
+          "gcd": 2736,
+          "ai": {
+            "state": "chase",
+            "homeX": 32.5,
+            "homeY": 15.5,
+            "pullX": 34.60418727992495,
+            "pullY": 15.298617936074299,
+            "wanderAt": 2455,
+            "pathAt": 2522,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [0],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2726,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "swingAt": 2717
+        },
+        {
+          "id": "monster_173",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 18.845786437626895,
+          "move": null,
+          "intent": null,
+          "hp": 90,
+          "level": 5,
+          "target": "player",
+          "threat": {
+            "player": 19.5
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_mon_peckeyes": 3044
+          },
+          "gcd": 2674,
+          "ai": {
+            "state": "chase",
+            "homeX": 33.5,
+            "homeY": 17.5,
+            "pullX": 33.5,
+            "pullY": 17.5,
+            "wanderAt": 2600,
+            "pathAt": 2589,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2724,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "summonerId": "monster_16",
+          "swingAt": 2733
+        },
+        {
+          "id": "monster_174",
+          "ref": "raven_flock",
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 18.791603189425405,
+          "move": null,
+          "intent": null,
+          "hp": 15,
+          "level": 3,
+          "target": "player",
+          "threat": {
+            "player": 66.5
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_mon_peckeyes": 3003
+          },
+          "gcd": 2633,
+          "ai": {
+            "state": "chase",
+            "homeX": 30.5,
+            "homeY": 17.5,
+            "pullX": 30.5,
+            "pullY": 17.5,
+            "wanderAt": 2600,
+            "pathAt": 2597,
+            "goalX": 32.5,
+            "goalY": 20.352729249492317,
+            "fleeUntil": 0,
+            "fled": false,
+            "evadeUntil": 0,
+            "summoned": [],
+            "phase": 0,
+            "enraged": false,
+            "rampAt": 0,
+            "abilityAt": 2723,
+            "despawnAt": 0
+          },
+          "auras": [],
+          "summonerId": "monster_16",
+          "swingAt": 2739
+        },
+        {
+          "id": "player",
+          "ref": null,
+          "alive": true,
+          "mapId": "seal_ruins_depths",
+          "x": 32.5,
+          "y": 19.512729249492313,
+          "move": null,
+          "intent": null,
+          "hp": 37,
+          "level": 3,
+          "target": "monster_174",
+          "threat": {
+            "monster_16": 24,
+            "monster_173": 49,
+            "monster_174": 38
+          },
+          "autoAttack": true,
+          "cast": null,
+          "cds": {
+            "sk_door_strike": 2764,
+            "sk_door_step": 3268
+          },
+          "gcd": 2674,
+          "ai": null,
+          "auras": [
+            {
+              "id": "aur_door_mirror",
+              "sourceId": "player",
+              "expires": 0,
+              "stacks": 1,
+              "lvl": 2,
+              "seq": 23,
+              "origin": "door:awaken"
+            },
+            {
+              "id": "aur_door_dodge",
+              "sourceId": "player",
+              "expires": 2788,
+              "stacks": 1,
+              "lvl": 3,
+              "seq": 52
+            }
+          ],
+          "swingAt": 2709
+        }
+      ],
+      "terrain": [
+        {
+          "id": "object_1",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_west",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 30.5,
+          "y": 13.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_2",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_east",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 35.5,
+          "y": 11.5,
+          "state": "intact",
+          "hp": 9,
+          "alive": true
+        },
+        {
+          "id": "object_3",
+          "bossId": "monster_16",
+          "monsterId": "guardian_raven",
+          "object": "stone_south",
+          "role": "breakable",
+          "mapId": "seal_ruins_depths",
+          "x": 33.5,
+          "y": 19.5,
+          "state": "broken",
+          "hp": 0,
+          "alive": false
+        }
+      ]
+    }
+  ],
+  "playerBase": {
+    "id": "player",
+    "classId": "outsider",
+    "monsterId": null,
+    "level": 3,
+    "tier": 0,
+    "xp": 263,
+    "side": "ally",
+    "attackable": true,
+    "hp": 116,
+    "res": {},
+    "pools": {},
+    "combo": 0,
+    "auras": [
+      {
+        "id": "aur_door_mirror",
+        "sourceId": "player",
+        "expires": 0,
+        "stacks": 1,
+        "lvl": 2,
+        "seq": 23,
+        "origin": "door:awaken"
+      },
+      {
+        "id": "aur_st_presence_pressure",
+        "sourceId": "fixture_ash",
+        "expires": 2390,
+        "stacks": 2,
+        "lvl": 60,
+        "seq": 48,
+        "scale": 0.85
+      }
+    ],
+    "cds": {
+      "sk_door_strike": 2111,
+      "sk_door_step": 1551
+    },
+    "gcd": 2021,
+    "cast": null,
+    "threat": {},
+    "target": "monster_16",
+    "autoAttack": true,
+    "swingAt": 1994,
+    "combatUntil": 2091,
+    "manaSpentAt": 0,
+    "abilities": ["sk_door_step"],
+    "bonuses": {
+      "door:past_life_abacus": {
+        "int": 3,
+        "spi": 2,
+        "hit": 1
+      }
+    },
+    "baseSpeed": 4.2,
+    "tapped": null,
+    "ai": null,
+    "power": 1,
+    "rack": ["sk_door_strike", "sk_door_step"],
+    "dr": {
+      "stun_proc": {
+        "stage": 1,
+        "resetAt": 2610
+      }
+    }
+  },
+  "holdingPlayer": {
+    "money": 9,
+    "items": {
+      "relic_badge": 1,
+      "number_tag_five": 1,
+      "merca_coin": 1,
+      "lore_h03": 1,
+      "rusty_shortsword": 1,
+      "rat_tail": 1,
+      "dian_shard": 1
+    },
+    "equipped": {
+      "main_hand": "rusty_shortsword"
+    },
+    "instances": {
+      "it1": {
+        "instanceId": "it1",
+        "defId": "rusty_shortsword",
+        "durability": {
+          "cur": 16,
+          "max": 20
+        }
+      }
+    },
+    "worn": {
+      "main_hand": "it1"
+    }
+  }
+}

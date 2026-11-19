@@ -27,9 +27,9 @@ import {
   type StoryHandlers,
 } from '../hud/story';
 import { AiFlagStore } from '../hud/story/ai_flags';
-import { pickable } from '../hud/story/cutscene_model';
+import { pickable, regionBackdrop } from '../hud/story/cutscene_model';
 import { askConfirmChoice } from '../hud/story/cutscene_player';
-import { cueChanged, type DivineCue, divineCue } from '../hud/story/divine_audio';
+import { cueChanged, type DivineCue, divineCue, divineLines } from '../hud/story/divine_audio';
 import type { InputDevice } from '../input/device';
 import { readGamepad } from '../input/gamepad_poller';
 import { lookFromEntity } from '../sprites/look';
@@ -276,6 +276,7 @@ export class StoryWiring implements StoryInputHost {
       holdToToggle: s.accessibility.holdToToggle,
       skipKeyDown: this.skipHeld(s.input.swapConfirmBack),
       resolver,
+      backdrop: regionBackdrop(resolver, v.currentMap()),
       nameOf: (id) => this.nameOf(id),
       letter: (id) => letterCard(v.world as never, v.content as never, id),
       talkLayout: (c) => dialogueLayout(resolver, this.speaker(c)),
@@ -322,10 +323,11 @@ export class StoryWiring implements StoryInputHost {
     const flags = v.world.meta.flags;
     const mapId = v.player()?.mapId ?? '';
     const goddesses = content.goddesses ?? [];
+    const lines = divineLines(f);
     const cue = divineCue(
-      f.cutscene
+      lines
         ? {
-            lines: f.cutscene.lines,
+            lines,
             goddesses: new Set(goddesses.map((g) => g.id)),
             reverbZone: content.atlas_maps?.find((m) => m.id === mapId)?.reverbZone ?? '',
             // a goddess still under her hidden name keeps her theme back with it (the door

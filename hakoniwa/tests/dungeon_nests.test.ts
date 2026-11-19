@@ -85,7 +85,11 @@ describe('waking and growing', () => {
     killLord(t);
     expect(queen(t)?.cleared).toBe(true);
     expect(flags(t.g)[`dg.${QUEEN_NEST.id}.cleared`]).toBe(true);
-    expect(last(t, 'dungeon.cleared')).toEqual({ id: QUEEN_NEST.id, kind: 'nest' });
+    expect(last(t, 'dungeon.cleared')).toMatchObject({
+      id: QUEEN_NEST.id,
+      kind: 'nest',
+      victimId: expect.any(String),
+    });
     days(t, 60);
     expect(queen(t)?.stage).toBe(2);
     days(t, 32);

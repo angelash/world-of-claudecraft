@@ -1,0 +1,2132 @@
+{
+  "source": "tutorial_2026-11-19T06_28_50_734Z, exact command replay at tick 8020",
+  "anchorSha256": "3822d4a67aeaf8a797e79dbc249a10832c7dcdaa4093f80830ee70b376f475be",
+  "seed": 20261115,
+  "tick": 8020,
+  "flags": {
+    "dg.dg_seal_ruins.phase": "dungeon",
+    "dg.dg_seal_ruins.pressure": 300,
+    "dg.dg_seal_ruins.active": false,
+    "dg.dg_seal_ruins.choice": "untouched",
+    "dg.dg_old_mine.phase": "shallow",
+    "dg.dg_old_mine.pressure": 100,
+    "dg.dg_old_mine.active": false,
+    "dg.dg_old_mine.choice": "untouched",
+    "dg.dg_moon_cellar.phase": "lair",
+    "dg.dg_moon_cellar.pressure": 30,
+    "dg.dg_moon_cellar.active": false,
+    "dg.dg_moon_cellar.choice": "untouched",
+    "trust.agnes": 55,
+    "trust.aiden": 50,
+    "trust.ako": 55,
+    "trust.anselm": 35,
+    "trust.ash": 50,
+    "trust.barga": 40,
+    "trust.barto": 50,
+    "trust.bertha": 35,
+    "trust.boro": 30,
+    "trust.bron": 45,
+    "trust.cassian": 45,
+    "trust.cecilia": 45,
+    "trust.dora": 60,
+    "trust.dris": 30,
+    "trust.ed": 50,
+    "trust.edric": 45,
+    "trust.ferryman": 40,
+    "trust.fritz_kolb": 40,
+    "trust.fynn": 60,
+    "trust.gaspar": 40,
+    "trust.gorn": 40,
+    "trust.greta": 55,
+    "trust.hock": 50,
+    "trust.isa": 55,
+    "trust.jed": 50,
+    "trust.archivist": 55,
+    "trust.karl": 40,
+    "trust.kas_ropebridge": 45,
+    "trust.knut_naumann": 40,
+    "trust.krause": 50,
+    "trust.lene_mahler": 55,
+    "trust.liese": 50,
+    "trust.lina": 60,
+    "trust.lisa": 55,
+    "trust.lucas": 50,
+    "trust.luchen": 60,
+    "trust.marcus": 65,
+    "trust.marg": 55,
+    "trust.martha": 65,
+    "trust.moss": 35,
+    "trust.nera": 50,
+    "trust.nick": 50,
+    "trust.noi": 50,
+    "trust.oola": 40,
+    "trust.owen": 50,
+    "trust.ped": 50,
+    "trust.pia": 60,
+    "trust.popo": 65,
+    "trust.reynard": 25,
+    "trust.ron": 55,
+    "trust.seg_oneeye": 25,
+    "trust.selene": 40,
+    "trust.shiya": 45,
+    "trust.simon": 50,
+    "trust.tess": 65,
+    "trust.toma": 50,
+    "trust.ulf_lange": 50,
+    "trust.vick": 40,
+    "trust.viro": 40,
+    "trust.wilma_ascher": 45,
+    "trust.yeyu": 40,
+    "trust.yui": 60,
+    "act": "act1",
+    "quest.q_p_m01_last_moment": "done",
+    "quest.q_p_m01_last_moment.stage": "door",
+    "p_door_attempts_refused": 0,
+    "p_earth_opening": "a",
+    "p_earth_relic": "relic_badge",
+    "p_hint.pact": 3,
+    "p_courtyard_object": "old_cup",
+    "p_default_past_life": "abacus",
+    "p_unsent_words": "（没有回）",
+    "scene.cut_p_earth.seen": true,
+    "quest.q_p_m02_antechamber": "done",
+    "quest.q_p_m02_antechamber.stage": "curtain",
+    "p_mirror_done": true,
+    "quest.q_p_s02_next_door": "done",
+    "quest.q_p_s02_next_door.stage": "listen",
+    "p_heard_neighbors": true,
+    "scene.cut_p_door_white.seen": true,
+    "p_eavesdrop_level": 0,
+    "scene.cut_p_quarrel.seen": true,
+    "quest.q_p_m03_interview": "done",
+    "quest.q_p_m03_interview.stage": "moira",
+    "player.name": "无名氏",
+    "p_asked_sixth_chair": true,
+    "quest.q_p_s01_sixth_chair": "done",
+    "quest.q_p_s01_sixth_chair.stage": "ask",
+    "p_call_free_count": 3,
+    "p_free.call": "",
+    "scene.cut_p_call.seen": true,
+    "goddess.eluen.impression": 1,
+    "goddess.eluen.relation": 10,
+    "goddess.eluen.memory_tags": "知礼的样本,会咬人的",
+    "p_answers": "E1,V1,M1,S1,O1",
+    "goddess.valda.impression": 2,
+    "goddess.valda.relation": 20,
+    "goddess.valda.interest": 2,
+    "p_hint.blade": 1,
+    "goddess.valda.memory_tags": "爬起来的,会咬人的",
+    "goddess.merca.impression": 2,
+    "goddess.merca.relation": 20,
+    "goddess.moira.interest": 1,
+    "goddess.merca.memory_tags": "有货的,会咬人的",
+    "p_merca_valuation": "high",
+    "goddess.sylvie.impression": 1,
+    "goddess.sylvie.relation": 10,
+    "p_hint.breath": 1,
+    "goddess.sylvie.memory_tags": "有牵挂的,会咬人的",
+    "p_hint.spirit": 1,
+    "goddess.moira.memory_tags": "经典开头,会咬人的",
+    "p_past_life_door": "abacus",
+    "feature.price_band": true,
+    "door.past_life_abacus": true,
+    "seal_points": 3,
+    "seal_looseness": 1.5,
+    "doors_opened": 3,
+    "door_rank": 5,
+    "p_earth_anchor_trigger": "moira",
+    "p_interview_done": true,
+    "scene.cut_p_interview.seen": true,
+    "p_moira_page_anomaly": true,
+    "p_rejection_response": "r1",
+    "p_coin_terms": "interest_free",
+    "quest.q_p_m04_out_of_spec": "done",
+    "quest.q_p_m04_out_of_spec.stage": "discard",
+    "miracle_count": 3,
+    "scene.cut_p_judgement.seen": true,
+    "p_last_words": "back",
+    "p_discarded": true,
+    "p_reached_out": true,
+    "p_caught": true,
+    "p_eluen_believes_dead": true,
+    "seal_unrest": 18,
+    "p_door_hints": "pact,blade",
+    "scene.cut_p_discard.seen": true,
+    "a1_wake_ruins": true,
+    "continent": 70,
+    "scene.pending": "",
+    "act_week": 1,
+    "a1_moss_fate": "in_power",
+    "a1_oneeye_fate": "active",
+    "a1_old_watch": "bandits",
+    "a1_viro_status": "in_band",
+    "a1_tax_rate": "sixth",
+    "act.1.entered": true,
+    "quest.q_p_m05_caught": "done",
+    "quest.q_p_m05_caught.stage": "caught",
+    "quest.q_a1_m01_fall": "done",
+    "quest.q_a1_m01_fall.stage": "ash_chamber",
+    "dispute.q_a1_d01_tax_and_bandits.stage": "levy",
+    "dispute.q_a1_d01_tax_and_bandits.escalation": 1,
+    "dispute.q_a1_d02_witch_trial.stage": "vigil",
+    "dispute.q_a1_d02_witch_trial.escalation": 1,
+    "dispute.q_a1_d04_forest_dispute.stage": "encroach",
+    "dispute.q_a1_d04_forest_dispute.escalation": 1,
+    "dispute.q_a1_d05_tavern_eyes.stage": "watching",
+    "dispute.q_a1_d05_tavern_eyes.escalation": 0,
+    "dispute.q_a1_d06_bron_old_wound.stage": "silent",
+    "dispute.q_a1_d06_bron_old_wound.escalation": 0,
+    "dg.dg_seal_ruins.depth": 2,
+    "a1_town_dian": 15,
+    "sed_case.milo": "fever",
+    "scene.cut_a1_wake.seen": true,
+    "feature.door_corridor": true,
+    "door.awaken": true,
+    "a1_first_door_seen": true,
+    "director.tension": 35,
+    "ev.ev_a1_greyroad_smugglers": "ended",
+    "ev.ev_a1_greyroad_smugglers.count": 1,
+    "a1_ash_met": true,
+    "quest.q_a1_m02_raven": "active",
+    "quest.q_a1_m02_raven.stage": "raven",
+    "quest.q_a1_m01_fall.path": "bowed",
+    "scene.cut_a1_ash_glimpse.seen": true,
+    "feature.tide_sight": true,
+    "door.tide_sight": true,
+    "scene.cut_a1_raven.seen": true,
+    "director.rumor_hint": true,
+    "sediment.seal_ruins_depths": 0.01,
+    "fate_threads": 1
+  },
+  "entities": {
+    "player": {
+      "id": "player",
+      "kind": "player",
+      "name": "无名氏",
+      "mapId": "seal_ruins_depths",
+      "x": 12.5,
+      "y": 15.5,
+      "facing": 0.7853981633974483,
+      "speed": 4.2,
+      "radius": 0.35,
+      "faction": "player",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3b4a6b", "#c9b38a", "#f1c9a5", "#2b2b2b"]
+      },
+      "tags": ["player", "lvl:3", "tier:0"],
+      "alive": true,
+      "home": {
+        "x": 12.5,
+        "y": 15.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "fixture_ash": {
+      "id": "fixture_ash",
+      "kind": "npc",
+      "name": "守门人阿什",
+      "mapId": "seal_ruins_depths",
+      "x": 23.5,
+      "y": 23.5,
+      "facing": 0,
+      "speed": 0,
+      "radius": 0.35,
+      "faction": "none",
+      "appearance": {
+        "base": "undead",
+        "colors": ["#2a2826", "#4a4642", "#9fd8ff", "#d8d0bc"],
+        "scale": 1.1
+      },
+      "tags": ["npc", "gatekeeper", "unattackable", "lvl:60", "tier:6"],
+      "alive": true,
+      "ref": "ash",
+      "home": {
+        "x": 23.5,
+        "y": 23.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_8": {
+      "id": "monster_8",
+      "kind": "monster",
+      "name": "澱鼠",
+      "mapId": "seal_ruins_depths",
+      "x": 12.385327429442635,
+      "y": 28.734640254991447,
+      "facing": 3.141592653589793,
+      "speed": 3.6,
+      "radius": 0.175,
+      "faction": "monster",
+      "appearance": {
+        "base": "rat",
+        "colors": ["#6b6359", "#4a443d", "#c9a9a0", "#2a2622"],
+        "scale": 0.5
+      },
+      "tags": ["monster", "family:burrower", "faction:monster", "lvl:3", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "dian_rat",
+      "spawnId": "seal_ruins_depths/sd_rat_landing",
+      "home": {
+        "x": 14.5,
+        "y": 29.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_9": {
+      "id": "monster_9",
+      "kind": "monster",
+      "name": "澱鼠",
+      "mapId": "seal_ruins_depths",
+      "x": 15.781813460329136,
+      "y": 29.502816317995432,
+      "facing": 0.14391842407510583,
+      "speed": 3.6,
+      "radius": 0.175,
+      "faction": "monster",
+      "appearance": {
+        "base": "rat",
+        "colors": ["#6b6359", "#4a443d", "#c9a9a0", "#2a2622"],
+        "scale": 0.5
+      },
+      "tags": ["monster", "family:burrower", "faction:monster", "lvl:3", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "dian_rat",
+      "spawnId": "seal_ruins_depths/sd_rat_landing",
+      "home": {
+        "x": 15.5,
+        "y": 29.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_10": {
+      "id": "monster_10",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 33.39809032723105,
+      "y": 12.471624147908516,
+      "facing": 1.5707963267948966,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:3", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_sw",
+      "home": {
+        "x": 31.5,
+        "y": 11.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_11": {
+      "id": "monster_11",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 31.637532203163826,
+      "y": 11.67171165683466,
+      "facing": 3.141592653589793,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:3", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_sw",
+      "home": {
+        "x": 31.5,
+        "y": 11.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_12": {
+      "id": "monster_12",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 33.45140999029116,
+      "y": 11.305992239958043,
+      "facing": 1.5707963267948966,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:4", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_se",
+      "home": {
+        "x": 35.5,
+        "y": 10.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_13": {
+      "id": "monster_13",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 35.5,
+      "y": 11.5,
+      "facing": 0,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:4", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_se",
+      "home": {
+        "x": 35.5,
+        "y": 11.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_14": {
+      "id": "monster_14",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 33.5,
+      "y": 12.5,
+      "facing": 1.5707963267948966,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:5", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_top",
+      "home": {
+        "x": 32.5,
+        "y": 11.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_15": {
+      "id": "monster_15",
+      "kind": "monster",
+      "name": "鸦群",
+      "mapId": "seal_ruins_depths",
+      "x": 33.230979186575325,
+      "y": 10.151822169079756,
+      "facing": -0.7853981633974443,
+      "speed": 4.4,
+      "radius": 0.24499999999999997,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:beast", "faction:ruin_ravens", "lvl:3", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "raven_flock",
+      "spawnId": "seal_ruins_depths/sd_flock_top",
+      "home": {
+        "x": 33.5,
+        "y": 10.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_16": {
+      "id": "monster_16",
+      "kind": "monster",
+      "name": "守护巨鸦",
+      "mapId": "seal_ruins_depths",
+      "x": 23.28578643762684,
+      "y": 23.5,
+      "facing": 0,
+      "speed": 4,
+      "radius": 0.7,
+      "faction": "ruin_ravens",
+      "appearance": {
+        "base": "bird",
+        "colors": ["#141418", "#3a3a44", "#c8a24a", "#c0c8d0"],
+        "scale": 2
+      },
+      "tags": [
+        "monster",
+        "family:beast",
+        "faction:ruin_ravens",
+        "boss",
+        "lvl:3",
+        "tier:0",
+        "hostile"
+      ],
+      "alive": true,
+      "ref": "guardian_raven",
+      "spawnId": "seal_ruins_depths/sd_guardian_raven",
+      "home": {
+        "x": 32.5,
+        "y": 15.5
+      },
+      "move": {
+        "path": [
+          {
+            "x": 23.5,
+            "y": 23.5
+          },
+          {
+            "x": 24.5,
+            "y": 23.5
+          },
+          {
+            "x": 25.5,
+            "y": 23.5
+          },
+          {
+            "x": 26.5,
+            "y": 23.5
+          },
+          {
+            "x": 27.5,
+            "y": 23.5
+          },
+          {
+            "x": 28.5,
+            "y": 23.5
+          },
+          {
+            "x": 29.5,
+            "y": 23.5
+          },
+          {
+            "x": 30.5,
+            "y": 22.5
+          },
+          {
+            "x": 31.5,
+            "y": 21.5
+          },
+          {
+            "x": 32.5,
+            "y": 20.5
+          },
+          {
+            "x": 32.5,
+            "y": 19.5
+          },
+          {
+            "x": 32.5,
+            "y": 18.5
+          },
+          {
+            "x": 32.5,
+            "y": 17.5
+          },
+          {
+            "x": 32.5,
+            "y": 16.5
+          },
+          {
+            "x": 32.5,
+            "y": 15.5
+          }
+        ],
+        "goal": {
+          "x": 32.5,
+          "y": 15.5
+        },
+        "arriveRadius": 0.3
+      },
+      "intent": null
+    },
+    "object_1": {
+      "id": "object_1",
+      "kind": "object",
+      "name": "松动的悬石",
+      "mapId": "seal_ruins_depths",
+      "x": 30.5,
+      "y": 13.5,
+      "facing": 0,
+      "speed": 0,
+      "radius": 0.35,
+      "faction": "none",
+      "appearance": {
+        "base": "object",
+        "colors": ["#5a5650", "#3a3632", "#8a847a", "#2a2622"]
+      },
+      "tags": ["terrain", "breakable", "lvl:3", "tier:0"],
+      "alive": true,
+      "ref": "guardian_raven.stone_west",
+      "home": {
+        "x": 30.5,
+        "y": 13.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "object_2": {
+      "id": "object_2",
+      "kind": "object",
+      "name": "松动的悬石",
+      "mapId": "seal_ruins_depths",
+      "x": 35.5,
+      "y": 11.5,
+      "facing": 0,
+      "speed": 0,
+      "radius": 0.35,
+      "faction": "none",
+      "appearance": {
+        "base": "object",
+        "colors": ["#5a5650", "#3a3632", "#8a847a", "#2a2622"]
+      },
+      "tags": ["terrain", "breakable", "lvl:3", "tier:0"],
+      "alive": true,
+      "ref": "guardian_raven.stone_east",
+      "home": {
+        "x": 35.5,
+        "y": 11.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "object_3": {
+      "id": "object_3",
+      "kind": "object",
+      "name": "松动的悬石",
+      "mapId": "seal_ruins_depths",
+      "x": 33.5,
+      "y": 19.5,
+      "facing": 0,
+      "speed": 0,
+      "radius": 0.35,
+      "faction": "none",
+      "appearance": {
+        "base": "object",
+        "colors": ["#5a5650", "#3a3632", "#8a847a", "#2a2622"]
+      },
+      "tags": ["terrain", "breakable", "lvl:3", "tier:0"],
+      "alive": true,
+      "ref": "guardian_raven.stone_south",
+      "home": {
+        "x": 33.5,
+        "y": 19.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_17": {
+      "id": "monster_17",
+      "kind": "monster",
+      "name": "澱渣团",
+      "mapId": "seal_ruins_depths",
+      "x": 16.5,
+      "y": 27.5,
+      "facing": 1.5707963267948966,
+      "speed": 2.6,
+      "radius": 0.24499999999999997,
+      "faction": "monster",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#5c5a57", "#3a3836", "#8b8885", "#22201f"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:elemental", "faction:monster", "lvl:2", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "dian_dreg",
+      "spawnId": "seal_ruins_depths/sd_dreg_hole",
+      "home": {
+        "x": 16.5,
+        "y": 29.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "monster_18": {
+      "id": "monster_18",
+      "kind": "monster",
+      "name": "澱渣团",
+      "mapId": "seal_ruins_depths",
+      "x": 14.706794853216186,
+      "y": 30.56025000594473,
+      "facing": 2.356194490192352,
+      "speed": 2.6,
+      "radius": 0.24499999999999997,
+      "faction": "monster",
+      "appearance": {
+        "base": "slime",
+        "colors": ["#5c5a57", "#3a3836", "#8b8885", "#22201f"],
+        "scale": 0.7
+      },
+      "tags": ["monster", "family:elemental", "faction:monster", "lvl:1", "tier:0", "hostile"],
+      "alive": true,
+      "ref": "dian_dreg",
+      "spawnId": "seal_ruins_depths/sd_dreg_hole",
+      "home": {
+        "x": 16.5,
+        "y": 30.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "npc_barga": {
+      "id": "npc_barga",
+      "kind": "npc",
+      "name": "巴尔加",
+      "mapId": "borderstone",
+      "x": 64.5,
+      "y": 43.5,
+      "facing": 0,
+      "speed": 2.4,
+      "radius": 0.35,
+      "faction": "townsfolk",
+      "appearance": {
+        "base": "dwarf",
+        "colors": ["#6a3a2a", "#3a3a3a", "#e0a080", "#a03a1a"]
+      },
+      "tags": [
+        "npc",
+        "friendly",
+        "lvl:14",
+        "tier:1",
+        "faction:townsfolk",
+        "named",
+        "smith",
+        "merchant"
+      ],
+      "alive": true,
+      "ref": "barga",
+      "home": {
+        "x": 64.5,
+        "y": 43.5
+      },
+      "move": null,
+      "intent": null
+    },
+    "npc_knut_naumann": {
+      "id": "npc_knut_naumann",
+      "kind": "npc",
+      "name": "克努特·瑙曼",
+      "mapId": "brokenspan_post",
+      "x": 35.5,
+      "y": 53.5,
+      "facing": 0,
+      "speed": 2.4,
+      "radius": 0.35,
+      "faction": "oneeye",
+      "appearance": {
+        "base": "human",
+        "colors": ["#3a3a3a", "#6a4a2a", "#d8a888", "#2a2a2a"]
+      },
+      "tags": ["npc", "friendly", "lvl:13", "tier:1", "faction:oneeye", "named", "smith"],
+      "alive": true,
+      "ref": "knut_naumann",
+      "home": {
+        "x": 35.5,
+        "y": 53.5
+      },
+      "move": null,
+      "intent": null
+    }
+  },
+  "units": {
+    "player": {
+      "id": "player",
+      "classId": "outsider",
+      "monsterId": null,
+      "level": 3,
+      "tier": 0,
+      "xp": 224,
+      "side": "ally",
+      "attackable": true,
+      "hp": 21.84,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [
+        {
+          "id": "aur_door_mirror",
+          "sourceId": "player",
+          "expires": 0,
+          "stacks": 1,
+          "lvl": 2,
+          "seq": 23,
+          "origin": "door:awaken"
+        }
+      ],
+      "cds": {
+        "sk_door_strike": 7608,
+        "sk_door_step": 8196
+      },
+      "gcd": 7518,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 7602,
+      "combatUntil": 8011,
+      "manaSpentAt": 0,
+      "abilities": ["sk_door_step"],
+      "bonuses": {
+        "door:past_life_abacus": {
+          "int": 3,
+          "spi": 2,
+          "hit": 1
+        }
+      },
+      "baseSpeed": 4.2,
+      "tapped": null,
+      "ai": null,
+      "power": 1,
+      "rack": ["sk_door_strike", "sk_door_step"],
+      "dr": {
+        "stun_proc": {
+          "stage": 1,
+          "resetAt": 7990
+        },
+        "incap": {
+          "stage": 2,
+          "resetAt": 7915
+        }
+      }
+    },
+    "fixture_ash": {
+      "id": "fixture_ash",
+      "classId": null,
+      "monsterId": null,
+      "level": 60,
+      "tier": 6,
+      "xp": 0,
+      "side": "neutral",
+      "attackable": false,
+      "hp": 925,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 0,
+      "tapped": null,
+      "ai": null,
+      "power": 1,
+      "presence": 2.5,
+      "tierFloor": 6
+    },
+    "monster_8": {
+      "id": "monster_8",
+      "classId": null,
+      "monsterId": "dian_rat",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 62,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 3.6,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 14.5,
+        "homeY": 29.5,
+        "pullX": 14.5,
+        "pullY": 29.5,
+        "wanderAt": 8109,
+        "pathAt": 0,
+        "goalX": 14.5,
+        "goalY": 29.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_rat_landing"
+    },
+    "monster_9": {
+      "id": "monster_9",
+      "classId": null,
+      "monsterId": "dian_rat",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 62,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 3.6,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 15.5,
+        "homeY": 29.5,
+        "pullX": 15.5,
+        "pullY": 29.5,
+        "wanderAt": 8163,
+        "pathAt": 0,
+        "goalX": 15.5,
+        "goalY": 29.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_rat_landing"
+    },
+    "monster_10": {
+      "id": "monster_10",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 62,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 31.5,
+        "homeY": 11.5,
+        "pullX": 31.5,
+        "pullY": 11.5,
+        "wanderAt": 8099,
+        "pathAt": 0,
+        "goalX": 31.5,
+        "goalY": 11.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_sw"
+    },
+    "monster_11": {
+      "id": "monster_11",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 62,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 31.5,
+        "homeY": 11.5,
+        "pullX": 31.5,
+        "pullY": 11.5,
+        "wanderAt": 8175,
+        "pathAt": 0,
+        "goalX": 31.5,
+        "goalY": 11.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_sw"
+    },
+    "monster_12": {
+      "id": "monster_12",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 4,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 76,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 35.5,
+        "homeY": 10.5,
+        "pullX": 35.5,
+        "pullY": 10.5,
+        "wanderAt": 8108,
+        "pathAt": 0,
+        "goalX": 35.5,
+        "goalY": 10.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_se"
+    },
+    "monster_13": {
+      "id": "monster_13",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 4,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 76,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 35.5,
+        "homeY": 11.5,
+        "pullX": 35.5,
+        "pullY": 11.5,
+        "wanderAt": 8074,
+        "pathAt": 0,
+        "goalX": 35.5,
+        "goalY": 11.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_se"
+    },
+    "monster_14": {
+      "id": "monster_14",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 5,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 90,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 32.5,
+        "homeY": 11.5,
+        "pullX": 32.5,
+        "pullY": 11.5,
+        "wanderAt": 8142,
+        "pathAt": 0,
+        "goalX": 32.5,
+        "goalY": 11.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_top"
+    },
+    "monster_15": {
+      "id": "monster_15",
+      "classId": null,
+      "monsterId": "raven_flock",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 62,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4.4,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 33.5,
+        "homeY": 10.5,
+        "pullX": 33.5,
+        "pullY": 10.5,
+        "wanderAt": 8172,
+        "pathAt": 0,
+        "goalX": 33.5,
+        "goalY": 10.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_flock_top"
+    },
+    "monster_16": {
+      "id": "monster_16",
+      "classId": null,
+      "monsterId": "guardian_raven",
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 169.99999999999997,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {
+        "sk_mon_featherstorm": 7906
+      },
+      "gcd": 7706,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 7746,
+      "combatUntil": 7806,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 4,
+      "tapped": "player",
+      "ai": {
+        "state": "evade",
+        "homeX": 32.5,
+        "homeY": 15.5,
+        "pullX": 31.5,
+        "pullY": 15.5,
+        "wanderAt": 7504,
+        "pathAt": 7932,
+        "goalX": 32.5,
+        "goalY": 15.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 8034,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 7846,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_guardian_raven",
+      "firstHalf": ["sk_mon_featherstorm"],
+      "dr": {
+        "stun_proc": {
+          "stage": 1,
+          "resetAt": 8090
+        }
+      }
+    },
+    "object_1": {
+      "id": "object_1",
+      "classId": null,
+      "monsterId": null,
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "neutral",
+      "attackable": true,
+      "hp": 9,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 0,
+      "tapped": null,
+      "ai": null,
+      "power": 1,
+      "presence": 0,
+      "terrain": "object_1",
+      "hpScale": 0.12857142857142856
+    },
+    "object_2": {
+      "id": "object_2",
+      "classId": null,
+      "monsterId": null,
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "neutral",
+      "attackable": true,
+      "hp": 9,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 0,
+      "tapped": null,
+      "ai": null,
+      "power": 1,
+      "presence": 0,
+      "terrain": "object_2",
+      "hpScale": 0.12857142857142856
+    },
+    "object_3": {
+      "id": "object_3",
+      "classId": null,
+      "monsterId": null,
+      "level": 3,
+      "tier": 0,
+      "xp": 0,
+      "side": "neutral",
+      "attackable": true,
+      "hp": 9,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 6466,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 0,
+      "tapped": "player",
+      "ai": null,
+      "power": 1,
+      "presence": 0,
+      "terrain": "object_3",
+      "hpScale": 0.12857142857142856,
+      "partyDamage": 20
+    },
+    "monster_17": {
+      "id": "monster_17",
+      "classId": null,
+      "monsterId": "dian_dreg",
+      "level": 2,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 57,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 2.6,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 16.5,
+        "homeY": 29.5,
+        "pullX": 16.5,
+        "pullY": 29.5,
+        "wanderAt": 8074,
+        "pathAt": 0,
+        "goalX": 16.5,
+        "goalY": 29.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_dreg_hole"
+    },
+    "monster_18": {
+      "id": "monster_18",
+      "classId": null,
+      "monsterId": "dian_dreg",
+      "level": 1,
+      "tier": 0,
+      "xp": 0,
+      "side": "enemy",
+      "attackable": true,
+      "hp": 46,
+      "res": {},
+      "pools": {},
+      "combo": 0,
+      "auras": [],
+      "cds": {},
+      "gcd": 0,
+      "cast": null,
+      "threat": {},
+      "target": null,
+      "autoAttack": false,
+      "swingAt": 0,
+      "combatUntil": 0,
+      "manaSpentAt": 0,
+      "abilities": [],
+      "bonuses": {},
+      "baseSpeed": 2.6,
+      "tapped": null,
+      "ai": {
+        "state": "idle",
+        "homeX": 16.5,
+        "homeY": 30.5,
+        "pullX": 16.5,
+        "pullY": 30.5,
+        "wanderAt": 8112,
+        "pathAt": 0,
+        "goalX": 16.5,
+        "goalY": 30.5,
+        "fleeUntil": 0,
+        "fled": false,
+        "evadeUntil": 0,
+        "summoned": [],
+        "phase": 0,
+        "enraged": false,
+        "rampAt": 0,
+        "abilityAt": 0,
+        "despawnAt": 0
+      },
+      "power": 1,
+      "spawnKey": "seal_ruins_depths/sd_dreg_hole"
+    }
+  },
+  "holding": {
+    "money": 23,
+    "items": {
+      "relic_badge": 1,
+      "number_tag_five": 1,
+      "merca_coin": 1,
+      "lore_h03": 1,
+      "rusty_shortsword": 1,
+      "rat_tail": 2,
+      "dian_shard": 4
+    },
+    "equipped": {
+      "main_hand": "rusty_shortsword"
+    },
+    "instances": {
+      "it1": {
+        "instanceId": "it1",
+        "defId": "rusty_shortsword",
+        "durability": {
+          "cur": 3,
+          "max": 20
+        }
+      }
+    },
+    "worn": {
+      "main_hand": "it1"
+    }
+  },
+  "quests": {
+    "quests": {
+      "q_p_m01_last_moment": {
+        "id": "q_p_m01_last_moment",
+        "status": "done",
+        "stage": 2,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 73,
+        "startedTick": 1,
+        "choices": {},
+        "accrued": 74,
+        "doneTick": 77
+      },
+      "q_p_m02_antechamber": {
+        "id": "q_p_m02_antechamber",
+        "status": "done",
+        "stage": 2,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 82,
+        "startedTick": 78,
+        "choices": {},
+        "accrued": 100,
+        "doneTick": 100
+      },
+      "q_p_s02_next_door": {
+        "id": "q_p_s02_next_door",
+        "status": "done",
+        "stage": 0,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 84,
+        "startedTick": 84,
+        "choices": {},
+        "accrued": 84,
+        "doneTick": 84
+      },
+      "q_p_m03_interview": {
+        "id": "q_p_m03_interview",
+        "status": "done",
+        "stage": 5,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 175,
+        "startedTick": 101,
+        "choices": {},
+        "accrued": 184,
+        "doneTick": 184
+      },
+      "q_p_s01_sixth_chair": {
+        "id": "q_p_s01_sixth_chair",
+        "status": "done",
+        "stage": 0,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 138,
+        "startedTick": 138,
+        "choices": {},
+        "accrued": 138,
+        "doneTick": 138
+      },
+      "q_p_m04_out_of_spec": {
+        "id": "q_p_m04_out_of_spec",
+        "status": "done",
+        "stage": 3,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 210,
+        "startedTick": 210,
+        "choices": {},
+        "accrued": 213,
+        "doneTick": 213
+      },
+      "q_p_m05_caught": {
+        "id": "q_p_m05_caught",
+        "status": "done",
+        "stage": 1,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 221,
+        "startedTick": 221,
+        "choices": {},
+        "accrued": 221,
+        "doneTick": 221
+      },
+      "q_a1_m01_fall": {
+        "id": "q_a1_m01_fall",
+        "status": "done",
+        "stage": 3,
+        "counts": [0],
+        "met": [true],
+        "stageStartTick": 1205,
+        "startedTick": 221,
+        "choices": {},
+        "accrued": 1390,
+        "doneTick": 1390
+      },
+      "q_a1_m02_raven": {
+        "id": "q_a1_m02_raven",
+        "status": "active",
+        "stage": 0,
+        "counts": [0, 1],
+        "met": [false, false],
+        "stageStartTick": 1391,
+        "startedTick": 1391,
+        "choices": {},
+        "accrued": 8020
+      }
+    },
+    "order": [
+      "q_p_m01_last_moment",
+      "q_p_m02_antechamber",
+      "q_p_s02_next_door",
+      "q_p_m03_interview",
+      "q_p_s01_sixth_chair",
+      "q_p_m04_out_of_spec",
+      "q_p_m05_caught",
+      "q_a1_m01_fall",
+      "q_a1_m02_raven"
+    ],
+    "dirty": false,
+    "level": 3,
+    "built": {},
+    "doors": ["past_life_abacus", "awaken", "tide_sight"],
+    "scenesSeen": [
+      "cut_p_earth",
+      "cut_p_door_white",
+      "cut_p_quarrel",
+      "cut_p_call",
+      "cut_p_interview",
+      "cut_p_judgement",
+      "cut_p_discard",
+      "cut_a1_wake",
+      "cut_a1_ash_glimpse",
+      "cut_a1_raven"
+    ],
+    "lastBeatTick": 3095,
+    "clock": {
+      "act": "act1",
+      "startDay": 0,
+      "startTick": 221,
+      "week": 1,
+      "fired": [],
+      "at": 221,
+      "next": 194400
+    },
+    "defaultsDone": {
+      "q_a1_d01_tax_and_bandits": ["standing", "tax_notice"],
+      "q_a1_d02_witch_trial": ["night_visits"],
+      "q_a1_d04_forest_dispute": ["logging_north"]
+    }
+  },
+  "scenes": {
+    "current": null,
+    "queue": [],
+    "nextRunId": 12,
+    "seen": [
+      "cut_p_earth",
+      "cut_p_door_white",
+      "cut_p_quarrel",
+      "cut_p_call",
+      "cut_p_interview",
+      "cut_p_judgement",
+      "cut_p_discard",
+      "cut_a1_wake",
+      "cut_a1_ash_glimpse",
+      "cut_a1_raven"
+    ],
+    "court": {
+      "strength": {},
+      "presented": {},
+      "mitigated": {}
+    },
+    "epilogue": [],
+    "barked": []
+  },
+  "doors": {
+    "doors": {
+      "awaken": {
+        "state": "opened",
+        "since": 475,
+        "hintLevel": 2,
+        "openedTick": 475
+      },
+      "past_life_abacus": {
+        "state": "opened",
+        "since": 185,
+        "hintLevel": 2,
+        "openedTick": 185
+      },
+      "past_life_nightlight": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_whitecoat": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_wrench": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_notes": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_hearth": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_signpost": {
+        "state": "locked",
+        "since": 185
+      },
+      "past_life_podium": {
+        "state": "locked",
+        "since": 185
+      },
+      "tide_sight": {
+        "state": "opened",
+        "since": 2978,
+        "hintLevel": 2,
+        "openedTick": 2978
+      },
+      "pact": {
+        "state": "hidden",
+        "since": 0
+      },
+      "talent_sight": {
+        "state": "hinted",
+        "since": 475,
+        "hintLevel": 1
+      },
+      "inner_garden": {
+        "state": "hinted",
+        "since": 475,
+        "hintLevel": 2
+      },
+      "vocation_warrior": {
+        "state": "hinted",
+        "since": 475,
+        "hintLevel": 1
+      },
+      "vocation_hunter": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_druid": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_warlock": {
+        "state": "hidden",
+        "since": 0
+      },
+      "restraint": {
+        "state": "hidden",
+        "since": 0
+      },
+      "false_record": {
+        "state": "hidden",
+        "since": 0
+      },
+      "beyond_door": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_rogue": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_mage": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_priest": {
+        "state": "hidden",
+        "since": 0
+      },
+      "settlement": {
+        "state": "hidden",
+        "since": 0
+      },
+      "trade_pact": {
+        "state": "hidden",
+        "since": 0
+      },
+      "messenger": {
+        "state": "hidden",
+        "since": 0
+      },
+      "awaken_talent": {
+        "state": "hidden",
+        "since": 0
+      },
+      "wayfaring": {
+        "state": "hidden",
+        "since": 0
+      },
+      "wayfaring_advanced": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_paladin": {
+        "state": "hidden",
+        "since": 0
+      },
+      "thousand_legions": {
+        "state": "hidden",
+        "since": 0
+      },
+      "echoes": {
+        "state": "hidden",
+        "since": 0
+      },
+      "clear_flow": {
+        "state": "hidden",
+        "since": 0
+      },
+      "resonance": {
+        "state": "hidden",
+        "since": 0
+      },
+      "vocation_shaman": {
+        "state": "hidden",
+        "since": 0
+      },
+      "founding": {
+        "state": "hidden",
+        "since": 0
+      },
+      "soul_ferry": {
+        "state": "hidden",
+        "since": 0
+      },
+      "thousand_paths": {
+        "state": "hidden",
+        "since": 0
+      },
+      "breach": {
+        "state": "hidden",
+        "since": 0
+      },
+      "ascent": {
+        "state": "hidden",
+        "since": 0
+      },
+      "true_name": {
+        "state": "hidden",
+        "since": 0
+      },
+      "dominion": {
+        "state": "hidden",
+        "since": 0
+      },
+      "last": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_mining": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_logging": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_herbalism": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_alchemy": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_cooking": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_leatherworking": {
+        "state": "hidden",
+        "since": 0
+      },
+      "craft_weaponcrafting": {
+        "state": "hidden",
+        "since": 0
+      },
+      "garden_granary": {
+        "state": "hidden",
+        "since": 0
+      },
+      "truth_flaw": {
+        "state": "hidden",
+        "since": 0
+      }
+    },
+    "counters": {
+      "awaken:0": 1,
+      "tide_sight:0.0": 1
+    },
+    "visited": {
+      "map:divine_court": true,
+      "map:earth_train": true,
+      "map:seal_ruins": true,
+      "loc:seal_ruins/sigil_hall": true,
+      "map:seal_ruins_depths": true
+    },
+    "rankPoints": 4,
+    "rank": 5,
+    "sealPoints": 3,
+    "sealStage": 0,
+    "blockage": 0,
+    "taintCarry": 0,
+    "fatigue": 0,
+    "fatigueAt": 8015,
+    "revive": {
+      "deaths": [],
+      "stacks": 0
+    },
+    "hints": {
+      "day": 0,
+      "today": 0,
+      "log": []
+    },
+    "drought": 5040,
+    "lastOpenTick": 2978,
+    "granted": {
+      "past_life_abacus": ["feature:price_band"],
+      "awaken": ["ability:sk_door_step", "feature:door_corridor"],
+      "tide_sight": ["feature:tide_sight"]
+    }
+  },
+  "records": {
+    "dirty": false,
+    "deeds": {},
+    "titles": {},
+    "worn": null,
+    "pillar": [],
+    "codex": {
+      "people": {},
+      "monsters": {
+        "dian_dreg": {
+          "first": 345,
+          "last": 3974,
+          "count": 5
+        },
+        "dian_rat": {
+          "first": 724,
+          "last": 4452,
+          "count": 6
+        },
+        "guardian_raven": {
+          "first": 3178,
+          "last": 3178,
+          "count": 0
+        },
+        "raven_flock": {
+          "first": 3329,
+          "last": 5340,
+          "count": 1
+        }
+      },
+      "creatures": {},
+      "items": {
+        "relic_badge": {
+          "first": 61,
+          "last": 61,
+          "count": 1
+        },
+        "number_tag_five": {
+          "first": 77,
+          "last": 77,
+          "count": 1
+        },
+        "merca_coin": {
+          "first": 210,
+          "last": 210,
+          "count": 1
+        },
+        "lore_h03": {
+          "first": 222,
+          "last": 222,
+          "count": 1
+        },
+        "rusty_shortsword": {
+          "first": 475,
+          "last": 475,
+          "count": 1
+        },
+        "rat_tail": {
+          "first": 854,
+          "last": 4452,
+          "count": 2
+        },
+        "dian_shard": {
+          "first": 983,
+          "last": 4377,
+          "count": 4
+        }
+      },
+      "books": {},
+      "collections": {},
+      "memories": {
+        "cut_p_earth": {
+          "first": 72,
+          "last": 72,
+          "count": 1
+        },
+        "cut_p_door_white": {
+          "first": 94,
+          "last": 94,
+          "count": 1
+        },
+        "cut_p_quarrel": {
+          "first": 100,
+          "last": 100,
+          "count": 1
+        },
+        "cut_p_call": {
+          "first": 152,
+          "last": 152,
+          "count": 1
+        },
+        "cut_p_interview": {
+          "first": 190,
+          "last": 190,
+          "count": 1
+        },
+        "cut_p_judgement": {
+          "first": 212,
+          "last": 212,
+          "count": 1
+        },
+        "cut_p_discard": {
+          "first": 221,
+          "last": 221,
+          "count": 1
+        },
+        "cut_a1_wake": {
+          "first": 225,
+          "last": 225,
+          "count": 1
+        },
+        "cut_a1_ash_glimpse": {
+          "first": 1393,
+          "last": 1393,
+          "count": 1
+        },
+        "cut_a1_raven": {
+          "first": 3095,
+          "last": 3095,
+          "count": 1
+        }
+      }
+    },
+    "notes": {},
+    "letters": {},
+    "mailDue": -1,
+    "content": "25087b5b",
+    "xp": {
+      "settled": {
+        "explore:landmark:seal_ruins:sigil_hall": {
+          "tick": 221,
+          "amount": 50
+        },
+        "explore:map:seal_ruins": {
+          "tick": 221,
+          "amount": 170
+        },
+        "explore:region:ashen_waste": {
+          "tick": 221,
+          "amount": 510
+        },
+        "explore:map:seal_ruins_depths": {
+          "tick": 1205,
+          "amount": 170
+        },
+        "explore:landmark:seal_ruins_depths:ash_chamber": {
+          "tick": 1400,
+          "amount": 50
+        }
+      },
+      "position": {
+        "mapId": "seal_ruins_depths",
+        "x": 12.5,
+        "y": 15.5,
+        "act": "act1"
+      }
+    }
+  }
+}

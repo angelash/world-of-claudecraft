@@ -95,6 +95,7 @@ const SYNC_DEFAULTS: SyncSettings = {
 
 const LOCAL_DEFAULTS: LocalSettings = {
   version: 1,
+  onboardingDone: false,
   quality: 'auto',
   view: null,
   window: { mode: null, bounds: null, maximized: false },
@@ -152,6 +153,7 @@ const SYNC_CHANGED: Omit<SyncSettings, 'version'> = {
 };
 
 const LOCAL_CHANGED: Omit<LocalSettings, 'version'> = {
+  onboardingDone: true,
   quality: 'low',
   view: { stepIndex: 3, pitch: 64, yaw: 135 },
   window: { mode: 'windowed', bounds: { x: 10, y: 20, width: 1280, height: 720 }, maximized: true },
@@ -221,6 +223,7 @@ describe('settings schema', () => {
       gpu: 'discrete',
       installId: 'NOT-HEX',
       audioDevice: 42,
+      onboardingDone: 'done',
       llm: 'on',
     });
     expect(l.values).toEqual({ ...LOCAL_DEFAULTS });
@@ -235,6 +238,7 @@ describe('settings schema', () => {
         'gpu',
         'installId',
         'audioDevice',
+        'onboardingDone',
         'llm',
       ].sort(),
     );

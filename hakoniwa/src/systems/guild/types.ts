@@ -50,7 +50,15 @@ export type DistanceBand = (typeof DISTANCE_BANDS)[number];
  * clues, or hold the place for some hours. Escort waits for people who follow the player
  * (PK-M1-18).
  */
-export const GOAL_TYPES = ['kill', 'deliver', 'talk', 'find', 'investigate', 'watch'] as const;
+export const GOAL_TYPES = [
+  'kill',
+  'deliver',
+  'talk',
+  'find',
+  'investigate',
+  'watch',
+  'escort',
+] as const;
 export type GoalType = (typeof GOAL_TYPES)[number];
 
 /** Number of objective labels (stages) each goal type has. */
@@ -61,6 +69,7 @@ export const GOAL_STEPS: Readonly<Record<GoalType, number>> = {
   find: 2,
   investigate: 1,
   watch: 3,
+  escort: 2,
 };
 
 /** Goal types each kind may use. */
@@ -79,7 +88,7 @@ export const KIND_GOALS: Readonly<Record<CommissionKind, readonly GoalType[]>> =
   find: ['find'],
   investigate: ['investigate'],
   appraise: ['deliver'],
-  escort: [],
+  escort: ['escort'],
 };
 
 export type CommissionGoal =
@@ -94,7 +103,9 @@ export type CommissionGoal =
   /** enough clues found (each a world fact) */
   | { type: 'investigate'; clues: Clue[]; need?: number }
   /** reach the post, keep the watch for `hours`, and stand at the post again when it ends */
-  | { type: 'watch'; hours: number };
+  | { type: 'watch'; hours: number }
+  /** talk to one actual escortee, then bring that person alive to the posting's place */
+  | { type: 'escort'; people: string[] };
 
 /** A modifier a commission or an event registers (modifiers system, D-013), lasting `days`. */
 export interface ModifierWrite {
@@ -169,6 +180,8 @@ export interface CommissionDef {
    * the quest pays).
    */
   firstIn?: string;
+  /** A named-beast writ pays its rumor-based bounty and gives no guild experience. */
+  bounty?: { base: number; perRumor: number; maxRumor: number };
 }
 
 /** A board where commissions are posted (catalog 2.1). */

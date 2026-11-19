@@ -88,6 +88,7 @@ export const FIRST_ACT_FIELDS: readonly string[] = [
   'canSwim',
   'componentTags',
   'purifyTo',
+  'purifyItems',
   'rumorScale',
   'nameInherit',
   'pilfer',

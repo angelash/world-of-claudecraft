@@ -6,7 +6,11 @@
 
 import type { EventMap } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
+import { isPartySide, unitOf } from '../combat';
+import { countItem } from '../inventory';
+import { sortedMembers } from '../party/roster';
 import { getEntity } from '../world';
+import { conditionHolds } from './effects';
 import {
   accrueTogether,
   deathFails,
@@ -140,14 +144,59 @@ export const objectiveSubscriptions: NonNullable<GameSystem['on']> = {
   'craft.done'(ctx, e) {
     const d = e.data;
     if (!isPlayerSide(ctx, d.entityId) || d.count <= 0) return;
+    const recipe = ctx.content.recipes?.find((r) => r.id === d.recipeId);
     bump(
       ctx,
       (o) =>
         o.type === 'craft' &&
         (!o.item || o.item === d.itemId) &&
         (!o.recipe || o.recipe === d.recipeId) &&
-        (o.quality === undefined || (d.quality ?? 0) >= o.quality),
+        (!o.profession || recipe?.profession === o.profession) &&
+        (!o.families || (!!recipe?.family && o.families.includes(recipe.family))) &&
+        (o.quality === undefined || (d.quality ?? 0) >= o.quality) &&
+        (!o.masterwork || d.masterwork === true) &&
+        (!o.signedInput || d.signedInputs === true) &&
+        conditionHolds(ctx, o.when),
       d.count,
+    );
+  },
+  'item.used'(ctx, e) {
+    const d = e.data;
+    if (d.ownerId !== ctx.world.slices.world.playerId || d.early) return;
+    bump(ctx, (o) => {
+      if (o.type !== 'use' || (o.item && o.item !== d.itemId)) return false;
+      if (o.effect && o.effect !== d.effect) return false;
+      if (o.targetRef && getEntity(ctx.world, d.targetId ?? '')?.ref !== o.targetRef) return false;
+      if (o.pet)
+        return sortedMembers(ctx.world).some(
+          (m) => m.pet?.kind === 'half' && m.entityId === d.targetId && m.state !== 'dead',
+        );
+      return true;
+    });
+  },
+  'party.joined'(ctx) {
+    for (const { def, q } of activeQuests(ctx)) checkStage(ctx, def, q);
+  },
+  'party.fed'(ctx, e) {
+    bump(
+      ctx,
+      (o) => o.type === 'feed' && (!o.companions || o.companions.includes(e.data.companionId)),
+    );
+  },
+  'combat.purified'(ctx, e) {
+    const caster = unitOf(ctx.world, e.data.casterId);
+    if (!caster || !isPartySide(ctx.world, caster)) return;
+    bump(ctx, (o) => o.type === 'purify' && o.monster === e.data.from);
+  },
+  'guild.commission_done'(ctx, e) {
+    const t = ctx.content.commissions?.find((x) => x.id === e.data.templateId);
+    if (!t) return;
+    bump(
+      ctx,
+      (o) =>
+        o.type === 'commission' &&
+        (!o.kind || o.kind === t.kind) &&
+        (!o.carrying || countItem(ctx.world, ctx.world.slices.world.playerId, o.carrying) > 0),
     );
   },
   'duel.ended'(ctx, e) {

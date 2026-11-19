@@ -21,6 +21,7 @@ import { tickRegen } from './auto_attack';
 import { tickReturn } from './death';
 import { tickBags } from './death_costs';
 import { auraDef, REGEN_EVERY } from './defs';
+import { tickConsumption } from './item_consumption';
 import { tickPresence } from './presence';
 import { tickSpawns } from './spawning';
 import type { Unit } from './types';
@@ -68,6 +69,7 @@ export function combatSkip(ctx: SystemContext, step: SkipStep): void {
       continue;
     }
     if (!e.alive || u.downed) continue;
+    if (u.drinking || u.eating) tickConsumption(ctx, u);
     noteMissedPeriodic(ctx, u);
     expireAuras(ctx, u);
     // regeneration until the pools stop moving (full, or nothing regenerates)

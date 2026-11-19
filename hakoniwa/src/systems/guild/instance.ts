@@ -101,6 +101,17 @@ export function instanceStages(t: CommissionDef, p: Posting): QuestStage[] {
         },
         { id: 'relief', desc: t.desc, objectives: [{ type: 'reach', ...at, label: label(t, 2) }] },
       ];
+    case 'escort': {
+      const npc = p.recipient ?? g.people[0] ?? '';
+      return [
+        { id: 'meet', desc: t.desc, objectives: [{ type: 'talk', npc, label: label(t, 0) }] },
+        {
+          id: 'escort',
+          desc: t.desc,
+          objectives: [{ type: 'escort', npc, ...at, label: label(t, 1) }],
+        },
+      ];
+    }
   }
 }
 

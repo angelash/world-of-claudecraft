@@ -19,9 +19,11 @@
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { countItem, removeItem } from '../inventory';
+import { sortedMembers } from '../party/roster';
 import { playerEntity } from '../world';
 import type { Entity } from '../world/types';
 import { conditionHolds } from './effects';
+import { matchesQuestNpc } from './npc_matches';
 import type { Objective, QuestDef, QuestProgress, QuestStage } from './types';
 
 declare module '../../core/contracts' {
@@ -41,6 +43,8 @@ declare module '../../core/contracts' {
       itemId: string;
       count: number;
       quality?: number;
+      masterwork?: boolean;
+      signedInputs?: boolean;
     };
     /** a non-lethal duel ended (combat); `opponentRef` is the opponent's content id */
     'duel.ended': { duelId: string; opponentRef: string; winner: 'player' | 'opponent' | 'draw' };
@@ -154,6 +158,12 @@ export function pollModelObjective(
   i: number,
 ): PollResult {
   if (q.counts[i] === FAILED) return 'open';
+  if (o.type === 'recruit')
+    return sortedMembers(ctx.world).some(
+      (m) => o.companions.includes(m.id) && m.state !== 'dead' && m.state !== 'spring',
+    )
+      ? 'met'
+      : 'open';
   switch (o.type) {
     case 'escort':
     case 'rescue':
@@ -259,7 +269,8 @@ export function onTalk(
   switch (o.type) {
     case 'deliver': {
       const n = o.count ?? 1;
-      if (o.npc !== npc || countItem(ctx.world, pid, o.item) < n) return 'none';
+      if (!matchesQuestNpc(ctx.content, o.npc, npc) || countItem(ctx.world, pid, o.item) < n)
+        return 'none';
       if (o.consume !== false) removeItem(ctx, pid, o.item, n, 'quest');
       return 'met';
     }

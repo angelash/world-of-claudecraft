@@ -11,9 +11,18 @@
     "level": 2,
     "distance": "town",
     "givers": ["martha"],
-    "places": [{ "mapId": "borderstone", "location": "drunk_moon" }],
+    "places": [
+      {
+        "mapId": "borderstone",
+        "location": "drunk_moon"
+      }
+    ],
     "days": [3, 3],
-    "goal": { "type": "kill", "targets": ["dian_rat"], "count": [4, 8] },
+    "goal": {
+      "type": "kill",
+      "targets": ["dian_rat"],
+      "count": [4, 8]
+    },
     "firstIn": "q_a1_m04_hunt"
   },
   {
@@ -28,9 +37,18 @@
     "level": 3,
     "distance": "town",
     "givers": ["oola"],
-    "places": [{ "mapId": "borderstone", "location": "herb_hut" }],
+    "places": [
+      {
+        "mapId": "borderstone",
+        "location": "herb_hut"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "deliver", "items": ["herb"], "count": [8, 8] },
+    "goal": {
+      "type": "deliver",
+      "items": ["herb"],
+      "count": [8, 8]
+    },
     "firstIn": "q_a1_m04_hunt"
   },
   {
@@ -44,9 +62,16 @@
     "acts": [1],
     "level": 2,
     "distance": "town",
-    "places": [{ "mapId": "borderstone" }],
+    "places": [
+      {
+        "mapId": "borderstone"
+      }
+    ],
     "days": [1, 1],
-    "goal": { "type": "talk", "to": ["cassian", "oola", "martha", "hock"] },
+    "goal": {
+      "type": "talk",
+      "to": ["cassian", "oola", "martha", "hock"]
+    },
     "firstIn": "q_a1_m04_hunt"
   },
   {
@@ -62,12 +87,28 @@
     "distance": "town",
     "givers": ["dora", "simon"],
     "places": [
-      { "mapId": "borderstone", "location": "washing_creek" },
-      { "mapId": "borderstone", "location": "salt_market" }
+      {
+        "mapId": "borderstone",
+        "location": "washing_creek"
+      },
+      {
+        "mapId": "borderstone",
+        "location": "salt_market"
+      }
     ],
     "days": [3, 3],
-    "goal": { "type": "find" },
-    "writes": [{ "type": "add", "key": "rep.bs_commons", "amount": 2, "min": -100, "max": 100 }]
+    "goal": {
+      "type": "find"
+    },
+    "writes": [
+      {
+        "type": "add",
+        "key": "rep.bs_commons",
+        "amount": 2,
+        "min": -100,
+        "max": 100
+      }
+    ]
   },
   {
     "id": "cmm_a1_wolf_cull",
@@ -81,10 +122,26 @@
     "level": 4,
     "distance": "half_day",
     "givers": ["gorn"],
-    "places": [{ "mapId": "forest_edge" }],
+    "places": [
+      {
+        "mapId": "forest_edge"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "kill", "targets": ["grey_wolf"], "count": [6, 6], "onMap": true },
-    "modifiers": [{ "target": "monster", "key": "forest_edge", "factor": 0.8, "days": 7 }]
+    "goal": {
+      "type": "kill",
+      "targets": ["grey_wolf"],
+      "count": [6, 6],
+      "onMap": true
+    },
+    "modifiers": [
+      {
+        "target": "monster",
+        "key": "forest_edge",
+        "factor": 0.8,
+        "days": 7
+      }
+    ]
   },
   {
     "id": "cmm_a1_night_watch",
@@ -98,12 +155,30 @@
     "level": 6,
     "distance": "town",
     "givers": ["bron"],
-    "places": [{ "mapId": "borderstone", "location": "east_gate" }],
+    "places": [
+      {
+        "mapId": "borderstone",
+        "location": "east_gate"
+      }
+    ],
     "days": [1, 1],
-    "goal": { "type": "watch", "hours": 8 },
-    "weekWindow": { "from": 8, "to": 9 },
+    "goal": {
+      "type": "watch",
+      "hours": 8
+    },
+    "weekWindow": {
+      "from": 8,
+      "to": 9
+    },
     "limit": 5,
-    "writes": [{ "type": "add", "key": "a1_defense", "amount": 1, "max": 120 }]
+    "writes": [
+      {
+        "type": "add",
+        "key": "a1_defense",
+        "amount": 1,
+        "max": 120
+      }
+    ]
   },
   {
     "id": "cmm_a1_dian_wolf_north",
@@ -116,9 +191,18 @@
     "acts": [1],
     "level": 7,
     "distance": "half_day",
-    "places": [{ "mapId": "forest_edge" }],
+    "places": [
+      {
+        "mapId": "forest_edge"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "kill", "targets": ["dian_wolf"], "count": [6, 6], "onMap": true }
+    "goal": {
+      "type": "kill",
+      "targets": ["dian_wolf"],
+      "count": [6, 6],
+      "onMap": true
+    }
   },
   {
     "id": "cmm_a1_bandit_writ",
@@ -132,9 +216,18 @@
     "level": 6,
     "distance": "half_day",
     "givers": ["moss"],
-    "places": [{ "mapId": "forest_edge" }],
+    "places": [
+      {
+        "mapId": "forest_edge"
+      }
+    ],
     "days": [7, 7],
-    "goal": { "type": "kill", "targets": ["oneeye_bandit"], "count": [5, 5], "onMap": true }
+    "goal": {
+      "type": "kill",
+      "targets": ["oneeye_bandit"],
+      "count": [5, 5],
+      "onMap": true
+    }
   },
   {
     "id": "cmm_a1_waste_bones",
@@ -147,9 +240,18 @@
     "acts": [1],
     "level": 8,
     "distance": "wild",
-    "places": [{ "mapId": "ash_waste" }],
+    "places": [
+      {
+        "mapId": "ash_waste"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "kill", "targets": ["wandering_bones"], "count": [6, 6], "onMap": true },
+    "goal": {
+      "type": "kill",
+      "targets": ["wandering_bones"],
+      "count": [6, 6],
+      "onMap": true
+    },
     "merit": 3
   },
   {
@@ -165,10 +267,26 @@
     "level": 5,
     "distance": "town",
     "givers": ["simon"],
-    "places": [{ "mapId": "forest_edge", "location": "logging_site" }],
+    "places": [
+      {
+        "mapId": "forest_edge",
+        "location": "logging_site"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "kill", "targets": ["dian_boar"], "count": [4, 4] },
-    "modifiers": [{ "target": "production", "key": "borderstone", "factor": 1.05, "days": 7 }]
+    "goal": {
+      "type": "kill",
+      "targets": ["dian_boar"],
+      "count": [4, 4]
+    },
+    "modifiers": [
+      {
+        "target": "production",
+        "key": "borderstone",
+        "factor": 1.05,
+        "days": 7
+      }
+    ]
   },
   {
     "id": "cmm_a1_spider_valley",
@@ -182,8 +300,207 @@
     "level": 5,
     "distance": "half_day",
     "givers": ["gaspar"],
-    "places": [{ "mapId": "forest_edge", "location": "spider_vale" }],
+    "places": [
+      {
+        "mapId": "forest_edge",
+        "location": "spider_vale"
+      }
+    ],
     "days": [5, 5],
-    "goal": { "type": "kill", "targets": ["edge_spider"], "count": [6, 6], "onMap": true }
+    "goal": {
+      "type": "kill",
+      "targets": ["edge_spider"],
+      "count": [6, 6],
+      "onMap": true
+    }
+  },
+  {
+    "id": "cmm_a1_field_hares",
+    "rank": "f",
+    "kind": "hunt",
+    "title": "南田的野兔",
+    "desc": "南田农户请人削减啃庄稼的兔群。",
+    "labels": ["在南田猎取三只田野兔"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 2,
+    "distance": "town",
+    "givers": ["simon"],
+    "places": [
+      {
+        "mapId": "borderstone",
+        "location": "silverleaf_meadow"
+      }
+    ],
+    "days": [3, 3],
+    "goal": {
+      "type": "kill",
+      "targets": ["field_hare"],
+      "count": [3, 3]
+    }
+  },
+  {
+    "id": "cmm_a1_south_road_escort",
+    "rank": "e",
+    "kind": "escort",
+    "title": "护送南路货车",
+    "desc": "欧文离开后，行商需要人把货车护送过南路林段。",
+    "labels": ["与受护送的行商会合", "把行商活着护送到南路林段"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 6,
+    "distance": "half_day",
+    "places": [
+      {
+        "mapId": "forest_edge",
+        "location": "bandit_lookout"
+      }
+    ],
+    "days": [1, 1],
+    "goal": {
+      "type": "escort",
+      "people": ["tpl_peddler"]
+    },
+    "weekWindow": {
+      "from": 6
+    }
+  },
+  {
+    "id": "cmm_a1_grave_wisps",
+    "rank": "e",
+    "kind": "clear",
+    "title": "墓地的坟火",
+    "desc": "墓地尚未净化。守墓人需要人清理夜里出现的灰火。",
+    "labels": ["在墓地清理三团坟火"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 10,
+    "distance": "town",
+    "givers": ["fritz_kolb"],
+    "places": [
+      {
+        "mapId": "borderstone",
+        "location": "graveyard"
+      }
+    ],
+    "days": [3, 3],
+    "goal": {
+      "type": "kill",
+      "targets": ["gravefield_wisp"],
+      "count": [3, 3],
+      "onMap": true
+    },
+    "when": "NOT a1_graveyard_purified"
+  },
+  {
+    "id": "cmm_a1_mine_pests",
+    "rank": "e",
+    "kind": "clear",
+    "title": "矿口的锈甲虫",
+    "desc": "矿工棚请人清理锈岭矿口的害虫。",
+    "labels": ["清理五只锈甲虫"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 9,
+    "distance": "half_day",
+    "givers": ["barga"],
+    "places": [
+      {
+        "mapId": "rustridge_mine"
+      }
+    ],
+    "days": [5, 5],
+    "goal": {
+      "type": "kill",
+      "targets": ["rust_beetle"],
+      "count": [5, 5],
+      "onMap": true
+    },
+    "modifiers": [
+      {
+        "target": "harvest",
+        "key": "node_lotha_rustridge_iron",
+        "factor": 1.1,
+        "days": 7
+      }
+    ]
+  },
+  {
+    "id": "cmm_a1_bone_vulture",
+    "rank": "d",
+    "kind": "hunt",
+    "title": "灰路上盘旋的骨鹫",
+    "desc": "商会分号收购骨鹫部件，委托冒险者前往荒原狩猎。",
+    "labels": ["在荒原狩猎四只骨鹫"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 13,
+    "distance": "wild",
+    "givers": ["nera"],
+    "places": [
+      {
+        "mapId": "ash_waste"
+      }
+    ],
+    "days": [7, 7],
+    "goal": {
+      "type": "kill",
+      "targets": ["bone_vulture"],
+      "count": [4, 4]
+    }
+  },
+  {
+    "id": "cmm_a1_jackal_road",
+    "rank": "d",
+    "kind": "subjugate",
+    "title": "灰路的豺群",
+    "desc": "拾荒者与行商联名请求清理折桥驿到晶沟一带的豺群。",
+    "labels": ["在灰路讨伐五只荒原豺"],
+    "boards": ["board_borderstone_guild"],
+    "acts": [1],
+    "level": 11,
+    "distance": "wild",
+    "places": [
+      {
+        "mapId": "ash_waste",
+        "location": "crystal_gully"
+      }
+    ],
+    "days": [7, 7],
+    "goal": {
+      "type": "kill",
+      "targets": ["waste_jackal"],
+      "count": [5, 5],
+      "onMap": true
+    }
+  },
+  {
+    "id": "cmm_a1_bounty_named",
+    "rank": "e",
+    "kind": "subjugate",
+    "title": "异名者悬赏",
+    "desc": "镇告示板悬赏本幕为害的异名者。经验由对应任务给付，悬赏只给钱。",
+    "labels": ["讨伐告示中的异名者"],
+    "boards": ["board_borderstone_notice"],
+    "acts": [1],
+    "level": 10,
+    "distance": "wild",
+    "givers": [],
+    "places": [
+      {
+        "mapId": "ash_waste"
+      }
+    ],
+    "days": [7, 7],
+    "goal": {
+      "type": "kill",
+      "targets": ["red_sock", "black_ridge", "toll_taker", "old_louse"],
+      "count": [1, 1]
+    },
+    "bounty": {
+      "base": 100,
+      "perRumor": 20,
+      "maxRumor": 10
+    }
   }
 ]

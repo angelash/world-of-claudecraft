@@ -73,6 +73,7 @@ import {
   type GameView,
 } from '../view/game_view';
 import { registerWindows, type WindowId, WindowManager } from '../windows';
+import { PlayerPopups } from '../windows/player_popups';
 import type { ClientSettings, DisplayView, WindowPrefs } from '../windows/window_context';
 import { applyAccessibility, systemReducedMotion } from './accessibility';
 import { Act1Wiring } from './act1_wiring';
@@ -100,6 +101,7 @@ export interface SessionOptions {
   settings: ClientSettings;
   /** The quality tier and camera view, kept in the local settings part (SettingsStore). */
   prefs: SessionPrefs;
+  openModelSettings?(): void;
   hooks?: SessionHooks;
   /** first message-log line (for example "loaded slot 2") */
   greeting?: string;
@@ -162,6 +164,7 @@ export class GameSession implements PlayerInputHost {
   private readonly looks = new WeakMap<Appearance, SpriteLook>();
   readonly hud: Hud;
   readonly windows: WindowManager;
+  private readonly popups: PlayerPopups;
   private input: InputLayer;
   private readonly actions: PlayerInput;
   /** world speed multiplier: a radial menu open in a fight slows the world (16.5) */
@@ -297,6 +300,7 @@ export class GameSession implements PlayerInputHost {
       saves: opts.saves,
       settings: opts.settings,
       prefs: opts.prefs,
+      openModelSettings: opts.openModelSettings,
       tracker: this.tracker,
       help: this.act1.help(),
       evidenceNotes: this.act1.notes,
@@ -328,6 +332,23 @@ export class GameSession implements PlayerInputHost {
       },
     };
 
+    this.popups = new PlayerPopups({
+      root: opts.root,
+      view: this.view,
+      adapters: opts.adapters,
+      sprites: this.sprites,
+      queue: (commands) => this.queue(commands),
+      focus: (id) => {
+        this.toggleFocus(id);
+      },
+      openCodex: () => this.windows.show('codex'),
+      characterOpened: () => this.act1.tutorial.signal('charcard_opened'),
+    });
+    this.hud.playerFrame.onPortrait = () => this.popups.openCharacter(this.view.playerId());
+    this.hud.targetFrame.onPortrait = () => {
+      const target = this.selection ?? this.actions.softTarget;
+      if (target) this.popups.openCharacter(target);
+    };
     this.router = new EventRouter(
       this.view,
       opts.adapters,
@@ -347,6 +368,7 @@ export class GameSession implements PlayerInputHost {
         openWindow: (id) => this.windows.show(id),
         closeWindow: (id) => this.windows.close(id),
         notify: (n) => this.extras.notify(n, performance.now()),
+        playerPopup: (event) => this.popups.event(event),
       },
     );
     this.unsubscribe = opts.engine.onEvents((events) => {
@@ -431,6 +453,7 @@ export class GameSession implements PlayerInputHost {
     this.stopAudio();
     this.input.dispose();
     this.windows.dispose();
+    this.popups.dispose();
     this.hud.dispose();
     this.renderer.dispose();
   }
@@ -452,6 +475,14 @@ export class GameSession implements PlayerInputHost {
 
   toggleFocus(candidate: string | null): boolean {
     return this.extras.toggleFocus(candidate);
+  }
+
+  closePlayerPopup(): boolean {
+    return this.popups.closeTop();
+  }
+
+  playerPopupOpen(): boolean {
+    return this.popups.anyOpen;
   }
 
   inScene(): boolean {
@@ -880,6 +911,7 @@ export class GameSession implements PlayerInputHost {
   }
 
   refreshHud(force: boolean, now = performance.now()): void {
+    this.popups?.update();
     if (!force && now - this.lastHud < HUD_INTERVAL_MS) return;
     this.lastHud = now;
     // holds turned into presses (18.5) reach the confirm popup as soon as the setting changes

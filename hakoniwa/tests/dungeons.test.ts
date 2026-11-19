@@ -419,7 +419,11 @@ describe('activity and the overflow clock (1.1, 1.3)', () => {
     expect(st?.overflowAt).toBe(-1);
     expect(flags(t.g)[`dg.${MINE.id}.cleared`]).toBe(true);
     expect(flags(t.g)[`dg.${MINE.id}.active`]).toBe(false);
-    expect(last(t, 'dungeon.cleared')).toEqual({ id: MINE.id, kind: 'dungeon' });
+    expect(last(t, 'dungeon.cleared')).toMatchObject({
+      id: MINE.id,
+      kind: 'dungeon',
+      victimId: expect.any(String),
+    });
   });
 
   it('writes the starting mirrors of every dungeon', () => {

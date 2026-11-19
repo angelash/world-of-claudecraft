@@ -11,6 +11,7 @@ import './corridor.css';
 import type { TextParam } from '../../../core/text';
 import { clear, el } from '../../../shared_ui/dom';
 import { t } from '../../../shared_ui/i18n';
+import { ArtIcon } from '../../hud/art_icon';
 import { askConfirm } from '../../hud/confirm_pop';
 import type { ClientCommand } from '../../view/game_view';
 import type { WindowContext } from '../window_context';
@@ -138,6 +139,8 @@ export function corridorMode(ctx: WindowContext): WindowContent {
   const paintCard = (c: DoorCard | null) => {
     clear(cardEl);
     if (!c) return;
+    const icon = new ArtIcon(32);
+    icon.show('door', c.shape === 'crack' ? null : c.id);
     const buttons: HTMLElement[] = [];
     if (c.canOpen)
       buttons.push(
@@ -168,6 +171,7 @@ export function corridorMode(ctx: WindowContext): WindowContent {
       );
     const parts: (HTMLElement | null)[] = [
       el('div', { className: `hk-cor-card-title shape-${c.shape}` }, [
+        icon.el,
         el('span', { className: 'hk-cor-glyph', attrs: { 'aria-hidden': 'true' } }),
         el('strong', { text: c.title }),
       ]),
@@ -180,6 +184,13 @@ export function corridorMode(ctx: WindowContext): WindowContent {
         }),
         c.danger ? el('span', { className: 'hk-badge danger', text: c.danger }) : null,
       ]),
+      c.cost ? el('p', { className: 'hk-muted', text: c.cost }) : null,
+      c.excluded.length
+        ? el('div', { className: 'hk-cor-sect' }, [
+            el('h4', { text: t('ui.mode.corridor.card.exclusive') }),
+            ...c.excluded.map((name) => el('p', { text: name })),
+          ])
+        : null,
       c.effect
         ? el('div', { className: 'hk-cor-sect' }, [
             el('h4', { text: t('ui.mode.corridor.effect') }),
@@ -202,6 +213,21 @@ export function corridorMode(ctx: WindowContext): WindowContent {
                 el('li', { className: k.met ? 'met' : '' }, [
                   el('span', { className: 'hk-cor-key-mark', text: k.mark }),
                   el('span', { text: k.text }),
+                  k.questId
+                    ? el('button', {
+                        className: 'hk-btn hk-btn-small',
+                        text: t('ui.mode.corridor.card.where'),
+                        attrs: { type: 'button' },
+                        on: {
+                          click: () => {
+                            if (k.questId && !ctx.tracker.isTracked(k.questId))
+                              ctx.tracker.toggle(k.questId);
+                            ctx.actions.closeWindow('doors');
+                            ctx.actions.openWindow('quests');
+                          },
+                        },
+                      })
+                    : null,
                 ]),
               ),
             )

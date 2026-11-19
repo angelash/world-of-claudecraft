@@ -4,6 +4,7 @@
 // effect. Pure checks over the content; the quests pack calls them.
 
 import type { ContentMap } from '../../core/contracts';
+import { COMMISSION_KINDS } from '../../systems/guild/types';
 import { checkCondition } from '../../systems/quests/conditions';
 import { type Effect, KEY_KINDS } from '../../systems/quests/effect_types';
 import {
@@ -59,6 +60,7 @@ function personProblems(content: ContentMap, at: string, npc: string): string[] 
   const people = [
     ...((content as { npcs?: { id: string }[] }).npcs ?? []),
     ...((content as { companions?: { id: string }[] }).companions ?? []),
+    ...(content.npcResidents ?? []),
   ];
   if (people.length === 0 || people.some((p) => p.id === npc)) return [];
   return [`${at}: unknown person ${npc}`];
@@ -126,6 +128,21 @@ export function objectiveProblems(o: Objective, at: string, content: ContentMap)
     case 'craft':
       out.push(...itemProblems(content, at, o.item));
       if (!wholeAtLeast(o.count, 1)) out.push(`${at}: bad count ${o.count}`);
+      if (o.type === 'craft') {
+        out.push(...cond(o.when, `${at} when`));
+        if (o.recipe && !content.recipes?.some((r) => r.id === o.recipe))
+          out.push(`${at}: unknown recipe ${o.recipe}`);
+        if (o.profession && !content.recipes?.some((r) => r.profession === o.profession))
+          out.push(`${at}: unknown crafting profession ${o.profession}`);
+        if (o.families) {
+          if (o.families.length === 0) out.push(`${at}: empty recipe families`);
+          for (const family of o.families)
+            if (!content.recipes?.some((r) => r.family === family))
+              out.push(`${at}: unknown recipe family ${family}`);
+        }
+        for (const key of ['masterwork', 'signedInput'] as const)
+          if (o[key] !== undefined && typeof o[key] !== 'boolean') out.push(`${at}: bad ${key}`);
+      }
       break;
     case 'trade':
       out.push(...itemProblems(content, at, o.item));
@@ -133,14 +150,63 @@ export function objectiveProblems(o: Objective, at: string, content: ContentMap)
       if (o.side && o.side !== 'buy' && o.side !== 'sell') out.push(`${at}: bad side ${o.side}`);
       out.push(...positive(o.price, at, 'price'));
       break;
+    case 'use':
+      out.push(...itemProblems(content, at, o.item));
+      if (!wholeAtLeast(o.count, 1)) out.push(`${at}: bad count ${o.count}`);
+      if (!o.item && !o.effect) out.push(`${at}: use needs an item or effect`);
+      if (o.targetRef) {
+        const known = [
+          ...(content.monsters ?? []),
+          ...(content.npcs ?? []),
+          ...(content.companions ?? []),
+          ...(content.pets ?? []),
+        ];
+        if (!known.some((x) => x.id === o.targetRef))
+          out.push(`${at}: unknown use target ${o.targetRef}`);
+      }
+      break;
+    case 'recruit': {
+      const known = [...(content.companions ?? []), ...(content.pets ?? [])];
+      if (!o.companions.length) out.push(`${at}: recruit needs a companion`);
+      for (const id of o.companions)
+        if (!known.some((x) => x.id === id)) out.push(`${at}: unknown companion ${id}`);
+      break;
+    }
+    case 'feed': {
+      if (!wholeAtLeast(o.count, 1)) out.push(`${at}: bad count ${o.count}`);
+      for (const id of o.companions ?? [])
+        if (!content.pets?.some((p) => p.id === id)) out.push(`${at}: unknown pet ${id}`);
+      break;
+    }
+    case 'purify':
+      if (!content.monsters?.some((m) => m.id === o.monster))
+        out.push(`${at}: unknown monster ${o.monster}`);
+      break;
+    case 'commission':
+      if (!wholeAtLeast(o.count, 1)) out.push(`${at}: bad count ${o.count}`);
+      out.push(...itemProblems(content, at, o.carrying));
+      if (o.kind && !(COMMISSION_KINDS as readonly string[]).includes(o.kind))
+        out.push(`${at}: unknown commission kind ${o.kind}`);
+      break;
     case 'accompany':
       if (!(o.minutes > 0)) out.push(`${at}: accompany needs minutes`);
       out.push(...positive(o.range, at, 'range'));
       break;
     case 'choice':
-      for (const opt of o.options)
+      for (const opt of o.options) {
+        out.push(...cond(opt.when, `${at} option ${opt.id}`));
+        if (opt.cost) {
+          if (opt.cost.money !== undefined && !wholeAtLeast(opt.cost.money, 0))
+            out.push(`${at}: option ${opt.id} has a bad money cost`);
+          for (const row of opt.cost.items ?? []) {
+            out.push(...itemProblems(content, at, row.item));
+            if (!wholeAtLeast(row.count, 1))
+              out.push(`${at}: option ${opt.id} has a bad item cost`);
+          }
+        }
         if (opt.path !== undefined && !SEGMENT.test(opt.path))
           out.push(`${at}: option ${opt.id} has a bad path ${opt.path}`);
+      }
       break;
     default:
       break;

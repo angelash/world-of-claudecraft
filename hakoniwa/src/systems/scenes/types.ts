@@ -351,6 +351,8 @@ export interface SceneDef {
   /** teleport the player here when the scene starts */
   mapId?: string;
   location?: string;
+  /** Keep the approach position when already at this place (including its trigger margin). */
+  keepPosition?: boolean;
   start: string;
   nodes: SceneNode[];
   onEnd?: Effect[];

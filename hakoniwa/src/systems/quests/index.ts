@@ -10,7 +10,9 @@ import { registerSkipHandler } from '../travel/skip_registry';
 import { getEntity } from '../world';
 import { advanceActClock } from './act_clock';
 import { openingAct, setAct } from './acts';
-import { applyEffects } from './effects';
+import { payChoiceCost } from './choice_cost';
+import { applyEffects, conditionHolds } from './effects';
+import { matchesQuestNpc } from './npc_matches';
 import './endings';
 import type { LoreDef, TermDef } from '../goddess/types';
 import { questDefOf, questTitle } from './instances';
@@ -129,7 +131,8 @@ function choose(
     if (o?.type !== 'choice' || q.met[i]) continue;
     if (o.npc && npc !== undefined && o.npc !== npc) continue;
     const opt = o.options.find((x) => x.id === optionId);
-    if (!opt) continue;
+    if (!opt || !conditionHolds(ctx, opt.when)) continue;
+    if (!payChoiceCost(ctx, opt.cost)) return reject('cost', tr('sys.quests.reject.choice_cost'));
     q.choices[String(i)] = optionId;
     q.met[i] = true;
     ctx.setFlag(`quest.${questId}.choice`, optionId);
@@ -231,7 +234,11 @@ export const system: GameSystem = {
       const npc = e.data.npcRef ?? e.data.npcId;
       // an optional hand-in to the person counts before the talk itself closes its stage
       talkObjectives(ctx, npc, true);
-      bump(ctx, (o) => o.type === 'talk' && (o.npc === npc || o.npc === e.data.npcId));
+      bump(
+        ctx,
+        (o) =>
+          o.type === 'talk' && (matchesQuestNpc(ctx.content, o.npc, npc) || o.npc === e.data.npcId),
+      );
       talkObjectives(ctx, npc);
       const options: { id: string; label: TextParam; hint?: TextParam }[] = [];
       for (const def of offerable(ctx, npc)) {
@@ -256,7 +263,8 @@ export const system: GameSystem = {
         stage?.objectives.forEach((o, i) => {
           if (o.type !== 'choice' || o.npc !== npc || q.met[i]) return;
           for (const opt of o.options)
-            options.push({ id: `choice:${def.id}:${opt.id}`, label: opt.label });
+            if (conditionHolds(ctx, opt.when))
+              options.push({ id: `choice:${def.id}:${opt.id}`, label: opt.label });
         });
       }
       if (options.length) {

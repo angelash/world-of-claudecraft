@@ -11,6 +11,7 @@ import { WebAudioBus } from './audio_bus';
 import { DEV_AUDIO_BASE, loadAudioIndex } from './audio_loader';
 import type { AudioSettingsSource } from './audio_settings';
 import { createGameAudio, type GameAudio } from './index';
+import { loadReleaseAudio, RELEASE_AUDIO_BASE } from './release_loader';
 
 export function createBrowserAudio(opts: {
   view: GameView;
@@ -25,11 +26,12 @@ export function createBrowserAudio(opts: {
   const log = (m: string) => console.warn(m);
   const audio = createGameAudio({
     ...opts,
-    output: () => WebAudioBus.create({ base: DEV_AUDIO_BASE, log }),
+    output: () =>
+      WebAudioBus.create({ base: import.meta.env.DEV ? DEV_AUDIO_BASE : RELEASE_AUDIO_BASE, log }),
     loadIndex: import.meta.env.DEV
       ? () =>
           loadAudioIndex({ statuses: loadedStatuses(window.location.search, import.meta.env.DEV) })
-      : undefined,
+      : () => loadReleaseAudio(),
     environment: () => ({
       focused:
         typeof document === 'undefined' ||

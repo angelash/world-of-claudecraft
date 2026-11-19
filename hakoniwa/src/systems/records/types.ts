@@ -284,6 +284,8 @@ export interface LetterRecord {
 }
 
 export interface RecordsSlice {
+  /** one-time first-clear/discovery awards; absent on older saves */
+  xp?: import('./xp_types').XpLedger;
   /**
    * World state changed since the last settle: deeds, titles, codex notes and letters are
    * re-evaluated at the next tick (catalog 1.3: settle at the end, only when dirty).

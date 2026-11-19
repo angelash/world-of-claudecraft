@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Engine, tr, worldHash } from '../src/core';
 import type { ContentMap } from '../src/core/contracts';
 import { t } from '../src/shared_ui/i18n';
+import { unitOf } from '../src/systems/combat';
+import { resolveHit } from '../src/systems/combat/damage';
 import { countItem } from '../src/systems/inventory';
 import {
   AI_DEADLINE,
@@ -14,6 +16,7 @@ import {
   sceneView,
 } from '../src/systems/scenes';
 import { playerEntity } from '../src/systems/world';
+import { withCtx } from './ailments_harness';
 import {
   type ChoicePolicy,
   NARRATIVE_SYSTEMS,
@@ -564,10 +567,50 @@ describe('court and endings', () => {
       }
     };
     drain();
+    // This integration test skips navigation and fight timing, while settling the real
+    // placed monsters through damage, death, kill credit and the quest subscriptions.
+    const hitPlacedMonster = (ref: string, mapId: string) => {
+      const entity = Object.values(g.world.slices.world.entities).find(
+        (e) => e.ref === ref && e.alive && e.mapId === mapId,
+      );
+      if (!entity) throw new Error(`missing live story monster ${ref}`);
+      g.queue('world.teleport', {
+        entityId: 'player',
+        mapId: entity.mapId,
+        x: entity.x,
+        y: entity.y,
+      });
+      g.step(1);
+      withCtx(g, (ctx) => {
+        const source = unitOf(ctx.world, 'player');
+        const target = unitOf(ctx.world, entity.id);
+        if (!source || !target) throw new Error('story fight has no combat units');
+        resolveHit(ctx, {
+          source,
+          target,
+          amount: 100_000,
+          school: 'physical',
+          kind: 'melee',
+          noRoll: true,
+        });
+      });
+      drain();
+    };
+    hitPlacedMonster('dian_dreg', 'seal_ruins');
+    hitPlacedMonster('dian_dreg', 'seal_ruins');
+    hitPlacedMonster('dian_rat', 'seal_ruins');
     // walk down to the ash chamber (real combat map), then the raven falls (combat's flag)
     const depths = g.content.maps.find((m) => m.id === 'seal_ruins_depths');
+    const stair = depths?.locations.find((l) => l.id === 'stair_foot');
     const chamber = depths?.locations.find((l) => l.id === 'ash_chamber');
-    if (!chamber) throw new Error('combat map without ash_chamber');
+    if (!chamber || !stair) throw new Error('combat map without descent locations');
+    g.queue('world.teleport', {
+      entityId: 'player',
+      mapId: 'seal_ruins_depths',
+      x: stair.x + stair.w / 2,
+      y: stair.y + stair.h / 2,
+    });
+    drain();
     g.queue('world.teleport', {
       entityId: 'player',
       mapId: 'seal_ruins_depths',
@@ -576,10 +619,19 @@ describe('court and endings', () => {
     });
     drain();
     expect(g.world.slices.scenes.seen).toContain('cut_a1_ash_glimpse');
-    g.queue('flag.set', { key: 'boss.guardian_raven.defeated', value: true });
-    drain();
+    hitPlacedMonster('guardian_raven', 'seal_ruins_depths');
     expect(g.world.meta.flags['companion.yeyu.recruited']).toBe(true);
-    // into town and to Bron through the real dialogue system
+    const surface = g.content.maps.find((m) => m.id === 'seal_ruins');
+    const ring = surface?.locations.find((l) => l.id === 'outer_ring');
+    if (!ring) throw new Error('combat map without outer_ring');
+    g.queue('world.teleport', {
+      entityId: 'player',
+      mapId: 'seal_ruins',
+      x: ring.x + ring.w / 2,
+      y: ring.y + ring.h / 2,
+    });
+    drain();
+    // Reach town, register with Lina, then ask Bron for the first guild quest.
     const bron = Object.values(g.world.slices.world.entities).find(
       (e) => e.ref === 'bron' && !e.hidden,
     );
@@ -592,8 +644,18 @@ describe('court and endings', () => {
         g.queue('world.teleport', { entityId: 'player', mapId: b.mapId, x: b.x + 0.8, y: b.y });
       g.step(1);
     };
-    near();
-    g.queue('dialogue.talk', { npcId: bron.id });
+    const lina = Object.values(g.world.slices.world.entities).find(
+      (e) => e.ref === 'lina' && e.alive && !e.hidden,
+    );
+    if (!lina) throw new Error('no lina in borderstone');
+    g.queue('world.teleport', {
+      entityId: 'player',
+      mapId: lina.mapId,
+      x: lina.x + 0.8,
+      y: lina.y,
+    });
+    g.step(1);
+    g.queue('dialogue.talk', { npcId: lina.id });
     drain();
     expect(g.world.meta.flags.a1_guild_registered).toBe(true);
     g.queue('dialogue.close', {});

@@ -490,6 +490,15 @@ describe('the combat adapter marks the world', () => {
     ]);
   });
 
+  it('hands the actual ability school and cast elapsed time to cosmetic bitmap effects', () => {
+    const view = fakeView();
+    const content = view.content as unknown as { abilities: { id: string; school?: string }[] };
+    const ability = content.abilities.find((row) => row.id === 'howl');
+    if (ability) ability.school = 'fire';
+    const { marks } = worldMarks(view, 'm');
+    expect(marks.get('wolf')?.cast).toMatchObject({ school: 'fire', elapsedMs: 500 });
+  });
+
   it('draws the kernel warnings: locked cells, a following circle, a flashing pulse zone', () => {
     const { warnings } = worldMarks(
       fakeView({

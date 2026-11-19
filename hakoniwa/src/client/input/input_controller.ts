@@ -9,6 +9,7 @@
 import { isTypingTarget } from '../../shared_ui/dom';
 import { chordOf } from './actions';
 import type { KeyChord } from './contexts';
+import { nativeModalScope } from './dom_navigation';
 
 export interface InputHandlers {
   /** a key chord went down or up; true when it was a binding (the default is prevented) */
@@ -72,11 +73,19 @@ export class InputController {
       this.h.pointer(ev.clientX, ev.clientY, travel);
     });
     on(window, 'pointerdown', (ev) => {
+      if (nativeModalScope()) {
+        this.h.release();
+        return;
+      }
       if (ev.button === 1 || ev.button === 3 || ev.button === 4) {
         if (this.h.mouseButton(ev.button, 'down', ev)) ev.preventDefault();
       }
     });
     on(window, 'pointerup', (ev) => {
+      if (nativeModalScope()) {
+        this.h.release();
+        return;
+      }
       if (ev.button === 1 || ev.button === 3 || ev.button === 4) {
         if (this.h.mouseButton(ev.button, 'up', ev)) ev.preventDefault();
       }
@@ -156,20 +165,34 @@ export class InputController {
   }
 
   private keyDown(ev: KeyboardEvent): void {
+    // A native modal owns Tab, Enter, Space and Esc as well as text entry. Release held
+    // world input even if it opened between animation frames; do not cancel its defaults.
+    if (nativeModalScope()) {
+      this.h.release();
+      return;
+    }
+    if (ev.defaultPrevented) return;
     // typing: only Esc reaches the game (the field handles Enter itself)
     if (isTypingTarget(ev.target) && ev.code !== 'Escape') return;
     if (ev.metaKey) return;
+    const inWindow =
+      ev.target instanceof Element && !!ev.target.closest('.hk-window, [data-input-window]');
+    // Space activates a focused window button natively; it must not pause the field below.
+    if (inWindow && ev.code === 'Space' && (ev.target as Element).closest('button')) return;
     if (this.h.key(chordOf(ev), 'down', ev.repeat)) {
       ev.preventDefault();
       return;
     }
     // outside windows, Space and Enter never press a HUD button that kept the focus after a
     // click (they advance lines when talk shows; in a window they press its control)
-    const inWindow = ev.target instanceof Element && !!ev.target.closest('.hk-window');
     if (!inWindow && ACTIVATION_KEYS.has(ev.code)) ev.preventDefault();
   }
 
   private keyUp(ev: KeyboardEvent): void {
+    if (nativeModalScope()) {
+      this.h.release();
+      return;
+    }
     // a release always goes through, so a key held into a text field never sticks
     this.h.key(chordOf(ev), 'up', false);
   }

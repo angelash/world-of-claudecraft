@@ -179,7 +179,12 @@ export function award(
     ctx.setFlag(`boss.${mon.id}.defeated`, true);
   }
   if (mon?.rank === 'boss') {
-    ctx.emit('combat.boss_defeated', { entityId: victim.id, bossId: mon.id, yielded });
+    ctx.emit('combat.boss_defeated', {
+      entityId: victim.id,
+      bossId: mon.id,
+      yielded,
+      killerId: killer?.id,
+    });
   }
 }
 

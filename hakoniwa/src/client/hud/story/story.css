@@ -238,6 +238,28 @@
 .hk-cut-still.vignette {
   background: radial-gradient(ellipse at 50% 45%, rgba(40, 34, 50, 0.9), rgba(4, 3, 8, 1));
 }
+.hk-cut-transition {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #100c17;
+}
+.hk-cut-transition.door-wipe {
+  /* Two door leaves close over the picture and open onto the following shot. */
+  background: linear-gradient(
+    to right,
+    #100c17 0,
+    #100c17 calc(50% - var(--wipe-gap)),
+    transparent calc(50% - var(--wipe-gap)),
+    transparent calc(50% + var(--wipe-gap)),
+    #100c17 calc(50% + var(--wipe-gap))
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .hk-cut-transition {
+    display: none;
+  }
+}
 .hk-cut-bar {
   position: absolute;
   left: 0;

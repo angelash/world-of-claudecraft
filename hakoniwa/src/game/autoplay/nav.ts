@@ -4,7 +4,9 @@
 // world.use_exit, exactly like a human player would.
 
 import type { FlagValue } from '../../core/contracts';
-import type { ExitDef, MapDef } from '../../systems/world/types';
+import { findPath, isWalkable } from '../../systems/world/grid';
+import { liveMap } from '../../systems/world/switches';
+import type { ExitDef, MapDef, Waypoint } from '../../systems/world/types';
 
 export interface Leg {
   /** exit to take on the current map */
@@ -17,30 +19,56 @@ function exitOpen(exit: ExitDef, flags: Record<string, FlagValue>): boolean {
   return !exit.requiresFlags?.some((f) => !flags[f]);
 }
 
+/** Exits the player can actually walk to on the map as its switches stand now. */
+export function reachableExits(
+  map: MapDef,
+  flags: Record<string, FlagValue>,
+  point?: Waypoint,
+): ExitDef[] {
+  const current = liveMap(map, flags);
+  return map.exits.filter((exit) => {
+    if (!exitOpen(exit, flags)) return false;
+    if (!point) return true;
+    const target = { x: exit.x + 0.5, y: exit.y + 0.5 };
+    return isWalkable(current, target.x, target.y) && findPath(current, point, target) !== null;
+  });
+}
+
 /** The first exit on the way from one map to another, or null when there is no route. */
 export function nextLeg(
   maps: readonly MapDef[],
   flags: Record<string, FlagValue>,
   from: string,
   to: string,
+  point?: Waypoint,
 ): Leg | null {
   if (from === to) return null;
   const byId = new Map(maps.map((m) => [m.id, m]));
-  const first = new Map<string, ExitDef>();
-  const depth = new Map<string, number>([[from, 0]]);
-  const queue: string[] = [from];
-  while (queue.length > 0) {
-    const cur = queue.shift() as string;
-    const map = byId.get(cur);
+  const keyOf = (id: string, at?: Waypoint) => (at ? `${id}@${at.x},${at.y}` : id);
+  const visited = new Set([keyOf(from, point)]);
+  // A divided map may be reached through either side. Visiting the map once does
+  // not rule out another entrance whose connected floor reaches the onward exit.
+  const queue: { mapId: string; point?: Waypoint; first?: ExitDef; hops: number }[] = [
+    { mapId: from, point, hops: 0 },
+  ];
+  for (const cur of queue) {
+    const map = byId.get(cur.mapId);
     if (!map) continue;
-    for (const exit of map.exits) {
-      if (!exitOpen(exit, flags) || depth.has(exit.toMap)) continue;
-      depth.set(exit.toMap, (depth.get(cur) ?? 0) + 1);
-      first.set(exit.toMap, cur === from ? exit : (first.get(cur) as ExitDef));
-      if (exit.toMap === to) {
-        return { exit: first.get(to) as ExitDef, hops: depth.get(to) as number };
-      }
-      queue.push(exit.toMap);
+    for (const exit of reachableExits(map, flags, cur.point)) {
+      const dest = byId.get(exit.toMap);
+      const loc = dest?.locations.find((l) => l.id === exit.toLocation);
+      const arrival = point
+        ? loc
+          ? { x: loc.x + loc.w / 2, y: loc.y + loc.h / 2 }
+          : { x: exit.toX, y: exit.toY }
+        : undefined;
+      const key = keyOf(exit.toMap, arrival);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const first = cur.first ?? exit;
+      const hops = cur.hops + 1;
+      if (exit.toMap === to) return { exit: first, hops };
+      queue.push({ mapId: exit.toMap, point: arrival, first, hops });
     }
   }
   return null;

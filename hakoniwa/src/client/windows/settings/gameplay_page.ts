@@ -1,13 +1,16 @@
 // Implements the first part of `ui_set_gameplay` (ux_and_onboarding.md 4.5): text speed, auto
-// advance and the guidance level, plus the run's difficulty as a read-only line. The rest of
-// the page (auto pause, bubbles, names, floating text, loot, fame display, confirmations,
-// changing the difficulty) is PK-M1-57. Thin painter over gameplay_model.ts.
+// advance and the guidance level, plus changing a run's difficulty outside combat and
+// permanently disabling ironman. The remaining display toggles belong to PK-M1-57.
+// Thin painter over gameplay_model.ts and run_settings_model.ts.
 
 import { el, setText } from '../../../shared_ui/dom';
 import { t } from '../../../shared_ui/i18n';
+import { askConfirm } from '../../hud/confirm_pop';
+import { actionButton } from '../kit';
 import type { WindowContext } from '../window_context';
 import { gameplayPageModel, gameplayPatch } from './gameplay_model';
 import type { SettingsPage } from './page';
+import { difficultyCommands, difficultyModel } from './run_settings_model';
 
 export function gameplayPage(ctx: WindowContext): SettingsPage {
   const model = () => gameplayPageModel(ctx.prefs.sync.gameplay, ctx.view.flag('difficulty'));
@@ -34,6 +37,35 @@ export function gameplayPage(ctx: WindowContext): SettingsPage {
   const guidanceNote = el('div', { className: 'hk-set-note' });
   const difficulty = el('div', { className: 'hk-set-row' });
   const difficultyNote = el('div', { className: 'hk-set-note' });
+  const changeDifficulty = el('select', {
+    className: 'hk-input',
+    attrs: { 'aria-label': t('ui.set.gameplay.difficulty_title') },
+  });
+  for (const id of ['story', 'standard', 'hard'])
+    changeDifficulty.append(
+      el('option', {
+        text: t(`ui.set.gameplay.difficulty_name.${id}`),
+        attrs: { value: id },
+      }),
+    );
+  const applyDifficulty = el('button', {
+    className: 'hk-btn hk-btn-small',
+    text: t('ui.set.gameplay.run.change_difficulty'),
+    attrs: { type: 'button' },
+    on: {
+      click: () => ctx.commands.queueAll(difficultyCommands(ctx.view, changeDifficulty.value)),
+    },
+  });
+  const ironman = actionButton(ctx, t('ui.win.party.ironman_turn_off'), () => {
+    void askConfirm({
+      title: t('ui.win.party.ironman_turn_off'),
+      body: t('ui.win.party.ironman_confirm'),
+      irreversible: true,
+    }).then((yes) => {
+      if (yes) ctx.commands.queueAll(ctx.adapters.partyRoster?.ironmanOff(ctx.view) ?? []);
+    });
+    return [];
+  });
 
   const root = el('div', { className: 'hk-set-gameplay' }, [
     el('h3', { text: t('ui.set.gameplay.reading') }),
@@ -55,6 +87,8 @@ export function gameplayPage(ctx: WindowContext): SettingsPage {
     el('h3', { text: t('ui.set.gameplay.difficulty_title') }),
     difficulty,
     difficultyNote,
+    el('div', { className: 'hk-row' }, [changeDifficulty, applyDifficulty]),
+    ironman,
   ]);
   return {
     el: root,
@@ -68,7 +102,14 @@ export function gameplayPage(ctx: WindowContext): SettingsPage {
         guidance.value = m.guidance.value;
       setText(guidanceNote, m.guidance.note);
       setText(difficulty, m.difficulty);
-      setText(difficultyNote, m.difficultyNote);
+      const run = difficultyModel(ctx.view);
+      setText(difficultyNote, run.reason || t('ui.set.gameplay.run.change_note'));
+      changeDifficulty.disabled = !run.canChange;
+      applyDifficulty.disabled = !run.canChange;
+      applyDifficulty.title = run.reason;
+      if (document.activeElement !== changeDifficulty && run.current !== 'legend')
+        changeDifficulty.value = run.current;
+      ironman.hidden = ctx.adapters.partyRoster?.ironman(ctx.view) !== 'on';
     },
   };
 }

@@ -1024,20 +1024,6 @@
             "mapId": "seal_ruins_depths"
           }
         ],
-        "onEnter": [
-          {
-            "type": "line",
-            "speaker": "yeyu",
-            "text": "那扇门，是不该被打开的。可我等了好久好久。",
-            "when": "act_week >= 8 AND NOT term.dian_known"
-          },
-          {
-            "type": "flag",
-            "key": "term.dian_known",
-            "value": true,
-            "when": "act_week >= 8 AND NOT term.dian_known"
-          }
-        ],
         "onComplete": [
           {
             "type": "item",
@@ -1328,31 +1314,19 @@
         "desc": "光之鉴开始了。",
         "objectives": [
           {
-            "type": "flag",
-            "when": "a1_oola_fate",
-            "label": "在光之鉴上作出你的选择"
+            "type": "scene",
+            "scene": "cut_a1_trial",
+            "label": "亲历光之鉴的结果"
           }
         ],
         "onEnter": [
           {
             "type": "scene",
             "scene": "cut_a1_trial",
-            "when": "NOT a1_oola_fate AND NOT dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
-          },
-          {
-            "type": "line",
-            "speaker": "narrator",
-            "text": "审判已经开过了。你赶到广场时，光之鉴的灯早就灭了，人群正在散去。",
-            "when": "dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
+            "when": "NOT scene.cut_a1_trial.seen"
           }
         ],
         "onComplete": [
-          {
-            "type": "flag",
-            "key": "a1_oola_jailbroken",
-            "value": true,
-            "when": "a1_oola_fate == fled AND NOT a1_trial_brawl AND NOT dispute.q_a1_d02_witch_trial.choice.cassian_verdict"
-          },
           {
             "type": "xp",
             "amount": 1320,
@@ -1549,20 +1523,6 @@
             "amount": 1530,
             "reason": "quest"
           }
-        ],
-        "onEnter": [
-          {
-            "type": "line",
-            "speaker": "yeyu",
-            "text": "那扇门，是不该被打开的。可我等了好久好久。",
-            "when": "NOT term.dian_known"
-          },
-          {
-            "type": "flag",
-            "key": "term.dian_known",
-            "value": true,
-            "when": "NOT term.dian_known"
-          }
         ]
       },
       {
@@ -1671,7 +1631,7 @@
             "ref": "dian_colossus",
             "count": 1,
             "label": "击败澱巨像",
-            "orWhen": "boss.dian_colossus.defeated OR boss.dian_colossus.yielded OR combat.wave.tide_colossus.state == cleared"
+            "orWhen": "boss.dian_colossus.defeated OR boss.dian_colossus.yielded OR combat.wave.tide_colossus.state == cleared OR a1_tide_stage >= 4"
           }
         ],
         "onEnter": [
@@ -1695,14 +1655,15 @@
           {
             "type": "flag",
             "key": "seal_unrest",
-            "value": 30
+            "value": 30,
+            "when": "NOT a1_beast_tide_started"
           },
           {
             "type": "add",
             "key": "seal_unrest",
             "amount": 10,
             "max": 100,
-            "when": "a1_dian_trade == player_controls"
+            "when": "NOT a1_beast_tide_started AND a1_dian_trade == player_controls"
           },
           {
             "type": "flag",
@@ -1717,46 +1678,9 @@
         "desc": "巨像的核滚到脚边，还在跳。",
         "objectives": [
           {
-            "type": "choice",
-            "options": [
-              {
-                "id": "shatter",
-                "label": "击碎澱核",
-                "effects": [
-                  {
-                    "type": "item",
-                    "item": "colossus_core"
-                  }
-                ],
-                "path": "shatter"
-              },
-              {
-                "id": "grasp",
-                "label": "伸手握住它",
-                "effects": [
-                  {
-                    "type": "item",
-                    "item": "dian_core",
-                    "count": 1,
-                    "when": "NOT door.vocation_druid"
-                  },
-                  {
-                    "type": "add",
-                    "key": "seal_unrest",
-                    "amount": 15,
-                    "max": 100
-                  },
-                  {
-                    "type": "add",
-                    "key": "trust.yeyu",
-                    "amount": -20,
-                    "min": 0
-                  }
-                ],
-                "path": "grasp"
-              }
-            ],
-            "label": "击碎澱核，或者伸手握住"
+            "type": "flag",
+            "when": "a1_core_choice_made",
+            "label": "在巨像倒下后处置澱核"
           }
         ]
       },
@@ -5651,6 +5575,919 @@
         "type": "xp",
         "amount": 6800,
         "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s24_red_sock",
+    "act": "act1",
+    "kind": "side",
+    "order": 124,
+    "title": "红袜子回家",
+    "giver": "lene_mahler",
+    "desc": "莲娜说，孩子的一只红袜子挂在老野猪的獠牙上，被带走了一整个秋天。",
+    "trigger": "act_week >= 3",
+    "stages": [
+      {
+        "id": "hear",
+        "desc": "莲娜说，孩子的一只红袜子挂在老野猪的獠牙上，被带走了一整个秋天。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "lene_mahler",
+            "label": "听莲娜说红袜子的事"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "line",
+            "speaker": "lene_mahler",
+            "text": "它叼走的是一只袜子，又不是孩子。可孩子哭了一整个秋天。"
+          }
+        ]
+      },
+      {
+        "id": "hunt",
+        "desc": "找到西田的异名野猪红袜子。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "red_sock",
+            "count": 1,
+            "label": "击败红袜子"
+          }
+        ]
+      },
+      {
+        "id": "return",
+        "desc": "把褪色的红袜子带回西田磨坊人家。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "nm_faded_red_sock",
+            "count": 1,
+            "npc": "lene_mahler",
+            "consume": true,
+            "label": "把红袜子还给莲娜的孩子"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 60
+      },
+      {
+        "type": "add",
+        "key": "rep.bs_commons",
+        "amount": 10,
+        "min": -100,
+        "max": 100
+      },
+      {
+        "type": "deed",
+        "deed": "deed_rare_red_sock"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s25_furrow_queen",
+    "act": "act1",
+    "kind": "side",
+    "order": 125,
+    "title": "垄沟里的鼠后",
+    "giver": "simon",
+    "desc": "西蒙说西田旧谷仓被鼠群占了。",
+    "trigger": "act_week >= 4",
+    "stages": [
+      {
+        "id": "barn",
+        "desc": "西蒙说西田旧谷仓被鼠群占了。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "old_granary",
+            "label": "前往西田旧谷仓"
+          }
+        ]
+      },
+      {
+        "id": "rats",
+        "desc": "先清理鼠后的鼠群。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_rat",
+            "mapId": "borderstone",
+            "count": 8,
+            "label": "击败八只澱鼠"
+          }
+        ]
+      },
+      {
+        "id": "queen",
+        "desc": "击败藏在谷仓里的鼠后。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "furrow_rat_queen",
+            "count": 1,
+            "orWhen": "dg.nest_furrow_rat_queen.cleared",
+            "label": "击败垄沟鼠后"
+          }
+        ]
+      },
+      {
+        "id": "choice",
+        "desc": "鼠后倒下了。鼠巢可以养、毁或净，后果由巢的状态结算。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "dg.nest_furrow_rat_queen.choice IN (nurture, destroy, purify)",
+            "label": "在鼠巢界面选择养、毁或净"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 450,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 90
+      },
+      {
+        "type": "add",
+        "key": "trust.simon",
+        "amount": 15,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s26_toll_taker",
+    "act": "act1",
+    "kind": "side",
+    "order": 126,
+    "title": "收路钱的",
+    "giver": "wilma_ascher",
+    "desc": "薇尔玛的丈夫死在灰路上，老豺脖子上的铜狗牌也许能说明什么。",
+    "trigger": "act_week >= 6",
+    "stages": [
+      {
+        "id": "story",
+        "desc": "薇尔玛的丈夫死在灰路上，老豺脖子上的铜狗牌也许能说明什么。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "wilma_ascher",
+            "label": "听薇尔玛说灰路的事"
+          }
+        ]
+      },
+      {
+        "id": "road",
+        "desc": "从折桥驿走向晶沟，寻找收路钱的豺群。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "ash_waste",
+            "location": "crystal_gully",
+            "label": "沿灰路找到晶沟"
+          }
+        ]
+      },
+      {
+        "id": "hunt",
+        "desc": "老豺与它的豺群就在灰路上。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "toll_taker",
+            "count": 1,
+            "label": "击败收路钱的"
+          },
+          {
+            "type": "kill",
+            "ref": "waste_jackal",
+            "count": 4,
+            "label": "击败四只荒原豺"
+          }
+        ]
+      },
+      {
+        "id": "tag",
+        "desc": "铜狗牌上刻着一个名字。把它交还薇尔玛。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "nm_brass_dog_tag",
+            "count": 1,
+            "npc": "wilma_ascher",
+            "consume": true,
+            "label": "把铜狗牌交给薇尔玛"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "line",
+            "speaker": "wilma_ascher",
+            "text": "他说里程碑上放肉干就平安。他放了。"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 160
+      },
+      {
+        "type": "deed",
+        "deed": "deed_rare_toll_taker"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s27_old_louse",
+    "act": "act1",
+    "kind": "explore",
+    "order": 127,
+    "title": "晶沟老虱",
+    "giver": "tpl_scavenger",
+    "desc": "折桥驿的拾荒者说，晶沟深处有一只吃晶吃得像狗那么大的虱子。",
+    "trigger": "act_week >= 8",
+    "stages": [
+      {
+        "id": "rumor",
+        "desc": "折桥驿的拾荒者说，晶沟深处有一只吃晶吃得像狗那么大的虱子。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "tpl_scavenger",
+            "label": "听拾荒者说老虱的传闻"
+          }
+        ]
+      },
+      {
+        "id": "gully",
+        "desc": "沿着晶沟找下去。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "ash_waste",
+            "location": "crystal_gully",
+            "label": "探索晶沟深处"
+          }
+        ]
+      },
+      {
+        "id": "louse",
+        "desc": "老虱肚子里裹着一块灰晶。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "old_louse",
+            "count": 1,
+            "label": "击败晶沟老虱"
+          }
+        ]
+      },
+      {
+        "id": "belly",
+        "desc": "把老虱腹晶带给欧拉或夜羽辨认。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "npc": "oola",
+            "item": "nm_louse_belly_crystal",
+            "consume": false,
+            "label": "请欧拉辨认老虱腹晶"
+          },
+          {
+            "type": "deliver",
+            "npc": "yeyu",
+            "item": "nm_louse_belly_crystal",
+            "consume": false,
+            "label": "请夜羽辨认老虱腹晶"
+          }
+        ],
+        "complete": "any",
+        "onComplete": [
+          {
+            "type": "line",
+            "speaker": "yeyu",
+            "text": "它不是那扇门要的。那一块还在更深处。"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 700,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 140
+      },
+      {
+        "type": "deed",
+        "deed": "deed_rare_old_louse"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s28_three_toes",
+    "act": "act1",
+    "kind": "side",
+    "order": 128,
+    "title": "三趾",
+    "giver": "shiya",
+    "desc": "希雅认得铁杉林北边少了一趾的蹄印。跟她一起去北缘岩台找三趾。",
+    "trigger": "act_week >= 6 AND trust.shiya >= 50",
+    "stages": [
+      {
+        "id": "track",
+        "desc": "希雅认得铁杉林北边少了一趾的蹄印。跟她一起去北缘岩台找三趾。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "ironhemlock_deep",
+            "location": "north_crag",
+            "label": "与希雅前往北缘岩台"
+          },
+          {
+            "type": "talk",
+            "npc": "shiya",
+            "label": "请希雅辨认三趾的蹄印"
+          }
+        ]
+      },
+      {
+        "id": "purify",
+        "desc": "净化三趾，或击败它。两条路线都会留下那副灰角。",
+        "objectives": [
+          {
+            "type": "purify",
+            "monster": "three_toes",
+            "path": "purified",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_three_toes_fate",
+                "value": "purified"
+              }
+            ],
+            "label": "用借形之门净化三趾"
+          },
+          {
+            "type": "kill",
+            "ref": "three_toes",
+            "count": 1,
+            "path": "slain",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_three_toes_fate",
+                "value": "slain"
+              }
+            ],
+            "label": "击败三趾"
+          }
+        ],
+        "complete": "any"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 600,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 120
+      },
+      {
+        "type": "deed",
+        "deed": "deed_rare_three_toes",
+        "when": "a1_three_toes_fate == purified"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s29_first_beast",
+    "act": "act1",
+    "kind": "companion",
+    "order": 129,
+    "title": "第一只兽伴",
+    "giver": "gorn",
+    "desc": "葛恩说，选兽伴不能只看它凶不凶。先选一只你愿意照顾的兽。",
+    "trigger": "door.vocation_hunter",
+    "stages": [
+      {
+        "id": "choose",
+        "desc": "葛恩说，选兽伴不能只看它凶不凶。先选一只你愿意照顾的兽。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "gorn",
+            "label": "向葛恩请教第一只兽伴"
+          }
+        ]
+      },
+      {
+        "id": "tame",
+        "desc": "通过猎之门的半契驯服一只野兽。",
+        "objectives": [
+          {
+            "type": "recruit",
+            "companions": [
+              "pet_ashgrey_wolf",
+              "pet_weald_spider",
+              "pet_cleanmane_boar",
+              "pet_tunnel_grub"
+            ],
+            "label": "真正驯服并招入一只兽伴"
+          }
+        ]
+      },
+      {
+        "id": "feed",
+        "desc": "给你的第一只兽伴喂一份合它胃口的食物。",
+        "objectives": [
+          {
+            "type": "feed",
+            "companions": [
+              "pet_ashgrey_wolf",
+              "pet_weald_spider",
+              "pet_cleanmane_boar",
+              "pet_tunnel_grub"
+            ],
+            "count": 1,
+            "label": "亲手给兽伴喂食"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 250,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s30_donkey_road",
+    "act": "act1",
+    "kind": "side",
+    "order": 130,
+    "title": "驴之路（第一幕段）",
+    "giver": "ulf_lange",
+    "desc": "乌尔夫说，驴不在乎你是几级。买下一头驴，准备第一次驮货。",
+    "trigger": "quest.q_a1_m03_register == done",
+    "stages": [
+      {
+        "id": "buy",
+        "desc": "乌尔夫说，驴不在乎你是几级。买下一头驴，准备第一次驮货。",
+        "objectives": [
+          {
+            "type": "trade",
+            "item": "mnt_donkey",
+            "side": "buy",
+            "count": 1,
+            "label": "在驿站买一头驴"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "line",
+            "speaker": "ulf_lange",
+            "text": "马不认得你是几级，它只认得你给不给燕麦。"
+          }
+        ]
+      },
+      {
+        "id": "load",
+        "desc": "带着驴完成第一份送货委托。",
+        "objectives": [
+          {
+            "type": "commission",
+            "kind": "deliver",
+            "carrying": "mnt_donkey",
+            "count": 1,
+            "label": "带驴完成一次送货委托"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      },
+      {
+        "type": "flag",
+        "key": "donkey_road",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s34_craft_herbalism",
+    "act": "act1",
+    "kind": "craft",
+    "order": 134,
+    "title": "祛灰草洼",
+    "giver": "oola",
+    "desc": "欧拉肯告诉你，祛灰草长在北门外一处潮湿的洼地里。",
+    "trigger": "trust.oola >= 50",
+    "stages": [
+      {
+        "id": "teach",
+        "desc": "欧拉肯告诉你，祛灰草长在北门外一处潮湿的洼地里。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "oola",
+            "label": "向欧拉学习辨认祛灰草"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "taught.craft_herbalism.oola",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "pick",
+        "desc": "去北门外的祛灰草洼，亲手采十份祛灰草。",
+        "objectives": [
+          {
+            "type": "gather",
+            "item": "mat_greybane",
+            "node": "node_lotha_greybane_hollow",
+            "count": 10,
+            "label": "采十份祛灰草"
+          }
+        ]
+      },
+      {
+        "id": "deliver",
+        "desc": "把采来的草带回药草小屋。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "mat_greybane",
+            "count": 10,
+            "npc": "oola",
+            "consume": true,
+            "label": "把祛灰草交给欧拉"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 40
+      },
+      {
+        "type": "item",
+        "item": "eq_ola_sparrow_sachet",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s35_craft_alchemy",
+    "act": "act1",
+    "kind": "craft",
+    "order": 135,
+    "title": "十瓶祛灰水",
+    "giver": "oola",
+    "desc": "欧拉教你把两份祛灰草熬成一份祛灰水。",
+    "trigger": "quest.q_a1_s34_craft_herbalism == done",
+    "stages": [
+      {
+        "id": "teach",
+        "desc": "欧拉教你把两份祛灰草熬成一份祛灰水。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "oola",
+            "label": "向欧拉学习炼剂"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "taught.craft_alchemy.oola",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "brew",
+        "desc": "亲手熬够十瓶祛灰水。",
+        "objectives": [
+          {
+            "type": "craft",
+            "recipe": "rcp_greybane_wash",
+            "item": "cs_greybane_wash",
+            "count": 10,
+            "label": "熬十瓶祛灰水"
+          }
+        ]
+      },
+      {
+        "id": "use",
+        "desc": "北区的病童和兽潮伤员需要这些药。把三瓶药交到医者手里。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "cs_greybane_wash",
+            "count": 3,
+            "npc": "oola",
+            "consume": true,
+            "label": "把三瓶祛灰水交给欧拉照料病童和伤员"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 100
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s36_craft_cooking",
+    "act": "act1",
+    "kind": "craft",
+    "order": 136,
+    "title": "朵拉吃光的那盘菜",
+    "giver": "martha",
+    "desc": "玛莎让你进醉月亭后厨试一道菜。朵拉会替她尝。",
+    "trigger": "trust.martha >= 50 OR trust.ped >= 50",
+    "stages": [
+      {
+        "id": "teach",
+        "desc": "玛莎让你进醉月亭后厨试一道菜。朵拉会替她尝。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "martha",
+            "label": "向玛莎学习灶上的手艺"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "taught.craft_cooking.martha",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "cook",
+        "desc": "做一道醉月亭的菜或地球菜：杰作、灶火前世或署名材都能让朵拉满意。",
+        "objectives": [
+          {
+            "type": "craft",
+            "profession": "cooking",
+            "count": 1,
+            "masterwork": true,
+            "path": "masterwork",
+            "label": "做出一道杰作料理",
+            "families": ["rcp_moon_tavern_trio", "rcp_earth_menu"]
+          },
+          {
+            "type": "craft",
+            "profession": "cooking",
+            "count": 1,
+            "when": "p_past_life_door == hearth",
+            "path": "hearth",
+            "label": "用灶火前世的手艺做一道菜",
+            "families": ["rcp_moon_tavern_trio", "rcp_earth_menu"]
+          },
+          {
+            "type": "craft",
+            "profession": "cooking",
+            "count": 1,
+            "signedInput": true,
+            "path": "signed",
+            "label": "用署名材做一道菜",
+            "families": ["rcp_moon_tavern_trio", "rcp_earth_menu"]
+          }
+        ],
+        "complete": "any"
+      },
+      {
+        "id": "taste",
+        "desc": "把刚做好的料理端给朵拉。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "dora",
+            "label": "请朵拉尝菜"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 250,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 50
+      },
+      {
+        "type": "item",
+        "item": "lb_moonlit_kitchen",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "q_a1_s37_craft_leather",
+    "act": "act1",
+    "kind": "craft",
+    "order": 137,
+    "title": "泡过祛灰草的狼皮",
+    "giver": "boro",
+    "desc": "博罗说，狼皮上沾的灰不能直接揉进皮革里。先用祛灰水泡。",
+    "trigger": "trust.boro >= 50 OR trust.gorn >= 50",
+    "stages": [
+      {
+        "id": "teach",
+        "desc": "博罗说，狼皮上沾的灰不能直接揉进皮革里。先用祛灰水泡。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "boro",
+            "label": "向博罗学习鞣革"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "flag",
+            "key": "taught.craft_leatherworking.boro",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "skin",
+        "desc": "亲手整剥五张狼皮。",
+        "objectives": [
+          {
+            "type": "gather",
+            "item": "wolf_pelt",
+            "count": 5,
+            "label": "整剥五张狼皮"
+          }
+        ]
+      },
+      {
+        "id": "soak",
+        "desc": "把五张狼皮和五瓶祛灰水交给博罗浸泡。",
+        "objectives": [
+          {
+            "type": "deliver",
+            "item": "wolf_pelt",
+            "count": 5,
+            "npc": "boro",
+            "consume": true,
+            "label": "把五张狼皮交给博罗"
+          },
+          {
+            "type": "deliver",
+            "item": "cs_greybane_wash",
+            "count": 5,
+            "npc": "boro",
+            "consume": true,
+            "label": "交付浸泡用的五瓶祛灰水"
+          }
+        ]
+      },
+      {
+        "id": "overnight",
+        "desc": "浸泡最少一夜，等灰沉下来再取皮。",
+        "objectives": [
+          {
+            "type": "wait",
+            "hours": 8,
+            "label": "等待至少八个游戏小时"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "item",
+            "item": "wolf_pelt",
+            "count": 5,
+            "purified": true
+          }
+        ]
+      },
+      {
+        "id": "tan",
+        "desc": "用净过的狼皮鞣一张皮革。",
+        "objectives": [
+          {
+            "type": "craft",
+            "recipe": "rcp_tan_leather",
+            "count": 1,
+            "label": "亲手鞣成皮革"
+          }
+        ]
+      },
+      {
+        "id": "mitts",
+        "desc": "博罗愿意替你做熊掌护手。也可以先把学徒的活交了。",
+        "objectives": [
+          {
+            "type": "choice",
+            "npc": "boro",
+            "label": "决定是否另付材料制作护手",
+            "options": [
+              {
+                "id": "mitts",
+                "label": "另交三张生皮与两张狼皮，制作熊掌护手",
+                "cost": {
+                  "items": [
+                    {
+                      "item": "hide",
+                      "count": 3
+                    },
+                    {
+                      "item": "wolf_pelt",
+                      "count": 2
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "eq_boro_bearpaw_mitts"
+                  }
+                ],
+                "path": "mitts"
+              },
+              {
+                "id": "finish",
+                "label": "先交学徒的活",
+                "path": "apprentice"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "money",
+        "amount": 60
       }
     ]
   }

@@ -66,6 +66,7 @@ export function defaultPenalty(cfg: GuildConfig, pay: number): number {
 
 /** Experience of a template before the week's decay and the zero difference (catalog 2.4). */
 export function baseXp(cfg: GuildConfig, t: CommissionDef): number {
+  if (t.bounty) return 0;
   return roundTo(xpForLevel(t.level) * rankPay(cfg, t.rank).xp * cfg.kinds[t.kind].xp, cfg.round);
 }
 

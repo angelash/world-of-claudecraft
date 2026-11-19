@@ -148,6 +148,16 @@ export function validateParty(content: ContentMap): string[] {
   for (const p of content.pets ?? []) {
     if (!monsters.has(p.monsterId)) problems.push(`pet ${p.id}: unknown monster ${p.monsterId}`);
     if (!(p.cap >= 1 && p.cap <= 60)) problems.push(`pet ${p.id}: cap out of range`);
+    if (p.food) {
+      for (const list of [p.food.liked, p.food.accepted]) {
+        if (
+          !Array.isArray(list) ||
+          list.some((id) => typeof id !== 'string' || !content.items.some((item) => item.id === id))
+        ) {
+          problems.push(`pet ${p.id}: food must name existing item ids`);
+        }
+      }
+    }
   }
   for (const m of content.mounts ?? []) {
     if (!(m.dayKm > 0)) problems.push(`mount ${m.id}: day's travel must be positive`);
@@ -234,6 +244,7 @@ export const pack: ContentPack = {
         { key: 'monsterId', label: '野外来源', type: 'ref', refTable: 'monsters' },
         { key: 'cap', label: '种限', type: 'number', min: 1, max: 60 },
         { key: 'guardsBag', label: '守遗落包', type: 'boolean' },
+        { key: 'food', label: '食物偏好', type: 'json' },
       ],
     },
     {

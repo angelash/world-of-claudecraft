@@ -33,6 +33,14 @@ export function llmPage(ctx: WindowContext): SettingsPage {
     status,
     el('div', { className: 'hk-set-note', text: t('ui.set.llm.restart') }),
     el('div', { className: 'hk-set-note', text: t('ui.set.llm.eco_hint') }),
+    ctx.openModelSettings
+      ? el('button', {
+          className: 'hk-btn',
+          text: t('ui.llm.config.manage'),
+          attrs: { type: 'button' },
+          on: { click: () => ctx.openModelSettings?.() },
+        })
+      : null,
   ]);
   return {
     el: root,

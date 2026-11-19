@@ -7,6 +7,7 @@
 // handler only; so does hk:save.importDemo (the demo save import, 4.9). The model channels go
 // to the gateway; hk:llm.request (a port channel) is handled in shell.ts.
 
+import { clearChangedRouteConsent } from '../../src/ai/llm_config/route_consent';
 import type { SaveBackend, SaveReadRequest, SaveWriteRequest } from '../../src/core/save/backend';
 import type { SlotId } from '../../src/core/save/header';
 import type { GatewayClient, GatewayReply } from '../llm_gateway/client';
@@ -98,7 +99,15 @@ export function createHandlers(deps: HandlerDeps) {
       settings && !settings.unreadable(p.part) ? accepted(settings.get(p.part)) : unavailable,
     settingsSet: async (p) => {
       if (!settings) return unavailable;
-      const r = await settings.set(p.part, p.values);
+      const part =
+        p.values && typeof p.values === 'object' && !Array.isArray(p.values)
+          ? (p.values as Record<string, unknown>)
+          : undefined;
+      const values =
+        p.part === 'local' && part?.llm && typeof part.llm === 'object'
+          ? { ...part, llm: clearChangedRouteConsent(settings.local().llm, part.llm) }
+          : p.values;
+      const r = await settings.set(p.part, values);
       // The frame cap is the page's setting (one writer); the shell follows what it stored.
       if (r.ok && p.part === 'local') frameCap = settings.local().frameCap;
       return r;
@@ -121,6 +130,7 @@ export function createHandlers(deps: HandlerDeps) {
       ),
     llmLedger: async (p) => fromGateway(await deps.gateway.call('ledger', { window: p.window })),
     llmWipe: async () => fromGateway(await deps.gateway.call('wipe', {})),
+    llmScope: async (p) => fromGateway(await deps.gateway.call('scope', { runId: p.runId })),
 
     steamAchieve: notImplemented,
     steamStat: notImplemented,

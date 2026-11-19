@@ -6,6 +6,7 @@
 // map tools do. Monster data comes in through a lookup, so the world never reads combat.
 // Pure.
 
+import { type Calendar, isNight } from '../../core/time';
 import { isWalkableTile, nearestWalkable } from './grid';
 import { flagListMet } from './spawn_rules';
 import type { MapDef, Rect, SpawnDef, Waypoint } from './types';
@@ -37,6 +38,7 @@ export interface MonsterStats {
   minLevel: number;
   maxLevel: number;
   aggroRadius: number;
+  mechanics?: { nightOnly?: { mode: 'spawn' | 'weaken' } };
 }
 
 /** A monster spawn's alert circle: its wander radius plus the monster's aggro radius. */
@@ -58,16 +60,21 @@ export function residentSpawns(
   );
 }
 
-/** Alert circles of the resident spawns; spawns of unknown monsters are left out. */
+/**
+ * Alert circles of the resident spawns; spawns of unknown monsters are left out. Without
+ * a calendar this measures every possible resident; with one it honours night-only birth.
+ */
 export function alertCircles(
   map: { spawns: readonly SpawnDef[] },
   flags: Readonly<Record<string, unknown>>,
   monster: (id: string) => MonsterStats | undefined,
+  calendar?: Calendar,
 ): AlertCircle[] {
   const out: AlertCircle[] = [];
   for (const s of residentSpawns(map, flags)) {
     const m = monster(s.ref);
     if (!m) continue;
+    if (calendar && m.mechanics?.nightOnly?.mode === 'spawn' && !isNight(calendar)) continue;
     const lv = s.level;
     const levels: [number, number] =
       lv === undefined

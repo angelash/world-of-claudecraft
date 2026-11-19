@@ -23,6 +23,7 @@ import {
   stageDef,
   stepBody,
 } from './formulas';
+import { exposureMultiplier, spotRiskMultiplier } from './prevention';
 import { ailmentsSlice, bodyOf, isIdle, readAilments } from './slice';
 import {
   type AilmentsConfig,
@@ -181,7 +182,7 @@ export function sampleHour(ctx: SystemContext): void {
     if (!e || !e.alive || !body) continue;
     const map = mapById(ctx.content, e.mapId);
     const g = map ? sedimentAt(map, e.x, e.y) : 0;
-    body.hours[g] = (body.hours[g] ?? 0) + 1;
+    body.hours[g] = (body.hours[g] ?? 0) + exposureMultiplier(ctx, id, g);
   }
 }
 
@@ -221,7 +222,8 @@ export function dawnCheck(ctx: SystemContext): void {
     const tier = Number(e ? (tagValue(e, 'tier') ?? 0) : 0);
     const frail = !!e && e.tags.some((t) => cfg.frail.tags.includes(t));
     const { worn, resist } = wornPattern(ctx.world, ctx.content, id);
-    const result = stepBody(cfg, body, { day, worn, resist, tier, frail }, () =>
+    const spotRisk = spotRiskMultiplier(ctx, id);
+    const result = stepBody(cfg, body, { day, worn, resist, tier, frail, spotRisk }, () =>
       ctx.rng(SED_STREAM).next(),
     );
     if (result.stage !== result.from) {

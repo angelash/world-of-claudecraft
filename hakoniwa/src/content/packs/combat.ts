@@ -21,6 +21,7 @@ import mapSewers from '../../../data/combat/maps/wallenburg_sewers.json';
 import monsters from '../../../data/combat/monsters.json';
 import waves from '../../../data/combat/waves.json';
 import type { ContentMap } from '../../core/contracts';
+import { validAuraPrevention } from '../../systems/combat/aura_prevention';
 import { MOB_CC_CAP } from '../../systems/combat/formulas';
 import type {
   AbilityDef,
@@ -202,6 +203,7 @@ export const pack: ContentPack = {
         json('periodic', '周期伤害或治疗'),
         json('stats', '属性'),
         json('mods', '修正（伤害、承伤、急速、移速）'),
+        json('prevention', '环境累积与灰斑风险预防'),
         {
           key: 'cc',
           label: '控制',
@@ -382,6 +384,8 @@ export function validateCombat(content: ContentMap): string[] {
       problems.push(`ability ${a.id}: costPct needs mana`);
   }
   for (const a of content.auras ?? []) {
+    if (a.prevention !== undefined && !validAuraPrevention(a.prevention))
+      problems.push(`aura ${a.id}: invalid prevention`);
     if (a.duration < 0) problems.push(`aura ${a.id}: negative duration`);
     if (a.kind !== 'buff' && a.kind !== 'debuff') problems.push(`aura ${a.id}: bad kind`);
     if (a.drCategory && !DR_CATEGORIES.includes(a.drCategory))

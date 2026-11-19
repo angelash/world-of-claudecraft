@@ -52,6 +52,15 @@ export const MATERIAL_PRICE: Readonly<Record<number, readonly [number, number]>>
   5: [20000, 200000],
 };
 
+/** Tiered crafting tools use the consumables catalog 3.15 prices, not raw material bands. */
+const CRAFT_TOOL_PRICE: Readonly<Record<number, number>> = {
+  1: 80,
+  2: 600,
+  3: 5000,
+  4: 50000,
+  5: 400000,
+};
+
 /** Price formula of bible 6.4: tier base, quality factor, slot factor. */
 export const TIER_BASE: Readonly<Record<number, number>> = {
   1: 150,
@@ -241,6 +250,20 @@ export function balanceFindings(input: ValidationInput): Finding[] {
     const value = num(it.value);
     if (value === null) continue;
     const kind = it.kind;
+    const toolTier =
+      /^cs_tool_(?:pick|axe|sickle|knife|rod|alembic|quill|hammer|needle)_t([1-5])$/.exec(id);
+    if (kind === 'goods' && Array.isArray(it.tags) && it.tags.includes('tool') && toolTier) {
+      const tier = Number(toolTier[1]);
+      const expected = CRAFT_TOOL_PRICE[tier];
+      if (value !== expected)
+        out.push({
+          level: 'warning',
+          message: `items:${id}: value ${value} differs from the T${tier} crafting tool price ${expected} copper`,
+          table: 'items',
+          row: id,
+        });
+      continue;
+    }
     if (kind === 'material' || kind === 'goods') {
       const tiers = tierOf(it.tier) !== null ? [tierOf(it.tier) as number] : materialTiers(id);
       if (!tiers) continue;

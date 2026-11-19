@@ -24,6 +24,7 @@ import {
 import { pack as doorsPack } from '../src/content/packs/doors';
 import { pack as invPack } from '../src/content/packs/inventory';
 import { pack as partyPack } from '../src/content/packs/party';
+import { pack as questsPack } from '../src/content/packs/quests';
 import { pack as worldPack } from '../src/content/packs/world';
 import { Engine } from '../src/core';
 import type { AnyWorldEvent, ContentMap } from '../src/core/contracts';
@@ -87,7 +88,7 @@ function merge(packs: ContentPack[]): ContentMap {
   return out as unknown as ContentMap;
 }
 
-const PACKS = [worldPack, invPack, combatPack, partyPack, doorsPack, ailmentsPack];
+const PACKS = [worldPack, invPack, combatPack, partyPack, doorsPack, ailmentsPack, questsPack];
 const SYSTEMS = [modifiers, world, inventory, combat, party, ailments];
 
 /** A walled room with nothing in it; one corner is dense sediment (积澱 and up). */

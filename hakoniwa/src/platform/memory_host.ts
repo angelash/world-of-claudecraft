@@ -76,6 +76,8 @@ function memoryGateway(respond: LlmResponder): MemoryGateway {
     abort: (requestId) => {
       aborted.push(requestId);
     },
+    scope: async ({ runId }) =>
+      /^[A-Za-z0-9_-]{1,128}$/.test(runId) ? accepted(true) : refused('bad_request'),
     // The key entry window is a desktop shell window; here entering a key always succeeds
     // for this run only, and no key text ever exists.
     secretEnter: async ({ connectionId }) => {

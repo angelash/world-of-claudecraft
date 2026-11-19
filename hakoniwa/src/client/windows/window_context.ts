@@ -88,4 +88,6 @@ export interface WindowContext {
   evidenceNotes?: EvidenceNoteStore;
   /** replay a seen cutscene read-only (6.3.2 recollection page); absent until the story offers one */
   replayScene?: (sceneId: string) => void;
+  /** Open the platform-backed model connection, caps and ledger dialog. */
+  openModelSettings?: () => void;
 }

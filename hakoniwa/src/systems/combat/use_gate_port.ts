@@ -10,11 +10,11 @@ import { registerUseGate } from '../inventory';
 import { useItemGate } from './items_use';
 import { unitOf } from './units';
 
-registerUseGate((ctx, ownerId, itemId) => {
+registerUseGate((ctx, ownerId, itemId, targetId) => {
   if (!ctx.world.slices.combat) return { ok: true };
   const u = unitOf(ctx.world, ownerId);
   if (!u) return { ok: true };
-  const g = useItemGate(ctx, u, itemId);
+  const g = useItemGate(ctx, u, itemId, targetId);
   if (g.ok) return { ok: true };
   return { ok: false, code: g.code, reason: tr(`sys.combat.reject.item.${g.code}`) };
 });

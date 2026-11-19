@@ -13,6 +13,7 @@ import { AI_FLAGS_KEY, AI_FLAGS_LIMIT, AiFlagStore } from '../src/client/hud/sto
 import { BACKLOG_LIMIT, Backlog, conversationBacklog } from '../src/client/hud/story/backlog';
 import {
   cutsceneModel,
+  regionBackdrop,
   sceneLengths,
   scenePageKey,
   sceneStepKey,
@@ -724,6 +725,160 @@ describe('story controller', () => {
     f = c.frame(input({ now: 20 }));
     expect(f.mode).toBe('none');
     expect(audio.at(-1)).toBe('release');
+  });
+
+  it('runs timed directives as their line is reached, and the trailing ones after it is read', () => {
+    const { c, audio, input } = rig();
+    const v = scene({
+      stage: [
+        { op: 'caption', text: 'first' },
+        { op: 'music', id: 'mus_first' },
+        { op: 'sfx', id: 'sfx_second', at: 1 },
+        { op: 'caption', text: 'second', at: 1 },
+        { op: 'music', id: 'mus_tail', at: 2 },
+      ],
+    });
+    let f = c.frame(input({ scene: v }));
+    expect(audio).toEqual(['music:mus_first']);
+    expect(f.cutscene?.captions).toEqual(['first']);
+    c.press(10, 30); // complete the first line
+    c.frame(input({ scene: v, now: 10 }));
+    expect(audio).toEqual(['music:mus_first']);
+    c.press(20, 30); // start the second line
+    f = c.frame(input({ scene: v, now: 20 }));
+    expect(audio).toEqual(['music:mus_first', 'sfx:sfx_second']);
+    expect(f.cutscene?.captions).toEqual(['first', 'second']);
+    c.frame(input({ scene: v, now: 21 }));
+    expect(audio).toHaveLength(2);
+    c.press(22, 30); // complete the last line, then the tail becomes due
+    f = c.frame(input({ scene: v, now: 22 }));
+    expect(audio).toEqual(['music:mus_first', 'sfx:sfx_second', 'music:mus_tail']);
+    expect(f.audio?.music).toBe('mus_tail');
+  });
+
+  it('skips timed one-shot sounds while keeping the final stage and music', () => {
+    const { c, audio, input } = rig();
+    const v = scene({
+      stage: [
+        { op: 'sfx', id: 'sfx_later', at: 1 },
+        { op: 'caption', text: 'later', at: 1 },
+        { op: 'music', id: 'mus_later', at: 2 },
+      ],
+    });
+    c.frame(input({ scene: v }));
+    expect(audio).toEqual([]);
+    c.skip(10);
+    const f = c.frame(input({ scene: v, now: 11 }));
+    expect(audio).toEqual(['music:mus_later']);
+    expect(f.cutscene?.captions).toEqual(['later']);
+  });
+
+  it('a restarted run retypes its first line and replays each timed cue once', () => {
+    const { c, audio, input } = rig();
+    const v = scene({ stage: [{ op: 'sfx', id: 'sfx_later', at: 1 }] });
+    c.frame(input({ scene: v }));
+    c.press(1, 'instant');
+    c.frame(input({ scene: v, now: 1 }));
+    expect(audio).toEqual(['sfx:sfx_later']);
+    const restart = { ...v, runId: 2 };
+    const f = c.frame(input({ scene: restart, now: 2 }));
+    expect(f.cutscene?.lines).toHaveLength(1);
+    expect(f.cutscene?.lines[0]?.text).toBe('');
+    c.press(3, 'instant');
+    c.frame(input({ scene: restart, now: 3 }));
+    expect(audio).toEqual(['sfx:sfx_later', 'release', 'sfx:sfx_later']);
+  });
+
+  it('shows an inserted still until still_end, retaining text with missing art', () => {
+    const { c, input } = rig();
+    const v = scene({ stage: [{ op: 'still', id: 'art_bg_cut_missing' }] });
+    let f = c.frame(input({ scene: v }));
+    expect(f.cutscene?.presentation).toBe('illustration');
+    expect(f.cutscene?.still).toBeNull();
+    expect(f.cutscene?.lines).toHaveLength(1);
+    f = c.frame(input({ scene: { ...v, nodeId: 'n2', stage: [] }, now: 10 }));
+    expect(f.cutscene?.presentation).toBe('illustration');
+    f = c.frame(input({ scene: { ...v, nodeId: 'n3', stage: [{ op: 'still_end' }] }, now: 20 }));
+    expect(f.cutscene?.presentation).toBe('theater');
+  });
+
+  it('a timed door wipe is shown only when due, and reduces to a cut with calm enabled', () => {
+    const { c, input } = rig();
+    const v = scene({ stage: [{ op: 'transition', kind: 'door_wipe', at: 1 }] });
+    expect(c.frame(input({ scene: v })).cutscene?.transition).toBeNull();
+    c.press(1, 'instant');
+    let f = c.frame(input({ scene: v, now: 2 }));
+    expect(f.cutscene?.transition?.kind).toBe('door_wipe');
+    expect(c.frame(input({ scene: v, now: 10_000 })).cutscene?.transition).toBeNull();
+    f = c.frame(input({ scene: { ...v, runId: 2 }, now: 10_001, calm: true }));
+    c.press(10_002, 'instant');
+    f = c.frame(input({ scene: { ...v, runId: 2 }, now: 10_003, calm: true }));
+    expect(f.cutscene?.transition).toBeNull();
+    expect(f.cutscene?.lines).toHaveLength(2);
+  });
+
+  it('auto advance releases the next line cue on the same frame and a held menu defers cues', () => {
+    const { c, audio, input } = rig();
+    const v = scene({ stage: [{ op: 'sfx', id: 'next', at: 1 }] });
+    c.frame(input({ scene: v, speed: 'instant', autoSetting: true }));
+    const now = autoDwellMs(6);
+    let f = c.frame(input({ scene: v, now, speed: 'instant', autoSetting: true, held: true }));
+    expect(audio).toEqual([]);
+    expect(f.cutscene?.lines).toHaveLength(1);
+    f = c.frame(input({ scene: v, now: now + 1, speed: 'instant', autoSetting: true }));
+    expect(f.cutscene?.lines).toHaveLength(2);
+    expect(audio).toEqual(['sfx:next']);
+  });
+
+  it('uses a supplied region backdrop when an inserted still is unavailable', () => {
+    const { c, input } = rig();
+    const v = scene({ stage: [{ op: 'still', id: 'missing' }] });
+    const f = c.frame(input({ scene: v, backdrop: 'processed/backgrounds/current-region.png' }));
+    expect(f.cutscene?.still).toBe('processed/backgrounds/current-region.png');
+    expect(f.cutscene?.presentation).toBe('illustration');
+  });
+
+  it('finds the current region far art, including from an indoor map, or keeps a vignette', () => {
+    const map = {
+      id: 'room',
+      name: 'Room',
+      region: 'lothar_plain',
+      indoor: true,
+      width: 1,
+      height: 1,
+      rows: ['.'],
+      legend: { '.': 'floor' as const },
+      locations: [],
+      spawns: [],
+      exits: [],
+    };
+    const art = resolver([sheet('art_bg_lothar_plain_far', ['idle'])]);
+    expect(regionBackdrop(art, map)).toBe('processed/test/art_bg_lothar_plain_far.png');
+    expect(regionBackdrop(AssetResolver.empty(), map)).toBeNull();
+    expect(regionBackdrop(art, undefined)).toBeNull();
+  });
+
+  it('does not flush future cues while the scene is waiting for an appended reply', () => {
+    const { c, input, audio } = rig();
+    const waiting = scene({
+      waiting: 'resolve',
+      stage: [{ op: 'sfx', id: 'reply', at: 2 }],
+    });
+    c.frame(input({ scene: waiting, speed: 'instant' }));
+    c.press(1, 'instant');
+    c.frame(input({ scene: waiting, now: 2, speed: 'instant' }));
+    expect(audio).toEqual([]);
+    const replied = {
+      ...waiting,
+      waiting: 'choice' as const,
+      lines: [
+        ...waiting.lines,
+        { speakerId: 'eluen', speakerName: 'Eluen', text: 'reply', kind: 'say' as const },
+      ],
+    };
+    const f = c.frame(input({ scene: replied, now: 3, speed: 'instant' }));
+    expect(f.cutscene?.lines).toHaveLength(3);
+    expect(audio).toEqual(['sfx:reply']);
   });
 
   it('auto advance presses through lines and the node, never through a choice', () => {

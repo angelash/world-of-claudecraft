@@ -15,6 +15,7 @@ export const HK_NAMES = {
   settingsSet: 'hk:settings.set',
   llmRequest: 'hk:llm.request',
   llmAbort: 'hk:llm.abort',
+  llmScope: 'hk:llm.scope',
   llmSecretEnter: 'hk:llm.secret.enter',
   llmSecretHas: 'hk:llm.secret.has',
   llmSecretClear: 'hk:llm.secret.clear',

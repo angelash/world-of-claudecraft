@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
 import { Engine } from '../src/core';
+import { tSource } from '../src/shared_ui/i18n';
 import { system as cognition } from '../src/systems/cognition';
 import { currentConversation, system as dialogue } from '../src/systems/dialogue';
 import {
@@ -424,7 +425,7 @@ describe('dialogue.say end to end (fallback path, no model)', () => {
     expect(last).toBeDefined();
     // the react.confused fallback text must not be what answers a plain identity question
     const confused = normalizeInput('嗯……你说的这些，我不太明白。', LEX);
-    expect(normalizeInput(String(last?.data.text ?? ''), LEX)).not.toBe(confused);
+    expect(normalizeInput(tSource(last?.data.text), LEX)).not.toBe(confused);
   });
 
   it('gunpowder gets the earth-refuse reaction, not plain earth-talk curiosity', () => {

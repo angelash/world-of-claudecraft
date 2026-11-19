@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { buildContent } from '../src/content';
+import { calendarAt, tickAtDay } from '../src/core/time';
 import { LEVEL_BANDS } from '../src/systems/combat/progression';
 import {
   actFlags,
@@ -99,6 +100,29 @@ describe('the metric functions', () => {
     expect(residentTopLevel(FIELD, 2, stats)).toBe(14);
     // a spawn of an unknown monster is left out
     expect(alertCircles(FIELD, actFlags(1), () => undefined)).toEqual([]);
+  });
+
+  it('respects declared night spawning when a calendar context is provided', () => {
+    const nightStats = (id: string): MonsterStats | undefined => {
+      const stat = stats(id);
+      return stat && { ...stat, mechanics: { nightOnly: { mode: 'spawn' } } };
+    };
+    const day = calendarAt(tickAtDay(0, 10));
+    const night = calendarAt(tickAtDay(0, 20));
+    expect(alertCircles(FIELD, actFlags(1), nightStats, day)).toEqual([]);
+    expect(alertCircles(FIELD, actFlags(1), nightStats, night).map((c) => c.spawnId)).toEqual([
+      'wolves',
+      'early_rats',
+    ]);
+    expect(alertCircles(FIELD, actFlags(1), stats, day).map((c) => c.spawnId)).toEqual([
+      'wolves',
+      'early_rats',
+    ]);
+    const weakened = (id: string): MonsterStats | undefined => {
+      const stat = stats(id);
+      return stat && { ...stat, mechanics: { nightOnly: { mode: 'weaken' } } };
+    };
+    expect(alertCircles(FIELD, actFlags(1), weakened, day)).toHaveLength(2);
   });
 
   it('measures first contact as the walk to the first tile inside a circle', () => {
@@ -193,6 +217,23 @@ const monster = (id: string): MonsterStats | undefined => content.monsters.find(
 const built = content.maps.filter((m) => !isAtlasExempt(m));
 
 describe('the built maps meet their flow template (map_briefs.md 15 rule 2)', () => {
+  it('keeps the Borderstone hub clear by day and its declared outer cemetery threat at night', () => {
+    const town = content.maps.find((m) => m.id === 'borderstone');
+    if (!town) throw new Error('missing borderstone');
+    const flags = actFlags(1);
+    expect(alertCircles(town, flags, monster, calendarAt(tickAtDay(0, 10)))).toEqual([]);
+    const night = calendarAt(tickAtDay(0, 20));
+    expect(alertCircles(town, flags, monster, night).map((c) => c.spawnId)).toEqual([
+      'bs_graveyard_wisps',
+    ]);
+    const wisps = residentSpawns(town, flags).filter((s) => s.ref === 'gravefield_wisp');
+    expect(wisps).toHaveLength(1);
+    expect(wisps[0]?.count).toBe(3);
+    expect(alertCircles(town, { ...flags, a1_graveyard_purified: true }, monster, night)).toEqual(
+      [],
+    );
+  });
+
   it('measures every built map (the M1 maps of PK-M1-35 and the act 2 pair), and every waiver names a built map', () => {
     expect(built.map((m) => m.id).sort()).toEqual([
       'ash_waste',
@@ -260,8 +301,14 @@ describe('the built maps meet their flow template (map_briefs.md 15 rule 2)', ()
               expect(margin, `${who} safe margin`).toBeGreaterThanOrEqual(FLOW_TARGETS.safeMargin);
           }
         } else {
-          // towns, the antechamber and the inner court keep no resident monsters
-          expect(circles, `${who} resident monsters`).toEqual([]);
+          // Hub day routes remain safe; the canonical cemetery night is checked above.
+          const dayCircles = alertCircles(
+            map,
+            actFlags(act),
+            monster,
+            calendarAt(tickAtDay(0, 10)),
+          );
+          expect(dayCircles, `${who} daytime resident monsters`).toEqual([]);
         }
         // a multi-act map: the resident levels of an act stay within its band plus two
         const band = LEVEL_BANDS[act];

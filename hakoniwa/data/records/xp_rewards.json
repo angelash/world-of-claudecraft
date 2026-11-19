@@ -1,0 +1,1021 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "explore:entrance:dg_moon_cellar",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "moon_cellar_stairs",
+        "discovery": "entrance"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:entrance:dg_old_mine",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "rustridge_mine",
+        "location": "mine_antechamber",
+        "discovery": "entrance"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:entrance:dg_seal_ruins",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "gate_seal_ruins",
+        "discovery": "entrance"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:landmark:ash_waste:broken_gate_slope",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ash_waste",
+        "location": "broken_gate_slope",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:ash_waste:crystal_gully",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ash_waste",
+        "location": "crystal_gully",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:ash_waste:waste_camp",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ash_waste",
+        "location": "waste_camp",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone_north:boundary_stones",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "boundary_stones",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone_north:greybane_hollow",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "greybane_hollow",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone_north:mine_camp",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "mine_camp",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone:chapel",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "chapel",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone:east_slope",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "east_slope",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone:edgestone_stone",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "edgestone_stone",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone:graveyard",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "graveyard",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:borderstone:north_spring",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "location": "north_spring",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:brokenspan_post:broken_bridge",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "brokenspan_post",
+        "location": "broken_bridge",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:brokenspan_post:brokenspan_post",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "brokenspan_post",
+        "location": "brokenspan_post",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:dg_old_mine:crystal_vein",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "dg_old_mine",
+        "location": "crystal_vein",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:dg_old_mine:smuggler_camp",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "dg_old_mine",
+        "location": "smuggler_camp",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:forest_edge:deer_spring",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "forest_edge",
+        "location": "deer_spring",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:forest_edge:pact_oak",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "forest_edge",
+        "location": "pact_oak",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:forest_edge:spider_vale",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "forest_edge",
+        "location": "spider_vale",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:forest_edge:wolf_den",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "forest_edge",
+        "location": "wolf_den",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:ironhemlock_deep:beast_nest",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "location": "beast_nest",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:ironhemlock_deep:glowcap_grove",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "location": "glowcap_grove",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:ironhemlock_deep:old_hunter_camp",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "location": "old_hunter_camp",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:old_outpost:ruined_tower",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "old_outpost",
+        "location": "ruined_tower",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:old_outpost:smashed_shrine",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "old_outpost",
+        "location": "smashed_shrine",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:rustridge_mine:collapse_mouth",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "rustridge_mine",
+        "location": "collapse_mouth",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:seal_ruins_depths:ash_chamber",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins_depths",
+        "location": "ash_chamber",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:seal_ruins:outer_ring",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "location": "outer_ring",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:seal_ruins:sigil_hall",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "location": "sigil_hall",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:landmark:seal_ruins:six_sigil_lintel",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 0.3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "location": "six_sigil_lintel",
+        "discovery": "landmark"
+      },
+      "amount": 50
+    },
+    {
+      "id": "explore:map:ash_waste",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ash_waste",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:borderstone",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:borderstone_north",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:brokenspan_post",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "brokenspan_post",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:dg_old_mine",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "dg_old_mine",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:forest_edge",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "forest_edge",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:ironhemlock_deep",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:old_outpost",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "old_outpost",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:rustridge_mine",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "rustridge_mine",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:seal_ruins",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:map:seal_ruins_depths",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins_depths",
+        "discovery": "map"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:region:ashen_waste",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "discovery": "region"
+      },
+      "amount": 510
+    },
+    {
+      "id": "explore:region:edgestone_area",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 3,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone",
+        "discovery": "region"
+      },
+      "amount": 510
+    },
+    {
+      "id": "explore:secret:ash_waste:great_crystal",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ash_waste",
+        "location": "great_crystal",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:borderstone_north:old_hunting_blind",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "old_hunting_blind",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:brokenspan_post:smuggler_cellar",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "brokenspan_post",
+        "location": "smuggler_cellar",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:ironhemlock_deep:bear_den",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "location": "bear_den",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:seal_ruins_depths:dead_end_cache",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins_depths",
+        "location": "dead_end_cache",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:seal_ruins_depths:seep_channel",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins_depths",
+        "location": "seep_channel",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:secret:seal_ruins:gate_hall",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "seal_ruins",
+        "location": "gate_hall",
+        "discovery": "secret"
+      },
+      "amount": 260
+    },
+    {
+      "id": "explore:vista:borderstone_north:stair_slope",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "borderstone_north",
+        "location": "stair_slope",
+        "discovery": "vista"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:vista:brokenspan_post:post_watchtower",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "brokenspan_post",
+        "location": "post_watchtower",
+        "discovery": "vista"
+      },
+      "amount": 170
+    },
+    {
+      "id": "explore:vista:ironhemlock_deep:north_crag",
+      "act": 1,
+      "share": "explore",
+      "level": 8,
+      "weight": 1,
+      "expected": 1,
+      "trigger": {
+        "kind": "discovery",
+        "mapId": "ironhemlock_deep",
+        "location": "north_crag",
+        "discovery": "vista"
+      },
+      "amount": 170
+    },
+    {
+      "id": "first:boss:black_ridge",
+      "act": 1,
+      "share": "first",
+      "level": 11,
+      "weight": 0.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "black_ridge",
+        "mapId": "borderstone"
+      },
+      "amount": 410
+    },
+    {
+      "id": "first:boss:crystal_mother",
+      "act": 1,
+      "share": "first",
+      "level": 8,
+      "weight": 1.5,
+      "expected": 1,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "crystal_mother",
+        "mapId": "dg_old_mine"
+      },
+      "amount": 760
+    },
+    {
+      "id": "first:boss:dian_colossus",
+      "act": 1,
+      "share": "first",
+      "level": 14,
+      "weight": 2,
+      "expected": 1,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "dian_colossus",
+        "mapId": "borderstone"
+      },
+      "amount": 2400
+    },
+    {
+      "id": "first:boss:furrow_rat_queen",
+      "act": 1,
+      "share": "first",
+      "level": 8,
+      "weight": 1,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "furrow_rat_queen",
+        "mapId": "borderstone"
+      },
+      "amount": 510
+    },
+    {
+      "id": "first:boss:guardian_raven",
+      "act": 1,
+      "share": "first",
+      "level": 3,
+      "weight": 2,
+      "expected": 1,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "guardian_raven",
+        "mapId": "seal_ruins_depths"
+      },
+      "amount": 260
+    },
+    {
+      "id": "first:boss:old_louse",
+      "act": 1,
+      "share": "first",
+      "level": 13,
+      "weight": 0.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "old_louse",
+        "mapId": "ash_waste"
+      },
+      "amount": 530
+    },
+    {
+      "id": "first:boss:split_ear",
+      "act": 1,
+      "share": "first",
+      "level": 6,
+      "weight": 0.5,
+      "expected": 1,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "split_ear",
+        "mapId": "forest_edge"
+      },
+      "amount": 170
+    },
+    {
+      "id": "first:boss:tally_rat_crone",
+      "act": 1,
+      "share": "first",
+      "level": 8,
+      "weight": 1,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "tally_rat_crone",
+        "mapId": "borderstone"
+      },
+      "amount": 510
+    },
+    {
+      "id": "first:boss:three_toes",
+      "act": 1,
+      "share": "first",
+      "level": 10,
+      "weight": 0.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "three_toes",
+        "mapId": "borderstone_north"
+      },
+      "amount": 360
+    },
+    {
+      "id": "first:boss:toll_taker",
+      "act": 1,
+      "share": "first",
+      "level": 14,
+      "weight": 0.5,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "boss",
+        "monsterId": "toll_taker",
+        "mapId": "brokenspan_post"
+      },
+      "amount": 600
+    },
+    {
+      "id": "first:dungeon:dg_moon_cellar",
+      "act": 1,
+      "share": "first",
+      "level": 8,
+      "weight": 2,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "dungeon",
+        "dungeonId": "dg_moon_cellar",
+        "mapId": "borderstone"
+      },
+      "amount": 1000
+    },
+    {
+      "id": "first:dungeon:dg_old_mine",
+      "act": 1,
+      "share": "first",
+      "level": 12,
+      "weight": 3,
+      "expected": 1,
+      "trigger": {
+        "kind": "dungeon",
+        "dungeonId": "dg_old_mine",
+        "mapId": "rustridge_mine"
+      },
+      "amount": 2850
+    },
+    {
+      "id": "first:nest:nest_furrow_rat_queen",
+      "act": 1,
+      "share": "first",
+      "level": 8,
+      "weight": 2,
+      "expected": 0.6,
+      "trigger": {
+        "kind": "nest",
+        "nestId": "nest_furrow_rat_queen",
+        "mapId": "borderstone"
+      },
+      "amount": 1000
+    }
+  ],
+  "calibration": [
+    {
+      "act": 1,
+      "share": "first",
+      "budget": 9408,
+      "raw": 100450,
+      "coefficient": 0.09365853658536585,
+      "rounded": 9392,
+      "calibration": 1,
+      "expected": 9392
+    },
+    {
+      "act": 1,
+      "share": "explore",
+      "budget": 6272,
+      "raw": 198720,
+      "coefficient": 0.031561996779388084,
+      "rounded": 6248,
+      "calibration": 1,
+      "expected": 6248
+    }
+  ]
+}

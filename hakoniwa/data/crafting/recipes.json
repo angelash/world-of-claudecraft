@@ -417,7 +417,7 @@
       "itemId": "cs_moon_stew",
       "count": 1
     },
-    "requires": "has.lb_moonlit_kitchen >= 1"
+    "requires": "has.lb_moonlit_kitchen >= 1 OR quest.q_a1_s36_craft_cooking == active"
   },
   {
     "id": "rcp_moon_tavern_trio_bread",
@@ -442,7 +442,7 @@
       "itemId": "cs_rye_hardtack",
       "count": 1
     },
-    "requires": "has.lb_moonlit_kitchen >= 1"
+    "requires": "has.lb_moonlit_kitchen >= 1 OR quest.q_a1_s36_craft_cooking == active"
   },
   {
     "id": "rcp_earth_menu_dumplings",

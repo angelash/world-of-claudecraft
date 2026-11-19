@@ -227,8 +227,14 @@ describe('acts and the main line', () => {
     expect(g.world.meta.flags.a1_martha_strike).toBeUndefined();
     g.queue('quests.choose', { questId: 'q_a1_m12_tide', optionId: 'shatter' });
     g.step(12);
+    expect(q()?.status).toBe('active');
+    // The core scene owns this choice and its items. This isolated quest run supplies
+    // the scene's completion evidence, just as it supplies the combat wave evidence.
+    expect(countItem(g.world, 'player', 'colossus_core')).toBe(0);
+    g.queue('flag.set', { key: 'a1_core_choice_made', value: true });
+    g.step(12);
     expect(q()?.status).toBe('done');
-    expect(countItem(g.world, 'player', 'colossus_core')).toBe(1);
+    expect(countItem(g.world, 'player', 'bounty_voucher')).toBe(1);
     expect(g.world.slices.inventory.owners.player?.money).toBe(660);
     // with the tide system running the night (it wrote the start at dusk), the quest neither
     // calls the waves nor ends the night: it waits for the system's clear flag
@@ -241,6 +247,9 @@ describe('acts and the main line', () => {
     t.g.step(12);
     expect(t.g.world.meta.flags.a1_beast_tide_cleared).toBeUndefined();
     t.g.queue('quests.choose', { questId: 'q_a1_m12_tide', optionId: 'shatter' });
+    t.g.step(12);
+    expect(t.q()?.status).toBe('active');
+    t.g.queue('flag.set', { key: 'a1_core_choice_made', value: true });
     t.g.step(12);
     expect(t.q()?.status).toBe('active');
     t.g.queue('flag.set', { key: 'a1_beast_tide_cleared', value: true });

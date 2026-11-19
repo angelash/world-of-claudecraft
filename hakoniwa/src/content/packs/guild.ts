@@ -238,6 +238,7 @@ function samplePosting(t: CommissionDef): Posting {
     p.item = g.items[0];
     p.count = g.count[0];
   } else if (g.type === 'talk') p.recipient = g.to[0];
+  else if (g.type === 'escort') p.recipient = g.people[0];
   return p;
 }
 
@@ -295,7 +296,7 @@ function commissionProblems(
         | { minLevel?: number; maxLevel?: number }
         | undefined;
       if (ctx.monsters && !mon) out.push(`${at}: unknown monster ${m}`);
-      else if (mon?.minLevel !== undefined && mon.maxLevel !== undefined) {
+      else if (!t.bounty && mon?.minLevel !== undefined && mon.maxLevel !== undefined) {
         if (t.level < mon.minLevel || t.level > mon.maxLevel)
           out.push(
             `${at}: level ${t.level} outside ${m} levels ${mon.minLevel} to ${mon.maxLevel}`,
@@ -312,6 +313,20 @@ function commissionProblems(
     if (g.to.length === 0) out.push(`${at}: nobody to carry it to`);
     for (const p of g.to)
       if (ctx.persons && !ctx.persons.has(p)) out.push(`${at}: unknown person ${p}`);
+  }
+  if (g.type === 'escort') {
+    if (g.people.length === 0) out.push(`${at}: nobody to escort`);
+    for (const p of g.people)
+      if (ctx.persons && !ctx.persons.has(p) && !content.npcResidents?.some((t) => t.id === p))
+        out.push(`${at}: unknown escortee ${p}`);
+  }
+  if (t.bounty) {
+    if (g.type !== 'kill') out.push(`${at}: a bounty needs a kill goal`);
+    if (!t.boards.every((id) => ctx.boards.get(id)?.reach === null))
+      out.push(`${at}: a bounty belongs on a public notice board`);
+    for (const key of ['base', 'perRumor', 'maxRumor'] as const)
+      if (!Number.isFinite(t.bounty[key]) || t.bounty[key] < 0)
+        out.push(`${at}: bad bounty ${key}`);
   }
   if (g.type === 'watch' && !(g.hours > 0)) out.push(`${at}: watch hours must be positive`);
   // the instance's objectives must be valid quest objectives

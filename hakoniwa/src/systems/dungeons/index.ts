@@ -106,7 +106,12 @@ declare module '../../core/contracts' {
     /** the dungeon overflowed toward its settlement */
     'dungeon.overflow': { dungeonId: string; toMap?: string };
     /** a dungeon's core boss or a nest's lord is down */
-    'dungeon.cleared': { id: string; kind: 'dungeon' | 'nest' };
+    'dungeon.cleared': {
+      id: string;
+      kind: 'dungeon' | 'nest';
+      victimId?: string;
+      killerId?: string;
+    };
     /** content wrote a choice the owner will not have; the flag went back */
     'dungeon.choice_refused': {
       id: string;
@@ -320,7 +325,8 @@ export const system: GameSystem & {
       const paged =
         cfg.paged.kinds.includes(d.kind) || (!!family && cfg.paged.families.includes(family));
       if (paged) addActivity(ctx, hit.dungeon, st, cfg.activity.pagedDeath);
-      if (mon && mon === hit.dungeon.coreBoss) clearDungeon(ctx, hit.dungeon, st);
+      if (mon && mon === hit.dungeon.coreBoss)
+        clearDungeon(ctx, hit.dungeon, st, { victimId: d.id, killerId: d.killerId });
     },
   },
 };

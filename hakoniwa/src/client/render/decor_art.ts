@@ -6,6 +6,8 @@
 // HD-2D scene as standees, the flat fallback as depth-sorted props. Pure; Node-tested.
 
 import type { DecorKind, SignKind } from '../../systems/world/look';
+import { rockSurface } from '../assets/surface_art';
+import type { StandeePlacement } from '../hd2d/layout';
 import { shadeRamp } from '../sprites/palette';
 import type { PixelMatrix, Rgb } from '../sprites/pixels';
 import {
@@ -21,6 +23,7 @@ import {
   SLOT,
   setCell,
 } from '../sprites/shape';
+import { type PropColors, propSprite } from './tile_art';
 
 export interface DecorSprite {
   matrix: PixelMatrix;
@@ -29,6 +32,22 @@ export interface DecorSprite {
   anchorY: number;
   /** a light source position (pixels inside the matrix) when the decor emits light */
   lightAt?: { x: number; y: number };
+}
+
+/** Both renderer backends resolve the same existing placement before their upload/cache. */
+export function placedSprite(
+  placement: StandeePlacement,
+  style: string,
+  colors?: PropColors,
+): DecorSprite | null {
+  if (placement.source === 'rock') {
+    const art = rockSurface(style, placement.variant);
+    if (art) return { matrix: art.pixels, anchorX: art.anchorX, anchorY: art.anchorY };
+  }
+  if (placement.source === 'tree' || placement.source === 'rock')
+    return propSprite(placement.source, placement.variant, colors);
+  if (placement.source === 'sign') return shopSignSprite(placement.kind as SignKind);
+  return decorSprite(placement.kind as DecorKind, placement.variant);
 }
 
 const WOOD = 0x8a6440;

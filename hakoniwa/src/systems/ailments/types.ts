@@ -146,7 +146,7 @@ export interface Sufferer {
   since: number;
   /** day index the taint first went under the self-heal line in the current stage, -1 if not */
   low: number;
-  /** hours spent at each canon grade (0 to 6) since the last dawn check */
+  /** exposure-equivalent hours per grade since dawn (prevention weights positive rates) */
   hours: number[];
   injuries: InjuryState[];
 }

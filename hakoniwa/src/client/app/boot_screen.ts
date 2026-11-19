@@ -6,16 +6,27 @@ import { t } from '../../shared_ui/i18n';
 import { SaveList } from '../hud/save_list';
 import { saveListModel } from '../hud/save_list_model';
 import type { ClientSaves, SlotId } from '../hud/save_slots';
+import { type FirstRunOptions, FirstRunScreen } from '../screens/first_run';
+import { latestTitleSlot } from '../screens/title_model';
+import { TitleScene, type TitleSceneOptions } from '../screens/title_scene';
+import '../screens/title.css';
 
 export interface BootActions {
   newGame(seed?: number): void;
   load(slot: SlotId): void;
 }
 
+export interface BootOptions {
+  firstRun?: FirstRunOptions;
+  scene?: TitleSceneOptions;
+}
+
 export class BootScreen {
   readonly el: HTMLElement;
   private body: HTMLElement;
   private status: HTMLElement;
+  private firstRun: FirstRunScreen | null = null;
+  private scene: TitleScene | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -23,6 +34,7 @@ export class BootScreen {
     private readonly actions: BootActions,
     private readonly devMode: boolean,
     private readonly devSeed?: number,
+    options: BootOptions = {},
   ) {
     this.body = el('div', { className: 'hk-boot-body' });
     this.status = el('p', { className: 'hk-boot-status' });
@@ -39,6 +51,15 @@ export class BootScreen {
     ]);
     parent.append(this.el);
     this.showMain();
+    if (options.scene) this.scene = new TitleScene(this.el, saves, options.scene);
+    if (options.firstRun && !options.firstRun.done) {
+      this.body.inert = true;
+      this.firstRun = new FirstRunScreen(this.el, options.firstRun, () => {
+        this.firstRun = null;
+        this.body.inert = false;
+        this.body.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+      });
+    }
   }
 
   setStatus(text: string): void {
@@ -60,6 +81,35 @@ export class BootScreen {
     if (seedInput && this.devSeed !== undefined) seedInput.value = String(this.devSeed);
     const hasSaves =
       Object.keys(this.saves.list()).length > 0 || Object.keys(this.saves.problems()).length > 0;
+    const latest = latestTitleSlot(this.saves.list(), this.saves.problems());
+    if (latest?.meta)
+      this.body.append(
+        el('p', {
+          className: 'hk-boot-summary',
+          text: t('ui.scr.title.resume.summary', {
+            place: latest.meta.mapName,
+            date: latest.meta.date,
+          }),
+        }),
+      );
+    if (latest?.problem)
+      this.body.append(
+        el('p', { className: 'hk-muted', text: t('ui.scr.title.resume.latest_broken') }),
+      );
+    if (latest)
+      this.body.append(
+        el('button', {
+          className: 'hk-btn hk-btn-wide hk-btn-primary',
+          text: t('ui.scr.title.resume.continue'),
+          attrs: { type: 'button' },
+          on: {
+            click: () => {
+              this.setStatus(t('ui.scr.boot.loading'));
+              this.actions.load(latest.slot);
+            },
+          },
+        }),
+      );
     this.body.append(
       el('button', {
         className: 'hk-btn hk-btn-wide hk-btn-primary',
@@ -132,6 +182,8 @@ export class BootScreen {
   }
 
   dispose(): void {
+    this.firstRun?.dispose();
+    this.scene?.dispose();
     this.el.remove();
   }
 }

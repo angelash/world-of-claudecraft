@@ -5,6 +5,7 @@
 // emissive atlas lights the window panes at night. Pure; Node-tested.
 
 import type { Roofing, WallMaterial } from '../../systems/world/look';
+import { wallSurface } from '../assets/surface_art';
 import { TILE_PX } from '../render/camera';
 import { createMatrix, hash3, type PixelMatrix, type Rgb, setPixel } from '../sprites/pixels';
 import type { FaceCell } from './layout';
@@ -139,6 +140,7 @@ export function paintWallAtlas(
   glow: Rgb,
   seed: number,
   interior: Rgb = 0xd8ccb4,
+  style?: string,
 ): WallAtlas {
   const S = TILE_PX;
   const h = wallPixels(metres);
@@ -150,6 +152,27 @@ export function paintWallAtlas(
   paintMaterial(color, 0, h, mat, col, seed, false);
   paintMaterial(color, S, h, mat, col, seed + 1, mat === 'timber_plaster');
   paintMaterial(color, S * 2, h, mat, col, seed + 2, false);
+  const surface = style ? wallSurface(style, mat) : null;
+  if (surface) {
+    const image = surface.pixels;
+    // Exterior cells reuse the seamless wall's actual world-pixel scale; generated window
+    // frames and the interior are applied later and retain their gameplay/readability cues.
+    for (let cell = 0; cell < 3; cell++) {
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < S; x++) {
+          const sx = (x + cell * S) % image.w;
+          const sy = y % image.h;
+          const si = (sy * image.w + sx) * 4;
+          const di = (y * color.w + cell * S + x) * 4;
+          const alpha = (image.rgba[si + 3] ?? 0) / 255;
+          for (let c = 0; c < 3; c++)
+            color.rgba[di + c] = Math.round(
+              (image.rgba[si + c] ?? 0) * alpha + (color.rgba[di + c] ?? 0) * (1 - alpha),
+            );
+        }
+      }
+    }
+  }
   // Window: frame, two panes with a mullion, sill.
   const rows: [number, number][] = [[1.0, 2.0]];
   if (metres >= 4) rows.push([2.8, 3.8]);

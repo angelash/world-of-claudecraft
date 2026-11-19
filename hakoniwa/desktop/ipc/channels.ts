@@ -165,6 +165,11 @@ export const HK = {
     obj({ window: oneOf(['hour', 'day', 'run'] as const) }),
   ),
   llmWipe: def(HK_NAMES.llmWipe, 'invoke', none),
+  llmScope: def(
+    HK_NAMES.llmScope,
+    'invoke',
+    obj({ runId: str({ min: 1, max: 128, pattern: /^[A-Za-z0-9_-]+$/ }) }),
+  ),
   llmProblem: def(HK_NAMES.llmProblem, 'push', none),
 
   steamAchieve: def(

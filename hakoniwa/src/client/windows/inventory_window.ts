@@ -9,6 +9,7 @@ import { contentKey } from '../../core/content_key';
 import { clear, el } from '../../shared_ui/dom';
 import { t, tOr } from '../../shared_ui/i18n';
 import type { EquipSlot } from '../../systems/inventory';
+import { ArtIcon } from '../hud/art_icon';
 import { flagOn } from '../view/game_view';
 import { buildInventoryView, type InstanceLine } from './inventory_view';
 import type { WindowContext } from './window_context';
@@ -31,6 +32,12 @@ function instanceNotes(line: InstanceLine): HTMLElement {
     className: `hk-inv-inst${line.lapsed ? ' lapsed' : ''}`,
     text: line.notes.join('  '),
   });
+}
+
+function itemIcon(id: string): HTMLCanvasElement {
+  const icon = new ArtIcon(24);
+  icon.show('item', id);
+  return icon.el;
 }
 
 export function inventoryWindow(ctx: WindowContext): WindowContent {
@@ -60,6 +67,7 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
         { className: 'hk-inv-slots' },
         v.equipped.map((s) =>
           el('div', { className: `hk-inv-slot${s.itemId ? ' filled' : ''}` }, [
+            s.itemId ? itemIcon(s.itemId) : null,
             el('span', { className: 'hk-muted', text: s.label }),
             el('span', {
               className: s.quality !== undefined ? `hk-q${s.quality}` : 'hk-muted',
@@ -100,6 +108,7 @@ export function inventoryWindow(ctx: WindowContext): WindowContent {
               title: [it.desc, it.levelNote, it.value].filter(Boolean).join('\n'),
             },
             [
+              itemIcon(it.id),
               el('span', { className: `hk-inv-name hk-q${it.quality}`, text: it.name }),
               el('span', {
                 className: 'hk-muted',

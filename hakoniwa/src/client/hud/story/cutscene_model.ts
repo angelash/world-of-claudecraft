@@ -14,9 +14,11 @@ import type { FlagValue } from '../../../core/contracts';
 import type { TextParam } from '../../../core/text';
 import { t, tOr } from '../../../shared_ui/i18n';
 import type { SceneView } from '../../../systems/scenes';
+import type { MapDef } from '../../../systems/world/types';
 import { isModelText } from '../../adapters/social';
 import type { AssetResolver } from '../../assets/resolver';
 import type { ListenTier } from '../../audio/spatializer';
+import { skyLayers, skyPackFor } from '../../hd2d/sky';
 import { type ScenePanelModel, scenePanelModel } from '../scene_model';
 import { lineSignature } from './dialogue_model';
 import type { LetterCard } from './letter_card';
@@ -68,6 +70,8 @@ export interface CutsceneModel {
   title: string;
   /** the still of an illustration scene, when its art resolves (else the vignette) */
   still: string | null;
+  /** Picture transition only; subtitles and choices remain above it. */
+  transition: { key: string; kind: 'door_wipe' | 'dissolve'; progress: number } | null;
   lines: CutsceneLine[];
   /** a line is still typing */
   typing: boolean;
@@ -108,6 +112,8 @@ export interface CutsceneInputs {
   stage: StageState;
   now: number;
   resolver: AssetResolver;
+  /** Current region's backdrop for an illustration whose own bitmap is missing. */
+  backdrop?: string | null;
   playerId: string;
   /** display name of a bust's person (the plate falls back to it) */
   nameOf: (id: string) => string;
@@ -143,6 +149,17 @@ export function scenePageKey(v: SceneView): string {
 /** A node's step (its page and the lines shown so far): auto advance and skip fire once each. */
 export function sceneStepKey(v: SceneView): string {
   return `${scenePageKey(v)}/${v.lines.length}`;
+}
+
+/** The region's existing far art is the fallback for a missing full-screen still (13.1). */
+export function regionBackdrop(resolver: AssetResolver, map: MapDef | undefined): string | null {
+  if (!map) return null;
+  const pack =
+    skyPackFor({ ...map, indoor: false }) ?? skyPackFor({ region: map.region, indoor: false });
+  if (!pack) return null;
+  const far = skyLayers(pack, 1)[0];
+  const hit = far ? resolver.lookup(far.assetId) : null;
+  return hit?.ok ? hit.image : null;
 }
 
 /** A content string (captions, the summary) through its key when the table has it. */
@@ -218,11 +235,14 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
   const letter = i.letter ? letterText(i.letter) : null;
   const ready = linesDone && !letter;
   const speakerNow = lines[lines.length - 1]?.speakerId ?? null;
+  const presentation = i.stage.still ? 'illustration' : v.presentation;
+  const illustration = i.stage.still ?? v.illustration;
   let still: string | null = null;
-  if (v.presentation === 'illustration' && v.illustration) {
-    const hit = i.resolver.lookup(v.illustration);
-    still = hit.ok ? hit.image : null;
+  if (presentation === 'illustration') {
+    const hit = illustration ? i.resolver.lookup(illustration) : null;
+    still = hit?.ok ? hit.image : (i.backdrop ?? null);
   }
+  const transition = i.stage.transition;
   const choices = ready
     ? base.choices.map((c) => ({
         ...c,
@@ -231,9 +251,20 @@ export function cutsceneModel(i: CutsceneInputs): CutsceneModel {
     : [];
   return {
     key: `${base.key}/${ready ? 'r' : 'w'}`,
-    presentation: v.presentation,
+    presentation,
     title: base.title,
     still,
+    transition:
+      transition && transition.until > i.now
+        ? {
+            key: `${v.sceneId}#${v.runId}/${transition.kind}/${transition.start}`,
+            kind: transition.kind,
+            progress: Math.max(
+              0,
+              Math.min(1, (i.now - transition.start) / (transition.until - transition.start)),
+            ),
+          }
+        : null,
     lines,
     typing,
     linesDone,

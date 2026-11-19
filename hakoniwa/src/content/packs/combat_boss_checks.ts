@@ -297,6 +297,21 @@ export function bossMechanicProblems(content: ContentMap): string[] {
         out.push(at(`${h.field} chance outside 0 to 1`));
     }
     if (m.purifyTo && !monsterIds.has(m.purifyTo)) out.push(at(`purifyTo unknown ${m.purifyTo}`));
+    if (m.purifyItems) {
+      if (!Array.isArray(m.purifyItems)) out.push(at('purifyItems must be an array'));
+      else
+        for (const item of m.purifyItems) {
+          if (
+            !content.items.some((def) => def.id === item.itemId) ||
+            !Number.isInteger(item.count) ||
+            item.count <= 0
+          ) {
+            out.push(at('purifyItems needs an existing item and positive integer count'));
+          }
+          if (item.companion && !content.companions.some((def) => def.id === item.companion))
+            out.push(at('purifyItems names an unknown companion'));
+        }
+    }
     if (m.corpseRise && !monsterIds.has(m.corpseRise.into))
       out.push(at(`corpseRise unknown ${m.corpseRise.into}`));
     if (m.bigCast && !abilities.has(m.bigCast.ability))

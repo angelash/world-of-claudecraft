@@ -324,6 +324,8 @@ export function runCraft(ctx: SystemContext, cfg: CraftingConfig, plan: CraftPla
       itemId: result.itemId,
       count: result.count,
       quality: result.quality,
+      masterwork: result.masterwork,
+      signedInputs: signedInput(taken),
     });
   }
   return result;

@@ -8,9 +8,10 @@
     "spread": 0.12,
     "population": 800,
     "buybackRate": 0.4,
-    "merchantRefs": ["nera", "barga", "popo", "owen"],
+    "merchantRefs": ["nera", "barga", "popo", "owen", "ulf_lange"],
     "desc": "荒原南缘的边陲小镇。木材与矿石便宜，外来货要从南大路运进来。",
     "goods": [
+      { "itemId": "mnt_donkey", "demand": 0.1, "supply": 0.1 },
       { "itemId": "grain", "demand": 40, "supply": 38 },
       { "itemId": "meat", "demand": 10, "supply": 10 },
       { "itemId": "fish", "demand": 4, "supply": 3 },

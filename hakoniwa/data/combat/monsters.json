@@ -2302,6 +2302,7 @@
       "componentTags": ["fang"]
     },
     "loot": [
+      { "itemId": "nm_faded_red_sock", "chance": 1 },
       { "itemId": "boar_tusk", "chance": 1, "min": 2, "max": 2 },
       { "itemId": "crystal_small_raw", "chance": 0.4 }
     ],
@@ -2332,10 +2333,12 @@
       "lureFlee": true,
       "knockback": { "chance": 0.3, "distance": 3 },
       "purifyTo": "greyelm_deer",
+      "purifyItems": [{ "itemId": "nm_three_toes_antler", "count": 1, "companion": "shiya" }],
       "rumorScale": { "perLevel": 0.06, "max": 0.3 },
       "componentTags": ["horn", "hide", "meat"]
     },
     "loot": [
+      { "itemId": "nm_three_toes_antler", "chance": 1 },
       { "itemId": "part_horn_t1", "chance": 1, "min": 2, "max": 2 },
       { "itemId": "hide", "chance": 0.6 },
       { "itemId": "crystal_medium_raw", "chance": 0.4 },
@@ -2440,6 +2443,7 @@
       "componentTags": ["fang", "hide", "meat"]
     },
     "loot": [
+      { "itemId": "nm_brass_dog_tag", "chance": 1 },
       { "itemId": "part_fang_t1", "chance": 1, "min": 2, "max": 2 },
       { "itemId": "hide", "chance": 0.5 },
       { "itemId": "crystal_medium_raw", "chance": 0.45 },
@@ -2476,6 +2480,7 @@
       "componentTags": ["carapace"]
     },
     "loot": [
+      { "itemId": "nm_louse_belly_crystal", "chance": 1 },
       { "itemId": "part_carapace_t1", "chance": 1, "min": 2, "max": 2 },
       { "itemId": "crystal_medium_raw", "chance": 0.7 }
     ],
@@ -2513,6 +2518,7 @@
       "componentTags": ["bone", "heart"]
     },
     "loot": [
+      { "itemId": "rat_queen_heart", "chance": 1 },
       { "itemId": "crystal_medium_raw", "chance": 1 },
       { "itemId": "eq_furrow_queen_charm", "chance": 1 }
     ],

@@ -2,12 +2,12 @@
 // objectives.ts names for this package): the follow-the-player order (escort, rescue and
 // accompany need the person to walk with the player: a plain NPC now does, not only a
 // companion), the watchers of a stealth objective who emit `stealth.detected` when they see
-// the player, and the quest-stage hook that starts both from the quest content. The
-// release reads the quest's own flags (quest.<id> and quest.<id>.stage), never its slice.
+// the player, and the quest-stage hook that starts both from authored or instantiated
+// quests. Follow orders read the quest's activity flags (quest.<id> and quest.<id>.stage).
 
 import type { SystemContext } from '../../../core/system';
 import { calendarAt, TICKS_PER_GAME_HOUR } from '../../../core/time';
-import type { QuestDef } from '../../quests/types';
+import { allQuestDefs, questDefOf } from '../../quests/instances';
 import {
   distance,
   entitiesNear,
@@ -185,13 +185,9 @@ export function forgetSightings(ctx: SystemContext): void {
 // ---------------------------------------------------------------------------
 // quest hooks
 
-function questDef(ctx: SystemContext, id: string): QuestDef | undefined {
-  return (ctx.content.quests ?? []).find((q) => q.id === id);
-}
-
 /** A quest entered a stage: start the follow orders and watches its objectives need. */
 export function onQuestStage(ctx: SystemContext, questId: string, index: number): void {
-  const def = questDef(ctx, questId);
+  const def = questDefOf(ctx, questId);
   const stage = def?.stages[index];
   if (!def || !stage) return;
   for (const o of stage.objectives) {
@@ -211,7 +207,7 @@ export function onQuestStage(ctx: SystemContext, questId: string, index: number)
  * is freed (the quest counts the talk) and now walks with the player.
  */
 export function onTalkedFor(ctx: SystemContext, npcRef: string): void {
-  for (const def of ctx.content.quests ?? []) {
+  for (const def of allQuestDefs(ctx)) {
     if (ctx.flag(`quest.${def.id}`) !== 'active') continue;
     const stageId = ctx.flag(`quest.${def.id}.stage`);
     const stage = def.stages.find((s) => s.id === stageId);

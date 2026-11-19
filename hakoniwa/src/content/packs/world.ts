@@ -22,6 +22,7 @@ import {
   SKY_STYLES,
   SPECIAL_SKIES,
 } from '../../systems/world/atlas';
+import { discoveryProblems } from '../../systems/world/discovery';
 import { isAtlasExempt, mapRoleProblems } from '../../systems/world/map_roles';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack } from '../pack';
@@ -215,7 +216,7 @@ export const pack: ContentPack = {
     }
     for (const s of content.worldStarts)
       if (!ids.has(s.mapId)) problems.push(`worldStart -> unknown map ${s.mapId}`);
-    problems.push(...mapRoleProblems(content));
+    problems.push(...mapRoleProblems(content), ...discoveryProblems(content));
     // Partial content builds (tests that load a few packs) carry no story maps: the atlas
     // then only checks itself and whatever province and battle tables are present.
     const story = content.maps.some((m) => !isAtlasExempt(m));
