@@ -1,0 +1,16 @@
+{
+  "ui.pop.service.control_failed": "操作未确认，请重试；未显示已暂停前，倒计时仍可能继续。",
+  "ui.pop.service.detail": "服务即将更新。点击打断可暂停本次重启，直到你主动继续。",
+  "ui.pop.service.dismiss": "返回游戏",
+  "ui.pop.service.failed": "服务更新未完成",
+  "ui.pop.service.failed_detail": "本次重启失败，已停止自动尝试。请通知维护者检查。",
+  "ui.pop.service.interrupt": "打断重启",
+  "ui.pop.service.paused": "已打断重启",
+  "ui.pop.service.paused_detail": "重启已暂停，你可以继续游戏。只有你主动选择继续重启后，才会重新倒计时。",
+  "ui.pop.service.ready": "服务已恢复",
+  "ui.pop.service.ready_detail": "服务更新完成，当前游戏页面保持不变。请先保存进度，再刷新页面加载新版本。",
+  "ui.pop.service.restarting": "正在重新启动服务，请稍候。",
+  "ui.pop.service.resume": "继续重启",
+  "ui.pop.service.seconds": "{n, number} 秒",
+  "ui.pop.service.title": "即将重启游戏服务"
+}

@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, type PluginOption, runnerImport } from 'vite';
 import { releaseMediaPlugin } from './tools/assets/release_pack';
 import { releaseBundleGuard } from './tools/release_bundle';
+import { serviceNoticePlugin } from './tools/service/notice_plugin';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +59,7 @@ export default defineConfig(async ({ command, mode }) => {
   const target = buildTarget(mode, process.env);
   const plugins: PluginOption[] = [];
   if (command === 'serve') {
+    if (process.env.HAKONIWA_MANAGED_SERVICE === '1') plugins.push(serviceNoticePlugin());
     const devApi = await loadDevApi(root);
     if (devApi) plugins.push(devApi);
   }

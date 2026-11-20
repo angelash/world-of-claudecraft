@@ -26,6 +26,13 @@
 5. `docs/40_design/`、`docs/50_tech/`、`docs/60_production/`
 6. `docs/10_research/`（仅作依据，不具约束力）
 
+## 常驻服务与阶段更新
+
+本作的开发 Web 使用独立 Windows 服务 `HakoniwaGame`，公开端口固定 5180；维护命令、
+五秒重启弹窗、打断后等待用户继续的约束见 `AGENTS.md` 与
+`docs/60_production/managed_service.md`。阶段逻辑更新必须经 `npm run service:restart`，
+禁止绕过用户暂停使用强制重启或另开服务；不依赖重启的任务可先继续。
+
 ## 文档规则
 - 中文撰写；专有名词首次出现时附原文或英文代号。
 - 禁用字符（仓库 Stop 钩子 `.claude/hooks/qa-stop.sh` 会拦截）：破折号 U+2013、U+2014、U+2015

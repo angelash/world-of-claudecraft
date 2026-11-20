@@ -2454,6 +2454,20 @@ export type TextKey =
   | 'ui.pop.osk.key.page'
   | 'ui.pop.osk.key.space'
   | 'ui.pop.osk.title'
+  | 'ui.pop.service.control_failed'
+  | 'ui.pop.service.detail'
+  | 'ui.pop.service.dismiss'
+  | 'ui.pop.service.failed'
+  | 'ui.pop.service.failed_detail'
+  | 'ui.pop.service.interrupt'
+  | 'ui.pop.service.paused'
+  | 'ui.pop.service.paused_detail'
+  | 'ui.pop.service.ready'
+  | 'ui.pop.service.ready_detail'
+  | 'ui.pop.service.restarting'
+  | 'ui.pop.service.resume'
+  | 'ui.pop.service.seconds'
+  | 'ui.pop.service.title'
   | 'ui.pop.tutorial.aria'
   | 'ui.pop.tutorial.expand'
   | 'ui.pop.tutorial.mute'
@@ -3892,5 +3906,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (3888). */
-export const TEXT_KEY_COUNT = 3888;
+/** Number of keys in TextKey (3902). */
+export const TEXT_KEY_COUNT = 3902;

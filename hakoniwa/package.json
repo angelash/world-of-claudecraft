@@ -6,6 +6,10 @@
   "description": "Hakoniwa Chronicle: an HD-2D isekai game with LLM goddess game masters (prototype).",
   "scripts": {
     "dev": "vite --config vite.config.ts",
+    "service:run": "node --import tsx tools/service/run.ts",
+    "service:status": "node --import tsx tools/service/control.ts status",
+    "service:restart": "node --import tsx tools/service/control.ts restart",
+    "service:resume": "node --import tsx tools/service/control.ts resume",
     "build": "vite build --config vite.config.ts",
     "build:release": "vite build --config vite.config.ts --mode desktop",
     "test": "vitest run --config vitest.config.ts",

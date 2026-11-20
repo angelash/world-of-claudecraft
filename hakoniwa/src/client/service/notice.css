@@ -1,0 +1,50 @@
+.hk-restart-notice {
+  width: min(420px, calc(100vw - 64px));
+  padding: 28px;
+  border: 1px solid #a98443;
+  border-radius: 8px;
+  background: #17141f;
+  color: #ece4d2;
+  font-family: system-ui, "Microsoft YaHei", sans-serif;
+  box-shadow: 0 18px 70px #0009;
+}
+.hk-restart-notice::backdrop {
+  background: #08060dcc;
+}
+.hk-restart-notice h2 {
+  margin: 0 0 16px;
+  font-size: 21px;
+  color: #f2d78a;
+}
+.hk-restart-notice strong {
+  display: block;
+  color: #e2b04a;
+  font-size: 44px;
+  font-variant-numeric: tabular-nums;
+}
+.hk-restart-notice p {
+  line-height: 1.8;
+  margin: 12px 0 24px;
+}
+.hk-restart-notice button {
+  min-height: 44px;
+  padding: 9px 20px;
+  margin: 0 12px 0 0;
+  border: 1px solid #a98443;
+  border-radius: 4px;
+  font: inherit;
+  color: #f2d78a;
+  background: #342c40;
+  cursor: pointer;
+}
+.hk-restart-notice button:focus-visible {
+  outline: 2px solid #f2d78a;
+  outline-offset: 3px;
+}
+.hk-restart-notice button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.hk-restart-notice [hidden] {
+  display: none;
+}

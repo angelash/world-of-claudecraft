@@ -4,6 +4,8 @@
 
 ## 推荐阅读顺序
 
+运行维护：[常驻服务与可打断重启](60_production/managed_service.md)。
+
 1. [00_vision/vision.md](00_vision/vision.md)：愿景与设计支柱
 2. [20_world/world_bible.md](20_world/world_bible.md)：世界观总纲（单一事实源）
 3. [20_world/pantheon.md](20_world/pantheon.md)：六位女神与造主
