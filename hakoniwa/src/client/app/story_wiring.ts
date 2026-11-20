@@ -28,6 +28,7 @@ import {
   type StoryHandlers,
 } from '../hud/story';
 import { AiFlagStore } from '../hud/story/ai_flags';
+import { type CgIndex, CgLayer, cgShown, loadCgIndex } from '../hud/story/cg_layer';
 import { pickable, regionBackdrop } from '../hud/story/cutscene_model';
 import { askConfirmChoice } from '../hud/story/cutscene_player';
 import { cueChanged, type DivineCue, divineCue, divineLines } from '../hud/story/divine_audio';
@@ -110,6 +111,11 @@ export class StoryWiring implements StoryInputHost {
   private linesRead = true;
   /** the interface layers the act has opened (ux 1.5): the prologue hides the field HUD */
   private readonly actRelease = new ActRelease();
+  /** the CG video under the cutscene's subtitles (cg_and_video.md 6) */
+  private readonly cg = new CgLayer();
+  /** adopted CGs, read the first time a scene asks for one (null: not read yet) */
+  private cgIndex: CgIndex | null = null;
+  private cgMounted = false;
   /** the spirit mirror and the other `ui` interfaces (built once the HUD exists) */
   private creator: CreatorWiring | null = null;
   private readonly onKey = (ev: KeyboardEvent) => {
@@ -175,6 +181,7 @@ export class StoryWiring implements StoryInputHost {
 
   dispose(): void {
     this.creator?.dispose();
+    this.cg.dispose();
     window.removeEventListener('keydown', this.onKey, true);
     window.removeEventListener('keyup', this.onKey, true);
     window.removeEventListener('blur', this.onBlur);
@@ -295,6 +302,23 @@ export class StoryWiring implements StoryInputHost {
       roam,
     });
     hud.story.paint(f);
+    if (!this.cgMounted) {
+      hud.story.cutscene.el.prepend(this.cg.el);
+      this.cgMounted = true;
+    }
+    const cg = this.controller.stageNow()?.cg ?? null;
+    if (cg && this.cgIndex === null) {
+      this.cgIndex = {};
+      void loadCgIndex(import.meta.env.DEV).then((index) => {
+        this.cgIndex = index;
+      });
+    }
+    this.cg.paint(
+      cgShown(cg, this.cgIndex ?? {}, this.cg.failed),
+      hud.story.cutscene.el,
+      now,
+      this.d.held?.() ?? false,
+    );
     this.linesRead = !f.cutscene || f.cutscene.linesDone;
     // the eavesdropping distance (prologue P5): the curtain's voices and the antechamber's L2
     const audio = this.d.audio();

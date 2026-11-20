@@ -38,6 +38,7 @@
 | [open_share/city_rts_slg.md](10_research/open_share/city_rts_slg.md)                               | 城建、RTS、SLG、经济、策略 AI 资料                        |
 | [open_share/game_dev_methodology.md](10_research/open_share/game_dev_methodology.md)               | 游戏开发方法论                                            |
 | [open_share/local_audio_generation.md](10_research/open_share/local_audio_generation.md)           | 本机音频生成：ComfyUI 环境、模型许可、乐谱优先管线与试做    |
+| [open_share/local_video_generation.md](10_research/open_share/local_video_generation.md) | 本机视频生成：H3 的首帧与尾帧、速度、Klein 关键帧编辑链、接力接缝的逐帧实测、许可 |
 | [footnote/asset_workbench.md](10_research/footnote/asset_workbench.md)                             | Footnote 的制作工作台：统一资产审核平台的做法               |
 | [open_source/README.md](10_research/open_source/README.md) | 开源游戏源码调研总览：索引条目逐一筛选、阅读路线、许可总表、本地镜像、对第一轮实现的直接发现 |
 | [open_source/question_map.md](10_research/open_source/question_map.md) | 按城建、RTS、SLG、经济的设计章节反查开源源码（文件与符号） |
@@ -112,7 +113,8 @@
 | [progression_and_pacing.md](40_design/progression_and_pacing.md) | 成长与节奏：等级带与经验预算、经验来源公式、门阶节奏、装备与金钱节奏、五道关与立名关、澱病与伤病、历法与跳时、现实时长、难度、新周目、自动玩家验收 |
 | [world_state_registry.md](40_design/world_state_registry.md) | 世界状态变量注册表：命名规则、类型与范围、写入者与读取者、条件文法、编号规则、全部规范名与别名、`data/registry/vars.json` 与内容校验 |
 | [ux_and_onboarding.md](40_design/ux_and_onboarding.md) | 界面信息架构、操作与改键、新手引导、无障碍、文本规范与本地化（`ui_`、`tut_`） |
-| [onboarding_interaction.md](40_design/onboarding_interaction.md) | 新手段落交互规范：先给控制权的六条规则、可运行的篇幅与节奏预算 B1 到 B7、五种改写模式、场景运行器的漫游节点、序章与第一幕开场逐拍的交互形态 |
+| [onboarding_interaction.md](40_design/onboarding_interaction.md) | 新手段落交互规范：先给控制权的六条规则、可运行的篇幅与节奏预算 B1 到 B8、五种改写模式、场景运行器的漫游节点、序章与第一幕开场逐拍的交互形态 |
+| [cg_and_video.md](40_design/cg_and_video.md) | CG 与本机视频：故事交待做成 CG 的规则（游戏内演绎保底、时长、无声、揭示）、新手段的 CG 清单、分镜格式、关键帧编辑链加三秒一段的首尾帧接力、进游戏的方式、15 秒到 5 分钟的分级试做 |
 | [audio_direction.md](40_design/audio_direction.md) | 音频方向与完整清单：动机体系、区域音色、`mus_`、`amb_`、`sfx_`、自适应规则、混音标准、音频系统需求、AI 生成工作流 |
 | [systems/combat_and_classes.md](40_design/systems/combat_and_classes.md) | 战斗与职能：战斗模型、公式、1 到 60 级扩展、资源、九职能与编外者、首领机制库、魔物机制字段注册表、物品实例、状态与控制、平衡目标与验收（第 0 到 22 节） |
 | [systems/thousand_doors.md](40_design/systems/thousand_doors.md) | 千门回廊：门的状态机、门阶、钥、代价三量与封印预算、功能解锁、危险门仪式、受页、诸神之战、庭院扩建、生业之门 |

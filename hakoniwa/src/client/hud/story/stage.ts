@@ -95,6 +95,11 @@ export interface StageState {
   motions: { who: string; action: string; start: number }[];
   /** An inserted full-screen illustration, carried until `still_end` or the scene ends. */
   still: string | null;
+  /**
+   * A CG video and when it started, carried until `cg_end` or the scene ends (cg_layer.ts);
+   * never set while skipping or under reduced flashing (the stage plays as written).
+   */
+  cg: { id: string; start: number } | null;
   /** Picture-only transition, below subtitles and choices. Calm mode makes it a cut. */
   transition: { kind: Exclude<StageTransition, 'cut'>; start: number; until: number } | null;
 }
@@ -117,6 +122,7 @@ export function emptyStage(): StageState {
     mirror: null,
     motions: [],
     still: null,
+    cg: null,
     transition: null,
   };
 }
@@ -154,6 +160,8 @@ export function applyStage(
     captions: [...prev.captions],
     fade: prev.fade && prev.fade.until > now ? prev.fade : null,
     transition: prev.transition && prev.transition.until > now ? prev.transition : null,
+    // skipping and reduced flashing play the stage as written: a CG stops and none starts
+    cg: calm ? null : prev.cg,
   };
   const audio: AudioCall[] = [];
   for (const d of directives) {
@@ -252,6 +260,12 @@ export function applyStage(
         break;
       case 'still_end':
         s.still = null;
+        break;
+      case 'cg':
+        s.cg = calm ? null : { id: d.id, start: now };
+        break;
+      case 'cg_end':
+        s.cg = null;
         break;
       case 'transition':
         s.transition =

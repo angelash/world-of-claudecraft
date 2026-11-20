@@ -4,4 +4,5 @@ dist/
 assets/prompts/out/
 assets/_rejected/
 assets/_candidates/
+assets/cg/media/
 release/

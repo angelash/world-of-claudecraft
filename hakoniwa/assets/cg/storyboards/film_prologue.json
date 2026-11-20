@@ -1,0 +1,866 @@
+{
+  "id": "film_prologue",
+  "title": "序章影片：门与坠落",
+  "seed": 20261121,
+  "size": [512, 288],
+  "keyframeSize": [1024, 576],
+  "cgs": [
+    {
+      "id": "cg_p_door_b",
+      "shots": ["s06_door_in_aisle"]
+    },
+    {
+      "id": "cg_p_floor_door",
+      "shots": ["s22_floor_door"]
+    },
+    {
+      "id": "cg_p_caught",
+      "shots": ["s26_caught"]
+    },
+    {
+      "id": "cg_a1_town",
+      "shots": ["s34_town_square"]
+    }
+  ],
+  "reels": [
+    {
+      "id": "reel_g1_store_door",
+      "shots": ["s05_door_reflection", "s06_door_in_aisle"]
+    },
+    {
+      "id": "reel_g2_fall_and_dawn",
+      "shots": [
+        "s22_floor_door",
+        "s23_fall_from_light",
+        "s24_void",
+        "s25_reach",
+        "s26_caught",
+        "s27_spring_caption",
+        "s28_dawn_world"
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "s01_city_rain",
+      "style": "earth_modern",
+      "segments": 4,
+      "cut": true,
+      "music": {
+        "id": "mus_pro_earth",
+        "fadeIn": 3
+      },
+      "ambience": "amb_earth_store_rain",
+      "keyframes": {
+        "0": {
+          "prompt": "A quiet city street corner late at night in heavy rain, seen from high above between dark apartment blocks: wet asphalt reflecting a few street lamps, empty crosswalk, a single small convenience store on the corner glowing white, the only bright light in the scene, no readable signs"
+        },
+        "2": {
+          "edit": "s01_city_rain@0",
+          "prompt": "The camera has come down to the height of the street lamps: the convenience store front fills the middle of the frame, rain falling through the lamp light, puddles on the pavement"
+        },
+        "4": {
+          "edit": "s01_city_rain@2",
+          "prompt": "The camera is now at eye level just outside the glass front of the convenience store: the bright interior and its shelves seen through rain-streaked glass, a small cat sheltering under the awning beside the door"
+        }
+      },
+      "motion": [
+        "The camera slowly descends between the buildings toward the glowing corner store. Heavy rain falls, the street lamps flicker faintly.",
+        "The camera keeps descending until it is level with the street lamps, rain streaks through the light, ripples spread in the puddles.",
+        "The camera glides forward along the wet pavement toward the store's glass front, rain runs down the glass.",
+        "The camera settles at the glass front; the cat under the awning shakes the rain from its fur and curls up."
+      ]
+    },
+    {
+      "id": "s02_store_counter",
+      "style": "earth_modern",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s05_door_reflection@0",
+          "prompt": "Turn the view toward the cash counter at the front of the same store: the small chibi store worker in a blue and white vest sits behind the counter dozing, chin resting in one hand, seen from the side with the face mostly hidden by messy black hair; a phone lies face down on the counter; through the glass front door a small cat shelters from the rain. Remove the wooden door, the back wall is plain"
+        },
+        "3": {
+          "edit": "s02_store_counter@0",
+          "prompt": "The phone on the counter has lit up with a soft glow, the dozing store worker lifts their head slightly toward it"
+        }
+      },
+      "motion": [
+        "The store worker dozes at the counter, head nodding slowly; the fluorescent light hums; rain runs down the front windows.",
+        "The cat outside the glass door turns its head toward the worker; the worker's head sinks a little lower.",
+        "The phone on the counter lights up and buzzes; the worker stirs and lifts their head toward it."
+      ]
+    },
+    {
+      "id": "s03_unsent_message",
+      "style": "earth_modern",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s02_store_counter@3",
+          "prompt": "Close-up over the store worker's shoulder: a hand holds the glowing phone, its screen showing one short message bubble from family and an unsent reply, the text only blurred shapes, no readable letters; rain beads on the dark window behind"
+        },
+        "2": {
+          "edit": "s03_unsent_message@0",
+          "prompt": "The phone is lowered onto the counter, its screen still glowing; the worker's hand rests beside it"
+        }
+      },
+      "motion": [
+        "The worker's thumb hovers over the phone screen without typing; the screen glow flickers on their sleeve.",
+        "The worker slowly lowers the phone onto the counter and lets go of it; rain streaks on the window behind."
+      ]
+    },
+    {
+      "id": "s04_freezer_glow",
+      "style": "earth_modern",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s02_store_counter@0",
+          "prompt": "View from behind the store worker, who now stands up behind the counter and looks down the aisle toward the glass-door freezer case; inside the freezer glass a faint warm golden glow in the shape of a tall arched door shows where no door should be"
+        },
+        "2": {
+          "edit": "s04_freezer_glow@0",
+          "prompt": "The golden arched glow in the freezer glass is brighter and clearer, cold light from the freezer mixing with warm gold on the floor"
+        }
+      },
+      "motion": [
+        "The worker stands up slowly and turns toward the freezer case; the glow in the glass brightens.",
+        "The camera pushes in past the worker's shoulder toward the glowing freezer glass; condensation drips."
+      ]
+    },
+    {
+      "id": "s05_door_reflection",
+      "style": "earth_modern",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Inside a small convenience store late at night: rain streams down the dark front windows, cold fluorescent ceiling light, low shelves of snacks without readable labels, a glass-door freezer case along the right wall glowing pale blue. In the glass of the freezer doors, instead of the store, an old arched wooden door with iron studs is reflected, a thin seam of warm golden light along its edge. A small chibi store worker in a blue and white vest stands in the aisle seen from behind, facing the freezer, face not visible"
+        },
+        "2": {
+          "edit": "s05_door_reflection@0",
+          "prompt": "Move the camera much closer to the freezer glass: the reflected arched wooden door now fills most of the glass, its golden seam glowing brighter, cold condensation on the glass, the store worker's silhouette small at the lower left edge, seen from behind"
+        }
+      },
+      "motion": [
+        "The camera pushes in slowly toward the freezer glass. The reflected wooden door stays closed the whole time. Rain runs down the front windows, the fluorescent light hums, the golden seam of the reflected door brightens a little.",
+        "The camera keeps pushing in until the reflected door fills the glass; the door stays closed, the golden light along its edge pulses once, condensation slides down the glass."
+      ]
+    },
+    {
+      "id": "s06_door_in_aisle",
+      "style": "earth_modern",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "The same small convenience store at night, wide shot down the aisle: an old arched wooden door with iron studs now stands upright in the middle of the aisle where a shelf used to be, warm golden light leaking from its edges onto the tiled floor; a small chibi store worker in a blue and white vest stands a few steps in front of it, seen from behind, face not visible; rain on the dark windows, cold fluorescent light"
+        },
+        "2": {
+          "edit": "s06_door_in_aisle@0",
+          "prompt": "The door now stands half open and blinding white light pours out of it into the aisle, the light spreading across the floor and the shelves, the store worker's shadow stretching long behind them"
+        },
+        "3": {
+          "edit": "s06_door_in_aisle@2",
+          "prompt": "The whole store dissolves into pure white light: the shelves and windows fade into white, only the faint outline of the open door frame and the small silhouette of the store worker remain in the glow"
+        }
+      },
+      "motion": [
+        "The fluorescent lights flicker twice, dust motes drift in the golden light from the door's edges, the store worker takes one small step back.",
+        "The door slowly swings open by itself; white light pours out and runs across the floor toward the camera.",
+        "The white light swells until it fills the frame; the shelves, the windows and the floor fade into white."
+      ]
+    },
+    {
+      "id": "s07_white_room",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "music": {
+        "id": "mus_pro_antechamber",
+        "fadeIn": 3
+      },
+      "ambience": "amb_divine_court",
+      "keyframes": {
+        "0": {
+          "prompt": "A boundless pure white space with no walls, no windows and no shadows, a soft even glow everywhere; the small chibi store worker in a blue and white vest stands alone in the middle, seen from behind, looking down at a small wooden number tag in their open hand"
+        },
+        "2": {
+          "edit": "s07_white_room@0",
+          "prompt": "Closer view: the small wooden number tag in the worker's palm, a single carved mark on it, warm wood against the pure white"
+        }
+      },
+      "motion": [
+        "The white space glows softly; the worker turns their head slowly from side to side, then looks down at their open hand.",
+        "The camera moves in over the worker's shoulder to the wooden tag in their palm; their fingers close around it."
+      ]
+    },
+    {
+      "id": "s08_antechamber",
+      "style": "divine_court",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "A waiting hall of white marble with gold trim and soft constant light, floating motes of light in the air: a long stone bench along the left wall, a board on the wall with exactly four empty square slots, a tall ornate standing mirror, and at the far end a heavy ivory curtain closing off the next room; the small chibi store worker in a blue and white vest stands in the middle of the hall, seen from behind"
+        },
+        "3": {
+          "edit": "s08_antechamber@0",
+          "prompt": "The camera has moved down the hall toward the far end: the heavy ivory curtain fills the middle of the frame, light glowing faintly through it, the bench and the board with four slots at the sides"
+        }
+      },
+      "motion": [
+        "Motes of light drift slowly upward; the worker looks around the hall.",
+        "The camera glides forward along the hall past the bench and the board with four slots.",
+        "The camera arrives in front of the heavy curtain; light behind it brightens and dims as if something moves there."
+      ]
+    },
+    {
+      "id": "s09_mirror",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s08_antechamber@0",
+          "prompt": "Close view of the tall ornate standing mirror with a gold frame; the store worker stands before it seen from behind, and the reflection in the glass is a soft shimmering figure of light without a clear face"
+        },
+        "2": {
+          "edit": "s09_mirror@0",
+          "prompt": "The light in the mirror ripples like water and the reflected figure of light glows brighter"
+        }
+      },
+      "motion": [
+        "The worker raises a hand toward the mirror; the reflection of light raises its hand too, a slow shimmer runs across the glass.",
+        "Ripples spread across the mirror like water; the reflected figure brightens and the gold frame catches the light."
+      ]
+    },
+    {
+      "id": "s10_curtain_shadows",
+      "style": "divine_court",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Close view of a heavy ivory curtain filling the whole frame, lit warmly from behind; cast on the fabric are five dark seated shadows, one with a halo shaped like a gear, one tall with curved horns and a broken sword on her shoulder, one very small with two round hair buns, one hooded beside a floating book, one with long hair woven with flowers; they lean toward each other as if arguing. Nobody stands or sits in front of the curtain: the five are only shadows cast on the fabric from the room behind."
+        },
+        "3": {
+          "edit": "s10_curtain_shadows@0",
+          "prompt": "The shadow with the horns on the curtain has risen to her feet and leans forward, the other shadows turned toward her. Nobody stands or sits in front of the curtain: the five are only shadows cast on the fabric from the room behind."
+        }
+      },
+      "motion": [
+        "The five shadows on the curtain gesture as they argue; the small one waves a hand, the hooded one leans over her book.",
+        "The horned shadow slams a hand on the table and the others lean back; the curtain trembles slightly.",
+        "The horned shadow rises to her feet; the shadow with the gear halo raises a hand to silence her."
+      ]
+    },
+    {
+      "id": "s11_eavesdrop",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s08_antechamber@3",
+          "prompt": "The small chibi store worker stands right beside the heavy curtain, side view, one ear turned toward it, holding their breath; faint shadows of seated figures show through the lit fabric; nobody else is in the hall"
+        },
+        "2": {
+          "edit": "s11_eavesdrop@0",
+          "prompt": "The worker has stepped back a little from the curtain, startled; the shadows behind the fabric have gone still; nobody else is in the hall"
+        }
+      },
+      "motion": [
+        "The worker leans closer to the curtain, listening; the shadows behind the fabric move as they talk.",
+        "The shadows suddenly go still; the worker flinches and steps back from the curtain."
+      ]
+    },
+    {
+      "id": "s12_curtain_open",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s08_antechamber@3",
+          "prompt": "The heavy ivory curtain begins to part in the middle, bright white light spilling through the gap onto the marble floor; nobody stands in front of it"
+        },
+        "2": {
+          "edit": "s12_curtain_open@0",
+          "prompt": "The curtain is fully drawn aside, revealing a bright white hall beyond with a long table far away in the glare, light pouring toward the camera; nobody stands in the foreground"
+        }
+      },
+      "motion": [
+        "The curtain slowly parts in the middle and white light spills across the floor.",
+        "The curtain draws fully aside; the bright hall beyond is revealed and light washes toward the camera."
+      ]
+    },
+    {
+      "id": "s13_interview_table",
+      "style": "divine_court",
+      "segments": 5,
+      "cut": true,
+      "music": {
+        "id": "mus_pro_interview",
+        "fadeIn": 2
+      },
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_eluen_ref"],
+          "prompt": "A pure white hall with a long white stone table outlined by soft light; five goddesses sit behind it facing the camera: at the far left a towering warrior woman with dark red hair, curved horns one of them broken and a broken sword on her shoulder; next a tiny merchant woman with honey-gold hair in two buns eating a pastry, gold coins floating around her; in the center a tall woman with straight platinum hair and white and gold robes with a geometric gear-shaped halo; next a slender woman with very long pale green hair woven with flowers, eyes closed; at the right a hooded scribe in an ink-blue robe writing in a floating book. In front of the table the small chibi store worker stands seen from behind"
+        },
+        "2": {
+          "edit": "s13_interview_table@0",
+          "prompt": "The camera has moved closer along the left side of the table: the horned warrior goddess and the tiny merchant goddess large in the frame, the platinum-haired goddess with the gear halo at the right edge"
+        },
+        "4": {
+          "edit": "s13_interview_table@0",
+          "prompt": "The camera is now on the right side of the table: the platinum-haired goddess with the gear halo at the left, the flower-haired goddess with closed eyes and the hooded scribe writing in her floating book large in the frame"
+        }
+      },
+      "motion": [
+        "The camera tracks slowly sideways along the table; the gear halo behind the central goddess turns, coins float around the small one.",
+        "The camera keeps tracking left to right; the horned goddess shifts her broken sword on her shoulder, the small one takes a bite of pastry.",
+        "The camera passes the center of the table; the platinum-haired goddess watches without moving, her halo turning slowly.",
+        "The camera continues to the right; petals drift from the flower-haired goddess's hair, the scribe's pen moves across the page.",
+        "The camera holds on the right end of the table; the scribe looks up from her book with a small smile."
+      ]
+    },
+    {
+      "id": "s14_valda",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_valda_ref"],
+          "prompt": "Close-up at the white table: the towering warrior goddess with dark red hair, bronze scarred skin and curved horns with the right horn broken, wiping the blade of a broken sword with a cloth, a fanged grin, red and black armor; soft white light behind her"
+        },
+        "2": {
+          "edit": "s14_valda@0",
+          "prompt": "The warrior goddess has raised her eyes from the blade and grins straight at the viewer"
+        }
+      },
+      "motion": [
+        "She draws the cloth slowly along the broken blade; light glints along the edge.",
+        "She stops wiping, lifts her eyes and grins, her shoulders shaking with a silent laugh."
+      ]
+    },
+    {
+      "id": "s15_merca",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_merca_ref"],
+          "prompt": "Close-up at the white table: the tiny merchant goddess with a round freckled face and honey-gold curls in two small buns, a vermilion coat with gold trim and many pockets, a thick ledger under one arm, holding a pastry, several gold coins spinning in the air around her, cheerful golden eyes"
+        },
+        "2": {
+          "edit": "s15_merca@0",
+          "prompt": "The merchant goddess has caught one of the floating gold coins between two fingers and holds it up, smiling"
+        }
+      },
+      "motion": [
+        "She takes a bite of the pastry; the gold coins circle slowly around her.",
+        "She reaches out and plucks one spinning coin from the air, holding it up to the light with a smile."
+      ]
+    },
+    {
+      "id": "s16_sylvie",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_sylvie_ref"],
+          "prompt": "Close-up at the white table: the slender goddess of life with pale skin and knee-length pale green hair woven with both withered and freshly opened flowers, eyes closed, a quiet expression, layered moss green and dead-leaf brown garments like fallen leaves"
+        },
+        "2": {
+          "edit": "s16_sylvie@0",
+          "prompt": "A withered petal is falling from her hair past her closed eyes"
+        }
+      },
+      "motion": [
+        "She sits perfectly still with her eyes closed; a fresh flower in her hair slowly opens.",
+        "A withered petal falls from her hair and drifts down past her face."
+      ]
+    },
+    {
+      "id": "s17_moira",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_moira_ref"],
+          "prompt": "Close-up at the white table: the hooded scribe goddess in an ink-blue hooded robe, chestnut short hair and a ready smile under the hood, a round etched lens hovering before her left eye, writing with ink-stained fingers in an open book floating beside her, a long parchment scroll trailing from her waist"
+        },
+        "2": {
+          "edit": "s17_moira@0",
+          "prompt": "She has paused her pen and looks up over the book toward the viewer, the lens before her eye catching the light"
+        }
+      },
+      "motion": [
+        "Her pen moves quickly across the floating book; the pages stir.",
+        "She pauses, looks up over the book and the lens before her eye glints."
+      ]
+    },
+    {
+      "id": "s18_eluen",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["art_chr_eluen_ref"],
+          "prompt": "Close-up at the center of the white table: the goddess of light, a tall woman with immaculate straight platinum hair and platinum eyes with a measuring gaze, symmetrical white and gold robes with geometric trim, a precise geometric gear-shaped halo floating behind her head; composed and cool"
+        },
+        "2": {
+          "edit": "s18_eluen@0",
+          "prompt": "Her eyes have narrowed slightly as she looks down at the viewer, the gear halo behind her glowing brighter"
+        }
+      },
+      "motion": [
+        "The gear-shaped halo behind her turns slowly; she does not blink.",
+        "Her gaze narrows; the halo brightens and its turning slows to a stop."
+      ]
+    },
+    {
+      "id": "s19_coin",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Low close-up on the surface of a long white stone table in a bright white hall: a single gold coin spinning on its edge in the foreground, catching the light; far behind, out of focus, five seated goddesses"
+        },
+        "2": {
+          "edit": "s19_coin@0",
+          "prompt": "The gold coin has fallen flat on the white table; a small hand in a blue and white sleeve reaches in from the bottom edge of the frame toward it"
+        }
+      },
+      "motion": [
+        "The gold coin spins on its edge across the white table toward the camera, flashing as it turns.",
+        "The coin wobbles and falls flat; a hand reaches in from below and closes around it."
+      ],
+      "music": {
+        "id": "mus_pro_judgment",
+        "fadeIn": 1.5
+      }
+    },
+    {
+      "id": "s20_book_close",
+      "style": "divine_court",
+      "segments": 2,
+      "cut": true,
+      "captions": [
+        {
+          "seg": 0,
+          "text": "放心，这一章才刚开始。",
+          "seconds": 4
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "edit": "s17_moira@0",
+          "prompt": "The hooded scribe goddess holds her book open in both hands, about to close it, a small knowing smile"
+        },
+        "2": {
+          "edit": "s20_book_close@0",
+          "prompt": "The book is shut in her hands, a puff of glowing dust rising from its pages"
+        }
+      },
+      "motion": [
+        "She brings both covers of the book together slowly, smiling.",
+        "The book snaps shut; glowing dust rises from the pages and drifts away."
+      ]
+    },
+    {
+      "id": "s21_judgement",
+      "style": "divine_court",
+      "segments": 3,
+      "cut": true,
+      "captions": [
+        {
+          "seg": 1,
+          "text": "去吧。庭间之隙会替我处理你。",
+          "seconds": 4
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "edit": "s18_eluen@0",
+          "prompt": "Pull back: the same goddess of light, alone and only once in the frame, now stands behind the long white table and raises one hand, palm outward, the gear halo behind her blazing; empty white hall around her"
+        },
+        "3": {
+          "edit": "s21_judgement@0",
+          "prompt": "The white light from her raised hand floods the frame, her figure almost lost in the glare"
+        }
+      },
+      "motion": [
+        "She rises and lifts one hand, palm outward; the halo behind her flares.",
+        "She holds the hand raised; a ring of light spreads out from her palm across the hall.",
+        "The light from her palm swells until it almost swallows her figure."
+      ]
+    },
+    {
+      "id": "s22_floor_door",
+      "style": "divine_court",
+      "segments": 3,
+      "cut": true,
+      "music": {
+        "id": "mus_pro_fall",
+        "fadeIn": 2
+      },
+      "keyframes": {
+        "0": {
+          "prompt": "After the judgement in a pure white marble hall, high angle from above: five goddesses sit small behind a long white table in the upper third (a horned warrior with dark red hair, a tiny merchant with honey-gold buns, a tall woman with straight platinum hair and a gear-shaped halo raising her hand in the center, a woman with long pale green hair and flowers, a hooded scribe in ink blue); before the table the white floor under a small chibi store worker with messy black hair and a blue and white vest is cracking in the outline of a tall arched door"
+        },
+        "3": {
+          "edit": "s22_floor_door@0",
+          "prompt": "The floor has become a bottomless door-shaped hole of pure black edged with a thin ring of light, and the small store worker with black hair and the blue and white vest is falling into it, clothes fluttering upward"
+        }
+      },
+      "motion": [
+        "Thin lines of light crack across the white floor around the worker in the outline of a tall arched door.",
+        "The door-shaped outline sinks away into black; the worker looks down at the opening under their feet.",
+        "The floor gives way and the worker drops into the black door-shaped hole, clothes fluttering upward."
+      ]
+    },
+    {
+      "id": "s23_fall_from_light",
+      "style": "void",
+      "segments": 3,
+      "cut": true,
+      "ambience": "amb_fall_void",
+      "captions": [
+        {
+          "seg": 1,
+          "text": "……别相信我们任何一个。包括我。",
+          "seconds": 4
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "prompt": "Looking up from below inside a vast darkness: far above, a tall arched door-shaped opening glows with white light, and the small silhouette of a falling person is between the camera and the light, arms and clothes flung upward. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        },
+        "3": {
+          "edit": "s23_fall_from_light@0",
+          "prompt": "The door-shaped opening of light far above is now only a small bright point, the falling silhouette barely visible against the black. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        }
+      },
+      "motion": [
+        "The falling figure drops toward the camera while the door of light above begins to shrink.",
+        "The door of light recedes further into the distance; faint specks of light stream past upward.",
+        "The opening shrinks to a small bright point; the falling silhouette fades into the dark."
+      ]
+    },
+    {
+      "id": "s24_void",
+      "style": "void",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Almost pure black: a deep empty void with a few faint grey motes drifting, and in the center a very dim small silhouette of a person floating curled up. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        },
+        "3": {
+          "edit": "s24_void@0",
+          "prompt": "Even darker: only a few faint motes remain and the silhouette is almost lost in the black. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        }
+      },
+      "motion": [
+        "The dim silhouette drifts slowly, turning in the black; faint motes stream past like wind. Nothing else appears: no room, no walls, no floor, no light source.",
+        "The silhouette turns slowly upside down in the black; the motes slow down. Nothing else appears.",
+        "Everything grows darker and stiller; the silhouette almost vanishes into the black. Nothing else appears."
+      ]
+    },
+    {
+      "id": "s25_reach",
+      "style": "void",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Close-up in pure darkness: a small hand in a blue and white sleeve reaching upward from the bottom of the frame, fingers spread, lit only by an extremely faint warm golden glow from somewhere above. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        },
+        "2": {
+          "edit": "s25_reach@0",
+          "prompt": "The hand stretches further upward and the faint warm golden glow above has grown a little stronger, rimming the fingers. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        }
+      },
+      "motion": [
+        "The hand slowly rises and opens, reaching up into the dark.",
+        "The fingers stretch toward the faint warm glow above, trembling slightly."
+      ]
+    },
+    {
+      "id": "s26_caught",
+      "style": "void",
+      "segments": 3,
+      "cut": true,
+      "captions": [
+        {
+          "seg": 1,
+          "text": "接住你了。",
+          "seconds": 3
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "edit": "s25_reach@2",
+          "prompt": "From the darkness above, a slender hand reaches down toward the open reaching hand, palms about to meet, a thin ring of warm golden light between them. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        },
+        "2": {
+          "edit": "s26_caught@0",
+          "prompt": "The slender hand from above clasps the reaching hand firmly, palm to palm with fingers interlaced, a ring of warm golden light glowing around the joined hands. Pure black empty void all around: no doors, no walls, no floor, no corridor."
+        },
+        "3": {
+          "edit": "s26_caught@2",
+          "prompt": "The ring of warm golden light has spread softly and fills the frame with a dim gold glow, the two clasped hands still joined in the center."
+        }
+      },
+      "motion": [
+        "A slender hand descends from the dark and takes the reaching hand, palm to palm; a ring of warm light sparks where they touch.",
+        "The grip tightens; the ring of golden light pulses once and holds steady.",
+        "The warm golden glow spreads slowly outward until it fills the dark."
+      ]
+    },
+    {
+      "id": "s27_spring_caption",
+      "style": "void",
+      "segments": 1,
+      "cut": true,
+      "music": {
+        "id": "mus_cue_zoomout",
+        "fadeIn": 4
+      },
+      "ambience": null,
+      "captions": [
+        {
+          "seg": 0,
+          "text": "圣历九百九十八年，春。",
+          "seconds": 3
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "prompt": "Only sky: a deep blue sky just before dawn above an endless sea of clouds, a thin line of pale gold light along the horizon, a few last stars, no land, no buildings, very dark and calm"
+        }
+      },
+      "motion": [
+        "The line of light at the horizon slowly brightens; the clouds drift; the last stars fade."
+      ]
+    },
+    {
+      "id": "s28_dawn_world",
+      "style": "void",
+      "segments": 5,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "prompt": "Aerial view at dawn high above the clouds over a fantasy continent, no buildings in the foreground: the sun rising, golden light on a sea of clouds with gaps through which green plains, dark forests, a winding river and far snowy mountains can be seen far below, a tiny walled town on a distant hill"
+        },
+        "2": {
+          "edit": "s28_dawn_world@0",
+          "prompt": "The camera has descended through the clouds, still high in the air: rolling green plains and a winding river in golden morning light far below, a dark forest ahead, the snowy mountain range on the horizon"
+        },
+        "4": {
+          "edit": "s28_dawn_world@2",
+          "prompt": "Aerial view from just above the forest canopy looking down: grey stone ruins half swallowed by the trees in a small clearing below, morning mist between the trunks, no people"
+        }
+      },
+      "motion": [
+        "The sun rises above the sea of clouds; the camera begins to sink toward a gap in the clouds.",
+        "The camera passes down through the clouds; the land below opens up in golden light.",
+        "The camera glides over the plains toward the forest; the river glitters.",
+        "The camera sweeps low over the forest canopy toward a clearing; birds rise from the trees.",
+        "The camera slows above the clearing where stone ruins lie in the mist."
+      ]
+    },
+    {
+      "id": "s29_sealed_ruins",
+      "style": "sealed_ruins",
+      "segments": 3,
+      "cut": true,
+      "ambience": "amb_dg_ruins",
+      "keyframes": {
+        "0": {
+          "refs": ["style:sealed_ruins"],
+          "prompt": "Inside ancient sealed ruins: a round stone hall in cold darkness, six niches set in the curved wall, five of them carved with sigils (a halo of gears, a broken sword, a coin, a flower half withered and half in bloom, a book pressed with a round lens), the sixth niche left empty; a ring of unreadable carved symbols on the stone floor; two braziers burning low at the sides"
+        },
+        "3": {
+          "edit": "s29_sealed_ruins@0",
+          "prompt": "Closer view of the six niches in the curved wall, the five carved sigils lit by the low brazier light, the sixth niche empty and dark"
+        }
+      },
+      "motion": [
+        "The brazier flames flicker low; cold dust drifts through the dark hall.",
+        "The camera moves slowly along the curved wall past the carved sigils.",
+        "The camera settles on the empty sixth niche; the firelight trembles on the stone."
+      ]
+    },
+    {
+      "id": "s30_wake",
+      "style": "sealed_ruins",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s29_sealed_ruins@0",
+          "prompt": "In the center of the ring of carved symbols on the stone floor lies the small chibi store worker with black hair and a blue and white vest, curled on their side, seen from behind, the low brazier light on them"
+        },
+        "3": {
+          "edit": "s30_wake@0",
+          "prompt": "The store worker is now sitting up in the middle of the carved ring, seen from behind, looking up at the niches around the hall"
+        }
+      },
+      "motion": [
+        "The sleeping worker stirs on the cold stone; their fingers twitch.",
+        "The worker pushes themself up slowly onto one arm, shaking their head.",
+        "The worker sits up and looks around the round hall; the brazier flames lean in a draft."
+      ]
+    },
+    {
+      "id": "s31_raven",
+      "style": "sealed_ruins",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s29_sealed_ruins@0",
+          "prompt": "A large black raven perched on the rim of a broken stone arch at the hall's doorway, looking down into the hall, faint daylight behind it"
+        },
+        "2": {
+          "edit": "s31_raven@0",
+          "prompt": "The raven has spread its wings wide on top of the arch, about to take off"
+        }
+      },
+      "motion": [
+        "The raven tilts its head and watches the figure below; its eye glints.",
+        "The raven spreads its wings and caws silently, feathers ruffling in the wind."
+      ]
+    },
+    {
+      "id": "s32_corridor_doors",
+      "style": "door_corridor",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "image": "art/backgrounds/cg/art_style_door_corridor.png",
+          "prompt": ""
+        },
+        "3": {
+          "edit": "s32_corridor_doors@0",
+          "prompt": "The camera has moved far along the stepping stones: the glowing open door at the end of the corridor is now close and large, golden light pouring out over the black water"
+        }
+      },
+      "motion": [
+        "The camera pushes in slowly along the stepping stones toward the glowing open door; ripples move across the black water.",
+        "The camera keeps moving along the path; the golden light in the door cracks flickers, mist drifts.",
+        "The camera nears the open door at the end; its golden light grows until it fills the center of the frame."
+      ]
+    },
+    {
+      "id": "s33_north_road",
+      "style": "lothar_plain",
+      "segments": 3,
+      "cut": true,
+      "music": {
+        "id": "mus_title_main",
+        "fadeIn": 3
+      },
+      "ambience": null,
+      "keyframes": {
+        "0": {
+          "refs": ["style:lothar_plain"],
+          "prompt": "Late afternoon on a dirt road winding over green hills toward a small walled stone town on a rise, a few chimneys smoking, a well-worn signpost without lettering; the small chibi store worker in a blue and white vest walks along the road seen from behind, long shadows"
+        },
+        "3": {
+          "edit": "s33_north_road@0",
+          "prompt": "The walker is closer to the town now: the stone wall and an open wooden gate with a lantern ahead, the sky turning orange"
+        }
+      },
+      "motion": [
+        "The worker walks along the road toward the town; grass sways in the wind.",
+        "The camera follows the walker over the crest of the hill; smoke rises from the chimneys.",
+        "The town gate comes closer; the lantern by the gate flickers on."
+      ]
+    },
+    {
+      "id": "s34_town_square",
+      "style": "lothar_plain",
+      "segments": 3,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "refs": ["style:lothar_plain"],
+          "prompt": "The square of a small frontier town at dusk: a round stone well in the middle, half-timbered houses with plaster walls and stone bases around it, a two-storey tavern with warm lit windows and a hanging wooden sign with only a painted moon and cup, a few townspeople in simple medieval clothes, lanterns being lit"
+        },
+        "3": {
+          "edit": "s34_town_square@0",
+          "prompt": "The camera has moved toward the tavern: its warm windows and wooden door large in the frame, the well at the edge"
+        }
+      },
+      "motion": [
+        "Townspeople cross the square; a woman draws water at the well; lanterns flicker on one by one.",
+        "The camera drifts across the square toward the tavern; smoke curls from its chimney.",
+        "The camera arrives before the tavern door; warm light and shadows move behind its windows."
+      ]
+    },
+    {
+      "id": "s35_tavern_door",
+      "style": "lothar_plain",
+      "segments": 2,
+      "cut": true,
+      "keyframes": {
+        "0": {
+          "edit": "s34_town_square@3",
+          "prompt": "The small chibi store worker in a blue and white vest stands before the tavern's wooden door seen from behind, one hand on the door, warm light from the windows"
+        },
+        "2": {
+          "edit": "s35_tavern_door@0",
+          "prompt": "The tavern door stands open and warm golden light from inside floods over the worker on the threshold"
+        }
+      },
+      "motion": [
+        "The worker pushes the heavy door; it starts to swing inward.",
+        "The door opens wide; warm light pours out over the worker, who steps inside."
+      ]
+    },
+    {
+      "id": "s36_town_night",
+      "style": "lothar_plain",
+      "segments": 3,
+      "cut": true,
+      "captions": [
+        {
+          "seg": 2,
+          "text": "箱庭纪",
+          "seconds": 4
+        }
+      ],
+      "keyframes": {
+        "0": {
+          "edit": "s34_town_square@0",
+          "prompt": "Night has fallen over the town square: the windows of the tavern and the houses glow warm, lanterns around the well, a clear sky full of stars above the rooftops"
+        },
+        "3": {
+          "edit": "s36_town_night@0",
+          "prompt": "Pulled far back and up: the small town is a cluster of warm lights on its hill under a vast starry sky, dark hills all around"
+        }
+      },
+      "motion": [
+        "Stars twinkle above the rooftops; the lantern light flickers around the well.",
+        "The camera rises slowly above the rooftops; the town lights grow smaller.",
+        "The camera keeps rising until the town is a small cluster of warm lights under the stars."
+      ]
+    }
+  ]
+}

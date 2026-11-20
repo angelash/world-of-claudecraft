@@ -411,12 +411,17 @@ export interface SceneTrigger {
 /**
  * Stage directives added for act 1 (PK-M1-34; catalog_cutscenes.md 2.3, 13.5): `@转场` (the
  * door-frame wipe, a dissolve, a cut) and a full-screen still in the middle of a scene
- * (`still`, an `art_bg_cut_*` id, standing until `still_end` or the scene ends).
+ * (`still`, an `art_bg_cut_*` id, standing until `still_end` or the scene ends). A CG video
+ * (`cg`, a `cg_*` id of a checked-in storyboard; cg_and_video.md 6) plays over the stage from
+ * its start to its end, or until `cg_end` or the scene ends; without the video the stage plays
+ * as written.
  */
 export type StageDirectiveMore =
   | { op: 'transition'; kind: StageTransition }
   | { op: 'still'; id: string }
-  | { op: 'still_end' };
+  | { op: 'still_end' }
+  | { op: 'cg'; id: string }
+  | { op: 'cg_end' };
 
 /** `@转场` kinds (2.3): 门扉擦除, 溶, 切. */
 export const STAGE_TRANSITIONS = ['door_wipe', 'dissolve', 'cut'] as const;

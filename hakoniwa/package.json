@@ -21,6 +21,7 @@
     "format": "node ../node_modules/@biomejs/biome/bin/biome check --write",
     "refs": "node tools/refs/fetch_refs.ts",
     "prompts": "node tools/prompts/build.ts",
+    "cg": "node ../node_modules/tsx/dist/cli.mjs tools/cg_gen/run.ts",
     "prompts:check": "node tools/prompts/build.ts --check",
     "registry": "node tools/registry/build.ts",
     "registry:check": "node tools/registry/build.ts --check",

@@ -160,6 +160,8 @@ function stageTimingProblems(n: SceneDef['nodes'][number], at: string): string[]
       out.push(`${at}: stage transition kind ${String(d.kind)} is unknown`);
     if (d.op === 'still' && !/^art_bg_cut_[a-z0-9_]+$/.test(d.id ?? ''))
       out.push(`${at}: stage still ${String(d.id)} is not an art_bg_cut_ id`);
+    if (d.op === 'cg' && !/^cg_[a-z0-9_]+$/.test(d.id ?? ''))
+      out.push(`${at}: stage cg ${String(d.id)} is not a cg_ id`);
   }
   return out;
 }

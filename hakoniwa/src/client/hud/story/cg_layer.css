@@ -1,0 +1,30 @@
+/* The CG video (cg_and_video.md 6): first inside the cutscene player, under its bars,
+   portraits and subtitles. The pixel picture is scaled without smoothing. While it plays it
+   stands in for the player's own picture (the still, the door card, fades and transitions);
+   when it starts to fade (`hk-cg-on` drops) the stage below shows through and takes over. */
+.hk-cg {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 1;
+  transition-property: opacity;
+  transition-timing-function: ease;
+}
+.hk-cg.ending {
+  opacity: 0;
+}
+.hk-cg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+.hk-cut.hk-cg-on {
+  background: none;
+}
+.hk-cut.hk-cg-on .hk-cut-still,
+.hk-cut.hk-cg-on .hk-cut-door,
+.hk-cut.hk-cg-on .hk-cut-transition,
+.hk-cut.hk-cg-on .hk-cut-fade {
+  visibility: hidden;
+}

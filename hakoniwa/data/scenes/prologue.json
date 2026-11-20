@@ -1357,6 +1357,12 @@
           {
             "op": "sfx",
             "id": "sfx_god_door_woman_whisper"
+          },
+          {
+            "op": "cg",
+            "id": "cg_p_door_b",
+            "when": "p_earth_opening == b",
+            "at": 1
           }
         ],
         "lines": [
@@ -1385,6 +1391,11 @@
           {
             "op": "sfx",
             "id": "sfx_cin_door_push"
+          },
+          {
+            "op": "cg",
+            "id": "cg_p_door_b",
+            "when": "p_earth_opening == b"
           }
         ],
         "lines": [
@@ -9286,6 +9297,10 @@
             "op": "music",
             "id": "mus_pro_fall",
             "mode": "in"
+          },
+          {
+            "op": "cg",
+            "id": "cg_p_floor_door"
           }
         ],
         "lines": [
@@ -9367,6 +9382,10 @@
             "op": "music",
             "id": "mus_pro_fall",
             "mode": "in"
+          },
+          {
+            "op": "cg",
+            "id": "cg_p_floor_door"
           }
         ],
         "lines": [
@@ -9428,6 +9447,9 @@
           }
         ],
         "stage": [
+          {
+            "op": "cg_end"
+          },
           {
             "op": "fade",
             "to": "black",
@@ -9506,6 +9528,10 @@
           {
             "op": "sfx",
             "id": "sfx_cin_hand_catch"
+          },
+          {
+            "op": "cg",
+            "id": "cg_p_caught"
           }
         ],
         "lines": [
