@@ -14,6 +14,7 @@ import { evaluate, flagResolver } from '../../systems/quests/conditions';
 import { installedResolver } from '../assets/runtime';
 import type { GameAudio } from '../audio';
 import { cineCaption } from '../audio/cine_captions';
+import { ActRelease } from '../hud/act_release';
 import { confirmOpen } from '../hud/confirm_pop';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import type { Hud } from '../hud/hud';
@@ -107,6 +108,8 @@ export class StoryWiring implements StoryInputHost {
   private divine: DivineCue | null = null;
   /** the last cutscene frame had every line of its node shown */
   private linesRead = true;
+  /** the interface layers the act has opened (ux 1.5): the prologue hides the field HUD */
+  private readonly actRelease = new ActRelease();
   /** the spirit mirror and the other `ui` interfaces (built once the HUD exists) */
   private creator: CreatorWiring | null = null;
   private readonly onKey = (ev: KeyboardEvent) => {
@@ -247,6 +250,7 @@ export class StoryWiring implements StoryInputHost {
     if (!hud) return null;
     const v = this.d.view;
     const a = this.d.adapters;
+    this.actRelease.paint(hud.root, v.world.meta.flags.act);
     const scene = a.scene?.scene(v) ?? null;
     this.creator ??= new CreatorWiring({
       view: v,
@@ -258,9 +262,11 @@ export class StoryWiring implements StoryInputHost {
     this.creator.frame(scene, this.linesRead);
     const conversation = a.conversation?.conversation(v) ?? null;
     const loose = this.d.loose.current;
+    // a roam node keeps the run's stage and music while the player walks (no panel)
+    const roam = scene ? null : (a.scene?.roamScene?.(v) ?? null);
     // Nothing to tell and nothing left on screen: no frame to build (this runs every animation
     // frame, 22), until a scene, a talk or a loose line arrives or a key asks for a frame.
-    if (!scene && !conversation && !loose && this.idle) return null;
+    if (!scene && !roam && !conversation && !loose && this.idle) return null;
     const s = this.d.sync();
     const resolver = installedResolver();
     const flash = s.accessibility.reduceFlashing;
@@ -286,6 +292,7 @@ export class StoryWiring implements StoryInputHost {
       isBlocked: (sig) => this.blocked.isBlocked(sig),
       held: this.d.held?.() ?? false,
       flags: v.world.meta.flags,
+      roam,
     });
     hud.story.paint(f);
     this.linesRead = !f.cutscene || f.cutscene.linesDone;
@@ -295,7 +302,9 @@ export class StoryWiring implements StoryInputHost {
       this.listenTier = f.listen;
       audio.setListenTier(f.listen);
     }
-    this.idle = f.mode === 'none' && !f.dialogue && !f.cutscene && !f.summary && !f.backlog;
+    // never idle while roaming: the frame after the roam ends must close the run's stage
+    this.idle =
+      !roam && f.mode === 'none' && !f.dialogue && !f.cutscene && !f.summary && !f.backlog;
     // what the player can pick right now: choices and key prompts show once the lines are read
     this.choicesShown = pickable(f.cutscene);
     const sig = f.audio ? `${f.audio.music}|${f.audio.layers}|${f.audio.silence}` : '';

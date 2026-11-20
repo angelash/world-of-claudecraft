@@ -20,6 +20,7 @@ import { t } from '../src/shared_ui/i18n';
 import { sceneView } from '../src/systems/scenes';
 import { type InputHarness, inputHarness, nearestMonster } from './input_harness';
 import { CHEATS } from './playthrough/harness';
+import { roamByKeys, roamByPad } from './roam_input';
 
 /** Play the prologue with `step`, which answers one scene node; returns the counts. */
 function playPrologue(
@@ -69,7 +70,12 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
       h,
       (sv, want) => {
         if (sv.waiting === 'advance') tap('a');
-        else if ((sv.waiting === 'choice' || sv.waiting === 'court') && sv.choices[want]?.key) {
+        else if (sv.waiting === 'roam') {
+          // a roam node (onboarding_interaction.md 5.3): walk with the stick, pick with A
+          const before = h.sent['scenes.choose'] ?? 0;
+          roamByPad(h, sv, sv.choices[want]?.id ?? '');
+          choices += (h.sent['scenes.choose'] ?? 0) - before;
+        } else if ((sv.waiting === 'choice' || sv.waiting === 'court') && sv.choices[want]?.key) {
           // a keyed choice (the prologue fall's reach-out, PK-M1-54): its button picks it
           tap('rb');
           choices++;
@@ -190,10 +196,9 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
     expect(hub.device).toBe('pad');
     expect(h.sent['world.set_intent'] ?? 0).toBeGreaterThan(0);
     expect(h.sent['scenes.choose'] ?? 0).toBe(choices);
-    // the unsent reply of the first opening (P1), the name (P6), and three free questions at the
-    // call: once the nine written questions are asked, `ask` is offered without a model too
-    // until three are asked (PK-M1-19)
-    expect(h.sent['scenes.input'] ?? 0).toBe(5);
+    // the unsent reply of the first opening (P1) and the name (P6); the call's three questions
+    // go to written ones (onboarding_interaction.md 6 P6)
+    expect(h.sent['scenes.input'] ?? 0).toBe(2);
     for (const kind of CHEATS) expect(h.sent[kind] ?? 0, kind).toBe(0);
   });
 
@@ -205,7 +210,12 @@ describe('a simulated gamepad plays from the prologue to the first battle', () =
       h,
       (sv, want) => {
         if (sv.waiting === 'advance') press({ code: 'Space' });
-        else if (sv.waiting === 'choice' || sv.waiting === 'court') {
+        else if (sv.waiting === 'roam') {
+          // a roam node (onboarding_interaction.md 5.3): walk with WASD, pick with E
+          const before = h.sent['scenes.choose'] ?? 0;
+          roamByKeys(h, sv, sv.choices[want]?.id ?? '');
+          choices += (h.sent['scenes.choose'] ?? 0) - before;
+        } else if (sv.waiting === 'choice' || sv.waiting === 'court') {
           // a keyed choice (the prologue fall's reach-out) is on E; the rest are numbered
           const c = sv.choices[want];
           const listed = sv.choices.filter((x) => !x.hidden);

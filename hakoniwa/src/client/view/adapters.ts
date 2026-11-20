@@ -17,7 +17,7 @@ import type { CompanyView, TradeSessionView } from '../../systems/economy';
 import type { GoddessView, MiracleEntry } from '../../systems/goddess';
 import type { CompanionView, PartyOrder } from '../../systems/party';
 import type { QuestLogView } from '../../systems/quests';
-import type { SceneView } from '../../systems/scenes';
+import type { RoamPoint, SceneView } from '../../systems/scenes';
 import type {
   ContinentView,
   DiplomacyAction,
@@ -218,7 +218,15 @@ export interface ConversationAdapter {
 }
 
 export interface SceneAdapter {
+  /** the scene panel's view; null while a roam node lets the player walk (roam below) */
   scene(view: GameView): SceneView | null;
+  /**
+   * The open roam node's touch points (onboarding_interaction.md 5.3), nearest first; empty
+   * outside a roam node. The interaction prompt shows the nearest in reach.
+   */
+  roam?(view: GameView): RoamPoint[];
+  /** The scene view of the open roam node (its stage, its run, restartable), else null. */
+  roamScene?(view: GameView): SceneView | null;
   advance(view: GameView): Commands;
   choose(view: GameView, choiceId: string): Commands;
   input(view: GameView, text: string): Commands;

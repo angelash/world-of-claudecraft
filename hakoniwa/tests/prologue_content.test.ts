@@ -14,7 +14,13 @@ import { tSource } from '../src/shared_ui/i18n';
 import type { QuestDef } from '../src/systems/quests';
 import { type SceneDef, type SceneNode, sceneView } from '../src/systems/scenes';
 import { DEFAULT_PLAYER_APPEARANCE } from '../src/systems/world';
-import { narrativeContent, narrativeGame, playScene, recordLines } from './narrative_harness';
+import {
+  narrativeContent,
+  narrativeGame,
+  playScene,
+  recordLines,
+  roamTo,
+} from './narrative_harness';
 
 const content = narrativeContent();
 const SCENES = [
@@ -310,6 +316,7 @@ describe('the prologue played', () => {
         const free = v.choices.find((c) => c.id === 'free');
         g.queue('scenes.choose', { choiceId: (free ?? v.choices[0])?.id ?? '' });
       } else if (v?.waiting === 'input') g.queue('scenes.input', { text: '我想想。' });
+      else if (v?.waiting === 'roam') roamTo(g, v.choices[0]?.id ?? '');
       else if (v?.waiting === 'advance') g.queue('scenes.advance', {});
       else if (v?.waiting === 'ui' && v.ui)
         g.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
@@ -372,6 +379,7 @@ describe('the prologue played', () => {
         const ask = v.nodeId === 'n5_questions' ? v.choices.find((c) => c.id === 'begin') : null;
         g.queue('scenes.choose', { choiceId: (ask ?? free ?? v.choices[0])?.id ?? '' });
       } else if (v?.waiting === 'input') g.queue('scenes.input', { text: '再想想。' });
+      else if (v?.waiting === 'roam') roamTo(g, v.choices[0]?.id ?? '');
       else if (v?.waiting === 'advance') g.queue('scenes.advance', {});
       else if (v?.waiting === 'ui' && v.ui)
         g.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
@@ -401,6 +409,7 @@ describe('the prologue played', () => {
         e.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
       else if (v.waiting === 'choice')
         e.queue('scenes.choose', { choiceId: v.choices[0]?.id ?? '' });
+      else if (v.waiting === 'roam') roamTo(e, v.choices[0]?.id ?? '');
       else e.queue('scenes.advance', {});
       e.step(1);
     };

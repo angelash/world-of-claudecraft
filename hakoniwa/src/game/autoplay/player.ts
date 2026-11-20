@@ -56,6 +56,7 @@ import { ReachMemory } from './reach';
 import { bossLurePoint, localRecoveryPoint, safeRecoveryExits } from './recovery';
 import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
+import { roamStep } from './scene_roam';
 
 export interface AutoplayOptions {
   route?: EndingRoute;
@@ -496,6 +497,16 @@ export class Autoplayer {
       if (ids.length === 0) return 1;
       const pick = this.policy(sv.sceneId, sv.nodeId, ids);
       this.send({ kind: 'scenes.choose', data: { choiceId: pick } });
+    } else if (sv.waiting === 'roam') {
+      // a roam node (onboarding_interaction.md 5.3): walk to the route's touch point, use it
+      const step = roamStep(this.world, this.content, sv, (ids) =>
+        this.policy(sv.sceneId, sv.nodeId, ids),
+      );
+      if (step.kind === 'choose')
+        this.send({ kind: 'scenes.choose', data: { choiceId: step.choiceId } });
+      else if (step.kind === 'walk') this.walkTo(step.mapId, step.x, step.y, 0.6);
+      else this.stopMoving();
+      return step.kind === 'wait' ? THINK : 1;
     } else if (sv.waiting === 'input') {
       this.send({ kind: 'scenes.input', data: { text: '' } });
     } else if (sv.waiting === 'advance') {

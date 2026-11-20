@@ -39,6 +39,7 @@
           {
             "id": "a",
             "label": "末班车：加班到深夜，地铁末班车的车厢",
+            "to": "n1_a",
             "effects": [
               {
                 "type": "flag",
@@ -73,12 +74,12 @@
                 "mapId": "earth_train",
                 "location": "seat"
               }
-            ],
-            "to": "n1_a"
+            ]
           },
           {
             "id": "b",
             "label": "雨夜便利店：深夜的便利店，外面下着大雨",
+            "to": "n1_b",
             "effects": [
               {
                 "type": "flag",
@@ -113,12 +114,12 @@
                 "mapId": "earth_store",
                 "location": "counter"
               }
-            ],
-            "to": "n1_b"
+            ]
           },
           {
             "id": "c",
             "label": "医院走廊：凌晨，在走廊里等一个结果",
+            "to": "n1_c",
             "effects": [
               {
                 "type": "flag",
@@ -153,12 +154,12 @@
                 "mapId": "earth_hospital",
                 "location": "chairs"
               }
-            ],
-            "to": "n1_c"
+            ]
           },
           {
             "id": "d",
             "label": "老宅清空日：明天就要拆的老房子，最后一个房间",
+            "to": "n1_d",
             "effects": [
               {
                 "type": "flag",
@@ -191,10 +192,9 @@
               {
                 "type": "teleport",
                 "mapId": "earth_house",
-                "location": "old_chair"
+                "location": "stairs"
               }
-            ],
-            "to": "n1_d"
+            ]
           }
         ]
       },
@@ -241,53 +241,48 @@
       },
       {
         "id": "n1_a_hub",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "track"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "列车在隧道里晃，车厢的灯偶尔暗一下。"
-          }
-        ],
         "choices": [
           {
             "id": "window",
             "label": "看车窗里的自己",
+            "at": "window",
             "once": true,
             "to": "n1_a_window"
           },
           {
             "id": "drunk",
             "label": "推一推对面的醉汉",
+            "at": "opposite",
             "once": true,
             "to": "n1_a_drunk"
           },
           {
             "id": "badge",
             "label": "摘下工牌",
+            "at": "seat",
             "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "你把工牌摘下来，绳子绕了两圈，塞进外套口袋。照片上的人还在笑。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n1_a_badge"
           },
           {
             "id": "phone",
             "label": "看手机",
+            "timeout": 40,
             "to": "n1_a_phone"
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "earth_train"
+        }
+      },
+      {
+        "id": "n1_a_badge",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你把工牌摘下来，绳子绕了两圈，塞进外套口袋。照片上的人还在笑。"
+          }
+        ],
+        "next": "n1_a_hub"
       },
       {
         "id": "n1_a_window",
@@ -310,23 +305,16 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
             "text": "你探过身，轻轻推了推他的肩。"
           },
           {
             "speaker": "stranger",
             "kind": "say",
-            "text": "嗯……到了？"
+            "text": "嗯……到了？……再坐一站……就一站……"
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "他没睁眼，摸索着把外套裹紧，又睡了过去。"
-          },
-          {
-            "speaker": "stranger",
-            "kind": "say",
-            "text": "……再坐一站……就一站……"
+            "text": "他没睁眼，裹紧外套，又睡了过去。"
           }
         ],
         "next": "n1_a_hub"
@@ -407,41 +395,28 @@
           {
             "op": "sfx",
             "id": "sfx_cin_train_brake"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "列车减速。广播报出一个站名，你没听清。"
           },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "车门打开。门外不是站台，是一扇门。"
-          }
-        ],
-        "next": "n1_a_door_2"
-      },
-      {
-        "id": "n1_a_door_2",
-        "stage": [
           {
             "op": "camera",
             "size": "close",
             "move": "hold",
-            "focus": "car_door"
+            "focus": "car_door",
+            "at": 1
           },
           {
             "op": "sfx",
-            "id": "sfx_cin_earth_door"
+            "id": "sfx_cin_earth_door",
+            "at": 1
           }
         ],
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "一扇本不该在这里的门。"
+            "text": "列车减速。车门打开，门外不是站台。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "是一扇门。一扇本不该在这里的门。"
           }
         ],
         "end": true
@@ -475,31 +450,26 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "深夜的便利店，雨下得很大。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "那天晚上，你站在收银台的哪一边？"
+            "text": "深夜的便利店，雨下得很大。那天晚上，你站在收银台的哪一边？"
           }
         ],
         "choices": [
           {
             "id": "clerk",
             "label": "里面：上夜班的店员",
+            "to": "n1_b_clerk",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_store_role",
                 "value": "clerk"
               }
-            ],
-            "to": "n1_b_clerk"
+            ]
           },
           {
             "id": "customer",
             "label": "外面：进来躲雨的顾客",
+            "to": "n1_b_customer",
             "effects": [
               {
                 "type": "flag",
@@ -511,8 +481,7 @@
                 "key": "p_default_past_life",
                 "value": "hearth"
               }
-            ],
-            "to": "n1_b_customer"
+            ]
           }
         ]
       },
@@ -521,11 +490,14 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
             "text": "你站在收银台后面，困得眼皮直打架。凌晨两点，店里一个客人都没有。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "收银台上留着一张小票和一颗糖，不知道是哪位客人的找零。你把它们塞进了口袋。"
           }
         ],
-        "next": "n1_b_clerk_2"
+        "next": "n1_b_hub"
       },
       {
         "id": "n1_b_clerk_2",
@@ -545,11 +517,6 @@
             "speaker": "manager",
             "kind": "say",
             "text": "还有，门口那只猫别喂了，喂了就赶不走了。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "收银台上留着一张小票和一颗糖，不知道是哪位客人的找零。你把它们塞进了口袋。"
           }
         ],
         "next": "n1_b_hub"
@@ -565,8 +532,7 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你推门进来躲雨，鞋已经湿透了。你拿了一把挂面和两个鸡蛋，想回去给自己煮碗面。"
+            "text": "你推门进来躲雨，鞋已经湿透了，手里拿着一把挂面和两个鸡蛋。"
           },
           {
             "speaker": "clerk",
@@ -575,11 +541,10 @@
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "店员困得眼皮直打架。台面上的电话亮着，在放一段留言。"
+            "text": "你把小票和那颗糖一起塞进了口袋。"
           }
         ],
-        "next": "n1_b_customer_2"
+        "next": "n1_b_hub"
       },
       {
         "id": "n1_b_customer_2",
@@ -591,6 +556,10 @@
         ],
         "lines": [
           {
+            "speaker": "narrator",
+            "text": "台面上的电话亮着，在放一段留言。"
+          },
+          {
             "speaker": "manager",
             "kind": "say",
             "text": "明早的货记得点一下，别又忘了。"
@@ -599,73 +568,75 @@
             "speaker": "manager",
             "kind": "say",
             "text": "还有，门口那只猫别喂了，喂了就赶不走了。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你把小票和那颗糖一起塞进了口袋。"
           }
         ],
         "next": "n1_b_hub"
       },
       {
         "id": "n1_b_hub",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "track"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "雨砸在玻璃门上，一阵紧一阵。"
-          }
-        ],
         "choices": [
           {
             "id": "rain",
             "label": "看外面的雨",
+            "at": "front_glass",
             "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "路灯底下白茫茫一片。今晚大概要等雨小了才走得了。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n1_b_rain"
           },
           {
             "id": "talk",
             "label": "和店员搭句话",
+            "at": "counter",
             "once": true,
             "when": "p_store_role == customer",
             "to": "n1_b_talk"
           },
           {
-            "id": "shelf",
-            "label": "把倒了的货扶起来",
+            "id": "voicemail",
+            "label": "听电话留言",
+            "at": "counter",
             "once": true,
             "when": "p_store_role == clerk",
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "一排速食面被谁碰倒了。你一个个扶好，标签朝外。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n1_b_clerk_2"
+          },
+          {
+            "id": "shelf",
+            "label": "把倒了的货扶起来",
+            "at": "aisle",
+            "once": true,
+            "when": "p_store_role == clerk",
+            "to": "n1_b_shelf"
           },
           {
             "id": "cat",
             "label": "去门口看那只猫",
+            "at": "entrance",
+            "timeout": 75,
             "to": "n1_b_cat"
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "earth_store"
+        }
+      },
+      {
+        "id": "n1_b_shelf",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "一排速食面被谁碰倒了。你一个个扶好，标签朝外。"
+          }
+        ],
+        "next": "n1_b_hub"
+      },
+      {
+        "id": "n1_b_rain",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "路灯底下白茫茫一片。今晚大概要等雨小了才走得了。"
+          }
+        ],
+        "next": "n1_b_hub"
       },
       {
         "id": "n1_b_talk",
@@ -686,7 +657,7 @@
             "text": "你看了看价签，摇了摇头。"
           }
         ],
-        "next": "n1_b_hub"
+        "next": "n1_b_customer_2"
       },
       {
         "id": "n1_b_cat",
@@ -749,6 +720,23 @@
             "size": "mid",
             "move": "push",
             "focus": "freezer"
+          },
+          {
+            "op": "camera",
+            "size": "close",
+            "move": "hold",
+            "focus": "freezer",
+            "at": 2
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_earth_door",
+            "at": 2
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_cat_mew",
+            "at": 2
           }
         ],
         "lines": [
@@ -761,29 +749,7 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你转身去看，身后只有货架。再看玻璃，那扇门还在，而且更近了。"
-          }
-        ],
-        "next": "n1_b_door_2"
-      },
-      {
-        "id": "n1_b_door_2",
-        "stage": [
-          {
-            "op": "camera",
-            "size": "close",
-            "move": "hold",
-            "focus": "freezer"
           },
-          {
-            "op": "sfx",
-            "id": "sfx_cin_earth_door"
-          },
-          {
-            "op": "sfx",
-            "id": "sfx_cin_cat_mew"
-          }
-        ],
-        "lines": [
           {
             "speaker": "narrator",
             "kind": "narrate",
@@ -817,18 +783,7 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
             "text": "凌晨的医院走廊。你坐在冰凉的塑料椅上，等一个结果。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "护士站的脚步声来了又走。病房里有人在咳嗽，咳得很轻，像怕吵醒谁。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你在等谁的结果？"
           }
         ],
         "input": {
@@ -857,47 +812,42 @@
       },
       {
         "id": "n1_c_hub",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "track"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "走廊的灯有一盏在闪，闪得很慢。"
-          }
-        ],
         "choices": [
           {
             "id": "nurse",
             "label": "去护士站问问",
+            "at": "nurse_station",
             "once": true,
             "to": "n1_c_nurse"
           },
           {
             "id": "mint",
             "label": "吃一颗薄荷糖",
+            "at": "chairs",
             "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "薄荷糖很凉。你含着它，舌头有点发麻，困意退下去一点。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n1_c_mint"
           },
           {
             "id": "ward",
             "label": "走到病房门口",
+            "at": "ward_door",
+            "timeout": 75,
             "to": "n1_c_ward"
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "earth_hospital"
+        }
+      },
+      {
+        "id": "n1_c_mint",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "薄荷糖很凉。你含着它，舌头有点发麻，困意退下去一点。"
+          }
+        ],
+        "next": "n1_c_hub"
       },
       {
         "id": "n1_c_nurse",
@@ -906,28 +856,22 @@
             "speaker": "nurse",
             "kind": "say",
             "text": "家属是吧？医生还在里面，结果出来会叫你。"
-          }
-        ],
-        "next": "n1_c_nurse_2"
-      },
-      {
-        "id": "n1_c_nurse_2",
-        "stage": [
-          {
-            "op": "sfx",
-            "id": "sfx_cin_call_bell"
-          }
-        ],
-        "lines": [
+          },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "走廊另一头的呼叫铃响了。她应了一声，快步走过去，又回头看了你一眼。"
+            "text": "走廊另一头的呼叫铃响了。她应了一声，快步走过去。"
           },
           {
             "speaker": "nurse",
             "kind": "say",
             "text": "去坐着等吧，站久了腿麻。"
+          }
+        ],
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_call_bell",
+            "at": 1
           }
         ],
         "next": "n1_c_hub"
@@ -970,6 +914,18 @@
             "size": "mid",
             "move": "push",
             "focus": "exit_sign"
+          },
+          {
+            "op": "camera",
+            "size": "close",
+            "move": "hold",
+            "focus": "exit_sign",
+            "at": 2
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_earth_door",
+            "at": 2
           }
         ],
         "lines": [
@@ -982,25 +938,7 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "走廊尽头，安全出口的绿灯底下，多了一扇门。"
-          }
-        ],
-        "next": "n1_c_door_2"
-      },
-      {
-        "id": "n1_c_door_2",
-        "stage": [
-          {
-            "op": "camera",
-            "size": "close",
-            "move": "hold",
-            "focus": "exit_sign"
           },
-          {
-            "op": "sfx",
-            "id": "sfx_cin_earth_door"
-          }
-        ],
-        "lines": [
           {
             "speaker": "narrator",
             "kind": "narrate",
@@ -1047,40 +985,32 @@
       },
       {
         "id": "n1_d_hub",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "track"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "屋里的东西都搬空了，说话有回音。"
-          }
-        ],
         "choices": [
           {
             "id": "shout",
             "label": "推开窗，朝楼下喊一声",
+            "at": "window",
             "once": true,
             "to": "n1_d_shout"
           },
           {
             "id": "frame",
             "label": "看看门框",
+            "at": "door_frame",
             "once": true,
             "to": "n1_d_frame"
           },
           {
             "id": "chair",
             "label": "坐到那把旧椅子上",
+            "at": "old_chair",
+            "timeout": 75,
             "to": "n1_d_chair"
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "earth_house"
+        }
       },
       {
         "id": "n1_d_shout",
@@ -1094,23 +1024,18 @@
             "speaker": "worker",
             "kind": "say",
             "text": "五分钟啊！钥匙别忘了交！"
-          }
-        ],
-        "next": "n1_d_shout_2"
-      },
-      {
-        "id": "n1_d_shout_2",
-        "stage": [
-          {
-            "op": "sfx",
-            "id": "sfx_cin_truck_horn"
-          }
-        ],
-        "lines": [
+          },
           {
             "speaker": "narrator",
             "kind": "narrate",
             "text": "卡车在楼下突突地响着，有人按了一声喇叭。"
+          }
+        ],
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_truck_horn",
+            "at": 2
           }
         ],
         "next": "n1_d_hub"
@@ -1150,11 +1075,6 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你在上面坐了很久，最后还是决定把它留下。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "走之前，你想对这个房间说点什么。"
           }
         ],
         "input": {
@@ -1174,6 +1094,23 @@
             "size": "mid",
             "move": "push",
             "focus": "wardrobe"
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_wardrobe_creak",
+            "at": 2
+          },
+          {
+            "op": "camera",
+            "size": "close",
+            "move": "hold",
+            "focus": "wardrobe",
+            "at": 2
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_earth_door",
+            "at": 2
           }
         ],
         "lines": [
@@ -1186,29 +1123,7 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "你把老房子的钥匙攥在手心，齿口硌得掌心发疼。"
-          }
-        ],
-        "next": "n1_d_door_2"
-      },
-      {
-        "id": "n1_d_door_2",
-        "stage": [
-          {
-            "op": "sfx",
-            "id": "sfx_cin_wardrobe_creak"
           },
-          {
-            "op": "camera",
-            "size": "close",
-            "move": "hold",
-            "focus": "wardrobe"
-          },
-          {
-            "op": "sfx",
-            "id": "sfx_cin_earth_door"
-          }
-        ],
-        "lines": [
           {
             "speaker": "narrator",
             "kind": "narrate",
@@ -1262,13 +1177,7 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "那扇门就在那里。木头的，很旧。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "门缝里没有光，也没有声音。"
+            "text": "木头的，很旧。门缝里没有光，也没有声音。"
           }
         ],
         "next": "n2_door_hub"
@@ -1317,14 +1226,14 @@
           {
             "id": "turn",
             "label": "转身离开",
+            "to": "n2_turn1",
             "effects": [
               {
                 "type": "add",
                 "key": "p_door_attempts_refused",
                 "amount": 1
               }
-            ],
-            "to": "n2_turn1"
+            ]
           }
         ]
       },
@@ -1373,14 +1282,14 @@
           {
             "id": "turn",
             "label": "转身离开",
+            "to": "n2_turn2",
             "effects": [
               {
                 "type": "add",
                 "key": "p_door_attempts_refused",
                 "amount": 1
               }
-            ],
-            "to": "n2_turn2"
+            ]
           }
         ]
       },
@@ -1426,14 +1335,14 @@
           {
             "id": "turn",
             "label": "转身离开",
+            "to": "n2_turn3",
             "effects": [
               {
                 "type": "add",
                 "key": "p_door_attempts_refused",
                 "amount": 1
               }
-            ],
-            "to": "n2_turn3"
+            ]
           }
         ]
       },
@@ -1568,18 +1477,15 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
             "text": "你手里多了一张号码牌，上面写着一个字：伍。"
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "墙上挂着一块号码板，只有四个格子：一、二、三、四。没有伍。"
+            "text": "墙上的号码板只有四个格子：一、二、三、四。没有伍。"
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "房间里还有一条长椅、一面嵌在墙里的镜子，和一道垂到地上的白色帘幕。"
+            "text": "隔壁隐约有人在说话。"
           }
         ],
         "next": "n3_hub"
@@ -1634,41 +1540,22 @@
       },
       {
         "id": "n3_hub",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "track"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "隔壁隐约有人在说话。",
-            "when": "NOT p_heard_neighbors"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "候见厅里很安静。",
-            "when": "p_heard_neighbors"
-          }
-        ],
         "choices": [
           {
             "id": "mirror",
             "label": "照一照墙上的镜子",
-            "when": "NOT p_mirror_done",
+            "at": "spirit_mirror",
             "once": true,
+            "when": "NOT p_mirror_done",
+            "timeout": 120,
             "to": "n3_mirror"
           },
           {
             "id": "listen",
             "label": "贴着墙，听隔壁",
-            "when": "NOT p_heard_neighbors",
+            "at": "neighbor_wall",
             "once": true,
+            "when": "NOT p_heard_neighbors",
             "to": "n3_listen",
             "effects": [
               {
@@ -1680,61 +1567,71 @@
           {
             "id": "curtain",
             "label": "走近帘幕",
+            "at": "curtain",
             "once": true,
             "to": "n3_curtain"
           },
           {
             "id": "bench",
             "label": "在长椅上坐一会儿",
+            "at": "bench",
             "once": true,
+            "when": "NOT p_mirror_done",
             "to": "n3_bench"
           },
           {
             "id": "board",
             "label": "看看号码板",
+            "at": "number_board",
             "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "一、二、三、四。四个格子都暗着，排得整整齐齐，没有给第五个留位置。",
-                "kind": "narrate"
-              }
-            ]
-          },
-          {
-            "id": "tag",
-            "label": "看看手里的号码牌",
-            "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "号码牌是硬纸做的，边角还很新。「伍」字写得端端正正，像有人一笔一画认真写上去的。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n3_board"
           },
           {
             "id": "back",
-            "label": "回到来时的门那里",
+            "label": "看看来时的门",
+            "at": "door_trace",
             "once": true,
-            "effects": [
-              {
-                "type": "line",
-                "speaker": "narrator",
-                "text": "门已经不在了。墙上只剩一个门形的浅痕。",
-                "kind": "narrate"
-              }
-            ]
+            "to": "n3_back"
           },
           {
             "id": "wait",
-            "label": "（坐下来，等着叫号）",
+            "label": "坐下来，等着叫号",
+            "at": "bench",
             "when": "p_mirror_done",
-            "to": "n3_check"
+            "timeout": 60,
+            "to": "n3_check",
+            "effects": [
+              {
+                "type": "teleport",
+                "mapId": "divine_court",
+                "location": "bench"
+              }
+            ]
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "divine_court"
+        }
+      },
+      {
+        "id": "n3_back",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "门已经不在了。墙上只剩一个门形的浅痕。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_board",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "一、二、三、四。四个格子都暗着，排得整整齐齐，没有给第五个留位置。"
+          }
+        ],
+        "next": "n3_hub"
       },
       {
         "id": "n3_mirror",
@@ -1766,6 +1663,7 @@
           {
             "id": "creator",
             "label": "（细细地照：灵镜）",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "ui",
@@ -1777,12 +1675,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_1",
             "label": "深灰外套，黑色短发",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1794,12 +1692,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_2",
             "label": "米色风衣，栗色长发",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1811,12 +1709,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_3",
             "label": "灰色卫衣，浅金色的头发",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1828,12 +1726,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_4",
             "label": "墨绿毛衣，乱糟糟的棕发",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1845,12 +1743,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_5",
             "label": "白衬衫，深蓝长裤，银灰色的头发",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1862,12 +1760,12 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           },
           {
             "id": "look_6",
             "label": "酒红外套，黑色卷发，肤色偏深",
+            "to": "n3_mirror_done",
             "effects": [
               {
                 "type": "appearance",
@@ -1879,8 +1777,7 @@
                 "key": "p_mirror_done",
                 "value": true
               }
-            ],
-            "to": "n3_mirror_done"
+            ]
           }
         ]
       },
@@ -1914,6 +1811,11 @@
           {
             "op": "sfx",
             "id": "sfx_cin_wall_murmur"
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_footsteps_away",
+            "at": 5
           }
         ],
         "lines": [
@@ -1941,19 +1843,7 @@
             "speaker": "voice_elegant",
             "kind": "say",
             "text": "名单上只有四位，孩子。"
-          }
-        ],
-        "next": "n3_listen_2"
-      },
-      {
-        "id": "n3_listen_2",
-        "stage": [
-          {
-            "op": "sfx",
-            "id": "sfx_cin_footsteps_away"
-          }
-        ],
-        "lines": [
+          },
           {
             "speaker": "narrator",
             "kind": "narrate",
@@ -2035,6 +1925,11 @@
           {
             "op": "sfx",
             "id": "sfx_cin_wall_murmur"
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_footsteps_away",
+            "at": 5
           }
         ],
         "lines": [
@@ -2064,23 +1959,6 @@
             "text": "名单上只有四位，孩子。"
           }
         ],
-        "next": "n3_faint_2"
-      },
-      {
-        "id": "n3_faint_2",
-        "stage": [
-          {
-            "op": "sfx",
-            "id": "sfx_cin_footsteps_away"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "然后，声音远去了。"
-          }
-        ],
         "end": true
       }
     ],
@@ -2100,10 +1978,10 @@
     "location": "antechamber",
     "presentation": "staged",
     "summary": "帘幕后传来几位女神的争吵：名额、审定、\"那件事\"，还有\"上面\"。",
-    "start": "n4_stance",
+    "start": "n4_voices",
     "nodes": [
       {
-        "id": "n4_stance",
+        "id": "n4_voices",
         "stage": [
           {
             "op": "camera",
@@ -2133,56 +2011,83 @@
             "text": "有人开口说话了。隔着帘幕，听不太真切。"
           }
         ],
+        "next": "n4_stance"
+      },
+      {
+        "id": "n4_stance",
         "choices": [
           {
             "id": "bench",
             "label": "留在长椅上，不去管它",
+            "hidden": true,
+            "timeout": 12,
+            "to": "n4_s1",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_eavesdrop_level",
                 "value": 0
               }
-            ],
-            "to": "n4_s1"
+            ]
           },
           {
-            "id": "step",
-            "label": "走到帘幕前三步的地方听",
+            "id": "cough_near",
+            "label": "故意咳嗽一声",
+            "at": "curtain_near",
+            "to": "n4_cough",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_eavesdrop_level",
                 "value": 2
               }
-            ],
-            "to": "n4_s1"
+            ]
+          },
+          {
+            "id": "cough",
+            "label": "故意咳嗽一声",
+            "at": "curtain_mid",
+            "to": "n4_cough",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "p_eavesdrop_level",
+                "value": 0
+              }
+            ]
           },
           {
             "id": "press",
             "label": "贴着帘幕听",
+            "at": "curtain_near",
+            "stand": true,
+            "to": "n4_s1",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_eavesdrop_level",
                 "value": 3
               }
-            ],
-            "to": "n4_s1"
+            ]
           },
           {
-            "id": "cough",
-            "label": "走到帘幕前，故意咳嗽一声",
+            "id": "step",
+            "label": "走到帘幕前三步的地方听",
+            "at": "curtain_mid",
+            "stand": true,
+            "to": "n4_s1",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_eavesdrop_level",
-                "value": 1
+                "value": 2
               }
-            ],
-            "to": "n4_s1"
+            ]
           }
-        ]
+        ],
+        "roam": {
+          "mapId": "divine_court"
+        }
       },
       {
         "id": "n4_s1",
@@ -2202,13 +2107,13 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "四个。亲爱的，你一口气要了四个名额。按信仰份额算，你这次可是把账做得满满的。",
-            "when": "p_eavesdrop_level >= 1"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "份额就是份额。四个，合规格，每一个都经过挑选。",
-            "when": "p_eavesdrop_level >= 1"
+            "when": "p_eavesdrop_level >= 2"
           },
           {
             "speaker": "valda",
@@ -2251,20 +2156,86 @@
       },
       {
         "id": "n4_s1_check",
+        "next": "n4_p1"
+      },
+      {
+        "id": "n4_p1",
         "branch": [
           {
-            "when": "p_eavesdrop_level == 1",
-            "to": "n4_cough"
+            "when": "p_eavesdrop_level < 2",
+            "to": "n4_s2"
           }
         ],
-        "next": "n4_s2"
+        "choices": [
+          {
+            "id": "stay",
+            "label": "（屏住呼吸，接着听）",
+            "to": "n4_s2"
+          },
+          {
+            "id": "noise",
+            "label": "（不小心弄出一点声响）",
+            "to": "n4_noise_1"
+          },
+          {
+            "id": "leave",
+            "label": "（回到长椅上）",
+            "to": "n4_s2",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "p_eavesdrop_level",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "n4_noise_1",
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_cough_player"
+          },
+          {
+            "op": "shake",
+            "strength": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 0,
+            "when": "p_eavesdrop_level == 2"
+          },
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 2,
+            "when": "p_eavesdrop_level == 3"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
+          },
+          {
+            "speaker": "merca",
+            "text": "……风吧？"
+          },
+          {
+            "speaker": "narrator",
+            "text": "过了一会儿，声音压低了，又继续说了下去。"
+          }
+        ],
+        "next": "n4_p1"
       },
       {
         "id": "n4_cough",
         "stage": [
-          {
-            "op": "noise"
-          },
           {
             "op": "camera",
             "size": "near"
@@ -2282,11 +2253,6 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
-            "text": "你故意咳嗽了一声。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
             "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
           },
           {
@@ -2297,10 +2263,17 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
+            "when": "p_eavesdrop_level < 2",
             "text": "过了一会儿，声音压低了，又继续说了下去。你只能听清零星几个词。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "when": "p_eavesdrop_level >= 2",
+            "text": "过了一会儿，声音压低了，又继续说了下去。"
           }
         ],
-        "next": "n4_s2"
+        "next": "n4_s1"
       },
       {
         "id": "n4_s2",
@@ -2316,12 +2289,6 @@
             "speaker": "merca",
             "name": "甜甜的女声",
             "text": "话说回来，外面候见厅坐着的那位，是第几号？",
-            "when": "p_eavesdrop_level >= 2"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（停顿）",
             "when": "p_eavesdrop_level >= 2"
           },
           {
@@ -2373,12 +2340,6 @@
             "when": "p_eavesdrop_level >= 2"
           },
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（翻书声）",
-            "when": "p_eavesdrop_level >= 2"
-          },
-          {
             "speaker": "moira",
             "name": "慢悠悠的女声",
             "text": "不算任何人的……嗯，这一行我先空着。",
@@ -2391,7 +2352,82 @@
             "when": "p_eavesdrop_level < 2"
           }
         ],
-        "next": "n4_s3"
+        "next": "n4_p2"
+      },
+      {
+        "id": "n4_p2",
+        "branch": [
+          {
+            "when": "p_eavesdrop_level < 2",
+            "to": "n4_s3"
+          }
+        ],
+        "choices": [
+          {
+            "id": "stay",
+            "label": "（屏住呼吸，接着听）",
+            "to": "n4_s3"
+          },
+          {
+            "id": "noise",
+            "label": "（不小心弄出一点声响）",
+            "to": "n4_noise_2"
+          },
+          {
+            "id": "leave",
+            "label": "（回到长椅上）",
+            "to": "n4_s3",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "p_eavesdrop_level",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "n4_noise_2",
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_cough_player"
+          },
+          {
+            "op": "shake",
+            "strength": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 0,
+            "when": "p_eavesdrop_level == 2"
+          },
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 2,
+            "when": "p_eavesdrop_level == 3"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
+          },
+          {
+            "speaker": "merca",
+            "text": "……风吧？"
+          },
+          {
+            "speaker": "narrator",
+            "text": "过了一会儿，声音压低了，又继续说了下去。"
+          }
+        ],
+        "next": "n4_p2"
       },
       {
         "id": "n4_s3",
@@ -2443,13 +2479,94 @@
             "name": "慢悠悠的女声",
             "text": "说得真笃定。上一次，你也是这么说的。",
             "when": "p_eavesdrop_level >= 2"
+          }
+        ],
+        "next": "n4_p3"
+      },
+      {
+        "id": "n4_p3",
+        "branch": [
+          {
+            "when": "p_eavesdrop_level < 2",
+            "to": "n4_s3b"
+          }
+        ],
+        "choices": [
+          {
+            "id": "stay",
+            "label": "（屏住呼吸，接着听）",
+            "to": "n4_s3b"
+          },
+          {
+            "id": "noise",
+            "label": "（不小心弄出一点声响）",
+            "to": "n4_noise_3"
+          },
+          {
+            "id": "leave",
+            "label": "（回到长椅上）",
+            "to": "n4_s3b",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "p_eavesdrop_level",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "n4_noise_3",
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_cough_player"
+          },
+          {
+            "op": "shake",
+            "strength": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 0,
+            "when": "p_eavesdrop_level == 2"
+          },
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 2,
+            "when": "p_eavesdrop_level == 3"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
+          },
+          {
+            "speaker": "merca",
+            "text": "……风吧？"
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（翻书声）",
-            "when": "p_eavesdrop_level >= 2"
-          },
+            "text": "过了一会儿，声音压低了，又继续说了下去。"
+          }
+        ],
+        "next": "n4_p3"
+      },
+      {
+        "id": "n4_s3b",
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_god_moira_page"
+          }
+        ],
+        "lines": [
           {
             "speaker": "moira",
             "name": "慢悠悠的女声",
@@ -2469,12 +2586,6 @@
             "when": "p_eavesdrop_level >= 2"
           },
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（短暂的沉默）",
-            "when": "p_eavesdrop_level >= 2"
-          },
-          {
             "speaker": "eluen",
             "name": "冷静的女声",
             "text": "生命之司今天的话，真多。",
@@ -2487,7 +2598,82 @@
             "when": "p_eavesdrop_level < 2"
           }
         ],
-        "next": "n4_s4"
+        "next": "n4_p4"
+      },
+      {
+        "id": "n4_p4",
+        "branch": [
+          {
+            "when": "p_eavesdrop_level < 2",
+            "to": "n4_s4"
+          }
+        ],
+        "choices": [
+          {
+            "id": "stay",
+            "label": "（屏住呼吸，接着听）",
+            "to": "n4_s4"
+          },
+          {
+            "id": "noise",
+            "label": "（不小心弄出一点声响）",
+            "to": "n4_noise_4"
+          },
+          {
+            "id": "leave",
+            "label": "（回到长椅上）",
+            "to": "n4_s4",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "p_eavesdrop_level",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "n4_noise_4",
+        "stage": [
+          {
+            "op": "sfx",
+            "id": "sfx_cin_cough_player"
+          },
+          {
+            "op": "shake",
+            "strength": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 0,
+            "when": "p_eavesdrop_level == 2"
+          },
+          {
+            "type": "flag",
+            "key": "p_eavesdrop_level",
+            "value": 2,
+            "when": "p_eavesdrop_level == 3"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
+          },
+          {
+            "speaker": "merca",
+            "text": "……风吧？"
+          },
+          {
+            "speaker": "narrator",
+            "text": "过了一会儿，声音压低了，又继续说了下去。"
+          }
+        ],
+        "next": "n4_p4"
       },
       {
         "id": "n4_s4",
@@ -2514,12 +2700,6 @@
             "speaker": "valda",
             "name": "粗豪的女声",
             "text": "那件事之后。",
-            "when": "p_eavesdrop_level >= 2"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（有人很快地接了一句）",
             "when": "p_eavesdrop_level >= 2"
           },
           {
@@ -2599,7 +2779,28 @@
             "when": "p_eavesdrop_level < 2"
           }
         ],
-        "next": "n4_s5"
+        "next": "n4_p5"
+      },
+      {
+        "id": "n4_p5",
+        "branch": [
+          {
+            "when": "p_eavesdrop_level < 2",
+            "to": "n4_s5"
+          }
+        ],
+        "choices": [
+          {
+            "id": "stay",
+            "label": "（屏住呼吸，接着听）",
+            "to": "n4_s5"
+          },
+          {
+            "id": "leave",
+            "label": "（回到长椅上）",
+            "to": "n4_s5_far"
+          }
+        ]
       },
       {
         "id": "n4_s5",
@@ -2686,12 +2887,39 @@
             "kind": "say",
             "text": "……上面那位……在看什么……睡着了……（铃声）",
             "when": "p_eavesdrop_level < 2"
+          }
+        ],
+        "end": true
+      },
+      {
+        "id": "n4_s5_far",
+        "stage": [
+          {
+            "op": "camera",
+            "angle": "standard",
+            "size": "full",
+            "move": "rise",
+            "focus": "number_board"
           },
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "墙上的号码板凭空多出一个格子，「伍」亮了起来。",
-            "when": "p_eavesdrop_level < 2"
+            "op": "sfx",
+            "id": "sfx_cin_bell_call"
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_board_slot"
+          },
+          {
+            "op": "music",
+            "id": "mus_pro_antechamber",
+            "mode": "out"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "curtain_voices",
+            "kind": "say",
+            "text": "……上面那位……在看什么……睡着了……（铃声）"
           }
         ],
         "end": true
@@ -2703,7 +2931,8 @@
       "clear": ["p_*", "scene.cut_p_*", "quest.q_p_*"],
       "take": ["relic_badge", "relic_receipt", "relic_mint", "relic_key", "number_tag_five"],
       "resetPlayer": true
-    }
+    },
+    "keepPosition": true
   },
   {
     "id": "cut_p_call",
@@ -2784,13 +3013,6 @@
             "move": "hold"
           }
         ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "她的笔尖悬在卷轴上，等着。"
-          }
-        ],
         "input": {
           "prompt": "报上你的名字（可以不报）",
           "storeAs": "player.name",
@@ -2815,42 +3037,48 @@
         ],
         "lines": [
           {
+            "speaker": "moira",
+            "when": "player.name == '无名氏'",
+            "text": "那我先这么写。"
+          },
+          {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你没有回答。",
-            "when": "player.name == '无名氏'"
+            "when": "player.name == '无名氏'",
+            "text": "她在卷轴上写下三个字：无名氏。"
+          },
+          {
+            "speaker": "narrator",
+            "when": "player.name != '无名氏'",
+            "text": "她把你的名字写在卷轴上，笔画落得很慢。"
           },
           {
             "speaker": "moira",
-            "name": "兜帽的身影",
-            "text": "那我先这么写。",
-            "when": "player.name == '无名氏'"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "她在卷轴上写下三个字：无名氏。",
-            "when": "player.name == '无名氏'"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "她把你的名字写在卷轴上，笔画落得很慢。",
-            "when": "player.name != '无名氏'"
-          },
-          {
-            "speaker": "moira",
-            "name": "兜帽的身影",
-            "text": "记下了。",
-            "when": "player.name != '无名氏'"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "帘幕向两边拉开了。"
+            "when": "player.name != '无名氏'",
+            "text": "记下了。"
           }
         ],
-        "next": "n5_reveal"
+        "next": "n5_name_fix"
+      },
+      {
+        "id": "n5_name_fix",
+        "branch": [
+          {
+            "when": "player.name != '无名氏'",
+            "to": "n5_reveal"
+          }
+        ],
+        "choices": [
+          {
+            "id": "keep",
+            "label": "（就这样吧）",
+            "to": "n5_reveal"
+          },
+          {
+            "id": "rename",
+            "label": "其实，我有名字。",
+            "to": "n5_rename"
+          }
+        ]
       },
       {
         "id": "n5_reveal",
@@ -2880,72 +3108,10 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "帘幕后面是一张长桌，几把椅子，和一片没有边际的白光。除此之外，什么也没有。"
-          }
-        ],
-        "next": "n5_reveal_2"
-      },
-      {
-        "id": "n5_reveal_2",
-        "stage": [
-          {
-            "op": "camera",
-            "size": "close",
-            "move": "hold",
-            "focus": "long_table"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "长桌后坐着五位女性。"
+            "text": "帘幕向两边拉开了。后面是一张长桌，五位女性坐在桌后，四周是一片没有边际的白光。"
           },
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "一位白金长发一丝不乱，背后的光环像齿轮一样缓缓转动。她看你的眼神，像在量尺寸。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "一位扛着一把断剑，一只角断了，笑起来露出尖牙。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "一位个子小小的，身边漂浮着旋转的硬币，手里还在吃东西。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "一位闭着眼，发间同时开着新花，也挂着枯花。她脚边伏着一只半鹿半狼的兽。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "还有刚才那位兜帽书记官，正把卷轴在桌上铺开。"
-          }
-        ],
-        "next": "n5_reveal_3"
-      },
-      {
-        "id": "n5_reveal_3",
-        "stage": [
-          {
-            "op": "camera",
-            "angle": "standard",
-            "size": "mid",
-            "move": "pan",
-            "focus": "long_table",
-            "to": "sixth_chair"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
             "text": "长桌尽头还有第六把椅子，空着。没有人看它一眼。"
           }
         ],
@@ -2970,13 +3136,7 @@
         "lines": [
           {
             "speaker": "moira",
-            "name": "兜帽的书记官",
-            "text": "按规矩，先报在座的。"
-          },
-          {
-            "speaker": "moira",
-            "name": "兜帽的书记官",
-            "text": "光与秩序之司，艾琉恩。"
+            "text": "按规矩，先报在座的。光与秩序之司，艾琉恩。"
           }
         ],
         "next": "n5_roll_2"
@@ -2994,12 +3154,10 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "白金长发的那位微微颔首。点头的角度，像是量过的。"
+            "text": "白金长发一丝不乱，背后的光环像齿轮一样缓缓转动。她微微颔首，角度像是量过的。"
           },
           {
             "speaker": "moira",
-            "name": "兜帽的书记官",
             "text": "争斗与淬炼之司，瓦尔妲。"
           }
         ],
@@ -3017,12 +3175,73 @@
         ],
         "lines": [
           {
-            "speaker": "valda",
-            "text": "哟，新肉。"
+            "speaker": "narrator",
+            "text": "扛着断剑、断了一只角的那位咧开嘴，露出尖牙。"
           },
           {
+            "speaker": "valda",
+            "text": "哟，新肉。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "hello",
+            "label": "……你好。",
+            "to": "n5_roll_3_hello"
+          },
+          {
+            "id": "retort",
+            "label": "我不是肉。",
+            "to": "n5_roll_3_retort"
+          },
+          {
+            "id": "quiet",
+            "label": "（不理她）",
+            "to": "n5_roll_3_next"
+          }
+        ]
+      },
+      {
+        "id": "n5_roll_3_hello",
+        "stage": [
+          {
+            "op": "bust",
+            "who": "valda",
+            "expression": "grin",
+            "side": "left"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "有礼貌的肉。"
+          }
+        ],
+        "next": "n5_roll_3_next"
+      },
+      {
+        "id": "n5_roll_3_retort",
+        "stage": [
+          {
+            "op": "bust",
+            "who": "valda",
+            "expression": "grin",
+            "side": "left"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "哈！会顶嘴，好。"
+          }
+        ],
+        "next": "n5_roll_3_next"
+      },
+      {
+        "id": "n5_roll_3_next",
+        "lines": [
+          {
             "speaker": "moira",
-            "name": "兜帽的书记官",
             "text": "交易与丰饶之司，梅尔卡。"
           }
         ],
@@ -3040,12 +3259,15 @@
         ],
         "lines": [
           {
+            "speaker": "narrator",
+            "text": "个子小小的那位身边漂浮着旋转的硬币，手里还在吃东西。"
+          },
+          {
             "speaker": "merca",
             "text": "幸会幸会，客人！"
           },
           {
             "speaker": "moira",
-            "name": "兜帽的书记官",
             "text": "生命与循环之司，希尔薇。"
           }
         ],
@@ -3064,8 +3286,7 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
-            "text": "闭着眼的那位没有动。她脚边的兽抬起头，看了你一眼。"
+            "text": "闭着眼的那位发间同时开着新花，也挂着枯花。她脚边伏着的半鹿半狼的兽抬起头，看了你一眼。"
           },
           {
             "speaker": "moira",
@@ -3084,13 +3305,11 @@
         "lines": [
           {
             "speaker": "narrator",
-            "kind": "narrate",
             "text": "她报到第五个名字，就停了。"
           },
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你可以先问点什么，也可以等她们开始。"
+            "speaker": "moira",
+            "text": "可以先问。三个问题，书记官的规矩。"
           }
         ],
         "next": "n5_questions"
@@ -3110,69 +3329,144 @@
             "id": "where",
             "label": "这是哪里？你们是谁？",
             "once": true,
-            "to": "n5_q_where"
-          },
-          {
-            "id": "world",
-            "label": "那个世界叫什么？",
-            "once": true,
-            "to": "n5_q_world"
-          },
-          {
-            "id": "review",
-            "label": "审定是什么？",
-            "once": true,
-            "to": "n5_q_review"
-          },
-          {
-            "id": "thing",
-            "label": "「那件事」是什么？",
-            "once": true,
-            "to": "n5_q_thing"
-          },
-          {
-            "id": "above",
-            "label": "「上面」是谁？",
-            "once": true,
-            "to": "n5_q_above"
-          },
-          {
-            "id": "five",
-            "label": "我为什么是五号？",
-            "once": true,
-            "to": "n5_q_five"
-          },
-          {
-            "id": "neighbors",
-            "label": "隔壁那四个人是谁？",
-            "once": true,
-            "to": "n5_q_neighbors"
-          },
-          {
-            "id": "home",
-            "label": "我能回家吗？我死了吗？",
-            "once": true,
-            "to": "n5_q_home"
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_where",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
           },
           {
             "id": "chair",
             "label": "那把空椅子是谁的？",
             "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_chair",
             "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              },
               {
                 "type": "flag",
                 "key": "p_asked_sixth_chair",
                 "value": true
               }
-            ],
-            "to": "n5_q_chair"
+            ]
           },
           {
-            "id": "rename",
-            "label": "其实，我有名字。",
+            "id": "home",
+            "label": "我能回家吗？我死了吗？",
             "once": true,
-            "when": "player.name == '无名氏'",
-            "to": "n5_rename"
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_home",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "review",
+            "label": "审定是什么？",
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_review",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "thing",
+            "label": "「那件事」是什么？",
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_thing",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "above",
+            "label": "「上面」是谁？",
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_above",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "world",
+            "label": "那个世界叫什么？",
+            "hidden": true,
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_world",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "five",
+            "label": "我为什么是五号？",
+            "hidden": true,
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_five",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
+          },
+          {
+            "id": "neighbors",
+            "label": "隔壁那四个人是谁？",
+            "hidden": true,
+            "once": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_q_neighbors",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
           },
           {
             "id": "ask",
@@ -3191,6 +3485,21 @@
             "id": "begin",
             "label": "（不再提问，等她们开始）",
             "to": "n5_begin"
+          },
+          {
+            "id": "free_other",
+            "label": "（自由提问）",
+            "hidden": true,
+            "when": "p_call_free_count < 3",
+            "to": "n5_questions",
+            "effects": [
+              {
+                "type": "add",
+                "key": "p_call_free_count",
+                "amount": 1,
+                "max": 3
+              }
+            ]
           }
         ]
       },
@@ -3298,11 +3607,6 @@
           {
             "speaker": "moira",
             "text": "一场考试。题目只有一句，我们读了一千年。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（希尔薇没有回答。）"
           }
         ],
         "next": "n5_q_review_4"
@@ -3336,11 +3640,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（瓦尔妲咧嘴一笑）"
-          },
           {
             "speaker": "valda",
             "text": "等你活得够久，自己去挖。"
@@ -3556,11 +3855,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉推了推镜片）"
-          },
-          {
             "speaker": "moira",
             "text": "……你看得见的东西，我的镜片看不见。这一句我记下来了。"
           }
@@ -3615,18 +3909,10 @@
             "when": "player.name == '无名氏'"
           }
         ],
-        "next": "n5_questions"
+        "next": "n5_reveal"
       },
       {
         "id": "n5_q_free",
-        "effects": [
-          {
-            "type": "add",
-            "key": "p_call_free_count",
-            "amount": 1,
-            "max": 3
-          }
-        ],
         "input": {
           "prompt": "你想问什么？",
           "storeAs": "p_free.call",
@@ -3651,8 +3937,10 @@
               "five",
               "neighbors",
               "home",
-              "chair"
-            ]
+              "chair",
+              "free_other"
+            ],
+            "fallback": "free_other"
           }
         }
       },
@@ -3826,11 +4114,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉用笔杆轻轻敲了敲桌面）"
-          },
-          {
             "speaker": "moira",
             "text": "那么，开始吧。按顺序来。"
           }
@@ -3908,6 +4191,7 @@
           {
             "id": "e1",
             "label": "我不确定我值得。但只要给我机会，我会学。",
+            "to": "n6_eluen_e1",
             "effects": [
               {
                 "type": "impression",
@@ -3928,12 +4212,12 @@
                 "key": "p_answers",
                 "value": "E1"
               }
-            ],
-            "to": "n6_eluen_e1"
+            ]
           },
           {
             "id": "e2",
             "label": "因为我比他们四个都强。",
+            "to": "n6_eluen_e2",
             "effects": [
               {
                 "type": "impression",
@@ -3959,12 +4243,12 @@
                 "key": "p_answers",
                 "value": "E2"
               }
-            ],
-            "to": "n6_eluen_e2"
+            ]
           },
           {
             "id": "e3",
             "label": "我没求着被你们选。",
+            "to": "n6_eluen_e3",
             "effects": [
               {
                 "type": "impression",
@@ -3995,12 +4279,12 @@
                 "key": "p_answers",
                 "value": "E3"
               }
-            ],
-            "to": "n6_eluen_e3"
+            ]
           },
           {
             "id": "e4",
             "label": "……我不知道。",
+            "to": "n6_eluen_e4",
             "effects": [
               {
                 "type": "impression",
@@ -4021,12 +4305,12 @@
                 "key": "p_answers",
                 "value": "E4"
               }
-            ],
-            "to": "n6_eluen_e4"
+            ]
           },
           {
             "id": "e5",
             "label": "能见到您，已经是我的荣幸。",
+            "to": "n6_eluen_e5",
             "effects": [
               {
                 "type": "impression",
@@ -4057,12 +4341,12 @@
                 "key": "p_answers",
                 "value": "E5"
               }
-            ],
-            "to": "n6_eluen_e5"
+            ]
           },
           {
             "id": "e6",
             "label": "在我们地球，面试官一般会先自我介绍。",
+            "to": "n6_eluen_e6",
             "effects": [
               {
                 "type": "impression",
@@ -4088,8 +4372,7 @@
                 "key": "p_answers",
                 "value": "E6"
               }
-            ],
-            "to": "n6_eluen_e6"
+            ]
           },
           {
             "id": "free",
@@ -4149,11 +4432,6 @@
           {
             "speaker": "eluen",
             "text": "没有人求，光也会照下来。这正是光的仁慈。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（瓦尔妲吹了声口哨。）"
           }
         ],
         "next": "n6_f_e3"
@@ -4174,11 +4452,6 @@
           {
             "speaker": "eluen",
             "text": "嗯，礼仪合格。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉打了个哈欠。）"
           }
         ],
         "next": "n6_f_e5"
@@ -4535,6 +4808,7 @@
           {
             "id": "e1",
             "label": "我不确定我值得。但只要给我机会，我会学。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4555,12 +4829,12 @@
                 "key": "p_answers",
                 "value": "E1"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           },
           {
             "id": "e2",
             "label": "因为我比他们四个都强。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4586,12 +4860,12 @@
                 "key": "p_answers",
                 "value": "E2"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           },
           {
             "id": "e3",
             "label": "我没求着被你们选。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4622,12 +4896,12 @@
                 "key": "p_answers",
                 "value": "E3"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           },
           {
             "id": "e4",
             "label": "……我不知道。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4648,12 +4922,12 @@
                 "key": "p_answers",
                 "value": "E4"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           },
           {
             "id": "e5",
             "label": "能见到您，已经是我的荣幸。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4684,12 +4958,12 @@
                 "key": "p_answers",
                 "value": "E5"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           },
           {
             "id": "e6",
             "label": "在我们地球，面试官一般会先自我介绍。",
+            "to": "n6_eluen_close",
             "effects": [
               {
                 "type": "impression",
@@ -4715,8 +4989,7 @@
                 "key": "p_answers",
                 "value": "E6"
               }
-            ],
-            "to": "n6_eluen_close"
+            ]
           }
         ]
       },
@@ -4821,38 +5094,28 @@
             "who": "moira",
             "expression": "smile",
             "side": "left"
+          },
+          {
+            "op": "bust_clear",
+            "at": 1
+          },
+          {
+            "op": "bust",
+            "who": "valda",
+            "expression": "grin",
+            "side": "right",
+            "at": 1
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_cin_sword_table",
+            "at": 1
           }
         ],
         "lines": [
           {
             "speaker": "moira",
             "text": "瓦尔妲。"
-          }
-        ],
-        "next": "n7_intro_2"
-      },
-      {
-        "id": "n7_intro_2",
-        "stage": [
-          {
-            "op": "bust_clear"
-          },
-          {
-            "op": "bust",
-            "who": "valda",
-            "expression": "grin",
-            "side": "right"
-          },
-          {
-            "op": "sfx",
-            "id": "sfx_cin_sword_table"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（瓦尔妲把断剑往桌上一搁，震得长桌嗡的一声。）"
           }
         ],
         "next": "n7_valda"
@@ -4869,6 +5132,7 @@
           {
             "id": "v1",
             "label": "输过。被打趴下过，后来又站起来了。",
+            "to": "n7_valda_v1",
             "effects": [
               {
                 "type": "impression",
@@ -4894,12 +5158,12 @@
                 "key": "p_answers",
                 "value": "V1"
               }
-            ],
-            "to": "n7_valda_v1"
+            ]
           },
           {
             "id": "v2",
             "label": "我从来没输过。",
+            "to": "n7_valda_v2",
             "effects": [
               {
                 "type": "impression",
@@ -4920,12 +5184,12 @@
                 "key": "p_answers",
                 "value": "V2"
               }
-            ],
-            "to": "n7_valda_v2"
+            ]
           },
           {
             "id": "v3",
             "label": "我不喜欢打架。真要打，我会想别的办法赢。",
+            "to": "n7_valda_v3",
             "effects": [
               {
                 "type": "interest",
@@ -4951,12 +5215,12 @@
                 "key": "p_answers",
                 "value": "V3"
               }
-            ],
-            "to": "n7_valda_v3"
+            ]
           },
           {
             "id": "v4",
             "label": "……不想说。",
+            "to": "n7_valda_v4",
             "effects": [
               {
                 "type": "impression",
@@ -4977,12 +5241,12 @@
                 "key": "p_answers",
                 "value": "V4"
               }
-            ],
-            "to": "n7_valda_v4"
+            ]
           },
           {
             "id": "v5",
             "label": "你呢？你输过吗？",
+            "to": "n7_valda_v5",
             "effects": [
               {
                 "type": "impression",
@@ -5013,12 +5277,12 @@
                 "key": "p_answers",
                 "value": "V5"
               }
-            ],
-            "to": "n7_valda_v5"
+            ]
           },
           {
             "id": "v6",
             "label": "（沉默）",
+            "to": "n7_valda_v6",
             "effects": [
               {
                 "type": "memory",
@@ -5030,8 +5294,7 @@
                 "key": "p_answers",
                 "value": "V6"
               }
-            ],
-            "to": "n7_valda_v6"
+            ]
           },
           {
             "id": "free",
@@ -5056,11 +5319,6 @@
           {
             "speaker": "valda",
             "text": "撒谎的味道我闻得出来。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩轻轻笑了一声。）"
           }
         ],
         "next": "n7_f_v2"
@@ -5087,25 +5345,6 @@
       },
       {
         "id": "n7_valda_v5",
-        "stage": [
-          {
-            "op": "bust",
-            "who": "valda",
-            "expression": "surprised",
-            "side": "right"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（瓦尔妲愣了一下，随即大笑。）"
-          }
-        ],
-        "next": "n7_valda_v5_2"
-      },
-      {
-        "id": "n7_valda_v5_2",
         "stage": [
           {
             "op": "bust",
@@ -5450,6 +5689,7 @@
           {
             "id": "v1",
             "label": "输过。被打趴下过，后来又站起来了。",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "impression",
@@ -5475,12 +5715,12 @@
                 "key": "p_answers",
                 "value": "V1"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           },
           {
             "id": "v2",
             "label": "我从来没输过。",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "impression",
@@ -5501,12 +5741,12 @@
                 "key": "p_answers",
                 "value": "V2"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           },
           {
             "id": "v3",
             "label": "我不喜欢打架。真要打，我会想别的办法赢。",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "interest",
@@ -5532,12 +5772,12 @@
                 "key": "p_answers",
                 "value": "V3"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           },
           {
             "id": "v4",
             "label": "……不想说。",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "impression",
@@ -5558,12 +5798,12 @@
                 "key": "p_answers",
                 "value": "V4"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           },
           {
             "id": "v5",
             "label": "你呢？你输过吗？",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "impression",
@@ -5594,12 +5834,12 @@
                 "key": "p_answers",
                 "value": "V5"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           },
           {
             "id": "v6",
             "label": "（沉默）",
+            "to": "n7_valda_close",
             "effects": [
               {
                 "type": "memory",
@@ -5611,8 +5851,7 @@
                 "key": "p_answers",
                 "value": "V6"
               }
-            ],
-            "to": "n7_valda_close"
+            ]
           }
         ]
       },
@@ -5651,42 +5890,28 @@
             "who": "moira",
             "expression": "smile",
             "side": "left"
+          },
+          {
+            "op": "bust_clear",
+            "at": 1
+          },
+          {
+            "op": "bust",
+            "who": "merca",
+            "expression": "smile",
+            "side": "right",
+            "at": 1
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_god_merca_ledger",
+            "at": 1
           }
         ],
         "lines": [
           {
             "speaker": "moira",
             "text": "梅尔卡。"
-          }
-        ],
-        "next": "n8_intro_2"
-      },
-      {
-        "id": "n8_intro_2",
-        "stage": [
-          {
-            "op": "bust_clear"
-          },
-          {
-            "op": "bust",
-            "who": "merca",
-            "expression": "smile",
-            "side": "right"
-          },
-          {
-            "op": "sfx",
-            "id": "sfx_god_merca_ledger"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡舔了舔指尖上的糖霜，翻开账本）"
-          },
-          {
-            "speaker": "merca",
-            "text": "终于轮到我啦。叫我梅尔卡就好。"
           }
         ],
         "next": "n8_merca"
@@ -5703,6 +5928,7 @@
           {
             "id": "m1",
             "label": "我会做饭，也懂一些我们那边的手艺和做法。",
+            "to": "n8_merca_m1",
             "effects": [
               {
                 "type": "impression",
@@ -5733,12 +5959,12 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_merca_m1"
+            ]
           },
           {
             "id": "m2",
             "label": "你先说你出什么价。",
+            "to": "n8_merca_m2",
             "effects": [
               {
                 "type": "impression",
@@ -5773,12 +5999,12 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_merca_m2"
+            ]
           },
           {
             "id": "m3",
             "label": "（拿出从地球带来的东西）",
+            "to": "n8_merca_m3",
             "effects": [
               {
                 "type": "impression",
@@ -5804,12 +6030,12 @@
                 "key": "p_merca_valuation",
                 "value": "mid"
               }
-            ],
-            "to": "n8_merca_m3"
+            ]
           },
           {
             "id": "m4",
             "label": "我什么都没有。",
+            "to": "n8_merca_m4",
             "effects": [
               {
                 "type": "interest",
@@ -5831,12 +6057,12 @@
                 "key": "p_merca_valuation",
                 "value": "low"
               }
-            ],
-            "to": "n8_merca_m4"
+            ]
           },
           {
             "id": "m5",
             "label": "我能带来的，是我这个人的信用。",
+            "to": "n8_merca_m5",
             "effects": [
               {
                 "type": "hint",
@@ -5857,12 +6083,12 @@
                 "key": "p_merca_valuation",
                 "value": "mid"
               }
-            ],
-            "to": "n8_merca_m5"
+            ]
           },
           {
             "id": "m6",
             "label": "那你们能给我什么？",
+            "to": "n8_merca_m6",
             "effects": [
               {
                 "type": "impression",
@@ -5893,8 +6119,7 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_merca_m6"
+            ]
           },
           {
             "id": "free",
@@ -5924,11 +6149,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡眼睛一亮）"
-          },
           {
             "speaker": "merca",
             "text": "会还价！我就知道今天不会白来。"
@@ -6016,25 +6236,6 @@
           {
             "op": "bust",
             "who": "merca",
-            "expression": "thinking",
-            "side": "right"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡接过去，翻来覆去地看）"
-          }
-        ],
-        "next": "n8_merca_m3_3"
-      },
-      {
-        "id": "n8_merca_m3_3",
-        "stage": [
-          {
-            "op": "bust",
-            "who": "merca",
             "expression": "smile",
             "side": "right"
           }
@@ -6081,11 +6282,6 @@
           {
             "speaker": "merca",
             "text": "反向报价？客人你真坏，我喜欢。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩冷哼一声。）"
           }
         ],
         "next": "n8_ledger"
@@ -6123,6 +6319,7 @@
           {
             "id": "m1",
             "label": "我会做饭，也懂一些我们那边的手艺和做法。",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "impression",
@@ -6153,12 +6350,12 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           },
           {
             "id": "m2",
             "label": "你先说你出什么价。",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "impression",
@@ -6193,12 +6390,12 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           },
           {
             "id": "m3",
             "label": "（拿出从地球带来的东西）",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "impression",
@@ -6224,12 +6421,12 @@
                 "key": "p_merca_valuation",
                 "value": "mid"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           },
           {
             "id": "m4",
             "label": "我什么都没有。",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "interest",
@@ -6251,12 +6448,12 @@
                 "key": "p_merca_valuation",
                 "value": "low"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           },
           {
             "id": "m5",
             "label": "我能带来的，是我这个人的信用。",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "hint",
@@ -6277,12 +6474,12 @@
                 "key": "p_merca_valuation",
                 "value": "mid"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           },
           {
             "id": "m6",
             "label": "那你们能给我什么？",
+            "to": "n8_ledger",
             "effects": [
               {
                 "type": "impression",
@@ -6313,8 +6510,7 @@
                 "key": "p_merca_valuation",
                 "value": "high"
               }
-            ],
-            "to": "n8_ledger"
+            ]
           }
         ]
       },
@@ -6327,11 +6523,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡在账本上写了一行。字很小，写得很快。）"
-          },
           {
             "speaker": "merca",
             "text": "这个数，我很少写。",
@@ -6357,11 +6548,6 @@
             "speaker": "moira",
             "text": "（用笔杆敲了敲桌面）下一位。",
             "when": "p_round_end.merca == hard"
-          },
-          {
-            "speaker": "merca",
-            "text": "好啦，这一页账先记到这儿。",
-            "when": "NOT p_free.merca"
           }
         ],
         "next": "n9_intro"
@@ -6390,38 +6576,23 @@
             "who": "moira",
             "expression": "smile",
             "side": "left"
+          },
+          {
+            "op": "bust_clear",
+            "at": 1
+          },
+          {
+            "op": "bust",
+            "who": "sylvie",
+            "expression": "neutral",
+            "side": "right",
+            "at": 1
           }
         ],
         "lines": [
           {
             "speaker": "moira",
             "text": "希尔薇。"
-          }
-        ],
-        "next": "n9_intro_2"
-      },
-      {
-        "id": "n9_intro_2",
-        "stage": [
-          {
-            "op": "bust_clear"
-          },
-          {
-            "op": "bust",
-            "who": "sylvie",
-            "expression": "neutral",
-            "side": "right"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（希尔薇闭着眼。另外几位女神，不知不觉都安静了下来。）"
-          },
-          {
-            "speaker": "sylvie",
-            "text": "……生命……与循环。"
           }
         ],
         "next": "n9_sylvie"
@@ -6438,6 +6609,7 @@
           {
             "id": "s1",
             "label": "一个人。",
+            "to": "n9_sylvie_s1",
             "effects": [
               {
                 "type": "impression",
@@ -6458,12 +6630,12 @@
                 "key": "p_answers",
                 "value": "S1"
               }
-            ],
-            "to": "n9_sylvie_s1"
+            ]
           },
           {
             "id": "s2",
             "label": "一个地方，或者一样东西。",
+            "to": "n9_sylvie_s2",
             "effects": [
               {
                 "type": "impression",
@@ -6484,12 +6656,12 @@
                 "key": "p_answers",
                 "value": "S2"
               }
-            ],
-            "to": "n9_sylvie_s2"
+            ]
           },
           {
             "id": "s3",
             "label": "什么都不想。",
+            "to": "n9_sylvie_s3",
             "effects": [
               {
                 "type": "interest",
@@ -6515,12 +6687,12 @@
                 "key": "p_courtyard_object",
                 "value": "bare_tree"
               }
-            ],
-            "to": "n9_sylvie_s3"
+            ]
           },
           {
             "id": "s4",
             "label": "想念没有神管的日子。",
+            "to": "n9_sylvie_s4",
             "effects": [
               {
                 "type": "interest",
@@ -6551,12 +6723,12 @@
                 "key": "p_courtyard_object",
                 "value": "open_window"
               }
-            ],
-            "to": "n9_sylvie_s4"
+            ]
           },
           {
             "id": "s5",
             "label": "你呢？你想念什么？",
+            "to": "n9_sylvie_s5",
             "effects": [
               {
                 "type": "interest",
@@ -6573,12 +6745,12 @@
                 "key": "p_answers",
                 "value": "S5"
               }
-            ],
-            "to": "n9_sylvie_s5"
+            ]
           },
           {
             "id": "s6",
             "label": "（很久不说话）",
+            "to": "n9_sylvie_s6",
             "effects": [
               {
                 "type": "impression",
@@ -6599,8 +6771,7 @@
                 "key": "p_answers",
                 "value": "S6"
               }
-            ],
-            "to": "n9_sylvie_s6"
+            ]
           },
           {
             "id": "free",
@@ -6626,76 +6797,50 @@
           {
             "id": "family",
             "label": "家人",
+            "to": "n9_hush",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_courtyard_object",
                 "value": "old_cup"
               }
-            ],
-            "to": "n9_f_s1"
+            ]
           },
           {
             "id": "friend",
             "label": "朋友",
+            "to": "n9_hush",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_courtyard_object",
                 "value": "old_scarf"
               }
-            ],
-            "to": "n9_f_s1"
+            ]
           },
           {
             "id": "beloved",
             "label": "喜欢的人",
+            "to": "n9_hush",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_courtyard_object",
                 "value": "unsent_letter"
               }
-            ],
-            "to": "n9_f_s1"
+            ]
           },
           {
             "id": "unsaid",
             "label": "不说",
+            "to": "n9_hush",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_courtyard_object",
                 "value": "blank_paper"
               }
-            ],
-            "to": "n9_f_s1"
-          }
-        ]
-      },
-      {
-        "id": "n9_f_s1",
-        "lines": [
-          {
-            "speaker": "sylvie",
-            "text": "……还会回来吗，那个？"
-          }
-        ],
-        "choices": [
-          {
-            "id": "back",
-            "label": "会的。",
-            "to": "n9_hush"
-          },
-          {
-            "id": "gone",
-            "label": "回不来了。",
-            "to": "n9_hush"
-          },
-          {
-            "id": "none",
-            "label": "（不答）",
-            "to": "n9_hush"
+            ]
           }
         ]
       },
@@ -6708,33 +6853,7 @@
             "text": "你想起的那个地方，或者那样东西，在心里亮了一下。"
           }
         ],
-        "next": "n9_f_s2"
-      },
-      {
-        "id": "n9_f_s2",
-        "lines": [
-          {
-            "speaker": "sylvie",
-            "text": "……冬天的时候，会更想吗？"
-          }
-        ],
-        "choices": [
-          {
-            "id": "more",
-            "label": "会。",
-            "to": "n9_hush"
-          },
-          {
-            "id": "less",
-            "label": "不知道。",
-            "to": "n9_hush"
-          },
-          {
-            "id": "none",
-            "label": "（不答）",
-            "to": "n9_hush"
-          }
-        ]
+        "next": "n9_hush"
       },
       {
         "id": "n9_hush",
@@ -6849,6 +6968,7 @@
           {
             "id": "s1",
             "label": "一个人。",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "impression",
@@ -6869,12 +6989,12 @@
                 "key": "p_answers",
                 "value": "S1"
               }
-            ],
-            "to": "n9_close"
+            ]
           },
           {
             "id": "s2",
             "label": "一个地方，或者一样东西。",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "impression",
@@ -6895,12 +7015,12 @@
                 "key": "p_answers",
                 "value": "S2"
               }
-            ],
-            "to": "n9_close"
+            ]
           },
           {
             "id": "s3",
             "label": "什么都不想。",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "interest",
@@ -6926,12 +7046,12 @@
                 "key": "p_courtyard_object",
                 "value": "bare_tree"
               }
-            ],
-            "to": "n9_close"
+            ]
           },
           {
             "id": "s4",
             "label": "想念没有神管的日子。",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "interest",
@@ -6962,12 +7082,12 @@
                 "key": "p_courtyard_object",
                 "value": "open_window"
               }
-            ],
-            "to": "n9_close"
+            ]
           },
           {
             "id": "s5",
             "label": "你呢？你想念什么？",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "interest",
@@ -6984,12 +7104,12 @@
                 "key": "p_answers",
                 "value": "S5"
               }
-            ],
-            "to": "n9_close"
+            ]
           },
           {
             "id": "s6",
             "label": "（很久不说话）",
+            "to": "n9_close",
             "effects": [
               {
                 "type": "impression",
@@ -7010,8 +7130,7 @@
                 "key": "p_answers",
                 "value": "S6"
               }
-            ],
-            "to": "n9_close"
+            ]
           }
         ]
       },
@@ -7022,11 +7141,6 @@
             "speaker": "moira",
             "text": "（用笔杆敲了敲桌面）下一位。",
             "when": "p_round_end.sylvie == hard"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（她脚边的兽，把头搁回了前爪上。）"
           }
         ],
         "next": "n10_intro"
@@ -7068,11 +7182,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（一滴墨水落在卷轴上，慢慢洇开。）"
-          },
-          {
             "speaker": "moira",
             "text": "好，翻到我这一页。"
           }
@@ -7091,6 +7200,7 @@
           {
             "id": "o1",
             "label": "从我出生那天。",
+            "to": "n10_moira_o1",
             "effects": [
               {
                 "type": "hint",
@@ -7106,12 +7216,12 @@
                 "key": "p_answers",
                 "value": "O1"
               }
-            ],
-            "to": "n10_moira_o1"
+            ]
           },
           {
             "id": "o2",
             "label": "从我推开那扇门。",
+            "to": "n10_moira_o2",
             "effects": [
               {
                 "type": "impression",
@@ -7137,12 +7247,12 @@
                 "key": "p_answers",
                 "value": "O2"
               }
-            ],
-            "to": "n10_moira_o2"
+            ]
           },
           {
             "id": "o3",
             "label": "从我失去某样东西的那天。",
+            "to": "n10_moira_o3",
             "effects": [
               {
                 "type": "impression",
@@ -7168,12 +7278,12 @@
                 "key": "p_answers",
                 "value": "O3"
               }
-            ],
-            "to": "n10_moira_o3"
+            ]
           },
           {
             "id": "o4",
             "label": "普通地上班上学，没什么好讲的。",
+            "to": "n10_moira_o4",
             "effects": [
               {
                 "type": "memory",
@@ -7185,12 +7295,12 @@
                 "key": "p_answers",
                 "value": "O4"
               }
-            ],
-            "to": "n10_moira_o4"
+            ]
           },
           {
             "id": "o5",
             "label": "还没开始。就从这一页开始。",
+            "to": "n10_moira_o5",
             "effects": [
               {
                 "type": "impression",
@@ -7216,12 +7326,12 @@
                 "key": "p_answers",
                 "value": "O5"
               }
-            ],
-            "to": "n10_moira_o5"
+            ]
           },
           {
             "id": "o6",
             "label": "我不想被你写进去。",
+            "to": "n10_moira_o6",
             "effects": [
               {
                 "type": "interest",
@@ -7242,8 +7352,7 @@
                 "key": "p_answers",
                 "value": "O6"
               }
-            ],
-            "to": "n10_moira_o6"
+            ]
           },
           {
             "id": "free",
@@ -7345,6 +7454,7 @@
           {
             "id": "o1",
             "label": "从我出生那天。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "hint",
@@ -7360,12 +7470,12 @@
                 "key": "p_answers",
                 "value": "O1"
               }
-            ],
-            "to": "n10_past"
+            ]
           },
           {
             "id": "o2",
             "label": "从我推开那扇门。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "impression",
@@ -7391,12 +7501,12 @@
                 "key": "p_answers",
                 "value": "O2"
               }
-            ],
-            "to": "n10_past"
+            ]
           },
           {
             "id": "o3",
             "label": "从我失去某样东西的那天。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "impression",
@@ -7422,12 +7532,12 @@
                 "key": "p_answers",
                 "value": "O3"
               }
-            ],
-            "to": "n10_past"
+            ]
           },
           {
             "id": "o4",
             "label": "普通地上班上学，没什么好讲的。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "memory",
@@ -7439,12 +7549,12 @@
                 "key": "p_answers",
                 "value": "O4"
               }
-            ],
-            "to": "n10_past"
+            ]
           },
           {
             "id": "o5",
             "label": "还没开始。就从这一页开始。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "impression",
@@ -7470,12 +7580,12 @@
                 "key": "p_answers",
                 "value": "O5"
               }
-            ],
-            "to": "n10_past"
+            ]
           },
           {
             "id": "o6",
             "label": "我不想被你写进去。",
+            "to": "n10_past",
             "effects": [
               {
                 "type": "interest",
@@ -7496,8 +7606,7 @@
                 "key": "p_answers",
                 "value": "O6"
               }
-            ],
-            "to": "n10_past"
+            ]
           }
         ]
       },
@@ -7513,98 +7622,98 @@
           {
             "id": "abacus",
             "label": "做案头工作：职员、会计、销售、程序员之类（算盘）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "abacus"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "nightlight",
             "label": "上夜班：店员、保安，或者总在熬夜的学生（夜灯）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "nightlight"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "whitecoat",
             "label": "照顾病人：医护、护工，或者照顾过病人的家属（白衣）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "whitecoat"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "wrench",
             "label": "动手修东西：工匠、维修工，做工程的（扳手）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "wrench"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "notes",
             "label": "读书写字：学生、研究者、写作者（笔记）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "notes"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "hearth",
             "label": "做饭：厨师、做餐饮的，或者只是爱下厨（灶火）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "hearth"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "signpost",
             "label": "一直在路上：司机、快递员、导游（路标）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "signpost"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "podium",
             "label": "站在人前说话：教师、讲师、主持（讲台）",
+            "to": "n10_past_noted",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_past_life_door",
                 "value": "podium"
               }
-            ],
-            "to": "n10_past_noted"
+            ]
           },
           {
             "id": "ghost",
@@ -7666,11 +7775,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉笑了）"
-          },
-          {
             "speaker": "moira",
             "text": "那我替你写一个。"
           }
@@ -7684,77 +7788,6 @@
             "op": "motion",
             "who": "moira",
             "action": "cast"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "莫伊拉在卷轴上写下一行，又在旁边画了一个小小的记号。"
-          }
-        ],
-        "next": "n10_ending"
-      },
-      {
-        "id": "n10_ending",
-        "lines": [
-          {
-            "speaker": "moira",
-            "text": "再问一句，不算分：这一章的结尾，你希望是什么？"
-          }
-        ],
-        "choices": [
-          {
-            "id": "good",
-            "label": "好的结局。",
-            "to": "n10_end_good"
-          },
-          {
-            "id": "notyet",
-            "label": "还没想好。",
-            "to": "n10_end_notyet"
-          },
-          {
-            "id": "mine",
-            "label": "我自己写。",
-            "to": "n10_end_mine"
-          }
-        ]
-      },
-      {
-        "id": "n10_end_good",
-        "lines": [
-          {
-            "speaker": "moira",
-            "text": "好结局啊。我的书里，好结局都很贵。"
-          }
-        ],
-        "next": "n10_earth_check"
-      },
-      {
-        "id": "n10_end_notyet",
-        "lines": [
-          {
-            "speaker": "moira",
-            "text": "没想好最好。想好了的，往往写不出来。"
-          }
-        ],
-        "next": "n10_earth_check"
-      },
-      {
-        "id": "n10_end_mine",
-        "stage": [
-          {
-            "op": "bust",
-            "who": "moira",
-            "expression": "thinking",
-            "side": "right"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "moira",
-            "text": "哦？那我等着读。"
           }
         ],
         "next": "n10_earth_check"
@@ -7789,26 +7822,26 @@
           {
             "id": "earth",
             "label": "地球。",
+            "to": "n10_earth_anchor",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_earth_anchor_trigger",
                 "value": "moira"
               }
-            ],
-            "to": "n10_earth_anchor"
+            ]
           },
           {
             "id": "secret",
             "label": "不告诉你。",
+            "to": "n10_relic",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_earth_anchor_trigger",
                 "value": "relic"
               }
-            ],
-            "to": "n10_relic"
+            ]
           }
         ]
       },
@@ -7871,11 +7904,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩轻轻挑了一下眉）"
-          },
-          {
             "speaker": "eluen",
             "text": "那种连神都没有的荒地？"
           },
@@ -7905,11 +7933,6 @@
           {
             "speaker": "eluen",
             "text": "下一个。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉笑了一下，没有替她解释。）"
           }
         ],
         "next": "n10_close"
@@ -8090,10 +8113,6 @@
             "speaker": "narrator",
             "kind": "narrate",
             "text": "（艾琉恩背后的光环，齿轮停转了半拍。）"
-          },
-          {
-            "speaker": "eluen",
-            "text": "……"
           }
         ],
         "next": "n11_appraise_5"
@@ -8124,48 +8143,33 @@
             "who": "eluen",
             "expression": "neutral",
             "side": "right"
+          },
+          {
+            "op": "camera",
+            "size": "near",
+            "move": "push",
+            "at": 1
+          },
+          {
+            "op": "bust",
+            "who": "moira",
+            "expression": "surprised",
+            "side": "left",
+            "at": 1
+          },
+          {
+            "op": "sfx",
+            "id": "sfx_god_moira_page",
+            "at": 1
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩的声音恢复了平稳，比之前更冷）"
-          },
           {
             "speaker": "eluen",
             "text": "这不合规格。"
           }
         ],
         "anchor": true,
-        "next": "n11_appraise_7"
-      },
-      {
-        "id": "n11_appraise_7",
-        "stage": [
-          {
-            "op": "camera",
-            "size": "near",
-            "move": "push"
-          },
-          {
-            "op": "bust",
-            "who": "moira",
-            "expression": "surprised",
-            "side": "left"
-          },
-          {
-            "op": "sfx",
-            "id": "sfx_god_moira_page"
-          }
-        ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉翻书，翻得很快，停住，又往回翻。然后她抬起头，笑了。）"
-          }
-        ],
         "next": "n11_appraise_8"
       },
       {
@@ -8267,11 +8271,6 @@
           {
             "speaker": "moira",
             "text": "剧透是不道德的。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（她笑着，把那一页又翻了回去。）"
           }
         ],
         "next": "n11_verdict"
@@ -8367,11 +8366,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（瓦尔妲拍桌大笑）"
-          },
-          {
             "speaker": "valda",
             "text": "哈！你也有看走眼的时候？上一次你这么慌，还是那件事的时候吧？"
           }
@@ -8394,11 +8388,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩的光环骤然变亮）"
-          },
           {
             "speaker": "eluen",
             "text": "我没有慌。"
@@ -8483,16 +8472,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "很长的沉默。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡压低了声音）"
-          },
-          {
             "speaker": "merca",
             "text": "……上面在看吗？"
           }
@@ -8509,11 +8488,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（很久以后）"
-          },
           {
             "speaker": "eluen",
             "text": "上面从来不看过程。"
@@ -8542,7 +8516,7 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
-            "text": "光恢复了。瓦尔妲没有再笑。希尔薇睁开了眼睛。"
+            "text": "光恢复了。瓦尔妲没有再笑，希尔薇睁开了眼睛。她们都在看你。"
           }
         ],
         "next": "n11_response"
@@ -8560,17 +8534,11 @@
             "op": "bust_clear"
           }
         ],
-        "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "她们都在看你。"
-          }
-        ],
         "choices": [
           {
             "id": "r1",
             "label": "凭什么！",
+            "to": "n11_r1",
             "effects": [
               {
                 "type": "flag",
@@ -8587,12 +8555,12 @@
                 "goddess": "all",
                 "tag": "会咬人的"
               }
-            ],
-            "to": "n11_r1"
+            ]
           },
           {
             "id": "r2",
             "label": "我到底哪里不合规格？",
+            "to": "n11_r2",
             "effects": [
               {
                 "type": "flag",
@@ -8609,12 +8577,12 @@
                 "goddess": "all",
                 "tag": "问为什么的"
               }
-            ],
-            "to": "n11_r2"
+            ]
           },
           {
             "id": "r3",
             "label": "等等，求你们再看一次。",
+            "to": "n11_r3",
             "effects": [
               {
                 "type": "flag",
@@ -8631,12 +8599,12 @@
                 "goddess": "all",
                 "tag": "求过情的"
               }
-            ],
-            "to": "n11_r3"
+            ]
           },
           {
             "id": "r4",
             "label": "原来神也会怕。",
+            "to": "n11_r4",
             "effects": [
               {
                 "type": "flag",
@@ -8658,12 +8626,12 @@
                 "goddess": "all",
                 "tag": "看穿的"
               }
-            ],
-            "to": "n11_r4"
+            ]
           },
           {
             "id": "r5",
             "label": "（沉默）",
+            "to": "n11_r5",
             "effects": [
               {
                 "type": "flag",
@@ -8680,8 +8648,7 @@
                 "goddess": "all",
                 "tag": "不出声的"
               }
-            ],
-            "to": "n11_r5"
+            ]
           },
           {
             "id": "free",
@@ -8869,17 +8836,8 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（梅尔卡跳下椅子，走到你面前，一枚硬币在她指间转着）"
-          },
-          {
             "speaker": "merca",
-            "text": "好啦好啦。客人，你今天运气不太好。"
-          },
-          {
-            "speaker": "merca",
-            "text": "不过嘛……"
+            "text": "好啦好啦。客人，你今天运气不太好。不过嘛……"
           }
         ],
         "next": "n11_coin_2"
@@ -8903,17 +8861,8 @@
             "text": "这枚硬币先赊给你。客人，生意要做长久。"
           },
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（她把硬币按进你的掌心，凑近了，带着笑）"
-          },
-          {
             "speaker": "merca",
             "text": "反正上面那位只看结果。"
-          },
-          {
-            "speaker": "merca",
-            "text": "过程嘛，赊账也行。"
           },
           {
             "speaker": "merca",
@@ -8971,11 +8920,6 @@
           {
             "speaker": "merca",
             "text": "那是另一笔生意。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（她眨了眨眼，蹦回自己的椅子上。）"
           }
         ],
         "next": "n11_coin_end"
@@ -9142,62 +9086,57 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
-            "text": "女神们已经不再看你了。"
-          },
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "你还能说最后一句话。"
+            "text": "女神们已经不再看你了。你还能说最后一句话。"
           }
         ],
         "choices": [
           {
             "id": "back",
             "label": "我会回来的。",
+            "to": "n12_drop",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_last_words",
                 "value": "back"
               }
-            ],
-            "to": "n12_drop"
+            ]
           },
           {
             "id": "regret",
             "label": "你们会后悔的。",
+            "to": "n12_drop",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_last_words",
                 "value": "regret"
               }
-            ],
-            "to": "n12_drop"
+            ]
           },
           {
             "id": "thanks",
             "label": "……谢谢你的硬币。",
+            "to": "n12_drop",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_last_words",
                 "value": "thanks"
               }
-            ],
-            "to": "n12_drop"
+            ]
           },
           {
             "id": "silent",
             "label": "（什么都不说）",
+            "to": "n12_drop",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_last_words",
                 "value": "silent"
               }
-            ],
-            "to": "n12_drop"
+            ]
           },
           {
             "id": "free",
@@ -9290,11 +9229,6 @@
         ],
         "lines": [
           {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（莫伊拉合上了书）"
-          },
-          {
             "speaker": "moira",
             "text": "放心，这一章才刚开始。"
           }
@@ -9324,11 +9258,6 @@
           }
         ],
         "lines": [
-          {
-            "speaker": "narrator",
-            "kind": "narrate",
-            "text": "（艾琉恩抬起手）"
-          },
           {
             "speaker": "eluen",
             "text": "去吧，庭间之隙会替我处理你。"
@@ -9368,7 +9297,7 @@
           {
             "speaker": "narrator",
             "kind": "narrate",
-            "text": "（坠落开始的瞬间，一个极轻的声音贴着你的耳边响起，只有你听得见）"
+            "text": "（坠落开始的瞬间，一个极轻的声音贴着你耳边响起，只有你听得见。）"
           },
           {
             "speaker": "sylvie",
@@ -9529,23 +9458,23 @@
           {
             "id": "reach",
             "label": "伸手",
+            "hidden": true,
+            "key": "reach_out",
+            "to": "n13_caught",
             "effects": [
               {
                 "type": "flag",
                 "key": "p_reached_out",
                 "value": true
               }
-            ],
-            "to": "n13_caught",
-            "key": "reach_out",
-            "hidden": true
+            ]
           },
           {
             "id": "still",
             "label": "（什么也不做）",
+            "hidden": true,
             "timeout": 30,
-            "to": "n13_caught",
-            "hidden": true
+            "to": "n13_caught"
           }
         ]
       },

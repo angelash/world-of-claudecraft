@@ -224,6 +224,44 @@ export type ChoicePolicy = (
   choices: string[],
 ) => string | undefined;
 
+/**
+ * Take a roam node's choice the way a player would (onboarding_interaction.md 5): walk to its
+ * location (a teleport here), then use it; a standing or timed choice is taken by waiting for
+ * the node's timer where it stands.
+ */
+export function roamTo(engine: Engine, choiceId: string): void {
+  const run = engine.world.slices.scenes.current;
+  const scene = engine.content.scenes.find((s) => s.id === run?.sceneId);
+  const node = scene?.nodes.find((n) => n.id === run?.nodeId);
+  const choice = node?.choices?.find((c) => c.id === choiceId);
+  if (!run || !node?.roam || !choice) return;
+  const mapId = node.roam.mapId;
+  const loc = engine.content.maps
+    .find((m) => m.id === mapId)
+    ?.locations.find((l) => l.id === choice.at);
+  if (loc) {
+    const x = loc.x + loc.w / 2;
+    const y = loc.y + loc.h / 2;
+    engine.queue('world.teleport', {
+      entityId: playerEntity(engine.world)?.id ?? 'player',
+      mapId,
+      x,
+      y,
+    });
+    engine.step(1);
+  }
+  if (choice.stand || (choice.hidden && choice.timeout !== undefined)) {
+    const { runId, revision } = run;
+    for (let k = 0; k < 20 * 120; k++) {
+      const now = engine.world.slices.scenes.current;
+      if (now?.runId !== runId || now.revision !== revision) return;
+      engine.step(1);
+    }
+    return;
+  }
+  engine.queue('scenes.choose', { choiceId });
+}
+
 /** Play the current scene with a policy, otherwise try each visible choice before repeating. */
 export function playScene(engine: Engine, policy?: ChoicePolicy, maxSteps = 2000): void {
   const tried = new Map<string, Set<string>>();
@@ -238,6 +276,15 @@ export function playScene(engine: Engine, policy?: ChoicePolicy, maxSteps = 2000
       if (pick) used.add(pick);
       tried.set(key, used);
       engine.queue('scenes.choose', { choiceId: pick as string });
+    } else if (v.waiting === 'roam') {
+      // a roam node (onboarding_interaction.md 5): the same policy, then walk there
+      const ids = v.choices.map((c) => c.id);
+      const key = `${v.sceneId}/${v.nodeId}`;
+      const used = tried.get(key) ?? new Set<string>();
+      const pick = policy?.(v.sceneId, v.nodeId, ids) ?? ids.find((id) => !used.has(id)) ?? ids[0];
+      if (pick) used.add(pick);
+      tried.set(key, used);
+      if (pick) roamTo(engine, pick);
     } else if (v.waiting === 'input') {
       engine.queue('scenes.input', { text: '' });
     } else if (v.waiting === 'advance') {

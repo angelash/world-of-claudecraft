@@ -1212,7 +1212,7 @@
 | `p_unsent_words` | `prologue.unsent_words` | 出口 | 文本 | 至多 40 字（B 开场至多 12 字）；空值 A"（没有回）"、B"（还没想好）"、C"（还没想好）"、D"（没有说出口）" | `cut_p_earth` | `cut_p_earth`；终章回到地球的四个开场（`cut_end_release`）、第六幕地球真相（`cut_a6_earth_truth`）的回扣 | 地球最后一刻没说出口的那句话：A 回家吃饭的回复，B 猫的名字，C 结果出来时的第一句，D 对老房间说的话 |
 | `p_store_role` | `prologue.store_role` | 出口 | 枚举 | `clerk`、`customer`；默认未写入 | `cut_p_earth` | `p_default_past_life`（店员取 `nightlight`，顾客取 `hearth`）、终章回到地球 B（`cut_end_release`） | B 开场站在收银台的哪一边 |
 | `p_waiting_for` | `prologue.waiting_for` | 出口 | 文本 | 至多 12 字；空值"某个人" | `cut_p_earth` | 终章回到地球 C（`cut_end_release`） | C 开场在等谁的结果 |
-| `p_call_free_count` | `prologue.call_free_count` | 出口 | 整数 | 0 到 3；默认 0 | `cut_p_call` | `cut_p_call`（有模型时自由提问的次数上限） | 叫号时有模型的自由提问次数 |
+| `p_call_free_count` | `prologue.call_free_count` | 出口 | 整数 | 0 到 3；默认 0 | `cut_p_call` | `cut_p_call`（叫号提问的三问上限，写定问题与自由提问合计） | 叫号时已经问过的问题数 |
 | `p_round_end.<神>` | `prologue.round_end.<神>` | 族 | 枚举 | 键：`eluen`、`valda`、`merca`、`sylvie`、`moira`；值：`closed`、`soft`、`hard`；默认未写入 | `cut_p_interview` | `cut_p_interview`（`hard` 时由莫伊拉敲桌收尾）、各女神题面（`ai_prompt`） | 有模型时该轮面试的结束方式 |
 | `p_cycle_name_reaction` | `prologue.cycle_name_reaction` | 出口 | 枚举 | `falter`、`drop`；默认未写入；只在 `cycle >= 2` 写入 | `cut_p_call`、`cut_p_interview` | `cut_p_judgement`、`cut_p_discard`；第六幕证据 E16 的下一期加注（对艾琉恩的事实防线强度 1）、`cut_p_interview` | 下一期在候见厅说出被禁之名时艾琉恩的反应：面试前说出为 `falter`（手在发抖），面试中说出为 `drop`（当场丢弃） |
 

@@ -32,6 +32,7 @@ export * from './court';
 export * from './epilogue';
 export * from './improv';
 export * from './present';
+export * from './roam';
 export * from './runner';
 export * from './stage_steps';
 export * from './trial';

@@ -8,6 +8,10 @@
 
 import type { TutSignal } from '../tutorial/steps';
 
+/** The prologue scene that asks the name (P6) and the one that asks the questions (P7 to P11). */
+const NAME_SCENE = 'cut_p_call';
+const ANSWER_SCENE = 'cut_p_interview';
+
 /** Below this share of health the low-health step fires (17.5 tut_a1_low_hp: 40%). */
 export const LOW_HP = 0.4;
 /** At or above this share the low-health step is done (17.5: back to 80%). */
@@ -78,6 +82,11 @@ export interface StoryProbe {
   act: string;
   /** what the open scene waits for, null without a scene */
   waiting: string | null;
+  /**
+   * the open scene: the name is asked in the call, the answers in the interview (the earth
+   * rooms before them have inputs of their own: the unsent reply, the cat's name)
+   */
+  sceneId?: string;
   /** IDs of the visible choices; act-1 trials offer evidence as piece choices. */
   choiceIds?: readonly string[];
   /** a choice picked by its own key is offered (the prologue's fall, P15 "伸手") */
@@ -94,9 +103,10 @@ export interface StoryProbe {
 
 /**
  * The story signals, with their one-refresh pulses (the prompt answered, the fall over, the
- * choice made, the evidence shown, the eavesdropping over, the shop closed). The prologue's
- * first text input is the name (P6, tut_p_name); the inputs and choices after it are the
- * interview answers (P7, tut_p_answer). Pure; keeps only what it saw last refresh.
+ * choice made, the evidence shown, the eavesdropping over, the shop closed). The name is the
+ * call's text input (P6, tut_p_name); the inputs and choices of the interview are the answers
+ * (P7, tut_p_answer); a probe without a scene id falls back to "the first input is the name".
+ * Pure; keeps only what it saw last refresh.
  */
 export class StorySignals {
   private nameDone = false;
@@ -115,12 +125,14 @@ export class StorySignals {
   update(p: StoryProbe): Set<TutSignal> {
     const out = new Set<TutSignal>();
     const prologue = p.act === 'prologue';
-    const name = prologue && !this.nameDone && p.waiting === 'input';
+    const inScene = (id: string) => p.sceneId === undefined || p.sceneId === id;
+    const name = prologue && !this.nameDone && p.waiting === 'input' && inScene(NAME_SCENE);
     const answer =
       prologue &&
       this.nameDone &&
       !this.answerDone &&
-      (p.waiting === 'input' || p.waiting === 'choice');
+      (p.waiting === 'input' || p.waiting === 'choice') &&
+      inScene(ANSWER_SCENE);
     if (name) out.add('name_prompt');
     if (this.last.name && !name) {
       this.nameDone = true;

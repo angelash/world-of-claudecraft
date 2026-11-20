@@ -17,12 +17,19 @@ import { applyEffects, conditionHolds } from '../quests/effects';
 import { knowledgeFor, sanitizeTextParam } from '../quests/lore';
 import { resetQuests } from '../quests/progress';
 import { defaultKind, fillText, speakerName } from '../quests/speakers';
-import { DEFAULT_PLAYER_APPEARANCE, setAppearance, setEntityName } from '../world';
+import {
+  DEFAULT_PLAYER_APPEARANCE,
+  haltEntity,
+  playerEntity,
+  setAppearance,
+  setEntityName,
+} from '../world';
 import { ruleAnswer } from './answer_port';
 import { presentable, presentEvidence } from './court';
 import { assembleEpilogue, recordHeading, recordSpeaker } from './epilogue';
 import { briefKept, extractValues } from './improv';
 import { placePlayerForScene } from './placement';
+import { roamPickable, standingChoice } from './roam';
 import { presentAtTrial, type TrialDef, trialOffers } from './trial';
 import type {
   RoundEnd,
@@ -369,7 +376,8 @@ function settleNode(
   const trial = trialOf(ctx.content, node);
   const pieces = trial ? trialOffers(ctx, trial) : [];
   if (choices.length > 0 || pieces.length > 0) {
-    run.waiting = 'choice';
+    // a roam node's choices are touch points: the player walks about (roam.ts)
+    run.waiting = node.roam ? 'roam' : 'choice';
     // a timed choice: the shortest timeout among the choices on offer (13.6)
     let timed: SceneChoice | null = null;
     for (const c of choices) {
@@ -503,11 +511,35 @@ export function cmdChoose(ctx: SystemContext, choiceId: string): CommandResult {
   if (!cur) return reject('no_scene', tr('sys.scenes.reject.no_scene.idle'));
   const { run, scene, node } = cur;
   if (run.waiting === 'court' && node.court) return chooseInCourt(ctx, run, scene, node, choiceId);
+  if (run.waiting === 'roam') return chooseInRoam(ctx, run, scene, node, choiceId);
   if (run.waiting !== 'choice') return reject('no_choice', tr('sys.scenes.reject.no_choice'));
   if (choiceId.startsWith(PIECE_PREFIX) && node.present)
     return presentInTrial(ctx, run, scene, node, choiceId.slice(PIECE_PREFIX.length));
   const choice = visibleChoices(ctx, run, node).find((c) => c.id === choiceId);
   if (!choice) return reject('no_option', tr('sys.scenes.reject.no_option'));
+  applyChoice(ctx, run, scene, node, choice);
+  return ok(choice.label);
+}
+
+/**
+ * Pick a touch point of a roam node (onboarding_interaction.md 5.2): only within reach of its
+ * location (or anywhere, for an action without one); standing choices are never picked by hand.
+ */
+function chooseInRoam(
+  ctx: SystemContext,
+  run: SceneRun,
+  scene: SceneDef,
+  node: SceneNode,
+  choiceId: string,
+): CommandResult {
+  const choice = visibleChoices(ctx, run, node).find((c) => c.id === choiceId);
+  if (!choice) return reject('no_option', tr('sys.scenes.reject.no_option'));
+  const p = playerEntity(ctx.world);
+  const at = p ? { mapId: p.mapId, x: p.x, y: p.y } : undefined;
+  if (!roamPickable(ctx.content, node, choice, at))
+    return reject('out_of_reach', tr('sys.scenes.reject.out_of_reach'));
+  // the walk ends where the point was used: no click-to-move goes on under the panel
+  if (p) haltEntity(ctx, p.id);
   applyChoice(ctx, run, scene, node, choice);
   return ok(choice.label);
 }
@@ -869,10 +901,37 @@ export function resolveTimeouts(ctx: SystemContext): void {
 export function choiceTimeouts(ctx: SystemContext): void {
   const cur = current(ctx);
   const timed = cur?.run.timed;
-  if (!cur || !timed || cur.run.waiting !== 'choice' || timed.at > ctx.tick) return;
+  if (!cur || !timed || timed.at > ctx.tick) return;
+  if (cur.run.waiting !== 'choice' && cur.run.waiting !== 'roam') return;
   cur.run.timed = undefined;
-  const choice = visibleChoices(ctx, cur.run, cur.node).find((c) => c.id === timed.choice);
-  if (choice) applyChoice(ctx, cur.run, cur.scene, cur.node, choice);
+  const open = visibleChoices(ctx, cur.run, cur.node);
+  // a roam node's timer takes the standing choice the player stands in first (roam.ts)
+  const p = playerEntity(ctx.world);
+  const standing =
+    cur.run.waiting === 'roam'
+      ? standingChoice(ctx.content, cur.node, open, p && { mapId: p.mapId, x: p.x, y: p.y })
+      : null;
+  const choice = standing ?? open.find((c) => c.id === timed.choice);
+  if (!choice) {
+    // the timed choice closed meanwhile: the shortest timer still open runs from now
+    rearmTimer(ctx, cur.run, open);
+    return;
+  }
+  if (cur.run.waiting === 'roam' && p) haltEntity(ctx, p.id);
+  applyChoice(ctx, cur.run, cur.scene, cur.node, choice);
+}
+
+/** Start the shortest open timed choice from now (the node's own timer, 13.6). */
+function rearmTimer(ctx: SystemContext, run: SceneRun, open: readonly SceneChoice[]): void {
+  let timed: SceneChoice | null = null;
+  for (const c of open)
+    if (c.timeout !== undefined && c.timeout >= 0 && (!timed || c.timeout < (timed.timeout ?? 0)))
+      timed = c;
+  if (timed)
+    run.timed = {
+      choice: timed.id,
+      at: ctx.tick + Math.max(1, Math.round((timed.timeout ?? 0) * TICK_HZ)),
+    };
 }
 
 export interface UiDoneData {

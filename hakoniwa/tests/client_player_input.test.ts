@@ -10,6 +10,7 @@ import { RING_TIME_SCALE } from '../src/client/input/radial';
 import { scenePolicy } from '../src/game/autoplay/scene_policy';
 import { sceneView } from '../src/systems/scenes';
 import { type InputHarness, inputHarness, nearestMonster } from './input_harness';
+import { roamByKeys } from './roam_input';
 
 /** A harness already in act 1 (the prologue played with Space and number keys). */
 function inAct1(): InputHarness {
@@ -24,6 +25,7 @@ function inAct1(): InputHarness {
     }
     const ids = sv.choices.map((c) => c.id);
     if (sv.waiting === 'advance') h.press({ code: 'Space' });
+    else if (sv.waiting === 'roam') roamByKeys(h, sv, policy(sv.sceneId, sv.nodeId, ids));
     else if (sv.waiting === 'ui' && sv.ui) {
       // the spirit mirror (P4) is not wired in this harness: it closes as it is
       h.host.queue([
@@ -42,6 +44,10 @@ function inAct1(): InputHarness {
     throw new Error(`prologue not finished: ${sv?.nodeId} ${sv?.waiting} tick ${h.engine.tick}`);
   }
   for (let i = 0; i < 4; i++) h.keyFrame();
+  // the act-1 opening says a loose line or two right after the scene: read them (Space), so
+  // the layering tests start on a quiet field
+  for (let i = 0; i < 40; i++) h.keyFrame();
+  for (let i = 0; i < 20 && h.loose.current; i++) h.press({ code: 'Space' });
   return h;
 }
 
@@ -53,11 +59,10 @@ beforeAll(() => {
 describe('free text', () => {
   it("an empty answer (the floating keyboard's default key) takes the node's default name", () => {
     expect(base.engine.world.meta.flags['player.name']).toBe('无名氏');
-    // the unsent reply of the first opening (P1), the name (P6), the name once more (the
-    // nameless player's "其实，我有名字。" among the call's questions, left empty too), and three
-    // free questions at the call, offered without a model once the written ones are asked
-    // (PK-M1-19)
-    expect(base.sent['scenes.input']).toBe(6);
+    // the unsent reply of the first opening (P1) and the name (P6); the nameless player keeps
+    // the name ("就这样吧" comes first) and the call's three questions go to written ones
+    // (onboarding_interaction.md 6 P6)
+    expect(base.sent['scenes.input']).toBe(2);
     expect(base.engine.world.meta.flags.p_unsent_words).toBe('（没有回）');
   });
 });

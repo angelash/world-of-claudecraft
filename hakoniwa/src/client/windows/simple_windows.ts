@@ -77,7 +77,11 @@ export function menuWindow(ctx: WindowContext): WindowContent {
       });
     }),
   ]);
-  if (ctx.adapters.scene?.scene(ctx.view)?.restartable) {
+  // re-choosing the opening stays on offer while a roam node lets the player walk (P1 to P4)
+  const restartable = () =>
+    !!(ctx.adapters.scene?.scene(ctx.view) ?? ctx.adapters.scene?.roamScene?.(ctx.view))
+      ?.restartable;
+  if (restartable()) {
     const restart = item(t('ui.mode.cutscene.restart'), () => {
       void askConfirm({
         title: t('ui.mode.cutscene.restart_title'),
@@ -85,7 +89,7 @@ export function menuWindow(ctx: WindowContext): WindowContent {
         irreversible: true,
       }).then((yes) => {
         // The command validates the current scene again if a queued transition won.
-        if (!yes || !ctx.adapters.scene?.scene(ctx.view)?.restartable) return;
+        if (!yes || !restartable()) return;
         ctx.commands.queue('scenes.restart', {});
         ctx.actions.closeWindow('menu');
       });

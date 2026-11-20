@@ -1,12 +1,11 @@
 // The prologue steps of ux_and_onboarding.md 17.5 (9 rows). Data only; the types and the
 // builders are in ./steps.ts.
 //
-// `tut_p_listen` follows the prologue document instead of the 17.5 row: the eavesdrop tier is
-// one stance choice before the quarrel starts, never the player's position between segments
-// (prologue_antechamber.md 3.1, the PK-M1-54 decision, canon first). So it fires when the
-// player picked the far tier (`p_eavesdrop_level` written as 0, the bench, or 1, the cough
-// that ends far) and says the eavesdropping has three distances, instead of asking a standing
-// player to walk closer.
+// `tut_p_listen`: the eavesdrop tier is where the player stands when the voices begin
+// (prologue_antechamber.md 3.1; the stance is a roam node, onboarding_interaction.md 6 P5), so
+// it fires as the quarrel scene opens and says that standing closer hears more, while the
+// player can still walk. Picking the far tier afterwards (`p_eavesdrop_level` 0 or 1) still
+// fires it for a player who missed the opening.
 
 import {
   after,
@@ -70,8 +69,14 @@ export const PROLOGUE_STEPS: readonly TutStep[] = [
     id: 'tut_p_listen',
     category: 'social',
     methods: ['narr', 'bar'],
-    // the stance choice writes the tier: 0 (the bench) or 1 (the cough, which ends far)
-    trigger: anyOf(flagChanged('p_eavesdrop_level', 'lte', 1), sig('listen_far')),
+    // the stance is where the player stands when the voices begin (a roam node,
+    // onboarding_interaction.md 6 P5): say "closer hears more" as the quarrel scene opens, while
+    // the player can still walk; the far tier after the fact stays as a second trigger
+    trigger: anyOf(
+      ev('scene.started', field('sceneId', 'eq', 'cut_p_quarrel')),
+      flagChanged('p_eavesdrop_level', 'lte', 1),
+      sig('listen_far'),
+    ),
     done: anyOf(sig('listen_end'), ev('scene.ended')),
     duringScene: true,
   }),

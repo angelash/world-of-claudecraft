@@ -6,8 +6,11 @@ import { createGame } from '../src/game/create';
 import { observePlaythrough } from './playthrough/diagnostics';
 import { CHEATS } from './playthrough/harness';
 
-// catalog_quests_acts1_3.md 5.1 budgets M01 at 25 and M02 at 35 play minutes.
+// catalog_quests_acts1_3.md 5.1 budgets M01 at 25 and M02 at 35 play minutes, from the start
+// of act 1. The prologue before it is walked (its rooms are roam nodes, onboarding_interaction.md)
+// and has a budget of its own.
 const TUTORIAL_BUDGET = (25 + 35) * 60 * TICK_HZ;
+const PROLOGUE_BUDGET = 5 * 60 * TICK_HZ;
 
 it(
   'walks the real prologue and first tutorial boss with player commands',
@@ -27,6 +30,11 @@ it(
     });
     let result: AutoplayResult | undefined;
     try {
+      const prologue = bot.run({
+        maxTicks: PROLOGUE_BUDGET,
+        until: (e) => e.world.meta.flags.act === 'act1',
+      });
+      expect(prologue.stuck).toBeUndefined();
       result = bot.run({
         maxTicks: TUTORIAL_BUDGET,
         until: (e) => e.world.slices.quests.quests.q_a1_m02_raven?.status === 'done',

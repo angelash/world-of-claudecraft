@@ -817,7 +817,7 @@ describe('review hardening', () => {
       'stage door cap must be a whole number >= 1',
       'choice c1 timeout must be seconds >= 0',
       'choice c2 key reach_ot is not a keyed action',
-      'hidden choice c3 has neither a key nor a timeout',
+      'hidden choice c3 has neither a key, a timeout nor a classification',
       'input turns need whole soft >= 1 and hard >= soft',
       'input turns need an answerer (agentId)',
       'segment nowhere has no marker node',

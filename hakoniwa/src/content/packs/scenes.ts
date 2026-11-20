@@ -18,6 +18,7 @@ import trials from '../../../data/scenes/trials.json';
 import type { ContentMap } from '../../core/contracts';
 import { defaultRegistry } from '../../core/registry';
 import type { ItemDef } from '../../systems/inventory/types';
+import { roamProblems } from '../../systems/scenes/roam';
 import type { TrialDef } from '../../systems/scenes/trial';
 import {
   type CourtDefenseDef,
@@ -44,6 +45,14 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
     ids.add(n.id);
   }
   const has = (id: string | undefined) => id === undefined || id === '' || ids.has(id);
+  // choices a free answer is sorted into (SceneInput.classify), as "<node>/<choice>"
+  const classifiedInto = new Set(
+    scene.nodes.flatMap((x) =>
+      [...(x.input?.classify?.choices ?? []), x.input?.classify?.fallback ?? ''].map(
+        (c) => `${x.input?.classify?.node}/${c}`,
+      ),
+    ),
+  );
   if (!ids.has(scene.start)) out.push(`scene ${scene.id}: unknown start ${scene.start}`);
   if (scene.then && !content.scenes.some((s) => s.id === scene.then))
     out.push(`scene ${scene.id}: unknown then ${scene.then}`);
@@ -65,9 +74,15 @@ export function sceneProblems(scene: SceneDef, content: ContentMap): string[] {
         out.push(`${at}: choice ${c.id} timeout must be seconds >= 0`);
       if (c.key !== undefined && !(SCENE_CHOICE_KEYS as readonly string[]).includes(c.key))
         out.push(`${at}: choice ${c.id} key ${c.key} is not a keyed action`);
-      // a hidden choice is picked by its key or its timeout; with neither nobody can reach it
-      if (c.hidden && c.key === undefined && c.timeout === undefined)
-        out.push(`${at}: hidden choice ${c.id} has neither a key nor a timeout`);
+      // a hidden choice is picked by its key, its timeout, or by sorting a free answer into it
+      // (the call's questions a free question reaches, onboarding_interaction.md 6 P6)
+      if (
+        c.hidden &&
+        c.key === undefined &&
+        c.timeout === undefined &&
+        !classifiedInto.has(`${n.id}/${c.id}`)
+      )
+        out.push(`${at}: hidden choice ${c.id} has neither a key, a timeout nor a classification`);
     }
     out.push(...stageTimingProblems(n, at));
     for (const d of n.stage ?? []) {
@@ -397,6 +412,8 @@ export const pack: ContentPack = {
   validate(content) {
     const problems: string[] = [];
     for (const s of content.scenes) problems.push(...sceneProblems(s, content));
+    // roam nodes (onboarding_interaction.md 5.4)
+    problems.push(...roamProblems(content));
     for (const e of content.evidence) {
       if (!content.items.some((i) => i.id === e.item))
         problems.push(`evidence ${e.id}: unknown item ${e.item}`);

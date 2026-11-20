@@ -13,7 +13,7 @@ import { divineRecord, goddessView, revelationsShown } from '../../systems/godde
 import { countItem } from '../../systems/inventory';
 import { partyView } from '../../systems/party';
 import { offerable, questDef, questLog } from '../../systems/quests';
-import { sceneView } from '../../systems/scenes';
+import { interactPoint, roamPoints, sceneView } from '../../systems/scenes';
 import type { MarkerKind } from '../render/markers';
 import type {
   ConversationAdapter,
@@ -48,6 +48,9 @@ export function createInteractAdapter(): InteractAdapter {
   return {
     interact(view, targetId) {
       if (!targetId) {
+        // a roam node's touch point in reach (onboarding_interaction.md 5.3) comes first
+        const point = interactPoint(roamPoints(view.world as never, view.content as never));
+        if (point) return [{ kind: 'scenes.choose', data: { choiceId: point.id } }];
         const near = this.nearestTalkable(view);
         return near ? [{ kind: 'dialogue.talk', data: { npcId: near } }] : null;
       }
@@ -116,7 +119,16 @@ export function createConversationAdapter(): ConversationAdapter {
 
 export function createSceneAdapter(): SceneAdapter {
   return {
-    scene: (view) => sceneView(view.world as never, view.content as never),
+    // a roam node hands the player back control: no panel, the touch points come from roam()
+    scene: (view) => {
+      const v = sceneView(view.world as never, view.content as never);
+      return v && v.waiting !== 'roam' ? v : null;
+    },
+    roam: (view) => roamPoints(view.world as never, view.content as never),
+    roamScene: (view) => {
+      const v = sceneView(view.world as never, view.content as never);
+      return v?.waiting === 'roam' ? v : null;
+    },
     advance: () => [{ kind: 'scenes.advance', data: {} }],
     choose: (_view, choiceId) => [{ kind: 'scenes.choose', data: { choiceId } }],
     input(_view, text) {

@@ -49,12 +49,40 @@
         "id": "number_board",
         "name": "号码板",
         "kind": "object",
-        "x": 14,
+        "x": 22,
         "y": 13,
-        "w": 4,
+        "w": 3,
         "h": 1
       },
       { "id": "curtain", "name": "帘幕", "kind": "gate", "x": 11, "y": 12, "w": 10, "h": 1 },
+      {
+        "id": "curtain_near",
+        "name": "帘幕前",
+        "kind": "stage",
+        "x": 11,
+        "y": 13,
+        "w": 10,
+        "h": 1
+      },
+      {
+        "id": "curtain_mid",
+        "name": "帘幕前三步",
+        "kind": "stage",
+        "x": 12,
+        "y": 14,
+        "w": 9,
+        "h": 3
+      },
+      {
+        "id": "neighbor_wall",
+        "name": "隔壁的墙",
+        "kind": "object",
+        "x": 5,
+        "y": 14,
+        "w": 1,
+        "h": 3
+      },
+      { "id": "door_trace", "name": "门痕", "kind": "object", "x": 15, "y": 18, "w": 2, "h": 1 },
       {
         "id": "interview_hall",
         "name": "面试厅",
@@ -89,6 +117,17 @@
     ],
     "spawns": [],
     "exits": [],
+    "switches": [
+      {
+        "id": "curtain_closed",
+        "x": 11,
+        "y": 12,
+        "w": 10,
+        "h": 1,
+        "closedTile": "wall",
+        "openWhen": "quest.q_p_m02_antechamber != active"
+      }
+    ],
     "decor": [{ "kind": "bench", "x": 7.5, "y": 16.5 }, { "kind": "bench", "x": 10.5, "y": 16.5 }]
   },
   {
@@ -270,6 +309,7 @@
         "h": 1,
         "tags": ["door_corner:3"]
       },
+      { "id": "front_glass", "name": "玻璃门", "kind": "object", "x": 11, "y": 9, "w": 3, "h": 1 },
       { "id": "sidewalk", "name": "门外人行道", "kind": "road", "x": 0, "y": 11, "w": 16, "h": 1 }
     ],
     "spawns": [],

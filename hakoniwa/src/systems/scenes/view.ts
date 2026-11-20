@@ -36,6 +36,10 @@ export interface SceneViewChoice {
   key?: string;
   /** seconds after which the runner picks it */
   timeout?: number;
+  /** a roam node's touch point: its location on the roam map (onboarding_interaction.md 5) */
+  at?: string;
+  /** a roam node's standing choice: never picked by hand */
+  stand?: boolean;
 }
 
 export interface SceneView {
@@ -92,7 +96,7 @@ export function sceneView(
   if (!scene || !node) return null;
   const resolve = worldResolver(world, aiEnabled);
   let choices: SceneView['choices'] = [];
-  if (run.waiting === 'choice') {
+  if (run.waiting === 'choice' || run.waiting === 'roam') {
     choices = openChoices(node, run.picked, (expr) => evaluate(expr, resolve)).map((c) => ({
       id: c.id,
       label: c.label,
@@ -101,6 +105,8 @@ export function sceneView(
       ...(c.hidden ? { hidden: true } : {}),
       ...(c.key ? { key: c.key } : {}),
       ...(c.timeout !== undefined ? { timeout: c.timeout } : {}),
+      ...(c.at ? { at: c.at } : {}),
+      ...(c.stand ? { stand: true } : {}),
     }));
     // the held pieces of an act-1 trial, offered first (PK-M1-55; tut_a1_present)
     const trial = trialOf(content, node);

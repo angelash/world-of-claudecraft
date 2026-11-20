@@ -4,6 +4,7 @@
   "sys.scenes.reject.waiting": "需要先作出选择",
   "sys.scenes.reject.no_choice": "这里不需要选择",
   "sys.scenes.reject.no_option": "没有这个选项",
+  "sys.scenes.reject.out_of_reach": "离得太远了，走近一点",
   "sys.scenes.reject.no_court": "这里不是审庭",
   "sys.scenes.reject.limit": "这一轮能出示的证据已经用完",
   "sys.scenes.reject.no_evidence": "你手里没有这件证据，或已经出示过了",

@@ -84,6 +84,11 @@ export interface StoryInput {
   held?: boolean;
   /** the world's flags (the prologue's door counter and eavesdrop level, PK-M1-54) */
   flags?: Readonly<Record<string, FlagValue>>;
+  /**
+   * A roam node of the scene now playing (onboarding_interaction.md 5.3), when `scene` is null
+   * because the player walks: no panel, but the run's stage and music stay.
+   */
+  roam?: SceneView | null;
 }
 
 export interface SummaryModel {
@@ -307,6 +312,7 @@ export class StoryController {
     this.lastScene = v;
     this.lastTalkView = v ? null : i.conversation;
     if (v) return this.sceneFrame(i, v);
+    if (i.roam) return this.roamFrame(i, i.roam);
     this.endScene();
     if (i.conversation) return this.talkFrame(i, i.conversation);
     if (i.loose) return this.looseFrame(i, i.loose);
@@ -347,6 +353,41 @@ export class StoryController {
       this.hidden = false;
       this.audio.release();
     }
+  }
+
+  /**
+   * A roam node (onboarding_interaction.md 5.3): the player walks, so there is no panel and the
+   * camera is the player's own, but the run goes on: its light, weather, music and listening
+   * stay, and the roam node's own sound directives play once each time the run comes back to it.
+   */
+  private roamFrame(i: StoryInput, v: SceneView): StoryFrame {
+    const run = `${v.sceneId}#${v.runId}`;
+    if (run !== this.sceneId) {
+      // a run that opens on a roam node starts its stage here
+      if (this.sceneId) this.audio.release();
+      this.sceneId = run;
+      this.stage = emptyStage();
+      this.stageKey = '';
+      this.sceneReader.reset();
+    }
+    const nodeKey = `${v.sceneId}/${v.nodeId}`;
+    if (nodeKey !== this.stageKey) {
+      this.stageKey = nodeKey;
+      const entered = enterNode(this.stage, this.stageTimeline.begin(v.stage), i.now, i.calm);
+      // the player walks: the camera is theirs until the next node frames a shot again
+      this.stage = { ...entered.state, camera: null };
+      playAudio(this.audio, entered.audio);
+    }
+    this.backlogOpen = false;
+    return {
+      mode: 'none',
+      cutscene: null,
+      dialogue: null,
+      summary: this.summaryModel(),
+      backlog: null,
+      audio: cutsceneDirectorInput(true, this.stage, i.now),
+      listen: null,
+    };
   }
 
   private summaryModel(): SummaryModel | null {

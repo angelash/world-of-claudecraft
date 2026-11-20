@@ -1,0 +1,14 @@
+/* The prologue opens only the interaction prompt (drawn in the world) and the hint bar
+   (ux_and_onboarding.md 1.5): the field HUD and the notifications (act 1 opens them) stay
+   hidden while the player walks its rooms. */
+.hk-hud.hk-act-prologue .hk-hud-tl,
+.hk-hud.hk-act-prologue .hk-hud-tr,
+.hk-hud.hk-act-prologue .hk-hud-bl,
+.hk-hud.hk-act-prologue .hk-hud-br,
+.hk-hud.hk-act-prologue .hk-hud-bc > .hk-hotbar,
+.hk-hud.hk-act-prologue .hk-hud-bc > .hk-notify-light,
+.hk-hud.hk-act-prologue .hk-hud-bc > .hk-auto-combat,
+.hk-hud.hk-act-prologue > .hk-notify-top,
+.hk-hud.hk-act-prologue > .hk-notify-stack {
+  visibility: hidden;
+}

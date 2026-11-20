@@ -1299,6 +1299,7 @@ export type TextKey =
   | 'sys.scenes.reject.no_scene.idle'
   | 'sys.scenes.reject.no_scene.missing'
   | 'sys.scenes.reject.no_ui'
+  | 'sys.scenes.reject.out_of_reach'
   | 'sys.scenes.reject.stale'
   | 'sys.scenes.reject.waiting'
   | 'sys.scenes.trial.landed'
@@ -2066,6 +2067,7 @@ export type TextKey =
   | 'ui.hud.prompt.exit'
   | 'ui.hud.prompt.exit_locked'
   | 'ui.hud.prompt.exit_many'
+  | 'ui.hud.prompt.roam'
   | 'ui.hud.prompt.talk'
   | 'ui.hud.target.appraisal'
   | 'ui.hud.target.candidate'
@@ -3906,5 +3908,5 @@ export type TextKey =
   | 'ui.win.trade.title'
   | 'ui.win.trade.wares';
 
-/** Number of keys in TextKey (3902). */
-export const TEXT_KEY_COUNT = 3902;
+/** Number of keys in TextKey (3904). */
+export const TEXT_KEY_COUNT = 3904;

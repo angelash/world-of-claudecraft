@@ -14,6 +14,7 @@
   "ui.hud.dungeon.state_mortal.normal": "平静",
   "ui.hud.dungeon.state_mortal.overflow": "漫出来了",
   "ui.hud.dungeon.state_mortal.purifying": "正在清洗",
+  "ui.hud.prompt.roam": "{key:field.interact} {label}",
   "ui.win.beasts.dismount": "下马",
   "ui.win.beasts.guarding": "守着遗落的包",
   "ui.win.beasts.hp": "生命 {hp} / {max}",

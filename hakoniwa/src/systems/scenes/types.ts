@@ -48,6 +48,17 @@ export interface SceneChoice {
   key?: string;
   /** Not listed among the numbered choices (a keyed or timed choice); the kernel accepts it. */
   hidden?: boolean;
+  /**
+   * On a roam node (onboarding_interaction.md 5): the location on the roam map this touch point
+   * stands at. The player picks it with the interact key within ROAM_REACH of the location;
+   * a roam choice without `at` is an action usable anywhere.
+   */
+  at?: string;
+  /**
+   * On a roam node: a standing choice. The player cannot pick it; when the node's timed choice
+   * runs out while the player stands inside `at`, the first such choice is taken instead.
+   */
+  stand?: boolean;
 }
 
 /** Free text from the player (player.said); the model may answer, a written reply is the fallback. */
@@ -339,6 +350,11 @@ export interface SceneNode {
   present?: TrialSpec;
   /** assemble and show the epilogue for the current ending */
   epilogue?: boolean;
+  /**
+   * A roam node (onboarding_interaction.md 5): its choices are touch points on this stage map,
+   * the run waits in 'roam' and the player walks about; written without lines.
+   */
+  roam?: SceneRoam;
   next?: string;
   /** ends the scene after this node (also implied when there is no next) */
   end?: boolean;
@@ -563,8 +579,16 @@ export interface EpilogueEntry {
   weight?: number;
 }
 
-/** 'ui': an interface of a `ui` effect is open; the run goes on when the client closes it. */
-export type SceneWait = 'advance' | 'choice' | 'input' | 'resolve' | 'court' | 'ui';
+/** The map a roam node lets the player walk about (onboarding_interaction.md 5.1). */
+export interface SceneRoam {
+  mapId: string;
+}
+
+/**
+ * 'ui': an interface of a `ui` effect is open; the run goes on when the client closes it.
+ * 'roam': a roam node is open; the player walks and picks touch points (roam.ts).
+ */
+export type SceneWait = 'advance' | 'choice' | 'input' | 'resolve' | 'court' | 'ui' | 'roam';
 
 /** A line as shown (speaker name already resolved). */
 export interface ShownLine {

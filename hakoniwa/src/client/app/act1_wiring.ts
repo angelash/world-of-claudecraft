@@ -265,6 +265,7 @@ export class Act1Wiring {
     return this.story.update({
       act,
       waiting: sv?.waiting ?? null,
+      sceneId: sv?.sceneId,
       choiceIds: sv?.choices.filter((c) => !c.hidden).map((c) => c.id) ?? [],
       keyed: !!sv?.choices.some((c) => !!c.key),
       keyChoice: !!sv?.choices.some((c) => !!c.confirm),

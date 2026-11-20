@@ -56,7 +56,7 @@ import {
   sceneView,
 } from '../src/systems/scenes';
 import { playerEntity } from '../src/systems/world';
-import { NARRATIVE_SYSTEMS, narrativeGame } from './narrative_harness';
+import { NARRATIVE_SYSTEMS, narrativeGame, roamTo } from './narrative_harness';
 
 setTextLanguage('zh-Hans');
 
@@ -73,6 +73,8 @@ function seeded(seed: number): () => number {
 function play(g: Engine, picks: string[]): void {
   for (const p of picks) {
     if (p === '+') g.queue('scenes.advance', {});
+    // a roam node's touch point or stance (onboarding_interaction.md 5): walk there first
+    else if (sceneView(g.world, g.content)?.waiting === 'roam') roamTo(g, p);
     else g.queue('scenes.choose', { choiceId: p });
     g.step(1);
   }
@@ -190,19 +192,22 @@ describe('P5: eavesdropping by distance', () => {
   });
 
   it('hands the tier of the chosen stance to the audio through the story frame, and clears it after', () => {
+    // a cough plays first and drops one tier: from three steps to far, from the curtain to middle
     for (const [stance, tier] of [
       ['bench', 'far'],
       ['step', 'mid'],
       ['press', 'near'],
-      ['cough', 'mid'],
+      ['cough', 'far'],
+      ['cough_near', 'mid'],
     ] as const) {
       const g = narrativeGame({ stub: false });
       g.step(1);
       jump(g, 'cut_p_door_white', 'n3_check');
       g.world.meta.flags.p_heard_neighbors = true;
-      // n3_check ends the door scene; the quarrel follows and opens on the stance
+      // n3_check ends the door scene; the quarrel follows: two lines, then the stance (roam)
       g.queue('scenes.advance', {});
       g.step(1);
+      play(g, ['+']);
       const c = new StoryController(
         { advanceScene: () => {}, advanceLoose: () => {} },
         {
@@ -237,6 +242,12 @@ describe('P5: eavesdropping by distance', () => {
       expect(view(g).nodeId).toBe('n4_stance');
       expect(c.frame(input(0)).listen).toBeNull();
       play(g, [stance]);
+      if (stance.startsWith('cough')) {
+        // the cough answers at once, before the first segment
+        expect(view(g).nodeId).toBe('n4_cough');
+        c.frame(input(5));
+        play(g, ['+']);
+      }
       const f = c.frame(input(10));
       expect(view(g).nodeId).toBe('n4_s1');
       expect(f.listen).toBe(tier);
@@ -246,12 +257,12 @@ describe('P5: eavesdropping by distance', () => {
       for (const l of voices) expect(l.muffled).toBe(tier === 'far');
       // through the five segments to the call: the cough drops the tier, then listening ends
       const tiers: (string | null)[] = [];
-      for (let i = 0; i < 12 && view(g).nodeId !== 'n5_call'; i++) {
-        play(g, ['+']);
+      for (let i = 0; i < 20 && view(g).nodeId !== 'n5_call'; i++) {
+        // a close listener keeps listening at each pause between segments
+        play(g, [view(g).waiting === 'choice' ? 'stay' : '+']);
         tiers.push(c.frame(input(20 + i)).listen);
       }
-      if (stance === 'cough') expect(tiers[1]).toBe('far');
-      else expect(tiers.slice(0, -1).every((x) => x === tier)).toBe(true);
+      expect(tiers.slice(0, -1).every((x) => x === tier)).toBe(true);
       expect(view(g).nodeId).toBe('n5_call');
       expect(c.frame(input(100)).listen).toBeNull();
     }

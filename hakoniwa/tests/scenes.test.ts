@@ -26,6 +26,7 @@ import {
   playScene,
   playThrough,
   recordLines,
+  roamTo,
 } from './narrative_harness';
 
 const ANCHORS: [string, string][] = [
@@ -144,6 +145,7 @@ describe('prologue', () => {
         g.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });
       else if (v.waiting === 'choice')
         g.queue('scenes.choose', { choiceId: v.choices[0]?.id ?? '' });
+      else if (v.waiting === 'roam') roamTo(g, v.choices[0]?.id ?? '');
       else g.queue('scenes.advance', {});
       g.step(1);
     }
@@ -337,6 +339,7 @@ describe('scene engine', () => {
         const free = v.choices.find((c) => c.id === 'free');
         original.queue('scenes.choose', { choiceId: (free ?? v.choices[0])?.id ?? '' });
       } else if (v?.waiting === 'input') original.queue('scenes.input', { text: '我想想。' });
+      else if (v?.waiting === 'roam') roamTo(original, v.choices[0]?.id ?? '');
       else if (v?.waiting === 'advance') original.queue('scenes.advance', {});
       else if (v?.waiting === 'ui' && v.ui)
         original.queue('scenes.ui_done', { runId: v.runId, revision: v.revision, ui: v.ui });

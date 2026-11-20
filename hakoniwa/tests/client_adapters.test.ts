@@ -22,6 +22,7 @@ import { createGameCommands, createGameView, type GameView } from '../src/client
 import type { AnyWorldEvent, EventKind, EventMap } from '../src/core/contracts';
 import type { Engine } from '../src/core/engine';
 import { createGame } from '../src/game/create';
+import { nearestWalkable } from '../src/systems/world';
 
 // {key:} placeholders render with the default key-mouse bindings (the client installs the
 // live resolver; ux_and_onboarding.md 16.6 rule 6)
@@ -50,12 +51,47 @@ function start(seed = 20261115): Run {
   };
 }
 
+/**
+ * On a roam node: walk (click-to-move) to the nearest touch point and use it with the interact
+ * key, else wait for the node's timer (the stance, a point out of reach).
+ */
+function walkToRoamPoint(r: Run): void {
+  const point = r.a.scene?.roam?.(r.view).find((p) => !p.stand);
+  const me = r.view.player();
+  if (point?.location && me && !point.inReach) {
+    const map = r.view.currentMap();
+    const floor = map ? nearestWalkable(map, point.x, point.y) : null;
+    r.queue([
+      {
+        kind: 'world.move_to',
+        data: { entityId: me.id, x: floor?.x ?? point.x, y: floor?.y ?? point.y },
+      },
+    ]);
+    for (
+      let k = 0;
+      k < 200 && !r.a.scene?.roam?.(r.view).find((p) => p.id === point.id)?.inReach;
+      k++
+    )
+      r.engine.step(1);
+  }
+  const cmds = point ? r.a.interact?.interact(r.view, null) : null;
+  if (cmds) r.queue(cmds);
+  r.engine.step(2);
+}
+
 /** Play the current scenes the way a player would: first choice, a name, advance. */
 function playScenes(r: Run, name: string, maxSteps = 1200): string[] {
   const seen: string[] = [];
   for (let i = 0; i < maxSteps; i++) {
     const sv = r.a.scene?.scene(r.view);
-    if (!sv) break;
+    if (!sv) {
+      // a roam node (onboarding_interaction.md 5.3): walk to the first touch point, press E
+      const roam = r.a.scene?.roamScene?.(r.view);
+      if (!roam) break;
+      seen.push(`${roam.sceneId}/${roam.nodeId}`);
+      walkToRoamPoint(r);
+      continue;
+    }
     const m = scenePanelModel(sv);
     seen.push(`${sv.sceneId}/${sv.nodeId}`);
     if (sv.waiting === 'ui' && sv.ui)
