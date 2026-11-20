@@ -721,9 +721,9 @@
         }
       },
       "motion": [
-        "The sleeping worker stirs on the cold stone; their fingers twitch.",
-        "The worker pushes themself up slowly onto one arm, shaking their head.",
-        "The worker sits up and looks around the round hall; the brazier flames lean in a draft."
+        "The sleeping worker stirs on the cold stone; their fingers twitch. Nobody else is in the hall: no other people or figures appear at any moment.",
+        "The worker pushes themself up slowly onto one arm, shaking their head. Nobody else is in the hall: no other people or figures appear at any moment.",
+        "The worker sits up and looks around the round hall; the brazier flames lean in a draft. Nobody else is in the hall: no other people or figures appear at any moment."
       ]
     },
     {
@@ -742,8 +742,8 @@
         }
       },
       "motion": [
-        "The raven tilts its head and watches the figure below; its eye glints.",
-        "The raven spreads its wings and caws silently, feathers ruffling in the wind."
+        "The raven tilts its head and looks down into the empty hall; its eye glints. Nobody else is in the hall: no other people or figures appear at any moment.",
+        "The raven spreads its wings, feathers ruffling in the wind from the doorway. Nobody else is in the hall: no other people or figures appear at any moment."
       ]
     },
     {

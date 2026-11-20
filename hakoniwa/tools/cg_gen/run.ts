@@ -332,40 +332,57 @@ function subtitles(shots: Placed[], placed: PlacedSegment[], file: string): bool
   return true;
 }
 
+/** Frames over which a continuing segment eases in from the frame the run last showed. */
+export const JOIN_EASE_FRAMES = 8;
+
 /**
- * Join the segments of a run into one silent master (a continuing segment drops frame 0). A
- * trimmed part is named after the take it came from, so a re-rendered segment never reuses
- * the part of the old take.
+ * Join the segments of a run into one silent master. A continuing segment drops its frame 0
+ * and eases in from the previous segment's last frame over JOIN_EASE_FRAMES: the model does
+ * not reproduce the frame it was given exactly (a tone shift, a detail redrawn), and the ease
+ * hides that step. A part is named after the take it came from, so a re-rendered segment
+ * never reuses the part of the old take.
  */
 function joinSegments(state: State, placed: PlacedSegment[], dir: string, out: string): void {
   mkdirSync(dir, { recursive: true });
   const list: string[] = [];
-  for (const p of placed) {
+  placed.forEach((p, i) => {
     const seg = state.segments[p.key];
     if (!seg) throw new Error(`segment ${p.key} is not rendered`);
     const take = basename(seg.video).replace(/\.[^.]+$/, '');
-    const part = join(dir, `${fileKey(p.key)}__${take}${p.drops ? '_t' : ''}.mp4`);
-    if (!existsSync(part))
+    const suffix = p.drops ? `_e${JOIN_EASE_FRAMES}` : '';
+    const part = join(dir, `${fileKey(p.key)}__${take}${suffix}.mp4`);
+    const encode = ['-an', '-c:v', 'libx264', '-crf', '10', '-preset', 'medium'];
+    encode.push('-pix_fmt', 'yuv420p', '-r', String(FPS), part);
+    if (existsSync(part)) {
+      // made before
+    } else if (!p.drops) {
+      ff(['-i', seg.video, '-vf', 'setpts=PTS-STARTPTS', ...encode]);
+    } else {
+      const prev = state.segments[placed[i - 1].key];
+      if (!prev) throw new Error(`segment ${placed[i - 1].key} is not rendered`);
+      const k = JOIN_EASE_FRAMES + 1;
+      const graph =
+        `[1:v]trim=start_frame=1,setpts=PTS-STARTPTS,format=yuv420p[b];` +
+        `[0:v][b]scale2ref[a][b2];[a]format=yuv420p,setpts=PTS-STARTPTS[a2];` +
+        `[a2][b2]blend=all_expr='A*max(0\\,1-(N+1)/${k})+B*min(1\\,(N+1)/${k})':shortest=1[v]`;
       ff([
+        '-loop',
+        '1',
+        '-framerate',
+        String(FPS),
+        '-i',
+        prev.last,
         '-i',
         seg.video,
-        '-vf',
-        p.drops ? 'trim=start_frame=1,setpts=PTS-STARTPTS' : 'setpts=PTS-STARTPTS',
-        '-an',
-        '-c:v',
-        'libx264',
-        '-crf',
-        '10',
-        '-preset',
-        'medium',
-        '-pix_fmt',
-        'yuv420p',
-        '-r',
-        String(FPS),
-        part,
+        '-filter_complex',
+        graph,
+        '-map',
+        '[v]',
+        ...encode,
       ]);
+    }
     list.push(`file '${part.replace(/\\/g, '/')}'`);
-  }
+  });
   const listFile = join(
     dir,
     `list_${placed[0].key}_${placed[placed.length - 1].key}.txt`.replace(/#/g, '_'),
