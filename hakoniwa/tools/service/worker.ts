@@ -19,6 +19,7 @@ const server = await createServer({
     port,
     strictPort: true,
     hmr: false,
+    watch: null,
     fs: { deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.local/**'] },
   },
 });
