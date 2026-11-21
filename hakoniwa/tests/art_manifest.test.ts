@@ -75,7 +75,7 @@ describe('tools.json', () => {
   it('accepts a complete tool and flags missing or wrong fields', () => {
     expect(validateTools([TOOL])).toEqual([]);
     const bad = validateTools([
-      { ...TOOL, commercialUse: 'yes', kind: 'video', termsCheckedAt: 'soon' },
+      { ...TOOL, commercialUse: 'yes', kind: 'sculpture', termsCheckedAt: 'soon' },
       { id: 'xiaojiu' },
     ]);
     expect(bad.join('\n')).toMatch(/commercialUse/);

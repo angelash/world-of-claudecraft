@@ -44,5 +44,31 @@
     "outputRights": "The user confirmed on 2026-11-18 that 小九 AI image output may be used commercially (U-03); the terms excerpt, rights holder and attribution rule are not recorded yet (PK-M0-05 12.1).",
     "aigcLabel": "小九 AI (gpt-image-2) writes a C2PA manifest into the PNG (caBX chunk, urn:c2pa:<id>); the asset tools do not read caBX yet, so records say none (PK-M0-11 A2).",
     "kind": "image"
+  },
+  {
+    "id": "flux2_klein_4b",
+    "name": "FLUX.2 [klein] 4B (local ComfyUI)",
+    "usedVersions": [
+      "flux-2-klein-4b (Comfy-Org/Flux-2-Klein-4B) with qwen_3_4b_fp8_mixed and flux2-vae, ComfyUI 0.34.0"
+    ],
+    "termsUrl": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+    "termsCheckedAt": "2026-11-21",
+    "commercialUse": true,
+    "outputRights": "The 4B weights are Apache 2.0 (the 9B variant is non-commercial and is not used). Generated locally, no service terms apply.",
+    "aigcLabel": "Local generation writes no implicit label; CG keyframes stay in .local/cg_gen and each one is traced by assets/cg/records/<board>.json.",
+    "kind": "image"
+  },
+  {
+    "id": "minimax_h3",
+    "name": "MiniMax H3 FL2VA (local ComfyUI)",
+    "usedVersions": [
+      "minimax_h3_fl2va_pruned_int8_convrot with minimax_h3_fl2v_turbo_8step_v1.0, qwen3vl_32b_minimax_h3_nvfp4_awq and the INT8 video VAE, ComfyUI 0.34.0"
+    ],
+    "termsUrl": "https://design.minimax.io/h3",
+    "termsCheckedAt": "2026-11-21",
+    "commercialUse": false,
+    "outputRights": "MiniMax H3 Community License: royalty-free commercial use below USD 20M yearly revenue, the product must display \"MiniMax H3\", the acceptable use policy applies and outputs may not be used to distill other models; reports say the US, EU, UK and South Korea are outside the licensed territory. Held at false until the user reads the license text (U-41); only development builds play its videos.",
+    "aigcLabel": "Local generation writes no implicit label; every take is traced by assets/cg/records/<board>.json.",
+    "kind": "video"
   }
 ]

@@ -6,7 +6,7 @@
 // work and everything that depends on it from that file, so an interrupted redo resumes too.
 //
 //   npm run cg -- <command> assets/cg/storyboards/<board>.json [flags]
-//   commands: keyframes | render | sheet | assemble | adopt <cg> | all
+//   commands: keyframes | render | sheet | assemble | adopt <cg> | seams | archive | all
 //   flags: --only <cg or reel>[,...]   only the shots of these cuts (and the keyframes they edit)
 //          --redo <key>[,...]          redraw a keyframe `<shot>@<n>` or re-render a segment `<shot>#<n>`
 //          --reroll <key>[,...]        the same with a new seed (another take)
@@ -14,12 +14,22 @@
 //          --pixel  --no-music  --no-captions   finishing options of the review cuts
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { ffmpegPath } from '../assets/ffmpeg';
-import { keyframeGraph, runGraph, segmentGraph, stageImage } from './comfy';
+import { keyframeGraph, runGraph, segmentGraph, stageImage, VIDEO_MODELS } from './comfy';
+import { type CutOutput, generationRecord } from './records';
+import {
+  frameDiffs,
+  SEAM_LIMIT,
+  SEAM_MIN_STEP,
+  type SeamReading,
+  seamReadings,
+  seamVisible,
+} from './seams';
 import {
   FPS,
   type FrameRef,
@@ -529,6 +539,145 @@ function cutShots(board: Storyboard, cutId: string): Shot[] {
   return cut.shots.map((id) => shotOf(board, id));
 }
 
+/** The joined master of the whole film (assemble writes it). */
+function filmMaster(board: Storyboard): string {
+  const ids = board.shots.map((s) => s.id);
+  return join(workDir(board), 'joined', `master_${ids[0]}_${ids[ids.length - 1]}.mp4`);
+}
+
+/** Every join of the whole film measured against the motion around it. */
+function measureSeams(board: Storyboard): SeamReading[] | null {
+  const master = filmMaster(board);
+  if (!existsSync(master)) return null;
+  const w = 64;
+  const h = 36;
+  const r = spawnSync(
+    FFMPEG,
+    ['-v', 'error', '-i', master, '-vf', `scale=${w}:${h},format=gray`, '-f', 'rawvideo', '-'],
+    { maxBuffer: 1 << 30 },
+  );
+  if (r.status !== 0) throw new Error(`ffmpeg could not decode ${master}`);
+  const diffs = frameDiffs(new Uint8Array(r.stdout), w * h);
+  const joins = placeSegments(board)
+    .filter((p) => p.drops)
+    .map((p) => p.start);
+  return seamReadings(diffs, joins);
+}
+
+function sha256(path: string): string {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
+/** Every finished cut of the board, where assemble writes it. */
+function cutOutputs(board: Storyboard): CutOutput[] {
+  const pool = join(ROOT, 'assets/_candidates/video');
+  const all = board.shots.map((s) => s.id);
+  const out: CutOutput[] = [
+    { id: board.id, kind: 'film', path: join(pool, board.id, `${board.id}.mp4`), shots: all },
+  ];
+  for (const r of board.reels ?? [])
+    out.push({ id: r.id, kind: 'reel', path: join(pool, board.id, `${r.id}.mp4`), shots: r.shots });
+  for (const c of board.cgs ?? []) {
+    out.push({ id: c.id, kind: 'cg', path: join(pool, c.id, `${c.id}.mp4`), shots: c.shots });
+    out.push({
+      id: `${c.id}_review`,
+      kind: 'cg_review',
+      path: join(pool, c.id, `${c.id}_review.mp4`),
+      shots: c.shots,
+    });
+  }
+  return out;
+}
+
+/** The record of what was sent and made (assets/cg/records/<board>.json). */
+function archive(board: Storyboard, state: State, recordedAt: string): string {
+  const dir = workDir(board);
+  const prompt = (key: string): string | null => {
+    const file = key.includes('@')
+      ? join(dir, 'keyframes', '_raw', fileKey(key), 'prompt.txt')
+      : join(dir, 'segments', fileKey(key), 'prompt.txt');
+    return existsSync(file) ? readFileSync(file, 'utf8').trim() : null;
+  };
+  const record = generationRecord(
+    board,
+    state,
+    {
+      prompt,
+      file: (path) =>
+        existsSync(path) ? { sha256: sha256(path), bytes: statSync(path).size } : null,
+      show: (path) => relative(ROOT, path).replace(/\\/g, '/'),
+    },
+    {
+      recordedAt,
+      models: {
+        keyframes: {
+          model: VIDEO_MODELS.klein,
+          encoder: VIDEO_MODELS.kleinEncoder,
+          vae: VIDEO_MODELS.kleinVae,
+          steps: 4,
+          sampler: 'euler',
+          scheduler: 'Flux2Scheduler',
+          size: board.keyframeSize,
+          template: 'assets/prompts/templates.json bg_cg',
+        },
+        segments: {
+          model: VIDEO_MODELS.h3Unet,
+          lora: VIDEO_MODELS.h3Turbo,
+          encoder: VIDEO_MODELS.h3Encoder,
+          vae: VIDEO_MODELS.h3Vae,
+          steps: 8,
+          sampler: 'res_multistep',
+          scheduler: 'simple',
+          frames: SEGMENT_FRAMES,
+          fps: FPS,
+          size: board.size,
+          joinEaseFrames: JOIN_EASE_FRAMES,
+        },
+      },
+      outputs: cutOutputs(board),
+      seams: measureSeams(board),
+      seamLimit: SEAM_LIMIT,
+    },
+  );
+  const out = join(ROOT, 'assets/cg/records', `${board.id}.json`);
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, `${JSON.stringify(record, null, 2)}\n`);
+  return out;
+}
+
+/** One still per shot (its opening frame), for the design doc. */
+async function shotSheet(board: Storyboard, state: State, out: string): Promise<void> {
+  const tiles: string[] = [];
+  for (const shot of board.shots) {
+    const k0 = state.keyframes[`${shot.id}@0`];
+    const seg = state.segments[`${shot.id}#0`];
+    const file = k0?.file ?? seg?.last;
+    if (file) tiles.push(file);
+  }
+  const tw = 240;
+  const th = 135;
+  const cols = 6;
+  const composites: { input: Buffer; left: number; top: number }[] = [];
+  for (let i = 0; i < tiles.length; i++)
+    composites.push({
+      input: await sharp(tiles[i]).resize(tw, th).png().toBuffer(),
+      left: (i % cols) * tw,
+      top: Math.floor(i / cols) * th,
+    });
+  mkdirSync(dirname(out), { recursive: true });
+  await sharp({
+    create: {
+      width: cols * tw,
+      height: Math.ceil(tiles.length / cols) * th,
+      channels: 3,
+      background: '#101418',
+    },
+  })
+    .composite(composites)
+    .jpeg({ quality: 82 })
+    .toFile(out);
+}
+
 async function main(): Promise<void> {
   const [cmd, file, extra] = process.argv.slice(2);
   const flag = (name: string) => process.argv.includes(`--${name}`);
@@ -537,7 +686,9 @@ async function main(): Promise<void> {
     return (i >= 0 ? (process.argv[i + 1] ?? '') : '').split(',').filter(Boolean);
   };
   if (!cmd || !file)
-    throw new Error('usage: run.ts <keyframes|render|sheet|assemble|adopt|all> <board.json>');
+    throw new Error(
+      'usage: run.ts <keyframes|render|sheet|assemble|adopt|seams|archive|all> <board.json>',
+    );
   const board = loadBoard(file);
   const state = loadState(board);
   applyRedo(board, state, list('redo'), list('reroll'));
@@ -584,6 +735,32 @@ async function main(): Promise<void> {
       const secs = finish(board, state, shots, join(outDir, `${reel.id}.mp4`), opts);
       console.log(`reel ${reel.id} ${secs.toFixed(1)} s`);
     }
+  }
+  if (cmd === 'seams') {
+    const readings = measureSeams(board);
+    if (!readings) throw new Error('the film is not assembled');
+    const over = readings.filter(seamVisible);
+    const at = new Map(placeSegments(board).map((p) => [p.start, p.key]));
+    for (const s of over)
+      console.log(
+        `  visible at frame ${s.frame} (${at.get(s.frame)}): step ${s.step.toFixed(2)}, ${s.ratio.toFixed(1)}x`,
+      );
+    const worst = [...readings].sort((a, b) => b.ratio - a.ratio).slice(0, 5);
+    console.log(
+      `${readings.length} joins, ${over.length} visible (over ${SEAM_LIMIT}x the local motion and ${SEAM_MIN_STEP} gray levels)`,
+    );
+    for (const s of worst)
+      console.log(
+        `  frame ${s.frame}: step ${s.step.toFixed(2)}, local ${s.local.toFixed(2)}, ${s.ratio.toFixed(1)}x`,
+      );
+    if (over.length) process.exitCode = 2;
+  }
+  if (cmd === 'archive') {
+    const day = list('date')[0] ?? new Date().toISOString().slice(0, 10);
+    console.log(`record ${archive(board, state, day)}`);
+    const sheetOut = join(ROOT, 'docs/screenshots', `cg_${board.id}_shots.jpg`);
+    await shotSheet(board, state, sheetOut);
+    console.log(`shots ${sheetOut}`);
   }
   if (cmd === 'adopt') {
     if (!extra) throw new Error('adopt needs a cg id');

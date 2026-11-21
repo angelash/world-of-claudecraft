@@ -29,6 +29,10 @@ assets/
   audio/<类>/              音频原文件（Git LFS）
   processed/<类>/          美术导入处理结果：PNG 与帧元数据 JSON（入库，体积小）
   processed/audio/<类>/    音频处理结果：ogg 与每个编号一份元数据 JSON（Git LFS）
+  cg/storyboards/<片子>.json  CG 分镜（入库，第 3.5 节）
+  cg/records/<片子>.json      CG 生成记录：每张关键帧与每段的提示词、种子、条数、用时与文件哈希（入库）
+  cg/media/                CG 游戏内版（采用后，只在本机，开发构建读取）
+  _candidates/video/       CG 成片、切段与游戏内版的候选，只在本机
   _rejected/               淘汰的原文件，只在本机，不入库，批次关闭后删除
 ```
 
@@ -129,7 +133,7 @@ assets/
 | `commercialUse`      | 条款是否允许把生成物用于商业发行；为 `true` 才能采用或登记它的生成物，条款未核实或许可登记未办完时先填 `false` |
 | `outputRights`       | 条款里关于生成物权利归属的摘要（原文摘录加链接）                         |
 | `aigcLabel`          | 工具是否在文件元数据中写入隐式标识，以及标识的格式                       |
-| `kind`               | `image`、`audio` 或 `font`（商店图排版用的字体授权也登记在这里）         |
+| `kind`               | `image`、`audio`、`video` 或 `font`（`video` 是 CG 视频的生成器；商店图排版用的字体授权也登记在这里） |
 
 ### 3.3 状态流转与回收
 
@@ -150,6 +154,15 @@ assets/
 - **未登记的原文件：** 已经放进 `art/`、`audio/` 但没有记录的原文件也列出来，可以预览，但要先用 `npm run assets:register` 登记（生成工具须已登记）才能定状态。
 - **审核记录 `review_log.jsonl`：** 每次采用与决定追加一行（时间、编号、动作、状态、原因码、意见、主审、文件哈希、采用的候选），只追加不改写，入库；审核台右栏按编号显示这条素材的完整记录。
 - **接口：** 审核台经开发服务的 `/api/assets`（列表与覆盖）、`/api/assets/log`、`/api/assets/adopt`、`/api/assets/review` 读写（实现在 `../tools/assets/review/`），只服务本机且拒绝跨源页面；发布版构建扫描禁止出现这些路由。写入先写临时文件再改名，清单仍按编号排序、两格缩进，与命令行写出的一致。
+
+### 3.5 CG 视频
+
+CG 视频不走 `manifest.json` 与素材审核台，按 [../docs/40_design/cg_and_video.md](../docs/40_design/cg_and_video.md) 第 5 节生产：
+
+- **分镜** `cg/storyboards/<片子>.json` 写镜头、关键帧与每段的动作；`npm run cg -- all <分镜>` 在本机 ComfyUI 上画关键帧（`flux2_klein_4b`）、三秒一段接力生成（`minimax_h3`），再拼出成片、评审切段与游戏内版。
+- **记录** `npm run cg -- archive <分镜>` 写 `cg/records/<片子>.json`（每张关键帧与每段实际发出的提示词、种子、条数、首尾帧、用时，每个文件的 SHA-256，全片接缝的读数）与设计文档用的逐镜一图（`../docs/screenshots/cg_<片子>_shots.jpg`）；`npm run cg -- seams <分镜>` 单独复核接缝。
+- **文件** 关键帧与分段在 `../.local/cg_gen/<片子>/`，成片与切段在 `_candidates/video/`，都只在本机；记录里的哈希用来在素材原文件仓库建好（U-35）后对上文件。
+- **采用** `npm run cg -- adopt <分镜> <cg>` 把游戏内版放进 `cg/media/` 并写索引，开发构建读取；`minimax_h3` 的 `commercialUse` 在用户核对许可之前为 `false`（U-41），发行构建不加载视频。
 
 ## 4. 处理结果 `processed/`
 

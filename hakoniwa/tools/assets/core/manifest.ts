@@ -41,7 +41,8 @@ export interface ToolRecord {
   commercialUse: boolean;
   outputRights: string;
   aigcLabel: string;
-  kind: 'image' | 'audio' | 'font';
+  /** `video`: the CG video generators (tools/cg_gen), which no manifest record names */
+  kind: 'image' | 'audio' | 'video' | 'font';
 }
 
 /** What the prompt library expects for one id (tools/prompts/build.ts manifestOf plus style). */
@@ -110,8 +111,8 @@ export function validateTools(tools: unknown): string[] {
       out.push(`${where}: commercialUse must be true or false`);
     if (t.termsCheckedAt && !DATE.test(t.termsCheckedAt))
       out.push(`${where}: termsCheckedAt must be YYYY-MM-DD`);
-    if (!['image', 'audio', 'font'].includes(t.kind as string))
-      out.push(`${where}: kind must be image, audio or font`);
+    if (!['image', 'audio', 'video', 'font'].includes(t.kind as string))
+      out.push(`${where}: kind must be image, audio, video or font`);
   });
   return out;
 }
